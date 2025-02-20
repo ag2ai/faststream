@@ -4,69 +4,89 @@
 
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
-## Virtual Environment with `venv`
+## Install Justfile Utility
 
-Create a virtual environment in a directory using Python's `venv` module:
+Install justfile on your system:
 
 ```bash
-python -m venv venv
+brew install justfile
 ```
 
-That will create a `./venv/` directory with Python binaries, allowing you to install packages in an isolated environment.
+View all available commands:
+
+```bash
+just
+```
+
+## Init development environment
+
+Build Python and create a virtual environment:
+
+```bash
+just init
+```
+
+By default, this builds Python 3.8. If you need another version, pass it as an argument to the just command:
+
+```bash
+just init 3.11.5
+```
+
+To check available Python versions, refer to the pyproject.toml file in the project root.
 
 ## Activate the Environment
 
-Activate the new environment with:
+Activate the new environment with
+
+For Unix-based systems:
 
 ```bash
 source ./venv/bin/activate
 ```
 
-Ensure you have the latest pip version in your virtual environment:
+For Windows (PowerShell):
 
 ```bash
-python -m pip install --upgrade pip
+.\venv\Scripts\Activate.ps1
 ```
 
-## Installing Dependencies
-
-After activating the virtual environment as described above, run:
+Install and configure pre-commit:
 
 ```bash
-pip install -e ".[dev]"
+just pre-commit-install
 ```
 
-This will install all the dependencies and your local **FastStream** in your virtual environment.
+## Run all Dependencies
 
-### Using Your local **FastStream**
-
-If you create a Python file that imports and uses **FastStream**, and run it with the Python from your local environment, it will use your local **FastStream** source code.
-
-Whenever you update your local **FastStream** source code, it will automatically use the latest version when you run your Python file again. This is because it is installed with `-e`.
-
-This way, you don't have to "install" your local version to be able to test every change.
-
-To use your local **FastStream CLI**, type:
+Start all dependencies as docker containers:
 
 ```bash
-python -m faststream ...
+just up
+```
+
+Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
+
+```bash
+just stop
+# or
+just down
 ```
 
 ## Running Tests
 
-### Pytest
-
-To run tests with your current **FastStream** application and Python environment, use:
+To run tests, use:
 
 ```bash
-pytest tests
-# or
-./scripts/test.sh
-# with coverage output
-./scripts/test-cov.sh
+just test
 ```
 
-In your project, you'll find some *pytest marks*:
+To run tests with coverage:
+
+```bash
+just coverage-test
+```
+
+In your project, some tests are grouped under specific pytest marks:
 
 * **slow**
 * **rabbit**
@@ -75,34 +95,40 @@ In your project, you'll find some *pytest marks*:
 * **redis**
 * **all**
 
-By default, running *pytest* will execute "not slow" tests.
-
-To run all tests use:
+By default, will execute "all" tests. You can specify marks to include or exclude tests:
 
 ```bash
-pytest -m 'all'
+just test kafka
+# or
+just test rabbit
+# or
+just test 'not confluent'
+# or
+just test 'not confluent and not nats'
+# or
+just coverage-test kafka
 ```
 
-If you don't have a local broker instance running, you can run tests without those dependencies:
+## Linter
+
+Run all linters:
 
 ```bash
-pytest -m 'not rabbit and not kafka and not nats and not redis and not confluent'
+just linter
 ```
 
-To run tests based on RabbitMQ, Kafka, or other dependencies, the following dependencies are needed to be started as docker containers:
+## Static analysis
 
-```yaml
-{! includes/docker-compose.yaml !}
-```
-
-You can start the dependencies easily using provided script by running:
+Run static analysis tools:
 
 ```bash
-./scripts/start_test_env.sh
+just static-analysis
 ```
 
-Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
+## Pre-commit
+
+Run pre-commit checks:
 
 ```bash
-./scripts/stop_test_env.sh
+just pre-commit
 ```

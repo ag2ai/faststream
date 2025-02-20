@@ -49,3 +49,4 @@ services:
     volumes:
       - ./:/src
     network_mode: "host"
+    tty: true
