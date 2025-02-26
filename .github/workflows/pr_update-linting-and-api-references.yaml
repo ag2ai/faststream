@@ -46,7 +46,7 @@ jobs:
           extra_args: --hook-stage manual --all-files
 
       - name: Run build docs
-        run: bash scripts/build-docs.sh
+      - run: cd docs && python docs.py build
 
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v5
