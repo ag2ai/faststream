@@ -75,7 +75,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh -vv
+          coverage run -m pytest -x --ff -vv
           -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
         env:
           COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
@@ -106,7 +106,7 @@ jobs:
           uv pip install --system .[optionals,testing]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
 
   test-windows-latest:
@@ -127,7 +127,7 @@ jobs:
           uv pip install --system .[optionals,testing]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
 
   test-kafka-smoke:
@@ -148,7 +148,7 @@ jobs:
           uv pip install --system .[kafka,test-core,cli]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "not kafka"
           tests/brokers/kafka/test_test_client.py
 
@@ -190,7 +190,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and kafka) or kafka"
         env:
           COVERAGE_FILE: coverage/.coverage.kafka-py
@@ -221,7 +221,7 @@ jobs:
           uv pip install --system .[confluent,test-core,cli]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "not confluent"
           tests/brokers/confluent/test_test_client.py
 
@@ -263,7 +263,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh -vv
+          coverage run -m pytest -x --ff -vv
           -m "(slow and confluent) or confluent"
         env:
           COVERAGE_FILE: coverage/.coverage.confluent-py
@@ -294,7 +294,7 @@ jobs:
           uv pip install --system .[rabbit,test-core,cli]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "not rabbit"
           tests/brokers/rabbit/test_test_client.py
 
@@ -325,7 +325,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and rabbit) or rabbit"
         env:
           COVERAGE_FILE: coverage/.coverage.rabbit-py
@@ -356,7 +356,7 @@ jobs:
           uv pip install --system .[nats,test-core,cli]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "not nats"
           tests/brokers/nats/test_test_client.py
 
@@ -387,7 +387,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and nats) or nats"
         env:
           COVERAGE_FILE: coverage/.coverage.nats-py
@@ -418,7 +418,7 @@ jobs:
           uv pip install --system .[redis,test-core,cli]
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "not redis"
           tests/brokers/redis/test_test_client.py
 
@@ -449,7 +449,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh
+          coverage run -m pytest -x --ff
           -m "(slow and redis) or redis"
         env:
           COVERAGE_FILE: coverage/.coverage.redis-py
