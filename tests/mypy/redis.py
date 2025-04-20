@@ -1,6 +1,8 @@
 from collections.abc import Awaitable
 from typing import Callable
 
+import prometheus_client
+
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     RedisBroker as Broker,
@@ -10,6 +12,8 @@ from faststream.redis import (
 )
 from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
+from faststream.redis.opentelemetry import RedisTelemetryMiddleware
+from faststream.redis.prometheus import RedisPrometheusMiddleware
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -272,3 +276,13 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = RedisTelemetryMiddleware()
+Broker().add_middleware(otlp_middleware)
+Broker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = RedisPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+Broker().add_middleware(prometheus_middleware)
+Broker(middlewares=[prometheus_middleware])

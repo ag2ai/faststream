@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import anyio
 from typing_extensions import override
@@ -57,12 +57,12 @@ class RedisFastProducer(ProducerProto):
     async def publish(  # type: ignore[override]
         self,
         cmd: "RedisPublishCommand",
-    ) -> int:
+    ) -> Union[int, bytes]:
         msg = RawMessage.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
             headers=cmd.headers,
-            correlation_id=cmd.correlation_id,
+            correlation_id=cmd.correlation_id or "",
         )
 
         return await self.__publish(msg, cmd)
@@ -81,7 +81,7 @@ class RedisFastProducer(ProducerProto):
             message=cmd.body,
             reply_to=reply_to,
             headers=cmd.headers,
-            correlation_id=cmd.correlation_id,
+            correlation_id=cmd.correlation_id or "",
         )
 
         await self.__publish(msg, cmd)
@@ -115,7 +115,7 @@ class RedisFastProducer(ProducerProto):
         batch = [
             RawMessage.encode(
                 message=msg,
-                correlation_id=cmd.correlation_id,
+                correlation_id=cmd.correlation_id or "",
                 reply_to=cmd.reply_to,
                 headers=cmd.headers,
             )
@@ -123,17 +123,24 @@ class RedisFastProducer(ProducerProto):
         ]
         return await self._connection.client.rpush(cmd.destination, *batch)
 
-    async def __publish(self, msg: bytes, cmd: "RedisPublishCommand") -> None:
+    async def __publish(
+        self, msg: bytes, cmd: "RedisPublishCommand"
+    ) -> Union[int, bytes]:
         if cmd.destination_type is DestinationType.Channel:
-            await self._connection.client.publish(cmd.destination, msg)
-        elif cmd.destination_type is DestinationType.List:
-            await self._connection.client.rpush(cmd.destination, msg)
-        elif cmd.destination_type is DestinationType.Stream:
-            await self._connection.client.xadd(
-                name=cmd.destination,
-                fields={DATA_KEY: msg},
-                maxlen=cmd.maxlen,
+            return await self._connection.client.publish(cmd.destination, msg)
+
+        if cmd.destination_type is DestinationType.List:
+            return await self._connection.client.rpush(cmd.destination, msg)
+
+        if cmd.destination_type is DestinationType.Stream:
+            return cast(
+                "bytes",
+                await self._connection.client.xadd(
+                    name=cmd.destination,
+                    fields={DATA_KEY: msg},
+                    maxlen=cmd.maxlen,
+                ),
             )
-        else:
-            error_msg = "unreachable"
-            raise AssertionError(error_msg)
+
+        error_msg = "unreachable"
+        raise AssertionError(error_msg)

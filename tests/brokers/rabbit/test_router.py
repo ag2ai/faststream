@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,10 +24,10 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
     async def test_router_path(
         self,
-        queue,
-        event,
-        mock,
-        router,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+        router: RabbitRouter,
     ) -> None:
         @router.subscriber(
             RabbitQueue(
@@ -61,10 +62,10 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
     async def test_router_delay_handler_path(
         self,
-        queue,
-        event,
-        mock,
-        router,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+        router: RabbitRouter,
     ) -> None:
         async def h(
             name: str = Path(),

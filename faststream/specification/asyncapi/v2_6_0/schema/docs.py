@@ -58,7 +58,7 @@ class ExternalDocs(BaseModel):
         if isinstance(docs, SpecDocs):
             return cls(url=docs.url, description=docs.description)
 
-        docs = cast(AnyDict, docs)
+        docs = cast("AnyDict", docs)
         docs_data, custom_data = filter_by_dict(ExternalDocsDict, docs)
 
         if custom_data:

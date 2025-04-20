@@ -21,10 +21,10 @@ if TYPE_CHECKING:
 
 
 PublisherType: TypeAlias = Union[
-    "SpecificationChannelPublisher",
-    "SpecificationStreamPublisher",
-    "SpecificationListPublisher",
-    "SpecificationListBatchPublisher",
+    SpecificationChannelPublisher,
+    SpecificationStreamPublisher,
+    SpecificationListPublisher,
+    SpecificationListBatchPublisher,
 ]
 
 

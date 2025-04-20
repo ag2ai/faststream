@@ -5,6 +5,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.factory import create_publisher
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
+        BrokerMiddleware,
         CustomCallable,
         PublisherMiddleware,
         SubscriberMiddleware,
@@ -72,7 +74,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -81,7 +83,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -174,7 +176,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -225,4 +227,29 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     include_in_schema=self._solve_include_in_schema(include_in_schema),
                 ),
             ),
+        )
+
+    @override
+    def include_router(
+        self,
+        router: "RedisRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, RedisRegistrator):
+            msg = (
+                f"Router must be an instance of RedisRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
         )

@@ -179,11 +179,11 @@ class FilterNaming(BaseNaming):
         schema = AsyncAPI(broker, schema_version="3.0.0").to_jsonable()
 
         assert list(schema["channels"].keys()) == [
-            IsStr(regex=r"test[\w:]*:HandleUserCreated"),
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
         assert list(schema["components"]["messages"].keys()) == [
-            IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage"),
         ]
 
         assert list(schema["components"]["schemas"].keys()) == [
@@ -205,11 +205,11 @@ class FilterNaming(BaseNaming):
         schema = AsyncAPI(broker, schema_version="3.0.0").to_jsonable()
 
         assert list(schema["channels"].keys()) == [
-            IsStr(regex=r"test[\w:]*:HandleUserCreated"),
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
         assert list(schema["components"]["messages"].keys()) == [
-            IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage"),
         ]
 
         assert list(schema["components"]["schemas"].keys()) == [

@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Reversible, Sequence
 from functools import partial
 from inspect import unwrap
 from itertools import chain
@@ -77,7 +77,7 @@ class HandlerItem(SetupAble, Generic[MsgType]):
         decoder: "AsyncCallable",
         state: "Pointer[BrokerState]",
         broker_dependencies: Iterable["Dependant"],
-        _call_decorators: Iterable["Decorator"],
+        _call_decorators: Reversible["Decorator"],
     ) -> None:
         if self.dependant is None:
             di_state = state.get().di_state

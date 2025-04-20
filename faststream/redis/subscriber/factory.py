@@ -27,14 +27,14 @@ if TYPE_CHECKING:
     from faststream.redis.message import UnifyRedisDict
 
 SubsciberType: TypeAlias = Union[
-    "SpecificationChannelSubscriber",
-    "SpecificationStreamBatchSubscriber",
-    "SpecificationStreamSubscriber",
-    "SpecificationListBatchSubscriber",
-    "SpecificationListSubscriber",
-    "SpecificationChannelConcurrentSubscriber",
-    "SpecificationListConcurrentSubscriber",
-    "SpecificationStreamConcurrentSubscriber",
+    SpecificationChannelSubscriber,
+    SpecificationStreamBatchSubscriber,
+    SpecificationStreamSubscriber,
+    SpecificationListBatchSubscriber,
+    SpecificationListSubscriber,
+    SpecificationChannelConcurrentSubscriber,
+    SpecificationListConcurrentSubscriber,
+    SpecificationStreamConcurrentSubscriber,
 ]
 
 
@@ -188,7 +188,7 @@ def _validate_input_for_misconfigure(
 
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.6.10",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )

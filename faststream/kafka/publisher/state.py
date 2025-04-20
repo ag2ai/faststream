@@ -18,6 +18,8 @@ class ProducerState(Protocol):
 
     async def stop(self) -> None: ...
 
+    async def flush(self) -> None: ...
+
 
 class EmptyProducerState(ProducerState):
     __slots__ = ()
@@ -33,6 +35,9 @@ class EmptyProducerState(ProducerState):
         return False
 
     async def stop(self) -> None:
+        pass
+
+    async def flush(self) -> None:
         pass
 
 
@@ -51,3 +56,6 @@ class RealProducer(ProducerState):
     @property
     def closed(self) -> bool:
         return self.producer._closed or False
+
+    async def flush(self) -> None:
+        await self.producer.flush()

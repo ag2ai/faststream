@@ -22,10 +22,11 @@ if TYPE_CHECKING:
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.message import StreamMessage
     from faststream.middlewares import AckPolicy
-    from faststream.rabbit.helpers.declarer import RabbitDeclarer
+    from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.schemas import (
+        Channel,
         RabbitExchange,
         RabbitQueue,
     )
@@ -45,14 +46,18 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         *,
         queue: "RabbitQueue",
+        exchange: "RabbitExchange",
+        channel: Optional["Channel"],
         consume_args: Optional["AnyDict"],
         # Subscriber args
         ack_policy: "AckPolicy",
         no_reply: bool,
+        no_ack: bool,
         broker_dependencies: Iterable["Dependant"],
         broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
     ) -> None:
         self.queue = queue
+        self.exchange = exchange
 
         parser = AioPikaParser(pattern=queue.path_regex)
 
@@ -67,9 +72,11 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         self.consume_args = consume_args or {}
+        self.__no_ack = no_ack
 
         self._consumer_tag = None
         self._queue_obj = None
+        self.channel = channel
 
         # Setup it later
         self.declarer = None
@@ -103,14 +110,18 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             msg = "You should setup subscriber at first."
             raise SetupError(msg)
 
-        self._queue_obj = queue = await self.declarer.declare_queue(self.queue)
+        self._queue_obj = queue = await self.declarer.declare_queue(
+            self.queue, channel=self.channel
+        )
 
         if (
             self.exchange is not None
-            and not queue.passive  # queue just getted from RMQ
+            and self.queue.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
-            exchange = await self.declarer.declare_exchange(self.exchange)
+            exchange = await self.declarer.declare_exchange(
+                self.exchange, channel=self.channel
+            )
 
             await queue.bind(
                 exchange,
@@ -124,6 +135,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume,  # type: ignore[arg-type]
+                no_ack=self.__no_ack,
                 arguments=self.consume_args,
             )
 

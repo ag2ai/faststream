@@ -1,14 +1,12 @@
-from collections.abc import Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand, Response
+from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SendableMessage
@@ -49,7 +47,7 @@ class RedisResponse(Response):
         )
 
 
-class RedisPublishCommand(PublishCommand):
+class RedisPublishCommand(BatchPublishCommand):
     destination_type: DestinationType
 
     def __init__(
@@ -69,13 +67,13 @@ class RedisPublishCommand(PublishCommand):
     ) -> None:
         super().__init__(
             message,
+            *messages,
             _publish_type=_publish_type,
             correlation_id=correlation_id,
             reply_to=reply_to,
             destination="",
             headers=headers,
         )
-        self.extra_bodies = messages
 
         self.set_destination(
             channel=channel,
@@ -108,12 +106,6 @@ class RedisPublishCommand(PublishCommand):
         else:
             raise SetupError(INCORRECT_SETUP_MSG)
 
-    @property
-    def batch_bodies(self) -> tuple["SendableMessage", ...]:
-        if self.body is EMPTY:
-            return self.extra_bodies
-        return (self.body, *self.extra_bodies)
-
     @classmethod
     def from_cmd(
         cls,
@@ -125,16 +117,7 @@ class RedisPublishCommand(PublishCommand):
             # NOTE: Should return a copy probably.
             return cmd
 
-        body, extra_bodies = cmd.body, []
-        if batch:
-            if body is None:
-                body = EMPTY
-
-            if isinstance(body, Sequence) and not isinstance(body, (str, bytes)):
-                if body:
-                    body, extra_bodies = body[0], body[1:]
-                else:
-                    body = EMPTY
+        body, extra_bodies = cls._parse_bodies(cmd.body, batch=batch)
 
         return cls(
             body,

@@ -6,6 +6,7 @@ from typing_extensions import Doc, override
 
 from faststream._internal.publisher.usecase import PublisherUsecase
 from faststream._internal.types import MsgType
+from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
@@ -126,6 +127,10 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
         msg: KafkaMessage = await self._basic_request(cmd)
         return msg
+
+    async def flush(self) -> None:
+        assert self._producer, NOT_CONNECTED_YET  # nosec B101
+        return await self._producer.flush()
 
 
 class DefaultPublisher(LogicPublisher[ConsumerRecord]):

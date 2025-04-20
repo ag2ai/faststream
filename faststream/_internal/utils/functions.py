@@ -85,6 +85,11 @@ async def return_input(x: Any) -> Any:
     return x
 
 
-async def run_in_executor(executor: Optional[Executor], func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+async def run_in_executor(
+    executor: Optional[Executor],
+    func: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(executor, partial(func, *args, **kwargs))

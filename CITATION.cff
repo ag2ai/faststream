@@ -13,30 +13,32 @@ authors:
     email: nikita@pastukhov-dev.ru
   - given-names: Davor
     family-names: Runje
-    email: davor@airt.ai
-    affiliation: airt
+    email: davor@ag2.ai
+    affiliation: AG2AI Inc.
     orcid: 'https://orcid.org/0000-0001-6912-9900'
   - given-names: Tvrtko
     family-names: Sternak
-    email: tvrtko@airt.ai
-    affiliation: airt
+    email: tvrtko@ag2.ai
+    affiliation: AG2AI Inc.
+    orcid: 'https://orcid.org/0009-0001-0720-2356'
   - given-names: Kumaran
     family-names: Rajendhiran
-    email: kumaran@airt.ai
-    affiliation: airt
+    email: kumaran@ag2.ai
+    affiliation: AG2AI Inc.
   - given-names: Harish Mohan
     family-names: Raj
-    email: harish@airt.ai
-    affiliation: airt
+    email: harish@ag2.ai
+    affiliation: AG2AI Inc.
   - given-names: Robert
     family-names: Jambrecic
-    email: robert@airt.ai
-    affiliation: airt
-  - name: airt
-    city: Zagreb
-    email: info@airt.ai
-    website: 'https://airt.ai'
-repository-code: 'https://github.com/airtai/faststream'
+    email: robert@ag2.ai
+    affiliation: AG2AI Inc.
+  - name: AG2AI Inc.
+    city: Seattle
+    country: United States
+    email: support@ag2.ai
+    website: 'https://ag2.ai'
+repository-code: 'https://github.com/ag2/faststream'
 url: 'https://faststream.airt.ai/'
 repository-artifact: 'https://pypistats.org/packages/faststream'
 abstract: >

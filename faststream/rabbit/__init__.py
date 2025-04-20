@@ -4,6 +4,7 @@ from faststream.rabbit.broker import RabbitBroker
 from faststream.rabbit.response import RabbitResponse
 from faststream.rabbit.router import RabbitPublisher, RabbitRoute, RabbitRouter
 from faststream.rabbit.schemas import (
+    Channel,
     ExchangeType,
     QueueType,
     RabbitExchange,
@@ -12,11 +13,11 @@ from faststream.rabbit.schemas import (
 from faststream.rabbit.testing import TestRabbitBroker
 
 __all__ = (
+    "Channel",
     "ExchangeType",
     "QueueType",
     "RabbitBroker",
     "RabbitExchange",
-    # Annotations
     "RabbitMessage",
     "RabbitPublisher",
     "RabbitQueue",

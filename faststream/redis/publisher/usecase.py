@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import deepcopy
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Annotated, Optional, Union
 
 from typing_extensions import Doc, override
 
@@ -428,7 +428,7 @@ class StreamPublisher(LogicPublisher):
                 "Remove eldest message if maxlen exceeded.",
             ),
         ] = None,
-    ) -> Any:
+    ) -> bytes:
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,

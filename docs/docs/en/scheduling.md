@@ -10,7 +10,7 @@ search:
 
 # Tasks Scheduling
 
-**FastStream** is a framework for asynchronous service development. It allows you to build disturbed event-based systems in an easy way. Tasks scheduling is a pretty often use case in such systems.
+**FastStream** is a framework for asynchronous service development. It allows you to build distributed event-based systems in an easy way. Tasks scheduling is a pretty often use case in such systems.
 
 Unfortunately, this functional conflicts with the original **FastStream** ideology and can't be implemented as a part of the framework. But, you can integrate scheduling in your **FastStream** application by using some extra dependencies. And we have some receipts on how to make it.
 
@@ -36,7 +36,30 @@ Let's take a look at the code example.
 
 At first, we should create a regular **FastStream** application.
 
-{! includes/scheduling/app.md !}
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/index/kafka/basic.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/index/confluent/basic.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/index/rabbit/basic.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/index/nats/basic.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/index/redis/basic.py!}
+    ```
 
 ### Broker Wrapper
 
@@ -50,7 +73,101 @@ taskiq_broker = BrokerWrapper(broker)
 
 It creates a *taskiq-compatible* object, that can be used as an object to create a regular [**taskiq** scheduler](https://taskiq-python.github.io/guide/scheduling-tasks.html){.external-link target="_blank"}.
 
-{! includes/scheduling/taskiq_broker.md !}
+=== "AIOKafka"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        topic="in-topic",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        topic="in-topic",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        queue="in-queue",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        subject="in-subject",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        channel="in-channel",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
 
 !!! note ""
     We patched the original `TaskiqScheduler` to support message generation callbacks, but its signature remains the same.
@@ -76,7 +193,7 @@ taskiq_broker = AppWrapper(app)
 It allows you to use `taskiq_broker` the same way with the previous example, but saves all original **FastStream** features.
 
 !!! tip
-    Creating a separated *Scheduler* service is a best way to make really disturbed and sustainable system. In this case, you can just create an empty **FastStream** broker and use **Taskiq-FastStream** integration to publish your messages (consuming by another services).
+    Creating a separated *Scheduler* service is the best way to make a really distributed and sustainable system. In this case, you can just create an empty **FastStream** broker and use **Taskiq-FastStream** integration to publish your messages (consuming by another services).
 
 ### Generate message payload
 

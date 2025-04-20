@@ -158,7 +158,13 @@ def get_broker_channels(
             channel_obj = Channel.from_sub(sub_key, sub_channel)
 
             channel_key = clear_key(sub_key)
-            # TODO: add duplication key warning
+            if channel_key in channels:
+                warnings.warn(
+                    f"Overwrite channel handler, channels have the same names: `{channel_key}`",
+                    RuntimeWarning,
+                    stacklevel=1,
+                )
+
             channels[channel_key] = channel_obj
 
             operations[f"{channel_key}Subscribe"] = Operation.from_sub(
@@ -177,7 +183,12 @@ def get_broker_channels(
             channel_obj = Channel.from_pub(pub_key, pub_channel)
 
             channel_key = clear_key(pub_key)
-            # TODO: add duplication key warning
+            if channel_key in channels:
+                warnings.warn(
+                    f"Overwrite channel handler, channels have the same names: `{channel_key}`",
+                    RuntimeWarning,
+                    stacklevel=1,
+                )
             channels[channel_key] = channel_obj
 
             operations[channel_key] = Operation.from_pub(
@@ -231,7 +242,7 @@ def _resolve_msg_payloads(
     payload_name = m.payload.get("title", f"{channel_name}:{message_name}:Payload")
     payload_name = clear_key(payload_name)
 
-    if payload_name in payloads:
+    if payload_name in payloads and payloads[payload_name] != m.payload:
         warnings.warn(
             f"Overwriting the message schema, data types have the same name: `{payload_name}`",
             RuntimeWarning,

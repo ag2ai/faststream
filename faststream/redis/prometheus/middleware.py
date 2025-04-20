@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional
 
+from faststream._internal.basic_types import AnyDict
 from faststream._internal.constants import EMPTY
 from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.redis.prometheus.provider import settings_provider_factory
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
 
-class RedisPrometheusMiddleware(PrometheusMiddleware[RedisPublishCommand]):
+class RedisPrometheusMiddleware(PrometheusMiddleware[RedisPublishCommand, AnyDict]):
     def __init__(
         self,
         *,

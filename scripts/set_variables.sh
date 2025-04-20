@@ -1,10 +1,10 @@
 #!/bin/bash
 
-if test -z "$AIRT_PROJECT"; then
-      echo 'AIRT_PROJECT variable not set, setting to current directory'
-      export AIRT_PROJECT=`pwd`
+if test -z "$AG2_PROJECT"; then
+      echo 'AG2_PROJECT variable not set, setting to current directory'
+      export AG2_PROJECT=`pwd`
 fi
-echo AIRT_PROJECT variable set to $AIRT_PROJECT
+echo AG2_PROJECT variable set to $AG2_PROJECT
 
 export UID=$(id -u)
 export GID=$(id -g)

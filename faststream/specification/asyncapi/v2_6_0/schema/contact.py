@@ -64,7 +64,7 @@ class Contact(BaseModel):
                 email=contact.email,
             )
 
-        contact = cast(AnyDict, contact)
+        contact = cast("AnyDict", contact)
         contact_data, custom_data = filter_by_dict(ContactDict, contact)
 
         if custom_data:

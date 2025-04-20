@@ -52,6 +52,7 @@ class LoggerState(SetupAble):
         return f"{self.__class__.__name__}(log_level={self.log_level}, logger={self.logger})"
 
     def set_level(self, level: int) -> None:
+        self.log_level = level
         self.params_storage.set_level(level)
 
     def log(

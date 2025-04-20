@@ -12,10 +12,10 @@ from typing import (
 
 from typing_extensions import Literal, TypeAlias
 
+from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import sync_fake_context, to_async
 from faststream.exceptions import IgnoredException
-from faststream.middlewares.base import BaseMiddleware
 
 if TYPE_CHECKING:
     from contextlib import AbstractContextManager
@@ -30,10 +30,10 @@ GeneralExceptionHandler: TypeAlias = Union[
     Callable[..., None],
     Callable[..., Awaitable[None]],
 ]
-PublishingExceptionHandler: TypeAlias = Callable[..., "Any"]
+PublishingExceptionHandler: TypeAlias = Callable[..., Any]
 
 CastedGeneralExceptionHandler: TypeAlias = Callable[..., Awaitable[None]]
-CastedPublishingExceptionHandler: TypeAlias = Callable[..., Awaitable["Any"]]
+CastedPublishingExceptionHandler: TypeAlias = Callable[..., Awaitable[Any]]
 CastedHandlers: TypeAlias = list[
     tuple[
         type[Exception],

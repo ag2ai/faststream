@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     )
     from faststream.kafka.subscriber.specified import (
         SpecificationBatchSubscriber,
+        SpecificationConcurrentBetweenPartitionsSubscriber,
         SpecificationConcurrentDefaultSubscriber,
         SpecificationDefaultSubscriber,
     )
@@ -319,6 +320,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # StreamRouter options
@@ -713,7 +715,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -952,7 +954,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -961,7 +963,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -1214,7 +1216,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -1453,7 +1455,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -1462,7 +1464,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -1715,7 +1717,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -1954,7 +1956,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -1963,7 +1965,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -2219,7 +2221,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -2458,7 +2460,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -2467,7 +2469,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -2618,12 +2620,20 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         ] = False,
         max_workers: Annotated[
             int,
-            Doc("Number of workers to process messages concurrently."),
+            Doc(
+                "Maximum number of messages being processed concurrently. With "
+                "`auto_commit=False` processing is concurrent between partitions and "
+                "sequential within a partition. With `auto_commit=False` maximum "
+                "concurrency is achieved when total number of workers across all "
+                "application instances running workers in the same consumer group "
+                "is equal to the number of partitions in the topic."
+            ),
         ] = 1,
     ) -> Union[
         "SpecificationBatchSubscriber",
         "SpecificationDefaultSubscriber",
         "SpecificationConcurrentDefaultSubscriber",
+        "SpecificationConcurrentBetweenPartitionsSubscriber",
     ]:
         subscriber = super().subscriber(
             *topics,
@@ -2678,7 +2688,11 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         if batch:
             return cast("SpecificationBatchSubscriber", subscriber)
         if max_workers > 1:
-            return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            if auto_commit:
+                return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            return cast(
+                "SpecificationConcurrentBetweenPartitionsSubscriber", subscriber
+            )
         return cast("SpecificationDefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
@@ -2733,7 +2747,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -2811,7 +2825,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -2889,7 +2903,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -2970,7 +2984,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),

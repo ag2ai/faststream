@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional
 
 from .publish_type import PublishType
@@ -53,7 +54,7 @@ class PublishCommand(Response):
 
     @property
     def batch_bodies(self) -> tuple["Any", ...]:
-        if self.body or isinstance(self.body, (str, bytes)):
+        if self.body is not None:
             return (self.body,)
         return ()
 
@@ -67,3 +68,65 @@ class PublishCommand(Response):
             self.headers |= headers
         else:
             self.headers = headers | self.headers
+
+    @classmethod
+    def from_cmd(
+        cls,
+        cmd: "PublishCommand",
+    ) -> "PublishCommand":
+        raise NotImplementedError
+
+
+class BatchPublishCommand(PublishCommand):
+    def __init__(
+        self,
+        body: Any,
+        /,
+        *bodies: Any,
+        _publish_type: PublishType,
+        reply_to: str = "",
+        destination: str = "",
+        correlation_id: Optional[str] = None,
+        headers: Optional["AnyDict"] = None,
+    ) -> None:
+        super().__init__(
+            body,
+            headers=headers,
+            correlation_id=correlation_id,
+            destination=destination,
+            reply_to=reply_to,
+            _publish_type=_publish_type,
+        )
+        self.extra_bodies = bodies
+
+    @property
+    def batch_bodies(self) -> tuple["Any", ...]:
+        return (*super().batch_bodies, *self.extra_bodies)
+
+    @batch_bodies.setter
+    def batch_bodies(self, value: Sequence["Any"]) -> None:
+        if len(value) == 0:
+            self.body = None
+            self.extra_bodies = ()
+        else:
+            self.body = value[0]
+            self.extra_bodies = tuple(value[1:])
+
+    @classmethod
+    def from_cmd(
+        cls,
+        cmd: "PublishCommand",
+        *,
+        batch: bool = False,
+    ) -> "BatchPublishCommand":
+        raise NotImplementedError
+
+    @staticmethod
+    def _parse_bodies(body: Any, *, batch: bool = False) -> tuple[Any, tuple[Any, ...]]:
+        extra_bodies = []
+        if batch and isinstance(body, Sequence) and not isinstance(body, (str, bytes)):
+            if body:
+                body, extra_bodies = body[0], body[1:]
+            else:
+                body = None
+        return body, tuple(extra_bodies)

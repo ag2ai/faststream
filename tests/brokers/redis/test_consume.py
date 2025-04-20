@@ -31,13 +31,12 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            result = await br._connection.publish(queue, "hello")
             await asyncio.wait(
-                (
-                    asyncio.create_task(br._connection.publish(queue, "hello")),
-                    asyncio.create_task(event.wait()),
-                ),
+                (asyncio.create_task(event.wait()),),
                 timeout=3,
             )
+            assert result == 1, result
 
         mock.assert_called_once_with(b"hello")
 

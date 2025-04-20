@@ -62,9 +62,7 @@ class AsyncConfluentProducer:
         transactional_id: Optional[Union[str, int]] = None,
         transaction_timeout_ms: int = 60000,
         allow_auto_create_topics: bool = True,
-        sasl_mechanism: Optional[str] = None,
-        sasl_plain_password: Optional[str] = None,
-        sasl_plain_username: Optional[str] = None,
+        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
         self.logger_state = logger
 
@@ -100,16 +98,11 @@ class AsyncConfluentProducer:
             "allow.auto.create.topics": allow_auto_create_topics,
         }
 
-        final_config = {**config.as_config_dict(), **config_from_params}
-
-        if sasl_mechanism in {"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"}:
-            final_config.update(
-                {
-                    "sasl.mechanism": sasl_mechanism,
-                    "sasl.username": sasl_plain_username,
-                    "sasl.password": sasl_plain_password,
-                },
-            )
+        final_config = {
+            **config.as_config_dict(),
+            **config_from_params,
+            **dict(security_config or {}),
+        }
 
         self.producer = Producer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
@@ -129,6 +122,9 @@ class AsyncConfluentProducer:
                 self._poll_task.cancel()
             await call_or_await(self.producer.flush)
 
+    async def flush(self) -> None:
+        await call_or_await(self.producer.flush)
+
     async def send(
         self,
         topic: str,
@@ -138,7 +134,7 @@ class AsyncConfluentProducer:
         timestamp_ms: Optional[int] = None,
         headers: Optional[list[tuple[str, Union[str, bytes]]]] = None,
         no_confirm: bool = False,
-    ) -> "asyncio.Future":
+    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
         """Sends a single message to a Kafka topic."""
         kwargs: _SendKwargs = {
             "value": value,
@@ -152,22 +148,24 @@ class AsyncConfluentProducer:
         if timestamp_ms is not None:
             kwargs["timestamp"] = timestamp_ms
 
-        if not no_confirm:
-            result_future: asyncio.Future[Optional[Message]] = asyncio.Future()
+        loop = asyncio.get_running_loop()
+        result_future: asyncio.Future[Optional[Message]] = loop.create_future()
 
-            def ack_callback(err: Any, msg: Optional[Message]) -> None:
-                if err or (msg is not None and (err := msg.error())):
-                    result_future.set_exception(KafkaException(err))
-                else:
-                    result_future.set_result(msg)
+        def ack_callback(err: Any, msg: Optional[Message]) -> None:
+            if err or (msg is not None and (err := msg.error())):
+                loop.call_soon_threadsafe(
+                    result_future.set_exception, KafkaException(err)
+                )
+            else:
+                loop.call_soon_threadsafe(result_future.set_result, msg)
 
-            kwargs["on_delivery"] = ack_callback
+        kwargs["on_delivery"] = ack_callback
 
         # should be sync to prevent segfault
         self.producer.produce(topic, **kwargs)
 
         if not no_confirm:
-            await result_future
+            return await result_future
         return result_future
 
     def create_batch(self) -> "BatchBuilder":
@@ -247,9 +245,7 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
-        sasl_mechanism: Optional[str] = None,
-        sasl_plain_password: Optional[str] = None,
-        sasl_plain_username: Optional[str] = None,
+        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
         self.logger_state = logger
 
@@ -285,7 +281,6 @@ class AsyncConfluentConsumer:
             "fetch.max.bytes": fetch_max_bytes,
             "fetch.min.bytes": fetch_min_bytes,
             "max.partition.fetch.bytes": max_partition_fetch_bytes,
-            # "request.timeout.ms": 1000,  # producer only
             "fetch.error.backoff.ms": retry_backoff_ms,
             "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": enable_auto_commit,
@@ -302,20 +297,13 @@ class AsyncConfluentConsumer:
         }
         self.allow_auto_create_topics = allow_auto_create_topics
         final_config.update(config_from_params)
-
-        if sasl_mechanism in {"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"}:
-            final_config.update(
-                {
-                    "sasl.mechanism": sasl_mechanism,
-                    "sasl.username": sasl_plain_username,
-                    "sasl.password": sasl_plain_password,
-                },
-            )
+        final_config.update(**dict(security_config or {}))
 
         self.config = final_config
         self.consumer = Consumer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
+        # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property
@@ -357,7 +345,9 @@ class AsyncConfluentConsumer:
 
     async def commit(self, asynchronous: bool = True) -> None:
         """Commits the offsets of all messages returned by the last poll operation."""
-        await run_in_executor(self._thread_pool, self.consumer.commit, asynchronous=asynchronous)
+        await run_in_executor(
+            self._thread_pool, self.consumer.commit, asynchronous=asynchronous
+        )
 
     async def stop(self) -> None:
         """Stops the Kafka consumer and releases all resources."""
@@ -382,7 +372,7 @@ class AsyncConfluentConsumer:
         # Wrap calls to async to make method cancelable by timeout
         # We shouldn't read messages and close consumer concurrently
         # https://github.com/airtai/faststream/issues/1904#issuecomment-2506990895
-        # Now it works withouth lock due `ThreadPoolExecutor(max_workers=1)`
+        # Now it works without lock due `ThreadPoolExecutor(max_workers=1)`
         # that makes all calls to consumer sequential
         await run_in_executor(self._thread_pool, self.consumer.close)
 
@@ -414,7 +404,9 @@ class AsyncConfluentConsumer:
             partition=partition,
             offset=offset,
         )
-        await run_in_executor(self._thread_pool, self.consumer.seek, topic_partition.to_confluent())
+        await run_in_executor(
+            self._thread_pool, self.consumer.seek, topic_partition.to_confluent()
+        )
 
 
 def check_msg_error(msg: Optional[Message]) -> Optional[Message]:

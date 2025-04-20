@@ -1,13 +1,10 @@
 name: Deploy Docs to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - docs/**
-      - .github/workflows/docs_deploy.yaml
-      - faststream/__about__.py
+  workflow_dispatch: null
+  release:
+    types:
+      - published
 
 permissions:
   contents: write

@@ -178,7 +178,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
                 app_name="faststream",
                 broker=settings_provider.messaging_system,
                 queue=consume_attrs["destination_name"],
-                duration=cast(float, IsPositiveFloat),
+                duration=cast("float", IsPositiveFloat),
             )
         )
 
@@ -221,7 +221,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             metrics_prefix="faststream",
             app_name="faststream",
             broker=settings_provider.messaging_system,
-            queue=cast(str, IsStr),
+            queue=cast("str", IsStr),
             status=PublishingStatus.success,
             messages_amount=consume_attrs["messages_count"],
         )
@@ -231,8 +231,8 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
                 metrics_prefix="faststream",
                 app_name="faststream",
                 broker=settings_provider.messaging_system,
-                queue=cast(str, IsStr),
-                duration=cast(float, IsPositiveFloat),
+                queue=cast("str", IsStr),
+                duration=cast("float", IsPositiveFloat),
             )
         )
 
@@ -240,7 +240,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             metrics_prefix="faststream",
             app_name="faststream",
             broker=settings_provider.messaging_system,
-            queue=cast(str, IsStr),
+            queue=cast("str", IsStr),
             exception_type=None,
         )
 

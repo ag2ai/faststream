@@ -70,15 +70,14 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
             middlewares=middlewares,
         )
 
-        request_options = dict(message_kwargs)
-        self.headers = request_options.pop("headers") or {}
-        self.reply_to = request_options.pop("reply_to", None) or ""
-        self.timeout = request_options.pop("timeout", None)
+        self.headers = message_kwargs.pop("headers") or {}
+        self.reply_to: str = message_kwargs.pop("reply_to", None) or ""
+        self.timeout = message_kwargs.pop("timeout", None)
 
-        message_options, _ = filter_by_dict(MessageOptions, request_options)
+        message_options, _ = filter_by_dict(MessageOptions, dict(message_kwargs))
         self.message_options = message_options
 
-        publish_options, _ = filter_by_dict(PublishOptions, request_options)
+        publish_options, _ = filter_by_dict(PublishOptions, dict(message_kwargs))
         self.publish_options = publish_options
 
         self.app_id = None

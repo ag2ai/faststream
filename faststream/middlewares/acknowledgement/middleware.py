@@ -1,6 +1,7 @@
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.middlewares import BaseMiddleware
 from faststream.exceptions import (
     AckMessage,
     HandlerException,
@@ -8,7 +9,6 @@ from faststream.exceptions import (
     RejectMessage,
 )
 from faststream.middlewares.acknowledgement.conf import AckPolicy
-from faststream.middlewares.base import BaseMiddleware
 
 if TYPE_CHECKING:
     from types import TracebackType

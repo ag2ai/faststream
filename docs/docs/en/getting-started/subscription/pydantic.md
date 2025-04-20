@@ -18,7 +18,30 @@ You can access this information with extra details using `pydantic.Field` (such 
 
 Just use `pydantic.Field` as a function default argument:
 
-{! includes/getting_started/subscription/pydantic/1.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/kafka/pydantic_fields.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/confluent/pydantic_fields.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/rabbit/pydantic_fields.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/nats/pydantic_fields.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/redis/pydantic_fields.py !}
+    ```
 
 
 !!! tip
@@ -32,4 +55,27 @@ Just use `pydantic.Field` as a function default argument:
 
 To make your message schema reusable between different subscribers and publishers, you can declare it as a `pydantic.BaseModel` and use it as a single message annotation:
 
-{! includes/getting_started/subscription/pydantic/2.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/kafka/pydantic_model.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/confluent/pydantic_model.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/rabbit/pydantic_model.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/nats/pydantic_model.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/redis/pydantic_model.py !}
+    ```

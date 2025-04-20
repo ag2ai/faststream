@@ -66,6 +66,10 @@ repos:
     rev: v1.5.0
     hooks:
     -   id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: [
+            '--baseline', '.secrets.baseline',
+            '--exclude-lines', 'postgresql://user:password@postgres/postgres',
+            '--exclude-lines', 'amqp://guest:guest@rabbitmq:5672/',
+        ]
         exclude: package.lock.json
         stages: [pre-commit, pre-merge-commit, manual]

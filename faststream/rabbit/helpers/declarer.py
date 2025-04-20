@@ -1,49 +1,62 @@
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Annotated, Optional, cast
 
-from .state import ConnectedState, ConnectionState, EmptyConnectionState
+from typing_extensions import deprecated
+
+from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
     import aio_pika
 
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
+
+    from .channel_manager import ChannelManager
 
 
 class RabbitDeclarer:
     """An utility class to declare RabbitMQ queues and exchanges."""
 
-    def __init__(self) -> None:
+    __slots__ = ("__channel_manager", "__exchanges", "__queues")
+
+    def __init__(self, channel_manager: "ChannelManager") -> None:
+        self.__channel_manager = channel_manager
         self.__queues: dict[RabbitQueue, aio_pika.RobustQueue] = {}
         self.__exchanges: dict[RabbitExchange, aio_pika.RobustExchange] = {}
 
-        self.__connection: ConnectionState = EmptyConnectionState()
-
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(<{self.__connection.__class__.__name__}>, queues={list(self.__queues.keys())}, exchanges={list(self.__exchanges.keys())})"
-
-    def connect(
-        self, connection: "aio_pika.RobustConnection", channel: "aio_pika.RobustChannel"
-    ) -> None:
-        self.__connection = ConnectedState(connection=connection, channel=channel)
+        return f"{self.__class__.__name__}(queues={list(self.__queues.keys())}, exchanges={list(self.__exchanges.keys())})"
 
     def disconnect(self) -> None:
-        self.__connection = EmptyConnectionState()
-        self.__queues = {}
-        self.__exchanges = {}
+        self.__queues.clear()
+        self.__exchanges.clear()
 
     async def declare_queue(
         self,
         queue: "RabbitQueue",
-        passive: bool = False,
+        declare: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.7.0 release."),
+        ] = EMPTY,
+        *,
+        channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
         """Declare a queue."""
         if (q := self.__queues.get(queue)) is None:
+            if passive is not EMPTY:
+                declare = not passive
+
+            elif declare is EMPTY:
+                declare = queue.declare
+
+            channel_obj = await self.__channel_manager.get_channel(channel)
+
             self.__queues[queue] = q = cast(
                 "aio_pika.RobustQueue",
-                await self.__connection.channel.declare_queue(
+                await channel_obj.declare_queue(
                     name=queue.name,
                     durable=queue.durable,
                     exclusive=queue.exclusive,
-                    passive=passive or queue.passive,
+                    passive=not declare,
                     auto_delete=queue.auto_delete,
                     arguments=queue.arguments,
                     timeout=queue.timeout,
@@ -56,21 +69,35 @@ class RabbitDeclarer:
     async def declare_exchange(
         self,
         exchange: "RabbitExchange",
-        passive: bool = False,
+        declare: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.7.0 release."),
+        ] = EMPTY,
+        *,
+        channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustExchange":
         """Declare an exchange, parent exchanges and bind them each other."""
+        channel_obj = await self.__channel_manager.get_channel(channel)
+
         if not exchange.name:
-            return self.__connection.channel.default_exchange
+            return channel_obj.default_exchange
 
         if (exch := self.__exchanges.get(exchange)) is None:
+            if passive is not EMPTY:
+                declare = not passive
+
+            elif declare is EMPTY:
+                declare = exchange.declare
+
             self.__exchanges[exchange] = exch = cast(
                 "aio_pika.RobustExchange",
-                await self.__connection.channel.declare_exchange(
+                await channel_obj.declare_exchange(
                     name=exchange.name,
                     type=exchange.type.value,
                     durable=exchange.durable,
                     auto_delete=exchange.auto_delete,
-                    passive=passive or exchange.passive,
+                    passive=not declare,
                     arguments=exchange.arguments,
                     timeout=exchange.timeout,
                     robust=exchange.robust,

@@ -21,7 +21,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import Doc, TypeAlias, override
+from typing_extensions import Doc, TypeAlias, deprecated, overload, override
 
 from faststream.__about__ import __version__
 from faststream._internal.broker.broker import BrokerUsecase
@@ -181,6 +181,7 @@ class RedisBroker(
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # FastDepends args
@@ -368,55 +369,72 @@ class RedisBroker(
             "connection": self._connection,
         }
 
-    @override
-    async def publish(  # type: ignore[override]
+    @overload
+    async def publish(
         self,
-        message: Annotated[
-            "SendableMessage",
-            Doc("Message body to send."),
-        ] = None,
-        channel: Annotated[
-            Optional[str],
-            Doc("Redis PubSub object name to send message."),
-        ] = None,
+        message: "SendableMessage" = None,
+        channel: Optional[str] = None,
         *,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message destination PubSub object name."),
-        ] = "",
-        headers: Annotated[
-            Optional["AnyDict"],
-            Doc("Message headers to store metainformation."),
-        ] = None,
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages.",
-            ),
-        ] = None,
-        list: Annotated[
-            Optional[str],
-            Doc("Redis List object name to send message."),
-        ] = None,
-        stream: Annotated[
-            Optional[str],
-            Doc("Redis Stream object name to send message."),
-        ] = None,
-        maxlen: Annotated[
-            Optional[int],
-            Doc(
-                "Redis Stream maxlen publish option. "
-                "Remove eldest message if maxlen exceeded.",
-            ),
-        ] = None,
-    ) -> int:
+        reply_to: str = "",
+        headers: Optional["AnyDict"] = None,
+        correlation_id: Optional[str] = None,
+        list: Optional[str] = None,
+        stream: None = None,
+        maxlen: Optional[int] = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: Optional[str] = None,
+        *,
+        reply_to: str = "",
+        headers: Optional["AnyDict"] = None,
+        correlation_id: Optional[str] = None,
+        list: Optional[str] = None,
+        stream: str,
+        maxlen: Optional[int] = None,
+    ) -> bytes: ...
+
+    @override
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: Optional[str] = None,
+        *,
+        reply_to: str = "",
+        headers: Optional["AnyDict"] = None,
+        correlation_id: Optional[str] = None,
+        list: Optional[str] = None,
+        stream: Optional[str] = None,
+        maxlen: Optional[int] = None,
+    ) -> Union[int, bytes]:
         """Publish message directly.
 
-        This method allows you to publish message in not AsyncAPI-documented way. You can use it in another frameworks
-        applications or to publish messages from time to time.
+        This method allows you to publish a message in a non-AsyncAPI-documented way.
+        It can be used in other frameworks or to publish messages at specific intervals.
 
-        Please, use `@broker.publisher(...)` or `broker.publisher(...).publish(...)` instead in a regular way.
+        Args:
+            message:
+                Message body to send.
+            channel:
+                Redis PubSub object name to send message.
+            reply_to:
+                Reply message destination PubSub object name.
+            headers:
+                Message headers to store metainformation.
+            correlation_id:
+                Manual message correlation_id setter. correlation_id is a useful option to trace messages.
+            list:
+                Redis List object name to send message.
+            stream:
+                Redis Stream object name to send message.
+            maxlen:
+                Redis Stream maxlen publish option. Remove eldest message if maxlen exceeded.
+
+        Returns:
+            int: The result of the publish operation, typically the number of messages published.
         """
         cmd = RedisPublishCommand(
             message,

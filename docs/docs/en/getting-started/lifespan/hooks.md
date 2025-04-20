@@ -27,7 +27,30 @@ By [passing optional arguments with the command line](../config/index.md){.inter
 
 Let's write some code for our example
 
-{! includes/getting_started/lifespan/1.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="14-18"
+    {!> docs_src/getting_started/lifespan/kafka/basic.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="14-18"
+    {!> docs_src/getting_started/lifespan/confluent/basic.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="14-18"
+    {!> docs_src/getting_started/lifespan/rabbit/basic.py [ln:1-11.53,12-] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="14-18"
+    {!> docs_src/getting_started/lifespan/nats/basic.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="14-18"
+    {!> docs_src/getting_started/lifespan/redis/basic.py!}
+    ```
 
 Now this application can be run using the following command to manage the environment:
 
@@ -41,13 +64,17 @@ Now let's look into a little more detail
 
 To begin with, we used a decorator
 
-{! includes/getting_started/lifespan/2.md !}
+```python linenums="14" hl_lines="1"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18]!}
+```
 
 to declare a function that should run when our application starts
 
 The next step is to declare the arguments that our function will receive
 
-{! includes/getting_started/lifespan/3.md !}
+```python linenums="14" hl_lines="2"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18]!}
+```
 
 In this case, the `env` field will be passed to the `setup` function from the arguments with the command line
 
@@ -57,11 +84,36 @@ In this case, the `env` field will be passed to the `setup` function from the ar
 
 Then, we initialized the settings of our application using the file passed to us from the command line
 
-{! includes/getting_started/lifespan/4.md !}
+```python linenums="14" hl_lines="3"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+```
 
 And put these settings in a global context
 
-{! includes/getting_started/lifespan/5.md !}
+=== "AIOKafka"
+    ```python linenums="14" hl_lines="4"
+    {!> docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="14" hl_lines="4"
+    {!> docs_src/getting_started/lifespan/confluent/basic.py [ln:14-18] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="14" hl_lines="4"
+    {!> docs_src/getting_started/lifespan/rabbit/basic.py [ln:14-18] !}
+    ```
+
+=== "NATS"
+    ```python linenums="14" hl_lines="4"
+    {!> docs_src/getting_started/lifespan/nats/basic.py [ln:14-18] !}
+    ```
+
+=== "Redis"
+    ```python linenums="14" hl_lines="4"
+    {!> docs_src/getting_started/lifespan/redis/basic.py [ln:14-18] !}
+    ```
 
 ??? note
     Now we can access our settings anywhere in the application right from the context
@@ -74,7 +126,9 @@ And put these settings in a global context
 
 The last step we initialized our broker: now, when the application starts, it will be ready to receive messages
 
-{! includes/getting_started/lifespan/6.md !}
+```python linenums="14" hl_lines="5"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+```
 
 ## Another example
 
@@ -89,7 +143,30 @@ Therefore, it is worth initializing the model in the `#!python @app.on_startup` 
 
 Also, we don't want the model to finish its work incorrectly when the application is stopped. To avoid this, we need the hook `#!python @app.on_shutdown`
 
-{! includes/getting_started/lifespan/7.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/kafka/ml.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/confluent/ml.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/rabbit/ml.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/nats/ml.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/redis/ml.py!}
+    ```
 
 ## Multiple hooks
 

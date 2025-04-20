@@ -7,7 +7,8 @@ from faststream._internal.cli.utils.logs import get_log_level, set_log_level
 from faststream.rabbit import RabbitBroker
 
 
-def test_set_level(app: FastStream) -> None:
+def test_set_level() -> None:
+    app = FastStream(RabbitBroker())
     set_log_level(logging.ERROR, app)
     broker_state = app.broker._state.get()
     broker_state._setup_logger_state()

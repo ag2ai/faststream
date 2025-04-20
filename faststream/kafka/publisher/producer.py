@@ -56,6 +56,9 @@ class AioKafkaFastProducer(ProducerProto):
     def closed(self) -> bool:
         return self._producer.closed
 
+    async def flush(self) -> None:
+        await self._producer.flush()
+
     @override
     async def publish(  # type: ignore[override]
         self,

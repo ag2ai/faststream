@@ -92,7 +92,7 @@ if FASTAPI_v102_3:
             **kwargs,
         )
         values, errors, background = (
-            solved_result.values,  # noqa: PD011
+            solved_result.values,
             solved_result.errors,
             solved_result.background_tasks,
         )

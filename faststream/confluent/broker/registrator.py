@@ -16,6 +16,7 @@ from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
 from faststream.confluent.publisher.factory import create_publisher
 from faststream.confluent.subscriber.factory import create_subscriber
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.types import (
+        BrokerMiddleware,
         CustomCallable,
         PublisherMiddleware,
         SubscriberMiddleware,
@@ -170,7 +172,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -309,7 +311,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -318,7 +320,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -452,7 +454,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -591,7 +593,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -600,7 +602,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -737,7 +739,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -876,7 +878,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -885,7 +887,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -911,6 +913,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        max_workers: Annotated[
+            int,
+            Doc("Number of workers to process messages concurrently."),
+        ] = 1,
     ) -> Union[
         "SpecificationDefaultSubscriber",
         "SpecificationBatchSubscriber",
@@ -1023,7 +1029,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -1162,7 +1168,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -1171,7 +1177,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -1310,7 +1316,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1334,6 +1340,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "SpecificationDefaultPublisher": ...
 
     @overload
@@ -1388,7 +1398,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1412,6 +1422,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "SpecificationBatchPublisher": ...
 
     @overload
@@ -1466,7 +1480,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1490,6 +1504,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "SpecificationBatchPublisher",
         "SpecificationDefaultPublisher",
@@ -1547,7 +1565,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1571,6 +1589,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "SpecificationBatchPublisher",
         "SpecificationDefaultPublisher",
@@ -1600,6 +1622,7 @@ class KafkaRegistrator(
             description_=description,
             schema_=schema,
             include_in_schema=self._solve_include_in_schema(include_in_schema),
+            autoflush=autoflush,
         )
 
         if batch:
@@ -1607,4 +1630,31 @@ class KafkaRegistrator(
         else:
             publisher = cast("SpecificationDefaultPublisher", publisher)
 
-        return super().publisher(publisher)
+        return super().publisher(publisher)  # type: ignore[return-value,arg-type]
+
+    @override
+    def include_router(
+        self,
+        router: "KafkaRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable[
+            "BrokerMiddleware[Union[Message, tuple[Message, ...]]]"
+        ] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, KafkaRegistrator):
+            msg = (
+                f"Router must be an instance of KafkaRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
+        )

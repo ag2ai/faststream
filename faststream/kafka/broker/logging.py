@@ -42,32 +42,36 @@ class KafkaParamsStorage(DefaultLoggerStorage):
             ),
         )
 
-    def get_logger(self, *, context: "ContextRepo") -> Optional["LoggerProto"]:
+    def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         message_id_ln = 10
 
         # TODO: generate unique logger names to not share between brokers
-        return get_broker_logger(
-            name="kafka",
-            default_context={
-                "topic": "",
-                "group_id": "",
-            },
-            message_id_ln=message_id_ln,
-            fmt=self._log_fmt
-            or "".join((
-                "%(asctime)s %(levelname)-8s - ",
-                f"%(topic)-{self._max_topic_len}s | ",
-                (
-                    f"%(group_id)-{self._max_group_len}s | "
-                    if self._max_group_len
-                    else ""
-                ),
-                f"%(message_id)-{message_id_ln}s ",
-                "- %(message)s",
-            )),
-            context=context,
-            log_level=self.logger_log_level,
-        )
+        if not (lg := self._get_logger_ref()):
+            lg = get_broker_logger(
+                name="kafka",
+                default_context={
+                    "topic": "",
+                    "group_id": "",
+                },
+                message_id_ln=message_id_ln,
+                fmt=self._log_fmt
+                or "".join((
+                    "%(asctime)s %(levelname)-8s - ",
+                    f"%(topic)-{self._max_topic_len}s | ",
+                    (
+                        f"%(group_id)-{self._max_group_len}s | "
+                        if self._max_group_len
+                        else ""
+                    ),
+                    f"%(message_id)-{message_id_ln}s ",
+                    "- %(message)s",
+                )),
+                context=context,
+                log_level=self.logger_log_level,
+            )
+            self._logger_ref.add(lg)
+
+        return lg
 
 
 make_kafka_logger_state = partial(

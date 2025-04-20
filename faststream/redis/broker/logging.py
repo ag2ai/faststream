@@ -35,26 +35,30 @@ class RedisParamsStorage(DefaultLoggerStorage):
             ),
         )
 
-    def get_logger(self, *, context: "ContextRepo") -> Optional["LoggerProto"]:
+    def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         message_id_ln = 10
 
         # TODO: generate unique logger names to not share between brokers
-        return get_broker_logger(
-            name="redis",
-            default_context={
-                "channel": "",
-            },
-            message_id_ln=message_id_ln,
-            fmt=self._log_fmt
-            or (
-                "%(asctime)s %(levelname)-8s - "
-                f"%(channel)-{self._max_channel_name}s | "
-                f"%(message_id)-{message_id_ln}s "
-                "- %(message)s"
-            ),
-            context=context,
-            log_level=self.logger_log_level,
-        )
+        if not (lg := self._get_logger_ref()):
+            lg = get_broker_logger(
+                name="redis",
+                default_context={
+                    "channel": "",
+                },
+                message_id_ln=message_id_ln,
+                fmt=self._log_fmt
+                or (
+                    "%(asctime)s %(levelname)-8s - "
+                    f"%(channel)-{self._max_channel_name}s | "
+                    f"%(message_id)-{message_id_ln}s "
+                    "- %(message)s"
+                ),
+                context=context,
+                log_level=self.logger_log_level,
+            )
+            self._logger_ref.add(lg)
+
+        return lg
 
 
 make_redis_logger_state = partial(

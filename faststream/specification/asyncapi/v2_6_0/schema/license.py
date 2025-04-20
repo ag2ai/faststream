@@ -64,7 +64,7 @@ class License(BaseModel):
                 url=license.url,
             )
 
-        license = cast(AnyDict, license)
+        license = cast("AnyDict", license)
         license_data, custom_data = filter_by_dict(LicenseDict, license)
 
         if custom_data:

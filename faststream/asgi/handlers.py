@@ -1,8 +1,6 @@
 from collections.abc import Sequence
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-)
+from typing import TYPE_CHECKING
 
 from faststream.asgi.response import AsgiResponse
 

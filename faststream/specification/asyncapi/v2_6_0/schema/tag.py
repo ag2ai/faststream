@@ -56,7 +56,7 @@ class Tag(BaseModel):
                 externalDocs=ExternalDocs.from_spec(tag.external_docs),
             )
 
-        tag = cast(AnyDict, tag)
+        tag = cast("AnyDict", tag)
         tag_data, custom_data = filter_by_dict(TagDict, tag)
 
         if custom_data:

@@ -1,11 +1,9 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.constants import EMPTY
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand, Response
+from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SendableMessage
@@ -31,14 +29,6 @@ class KafkaResponse(Response):
         self.key = key
 
     @override
-    def as_publish_kwargs(self) -> "AnyDict":
-        return {
-            **super().as_publish_kwargs(),
-            "timestamp_ms": self.timestamp_ms,
-            "key": self.key,
-        }
-
-    @override
     def as_publish_command(self) -> "KafkaPublishCommand":
         return KafkaPublishCommand(
             self.body,
@@ -52,7 +42,7 @@ class KafkaResponse(Response):
         )
 
 
-class KafkaPublishCommand(PublishCommand):
+class KafkaPublishCommand(BatchPublishCommand):
     def __init__(
         self,
         message: "SendableMessage",
@@ -71,13 +61,13 @@ class KafkaPublishCommand(PublishCommand):
     ) -> None:
         super().__init__(
             message,
+            *messages,
             destination=topic,
             reply_to=reply_to,
             correlation_id=correlation_id,
             headers=headers,
             _publish_type=_publish_type,
         )
-        self.extra_bodies = messages
 
         self.key = key
         self.partition = partition
@@ -86,12 +76,6 @@ class KafkaPublishCommand(PublishCommand):
 
         # request option
         self.timeout = timeout
-
-    @property
-    def batch_bodies(self) -> tuple["SendableMessage", ...]:
-        if self.body is EMPTY:
-            return self.extra_bodies
-        return (self.body, *self.extra_bodies)
 
     @classmethod
     def from_cmd(
@@ -104,16 +88,7 @@ class KafkaPublishCommand(PublishCommand):
             # NOTE: Should return a copy probably.
             return cmd
 
-        body, extra_bodies = cmd.body, []
-        if batch:
-            if body is None:
-                body = EMPTY
-
-            if isinstance(body, Sequence) and not isinstance(body, (str, bytes)):
-                if body:
-                    body, extra_bodies = body[0], body[1:]
-                else:
-                    body = EMPTY
+        body, extra_bodies = cls._parse_bodies(cmd.body, batch=batch)
 
         return cls(
             body,

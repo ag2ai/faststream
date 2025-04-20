@@ -14,7 +14,30 @@ In the most cases you are testing your subscriber/publisher functions, but somet
 
 For this reason, **FastStream** has a special **TestApp** patcher working as a regular async context manager.
 
-{! includes/getting_started/lifespan/testing.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/kafka/testing.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/confluent/testing.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/rabbit/testing.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/nats/testing.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/redis/testing.py !}
+    ```
 
 ## Using with **TestBroker**
 

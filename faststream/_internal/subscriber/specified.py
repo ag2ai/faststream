@@ -36,14 +36,22 @@ class SpecificationSubscriber(EndpointSpecification[MsgType, SubscriberSpec]):
         if not self.calls:
             return "Subscriber"
 
-        return to_camelcase(self.calls[0].call_name)
+        if len(self.calls) == 1:
+            return to_camelcase(self.calls[0].call_name)
+
+        return f"[{','.join(to_camelcase(c.call_name) for c in self.calls)}]"
 
     def get_default_description(self) -> Optional[str]:
         """Returns the description of the handler."""
         if not self.calls:
             return None
 
-        return self.calls[0].description
+        if len(self.calls) == 1:
+            return self.calls[0].description
+
+        return "\n".join(
+            f"{to_camelcase(h.call_name)}: {h.description or ''}" for h in self.calls
+        )
 
     def get_payloads(self) -> list[tuple["AnyDict", str]]:
         """Get the payloads of the handler."""

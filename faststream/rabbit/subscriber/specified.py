@@ -21,8 +21,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
     from faststream.middlewares import AckPolicy
-    from faststream.rabbit.schemas.exchange import RabbitExchange
-    from faststream.rabbit.schemas.queue import RabbitQueue
+    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
 
 
 class SpecificationSubscriber(
@@ -37,9 +36,11 @@ class SpecificationSubscriber(
         *,
         queue: "RabbitQueue",
         exchange: "RabbitExchange",
+        channel: Optional["Channel"],
         consume_args: Optional["AnyDict"],
         # Subscriber args
         ack_policy: "AckPolicy",
+        no_ack: bool,
         no_reply: bool,
         broker_dependencies: Iterable["Dependant"],
         broker_middlewares: Iterable["BrokerMiddleware[IncomingMessage]"],
@@ -60,8 +61,11 @@ class SpecificationSubscriber(
         LogicSubscriber.__init__(
             self,
             queue=queue,
+            exchange=exchange,
+            channel=channel,
             consume_args=consume_args,
             ack_policy=ack_policy,
+            no_ack=no_ack,
             no_reply=no_reply,
             broker_dependencies=broker_dependencies,
             broker_middlewares=broker_middlewares,

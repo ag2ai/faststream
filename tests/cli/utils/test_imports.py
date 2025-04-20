@@ -35,14 +35,14 @@ def test_import_wrong() -> None:
         ),
     ),
 )
-def test_get_app_path(test_input, exp_module, exp_app) -> None:
+def test_get_app_path(test_input: str, exp_module: str, exp_app: str) -> None:
     dir, app = _get_obj_path(test_input)
     assert app == exp_app
     assert dir == Path.cwd() / exp_module
 
 
 def test_get_app_path_wrong() -> None:
-    with pytest.raises(ValueError, match="`module.app` is not a path to object"):
+    with pytest.raises(ValueError, match=r"`module.app` is not a path to object"):
         _get_obj_path("module.app")
 
 
@@ -62,7 +62,7 @@ def test_import_from_string_import_wrong() -> None:
 @require_nats
 @require_aiopika
 @require_aiokafka
-def test_import_from_string(test_input, exp_module) -> None:
+def test_import_from_string(test_input: str, exp_module: str) -> None:
     module, app = import_from_string(test_input)
     assert isinstance(app, FastStream)
     assert module == (Path.cwd() / exp_module).parent
@@ -91,7 +91,7 @@ def test_import_from_string(test_input, exp_module) -> None:
 @require_nats
 @require_aiopika
 @require_aiokafka
-def test_import_module(test_input, exp_module) -> None:
+def test_import_module(test_input: str, exp_module: str) -> None:
     module, app = import_from_string(test_input)
     assert isinstance(app, FastStream)
     assert module == (Path.cwd() / exp_module).parent

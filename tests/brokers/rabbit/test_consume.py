@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from aio_pika import IncomingMessage, Message
+from aiormq.abc import ConfirmationFrameType
 
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage, NackMessage, RejectMessage, SkipMessage
@@ -32,15 +33,13 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
+
+            result = await br.publish("hello", queue=queue, exchange=exchange)
             await asyncio.wait(
-                (
-                    asyncio.create_task(
-                        br.publish("hello", queue=queue, exchange=exchange),
-                    ),
-                    asyncio.create_task(event.wait()),
-                ),
+                (asyncio.create_task(event.wait()),),
                 timeout=3,
             )
+            assert isinstance(result, ConfirmationFrameType), result
 
         assert event.is_set()
 
@@ -55,15 +54,16 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
-            queue=RabbitQueue(name=queue, passive=True),
-            exchange=RabbitExchange(name=exchange.name, passive=True),
+            queue=RabbitQueue(name=queue, declare=False),
+            exchange=RabbitExchange(name=exchange.name, declare=False),
         )
         def h(m) -> None:
             event.set()
 
-        async with self.patch_broker(consume_broker) as br:
-            await br.declare_queue(RabbitQueue(queue))
-            await br.declare_exchange(exchange)
+        async with self.patch_broker(consume_broker, connect_only=True) as br:
+            q = await br.declare_queue(RabbitQueue(queue))
+            ex = await br.declare_exchange(exchange)
+            await q.bind(ex, routing_key=queue)
 
             await br.start()
 

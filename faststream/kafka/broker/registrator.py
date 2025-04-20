@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -17,6 +17,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.kafka.publisher.factory import create_publisher
 from faststream.kafka.subscriber.factory import create_subscriber
 from faststream.middlewares import AckPolicy
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.types import (
+        BrokerMiddleware,
         CustomCallable,
         PublisherMiddleware,
         SubscriberMiddleware,
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
     )
     from faststream.kafka.subscriber.specified import (
         SpecificationBatchSubscriber,
+        SpecificationConcurrentBetweenPartitionsSubscriber,
         SpecificationConcurrentDefaultSubscriber,
         SpecificationDefaultSubscriber,
     )
@@ -59,6 +62,7 @@ class KafkaRegistrator(
             "SpecificationBatchSubscriber",
             "SpecificationDefaultSubscriber",
             "SpecificationConcurrentDefaultSubscriber",
+            "SpecificationConcurrentBetweenPartitionsSubscriber",
         ]
     ]
     _publishers: list[
@@ -174,7 +178,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -384,7 +388,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partitions: Annotated[
-            Iterable["TopicPartition"],
+            Collection["TopicPartition"],
             Doc(
                 """
             An explicit partitions list to assign.
@@ -409,7 +413,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -418,7 +422,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -555,7 +559,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -765,7 +769,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partitions: Annotated[
-            Iterable["TopicPartition"],
+            Collection["TopicPartition"],
             Doc(
                 """
             An explicit partitions list to assign.
@@ -790,7 +794,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -799,7 +803,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -936,7 +940,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -1146,7 +1150,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partitions: Annotated[
-            Iterable["TopicPartition"],
+            Collection["TopicPartition"],
             Doc(
                 """
             An explicit partitions list to assign.
@@ -1171,7 +1175,7 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -1180,7 +1184,7 @@ class KafkaRegistrator(
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -1320,7 +1324,7 @@ class KafkaRegistrator(
             ),
             deprecated(
                 """
-            This option is deprecated and will be removed in 0.6.10 release.
+            This option is deprecated and will be removed in 0.7.0 release.
             Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
             """,
             ),
@@ -1530,7 +1534,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partitions: Annotated[
-            Iterable["TopicPartition"],
+            Collection["TopicPartition"],
             Doc(
                 """
             An explicit partitions list to assign.
@@ -1555,20 +1559,27 @@ class KafkaRegistrator(
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
         max_workers: Annotated[
             int,
-            Doc("Number of workers to process messages concurrently."),
+            Doc(
+                "Maximum number of messages being processed concurrently. With "
+                "`auto_commit=False` processing is concurrent between partitions and "
+                "sequential within a partition. With `auto_commit=False` maximum "
+                "concurrency is achieved when total number of workers across all "
+                "application instances running workers in the same consumer group "
+                "is equal to the number of partitions in the topic."
+            ),
         ] = 1,
         no_ack: Annotated[
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -1598,6 +1609,7 @@ class KafkaRegistrator(
         "SpecificationDefaultSubscriber",
         "SpecificationBatchSubscriber",
         "SpecificationConcurrentDefaultSubscriber",
+        "SpecificationConcurrentBetweenPartitionsSubscriber",
     ]:
         sub = create_subscriber(
             *topics,
@@ -1647,8 +1659,16 @@ class KafkaRegistrator(
 
         if batch:
             subscriber = cast("SpecificationBatchSubscriber", subscriber)
+
         elif max_workers > 1:
-            subscriber = cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            if auto_commit:
+                subscriber = cast(
+                    "SpecificationConcurrentDefaultSubscriber", subscriber
+                )
+            else:
+                subscriber = cast(
+                    "SpecificationConcurrentBetweenPartitionsSubscriber", subscriber
+                )
         else:
             subscriber = cast("SpecificationDefaultSubscriber", subscriber)
 
@@ -1711,7 +1731,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1735,6 +1755,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "SpecificationDefaultPublisher": ...
 
     @overload
@@ -1789,7 +1813,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1813,6 +1837,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "SpecificationBatchPublisher": ...
 
     @overload
@@ -1867,7 +1895,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1891,6 +1919,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "SpecificationBatchPublisher",
         "SpecificationDefaultPublisher",
@@ -1948,7 +1980,7 @@ class KafkaRegistrator(
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -1972,6 +2004,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "SpecificationBatchPublisher",
         "SpecificationDefaultPublisher",
@@ -1984,6 +2020,7 @@ class KafkaRegistrator(
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
         """
         publisher = create_publisher(
+            autoflush=autoflush,
             # batch flag
             batch=batch,
             # default args
@@ -2006,3 +2043,30 @@ class KafkaRegistrator(
         if batch:
             return cast("SpecificationBatchPublisher", super().publisher(publisher))
         return cast("SpecificationDefaultPublisher", super().publisher(publisher))
+
+    @override
+    def include_router(
+        self,
+        router: "KafkaRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable[
+            "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
+        ] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, KafkaRegistrator):
+            msg = (
+                f"Router must be an instance of KafkaRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
+        )

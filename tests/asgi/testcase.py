@@ -12,44 +12,38 @@ from faststream.asgi import (
     make_asyncapi_asgi,
     make_ping_asgi,
 )
+from faststream.asgi.types import Scope
 from faststream.specification import AsyncAPI
 
 
 class AsgiTestcase:
-    def get_broker(self, **kwargs) -> Any:
+    def get_broker(self) -> Any:
         raise NotImplementedError
 
-    def get_test_broker(self, broker) -> Any:
+    def get_test_broker(self, broker: Any) -> Any:
         raise NotImplementedError
 
-    def test_not_found(self) -> None:
-        app = AsgiFastStream(AsyncMock())
+    @pytest.mark.asyncio()
+    async def test_not_found(self) -> None:
+        broker = self.get_broker()
+        app = AsgiFastStream(broker)
 
-        with TestClient(app) as client:
-            response = client.get("/")
-            assert response.status_code == 404
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/")
+                assert response.status_code == 404
 
-    def test_ws_not_found(self) -> None:
-        app = AsgiFastStream(AsyncMock())
-
-        with TestClient(app) as client:  # noqa: SIM117
-            with pytest.raises(WebSocketDisconnect):
-                with client.websocket_connect("/ws"):  # raises error
-                    pass
-
-    def test_asgi_ping_unhealthy(self) -> None:
+    @pytest.mark.asyncio()
+    async def test_ws_not_found(self) -> None:
         broker = self.get_broker()
 
-        app = AsgiFastStream(
-            AsyncMock(),
-            asgi_routes=[
-                ("/health", make_ping_asgi(broker, timeout=5.0)),
-            ],
-        )
+        app = AsgiFastStream(broker)
 
-        with TestClient(app) as client:
-            response = client.get("/health")
-            assert response.status_code == 500, response.status_code
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                with pytest.raises(WebSocketDisconnect):
+                    with client.websocket_connect("/ws"):  # raises error
+                        pass
 
     @pytest.mark.asyncio()
     async def test_asgi_ping_healthy(self) -> None:
@@ -66,6 +60,24 @@ class AsgiTestcase:
                 assert response.status_code == 204
 
     @pytest.mark.asyncio()
+    async def test_asgi_ping_unhealthy(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            broker,
+            asgi_routes=[
+                ("/health", make_ping_asgi(broker, timeout=5.0)),
+            ],
+        )
+        async with self.get_test_broker(broker) as br:
+            br.ping = AsyncMock()
+            br.ping.return_value = False
+
+            with TestClient(app) as client:
+                response = client.get("/health")
+                assert response.status_code == 500
+
+    @pytest.mark.asyncio()
     async def test_asyncapi_asgi(self) -> None:
         broker = self.get_broker()
 
@@ -80,14 +92,17 @@ class AsgiTestcase:
                 assert response.status_code == 200
                 assert response.text
 
-    def test_get_decorator(self) -> None:
+    @pytest.mark.asyncio()
+    async def test_get_decorator(self) -> None:
         @get
-        async def some_handler(scope) -> AsgiResponse:
+        async def some_handler(scope: Scope) -> AsgiResponse:
             return AsgiResponse(body=b"test", status_code=200)
 
-        app = AsgiFastStream(AsyncMock(), asgi_routes=[("/test", some_handler)])
+        broker = self.get_broker()
+        app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
 
-        with TestClient(app) as client:
-            response = client.get("/test")
-            assert response.status_code == 200
-            assert response.text == "test"
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/test")
+                assert response.status_code == 200
+                assert response.text == "test"

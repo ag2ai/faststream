@@ -8,13 +8,9 @@ if TYPE_CHECKING:
     from faststream._internal.broker.broker import BrokerUsecase
     from faststream.specification.schema import (
         Contact,
-        ContactDict,
         ExternalDocs,
-        ExternalDocsDict,
         License,
-        LicenseDict,
         Tag,
-        TagDict,
     )
 
 
@@ -26,12 +22,10 @@ def AsyncAPI(  # noqa: N802
     schema_version: Union[Literal["3.0.0", "2.6.0"], str] = "3.0.0",
     description: str = "",
     terms_of_service: Optional["AnyHttpUrl"] = None,
-    license: Optional[Union["License", "LicenseDict", "AnyDict"]] = None,
-    contact: Optional[Union["Contact", "ContactDict", "AnyDict"]] = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] = (),
-    external_docs: Optional[
-        Union["ExternalDocs", "ExternalDocsDict", "AnyDict"]
-    ] = None,
+    license: Optional[Union["License", "AnyDict"]] = None,
+    contact: Optional[Union["Contact", "AnyDict"]] = None,
+    tags: Sequence[Union["Tag", "AnyDict"]] = (),
+    external_docs: Optional[Union["ExternalDocs", "AnyDict"]] = None,
     identifier: Optional[str] = None,
 ) -> Specification:
     if schema_version.startswith("3.0."):

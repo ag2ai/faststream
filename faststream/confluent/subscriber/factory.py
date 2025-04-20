@@ -2,11 +2,9 @@ import warnings
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Literal,
     Optional,
     Union,
     cast,
-    overload,
 )
 
 from faststream._internal.constants import EMPTY
@@ -25,91 +23,6 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
     from faststream.confluent.schemas import TopicPartition
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: Literal[True],
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> "SpecificationBatchSubscriber": ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: Literal[False],
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[ConfluentMsg]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: bool,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Union[
-        Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-        Sequence["BrokerMiddleware[ConfluentMsg]"],
-    ],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
 
 
 def create_subscriber(
@@ -235,7 +148,7 @@ def _validate_input_for_misconfigure(
 ) -> None:
     if auto_commit is not EMPTY:
         warnings.warn(
-            "`auto_commit` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.6.10",
+            "`auto_commit` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )
@@ -248,7 +161,7 @@ def _validate_input_for_misconfigure(
 
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.6.10",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )

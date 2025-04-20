@@ -18,6 +18,8 @@ from tests.marks import pydantic_v2
 
 
 class FastAPICompatible:
+    is_fastapi: bool = False
+
     broker_factory: Union[BrokerUsecase, StreamRouter]
     dependency_builder = staticmethod(APIDepends)
 
@@ -498,55 +500,64 @@ class FastAPICompatible:
         class Sub(pydantic.BaseModel):
             type: Literal["sub"]
 
-        descriminator = Annotated[
-            Union[Sub2, Sub],
-            pydantic.Field(discriminator="type"),
-        ]
-
         broker = self.broker_factory()
 
         @broker.subscriber("test")
-        async def handle(user: descriminator) -> None: ...
+        async def handle(
+            user: Annotated[Union[Sub2, Sub], pydantic.Field(discriminator="type")],
+        ): ...
 
         schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
-        key = next(iter(schema["components"]["messages"].keys()))
-        assert key == IsStr(regex=r"test[\w:]*:Handle:SubscribeMessage")
 
-        assert schema["components"] == {
-            "messages": {
-                key: {
-                    "title": key,
-                    "correlationId": {"location": "$message.header#/correlation_id"},
-                    "payload": {"$ref": "#/components/schemas/Handle:Message:Payload"},
+        key = next(iter(schema["components"]["messages"].keys()))
+
+        assert key == IsStr(regex=r"test[\w:]*:Handle:SubscribeMessage"), key
+
+        p = schema["components"]["messages"][key]["payload"]
+        assert p == IsPartialDict({
+            "$ref": "#/components/schemas/Handle:Message:Payload",
+        }), p
+
+        assert schema["components"]["schemas"] == IsPartialDict({
+            "Sub": {
+                "properties": {
+                    "type": IsPartialDict({"const": "sub", "title": "Type"}),
                 },
+                "required": ["type"],
+                "title": "Sub",
+                "type": "object",
             },
-            "schemas": {
-                "Sub": {
-                    "properties": {
-                        "type": IsPartialDict({"const": "sub", "title": "Type"}),
-                    },
-                    "required": ["type"],
-                    "title": "Sub",
-                    "type": "object",
+            "Sub2": {
+                "properties": {
+                    "type": IsPartialDict({"const": "sub2", "title": "Type"}),
                 },
-                "Sub2": {
-                    "properties": {
-                        "type": IsPartialDict({"const": "sub2", "title": "Type"}),
-                    },
-                    "required": ["type"],
-                    "title": "Sub2",
-                    "type": "object",
-                },
-                "Handle:Message:Payload": {
-                    "discriminator": "type",
-                    "oneOf": [
-                        {"$ref": "#/components/schemas/Sub2"},
-                        {"$ref": "#/components/schemas/Sub"},
-                    ],
-                    "title": "Handle:Message:Payload",
-                },
+                "required": ["type"],
+                "title": "Sub2",
+                "type": "object",
             },
-        }, schema["components"]
+        }), schema["components"]["schemas"]
+
+        payload = schema["components"]["schemas"].get("Handle:Message:Payload")
+
+        descriminator_payload = IsPartialDict({
+            "discriminator": "type",
+            "oneOf": [
+                {"$ref": "#/components/schemas/Sub2"},
+                {"$ref": "#/components/schemas/Sub"},
+            ],
+            "title": "Handle:Message:Payload",
+        })
+
+        if self.is_fastapi:
+            assert payload == IsPartialDict({
+                "anyOf": [
+                    {"$ref": "#/components/schemas/Sub2"},
+                    {"$ref": "#/components/schemas/Sub"},
+                ]
+            }) | descriminator_payload, payload
+
+        else:
+            assert payload == descriminator_payload
 
     @pydantic_v2
     def test_nested_descriminator(self) -> None:

@@ -21,16 +21,88 @@ If you are working with a Publisher object (either as a decorator or directly), 
 Let's take a look at a simple application example with a publisher as a decorator or as a direct call:
 
 === "Decorator"
-    {!> includes/getting_started/publishing/testing/1.md !}
+
+    === "AIOKafka"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/kafka/object.py [ln:7-12] !}
+        ```
+
+    === "Confluent"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/confluent/object.py [ln:7-12] !}
+        ```
+
+    === "RabbitMQ"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/rabbit/object.py [ln:7-12] !}
+        ```
+
+    === "NATS"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/nats/object.py [ln:7-12] !}
+        ```
+
+    === "Redis"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/redis/object.py [ln:7-12] !}
+        ```
+
 
 === "Direct"
-    {!> includes/getting_started/publishing/testing/2.md !}
+    === "AIOKafka"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/kafka/direct.py [ln:7-11] !}
+        ```
+
+    === "Confluent"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/confluent/direct.py [ln:7-11] !}
+        ```
+
+    === "RabbitMQ"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/rabbit/direct.py [ln:7-11] !}
+        ```
+
+    === "NATS"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/nats/direct.py [ln:7-11] !}
+        ```
+
+    === "Redis"
+        ```python linenums="1"
+        {!> docs_src/getting_started/publishing/redis/direct.py [ln:7-11] !}
+        ```
+
 
 ## Testing
 
 To test it, you just need to patch your broker with a special *TestBroker*.
 
-{! includes/getting_started/publishing/testing/3.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/kafka/object_testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/confluent/object_testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/rabbit/object_testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/nats/object_testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/redis/object_testing.py [ln:1-4,8-12] !}
+    ```
 
 By default, it patches your broker to run **In-Memory**, so you can use it without any external broker. It should be extremely useful in your CI or local development environment.
 

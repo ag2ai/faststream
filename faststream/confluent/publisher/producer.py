@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, NoReturn, Optional, Union
 
 from typing_extensions import override
 
@@ -12,6 +12,8 @@ from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
     import asyncio
+
+    from confluent_kafka import Message
 
     from faststream._internal.types import CustomCallable
     from faststream.confluent.client import AsyncConfluentProducer
@@ -43,14 +45,14 @@ class AsyncConfluentFastProducer(ProducerProto):
     def __bool__(self) -> bool:
         return bool(self._producer)
 
-    async def ping(self, timeout: float) -> None:
+    async def ping(self, timeout: float) -> bool:
         return await self._producer.ping(timeout=timeout)
 
     @override
     async def publish(  # type: ignore[override]
         self,
         cmd: "KafkaPublishCommand",
-    ) -> "asyncio.Future":
+    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body)
 
@@ -68,6 +70,12 @@ class AsyncConfluentFastProducer(ProducerProto):
             headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
             no_confirm=cmd.no_confirm,
         )
+
+    async def stop(self) -> None:
+        await self._producer.stop()
+
+    async def flush(self) -> None:
+        await self._producer.flush()
 
     async def publish_batch(
         self,
@@ -104,9 +112,9 @@ class AsyncConfluentFastProducer(ProducerProto):
         )
 
     @override
-    async def request(
+    async def request(  # type: ignore[override]
         self,
         cmd: "KafkaPublishCommand",
-    ) -> Any:
+    ) -> NoReturn:
         msg = "Kafka doesn't support `request` method without test client."
         raise FeatureNotSupportedException(msg)

@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import Any, Callable, Optional, Protocol, TypeVar, Union, overload
 
+from typing_extensions import Self
+
 from faststream._internal.subscriber.call_wrapper import (
     HandlerCallWrapper,
     ensure_call_wrapper,
@@ -68,10 +70,10 @@ class NameRequired:
 
     @classmethod
     def validate(
-        cls: type[NameRequiredCls],
-        value: Union[str, NameRequiredCls, None],
+        cls,
+        value: Union[str, Self, None],
         **kwargs: Any,
-    ) -> Optional[NameRequiredCls]:
+    ) -> Optional[Self]:
         """Factory to create object."""
         if value is not None and isinstance(value, str):
             value = cls(value, **kwargs)

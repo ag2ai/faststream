@@ -84,7 +84,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             )
 
             assert isinstance(result, PubAck), result
-
         assert event.is_set()
 
     async def test_consume_with_filter(

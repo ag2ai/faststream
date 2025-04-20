@@ -12,10 +12,15 @@ def broker():
 
 
 @pytest.fixture()
-def app_without_logger(broker):
+def app_without_logger(broker) -> FastStream:
     return FastStream(broker, logger=None)
 
 
 @pytest.fixture()
-def app(broker):
+def app(broker) -> FastStream:
     return FastStream(broker)
+
+
+@pytest.fixture()
+def app_without_broker() -> FastStream:
+    return FastStream()

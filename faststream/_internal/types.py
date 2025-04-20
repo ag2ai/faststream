@@ -1,5 +1,6 @@
 from collections.abc import Awaitable
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
@@ -11,18 +12,29 @@ from typing import (
 from typing_extensions import (
     ParamSpec,
     TypeAlias,
+    TypeVar as TypeVar313,
 )
 
 from faststream._internal.basic_types import AsyncFuncAny
 from faststream._internal.context.repository import ContextRepo
 from faststream.message import StreamMessage
-from faststream.middlewares import BaseMiddleware
 from faststream.response.response import PublishCommand
 
+if TYPE_CHECKING:
+    from faststream._internal.middlewares import BaseMiddleware
+
+
+AnyMsg = TypeVar313("AnyMsg", default=Any)
+AnyMsg_contra = TypeVar313("AnyMsg_contra", default=Any, contravariant=True)
 MsgType = TypeVar("MsgType")
 Msg_contra = TypeVar("Msg_contra", contravariant=True)
 StreamMsg = TypeVar("StreamMsg", bound=StreamMessage[Any])
 ConnectionType = TypeVar("ConnectionType")
+PublishCommandType = TypeVar313(
+    "PublishCommandType",
+    bound=PublishCommand,
+    default=Any,
+)
 
 SyncFilter: TypeAlias = Callable[[StreamMsg], bool]
 AsyncFilter: TypeAlias = Callable[[StreamMsg], Awaitable[bool]]
@@ -66,16 +78,16 @@ WrappedHandlerCall: TypeAlias = Union[
 ]
 
 
-class BrokerMiddleware(Protocol[Msg_contra]):
+class BrokerMiddleware(Protocol[AnyMsg_contra, PublishCommandType]):
     """Middleware builder interface."""
 
     def __call__(
         self,
-        msg: Optional[Msg_contra],
+        msg: Optional[AnyMsg_contra],
         /,
         *,
         context: ContextRepo,
-    ) -> BaseMiddleware: ...
+    ) -> "BaseMiddleware[PublishCommandType]": ...
 
 
 SubscriberMiddleware: TypeAlias = Callable[

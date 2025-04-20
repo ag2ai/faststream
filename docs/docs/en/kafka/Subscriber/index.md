@@ -72,3 +72,10 @@ async def base_handler(
 ):
     ...
 ```
+
+
+## Concurrent processing
+
+There are two possible modes of concurrent message processing:
+* With `auto_commit=False` and `max_workers` > 1, a handler processes all messages concurrently in a at-most-once semantic.
+* With `auto_commit=True` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. Maximum concurrency is achieved when total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.

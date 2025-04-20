@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     )
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.schemas import Channel
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -102,33 +103,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Time to sleep between reconnection attempts."),
         ] = 5.0,
         # channel args
-        channel_number: Annotated[
-            Optional[int],
-            Doc("Specify the channel number explicit."),
-        ] = None,
-        publisher_confirms: Annotated[
-            bool,
-            Doc(
-                "if `True` the `publish` method will "
-                "return `bool` type after publish is complete."
-                "Otherwise it will returns `None`.",
-            ),
-        ] = True,
-        on_return_raises: Annotated[
-            bool,
-            Doc(
-                "raise an :class:`aio_pika.exceptions.DeliveryError`"
-                "when mandatory message will be returned",
-            ),
-        ] = False,
-        # broker args
-        max_consumers: Annotated[
-            Optional[int],
-            Doc(
-                "RabbitMQ channel `qos` option. "
-                "It limits max messages processing in the same time count.",
-            ),
-        ] = None,
+        default_channel: Optional["Channel"] = None,
         app_id: Annotated[
             Optional[str],
             Doc("Application name to mark outgoing messages by."),
@@ -190,6 +165,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # StreamRouter options
@@ -430,14 +406,11 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             timeout=timeout,
             fail_fast=fail_fast,
             reconnect_interval=reconnect_interval,
-            max_consumers=max_consumers,
             app_id=app_id,
             graceful_timeout=graceful_timeout,
             decoder=decoder,
             parser=parser,
-            channel_number=channel_number,
-            publisher_confirms=publisher_confirms,
-            on_return_raises=on_return_raises,
+            default_channel=default_channel,
             middlewares=middlewares,
             security=security,
             specification_url=specification_url,
@@ -489,6 +462,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         *,
+        channel: Optional["Channel"] = None,
         consume_args: Annotated[
             Optional["AnyDict"],
             Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
@@ -512,7 +486,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Sequence["SubscriberMiddleware[RabbitMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -521,7 +495,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -677,6 +651,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
                 queue=queue,
                 exchange=exchange,
                 consume_args=consume_args,
+                channel=channel,
                 dependencies=dependencies,
                 parser=parser,
                 decoder=decoder,
@@ -754,7 +729,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.6.10"
+                "Scheduled to remove in 0.7.0"
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
