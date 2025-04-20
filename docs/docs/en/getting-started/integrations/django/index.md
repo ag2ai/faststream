@@ -178,12 +178,12 @@ This way we can easily integrate our **FastStream** application with the **Djang
 In order to access the **Django** ORM from within a FastStream consumer, you need to ensure that the Django settings are properly configured and that the Django application is initialized before accessing the ORM. Here is how to do it using `serve_faststream.py` as an entry point for your FastStream consumer application.
 
 ```
-project-root/  
-├── manage.py  
-├── serve_faststream.py  
+project-root/
+├── manage.py
+├── serve_faststream.py
 ```
 ```Python
-# serve_faststream.py 
+# serve_faststream.py
 # ruff: noqa: E402
 ###############################################################################
 import os
