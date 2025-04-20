@@ -568,29 +568,32 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
     finally:
         await admin_client.close()
 
-    consume_broker = KafkaBroker()
+    logger = MagicMock()
+    consume_broker = KafkaBroker(logger=logger)
 
     @consume_broker.subscriber(
         queue,
         max_workers=3,
-        auto_commit=False,
+        ack_policy=AckPolicy.NACK_ON_ERROR,
         group_id="service_1",
     )
     async def handler(msg: str) -> None:
         pass
 
-    with patch.object(consume_broker, "logger", MagicMock(handlers=[])) as mock:
-        async with TestKafkaBroker(consume_broker) as broker:
-            await broker.start()
-            await broker.close()
+    # with patch.object(consume_broker, "_state", MagicMock(handlers=[])) as mock:
+    async with consume_broker as broker:
+        await broker.start()
+        await broker.close()
+
         if warning:
             assert (
-                len([x for x in mock.log.call_args_list if x[0][0] == logging.WARNING])
+                len([x for x in logger.log.call_args_list if x[0][0] == logging.WARNING])
                 == 2
             )
+
         else:
             assert (
-                len([x for x in mock.log.call_args_list if x[0][0] == logging.WARNING])
+                len([x for x in logger.log.call_args_list if x[0][0] == logging.WARNING])
                 == 0
             )
 

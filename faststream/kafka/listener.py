@@ -37,6 +37,8 @@ def make_logging_listener(
 
 
 class _LoggingListener(ConsumerRebalanceListener):
+    _log_unassigned_consumer_delay_seconds = 60 * 2
+
     def __init__(
         self,
         *,
