@@ -460,8 +460,9 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError), TestClient(app):
-            ...
+        with pytest.raises(SetupError):
+            async with self.patch_broker(router.broker):
+                ...
 
     async def test_depends_from_fastdepends_annotated(self, queue: str) -> None:
         router = self.router_class()
@@ -476,8 +477,9 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError), TestClient(app):
-            ...
+        with pytest.raises(SetupError):
+            async with self.patch_broker(router.broker):
+                ...
 
     async def test_yield_depends(self, mock: Mock, queue: str) -> None:
         router = self.router_class()
