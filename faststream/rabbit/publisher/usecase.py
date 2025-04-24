@@ -59,7 +59,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
 
         self.exchange = base_configs.exchange
 
-        super().__init__(publisher_configs=base_configs.internal_configs)
+        super().__init__(publisher_configs=base_configs)
 
         self.headers = base_configs.message_kwargs.pop("headers") or {}
         self.reply_to: str = base_configs.message_kwargs.pop("reply_to", None) or ""

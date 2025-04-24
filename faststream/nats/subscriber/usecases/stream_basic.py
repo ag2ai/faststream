@@ -38,8 +38,8 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
 
         self.queue = queue
         self.stream = stream
-        base_configs.internal_configs.default_decoder = parser_.decode_message
-        base_configs.internal_configs.default_parser = parser_.parse_message
+        base_configs.default_decoder = parser_.decode_message
+        base_configs.default_parser = parser_.parse_message
         super().__init__(base_configs=base_configs)
 
     def get_log_context(

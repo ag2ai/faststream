@@ -44,8 +44,8 @@ class KeyValueWatchSubscriber(
     ) -> None:
         parser = KvParser(pattern=base_configs.subject)
         self.kv_watch = kv_watch
-        base_configs.internal_configs.default_decoder = parser.decode_message
-        base_configs.internal_configs.default_parser = parser.parse_message
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
         super().__init__(base_configs=base_configs)
 
     @override

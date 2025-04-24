@@ -9,7 +9,6 @@ from typing import (
 )
 
 from faststream._internal.publisher.configs import (
-    PublisherUseCaseConfigs,
     SpecificationPublisherConfigs,
 )
 from faststream.exceptions import SetupError
@@ -110,16 +109,14 @@ def create_publisher(
     "SpecificationBatchPublisher",
     "SpecificationDefaultPublisher",
 ]:
-    internal_configs = PublisherUseCaseConfigs(
-        broker_middlewares=broker_middlewares, middlewares=middlewares
-    )
     base_configs = KafkaPublisherBaseConfigs(
         key=key,
         topic=topic,
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        internal_configs=internal_configs,
+        broker_middlewares=broker_middlewares,
+        middlewares=middlewares,
     )
 
     specification_configs = SpecificationPublisherConfigs(

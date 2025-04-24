@@ -36,13 +36,12 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     ) -> None:
         parser_ = NatsParser(
             pattern=base_configs.subject,
-            is_ack_disabled=base_configs.internal_configs.ack_policy
-            is not AckPolicy.DO_NOTHING,
+            is_ack_disabled=base_configs.ack_policy is not AckPolicy.DO_NOTHING,
         )
 
         self.queue = queue
-        base_configs.internal_configs.default_parser = parser_.parse_message
-        base_configs.internal_configs.default_decoder = parser_.decode_message
+        base_configs.default_parser = parser_.parse_message
+        base_configs.default_decoder = parser_.decode_message
         super().__init__(base_configs=base_configs)
 
     @override

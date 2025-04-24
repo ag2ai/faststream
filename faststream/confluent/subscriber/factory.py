@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Literal, Optional, Union, cast, overload
+from typing import TYPE_CHECKING, Literal, Optional, Union, overload
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
@@ -145,6 +145,7 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
+    # вынести в property
     if auto_commit is not EMPTY:
         ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
 
@@ -164,15 +165,14 @@ def create_subscriber(
         polling_interval=polling_interval,
         group_id=group_id,
         connection_data=connection_data,
-        ack_policy=ack_policy,
+        auto_commit=auto_commit,
+        no_ack=no_ack,
+        broker_middlewares=broker_middlewares,
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
-        broker_middlewares=cast(
-            "Sequence[BrokerMiddleware[tuple[ConfluentMsg, ...]]]",
-            broker_middlewares,
-        ),
+        ack_policy=ack_policy,
         default_decoder=EMPTY,
-        default_parser=EMPTY
+        default_parser=EMPTY,
     )
 
     specification_configs = SpecificationSubscriberOptions(

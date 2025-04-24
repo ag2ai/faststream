@@ -104,7 +104,6 @@ def create_publisher(
     "SpecificationBatchPublisher",
     "SpecificationDefaultPublisher",
 ]:
-
     base_configs = ConfluentPublisherBaseConfigs(
         key=key,
         topic=topic,

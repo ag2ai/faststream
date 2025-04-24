@@ -26,7 +26,7 @@ class LogicPublisher(PublisherUsecase[Msg]):
 
     def __init__(self, *, base_configs: NatsPublisherBaseConfigs) -> None:
         """Initialize NATS publisher object."""
-        super().__init__(publisher_configs=base_configs.internal_configs)
+        super().__init__(publisher_configs=base_configs)
 
         self.subject = base_configs.subject
         self.stream = base_configs.stream

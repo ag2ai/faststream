@@ -21,8 +21,13 @@ class ConfluentSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     polling_interval: float
     group_id: Optional[str]
     connection_data: "AnyDict"
+    auto_commit: bool
+    no_ack: bool
 
     def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> None:
         if not self.topics and not self.partitions:
             msg = "You should provide either `topics` or `partitions`."
             raise SetupError(msg)

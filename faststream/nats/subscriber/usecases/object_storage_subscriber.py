@@ -50,8 +50,8 @@ class ObjStoreWatchSubscriber(
 
         self.obj_watch = obj_watch
         self.obj_watch_conn = None
-        base_configs.internal_configs.default_parser = parser.parse_message
-        base_configs.internal_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        base_configs.default_decoder = parser.decode_message
         super().__init__(base_configs=base_configs)
 
     @override

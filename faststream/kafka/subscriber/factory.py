@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Literal, Optional, Union, overload
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
     SpecificationSubscriberOptions,
-    SubscriberUseCaseConfigs,
 )
 from faststream.exceptions import SetupError
 from faststream.kafka.subscriber.configs import KafkaSubscriberBaseConfigs
@@ -151,14 +150,10 @@ def create_subscriber(
     "SpecificationConcurrentDefaultSubscriber",
 ]:
     _validate_input_for_misconfigure(
-        *topics,
-        pattern=pattern,
-        partitions=partitions,
         ack_policy=ack_policy,
         no_ack=no_ack,
         auto_commit=auto_commit,
         max_workers=max_workers,
-        group_id=group_id,
     )
 
     if auto_commit is not EMPTY:
@@ -174,15 +169,6 @@ def create_subscriber(
         connection_args["enable_auto_commit"] = True
         ack_policy = AckPolicy.DO_NOTHING
 
-    internal_configs = SubscriberUseCaseConfigs(
-        ack_policy=ack_policy,
-        no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        default_decoder=EMPTY,
-        default_parser=EMPTY,
-    )
-
     base_configs = KafkaSubscriberBaseConfigs(
         topics=topics,
         partitions=partitions,
@@ -190,7 +176,12 @@ def create_subscriber(
         group_id=group_id,
         listener=listener,
         pattern=pattern,
-        internal_configs=internal_configs,
+        ack_policy=ack_policy,
+        no_reply=no_reply,
+        broker_dependencies=broker_dependencies,
+        broker_middlewares=broker_middlewares,
+        default_decoder=EMPTY,
+        default_parser=EMPTY,
     )
 
     specification_configs = SpecificationSubscriberOptions(

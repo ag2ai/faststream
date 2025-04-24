@@ -57,7 +57,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self.extra_options = base_configs.extra_options or {}
 
-        super().__init__(options=base_configs.internal_configs)
+        super().__init__(options=base_configs)
 
         self._fetch_sub = None
         self.subscription = None

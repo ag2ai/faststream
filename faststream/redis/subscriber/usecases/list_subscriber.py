@@ -127,9 +127,9 @@ class ListSubscriber(_ListHandlerMixin):
         self, *, list: ListSub, base_configs: RedisSubscriberBaseConfigs
     ) -> None:
         parser = RedisListParser()
-        base_configs.internal_configs.default_parser = parser.parse_message
-        base_configs.internal_configs.default_decoder = parser.decode_message
-        base_configs.internal_configs.ack_policy = AckPolicy.DO_NOTHING
+        base_configs.default_parser = parser.parse_message
+        base_configs.default_decoder = parser.decode_message
+        base_configs.ack_policy = AckPolicy.DO_NOTHING
         super().__init__(list=list, base_configs=base_configs)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
@@ -158,9 +158,9 @@ class BatchListSubscriber(_ListHandlerMixin):
         list: ListSub,
     ) -> None:
         parser = RedisBatchListParser()
-        base_configs.internal_configs.default_parser = parser.parse_message
-        base_configs.internal_configs.default_decoder = parser.decode_message
-        base_configs.internal_configs.ack_policy = AckPolicy.DO_NOTHING
+        base_configs.default_parser = parser.parse_message
+        base_configs.default_decoder = parser.decode_message
+        base_configs.ack_policy = AckPolicy.DO_NOTHING
         super().__init__(list=list, base_configs=base_configs)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:

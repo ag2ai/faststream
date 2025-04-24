@@ -27,7 +27,7 @@ class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
     _producer: "RedisFastProducer"
 
     def __init__(self, *, base_configs: RedisPublisherBaseConfigs) -> None:
-        super().__init__(publisher_configs=base_configs.internal_configs)
+        super().__init__(publisher_configs=base_configs)
 
         self.reply_to = base_configs.reply_to
         self.headers = base_configs.headers or {}

@@ -45,7 +45,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     parser: AioKafkaParser
 
     def __init__(self, base_configs: KafkaSubscriberBaseConfigs) -> None:
-        super().__init__(options=base_configs.internal_configs)
+        super().__init__(options=base_configs)
 
         self.topics = base_configs.topics
         self.partitions = base_configs.partitions
@@ -241,13 +241,12 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
 
         self.parser = AioKafkaParser(
             msg_class=KafkaMessage
-            if base_configs.internal_configs.ack_policy
-            is base_configs.internal_configs.ack_policy.ACK_FIRST
+            if base_configs.ack_policy is base_configs.ack_policy.ACK_FIRST
             else KafkaAckableMessage,
             regex=reg,
         )
-        base_configs.internal_configs.default_parser = self.parser.parse_message
-        base_configs.internal_configs.default_decoder = self.parser.decode_message
+        base_configs.default_parser = self.parser.parse_message
+        base_configs.default_decoder = self.parser.decode_message
         super().__init__(base_configs=base_configs)
 
     async def get_msg(self) -> "ConsumerRecord":
@@ -302,12 +301,12 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
 
         self.parser = AioKafkaBatchParser(
             msg_class=KafkaMessage
-            if base_configs.internal_configs.ack_policy is AckPolicy.ACK_FIRST
+            if base_configs.ack_policy is AckPolicy.ACK_FIRST
             else KafkaAckableMessage,
             regex=reg,
         )
-        base_configs.internal_configs.default_decoder = self.parser.decode_message
-        base_configs.internal_configs.default_parser = self.parser.parse_message
+        base_configs.default_decoder = self.parser.decode_message
+        base_configs.default_parser = self.parser.parse_message
         super().__init__(base_configs=base_configs)
 
     async def get_msg(self) -> tuple["ConsumerRecord", ...]:

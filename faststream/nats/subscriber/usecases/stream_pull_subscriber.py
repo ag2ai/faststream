@@ -126,8 +126,8 @@ class BatchPullStreamSubscriber(
 
         self.stream = stream
         self.pull_sub = pull_sub
-        base_configs.internal_configs.default_decoder = parser.decode_batch
-        base_configs.internal_configs.default_parser = parser.parse_batch
+        base_configs.default_decoder = parser.decode_batch
+        base_configs.default_parser = parser.parse_batch
         super().__init__(base_configs=base_configs)
 
     @override

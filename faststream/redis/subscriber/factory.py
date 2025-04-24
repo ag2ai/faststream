@@ -7,7 +7,6 @@ from typing_extensions import TypeAlias
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
     SpecificationSubscriberOptions,
-    SubscriberUseCaseConfigs,
 )
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -60,7 +59,6 @@ def create_subscriber(
     include_in_schema: bool = True,
     max_workers: int = 1,
 ) -> SubsciberType:
-
     _validate_input_for_misconfigure(
         channel=channel,
         list=list,
@@ -73,7 +71,7 @@ def create_subscriber(
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.DO_NOTHING if no_ack else AckPolicy.REJECT_ON_ERROR
 
-    internal_configs = SubscriberUseCaseConfigs(
+    base_configs = RedisSubscriberBaseConfigs(
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
         broker_middlewares=broker_middlewares,
@@ -81,8 +79,6 @@ def create_subscriber(
         default_parser=EMPTY,
         default_decoder=EMPTY,
     )
-
-    base_configs = RedisSubscriberBaseConfigs(internal_configs=internal_configs)
 
     specification_configs = SpecificationSubscriberOptions(
         title_=title_,

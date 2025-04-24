@@ -54,9 +54,9 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         self.queue = base_configs.queue
 
         parser = AioPikaParser(pattern=base_configs.queue.path_regex)
-        base_configs.internal_configs.default_decoder = parser.decode_message
-        base_configs.internal_configs.default_parser = parser.parse_message
-        super().__init__(options=base_configs.internal_configs)
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        super().__init__(options=base_configs)
 
         self.consume_args = base_configs.consume_args or {}
 

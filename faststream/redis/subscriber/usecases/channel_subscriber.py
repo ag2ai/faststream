@@ -45,9 +45,9 @@ class ChannelSubscriber(LogicSubscriber):
         base_configs: RedisSubscriberBaseConfigs,
     ) -> None:
         parser = RedisPubSubParser(pattern=channel.path_regex)
-        base_configs.internal_configs.default_decoder = parser.decode_message
-        base_configs.internal_configs.default_parser = parser.parse_message
-        base_configs.internal_configs.ack_policy = AckPolicy.DO_NOTHING
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        base_configs.ack_policy = AckPolicy.DO_NOTHING
         super().__init__(base_configs=base_configs)
 
         self.channel = channel

@@ -30,7 +30,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
     _producer: "AioKafkaFastProducer"
 
     def __init__(self, *, base_configs: KafkaPublisherBaseConfigs) -> None:
-        super().__init__(publisher_configs=base_configs.internal_configs)
+        super().__init__(publisher_configs=base_configs)
 
         self.topic = base_configs.topic
         self.partition = base_configs.partition

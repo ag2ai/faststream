@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from typing_extensions import TypeAlias
 
 from faststream._internal.publisher.configs import (
-    PublisherUseCaseConfigs,
     SpecificationPublisherConfigs,
 )
 from faststream.exceptions import SetupError
@@ -50,12 +49,11 @@ def create_publisher(
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)
 
-    internal_configs = PublisherUseCaseConfigs(
-        broker_middlewares=broker_middlewares, middlewares=middlewares
-    )
-
     base_configs = RedisPublisherBaseConfigs(
-        reply_to=reply_to, headers=headers, internal_configs=internal_configs
+        reply_to=reply_to,
+        headers=headers,
+        broker_middlewares=broker_middlewares,
+        middlewares=middlewares,
     )
 
     specification_configs = SpecificationPublisherConfigs(

@@ -40,7 +40,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     _client: Optional["Redis[bytes]"]
 
     def __init__(self, *, base_configs: RedisSubscriberBaseConfigs) -> None:
-        super().__init__(options=base_configs.internal_configs)
+        super().__init__(options=base_configs)
 
         self._client = None
 
@@ -141,9 +141,7 @@ class ConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], LogicSubscrib
     def __init__(
         self, *, base_configs: RedisSubscriberBaseConfigs, max_workers: int
     ) -> None:
-        super().__init__(
-            max_workers=max_workers, base_configs=base_configs.internal_configs
-        )
+        super().__init__(max_workers=max_workers, base_configs=base_configs)
 
         self._client = None
 
