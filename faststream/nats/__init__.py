@@ -15,8 +15,8 @@ try:
         StreamConfig,
         StreamSource,
     )
-except ImportError:
-    raise ImportError(INSTALL_FASTSTREAM_NATS)
+except ImportError(INSTALL_FASTSTREAM_NATS) as e:
+    raise ImportError(INSTALL_FASTSTREAM_NATS) from e
 
 from faststream.nats.annotations import NatsMessage
 from faststream.nats.broker.broker import NatsBroker
