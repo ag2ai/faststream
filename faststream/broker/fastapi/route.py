@@ -14,18 +14,20 @@ from typing import (
     Union,
 )
 
+from fast_depends.dependencies import model
 from fastapi.routing import run_endpoint_function, serialize_response
 from starlette.requests import Request
 
 from faststream.broker.fastapi.get_dependant import (
     get_fastapi_native_dependant,
-    has_faststream_depends,
+    has_signature_param,
     is_faststream_decorated,
     mark_faststream_decorated,
 )
 from faststream.broker.response import Response, ensure_response
 from faststream.broker.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
+from faststream.utils.context.types import Context as FSContext
 
 from ._compat import (
     FASTAPI_V106,
@@ -82,8 +84,12 @@ def wrap_callable_to_fastapi_compatible(
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
 ) -> Callable[["NativeMessage[Any]"], Awaitable[Any]]:
-    if has_faststream_depends(user_callable):
-        msg = f"Incorrect `faststream.Depends` usage at `{user_callable.__name__}`. For FastAPI integration use `fastapi.Depends`"
+    if has_signature_param(user_callable, model.Depends):
+        msg = f"Incorrect `faststream.Depends` usage at `{user_callable.__name__}`. For FastAPI integration use `fastapi.Depends`."
+        raise SetupError(msg)
+
+    if has_signature_param(user_callable, FSContext):
+        msg = f"Incorrect `faststream.Context` usage at `{user_callable.__name__}`. For FastAPI integration use `faststream.[broker].fastapi.Context`."
         raise SetupError(msg)
 
     if is_faststream_decorated(user_callable):

@@ -135,6 +135,32 @@ class TestTestclient(BrokerTestclientTestcase):
 
         assert event.is_set()
 
+    @pytest.mark.kafka
+    async def test_autoflush_with_real_testclient(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ):
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "1", autoflush=True)
+
+        @publisher
+        @broker.subscriber(queue)
+        def subscriber(m):
+            event.set()
+
+        async with TestKafkaBroker(broker, with_real=True) as br:
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        assert event.is_set()
+
     async def test_batch_pub_by_default_pub(
         self,
         queue: str,

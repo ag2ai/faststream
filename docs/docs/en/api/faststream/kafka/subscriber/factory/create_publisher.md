@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.broker.fastapi.get_dependant.has_faststream_depends
+::: faststream.kafka.subscriber.factory.create_publisher

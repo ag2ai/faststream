@@ -16,8 +16,7 @@ from typing_extensions import Annotated, Doc, deprecated, override
 
 from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
-from faststream.confluent.publisher.asyncapi import AsyncAPIPublisher
-from faststream.confluent.subscriber.factory import create_subscriber
+from faststream.confluent.subscriber.factory import create_publisher, create_subscriber
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
@@ -1346,6 +1345,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "AsyncAPIDefaultPublisher": ...
 
     @overload
@@ -1420,6 +1423,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> "AsyncAPIBatchPublisher": ...
 
     @overload
@@ -1494,6 +1501,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "AsyncAPIBatchPublisher",
         "AsyncAPIDefaultPublisher",
@@ -1571,6 +1582,10 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        autoflush: Annotated[
+            bool,
+            Doc("Whether to flush the producer or not on every publish call."),
+        ] = False,
     ) -> Union[
         "AsyncAPIBatchPublisher",
         "AsyncAPIDefaultPublisher",
@@ -1582,7 +1597,7 @@ class KafkaRegistrator(
 
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
         """
-        publisher = AsyncAPIPublisher.create(
+        publisher = create_publisher(
             # batch flag
             batch=batch,
             # default args
@@ -1600,6 +1615,7 @@ class KafkaRegistrator(
             description_=description,
             schema_=schema,
             include_in_schema=self._solve_include_in_schema(include_in_schema),
+            autoflush=autoflush,
         )
 
         if batch:

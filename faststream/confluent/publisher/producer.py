@@ -72,6 +72,9 @@ class AsyncConfluentFastProducer(ProducerProto):
     async def stop(self) -> None:
         await self._producer.stop()
 
+    async def flush(self) -> None:
+        await self._producer.flush()
+
     async def publish_batch(
         self,
         *msgs: "SendableMessage",
