@@ -353,7 +353,7 @@ class RabbitBroker(
                 "Please, use `Broker(...)` instead. "
                 "All these arguments will be removed in **FastStream 0.6.0**.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
         if fail_fast is not EMPTY:
@@ -361,9 +361,8 @@ class RabbitBroker(
                 "'fail_fast' is deprecated and will be removed in future versions. "
                 "Use 'timeout' or connection retry strategies instead.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
-
 
         if not default_channel and (
             channel_number is not EMPTY

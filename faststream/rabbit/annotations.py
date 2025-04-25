@@ -1,4 +1,3 @@
-
 from typing_extensions import Annotated
 
 from faststream.annotations import ContextRepo, Logger, NoCast

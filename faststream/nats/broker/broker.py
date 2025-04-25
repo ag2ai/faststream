@@ -581,7 +581,7 @@ class NatsBroker(
                 "Please, use `Broker(...)` instead. "
                 "All these arguments will be removed in **FastStream 0.6.0**.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
             connect_kwargs: AnyDict = {
