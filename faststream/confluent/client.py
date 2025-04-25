@@ -298,7 +298,7 @@ class AsyncConfluentConsumer:
         self.consumer = Consumer(self.config, logger=self.logger)  # type: ignore[call-arg]
 
         # We shouldn't read messages and close consumer concurrently
-        # https://github.com/airtai/faststream/issues/1904#issuecomment-2506990895
+        # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._lock = anyio.Lock()
 
     @property
