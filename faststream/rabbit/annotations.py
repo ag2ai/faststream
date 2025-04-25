@@ -10,8 +10,8 @@ from faststream.utils.context import Context
 
 try:
     from aio_pika import RobustChannel, RobustConnection
-except:
-    raise ImportError(INSTALL_FASTSTREAM_RABBIT)
+except ImportError(INSTALL_FASTSTREAM_RABBIT) as e:
+    raise ImportError(INSTALL_FASTSTREAM_RABBIT) from e
 
 __all__ = (
     "Channel",
