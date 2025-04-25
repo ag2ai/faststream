@@ -2,8 +2,8 @@ from faststream.exceptions import INSTALL_FASTSTREAM_KAFKA
 
 try:
     from aiokafka import TopicPartition
-except ImportError:
-    raise ImportError(INSTALL_FASTSTREAM_KAFKA)
+except ImportError as e:
+    raise ImportError(INSTALL_FASTSTREAM_KAFKA) from e
 
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.broker import KafkaBroker
