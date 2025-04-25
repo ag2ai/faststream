@@ -17,8 +17,8 @@ from faststream.exceptions import INSTALL_FASTSTREAM_RABBIT
 
 try:
     from aio_pika import connect_robust
-except ImportError:
-    raise ImportError(INSTALL_FASTSTREAM_RABBIT)
+except ImportError(INSTALL_FASTSTREAM_RABBIT) as e:
+    raise ImportError(INSTALL_FASTSTREAM_RABBIT) from e
 
 import anyio
 from typing_extensions import Annotated, Doc, deprecated, override
@@ -346,7 +346,6 @@ class RabbitBroker(
             or client_properties is not None
             or security is not None
             or timeout is not None
-            or fail_fast is not EMPTY
             or reconnect_interval is not EMPTY
         ):
             warnings.warn(
@@ -356,8 +355,6 @@ class RabbitBroker(
                 DeprecationWarning,
                 stacklevel=2
             )
-
-        return
 
         if fail_fast is not EMPTY:
             warnings.warn(

@@ -2,8 +2,8 @@ from faststream.exceptions import INSTALL_FASTSTREAM_REDIS
 
 try:
     from redis.asyncio.client import Redis as RedisClient
-except ImportError:
-    raise ImportError(INSTALL_FASTSTREAM_REDIS)
+except ImportError as e:
+    raise ImportError(INSTALL_FASTSTREAM_REDIS) from e
 
 from typing_extensions import Annotated
 
