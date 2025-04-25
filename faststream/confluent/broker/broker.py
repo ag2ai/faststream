@@ -30,7 +30,7 @@ from faststream.confluent.config import ConfluentFastConfig
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
 from faststream.confluent.schemas.params import ConsumerConnectionParams
 from faststream.confluent.security import parse_security
-from faststream.exceptions import NOT_CONNECTED_YET, INSTALL_CONFLUENT_KAFKA
+from faststream.exceptions import INSTALL_CONFLUENT_KAFKA, NOT_CONNECTED_YET
 from faststream.types import EMPTY
 from faststream.utils.data import filter_by_dict
 
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
         from confluent_kafka import Message
     except ImportError(INSTALL_CONFLUENT_KAFKA) as e:
         raise ImportError(INSTALL_CONFLUENT_KAFKA) from e
-    
+
     from fast_depends.dependencies import Depends
 
     from faststream.asyncapi import schema as asyncapi
