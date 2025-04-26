@@ -5,9 +5,15 @@ from typing import (
     Optional,
 )
 
-from faststream._internal.subscriber.configs import SubscriberUseCaseConfigs
-from faststream.exceptions import SetupError
-from faststream.middlewares.acknowledgement.conf import AckPolicy
+from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SubscriberUseCaseConfigs,
+)
+from faststream.middlewares import AckPolicy
+
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import AnyDict
+    from faststream.confluent.schemas import TopicPartition
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
@@ -24,18 +30,25 @@ class ConfluentSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     auto_commit: bool
     no_ack: bool
 
-    def __post_init__(self) -> None:
-        self.validate()
+    @property
+    def ack_policy(self) -> AckPolicy:
+        if self.auto_commit is not EMPTY:
+            return (
+                AckPolicy.ACK_FIRST if self.auto_commit else AckPolicy.REJECT_ON_ERROR
+            )
 
-    def validate(self) -> None:
-        if not self.topics and not self.partitions:
-            msg = "You should provide either `topics` or `partitions`."
-            raise SetupError(msg)
+        if self.no_ack is not EMPTY:
+            return AckPolicy.DO_NOTHING if self.no_ack else EMPTY
 
-        if self.topics and self.partitions:
-            msg = "You can't provide both `topics` and `partitions`."
-            raise SetupError(msg)
+        if self._ack_policy is EMPTY:
+            return AckPolicy.ACK_FIRST
 
-        if not self.group_id and self.ack_policy is not AckPolicy.ACK_FIRST:
-            msg = "You must use `group_id` with manual commit mode."
-            raise SetupError(msg)
+        if self._ack_policy is AckPolicy.ACK_FIRST:
+            self.connection_data["enable_auto_commit"] = True
+            return AckPolicy.DO_NOTHING
+
+        return self._ack_policy
+
+    @ack_policy.setter
+    def ack_policy(self, policy: AckPolicy) -> None:
+        self._ack_policy = policy

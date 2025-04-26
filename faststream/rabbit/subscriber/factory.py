@@ -7,7 +7,6 @@ from faststream._internal.subscriber.configs import (
     SpecificationSubscriberOptions,
 )
 from faststream.exceptions import SetupError
-from faststream.middlewares import AckPolicy
 from faststream.rabbit.schemas.base import RabbitBaseConfigs
 from faststream.rabbit.subscriber.configs import (
     RabbitSubscriberBaseConfigs,
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
+    from faststream.middlewares import AckPolicy
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 
@@ -40,8 +40,6 @@ def create_subscriber(
     include_in_schema: bool,
 ) -> SpecificationSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else AckPolicy.REJECT_ON_ERROR
 
     base_configs = RabbitSubscriberBaseConfigs(
         ack_policy=ack_policy,
@@ -52,6 +50,7 @@ def create_subscriber(
         default_parser=EMPTY,
         consume_args=consume_args,
         queue=queue,
+        no_ack=no_ack,
     )
     specification_configs = SpecificationSubscriberOptions(
         title_=title_,

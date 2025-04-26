@@ -68,9 +68,6 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else AckPolicy.REJECT_ON_ERROR
-
     base_configs = RedisSubscriberBaseConfigs(
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
@@ -78,6 +75,7 @@ def create_subscriber(
         ack_policy=ack_policy,
         default_parser=EMPTY,
         default_decoder=EMPTY,
+        no_ack=no_ack,
     )
 
     specification_configs = SpecificationSubscriberOptions(

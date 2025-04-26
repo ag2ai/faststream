@@ -109,15 +109,6 @@ def create_subscriber(
         stream=stream,
     )
 
-    if ack_first is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if ack_first else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        no_ack = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.REJECT_ON_ERROR
-
     config = config or ConsumerConfig(filter_subjects=[])
     if config.durable_name is None:
         config.durable_name = durable
@@ -181,6 +172,8 @@ def create_subscriber(
         broker_middlewares=broker_middlewares,
         default_decoder=EMPTY,
         default_parser=EMPTY,
+        ack_first=ack_first,
+        no_ack=no_ack,
     )
 
     specification_configs = SpecificationSubscriberOptions(
@@ -260,6 +253,7 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(  # noqa: PLR0915
+    subject: str,
     queue: str,  # default ""
     pending_msgs_limit: Optional[int],
     pending_bytes_limit: Optional[int],
@@ -357,6 +351,10 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
 
     if pull_sub and not stream:
         msg = "JetStream Pull Subscriber can only be used with the `stream` option."
+        raise SetupError(msg)
+
+    if not subject and not config:
+        msg = "You must provide either the `subject` or `config` option."
         raise SetupError(msg)
 
     if not stream:

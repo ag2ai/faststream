@@ -5,8 +5,10 @@ from typing import (
     Optional,
 )
 
-from faststream._internal.subscriber.configs import SubscriberUseCaseConfigs
-from faststream.exceptions import SetupError
+from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SubscriberUseCaseConfigs1,
+)
 from faststream.middlewares.acknowledgement.conf import AckPolicy
 
 if TYPE_CHECKING:
@@ -17,31 +19,35 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs):
+class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs1):
     topics: Sequence[str]
     group_id: Optional[str]
     connection_args: "AnyDict"
     listener: Optional["ConsumerRebalanceListener"]
     pattern: Optional[str]
     partitions: Iterable["TopicPartition"]
+    no_ack: bool
+    auto_commit: bool
 
-    def __post_init__(self) -> None:
-        if not self.group_id and self.ack_policy is not AckPolicy.ACK_FIRST:
-            msg = "You must use `group_id` with manual commit mode."
-            raise SetupError(msg)
+    @property
+    def ack_policy(self) -> AckPolicy:
+        if self._ack_policy is EMPTY:
+            return AckPolicy.ACK_FIRST
 
-        if not self.topics and not self.partitions and not self.pattern:
-            msg = "You should provide either `topics` or `partitions` or `pattern`."
-            raise SetupError(msg)
+        if self.auto_commit is not EMPTY:
+            return (
+                AckPolicy.ACK_FIRST if self.auto_commit else AckPolicy.REJECT_ON_ERROR
+            )
 
-        if self.topics and self.partitions:
-            msg = "You can't provide both `topics` and `partitions`."
-            raise SetupError(msg)
+        if self.no_ack is not EMPTY:
+            return AckPolicy.DO_NOTHING if self.no_ack else EMPTY
 
-        if self.topics and self.pattern:
-            msg = "You can't provide both `topics` and `pattern`."
-            raise SetupError(msg)
+        if self._ack_policy is AckPolicy.ACK_FIRST:
+            self.connection_args["enable_auto_commit"] = True
+            return AckPolicy.DO_NOTHING
 
-        if self.partitions and self.pattern:
-            msg = "You can't provide both `partitions` and `pattern`."
-            raise SetupError(msg)
+        return self._ack_policy
+
+    @ack_policy.setter
+    def ack_policy(self, policy: AckPolicy) -> None:
+        self._ack_policy = policy

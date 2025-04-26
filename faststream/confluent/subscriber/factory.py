@@ -139,25 +139,14 @@ def create_subscriber(
     "SpecificationConcurrentDefaultSubscriber",
 ]:
     _validate_input_for_misconfigure(
+        *topics,
+        group_id=group_id,
+        partitions=partitions,
         ack_policy=ack_policy,
         no_ack=no_ack,
         auto_commit=auto_commit,
         max_workers=max_workers,
     )
-
-    # вынести в property
-    if auto_commit is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST
-
-    if ack_policy is AckPolicy.ACK_FIRST:
-        connection_data["enable_auto_commit"] = True
-        ack_policy = AckPolicy.DO_NOTHING
 
     base_configs = ConfluentSubscriberBaseConfigs(
         topics=topics,
@@ -203,10 +192,13 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
+    *topics: str,
     ack_policy: "AckPolicy",
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
+    group_id: Optional[str],
+    partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:
         warnings.warn(
@@ -239,4 +231,16 @@ def _validate_input_for_misconfigure(
 
     if AckPolicy.ACK_FIRST is not AckPolicy.ACK_FIRST and max_workers > 1:
         msg = "Max workers not work with manual commit mode."
+        raise SetupError(msg)
+
+    if not topics and not partitions:
+        msg = "You should provide either `topics` or `partitions`."
+        raise SetupError(msg)
+
+    if topics and partitions:
+        msg = "You can't provide both `topics` and `partitions`."
+        raise SetupError(msg)
+
+    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
+        msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)

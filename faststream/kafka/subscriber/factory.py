@@ -150,24 +150,15 @@ def create_subscriber(
     "SpecificationConcurrentDefaultSubscriber",
 ]:
     _validate_input_for_misconfigure(
+        *topics,
+        group_id=group_id,
+        pattern=pattern,
+        partitions=partitions,
         ack_policy=ack_policy,
         no_ack=no_ack,
         auto_commit=auto_commit,
         max_workers=max_workers,
     )
-
-    if auto_commit is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST
-
-    if ack_policy is AckPolicy.ACK_FIRST:
-        connection_args["enable_auto_commit"] = True
-        ack_policy = AckPolicy.DO_NOTHING
 
     base_configs = KafkaSubscriberBaseConfigs(
         topics=topics,
@@ -182,6 +173,8 @@ def create_subscriber(
         broker_middlewares=broker_middlewares,
         default_decoder=EMPTY,
         default_parser=EMPTY,
+        no_ack=no_ack,
+        auto_commit=auto_commit,
     )
 
     specification_configs = SpecificationSubscriberOptions(
@@ -211,10 +204,14 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
+    *topics: str,
     ack_policy: "AckPolicy",
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
+    group_id: Optional[str],
+    pattern: Optional[str],
+    partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:
         warnings.warn(
@@ -247,4 +244,24 @@ def _validate_input_for_misconfigure(
 
     if max_workers > 1 and ack_policy is not AckPolicy.ACK_FIRST:
         msg = "You can't use `max_workers` option with manual commit mode."
+        raise SetupError(msg)
+
+    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
+        msg = "You must use `group_id` with manual commit mode."
+        raise SetupError(msg)
+
+    if not topics and not partitions and not pattern:
+        msg = "You should provide either `topics` or `partitions` or `pattern`."
+        raise SetupError(msg)
+
+    if topics and partitions:
+        msg = "You can't provide both `topics` and `partitions`."
+        raise SetupError(msg)
+
+    if topics and pattern:
+        msg = "You can't provide both `topics` and `pattern`."
+        raise SetupError(msg)
+
+    if partitions and pattern:
+        msg = "You can't provide both `partitions` and `pattern`."
         raise SetupError(msg)

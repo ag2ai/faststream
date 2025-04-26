@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.configs import (
@@ -25,3 +25,5 @@ class SubscriberUseCaseConfigs(UseCaseConfigs):
     ack_policy: AckPolicy
     default_parser: Optional["AsyncCallable"]
     default_decoder: Optional["AsyncCallable"]
+
+    _ack_policy: AckPolicy = field(init=False, repr=False)
