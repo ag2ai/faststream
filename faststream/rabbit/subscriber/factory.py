@@ -55,7 +55,6 @@ def create_subscriber(
         default_parser=EMPTY,
         consume_args=consume_args,
         queue=queue,
-        no_ack=no_ack,
         channel=channel,
         exchange=exchange
     )
@@ -68,14 +67,11 @@ def create_subscriber(
 
     rabbit_mq_base_configs = RabbitBaseConfigs(queue=queue, exchange=exchange)
 
-
     return SpecificationSubscriber(
-        channel=channel,
         base_configs=base_configs,
         specification_configs=specification_configs,
         rabbit_mq_base_configs=rabbit_mq_base_configs,
     )
-
 
 
 def _validate_input_for_misconfigure(

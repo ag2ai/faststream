@@ -7,7 +7,7 @@ from typing import (
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
-    SubscriberUseCaseConfigs1,
+    SubscriberUseCaseConfigs,
 )
 from faststream.middlewares.acknowledgement.conf import AckPolicy
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs1):
+class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     topics: Sequence[str]
     group_id: Optional[str]
     connection_args: "AnyDict"

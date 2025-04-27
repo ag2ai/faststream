@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Iterable, Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -23,12 +23,10 @@ if TYPE_CHECKING:
     from faststream._internal.state import BrokerState
     from faststream._internal.types import CustomCallable
     from faststream.message import StreamMessage
-    from faststream.middlewares import AckPolicy
     from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.schemas import (
-        Channel,
         RabbitExchange,
         RabbitQueue,
     )

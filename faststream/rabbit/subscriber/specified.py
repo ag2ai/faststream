@@ -1,3 +1,4 @@
+
 from faststream._internal.configs import SpecificationConfigs
 from faststream._internal.subscriber.specified import (
     SpecificationSubscriber as SpecificationSubscriberMixin,
@@ -19,15 +20,6 @@ from faststream.specification.schema.bindings import (
     OperationBinding,
     amqp,
 )
-from typing import Optional, TYPE_CHECKING
-if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
-    from fast_depends.dependencies import Dependant
-
-    from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
-    from faststream.middlewares import AckPolicy
-    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
 
 
 class SpecificationSubscriber(
@@ -43,7 +35,6 @@ class SpecificationSubscriber(
         base_configs: RabbitSubscriberBaseConfigs,
         rabbit_mq_base_configs: RabbitBaseConfigs,
         specification_configs: SpecificationConfigs,
-        channel: Optional["Channel"],
     ) -> None:
         super().__init__(
             specification_configs=specification_configs,
@@ -51,7 +42,7 @@ class SpecificationSubscriber(
             rabbit_mq_options=rabbit_mq_base_configs,
         )
 
-        LogicSubscriber.__init__(self, base_configs=base_configs, channel=channel)
+        LogicSubscriber.__init__(self, base_configs=base_configs)
 
     def get_default_name(self) -> str:
         return f"{self.queue.name}:{getattr(self.exchange, 'name', None) or '_'}:{self.call_name}"
