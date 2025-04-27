@@ -85,3 +85,21 @@ a.internal-link::after {
         */
     content: "\00A0↪";
 }
+
+.checked_mark {
+    color: #30af00;
+}
+
+.x_mark {
+    color: #ce242d;
+}
+
+.warning_mark {
+    color: #d19d00;
+}
+
+#gurubase-page-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}

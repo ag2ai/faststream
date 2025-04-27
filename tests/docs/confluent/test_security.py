@@ -28,11 +28,14 @@ async def test_scram256() -> None:
         async with scram256_broker:
             producer_call_kwargs = producer.call_args.kwargs
 
-            call_kwargs = {}
-            call_kwargs["sasl_mechanism"] = "SCRAM-SHA-256"
-            call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
-            call_kwargs["security_protocol"] = "SASL_SSL"
+            call_kwargs = {
+                "security_config": {
+                    "sasl.mechanism": "SCRAM-SHA-256",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
+                },
+                "security_protocol": "SASL_SSL",
+            }
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
 
@@ -53,11 +56,14 @@ async def test_scram512() -> None:
         async with scram512_broker:
             producer_call_kwargs = producer.call_args.kwargs
 
-            call_kwargs = {}
-            call_kwargs["sasl_mechanism"] = "SCRAM-SHA-512"
-            call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
-            call_kwargs["security_protocol"] = "SASL_SSL"
+            call_kwargs = {
+                "security_config": {
+                    "sasl.mechanism": "SCRAM-SHA-512",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
+                },
+                "security_protocol": "SASL_SSL",
+            }
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
 
@@ -78,11 +84,14 @@ async def test_plaintext() -> None:
         async with plaintext_broker:
             producer_call_kwargs = producer.call_args.kwargs
 
-            call_kwargs = {}
-            call_kwargs["sasl_mechanism"] = "PLAIN"
-            call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
-            call_kwargs["security_protocol"] = "SASL_SSL"
+            call_kwargs = {
+                "security_config": {
+                    "sasl.mechanism": "PLAIN",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
+                },
+                "security_protocol": "SASL_SSL",
+            }
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
 
@@ -103,9 +112,12 @@ async def test_oathbearer() -> None:
         async with oauthbearer_broker:
             producer_call_kwargs = producer.call_args.kwargs
 
-            call_kwargs = {}
-            call_kwargs["sasl_mechanism"] = "OAUTHBEARER"
-            call_kwargs["security_protocol"] = "SASL_SSL"
+            call_kwargs = {
+                "security_config": {
+                    "sasl.mechanism": "OAUTHBEARER",
+                },
+                "security_protocol": "SASL_SSL",
+            }
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
 
@@ -127,7 +139,9 @@ async def test_gssapi() -> None:
             producer_call_kwargs = producer.call_args.kwargs
 
             call_kwargs = {
-                "sasl_mechanism": "GSSAPI",
+                "security_config": {
+                    "sasl.mechanism": "GSSAPI",
+                },
                 "security_protocol": "SASL_SSL",
             }
 

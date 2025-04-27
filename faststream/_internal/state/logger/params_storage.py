@@ -1,6 +1,8 @@
+import logging
 import warnings
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional, Protocol
+from weakref import WeakSet
 
 from faststream._internal.constants import EMPTY
 
@@ -65,9 +67,20 @@ class DefaultLoggerStorage(LoggerParamsStorage):
     def __init__(self, log_fmt: Optional[str]) -> None:
         self._log_fmt = log_fmt
 
+        self.logger_log_level = logging.INFO
+        self._logger_ref = WeakSet[logging.Logger]()
+
     @abstractmethod
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         raise NotImplementedError
 
+    def _get_logger_ref(self) -> Optional[logging.Logger]:
+        if self._logger_ref:
+            return next(iter(self._logger_ref))
+        return None
+
     def set_level(self, level: int) -> None:
-        raise NotImplementedError
+        if lg := self._get_logger_ref():
+            lg.setLevel(level)
+
+        self.logger_log_level = level

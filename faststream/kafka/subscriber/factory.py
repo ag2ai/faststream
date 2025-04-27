@@ -1,6 +1,6 @@
 import warnings
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Literal, Optional, Union, overload
+from collections.abc import Collection, Iterable
+from typing import TYPE_CHECKING, Optional, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
@@ -10,6 +10,7 @@ from faststream.exceptions import SetupError
 from faststream.kafka.subscriber.configs import KafkaSubscriberBaseConfigs
 from faststream.kafka.subscriber.specified import (
     SpecificationBatchSubscriber,
+    SpecificationConcurrentBetweenPartitionsSubscriber,
     SpecificationConcurrentDefaultSubscriber,
     SpecificationDefaultSubscriber,
 )
@@ -24,69 +25,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import BrokerMiddleware
 
 
-@overload
-def create_subscriber(
-    *topics: str,
-    batch: Literal[True],
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Iterable["TopicPartition"],
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[tuple[ConsumerRecord, ...]]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    batch: Literal[False],
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Iterable["TopicPartition"],
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
-
-
-@overload
 def create_subscriber(
     *topics: str,
     batch: bool,
@@ -97,15 +35,15 @@ def create_subscriber(
     listener: Optional["ConsumerRebalanceListener"],
     pattern: Optional[str],
     connection_args: "AnyDict",
-    partitions: Iterable["TopicPartition"],
+    partitions: Collection["TopicPartition"],
     auto_commit: bool,
     # Subscriber args
     ack_policy: "AckPolicy",
     max_workers: int,
     no_ack: bool,
     no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence[
+    broker_dependencies: Collection["Dependant"],
+    broker_middlewares: Collection[
         "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
     ],
     # Specification args
@@ -116,42 +54,10 @@ def create_subscriber(
     "SpecificationDefaultSubscriber",
     "SpecificationBatchSubscriber",
     "SpecificationConcurrentDefaultSubscriber",
-]: ...
-
-
-def create_subscriber(
-    *topics: str,
-    batch: bool,
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Iterable["TopicPartition"],
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
-    ],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
+    "SpecificationConcurrentBetweenPartitionsSubscriber",
 ]:
     _validate_input_for_misconfigure(
         *topics,
-        group_id=group_id,
         pattern=pattern,
         partitions=partitions,
         ack_policy=ack_policy,
@@ -192,14 +98,23 @@ def create_subscriber(
         )
 
     if max_workers > 1:
-        return SpecificationConcurrentDefaultSubscriber(
+        if base_configs.ack_policy is AckPolicy.ACK_FIRST:
+            return SpecificationConcurrentDefaultSubscriber(
+                specification_configs=specification_configs,
+                base_configs=base_configs,
+                max_workers=max_workers,
+            )
+
+        base_configs.topics = topics[0]
+        return SpecificationConcurrentBetweenPartitionsSubscriber(
             specification_configs=specification_configs,
             base_configs=base_configs,
             max_workers=max_workers,
         )
 
     return SpecificationDefaultSubscriber(
-        specification_configs=specification_configs, base_configs=base_configs
+        specification_configs=specification_configs,
+        base_configs=base_configs
     )
 
 
@@ -209,7 +124,6 @@ def _validate_input_for_misconfigure(
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
-    group_id: Optional[str],
     pattern: Optional[str],
     partitions: Iterable["TopicPartition"],
 ) -> None:
@@ -243,12 +157,17 @@ def _validate_input_for_misconfigure(
         ack_policy = AckPolicy.ACK_FIRST
 
     if max_workers > 1 and ack_policy is not AckPolicy.ACK_FIRST:
-        msg = "You can't use `max_workers` option with manual commit mode."
-        raise SetupError(msg)
+        if len(topics) > 1:
+            msg = "You must use a single topic with concurrent manual commit mode."
+            raise SetupError(msg)
 
-    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
-        msg = "You must use `group_id` with manual commit mode."
-        raise SetupError(msg)
+        if pattern is not None:
+            msg = "You can not use a pattern with concurrent manual commit mode."
+            raise SetupError(msg)
+
+        if partitions:
+            msg = "Manual partition assignment is not supported with concurrent manual commit mode."
+            raise SetupError(msg)
 
     if not topics and not partitions and not pattern:
         msg = "You should provide either `topics` or `partitions` or `pattern`."

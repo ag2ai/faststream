@@ -5,10 +5,12 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.publisher.factory import create_publisher
 from faststream.rabbit.publisher.usecase import PublishKwargs
 from faststream.rabbit.schemas import (
+    Channel,
     RabbitExchange,
     RabbitQueue,
 )
@@ -16,12 +18,13 @@ from faststream.rabbit.subscriber.factory import create_subscriber
 from faststream.rabbit.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage  # noqa: F401
+    from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
+        BrokerMiddleware,
         CustomCallable,
         PublisherMiddleware,
         SubscriberMiddleware,
@@ -55,6 +58,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             ),
         ] = None,
         *,
+        channel: Optional["Channel"] = None,
         consume_args: Annotated[
             Optional["AnyDict"],
             Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
@@ -119,6 +123,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
                     queue=RabbitQueue.validate(queue),
                     exchange=RabbitExchange.validate(exchange),
                     consume_args=consume_args,
+                    channel=channel,
                     # subscriber args
                     ack_policy=ack_policy,
                     no_ack=no_ack,
@@ -143,14 +148,8 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        queue: Annotated[
-            Union["RabbitQueue", str],
-            Doc("Default message routing key to publish with."),
-        ] = "",
-        exchange: Annotated[
-            Union["RabbitExchange", str, None],
-            Doc("Target exchange to publish message to."),
-        ] = None,
+        queue: Union["RabbitQueue", str] = "",
+        exchange: Union["RabbitExchange", str, None] = None,
         *,
         routing_key: Annotated[
             str,
@@ -259,6 +258,34 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         In such case publisher will publish your handler return value.
 
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
+
+        Args:
+            queue: Default message routing key to publish with.
+            exchange: Target exchange to publish message to.
+            routing_key: Default message routing key to publish with.
+            Overrides `queue` option if presented.
+            mandatory: Client waits for confirmation that the message is placed
+                to some queue. RabbitMQ returns message to client if there is no suitable queue.
+            immediate: Client expects that there is a consumer ready to take the message to work.
+                RabbitMQ returns message to client if there is no suitable consumer.
+            timeout: Send confirmation time from RabbitMQ.
+            persist: Restore the message on RabbitMQ reboot.
+            reply_to: Reply message routing key to send with (always sending to default exchange).
+            priority: The message priority (0 by default).
+            middlewares: Publisher middlewares to wrap outgoing messages.
+            title: AsyncAPI publisher object title.
+            description: AsyncAPI publisher object description.
+            schema: AsyncAPI publishing message type. Should be any python-native
+                object annotation or `pydantic.BaseModel`.
+            include_in_schema: Whether to include operation in AsyncAPI schema or not.
+            headers: Message headers to store meta-information. Can be overridden
+                by `publish.headers` if specified.
+            content_type: Message **content-type** header. Used by application, not core RabbitMQ.
+                Will be set automatically if not specified.
+            content_encoding: Message body content encoding, e.g. **gzip**.
+            expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
+            message_type: Application-specific message type, e.g. **orders.created**.
+            user_id: Publisher connection User ID, validated if set.
         """
         message_kwargs = PublishKwargs(
             mandatory=mandatory,
@@ -293,4 +320,31 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
                     include_in_schema=self._solve_include_in_schema(include_in_schema),
                 ),
             ),
+        )
+
+        return publisher
+
+    @override
+    def include_router(
+        self,
+        router: "RabbitRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, RabbitRegistrator):
+            msg = (
+                f"Router must be an instance of RabbitRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
         )

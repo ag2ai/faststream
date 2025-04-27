@@ -62,9 +62,7 @@ class AsyncConfluentProducer:
         transactional_id: Optional[Union[str, int]] = None,
         transaction_timeout_ms: int = 60000,
         allow_auto_create_topics: bool = True,
-        sasl_mechanism: Optional[str] = None,
-        sasl_plain_password: Optional[str] = None,
-        sasl_plain_username: Optional[str] = None,
+        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
         self.logger_state = logger
 
@@ -100,16 +98,11 @@ class AsyncConfluentProducer:
             "allow.auto.create.topics": allow_auto_create_topics,
         }
 
-        final_config = {**config.as_config_dict(), **config_from_params}
-
-        if sasl_mechanism in {"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"}:
-            final_config.update(
-                {
-                    "sasl.mechanism": sasl_mechanism,
-                    "sasl.username": sasl_plain_username,
-                    "sasl.password": sasl_plain_password,
-                },
-            )
+        final_config = {
+            **config.as_config_dict(),
+            **config_from_params,
+            **dict(security_config or {}),
+        }
 
         self.producer = Producer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
@@ -128,6 +121,9 @@ class AsyncConfluentProducer:
             if not self._poll_task.done():
                 self._poll_task.cancel()
             await call_or_await(self.producer.flush)
+
+    async def flush(self) -> None:
+        await call_or_await(self.producer.flush)
 
     async def send(
         self,
@@ -249,9 +245,7 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
-        sasl_mechanism: Optional[str] = None,
-        sasl_plain_password: Optional[str] = None,
-        sasl_plain_username: Optional[str] = None,
+        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
         self.logger_state = logger
 
@@ -287,7 +281,6 @@ class AsyncConfluentConsumer:
             "fetch.max.bytes": fetch_max_bytes,
             "fetch.min.bytes": fetch_min_bytes,
             "max.partition.fetch.bytes": max_partition_fetch_bytes,
-            # "request.timeout.ms": 1000,  # producer only
             "fetch.error.backoff.ms": retry_backoff_ms,
             "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": enable_auto_commit,
@@ -304,20 +297,13 @@ class AsyncConfluentConsumer:
         }
         self.allow_auto_create_topics = allow_auto_create_topics
         final_config.update(config_from_params)
-
-        if sasl_mechanism in {"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"}:
-            final_config.update(
-                {
-                    "sasl.mechanism": sasl_mechanism,
-                    "sasl.username": sasl_plain_username,
-                    "sasl.password": sasl_plain_password,
-                },
-            )
+        final_config.update(**dict(security_config or {}))
 
         self.config = final_config
         self.consumer = Consumer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
+        # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property

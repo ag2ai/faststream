@@ -4,14 +4,16 @@ from faststream.prometheus import (
     ConsumeAttrs,
     MetricsSettingsProvider,
 )
+from faststream.redis.response import RedisPublishCommand
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.message.message import StreamMessage
-    from faststream.response import PublishCommand
 
 
-class BaseRedisMetricsSettingsProvider(MetricsSettingsProvider["AnyDict"]):
+class BaseRedisMetricsSettingsProvider(
+    MetricsSettingsProvider["AnyDict", RedisPublishCommand]
+):
     __slots__ = ("messaging_system",)
 
     def __init__(self) -> None:
@@ -19,7 +21,7 @@ class BaseRedisMetricsSettingsProvider(MetricsSettingsProvider["AnyDict"]):
 
     def get_publish_destination_name_from_cmd(
         self,
-        cmd: "PublishCommand",
+        cmd: RedisPublishCommand,
     ) -> str:
         return cmd.destination
 

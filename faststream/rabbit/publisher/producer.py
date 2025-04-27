@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         AsyncCallable,
         CustomCallable,
     )
-    from faststream.rabbit.helpers.declarer import RabbitDeclarer
+    from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.response import MessageOptions, RabbitPublishCommand
     from faststream.rabbit.types import AioPikaSendableMessage
 
@@ -138,7 +138,7 @@ class AioPikaFastProducer(ProducerProto):
 
         exchange_obj = await self.declarer.declare_exchange(
             exchange=exchange,
-            passive=True,
+            declare=False,
         )
 
         return await exchange_obj.publish(

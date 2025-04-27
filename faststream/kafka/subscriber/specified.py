@@ -7,6 +7,7 @@ from faststream._internal.subscriber.specified import (
 )
 from faststream.kafka.subscriber.usecase import (
     BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
     ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
@@ -22,7 +23,7 @@ class SpecificationSubscriber(SpecificationSubscriberMixin):
     """A class to handle logic and async API operations."""
 
     topics: Iterable[str]
-    partitions: Iterable["TopicPartition"]  # TODO: support partitions
+    partitions: Iterable["TopicPartition"]
     _pattern: Optional[str]  # TODO: support pattern schema
 
     def get_default_name(self) -> str:
@@ -70,5 +71,12 @@ class SpecificationBatchSubscriber(
 class SpecificationConcurrentDefaultSubscriber(
     SpecificationSubscriber,
     ConcurrentDefaultSubscriber,
+):
+    pass
+
+
+class SpecificationConcurrentBetweenPartitionsSubscriber(
+    SpecificationSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
 ):
     pass

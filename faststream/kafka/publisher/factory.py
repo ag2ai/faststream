@@ -1,11 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
+    Callable,
     Optional,
     Union,
-    overload,
 )
 
 from faststream._internal.publisher.configs import (
@@ -22,73 +22,9 @@ if TYPE_CHECKING:
     from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
 
 
-@overload
 def create_publisher(
     *,
-    batch: Literal[True],
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence["BrokerMiddleware[tuple[ConsumerRecord, ...]]"],
-    middlewares: Sequence["PublisherMiddleware"],
-    # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> "SpecificationBatchPublisher": ...
-
-
-@overload
-def create_publisher(
-    *,
-    batch: Literal[False],
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-    middlewares: Sequence["PublisherMiddleware"],
-    # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> "SpecificationDefaultPublisher": ...
-
-
-@overload
-def create_publisher(
-    *,
-    batch: bool,
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[tuple[ConsumerRecord, ...], ConsumerRecord]]"
-    ],
-    middlewares: Sequence["PublisherMiddleware"],
-    # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationBatchPublisher",
-    "SpecificationDefaultPublisher",
-]: ...
-
-
-def create_publisher(
-    *,
+    autoflush: bool,
     batch: bool,
     key: Optional[bytes],
     topic: str,
@@ -131,11 +67,33 @@ def create_publisher(
             msg = "You can't setup `key` with batch publisher"
             raise SetupError(msg)
 
-        return SpecificationBatchPublisher(
+        publisher: Union[
+            SpecificationBatchPublisher,
+            SpecificationDefaultPublisher,
+        ] = SpecificationBatchPublisher(
             base_configs=base_configs,
             specification_configs=specification_configs,
         )
-    return SpecificationDefaultPublisher(
-        base_configs=base_configs,
-        specification_configs=specification_configs,
-    )
+        publish_method = "_basic_publish_batch"
+
+    else:
+        publisher = SpecificationDefaultPublisher(
+            base_configs=base_configs,
+            specification_configs=specification_configs,
+        )
+        publish_method = "_basic_publish"
+
+    if autoflush:
+        default_publish: Callable[..., Awaitable[Optional[Any]]] = getattr(
+            publisher, publish_method
+        )
+
+        @wraps(default_publish)
+        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+            result = await default_publish(*args, **kwargs)
+            await publisher.flush()
+            return result
+
+        setattr(publisher, publish_method, autoflush_wrapper)
+
+    return publisher

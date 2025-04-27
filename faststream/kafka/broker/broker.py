@@ -17,7 +17,7 @@ import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
-from typing_extensions import Doc, override
+from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker.broker import BrokerUsecase
@@ -449,10 +449,7 @@ class KafkaBroker(
         ] = (),
         middlewares: Annotated[
             Sequence[
-                Union[
-                    "BrokerMiddleware[ConsumerRecord]",
-                    "BrokerMiddleware[tuple[ConsumerRecord, ...]]",
-                ]
+                "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
             ],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
@@ -498,6 +495,7 @@ class KafkaBroker(
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # FastDepends args

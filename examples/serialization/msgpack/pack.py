@@ -25,7 +25,7 @@ app = FastStream(broker)
 
 @broker.subscriber("test")
 async def consume(name: str, age: int, logger: Logger):
-    logger.info(f"{name}: {age}")
+    logger.info("%s: %s", name, age)
 
 
 @app.after_startup

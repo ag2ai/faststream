@@ -3,6 +3,7 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Annotated,
+    AsyncIterator,
     Optional,
     cast,
 )
@@ -101,6 +102,55 @@ class ObjStoreWatchSubscriber(
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        if not self._fetch_sub:
+            self.bucket = await self._connection_state.os_declarer.create_object_store(
+                bucket=self.subject,
+                declare=self.obj_watch.declare,
+            )
+
+            obj_watch = await self.bucket.watch(
+                ignore_deletes=self.obj_watch.ignore_deletes,
+                include_history=self.obj_watch.include_history,
+                meta_only=self.obj_watch.meta_only,
+            )
+            fetch_sub = self._fetch_sub = UnsubscribeAdapter[
+                "ObjectStore.ObjectWatcher"
+            ](obj_watch)
+        else:
+            fetch_sub = self._fetch_sub
+
+        timeout = 5
+        sleep_interval = timeout / 10
+        while True:
+            raw_message = None
+            with anyio.move_on_after(timeout):
+                while (  # noqa: ASYNC110
+                    # type: ignore[no-untyped-call]
+                    raw_message := await fetch_sub.obj.updates(timeout)
+                ) is None:
+                    await anyio.sleep(sleep_interval)
+
+            if raw_message is None:
+                continue
+
+            context = self._state.get().di_state.context
+
+            msg: NatsObjMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg
 
     @override
     async def _create_subscription(self) -> None:

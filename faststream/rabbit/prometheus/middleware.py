@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional
 
+from aio_pika import IncomingMessage
+
 from faststream._internal.constants import EMPTY
 from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.rabbit.prometheus.provider import RabbitMetricsSettingsProvider
@@ -10,7 +12,9 @@ if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
 
-class RabbitPrometheusMiddleware(PrometheusMiddleware[RabbitPublishCommand]):
+class RabbitPrometheusMiddleware(
+    PrometheusMiddleware[RabbitPublishCommand, IncomingMessage]
+):
     def __init__(
         self,
         *,

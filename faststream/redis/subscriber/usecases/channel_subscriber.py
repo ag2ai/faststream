@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
+    AsyncIterator,
     Optional,
 )
 
@@ -116,6 +117,38 @@ class ChannelSubscriber(LogicSubscriber):
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
+        assert self.subscription, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        timeout = 5
+        sleep_interval = timeout / 10
+
+        raw_message: Optional[PubSubMessage] = None
+
+        while True:
+            with anyio.move_on_after(timeout):
+                while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
+                    await anyio.sleep(sleep_interval)
+
+            context = self._state.get().di_state.context
+
+            if raw_message is None:
+                continue
+
+            msg: RedisMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg
 
     async def _get_message(self, psub: RPubSub) -> Optional[PubSubMessage]:
         raw_msg = await psub.get_message(

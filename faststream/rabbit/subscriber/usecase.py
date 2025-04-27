@@ -1,11 +1,7 @@
 import asyncio
 import contextlib
-from collections.abc import Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-)
+from collections.abc import AsyncIterator, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
@@ -27,10 +23,12 @@ if TYPE_CHECKING:
     from faststream._internal.state import BrokerState
     from faststream._internal.types import CustomCallable
     from faststream.message import StreamMessage
-    from faststream.rabbit.helpers.declarer import RabbitDeclarer
+    from faststream.middlewares import AckPolicy
+    from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.schemas import (
+        Channel,
         RabbitExchange,
         RabbitQueue,
     )
@@ -52,6 +50,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         base_configs: RabbitSubscriberBaseConfigs,
     ) -> None:
         self.queue = base_configs.queue
+        self.exchange = base_configs.exchange
 
         parser = AioPikaParser(pattern=base_configs.queue.path_regex)
         base_configs.default_decoder = parser.decode_message
@@ -60,8 +59,11 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         self.consume_args = base_configs.consume_args or {}
 
+        self.__no_ack = base_configs.no_ack
+
         self._consumer_tag = None
         self._queue_obj = None
+        self.channel = base_configs.channel
 
         # Setup it later
         self.declarer = None
@@ -95,14 +97,18 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             msg = "You should setup subscriber at first."
             raise SetupError(msg)
 
-        self._queue_obj = queue = await self.declarer.declare_queue(self.queue)
+        self._queue_obj = queue = await self.declarer.declare_queue(
+            self.queue, channel=self.channel
+        )
 
         if (
             self.exchange is not None
-            and not queue.passive  # queue just getted from RMQ
+            and self.queue.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
-            exchange = await self.declarer.declare_exchange(self.exchange)
+            exchange = await self.declarer.declare_exchange(
+                self.exchange, channel=self.channel
+            )
 
             await queue.bind(
                 exchange,
@@ -116,6 +122,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume,  # type: ignore[arg-type]
+                no_ack=self.__no_ack,
                 arguments=self.consume_args,
             )
 
@@ -171,6 +178,30 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
+        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator method if subscriber has registered handlers."
+
+        context = self._state.get().di_state.context
+
+        async with self._queue_obj.iterator() as queue_iter:
+            async for raw_message in queue_iter:
+                raw_message = cast("IncomingMessage", raw_message)
+
+                msg: RabbitMessage = await process_msg(  # type: ignore[assignment]
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context)
+                        for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
+                )
+                yield msg
 
     def _make_response_publisher(
         self,

@@ -13,18 +13,19 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
-from typing_extensions import Doc, override
+from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker.broker import ABCBroker, BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.publisher.proto import PublisherProto
 from faststream.message import gen_cor_id
-from faststream.rabbit.helpers.declarer import RabbitDeclarer
+from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
 from faststream.rabbit.publisher.producer import AioPikaFastProducer
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import (
     RABBIT_REPLY,
+    Channel,
     RabbitExchange,
     RabbitQueue,
 )
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, SSLOptions, TimeoutType
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
-    from pamqp.common import FieldTable
     from yarl import URL
 
     from faststream._internal.basic_types import AnyDict, Decorator, LoggerProto
@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     )
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.rabbit.utils import RabbitClientProperties
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -71,166 +72,90 @@ class RabbitBroker(
     url: str
 
     _producer: "AioPikaFastProducer"
-    declarer: RabbitDeclarer
-
     _channel: Optional["RobustChannel"]
+
+    declarer: RabbitDeclarer
 
     def __init__(
         self,
-        url: Annotated[
-            Union[str, "URL", None],
-            Doc("RabbitMQ destination location to connect."),
+        url: Union[
+            str, "URL", None
         ] = "amqp://guest:guest@localhost:5672/",  # pragma: allowlist secret
         *,
-        # connection args
-        host: Annotated[
-            Optional[str],
-            Doc("Destination host. This option overrides `url` option host."),
-        ] = None,
-        port: Annotated[
-            Optional[int],
-            Doc("Destination port. This option overrides `url` option port."),
-        ] = None,
-        virtualhost: Annotated[
-            Optional[str],
-            Doc("RabbitMQ virtual host to use in the current broker connection."),
-        ] = None,
-        ssl_options: Annotated[
-            Optional["SSLOptions"],
-            Doc("Extra ssl options to establish connection."),
-        ] = None,
-        client_properties: Annotated[
-            Optional["FieldTable"],
-            Doc("Add custom client capability."),
-        ] = None,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Connection establishement timeout."),
-        ] = None,
-        fail_fast: Annotated[
-            bool,
-            Doc(
-                "Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.",
-            ),
-        ] = True,
-        reconnect_interval: Annotated[
-            "TimeoutType",
-            Doc("Time to sleep between reconnection attempts."),
-        ] = 5.0,
-        # channel args
-        channel_number: Annotated[
-            Optional[int],
-            Doc("Specify the channel number explicit."),
-        ] = None,
-        publisher_confirms: Annotated[
-            bool,
-            Doc(
-                "if `True` the `publish` method will "
-                "return `bool` type after publish is complete."
-                "Otherwise it will returns `None`.",
-            ),
-        ] = True,
-        on_return_raises: Annotated[
-            bool,
-            Doc(
-                "raise an :class:`aio_pika.exceptions.DeliveryError`"
-                "when mandatory message will be returned",
-            ),
-        ] = False,
-        # broker args
-        max_consumers: Annotated[
-            Optional[int],
-            Doc(
-                "RabbitMQ channel `qos` option. "
-                "It limits max messages processing in the same time count.",
-            ),
-        ] = None,
-        app_id: Annotated[
-            Optional[str],
-            Doc("Application name to mark outgoing messages by."),
-        ] = SERVICE_NAME,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        virtualhost: Optional[str] = None,
+        ssl_options: Optional["SSLOptions"] = None,
+        client_properties: Optional["RabbitClientProperties"] = None,
+        timeout: "TimeoutType" = None,
+        fail_fast: bool = True,
+        reconnect_interval: "TimeoutType" = 5.0,
+        default_channel: Optional["Channel"] = None,
+        app_id: Optional[str] = SERVICE_NAME,
         # broker base args
-        graceful_timeout: Annotated[
-            Optional[float],
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc("Dependencies to apply to all broker subscribers."),
-        ] = (),
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[IncomingMessage]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
+        graceful_timeout: Optional[float] = None,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
         routers: Annotated[
             Sequence["ABCBroker[IncomingMessage]"],
             Doc("Routers to apply to broker."),
         ] = (),
         # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            Optional[str],
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server protocol."),
-        ] = None,
-        protocol_version: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server protocol version."),
-        ] = "0.9.1",
-        description: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server description."),
-        ] = None,
-        tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
+        security: Optional["BaseSecurity"] = None,
+        specification_url: Optional[str] = None,
+        protocol: Optional[str] = None,
+        protocol_version: Optional[str] = "0.9.1",
+        description: Optional[str] = None,
+        tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
-            Doc("Default logger log format."),
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
         ] = None,
         # FastDepends args
-        apply_types: Annotated[
-            bool,
-            Doc("Whether to use FastDepends or not."),
-        ] = True,
+        apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        _get_dependant: Annotated[
-            Optional[Callable[..., Any]],
-            Doc("Custom library dependant generator callback."),
-        ] = None,
-        _call_decorators: Annotated[
-            Iterable["Decorator"],
-            Doc("Any custom decorator to apply to wrapped functions."),
-        ] = (),
+        _get_dependant: Optional[Callable[..., Any]] = None,
+        _call_decorators: Iterable["Decorator"] = (),
     ) -> None:
+        """Initialize the RabbitBroker.
+
+        Args:
+            url: RabbitMQ destination location to connect.
+            host: Destination host. This option overrides `url` option host.
+            port: Destination port. This option overrides `url` option port.
+            virtualhost: RabbitMQ virtual host to use in the current broker connection.
+            ssl_options: Extra ssl options to establish connection.
+            client_properties: Add custom client capability.
+            timeout: Connection establishment timeout.
+            fail_fast: Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.
+            reconnect_interval: Time to sleep between reconnection attempts.
+            default_channel: Default channel settings to use.
+            app_id: Application name to mark outgoing messages by.
+            graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder: Custom decoder object.
+            parser: Custom parser object.
+            dependencies: Dependencies to apply to all broker subscribers.
+            middlewares: Middlewares to apply to all broker publishers/subscribers.
+            routers: RabbitRouters to build a broker with.
+            security: Security options to connect broker and generate AsyncAPI server security information.
+            specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol: AsyncAPI server protocol.
+            protocol_version: AsyncAPI server protocol version.
+            description: AsyncAPI server description.
+            tags: AsyncAPI server tags.
+            logger: User-specified logger to pass into Context and log service messages.
+            log_level: Service messages log level.
+            log_fmt: Default logger log format.
+            apply_types: Whether to use FastDepends or not.
+            serializer: FastDepends-compatible serializer to validate incoming messages.
+            _get_dependant: Custom library dependant generator callback.
+            _call_decorators: Any custom decorator to apply to wrapped functions.
+        """
         security_args = parse_security(security)
 
         amqp_url = build_url(
@@ -260,10 +185,6 @@ class RabbitBroker(
             timeout=timeout,
             fail_fast=fail_fast,
             reconnect_interval=reconnect_interval,
-            # channel args
-            channel_number=channel_number,
-            publisher_confirms=publisher_confirms,
-            on_return_raises=on_return_raises,
             # Basic args
             graceful_timeout=graceful_timeout,
             dependencies=dependencies,
@@ -291,13 +212,13 @@ class RabbitBroker(
             _call_decorators=_call_decorators,
         )
 
-        self._max_consumers = max_consumers
-
         self.app_id = app_id
 
         self._channel = None
 
-        declarer = self.declarer = RabbitDeclarer()
+        cm = self._channel_manager = ChannelManager(default_channel)
+        declarer = self.declarer = RabbitDeclarer(cm)
+
         self._state.patch_value(
             producer=AioPikaFastProducer(
                 declarer=declarer,
@@ -334,86 +255,35 @@ class RabbitBroker(
     @override
     async def connect(  # type: ignore[override]
         self,
-        url: Annotated[
-            Union[str, "URL", None],
-            Doc("RabbitMQ destination location to connect."),
-        ] = EMPTY,
+        url: Union[str, "URL", None] = EMPTY,
         *,
-        host: Annotated[
-            Optional[str],
-            Doc("Destination host. This option overrides `url` option host."),
-        ] = None,
-        port: Annotated[
-            Optional[int],
-            Doc("Destination port. This option overrides `url` option port."),
-        ] = None,
-        virtualhost: Annotated[
-            Optional[str],
-            Doc("RabbitMQ virtual host to use in the current broker connection."),
-        ] = None,
-        ssl_options: Annotated[
-            Optional["SSLOptions"],
-            Doc("Extra ssl options to establish connection."),
-        ] = None,
-        client_properties: Annotated[
-            Optional["FieldTable"],
-            Doc("Add custom client capability."),
-        ] = None,
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Connection establishement timeout."),
-        ] = None,
-        fail_fast: Annotated[
-            bool,
-            Doc(
-                "Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.",
-            ),
-        ] = EMPTY,
-        reconnect_interval: Annotated[
-            "TimeoutType",
-            Doc("Time to sleep between reconnection attempts."),
-        ] = EMPTY,
-        # channel args
-        channel_number: Annotated[
-            Optional[int],
-            Doc("Specify the channel number explicit."),
-        ] = EMPTY,
-        publisher_confirms: Annotated[
-            bool,
-            Doc(
-                "if `True` the `publish` method will "
-                "return `bool` type after publish is complete."
-                "Otherwise it will returns `None`.",
-            ),
-        ] = EMPTY,
-        on_return_raises: Annotated[
-            bool,
-            Doc(
-                "raise an :class:`aio_pika.exceptions.DeliveryError`"
-                "when mandatory message will be returned",
-            ),
-        ] = EMPTY,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        virtualhost: Optional[str] = None,
+        ssl_options: Optional["SSLOptions"] = None,
+        client_properties: Optional["RabbitClientProperties"] = None,
+        security: Optional["BaseSecurity"] = None,
+        timeout: "TimeoutType" = None,
+        fail_fast: bool = EMPTY,
+        reconnect_interval: "TimeoutType" = EMPTY,
     ) -> "RobustConnection":
         """Connect broker object to RabbitMQ.
 
         To startup subscribers too you should use `broker.start()` after/instead this method.
+
+        Args:
+            url: RabbitMQ destination location to connect.
+            host: Destination host. This option overrides `url` option host.
+            port: Destination port. This option overrides `url` option port.
+            virtualhost: RabbitMQ virtual host to use in the current broker connection.
+            ssl_options: Extra ssl options to establish connection.
+            client_properties: Add custom client capability.
+            security: Security options to connect broker and generate AsyncAPI server security information.
+            timeout: Connection establishement timeout.
+            fail_fast: Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.
+            reconnect_interval: Time to sleep between reconnection attempts.
         """
         kwargs: AnyDict = {}
-
-        if channel_number is not EMPTY:
-            kwargs["channel_number"] = channel_number
-
-        if publisher_confirms is not EMPTY:
-            kwargs["publisher_confirms"] = publisher_confirms
-
-        if on_return_raises is not EMPTY:
-            kwargs["on_return_raises"] = on_return_raises
 
         if timeout:
             kwargs["timeout"] = timeout
@@ -463,10 +333,6 @@ class RabbitBroker(
         reconnect_interval: "TimeoutType",
         timeout: "TimeoutType",
         ssl_context: Optional["SSLContext"],
-        # channel args
-        channel_number: Optional[int],
-        publisher_confirms: bool,
-        on_return_raises: bool,
     ) -> "RobustConnection":
         connection = cast(
             "RobustConnection",
@@ -479,22 +345,11 @@ class RabbitBroker(
             ),
         )
 
-        if self._channel is None:  # pragma: no branch
-            channel = self._channel = cast(
-                "RobustChannel",
-                await connection.channel(
-                    channel_number=channel_number,
-                    publisher_confirms=publisher_confirms,
-                    on_return_raises=on_return_raises,
-                ),
-            )
+        if self._channel is None:
+            self._channel_manager.connect(connection)
+            self._channel = await self._channel_manager.get_channel()
 
-            if self._max_consumers:
-                await channel.set_qos(prefetch_count=int(self._max_consumers))
-
-            self.declarer.connect(connection=connection, channel=channel)
             await self.declarer.declare_queue(RABBIT_REPLY)
-
             self._producer.connect()
 
         return connection
@@ -517,6 +372,7 @@ class RabbitBroker(
             await self._connection.close()
             self._connection = None
 
+        self._channel_manager.disconnect()
         self.declarer.disconnect()
         self._producer.disconnect()
 
@@ -530,10 +386,6 @@ class RabbitBroker(
                 await self.declare_exchange(publisher.exchange)
 
         await super().start()
-
-        logger_state = self._state.get().logger_state
-        if self._max_consumers:
-            logger_state.log(f"Set max consumers to {self._max_consumers}")
 
     @override
     async def publish(
@@ -639,97 +491,55 @@ class RabbitBroker(
     @override
     async def request(  # type: ignore[override]
         self,
-        message: Annotated[
-            "AioPikaSendableMessage",
-            Doc("Message body to send."),
-        ] = None,
-        queue: Annotated[
-            Union["RabbitQueue", str],
-            Doc("Message routing key to publish with."),
-        ] = "",
-        exchange: Annotated[
-            Union["RabbitExchange", str, None],
-            Doc("Target exchange to publish message to."),
-        ] = None,
+        message: "AioPikaSendableMessage" = None,
+        queue: Union["RabbitQueue", str] = "",
+        exchange: Union["RabbitExchange", str, None] = None,
         *,
-        routing_key: Annotated[
-            str,
-            Doc(
-                "Message routing key to publish with. "
-                "Overrides `queue` option if presented.",
-            ),
-        ] = "",
-        mandatory: Annotated[
-            bool,
-            Doc(
-                "Client waits for confirmation that the message is placed to some queue. "
-                "RabbitMQ returns message to client if there is no suitable queue.",
-            ),
-        ] = True,
-        immediate: Annotated[
-            bool,
-            Doc(
-                "Client expects that there is consumer ready to take the message to work. "
-                "RabbitMQ returns message to client if there is no suitable consumer.",
-            ),
-        ] = False,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Send confirmation time from RabbitMQ."),
-        ] = None,
-        persist: Annotated[
-            bool,
-            Doc("Restore the message on RabbitMQ reboot."),
-        ] = False,
+        routing_key: str = "",
+        mandatory: bool = True,
+        immediate: bool = False,
+        timeout: "TimeoutType" = None,
+        persist: bool = False,
         # message args
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages.",
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional["HeadersType"],
-            Doc("Message headers to store metainformation."),
-        ] = None,
-        content_type: Annotated[
-            Optional[str],
-            Doc(
-                "Message **content-type** header. "
-                "Used by application, not core RabbitMQ. "
-                "Will be set automatically if not specified.",
-            ),
-        ] = None,
-        content_encoding: Annotated[
-            Optional[str],
-            Doc("Message body content encoding, e.g. **gzip**."),
-        ] = None,
-        expiration: Annotated[
-            Optional["DateType"],
-            Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
-        ] = None,
-        message_id: Annotated[
-            Optional[str],
-            Doc("Arbitrary message id. Generated automatically if not presented."),
-        ] = None,
-        timestamp: Annotated[
-            Optional["DateType"],
-            Doc("Message publish timestamp. Generated automatically if not presented."),
-        ] = None,
-        message_type: Annotated[
-            Optional[str],
-            Doc("Application-specific message type, e.g. **orders.created**."),
-        ] = None,
-        user_id: Annotated[
-            Optional[str],
-            Doc("Publisher connection User ID, validated if set."),
-        ] = None,
-        priority: Annotated[
-            Optional[int],
-            Doc("The message priority (0 by default)."),
-        ] = None,
+        correlation_id: Optional[str] = None,
+        headers: Optional["HeadersType"] = None,
+        content_type: Optional[str] = None,
+        content_encoding: Optional[str] = None,
+        expiration: Optional["DateType"] = None,
+        message_id: Optional[str] = None,
+        timestamp: Optional["DateType"] = None,
+        message_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        priority: Optional[int] = None,
     ) -> "RabbitMessage":
+        """Make a synchronous request to RabbitMQ.
+
+        This method uses Direct Reply-To pattern to send a message and wait for a reply.
+        It is a blocking call and will wait for a reply until timeout.
+
+        Args:
+            message: Message body to send.
+            queue: Message routing key to publish with.
+            exchange: Target exchange to publish message to.
+            routing_key: Message routing key to publish with. Overrides `queue` option if presented.
+            mandatory: Client waits for confirmation that the message is placed to some queue.
+            RabbitMQ returns message to client if there is no suitable queue.
+            immediate: Client expects that there is a consumer ready to take the message to work.
+            RabbitMQ returns message to client if there is no suitable consumer.
+            timeout: Send confirmation time from RabbitMQ.
+            persist: Restore the message on RabbitMQ reboot.
+            correlation_id: Manual message **correlation_id** setter. **correlation_id** is a useful option to trace messages.
+            headers: Message headers to store metainformation.
+            content_type: Message **content-type** header. Used by application, not core RabbitMQ.
+            Will be set automatically if not specified.
+            content_encoding: Message body content encoding, e.g. **gzip**.
+            expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
+            message_id: Arbitrary message id. Generated automatically if not presented.
+            timestamp: Message publish timestamp. Generated automatically if not presented.
+            message_type: Application-specific message type, e.g. **orders.created**.
+            user_id: Publisher connection User ID, validated if set.
+            priority: The message priority (0 by default).
+        """
         cmd = RabbitPublishCommand(
             message,
             routing_key=routing_key or RabbitQueue.validate(queue).routing,

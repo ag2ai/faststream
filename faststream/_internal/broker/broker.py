@@ -215,13 +215,6 @@ class BrokerUsecase(
         state = self._state.get()
 
         for subscriber in self._subscribers:
-            log_context = subscriber.get_log_context(None)
-            log_context.pop("message_id", None)
-            state.logger_state.params_storage.setup_log_contest(log_context)
-
-        state._setup_logger_state()
-
-        for subscriber in self._subscribers:
             state.logger_state.log(
                 f"`{subscriber.call_name}` waiting for messages",
                 extra=subscriber.get_log_context(None),
@@ -230,6 +223,16 @@ class BrokerUsecase(
 
         if not self.running:
             self.running = True
+
+    def _setup_logger_state(self) -> None:
+        state = self._state.get()
+
+        for subscriber in self._subscribers:
+            log_context = subscriber.get_log_context(None)
+            log_context.pop("message_id", None)
+            state.logger_state.params_storage.setup_log_contest(log_context)
+
+        state._setup_logger_state()
 
     async def connect(self, **kwargs: Any) -> ConnectionType:
         """Connect to a remote server."""
@@ -253,6 +256,8 @@ class BrokerUsecase(
         broker_state = self._state.get()
         current_di_state = broker_state.di_state
         broker_serializer = current_di_state.serializer
+
+        self._setup_logger_state()
 
         if state is not None:
             di_state = state.di_state

@@ -783,3 +783,190 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
+
+    async def test_iterator_js(
+        self,
+        queue: str,
+        stream: JStream,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(queue, stream=stream)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, queue)
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+    async def test_iterator_pull(
+        self,
+        queue: str,
+        stream: JStream,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(
+            queue,
+            stream=stream,
+            pull_sub=PullSub(1),
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, queue)
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+    async def test_iterator_batch(
+        self,
+        queue: str,
+        stream: JStream,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(
+            queue,
+            stream=stream,
+            pull_sub=PullSub(1, batch=True),
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, queue)
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == [expected_messages[index_message]]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+    async def test_iterator_with_filter(
+        self,
+        queue: str,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(
+            config=ConsumerConfig(filter_subjects=[f"{queue}.a"]),
+            stream=JStream(queue, subjects=[f"{queue}.*"]),
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, f"{queue}.a")
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+    async def test_iterator_kv(
+        self,
+        queue: str,
+    ) -> None:
+        expected_messages = (b"test_message_1", b"test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(queue, kv_watch=queue + "1")
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            bucket = await br.key_value(queue + "1")
+
+            async def publish_test_message():
+                await bucket.put(queue, expected_messages[0])
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+                await bucket.put(queue, expected_messages[index_message])
+
+    async def test_iterator_os(
+        self,
+        queue: str,
+    ) -> None:
+        expected_messages = (b"test_message_1", b"test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(queue, obj_watch=True)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            bucket = await br.object_storage(queue)
+
+            async def publish_test_message():
+                await bucket.put(queue, expected_messages[0])
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for new_object_event in subscriber:
+                new_object_id = await new_object_event.decode()
+                new_object = await bucket.get(new_object_id)
+
+                assert new_object.data == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
+                await bucket.put(queue, expected_messages[index_message])

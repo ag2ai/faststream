@@ -7,6 +7,7 @@ from typing import (
     Annotated,
     Any,
     Callable,
+    NamedTuple,
     Optional,
     Union,
 )
@@ -54,26 +55,11 @@ if TYPE_CHECKING:
     from faststream.response import Response
 
 
-class _CallOptions:
-    __slots__ = (
-        "decoder",
-        "dependencies",
-        "middlewares",
-        "parser",
-    )
-
-    def __init__(
-        self,
-        *,
-        parser: Optional["CustomCallable"],
-        decoder: Optional["CustomCallable"],
-        middlewares: Sequence["SubscriberMiddleware[Any]"],
-        dependencies: Iterable["Dependant"],
-    ) -> None:
-        self.parser = parser
-        self.decoder = decoder
-        self.middlewares = middlewares
-        self.dependencies = dependencies
+class _CallOptions(NamedTuple):
+    parser: Optional["CustomCallable"]
+    decoder: Optional["CustomCallable"]
+    middlewares: Sequence["SubscriberMiddleware[Any]"]
+    dependencies: Iterable["Dependant"]
 
 
 class SubscriberUsecase(SubscriberProto[MsgType]):
@@ -436,3 +422,18 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         return {
             "message_id": getattr(message, "message_id", ""),
         }
+
+    def _log(
+        self,
+        log_level: int,
+        message: str,
+        extra: Optional["AnyDict"] = None,
+        exc_info: Optional[Exception] = None,
+    ) -> None:
+        state = self._state.get()
+        state.logger_state.logger.log(
+            log_level,
+            message,
+            extra=extra,
+            exc_info=exc_info,
+        )

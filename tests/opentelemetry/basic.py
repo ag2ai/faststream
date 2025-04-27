@@ -101,7 +101,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         msg: str,
         parent_span_id: Optional[str] = None,
     ) -> None:
-        attrs = span.attributes
+        attrs = span.attributes or {}
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system, attrs[
             SpanAttr.MESSAGING_SYSTEM
         ]
@@ -125,9 +125,9 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             ]
 
         if action == Action.PROCESS:
-            assert attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(
-                msg,
-            ), attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES]
+            assert attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(msg), (
+                attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES]
+            )
             assert attrs[SpanAttr.MESSAGING_OPERATION] == action, attrs[
                 SpanAttr.MESSAGING_OPERATION
             ]
@@ -138,6 +138,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             ]
 
         if parent_span_id:
+            assert span.parent
             assert span.parent.span_id == parent_span_id, span.parent.span_id
 
     def assert_metrics(

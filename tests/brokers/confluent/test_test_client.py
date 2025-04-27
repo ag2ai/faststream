@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -66,6 +66,44 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert event.is_set()
 
+    async def test_publisher_autoflush_mock(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "1", autoflush=True)
+        publisher.flush = AsyncMock()
+
+        @publisher
+        @broker.subscriber(queue)
+        async def m(msg):
+            pass
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            m.mock.assert_called_once_with("hello")
+            publisher.mock.assert_called_once()
+
+            publisher.flush.assert_awaited_once()
+
+    async def test_batch_publisher_autoflush_mock(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
+        publisher.flush = AsyncMock()
+
+        @publisher
+        @broker.subscriber(queue)
+        async def m(msg):
+            return 1, 2, 3
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            m.mock.assert_called_once_with("hello")
+            publisher.mock.assert_called_once_with([1, 2, 3])
+
+            publisher.flush.assert_awaited_once()
+
     async def test_batch_pub_by_default_pub(
         self,
         queue: str,
@@ -112,7 +150,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 
-    async def test_respect_middleware(self, queue) -> None:
+    async def test_respect_middleware(self, queue):
         routes = []
 
         class Middleware(BaseMiddleware):

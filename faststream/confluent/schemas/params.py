@@ -1,6 +1,24 @@
 from typing import Literal, Union
 
-from typing_extensions import TypedDict
+from typing_extensions import Required, TypedDict
+
+SecurityOptions = TypedDict(
+    "SecurityOptions",
+    {
+        "sasl.mechanism": Required[
+            Literal[
+                "PLAIN",
+                "GSSAPI",
+                "SCRAM-SHA-256",
+                "SCRAM-SHA-512",
+                "OAUTHBEARER",
+            ]
+        ],
+        "sasl.password": str,
+        "sasl.username": str,
+    },
+    total=False,
+)
 
 
 class ConsumerConnectionParams(TypedDict, total=False):
@@ -16,12 +34,4 @@ class ConsumerConnectionParams(TypedDict, total=False):
     ]
     connections_max_idle_ms: int
     allow_auto_create_topics: bool
-    sasl_mechanism: Literal[
-        "PLAIN",
-        "GSSAPI",
-        "SCRAM-SHA-256",
-        "SCRAM-SHA-512",
-        "OAUTHBEARER",
-    ]
-    sasl_plain_password: str
-    sasl_plain_username: str
+    security_config: SecurityOptions

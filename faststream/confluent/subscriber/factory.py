@@ -1,6 +1,10 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Literal, Optional, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Union,
+)
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
@@ -22,91 +26,6 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
     from faststream.confluent.schemas import TopicPartition
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: Literal[True],
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> "SpecificationBatchSubscriber": ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: Literal[False],
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[ConfluentMsg]"],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    partitions: Sequence["TopicPartition"],
-    polling_interval: float,
-    batch: bool,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    connection_data: "AnyDict",
-    auto_commit: bool,
-    # Subscriber args
-    ack_policy: "AckPolicy",
-    no_ack: bool,
-    max_workers: int,
-    no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Union[
-        Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-        Sequence["BrokerMiddleware[ConfluentMsg]"],
-    ],
-    # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]: ...
 
 
 def create_subscriber(

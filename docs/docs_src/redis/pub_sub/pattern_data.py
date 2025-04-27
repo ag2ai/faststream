@@ -11,4 +11,4 @@ async def handle_test(
     logger: Logger,
     data: str = Path(),
 ):
-    logger.info(f"Channel `{data=}`, body `{msg=}`")
+    logger.info("Channel `data=%s`, body `msg=%s`", data, msg)

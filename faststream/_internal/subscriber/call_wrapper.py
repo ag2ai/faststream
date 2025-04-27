@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Awaitable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Mapping, Reversible, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -145,11 +145,11 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
         self,
         *,
         dependencies: Sequence["Dependant"],
-        _call_decorators: Iterable["Decorator"],
+        _call_decorators: Reversible["Decorator"],
         state: "DIState",
     ) -> Optional["CallModel"]:
         call = self._original_call
-        for decor in _call_decorators:
+        for decor in reversed(_call_decorators):
             call = decor(call)
         self._original_call = call
 

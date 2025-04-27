@@ -12,10 +12,10 @@ from typing import (
 
 from typing_extensions import Literal, TypeAlias
 
+from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import sync_fake_context, to_async
 from faststream.exceptions import IgnoredException
-from faststream.middlewares.base import BaseMiddleware
 
 if TYPE_CHECKING:
     from contextlib import AbstractContextManager

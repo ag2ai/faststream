@@ -1,13 +1,30 @@
+from typing import TYPE_CHECKING, Optional
+
 import pytest
 
 from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
 from faststream.rabbit.helpers.declarer import RabbitDeclarer
 
+if TYPE_CHECKING:
+    import aio_pika
+
+    from faststream.rabbit.schemas import Channel
+
+
+class FakeChannelManager:
+    def __init__(self, async_mock):
+        self.async_mock = async_mock
+
+    async def get_channel(
+        self,
+        channel: Optional["Channel"] = None,
+    ) -> "aio_pika.RobustChannel":
+        return self.async_mock
+
 
 @pytest.mark.asyncio()
 async def test_declare_queue(async_mock, queue: str) -> None:
-    declarer = RabbitDeclarer()
-    declarer.connect(async_mock, async_mock)
+    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
     q1 = await declarer.declare_queue(RabbitQueue(queue))
     q2 = await declarer.declare_queue(RabbitQueue(queue))
@@ -17,12 +34,8 @@ async def test_declare_queue(async_mock, queue: str) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_declare_exchange(
-    async_mock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarer()
-    declarer.connect(async_mock, async_mock)
+async def test_declare_exchange(async_mock, queue: str) -> None:
+    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
     ex1 = await declarer.declare_exchange(RabbitExchange(queue))
     ex2 = await declarer.declare_exchange(RabbitExchange(queue))
@@ -32,12 +45,8 @@ async def test_declare_exchange(
 
 
 @pytest.mark.asyncio()
-async def test_declare_nested_exchange_cash_nested(
-    async_mock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarer()
-    declarer.connect(async_mock, async_mock)
+async def test_declare_nested_exchange_cash_nested(async_mock, queue: str) -> None:
+    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
     exchange = RabbitExchange(queue)
 
@@ -49,12 +58,8 @@ async def test_declare_nested_exchange_cash_nested(
 
 
 @pytest.mark.asyncio()
-async def test_publisher_declare(
-    async_mock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarer()
-    declarer.connect(async_mock, async_mock)
+async def test_publisher_declare(async_mock, queue: str) -> None:
+    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
     broker = RabbitBroker()
     broker._connection = async_mock

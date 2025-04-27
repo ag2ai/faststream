@@ -1,11 +1,12 @@
-from typing import TYPE_CHECKING, Any, Protocol, Union
+from typing import Any, Protocol, Union
 
-from aiokafka import TopicPartition as AIOKafkaTopicPartition
+from aiokafka import (
+    AIOKafkaConsumer,
+    ConsumerRecord,
+    TopicPartition as AIOKafkaTopicPartition,
+)
 
 from faststream.message import AckStatus, StreamMessage
-
-if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord
 
 
 class ConsumerProtocol(Protocol):
@@ -36,6 +37,10 @@ class FakeConsumer:
 
 
 FAKE_CONSUMER = FakeConsumer()
+
+
+class KafkaRawMessage(ConsumerRecord):  # type: ignore[misc]
+    consumer: AIOKafkaConsumer
 
 
 class KafkaMessage(

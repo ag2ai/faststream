@@ -43,9 +43,14 @@ search:
         - [Django](getting-started/integrations/django/index.md)
     - [CLI](getting-started/cli/index.md)
     - [ASGI](getting-started/asgi.md)
-    - [OpenTelemetry](getting-started/opentelemetry/index.md)
-    - [Prometheus](getting-started/prometheus/index.md)
-    - [Logging](getting-started/logging.md)
+    - Observability
+        - [Healthcheks](getting-started/observability/healthcheks.md)
+        - [Prometheus](getting-started/observability/prometheus.md)
+        - [OpenTelemetry](getting-started/observability/opentelemetry/index.md)
+            - [Tracing](getting-started/observability/opentelemetry/tracing.md)
+            - [Baggage](getting-started/observability/opentelemetry/baggage.md)
+            - [Sentry support](getting-started/observability/opentelemetry/sentry.md)
+        - [Logging](getting-started/observability/logging.md)
     - [Config Management](getting-started/config/index.md)
     - [Task Scheduling](scheduling.md)
     - [FastStream Project Template](getting-started/template/index.md)
@@ -117,9 +122,7 @@ search:
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
 - [Reference - Code API](api/index.md)
-    - Public API
 {public_api}
-    - All API
 {api}
 - [FastStream People](faststream-people.md)
 - Contributing

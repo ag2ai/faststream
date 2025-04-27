@@ -18,7 +18,7 @@ To responsibly report a security concern, navigate to the Security tab of the re
 
 ![Screenshot of repo security tab showing "Report a vulnerability" button](https://github.com/encode/.github/raw/master/img/github-demos-private-vulnerability-reporting.png)
 
-Alternatively, you can send an email to: [info@airt.ai](info@airt.ai).
+Alternatively, you can send an email to: [support@ag2.ai](support@ag2.ai).
 
 Ensure your report contains sufficient detail. As with standard issue reports, a minimal, reproducible example expedites issue resolution.
 

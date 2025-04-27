@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    AsyncIterator,
     Callable,
     Optional,
 )
@@ -132,6 +133,31 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             parser=self._parser,
             decoder=self._decoder,
         )
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]: # type: ignore[override]
+        assert self.consumer, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        timeout = 5.0
+        while True:
+            raw_message = await self.consumer.getone(timeout=timeout)
+
+            if raw_message is None:
+                continue
+
+            context = self._state.get().di_state.context
+
+            yield await process_msg(
+                msg=raw_message,  # type: ignore[arg-type]
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
 
     def _make_response_publisher(
         self,

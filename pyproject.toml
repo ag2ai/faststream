@@ -7,8 +7,8 @@ name = "faststream"
 description = "FastStream: the simplest way to work with a messaging queues"
 readme = "README.md"
 authors = [
-    { name = "airt", email = "info@airt.ai" },
-    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.ru" },
+    { name = "AG2AI", email = "support@ag2.ai" },
+    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.com" },
 ]
 
 keywords = [
@@ -67,8 +67,8 @@ rabbit = ["aio-pika>=9,<10"]
 kafka = ["aiokafka>=0.9,<0.13"]
 
 confluent = [
-    "confluent-kafka>=2,<3; python_version < '3.13'",
-    "confluent-kafka>=2.6,<3; python_version >= '3.13'",
+    "confluent-kafka>=2,!=2.8.1,<3; python_version < '3.13'",
+    "confluent-kafka>=2.6,!=2.8.1,<3; python_version >= '3.13'",
 ]
 
 nats = ["nats-py>=2.7.0,<=3.0.0"]
@@ -78,7 +78,7 @@ redis = ["redis>=5.0.0,<6.0.0"]
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
-    "typer>=0.9,!=0.12,<=0.15.1",
+    "typer>=0.9,!=0.12,<=0.15.2",
     "watchfiles>=0.15.0,<1.1.0"
 ]
 
@@ -88,12 +88,13 @@ prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
 
 devdocs = [
-    "mkdocs-material==9.5.49",
-    "mkdocs-static-i18n==1.2.3",
+    "mkdocs-material==9.6.11",
+    "mkdocs-static-i18n==1.3.0",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==0.27.0",
-    "mkdocs-literate-nav==0.6.1",
-    "mkdocs-git-revision-date-localized-plugin==1.3.0",
+    "mkdocstrings[python]==0.29.1",
+    "mkdocstrings[python]==0.26.1; python_version < '3.9'",
+    "mkdocs-literate-nav==0.6.2",
+    "mkdocs-git-revision-date-localized-plugin==1.4.5",
     "mike==2.1.3",                                      # versioning
     "mkdocs-minify-plugin==0.8.0",
     "mkdocs-macros-plugin==1.3.7",                      # includes with variables
@@ -105,7 +106,7 @@ devdocs = [
 
 types = [
     "faststream[optionals]",
-    "mypy==1.14.0",
+    "mypy==1.15.0",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -120,24 +121,22 @@ types = [
 
 lint = [
     "faststream[types]",
-    "ruff==0.8.4",
-    "bandit==1.8.0",
-    "semgrep==1.101.0",
-    "codespell==2.3.0",
+    "ruff==0.11.5",
+    "bandit==1.8.3",
+    "semgrep==1.118.0",
+    "codespell==2.4.1",
 ]
 
 test-core = [
-    "coverage[toml]==7.6.9; python_version >= '3.9'",
-    "coverage[toml]==7.6.1; python_version == '3.8'",
-    "pytest==8.3.4",
-    "pytest-asyncio==0.25.0; python_version >= '3.9'",
-    "pytest-asyncio==0.24.0; python_version == '3.8'",
-    "dirty-equals==0.8.0",
+    "coverage[toml]==7.8.0",
+    "pytest==8.3.5",
+    "pytest-asyncio==0.26.0",
+    "dirty-equals==0.9.0",
 ]
 
 testing = [
     "faststream[test-core]",
-    "fastapi==0.115.6",
+    "fastapi==0.115.12",
     "pydantic-settings>=2.0.0,<3.0.0",
     "httpx==0.28.1",
     "PyYAML==6.0.2",
@@ -146,15 +145,15 @@ testing = [
 
 dev = [
     "faststream[optionals,lint,testing,devdocs]",
-    "pre-commit==4.0.1",
+    "pre-commit==4.2.0",
     "detect-secrets==1.5.0",
 ]
 
 [project.urls]
 Homepage = "https://faststream.airt.ai/latest/"
 Documentation = "https://faststream.airt.ai/latest/getting-started/"
-Tracker = "https://github.com/airtai/FastStream/issues"
-Source = "https://github.com/airtai/FastStream"
+Tracker = "https://github.com/ag2ai/FastStream/issues"
+Source = "https://github.com/ag2ai/FastStream"
 Discord = "https://discord.gg/qFm6aSqq59"
 
 [project.scripts]

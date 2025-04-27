@@ -71,7 +71,7 @@ jobs:
         run: uv pip install --system "pydantic>=1.10.0,<2.0.0"
       - name: Install Pydantic v2
         if: matrix.pydantic-version == 'pydantic-v2'
-        run: uv pip install --system --pre "pydantic>=2.0.0b2,<3.0.0"
+        run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
       - run: mkdir coverage
       - name: Test
         run: >

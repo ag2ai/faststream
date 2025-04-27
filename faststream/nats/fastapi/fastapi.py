@@ -263,6 +263,7 @@ class NatsRouter(StreamRouter["Msg"]):
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # StreamRouter options

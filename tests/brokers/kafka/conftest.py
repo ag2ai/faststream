@@ -7,14 +7,14 @@ from faststream.kafka import KafkaRouter
 
 @dataclass
 class Settings:
-    url = "localhost:9092"
+    url: str = "localhost:9092"
 
 
 @pytest.fixture(scope="session")
-def settings():
+def settings() -> Settings:
     return Settings()
 
 
 @pytest.fixture()
-def router():
+def router() -> KafkaRouter:
     return KafkaRouter()

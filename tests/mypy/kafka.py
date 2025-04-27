@@ -1,11 +1,14 @@
 from collections.abc import Awaitable
 from typing import Callable
 
+import prometheus_client
 from aiokafka import ConsumerRecord
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.kafka import KafkaBroker, KafkaMessage, KafkaRoute, KafkaRouter
 from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
+from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
+from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 
 
 def sync_decoder(msg: KafkaMessage) -> DecodedMessage:
@@ -266,3 +269,13 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = KafkaTelemetryMiddleware()
+KafkaBroker().add_middleware(otlp_middleware)
+KafkaBroker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = KafkaPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+KafkaBroker().add_middleware(prometheus_middleware)
+KafkaBroker(middlewares=[prometheus_middleware])

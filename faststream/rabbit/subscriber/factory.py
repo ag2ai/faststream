@@ -20,7 +20,11 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
     from faststream.middlewares import AckPolicy
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import (
+        Channel,
+        RabbitExchange,
+        RabbitQueue,
+    )
 
 
 def create_subscriber(
@@ -28,6 +32,7 @@ def create_subscriber(
     queue: "RabbitQueue",
     exchange: "RabbitExchange",
     consume_args: Optional["AnyDict"],
+    channel: Optional["Channel"],
     # Subscriber args
     no_reply: bool,
     broker_dependencies: Iterable["Dependant"],
@@ -51,7 +56,10 @@ def create_subscriber(
         consume_args=consume_args,
         queue=queue,
         no_ack=no_ack,
+        channel=channel,
+        exchange=exchange
     )
+
     specification_configs = SpecificationSubscriberOptions(
         title_=title_,
         description_=description_,
@@ -59,11 +67,15 @@ def create_subscriber(
     )
 
     rabbit_mq_base_configs = RabbitBaseConfigs(queue=queue, exchange=exchange)
+
+
     return SpecificationSubscriber(
+        channel=channel,
         base_configs=base_configs,
         specification_configs=specification_configs,
         rabbit_mq_base_configs=rabbit_mq_base_configs,
     )
+
 
 
 def _validate_input_for_misconfigure(

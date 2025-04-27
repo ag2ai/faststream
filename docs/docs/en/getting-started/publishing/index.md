@@ -45,4 +45,32 @@ You just need to `#!python connect` your broker, and you are ready to send a mes
 
 To publish a message, simply set up the message content and a routing key:
 
-{! includes/getting_started/publishing/index.md !}
+=== "AIOKafka"
+    ```python
+    async with KafkaBroker() as br:
+        await br.publish("message", "topic")
+    ```
+
+=== "Confluent"
+    ```python
+    async with KafkaBroker() as br:
+        await br.publish("message", "topic")
+    ```
+
+=== "RabbitMQ"
+    ```python
+    async with RabbitBroker() as br:
+        await br.publish("message", "queue")
+    ```
+
+=== "NATS"
+    ```python
+    async with NatsBroker() as br:
+        await br.publish("message", "subject")
+    ```
+
+=== "Redis"
+    ```python
+    async with RedisBroker() as br:
+        await br.publish("message", "channel")
+    ```

@@ -1,3 +1,5 @@
+from dirty_equals import IsPartialDict
+
 from faststream.kafka import KafkaBroker
 from faststream.specification import Contact, ExternalDocs, License, Tag
 from faststream.specification.asyncapi import AsyncAPI
@@ -155,33 +157,23 @@ def test_extra() -> None:
         schema_version="2.6.0",
     ).to_jsonable()
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "externalDocs": {"url": "https://extra-docs.py/", "x-field": "extra"},
-        "id": "some-unique-uuid",
+    assert schema == IsPartialDict({
         "info": {
+            "title": "My App",
+            "version": "1.0.0",
+            "description": "Test description",
+            "termsOfService": "https://my-terms.com/",
             "contact": {
                 "name": "support",
                 "url": "https://help.com/",
                 "x-field": "extra",
             },
-            "description": "Test description",
             "license": {"name": "MIT", "url": "https://mit.com/", "x-field": "extra"},
-            "termsOfService": "https://my-terms.com/",
-            "title": "My App",
-            "version": "1.0.0",
         },
-        "servers": {
-            "development": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "url": "localhost",
-            },
-        },
+        "asyncapi": "2.6.0",
+        "id": "some-unique-uuid",
         "tags": [
-            {"description": "experimental", "name": "some-tag", "x-field": "extra"},
+            {"name": "some-tag", "description": "experimental", "x-field": "extra"}
         ],
-    }
+        "externalDocs": {"url": "https://extra-docs.py/", "x-field": "extra"},
+    })

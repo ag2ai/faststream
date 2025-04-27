@@ -12,6 +12,8 @@ from faststream.specification.asyncapi import AsyncAPI
 
 
 class FastAPITestCase:
+    is_fastapi = True
+
     router_class: type[StreamRouter[MsgType]]
     broker_wrapper: Callable[[BrokerUsecase[MsgType, Any]], BrokerUsecase[MsgType, Any]]
 

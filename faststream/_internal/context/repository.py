@@ -92,12 +92,13 @@ class ContextRepo:
         Returns:
             The value of the local variable.
         """
-        value = default
-        if (context_var := self._scope_context.get(key)) is not None and (
-            context_value := context_var.get()
-        ) is not EMPTY:
-            value = context_value
-        return value
+        if (context_var := self._scope_context.get(key)) is None:
+            return default
+
+        if (context_value := context_var.get()) is EMPTY:
+            return default
+
+        return context_value
 
     @contextmanager
     def scope(self, key: str, value: Any) -> Iterator[None]:

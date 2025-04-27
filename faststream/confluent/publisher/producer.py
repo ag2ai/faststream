@@ -71,8 +71,13 @@ class AsyncConfluentFastProducer(ProducerProto):
             no_confirm=cmd.no_confirm,
         )
 
-    @override
-    async def publish_batch(  # type: ignore[override]
+    async def stop(self) -> None:
+        await self._producer.stop()
+
+    async def flush(self) -> None:
+        await self._producer.flush()
+
+    async def publish_batch(
         self,
         cmd: "KafkaPublishCommand",
     ) -> None:

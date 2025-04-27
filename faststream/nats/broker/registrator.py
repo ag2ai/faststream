@@ -6,6 +6,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.factory import create_publisher
@@ -358,15 +359,22 @@ class NatsRegistrator(ABCBroker["Msg"]):
         return publisher
 
     @override
-    def include_router(  # type: ignore[override]
+    def include_router(
         self,
-        router: "NatsRegistrator",
+        router: "NatsRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Msg]"] = (),
         include_in_schema: Optional[bool] = None,
     ) -> None:
+        if not isinstance(router, NatsRegistrator):
+            msg = (
+                f"Router must be an instance of NatsRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
         sub_streams = router._stream_builder.objects.copy()
 
         sub_router_subjects = [sub.subject for sub in router._subscribers]

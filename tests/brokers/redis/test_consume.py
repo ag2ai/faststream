@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
@@ -419,6 +419,34 @@ class TestConsumeList(RedisTestcaseConfig):
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
+    async def test_iterator(
+        self,
+        queue: str,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(list=queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, list=queue)
+
+            _ = await asyncio.create_task(publish_test_message())
+
+            index_message = 0
+            async for msg in subscriber:
+                result_message = await msg.decode()
+
+                assert result_message == expected_messages[index_message]
+
+                index_message += 1
+                if index_message >= len(expected_messages):
+                    break
+
 
 @pytest.mark.redis()
 @pytest.mark.asyncio()
@@ -779,3 +807,43 @@ class TestConsumeStream(RedisTestcaseConfig):
         assert event.is_set()
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
+
+    async def test_iterator(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+        subscriber = broker.subscriber(stream=queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                await asyncio.sleep(0.1)
+                for msg in expected_messages:
+                    await br.publish(msg, stream=queue)
+
+            async def consume():
+                index_message = 0
+                async for msg in subscriber:
+                    result_message = await msg.decode()
+
+                    mock(result_message)
+
+                    index_message += 1
+                    if index_message >= len(expected_messages):
+                        break
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(consume()),
+                    asyncio.create_task(publish_test_message()),
+                ),
+                timeout=self.timeout,
+            )
+
+            calls = [call(msg) for msg in expected_messages]
+            mock.assert_has_calls(calls=calls)

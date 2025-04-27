@@ -1,6 +1,7 @@
 from typing import (
     TYPE_CHECKING,
     Annotated,
+    AsyncIterator,
     Optional,
 )
 
@@ -104,3 +105,45 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        if not self._fetch_sub:
+            extra_options = {
+                "pending_bytes_limit": self.extra_options["pending_bytes_limit"],
+                "pending_msgs_limit": self.extra_options["pending_msgs_limit"],
+                "durable": self.extra_options["durable"],
+                "stream": self.extra_options["stream"],
+            }
+            if inbox_prefix := self.extra_options.get("inbox_prefix"):
+                extra_options["inbox_prefix"] = inbox_prefix
+
+            self._fetch_sub = await self._connection_state.js.pull_subscribe(
+                subject=self.clear_subject,
+                config=self.config,
+                **extra_options,
+            )
+
+        while True:
+            raw_message = (
+                await self._fetch_sub.fetch(
+                    batch=1,
+                    timeout=None,
+                )
+            )[0]
+
+            context = self._state.get().di_state.context
+
+            msg: NatsMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg

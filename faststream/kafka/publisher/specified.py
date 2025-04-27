@@ -9,6 +9,7 @@ from faststream.specification.schema.bindings import ChannelBinding, kafka
 
 class SpecificationPublisher(SpecificationPublisherMixin):
     """A class representing a publisher."""
+    topic: str
 
     def get_default_name(self) -> str:
         return f"{self.topic}:Publisher"

@@ -156,8 +156,8 @@ class SimpleParser:
 
     def get_path(self, message: Mapping[str, Any]) -> "AnyDict":
         if (
-            message.get("pattern")
-            and (path_re := self.pattern)
+            (path_re := self.pattern)
+            and message.get("pattern")
             and (match := path_re.match(message["channel"]))
         ):
             return match.groupdict()

@@ -16,7 +16,7 @@ async def handle(msg, logger: Logger):
 
 @broker.subscriber("response-queue")
 async def handle_response(msg, logger: Logger):
-    logger.info(f"Process response: {msg}")
+    logger.info("Process response: %s", msg)
 
 
 @app.after_startup

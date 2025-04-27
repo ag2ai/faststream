@@ -10,27 +10,27 @@ search:
 
 # Using Cookiecutter FastStream Template
 
-[Cookiecutter FastStream](https://github.com/airtai/cookiecutter-faststream){.external-link target="_blank"} is a versatile repository that provides a solid foundation for your Python projects. It comes with a basic application, testing infrastructure, linting scripts, and various development tools to kickstart your development process. Whether you're building a new application from scratch or want to enhance an existing one, this template will save you time and help you maintain high code quality.
+[Cookiecutter FastStream](https://github.com/ag2ai/cookiecutter-faststream){.external-link target="_blank"} is a versatile repository that provides a solid foundation for your Python projects. It comes with a basic application, testing infrastructure, linting scripts, and various development tools to kickstart your development process. Whether you're building a new application from scratch or want to enhance an existing one, this template will save you time and help you maintain high code quality.
 
 ## Features
 
-* **Basic Application**: [Cookiecutter FastStream](https://github.com/airtai/cookiecutter-faststream){.external-link target="_blank"} includes a basic Python application as a starting point for your project. You can easily replace it with your own code.
+* **Basic Application**: [Cookiecutter FastStream](https://github.com/ag2ai/cookiecutter-faststream){.external-link target="_blank"} includes a basic Python application as a starting point for your project. You can easily replace it with your own code.
 
 * **Testing Framework**: We've set up [`pytest`](https://pytest.org/){.external-link target="_blank"} for running unit tests. Write your tests in the tests directory and use the provided workflow for automated testing.
 
 * **Linting**: Keep your code clean and consistent with linting tools. The repository includes linting scripts and configurations for [`mypy`](https://mypy.readthedocs.io/en/stable/){.external-link target="_blank"}, [`black`](https://github.com/psf/black){.external-link target="_blank"}, [`ruff`](https://github.com/astral-sh/ruff){.external-link target="_blank"} and [`bandit`](https://bandit.readthedocs.io/en/latest/){.external-link target="_blank"}
 
-* **Docker Support**: The included Dockerfile allows you to containerize your [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application. Build and run your application in a containerized environment with ease.
+* **Docker Support**: The included Dockerfile allows you to containerize your [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application. Build and run your application in a containerized environment with ease.
 
 * **Dependency Management**: All application requirements and development dependencies are specified in the `pyproject.toml` file. This includes not only your project's dependencies but also configurations for various tools like [`pytest`](https://pytest.org/){.external-link target="_blank"}, [`mypy`](https://mypy.readthedocs.io/en/stable/){.external-link target="_blank"}, [`black`](https://github.com/psf/black){.external-link target="_blank"}, [`ruff`](https://github.com/astral-sh/ruff){.external-link target="_blank"}, and [`bandit`](https://bandit.readthedocs.io/en/latest/){.external-link target="_blank"}.
 
-* **Continuous Integration (CI)**: [Cookiecutter FastStream](https://github.com/airtai/cookiecutter-faststream){.external-link target="_blank"} comes with three [GitHub Actions](https://github.com/features/actions){.external-link target="_blank"} workflows under the `.github/workflows` directory:
+* **Continuous Integration (CI)**: [Cookiecutter FastStream](https://github.com/ag2ai/cookiecutter-faststream){.external-link target="_blank"} comes with three [GitHub Actions](https://github.com/features/actions){.external-link target="_blank"} workflows under the `.github/workflows` directory:
 
   1. **Static Analysis and Testing**: This workflow consists of two jobs. The first job runs static analysis tools ([`mypy`](https://mypy.readthedocs.io/en/stable/){.external-link target="_blank"} and [`bandit`](https://bandit.readthedocs.io/en/latest/){.external-link target="_blank"}) to check your code for potential issues. If successful, the second job runs [`pytest`](https://pytest.org/){.external-link target="_blank"} to execute your test suite.
 
-  2. **Docker Build and Push**: This workflow automates the process of building a [`Docker`](https://www.docker.com/){.external-link target="_blank"} image for your [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application and pushing it to the [GitHub Container Registry](https://ghcr.io){.external-link target="_blank"}.
+  2. **Docker Build and Push**: This workflow automates the process of building a [`Docker`](https://www.docker.com/){.external-link target="_blank"} image for your [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application and pushing it to the [GitHub Container Registry](https://ghcr.io){.external-link target="_blank"}.
 
-  3. **AsyncAPI Documentation**: The third workflow builds [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation for your [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application and deploys it to [GitHub Pages](https://pages.github.com/){.external-link target="_blank"}. This is useful for documenting your API and making it accessible to others.
+  3. **AsyncAPI Documentation**: The third workflow builds [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation for your [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application and deploys it to [GitHub Pages](https://pages.github.com/){.external-link target="_blank"}. This is useful for documenting your API and making it accessible to others.
 
 ## Getting Started
 
@@ -43,9 +43,9 @@ To set up your development environment, follow these steps:
 
 2. Run the provided [`cookiecutter`](https://github.com/cookiecutter/cookiecutter){.external-link target="_blank"} command and fill out the relevant details to generate a new FastStream project:
    ```bash
-   cookiecutter https://github.com/airtai/cookiecutter-faststream.git
+   cookiecutter https://github.com/ag2ai/cookiecutter-faststream.git
    ```
-   The following screenshot illustrates the process of creating a new FastStream app with Kafka using the above command:![using-cookiecutter-faststream](https://github.com/airtai/faststream/assets/7011056/d24ee8ec-3b39-4b85-9bba-a6be823a5fed)
+   The following screenshot illustrates the process of creating a new FastStream app with Kafka using the above command:![using-cookiecutter-faststream](https://github.com/ag2ai/faststream/assets/7011056/d24ee8ec-3b39-4b85-9bba-a6be823a5fed)
 
 3. Change the working directory to the newly created directory:
    ```bash
@@ -58,7 +58,7 @@ To set up your development environment, follow these steps:
    pip install -e ".[dev]"
    ```
 
-5. Create a new repository for our FastStream app on GitHub.![creating-new-github-repo](https://github.com/airtai/faststream/assets/7011056/7076b925-2090-4bbb-b9da-0df4783fb5a3)
+5. Create a new repository for our FastStream app on GitHub.![creating-new-github-repo](https://github.com/ag2ai/faststream/assets/7011056/7076b925-2090-4bbb-b9da-0df4783fb5a3)
 
 6. Add all the files, commit and push using the following commands:
    ```bash
@@ -85,14 +85,14 @@ pytest
 
 ## Running FastStream Application Locally
 
-To run the [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application locally, follow these steps:
+To run the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application locally, follow these steps:
 
 1. Start the Kafka Docker container locally using the provided script:
    ```bash
    ./scripts/start_kafka_broker_locally.sh
    ```
 
-2. Start the [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application with the following command:
+2. Start the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application with the following command:
    ```bash
    faststream run <directory-name>.application:app --workers 1
    ```
@@ -103,7 +103,7 @@ To run the [`FastStream`](https://github.com/airtai/faststream){.external-link t
    ./scripts/subscribe_to_kafka_broker_locally.sh <topic_name>
    ```
 
-4. To stop the [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application, press `Ctrl+C`.
+4. To stop the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application, press `Ctrl+C`.
 
 5. Finally, stop the Kafka Docker container by running the script:
    ```bash
@@ -162,7 +162,7 @@ If there are any static analysis errors, resolve them in your code and rerun the
 
 ## Viewing AsyncAPI Documentation
 
-[`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} framework supports [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation. To ensure that your changes are reflected in the [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation, follow these steps:
+[`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} framework supports [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation. To ensure that your changes are reflected in the [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation, follow these steps:
 
 1. Run the following command to view the [`AsyncAPI`](https://www.asyncapi.com/){.external-link target="_blank"} documentation:
    ```bash
@@ -234,6 +234,6 @@ Once the **Build Docker Image** workflow in `CI` has successfully completed, the
    ```
    `--rm`: This flag removes the container once it stops running, ensuring that it doesn't clutter your system with unused containers.
    `--name faststream-app`: Assigns a name to the running container, in this case, "faststream-app".
-   `--env-file /path/to/env-file`: Specifies the path to an environment file (commonly a `.env` file) that contains environment variables required by your [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application. Storing secrets and configuration in an environment file is a secure and best practice for handling sensitive information such as Kafka host, port, and authentication details.
+   `--env-file /path/to/env-file`: Specifies the path to an environment file (commonly a `.env` file) that contains environment variables required by your [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application. Storing secrets and configuration in an environment file is a secure and best practice for handling sensitive information such as Kafka host, port, and authentication details.
 
-By following these steps, you can easily deploy your [`FastStream`](https://github.com/airtai/faststream){.external-link target="_blank"} application as a [`Docker`](https://www.docker.com/){.external-link target="_blank"} container on your server. Remember to customize the `env-file` and other environment variables as needed to suit your specific application requirements.
+By following these steps, you can easily deploy your [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application as a [`Docker`](https://www.docker.com/){.external-link target="_blank"} container on your server. Remember to customize the `env-file` and other environment variables as needed to suit your specific application requirements.

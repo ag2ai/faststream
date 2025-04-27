@@ -1,5 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
+
+from nats.aio.msg import Msg
 
 from faststream._internal.constants import EMPTY
 from faststream.nats.prometheus.provider import settings_provider_factory
@@ -10,7 +12,9 @@ if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
 
-class NatsPrometheusMiddleware(PrometheusMiddleware[NatsPublishCommand]):
+class NatsPrometheusMiddleware(
+    PrometheusMiddleware[NatsPublishCommand, Union[Msg, Sequence[Msg]]]
+):
     def __init__(
         self,
         *,
@@ -20,7 +24,7 @@ class NatsPrometheusMiddleware(PrometheusMiddleware[NatsPublishCommand]):
         received_messages_size_buckets: Optional[Sequence[float]] = None,
     ) -> None:
         super().__init__(
-            settings_provider_factory=settings_provider_factory,
+            settings_provider_factory=settings_provider_factory,  # type: ignore[arg-type]
             registry=registry,
             app_name=app_name,
             metrics_prefix=metrics_prefix,

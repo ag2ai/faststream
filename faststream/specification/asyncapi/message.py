@@ -120,6 +120,9 @@ def get_model_schema(
             # single argument with useless reference
             if param_body.get("$ref"):
                 ref_obj: AnyDict = next(iter(defs.values()))
+                ref_obj[DEF_KEY] = {
+                    k: v for k, v in defs.items() if k != ref_obj.get("title")
+                }
                 return ref_obj
             param_body[DEF_KEY] = defs
 

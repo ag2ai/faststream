@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
+    AsyncIterator,
     Optional,
 )
 
@@ -115,6 +116,46 @@ class _ListHandlerMixin(LogicSubscriber):
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:  # type: ignore[override]
+        assert self._client, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        timeout = 5
+        sleep_interval = timeout / 10
+        raw_message = None
+
+        while True:
+            with anyio.move_on_after(timeout):
+                while (  # noqa: ASYNC110
+                    raw_message := await self._client.lpop(name=self.list_sub.name)
+                ) is None:
+                    await anyio.sleep(sleep_interval)
+
+            if not raw_message:
+                continue
+
+            redis_incoming_msg = DefaultListMessage(
+                type="list",
+                data=raw_message,
+                channel=self.list_sub.name,
+            )
+
+            context = self._state.get().di_state.context
+
+            msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
+                msg=redis_incoming_msg,
+                middlewares=(
+                    m(redis_incoming_msg, context=context)
+                    for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg
 
     def add_prefix(self, prefix: str) -> None:
         new_list = deepcopy(self.list_sub)

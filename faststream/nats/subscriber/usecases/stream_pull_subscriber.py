@@ -2,6 +2,7 @@ from collections.abc import Awaitable
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
+    AsyncIterator,
     Callable,
     Optional,
     cast,
@@ -172,6 +173,40 @@ class BatchPullStreamSubscriber(
                 decoder=self._decoder,
             ),
         )
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]: # type: ignore[override]
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        if not self._fetch_sub:
+            fetch_sub = (
+                self._fetch_sub
+            ) = await self._connection_state.js.pull_subscribe(
+                subject=self.clear_subject,
+                config=self.config,
+                **self.extra_options,
+            )
+        else:
+            fetch_sub = self._fetch_sub
+
+        while True:
+            raw_message = await fetch_sub.fetch(batch=1)
+
+            context = self._state.get().di_state.context
+
+            yield cast(
+                "NatsMessage",
+                await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
+                ),
+            )
 
     @override
     async def _create_subscription(self) -> None:

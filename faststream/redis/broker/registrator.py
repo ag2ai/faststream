@@ -5,6 +5,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream._internal.broker.abc_broker import ABCBroker
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.factory import create_publisher
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
+        BrokerMiddleware,
         CustomCallable,
         PublisherMiddleware,
         SubscriberMiddleware,
@@ -225,4 +227,29 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     include_in_schema=self._solve_include_in_schema(include_in_schema),
                 ),
             ),
+        )
+
+    @override
+    def include_router(
+        self,
+        router: "RedisRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, RedisRegistrator):
+            msg = (
+                f"Router must be an instance of RedisRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
         )

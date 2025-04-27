@@ -12,13 +12,13 @@ from typing import (
     Union,
 )
 
+from fast_depends.dependencies import Dependant
 from fastapi.routing import run_endpoint_function, serialize_response
 from starlette.requests import Request
 
-from faststream._internal.fastapi.get_dependant import (
-    get_fastapi_native_dependant,
-)
+from faststream._internal.context import Context
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.exceptions import SetupError
 from faststream.response import Response, ensure_response
 
 from ._compat import (
@@ -27,11 +27,17 @@ from ._compat import (
     raise_fastapi_validation_error,
     solve_faststream_dependency,
 )
+from .get_dependant import (
+    get_fastapi_native_dependant,
+    has_forbidden_types,
+    is_faststream_decorated,
+    mark_faststream_decorated,
+)
 
 if TYPE_CHECKING:
     from fastapi import params
     from fastapi._compat import ModelField
-    from fastapi.dependencies.models import Dependant
+    from fastapi.dependencies.models import Dependant as FastAPIDependant
     from fastapi.types import IncEx
 
     from faststream._internal.basic_types import AnyDict
@@ -78,9 +84,21 @@ def wrap_callable_to_fastapi_compatible(
     response_model_exclude_none: bool,
     state: "DIState",
 ) -> Callable[["NativeMessage[Any]"], Awaitable[Any]]:
-    magic_attr = "__faststream_consumer__"
+    if has_forbidden_types(user_callable, (Dependant,)):
+        msg = (
+            f"Incorrect `faststream.Depends` usage at `{user_callable.__name__}`. "
+            "For FastAPI integration use `fastapi.Depends` instead."
+        )
+        raise SetupError(msg)
 
-    if getattr(user_callable, magic_attr, False):
+    if has_forbidden_types(user_callable, (Context,)):
+        msg = (
+            f"Incorrect `faststream.Context` usage at `{user_callable.__name__}`. "
+            "For FastAPI integration use `faststream.[broker].fastapi.Context` instead."
+        )
+        raise SetupError(msg)
+
+    if is_faststream_decorated(user_callable):
         return user_callable  # type: ignore[return-value]
 
     if response_model:
@@ -105,13 +123,13 @@ def wrap_callable_to_fastapi_compatible(
         state=state,
     )
 
-    setattr(parsed_callable, magic_attr, True)
+    mark_faststream_decorated(parsed_callable)
     return wraps(user_callable)(parsed_callable)
 
 
 def build_faststream_to_fastapi_parser(
     *,
-    dependent: "Dependant",
+    dependent: "FastAPIDependant",
     provider_factory: Callable[[], Any],
     response_field: Optional["ModelField"],
     response_model_include: Optional["IncEx"],
@@ -180,7 +198,7 @@ def build_faststream_to_fastapi_parser(
 
 def make_fastapi_execution(
     *,
-    dependent: "Dependant",
+    dependent: "FastAPIDependant",
     provider_factory: Callable[[], Any],
     response_field: Optional["ModelField"],
     response_model_include: Optional["IncEx"],

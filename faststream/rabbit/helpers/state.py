@@ -3,12 +3,11 @@ from typing import TYPE_CHECKING, Protocol
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
-    from aio_pika import RobustChannel, RobustConnection
+    from aio_pika import RobustConnection
 
 
 class ConnectionState(Protocol):
     connection: "RobustConnection"
-    channel: "RobustChannel"
 
 
 class EmptyConnectionState(ConnectionState):
@@ -20,16 +19,11 @@ class EmptyConnectionState(ConnectionState):
     def connection(self) -> "RobustConnection":
         raise IncorrectState(self.error_msg)
 
-    @property
-    def channel(self) -> "RobustChannel":
-        raise IncorrectState(self.error_msg)
-
 
 class ConnectedState(ConnectionState):
-    __slots__ = ("channel", "connection")
+    __slots__ = ("connection",)
 
     def __init__(
-        self, connection: "RobustConnection", channel: "RobustChannel"
+        self, connection: "RobustConnection"
     ) -> None:
         self.connection = connection
-        self.channel = channel

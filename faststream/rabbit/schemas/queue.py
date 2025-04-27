@@ -1,6 +1,16 @@
 from copy import deepcopy
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Optional, TypedDict, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Literal,
+    Optional,
+    TypedDict,
+    Union,
+    overload,
+)
+
+from typing_extensions import deprecated
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
@@ -47,12 +57,15 @@ class RabbitQueue(NameRequired):
     )
 
     def __repr__(self) -> str:
-        if self.passive:
-            body = ""
-        else:
+        if self.declare:
             body = f", robust={self.robust}, durable={self.durable}, exclusive={self.exclusive}, auto_delete={self.auto_delete})"
+        else:
+            body = ""
 
-        return f"{self.__class__.__name__}({self.name}, routing_key='{self.routing}'{body})"
+        if self.routing != self.name:
+            body = f", routing_key='{self.routing}'{body}"
+
+        return f"{self.__class__.__name__}({self.name}{body})"
 
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
@@ -77,7 +90,8 @@ class RabbitQueue(NameRequired):
         queue_type: Literal[QueueType.CLASSIC] = QueueType.CLASSIC,
         durable: bool = EMPTY,
         exclusive: bool = False,
-        passive: bool = False,
+        declare: bool = True,
+        passive: bool = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["ClassicQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -93,7 +107,8 @@ class RabbitQueue(NameRequired):
         queue_type: Literal[QueueType.QUORUM],
         durable: Literal[True],
         exclusive: bool = False,
-        passive: bool = False,
+        declare: bool = True,
+        passive: bool = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["QuorumQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -109,7 +124,8 @@ class RabbitQueue(NameRequired):
         queue_type: Literal[QueueType.STREAM],
         durable: Literal[True],
         exclusive: bool = False,
-        passive: bool = False,
+        declare: bool = True,
+        passive: bool = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["StreamQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -124,7 +140,11 @@ class RabbitQueue(NameRequired):
         queue_type: QueueType = QueueType.CLASSIC,
         durable: bool = EMPTY,
         exclusive: bool = False,
-        passive: bool = False,
+        declare: bool = True,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.7.0 release."),
+        ] = EMPTY,
         auto_delete: bool = False,
         arguments: Union[
             "QuorumQueueArgs",
@@ -143,6 +163,9 @@ class RabbitQueue(NameRequired):
         :param name: RabbitMQ queue name.
         :param durable: Whether the object is durable.
         :param exclusive: The queue can be used only in the current connection and will be deleted after connection closed.
+        :param declare: Whether to queue automatically or just connect to it.
+                        If you want to connect to an existing queue, set this to `False`.
+                        Copy of `passive` aio-pike option.
         :param passive: Do not create queue automatically.
         :param auto_delete: The queue will be deleted after connection closed.
         :param arguments: Queue declaration arguments.
@@ -176,10 +199,14 @@ class RabbitQueue(NameRequired):
         self.bind_arguments = bind_arguments
         self.routing_key = routing_key
         self.robust = robust
-        self.passive = passive
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
         self.timeout = timeout
+
+        if passive is not EMPTY:
+            self.declare = not passive
+        else:
+            self.declare = declare
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)
@@ -201,8 +228,9 @@ CommonQueueArgs = TypedDict(
     total=False,
 )
 
-SharedQueueClassicAndQuorumArgs = TypedDict(
-    "SharedQueueClassicAndQuorumArgs",
+
+SharedClassicAndQuorumQueueArgs = TypedDict(
+    "SharedClassicAndQuorumQueueArgs",
     {
         "x-expires": int,
         "x-message-ttl": int,
@@ -210,33 +238,41 @@ SharedQueueClassicAndQuorumArgs = TypedDict(
         "x-dead-letter-exchange": str,
         "x-dead-letter-routing-key": str,
         "x-max-length": int,
-        "x-max-priority": int,
     },
     total=False,
 )
 
 
-QueueClassicTypeSpecificArgs = TypedDict(
-    "QueueClassicTypeSpecificArgs",
-    {"x-overflow": Literal["drop-head", "reject-publish", "reject-publish-dlx"]},
+ClassicQueueSpecificArgs = TypedDict(
+    "ClassicQueueSpecificArgs",
+    {
+        "x-overflow": Literal["drop-head", "reject-publish", "reject-publish-dlx"],
+        "x-queue-master-locator": Literal["client-local", "balanced"],
+        "x-max-priority": int,
+        "x-queue-mode": Literal["default", "lazy"],
+        "x-queue-version": int,
+    },
     total=False,
 )
 
-QueueQuorumTypeSpecificArgs = TypedDict(
-    "QueueQuorumTypeSpecificArgs",
+
+QuorumQueueSpecificArgs = TypedDict(
+    "QuorumQueueSpecificArgs",
     {
         "x-overflow": Literal["drop-head", "reject-publish"],
         "x-delivery-limit": int,
         "x-quorum-initial-group-size": int,
         "x-quorum-target-group-size": int,
         "x-dead-letter-strategy": Literal["at-most-once", "at-least-once"],
+        "x-max-in-memory-length": int,
+        "x-max-in-memory-bytes": int,
     },
     total=False,
 )
 
 
-QueueStreamTypeSpecificArgs = TypedDict(
-    "QueueStreamTypeSpecificArgs",
+StreamQueueSpecificArgs = TypedDict(
+    "StreamQueueSpecificArgs",
     {
         "x-max-age": str,
         "x-stream-max-segment-size-bytes": int,
@@ -247,17 +283,17 @@ QueueStreamTypeSpecificArgs = TypedDict(
 )
 
 
-class StreamQueueArgs(CommonQueueArgs, QueueStreamTypeSpecificArgs):
-    pass
-
-
 class ClassicQueueArgs(
-    CommonQueueArgs, SharedQueueClassicAndQuorumArgs, QueueClassicTypeSpecificArgs
+    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, ClassicQueueSpecificArgs
 ):
-    pass
+    """rabbitmq-server/deps/rabbit/src/rabbit_classic_queue.erl."""
 
 
 class QuorumQueueArgs(
-    CommonQueueArgs, SharedQueueClassicAndQuorumArgs, QueueQuorumTypeSpecificArgs
+    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, QuorumQueueSpecificArgs
 ):
-    pass
+    """rabbitmq-server/deps/rabbit/src/rabbit_quorum_queue.erl."""
+
+
+class StreamQueueArgs(CommonQueueArgs, StreamQueueSpecificArgs):
+    """rabbitmq-server/deps/rabbit/src/rabbit_stream_queue.erl."""

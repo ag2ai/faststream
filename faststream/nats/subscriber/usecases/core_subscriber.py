@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator, Iterable
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -81,6 +82,33 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         return msg
 
     @override
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        if self._fetch_sub is None:
+            fetch_sub = self._fetch_sub = await self._connection_state.client.subscribe(
+                subject=self.clear_subject,
+                queue=self.queue,
+                **self.extra_options,
+            )
+        else:
+            fetch_sub = self._fetch_sub
+
+        async for raw_message in fetch_sub.messages:
+            context = self._state.get().di_state.context
+
+            msg: NatsMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg
+
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""
         if self.subscription:

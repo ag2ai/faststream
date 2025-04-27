@@ -579,6 +579,12 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         assert not mock.called
 
     @pytest.mark.asyncio()
+    async def test_publisher_after_connect(self, queue: str) -> None:
+        async with self.patch_broker(self.get_broker()) as br:
+            # Should pass without error
+            await br.publisher(queue).publish(None)
+
+    @pytest.mark.asyncio()
     async def test_publisher_after_start(
         self,
         queue: str,

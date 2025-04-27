@@ -32,7 +32,7 @@ from faststream import BaseMiddleware
 
 class MyMiddleware(BaseMiddleware):
     async def on_receive(self):
-        print(f"Received: {self.message}")
+        print(f"Received: {self.msg}")
         return await super().on_receive()
 
     async def after_processed(self, exc_type, exc_val, exc_tb):

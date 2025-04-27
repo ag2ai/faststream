@@ -3,6 +3,7 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Annotated,
+    AsyncIterator,
     Optional,
     cast,
 )
@@ -96,6 +97,57 @@ class KeyValueWatchSubscriber(
             decoder=self._decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["NatsKvMessage"]:  # type: ignore[override]
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        if not self._fetch_sub:
+            bucket = await self._connection_state.kv_declarer.create_key_value(
+                bucket=self.kv_watch.name,
+                declare=self.kv_watch.declare,
+            )
+
+            fetch_sub = self._fetch_sub = UnsubscribeAdapter["KeyValue.KeyWatcher"](
+                await bucket.watch(
+                    keys=self.clear_subject,
+                    headers_only=self.kv_watch.headers_only,
+                    include_history=self.kv_watch.include_history,
+                    ignore_deletes=self.kv_watch.ignore_deletes,
+                    meta_only=self.kv_watch.meta_only,
+                ),
+            )
+        else:
+            fetch_sub = self._fetch_sub
+
+        timeout = 5
+        sleep_interval = timeout / 10
+
+        while True:
+            raw_message = None
+            with anyio.move_on_after(timeout):
+                while (  # noqa: ASYNC110
+                    # type: ignore[no-untyped-call]
+                    raw_message := await fetch_sub.obj.updates(timeout)
+                ) is None:
+                    await anyio.sleep(sleep_interval)
+
+            if raw_message is None:
+                continue
+
+            context = self._state.get().di_state.context
+
+            msg: NatsKvMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+            yield msg
 
     @override
     async def _create_subscription(self) -> None:

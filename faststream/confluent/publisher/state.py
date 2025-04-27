@@ -15,6 +15,8 @@ class ProducerState(Protocol):
 
     async def stop(self) -> None: ...
 
+    async def flush(self) -> None: ...
+
 
 class EmptyProducerState(ProducerState):
     __slots__ = ()
@@ -33,6 +35,9 @@ class EmptyProducerState(ProducerState):
     async def stop(self) -> None:
         pass
 
+    async def flush(self) -> None:
+        pass
+
 
 class RealProducer(ProducerState):
     __slots__ = ("producer",)
@@ -48,3 +53,6 @@ class RealProducer(ProducerState):
 
     async def ping(self, timeout: float) -> bool:
         return await self.producer.ping(timeout=timeout)
+
+    async def flush(self) -> None:
+        await self.producer.flush()

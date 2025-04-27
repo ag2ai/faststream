@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import anyio
 import pytest
@@ -365,3 +365,45 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
 
         assert event.is_set()
         mock.assert_called_once()
+
+    @pytest.mark.asyncio()
+    async def test_iteration(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        expected_messages = ("test_message_1", "test_message_2")
+
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+        subscriber = broker.subscriber(*args, **kwargs)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            async def publish_test_message():
+                for msg in expected_messages:
+                    await br.publish(msg, queue)
+
+            async def consume():
+                index_message = 0
+                async for msg in subscriber:
+                    result_message = await msg.decode()
+
+                    mock(result_message)
+
+                    index_message += 1
+                    if index_message >= len(expected_messages):
+                        break
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(consume()),
+                    asyncio.create_task(publish_test_message()),
+                ),
+                timeout=self.timeout,
+            )
+
+            calls = [call(msg) for msg in expected_messages]
+            mock.assert_has_calls(calls=calls)

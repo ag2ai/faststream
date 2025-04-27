@@ -1,6 +1,11 @@
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
-from faststream.kafka.message import FAKE_CONSUMER, ConsumerProtocol, KafkaMessage
+from faststream.kafka.message import (
+    FAKE_CONSUMER,
+    ConsumerProtocol,
+    KafkaMessage,
+    KafkaRawMessage,
+)
 from faststream.message import decode_message
 
 if TYPE_CHECKING:
@@ -30,7 +35,7 @@ class AioKafkaParser:
 
     async def parse_message(
         self,
-        message: "ConsumerRecord",
+        message: Union["ConsumerRecord", "KafkaRawMessage"],
     ) -> "StreamMessage[ConsumerRecord]":
         """Parses a Kafka message."""
         headers = {i: j.decode() for i, j in message.headers}
@@ -44,7 +49,7 @@ class AioKafkaParser:
             correlation_id=headers.get("correlation_id"),
             raw_message=message,
             path=self.get_path(message.topic),
-            consumer=self._consumer,
+            consumer=getattr(message, "consumer", self._consumer),
         )
 
     async def decode_message(

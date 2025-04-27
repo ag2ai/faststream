@@ -206,7 +206,7 @@ ConfluentConfig = TypedDict(
         "sasl.password": str,
         "sasl.oauthbearer.config": str,
         "enable.sasl.oauthbearer.unsecure.jwt": bool,
-        "oauthbearer_token_refresh_cb": Callable[..., Any],
+        "oauth_cb": Callable[..., Any],
         "sasl.oauthbearer.client.id": str,
         "sasl.oauthbearer.client.secret": str,
         "sasl.oauthbearer.scope": str,
@@ -260,6 +260,7 @@ ConfluentConfig = TypedDict(
         "dr_cb": Callable[..., Any],
         "dr_msg_cb": Callable[..., Any],
         "sticky.partitioning.linger.ms": int,
+        "on_delivery": Callable[..., Any],
     },
     total=False,
 )

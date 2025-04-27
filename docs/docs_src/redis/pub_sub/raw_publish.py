@@ -17,7 +17,7 @@ app = FastStream(broker)
 
 @broker.subscriber("input_data")
 async def on_input_data(msg: Data, logger: Logger):
-    logger.info(f"on_input_data({msg=})")
+    logger.info("on_input_data(msg=%s)", msg)
 
 
 @pytest.mark.asyncio

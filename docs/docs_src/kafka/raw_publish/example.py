@@ -16,7 +16,7 @@ class Data(BaseModel):
 
 @broker.subscriber("input_data")
 async def handle_data(msg: Data, logger: Logger) -> None:
-    logger.info(f"handle_data({msg=})")
+    logger.info("handle_data(msg=%s)", msg)
 
 
 @pytest.mark.asyncio

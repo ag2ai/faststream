@@ -1,10 +1,8 @@
-import logging
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.middlewares import BaseMiddleware
 from faststream.exceptions import IgnoredException
 from faststream.message.source_type import SourceType
-
-from .base import BaseMiddleware
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -77,14 +75,12 @@ class _LoggingMiddleware(BaseMiddleware):
                 # TODO: move critical logging to `subscriber.consume()` method
                 if issubclass(exc_type, IgnoredException):
                     self.logger.log(
-                        log_level=logging.INFO,
                         message=str(exc_val),
                         extra=c,
                     )
 
                 else:
                     self.logger.log(
-                        log_level=logging.ERROR,
                         message=f"{exc_type.__name__}: {exc_val}",
                         exc_info=exc_val,
                         extra=c,

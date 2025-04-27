@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     )
     from faststream.kafka.subscriber.specified import (
         SpecificationBatchSubscriber,
+        SpecificationConcurrentBetweenPartitionsSubscriber,
         SpecificationConcurrentDefaultSubscriber,
         SpecificationDefaultSubscriber,
     )
@@ -319,6 +320,7 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # StreamRouter options
@@ -2618,12 +2620,20 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         ] = False,
         max_workers: Annotated[
             int,
-            Doc("Number of workers to process messages concurrently."),
+            Doc(
+                "Maximum number of messages being processed concurrently. With "
+                "`auto_commit=False` processing is concurrent between partitions and "
+                "sequential within a partition. With `auto_commit=False` maximum "
+                "concurrency is achieved when total number of workers across all "
+                "application instances running workers in the same consumer group "
+                "is equal to the number of partitions in the topic."
+            ),
         ] = 1,
     ) -> Union[
         "SpecificationBatchSubscriber",
         "SpecificationDefaultSubscriber",
         "SpecificationConcurrentDefaultSubscriber",
+        "SpecificationConcurrentBetweenPartitionsSubscriber",
     ]:
         subscriber = super().subscriber(
             *topics,
@@ -2678,7 +2688,11 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]
         if batch:
             return cast("SpecificationBatchSubscriber", subscriber)
         if max_workers > 1:
-            return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            if auto_commit:
+                return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            return cast(
+                "SpecificationConcurrentBetweenPartitionsSubscriber", subscriber
+            )
         return cast("SpecificationDefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
