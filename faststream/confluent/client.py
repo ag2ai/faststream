@@ -101,9 +101,9 @@ class AsyncConfluentProducer:
         }
 
         final_config = {
-            **config.as_config_dict(),
             **config_from_params,
             **dict(security_config or {}),
+            **config.as_config_dict(),
         }
 
         self.producer = Producer(final_config, logger=self.logger)  # type: ignore[call-arg]
@@ -264,17 +264,15 @@ class AsyncConfluentConsumer:
                 ]
             )
 
-        final_config = config.as_config_dict()
-
         config_from_params = {
             "allow.auto.create.topics": allow_auto_create_topics,
             "topic.metadata.refresh.interval.ms": 1000,
             "bootstrap.servers": bootstrap_servers,
             "client.id": client_id,
             "group.id": group_id
-            or final_config.get("group.id", "faststream-consumer-group"),
+            or config.config.get("group.id", "faststream-consumer-group"),
             "group.instance.id": group_instance_id
-            or final_config.get("group.instance.id", None),
+            or config.config.get("group.instance.id", None),
             "fetch.wait.max.ms": fetch_max_wait_ms,
             "fetch.max.bytes": fetch_max_bytes,
             "fetch.min.bytes": fetch_min_bytes,
@@ -294,11 +292,13 @@ class AsyncConfluentConsumer:
             "isolation.level": isolation_level,
         }
         self.allow_auto_create_topics = allow_auto_create_topics
-        final_config.update(config_from_params)
-        final_config.update(**dict(security_config or {}))
 
-        self.config = final_config
-        self.consumer = Consumer(final_config, logger=self.logger)  # type: ignore[call-arg]
+        self.config = {
+            **config_from_params,
+            **dict(security_config or {}),
+            **config.as_config_dict(),
+        }
+        self.consumer = Consumer(self.config, logger=self.logger)  # type: ignore[call-arg]
 
         # We shouldn't read messages and close consumer concurrently
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895

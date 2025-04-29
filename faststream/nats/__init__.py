@@ -1,17 +1,22 @@
-from nats.js.api import (
-    AckPolicy,
-    ConsumerConfig,
-    DeliverPolicy,
-    DiscardPolicy,
-    ExternalStream,
-    Placement,
-    RePublish,
-    ReplayPolicy,
-    RetentionPolicy,
-    StorageType,
-    StreamConfig,
-    StreamSource,
-)
+from faststream.exceptions import INSTALL_FASTSTREAM_NATS
+
+try:
+    from nats.js.api import (
+        AckPolicy,
+        ConsumerConfig,
+        DeliverPolicy,
+        DiscardPolicy,
+        ExternalStream,
+        Placement,
+        RePublish,
+        ReplayPolicy,
+        RetentionPolicy,
+        StorageType,
+        StreamConfig,
+        StreamSource,
+    )
+except ImportError(INSTALL_FASTSTREAM_NATS) as e:
+    raise ImportError(INSTALL_FASTSTREAM_NATS) from e
 
 from faststream.nats.annotations import NatsMessage
 from faststream.nats.broker.broker import NatsBroker
