@@ -74,14 +74,14 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
     _call_options: Optional["_CallOptions"]
     _call_decorators: Iterable["Decorator"]
 
-    def __init__(self, *, options: SubscriberUseCaseConfigs) -> None:
+    def __init__(self, *, configs: SubscriberUseCaseConfigs) -> None:
         """Initialize a new instance of the class."""
         self.calls = []
 
-        self._parser = options.default_parser
-        self._decoder = options.default_decoder
-        self._no_reply = options.no_reply
-        self.ack_policy = options.ack_policy
+        self._parser = configs.default_parser
+        self._decoder = configs.default_decoder
+        self._no_reply = configs.no_reply
+        self.ack_policy = configs.ack_policy
 
         self._call_options = None
         self._call_decorators = ()
@@ -90,8 +90,8 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         self.lock = sync_fake_context()
 
         # Setup in include
-        self._broker_dependencies = options.broker_dependencies
-        self._broker_middlewares = options.broker_middlewares
+        self._broker_dependencies = configs.broker_dependencies
+        self._broker_middlewares = configs.broker_middlewares
 
         # register in setup later
         self.extra_context = {}

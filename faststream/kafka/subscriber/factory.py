@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
-    SpecificationSubscriberOptions,
+    SpecificationSubscriberConfigs,
 )
 from faststream.exceptions import SetupError
 from faststream.kafka.subscriber.configs import KafkaSubscriberBaseConfigs
@@ -83,7 +83,7 @@ def create_subscriber(
         auto_commit=auto_commit,
     )
 
-    specification_configs = SpecificationSubscriberOptions(
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,

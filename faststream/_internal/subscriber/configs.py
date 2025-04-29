@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.configs import (
-    SpecificationConfigs as SpecificationSubscriberOptions,
+    SpecificationConfigs as SpecificationSubscriberConfigs,
     UseCaseConfigs,
 )
 from faststream.middlewares import AckPolicy
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
         AsyncCallable,
     )
 
-__all__ = ("SpecificationSubscriberOptions",)
+__all__ = ("SpecificationSubscriberConfigs",)
 
 
 @dataclass

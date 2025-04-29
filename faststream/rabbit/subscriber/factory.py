@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
-    SpecificationSubscriberOptions,
+    SpecificationSubscriberConfigs,
 )
 from faststream.exceptions import SetupError
 from faststream.rabbit.schemas.base import RabbitBaseConfigs
@@ -59,18 +59,18 @@ def create_subscriber(
         exchange=exchange
     )
 
-    specification_configs = SpecificationSubscriberOptions(
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
     )
 
-    rabbit_mq_base_configs = RabbitBaseConfigs(queue=queue, exchange=exchange)
+    rmq_base_configs = RabbitBaseConfigs(queue=queue, exchange=exchange)
 
     return SpecificationSubscriber(
         base_configs=base_configs,
         specification_configs=specification_configs,
-        rabbit_mq_base_configs=rabbit_mq_base_configs,
+        rmq_base_configs=rmq_base_configs,
     )
 
 

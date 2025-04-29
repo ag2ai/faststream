@@ -33,13 +33,13 @@ class SpecificationSubscriber(
         self,
         *,
         base_configs: RabbitSubscriberBaseConfigs,
-        rabbit_mq_base_configs: RabbitBaseConfigs,
+        rmq_base_configs: RabbitBaseConfigs,
         specification_configs: SpecificationConfigs,
     ) -> None:
         super().__init__(
             specification_configs=specification_configs,
             # propagate to RMQSpecificationMixin
-            rabbit_mq_options=rabbit_mq_base_configs,
+            rmq_base_configs=rmq_base_configs,
         )
 
         LogicSubscriber.__init__(self, base_configs=base_configs)

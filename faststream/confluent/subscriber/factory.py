@@ -8,7 +8,7 @@ from typing import (
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
-    SpecificationSubscriberOptions,
+    SpecificationSubscriberConfigs,
 )
 from faststream.confluent.subscriber.configs import ConfluentSubscriberBaseConfigs
 from faststream.confluent.subscriber.specified import (
@@ -83,7 +83,7 @@ def create_subscriber(
         default_parser=EMPTY,
     )
 
-    specification_configs = SpecificationSubscriberOptions(
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,

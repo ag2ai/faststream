@@ -4,7 +4,7 @@ from typing import (
     Optional,
 )
 
-from faststream._internal.subscriber.configs import SpecificationSubscriberOptions
+from faststream._internal.subscriber.configs import SpecificationSubscriberConfigs
 from faststream._internal.types import MsgType
 from faststream.exceptions import SetupError
 from faststream.specification.asyncapi.message import parse_handler_params
@@ -24,7 +24,7 @@ class SpecificationSubscriber(EndpointSpecification[MsgType, SubscriberSpec]):
     def __init__(
         self,
         *args: Any,
-        specification_configs: SpecificationSubscriberOptions,
+        specification_configs: SpecificationSubscriberConfigs,
         **kwargs: Any,
     ) -> None:
         self.calls = []

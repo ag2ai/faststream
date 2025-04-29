@@ -7,7 +7,7 @@ import anyio
 from aiokafka import ConsumerRecord, TopicPartition
 from aiokafka.errors import ConsumerStoppedError, KafkaError
 from typing_extensions import override
-from faststream._internal.subscriber.configs import SpecificationSubscriberOptions
+from faststream._internal.subscriber.configs import SpecificationSubscriberConfigs
 from faststream._internal.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.subscriber.usecase import SubscriberUsecase
 from faststream._internal.subscriber.utils import process_msg
@@ -46,7 +46,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     parser: AioKafkaParser
 
     def __init__(self, base_configs: KafkaSubscriberBaseConfigs) -> None:
-        super().__init__(options=base_configs)
+        super().__init__(configs=base_configs)
 
         self.topics = base_configs.topics
         self.partitions = base_configs.partitions

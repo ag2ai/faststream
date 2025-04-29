@@ -34,13 +34,13 @@ class SpecificationPublisher(
         self,
         *,
         base_configs: RabbitPublisherBaseConfigs,
-        rabbit_mq_base_configs: RabbitBaseConfigs,
+        rmq_base_configs: RabbitBaseConfigs,
         specification_configs: SpecificationConfigs,
     ) -> None:
         super().__init__(
             specification_configs=specification_configs,
             # propagate to RMQSpecificationMixin
-            rabbit_mq_options=rabbit_mq_base_configs,
+            rmq_base_configs=rmq_base_configs,
         )
 
         LogicPublisher.__init__(self, base_configs=base_configs)

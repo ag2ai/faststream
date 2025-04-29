@@ -44,7 +44,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     client_id: Optional[str]
 
     def __init__(self, base_configs: ConfluentSubscriberBaseConfigs) -> None:
-        super().__init__(options=base_configs)
+        super().__init__(configs=base_configs)
 
         self.__connection_data = base_configs.connection_data
 

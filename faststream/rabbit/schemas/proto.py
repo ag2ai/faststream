@@ -15,9 +15,9 @@ class BaseRMQInformation:
     exchange: "RabbitExchange"
     app_id: Optional[str]
 
-    def __init__(self, *, rabbit_mq_options: RabbitBaseConfigs) -> None:
-        self.queue = rabbit_mq_options.queue
-        self.exchange = rabbit_mq_options.exchange
+    def __init__(self, *, rmq_base_configs: RabbitBaseConfigs) -> None:
+        self.queue = rmq_base_configs.queue
+        self.exchange = rmq_base_configs.exchange
 
         # Setup it later
         self.app_id = None

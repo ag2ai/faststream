@@ -14,7 +14,7 @@ from nats.js.client import (
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.subscriber.configs import (
-    SpecificationSubscriberOptions,
+    SpecificationSubscriberConfigs,
 )
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -176,7 +176,7 @@ def create_subscriber(
         no_ack=no_ack,
     )
 
-    specification_configs = SpecificationSubscriberOptions(
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,

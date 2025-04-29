@@ -40,7 +40,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     _client: Optional["Redis[bytes]"]
 
     def __init__(self, *, base_configs: RedisSubscriberBaseConfigs) -> None:
-        super().__init__(options=base_configs)
+        super().__init__(configs=base_configs)
 
         self._client = None
 

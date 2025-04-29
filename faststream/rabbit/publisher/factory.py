@@ -42,7 +42,7 @@ def create_publisher(
         middlewares=middlewares,
     )
 
-    rabbit_mq_base_configs = RabbitBaseConfigs(
+    rmq_base_configs = RabbitBaseConfigs(
         queue=queue,
         exchange=exchange,
     )
@@ -56,6 +56,6 @@ def create_publisher(
 
     return SpecificationPublisher(
         base_configs=base_configs,
-        rabbit_mq_base_configs=rabbit_mq_base_configs,
+        rmq_base_configs=rmq_base_configs,
         specification_configs=specification_configs,
     )

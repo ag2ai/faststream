@@ -53,7 +53,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         parser = AioPikaParser(pattern=base_configs.queue.path_regex)
         base_configs.default_decoder = parser.decode_message
         base_configs.default_parser = parser.parse_message
-        super().__init__(options=base_configs)
+        super().__init__(configs=base_configs)
 
         self.consume_args = base_configs.consume_args or {}
 
