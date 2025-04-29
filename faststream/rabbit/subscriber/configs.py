@@ -22,10 +22,15 @@ class RabbitSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     exchange: "RabbitExchange"
     no_ack: bool = field(init=False, repr=False)
 
+    def __post_init__(self) -> None:
+        if self._ack_policy is AckPolicy.ACK_FIRST:
+            self.no_ack = True
+        else:
+            self.no_ack = False
+
     @property
     def ack_policy(self) -> AckPolicy:
         consumer_no_ack = self._ack_policy is AckPolicy.ACK_FIRST
-        self.no_ack = consumer_no_ack
 
         if self._ack_policy is EMPTY:
             return AckPolicy.DO_NOTHING if consumer_no_ack else AckPolicy.REJECT_ON_ERROR

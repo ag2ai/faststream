@@ -98,7 +98,8 @@ def create_subscriber(
         )
 
     if max_workers > 1:
-        if base_configs.ack_policy is AckPolicy.ACK_FIRST:
+        print(base_configs.ack_first)
+        if base_configs.ack_first:
             return SpecificationConcurrentDefaultSubscriber(
                 specification_configs=specification_configs,
                 base_configs=base_configs,

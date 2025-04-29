@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import AnyDict
 
-
 @dataclass
 class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     topics: Sequence[str]
@@ -28,6 +27,12 @@ class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     partitions: Iterable["TopicPartition"]
     no_ack: bool
     auto_commit: bool
+    ack_first: bool = False
+
+    def __post_init__(self) -> None:
+        if self._ack_policy is AckPolicy.ACK_FIRST:
+            self.ack_first = True
+            self.connection_args["enable_auto_commit"] = True
 
     @property
     def ack_policy(self) -> AckPolicy:
@@ -43,7 +48,6 @@ class KafkaSubscriberBaseConfigs(SubscriberUseCaseConfigs):
             return AckPolicy.DO_NOTHING if self.no_ack else EMPTY
 
         if self._ack_policy is AckPolicy.ACK_FIRST:
-            self.connection_args["enable_auto_commit"] = True
             return AckPolicy.DO_NOTHING
 
         return self._ack_policy

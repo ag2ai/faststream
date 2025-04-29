@@ -30,6 +30,11 @@ class ConfluentSubscriberBaseConfigs(SubscriberUseCaseConfigs):
     auto_commit: bool
     no_ack: bool
 
+    def __post_init__(self) -> None:
+        if self._ack_policy is AckPolicy.ACK_FIRST:
+            self.connection_data["enable_auto_commit"] = True
+
+
     @property
     def ack_policy(self) -> AckPolicy:
         if self.auto_commit is not EMPTY:
@@ -44,7 +49,6 @@ class ConfluentSubscriberBaseConfigs(SubscriberUseCaseConfigs):
             return AckPolicy.ACK_FIRST
 
         if self._ack_policy is AckPolicy.ACK_FIRST:
-            self.connection_data["enable_auto_commit"] = True
             return AckPolicy.DO_NOTHING
 
         return self._ack_policy
