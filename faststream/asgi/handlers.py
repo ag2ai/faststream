@@ -7,14 +7,27 @@ if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
 @overload
-def get(func: "UserApp") -> "ASGIApp": ...
+def get(
+    func: "UserApp",
+    *,
+    include_in_schema: bool = True
+) -> "ASGIApp": ...
 
 @overload
-def get(*, include_in_schema: bool = True) -> Callable[["UserApp"], "ASGIApp"]: ...
+def get(
+    func: Optional["UserApp"] = None,
+    *,
+    include_in_schema: bool = True
+) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 def get(
-    func: Optional["UserApp"] = None, *, include_in_schema: bool = True
-) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
+    func: Optional["UserApp"] = None,
+    *,
+    include_in_schema: bool = True
+) -> Union[
+    Callable[["UserApp"], "ASGIApp"],
+    "ASGIApp"
+]:
     methods = ("GET", "HEAD")
 
     if func is None:
