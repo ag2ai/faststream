@@ -98,15 +98,12 @@ def create_subscriber(
         )
 
     if max_workers > 1:
-        print(base_configs.ack_first)
         if base_configs.ack_first:
             return SpecificationConcurrentDefaultSubscriber(
                 specification_configs=specification_configs,
                 base_configs=base_configs,
                 max_workers=max_workers,
             )
-
-        base_configs.topics = topics[0]
         return SpecificationConcurrentBetweenPartitionsSubscriber(
             specification_configs=specification_configs,
             base_configs=base_configs,
