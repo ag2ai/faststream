@@ -104,6 +104,7 @@ def create_subscriber(
                 base_configs=base_configs,
                 max_workers=max_workers,
             )
+        base_configs.topics = (topics[0],)
         return SpecificationConcurrentBetweenPartitionsSubscriber(
             specification_configs=specification_configs,
             base_configs=base_configs,
