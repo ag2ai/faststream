@@ -52,7 +52,7 @@ def get(
         await response(scope, receive, send)
         return
 
-    setattr(asgi_wrapper, "include_in_schema", include_in_schema)
+    asgi_wrapper.include_in_schema = include_in_schema
     return asgi_wrapper
 
 
