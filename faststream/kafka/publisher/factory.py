@@ -8,7 +8,11 @@ from typing import (
     Union,
 )
 
+from faststream._internal.publisher.configs import (
+    SpecificationPublisherConfigs,
+)
 from faststream.exceptions import SetupError
+from faststream.kafka.publisher.configs import KafkaPublisherBaseConfigs
 
 from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
 
@@ -41,6 +45,23 @@ def create_publisher(
     "SpecificationBatchPublisher",
     "SpecificationDefaultPublisher",
 ]:
+    base_configs = KafkaPublisherBaseConfigs(
+        key=key,
+        topic=topic,
+        partition=partition,
+        headers=headers,
+        reply_to=reply_to,
+        broker_middlewares=broker_middlewares,
+        middlewares=middlewares,
+    )
+
+    specification_configs = SpecificationPublisherConfigs(
+        schema_=schema_,
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
+
     if batch:
         if key:
             msg = "You can't setup `key` with batch publisher"
@@ -50,33 +71,15 @@ def create_publisher(
             SpecificationBatchPublisher,
             SpecificationDefaultPublisher,
         ] = SpecificationBatchPublisher(
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
         publish_method = "_basic_publish_batch"
 
     else:
         publisher = SpecificationDefaultPublisher(
-            key=key,
-            # basic args
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
         publish_method = "_basic_publish"
 

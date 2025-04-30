@@ -10,30 +10,25 @@ from typing import (
 
 import anyio
 from nats.errors import TimeoutError
-from nats.js.api import ConsumerConfig, ObjectInfo
+from nats.js.api import ObjectInfo
 from typing_extensions import Doc, override
 
 from faststream._internal.subscriber.mixins import TasksMixin
 from faststream._internal.subscriber.utils import process_msg
-from faststream.middlewares import AckPolicy
 from faststream.nats.parser import (
     ObjParser,
 )
 from faststream.nats.subscriber.adapters import (
     UnsubscribeAdapter,
 )
+from faststream.nats.subscriber.configs import NatsSubscriberBaseConfigs
 
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
-    from nats.aio.msg import Msg
     from nats.js.object_store import ObjectStore
 
     from faststream._internal.publisher.proto import BasePublisherProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-    )
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsObjMessage
     from faststream.nats.schemas import ObjWatch
@@ -50,30 +45,15 @@ class ObjStoreWatchSubscriber(
     _fetch_sub: Optional[UnsubscribeAdapter["ObjectStore.ObjectWatcher"]]
 
     def __init__(
-        self,
-        *,
-        subject: str,
-        config: "ConsumerConfig",
-        obj_watch: "ObjWatch",
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Iterable["BrokerMiddleware[list[Msg]]"],
+        self, *, obj_watch: "ObjWatch", base_configs: NatsSubscriberBaseConfigs
     ) -> None:
         parser = ObjParser(pattern="")
 
         self.obj_watch = obj_watch
         self.obj_watch_conn = None
-
-        super().__init__(
-            subject=subject,
-            config=config,
-            extra_options=None,
-            ack_policy=AckPolicy.DO_NOTHING,
-            no_reply=True,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_parser = parser.parse_message
+        base_configs.default_decoder = parser.decode_message
+        super().__init__(base_configs=base_configs)
 
     @override
     async def get_one(

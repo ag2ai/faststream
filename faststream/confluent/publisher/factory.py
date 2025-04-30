@@ -9,6 +9,10 @@ from typing import (
     cast,
 )
 
+from faststream._internal.publisher.configs import (
+    SpecificationPublisherConfigs,
+)
+from faststream.confluent.publisher.configs import ConfluentPublisherBaseConfigs
 from faststream.exceptions import SetupError
 
 from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
@@ -43,6 +47,25 @@ def create_publisher(
     "SpecificationBatchPublisher",
     "SpecificationDefaultPublisher",
 ]:
+    base_configs = ConfluentPublisherBaseConfigs(
+        key=key,
+        topic=topic,
+        partition=partition,
+        headers=headers,
+        reply_to=reply_to,
+        broker_middlewares=cast(
+            "Sequence[BrokerMiddleware[tuple[ConfluentMsg, ...]]]",
+            broker_middlewares,
+        ),
+        middlewares=middlewares,
+    )
+    specification_configs = SpecificationPublisherConfigs(
+        schema_=schema_,
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
+
     if batch:
         if key:
             msg = "You can't setup `key` with batch publisher"
@@ -52,39 +75,15 @@ def create_publisher(
             SpecificationBatchPublisher,
             SpecificationDefaultPublisher,
         ] = SpecificationBatchPublisher(
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=cast(
-                "Sequence[BrokerMiddleware[tuple[ConfluentMsg, ...]]]",
-                broker_middlewares,
-            ),
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            specification_configs=specification_configs,
+            base_configs=base_configs
         )
         publish_method = "_basic_publish_batch"
 
     else:
         publisher = SpecificationDefaultPublisher(
-            key=key,
-            # basic args
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=cast(
-                "Sequence[BrokerMiddleware[ConfluentMsg]]",
-                broker_middlewares,
-            ),
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            specification_configs=specification_configs,
+            base_configs=base_configs
         )
         publish_method = "_basic_publish"
 

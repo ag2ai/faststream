@@ -3,7 +3,11 @@ from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Optional, Union
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SpecificationSubscriberConfigs,
+)
 from faststream.exceptions import SetupError
+from faststream.kafka.subscriber.configs import KafkaSubscriberBaseConfigs
 from faststream.kafka.subscriber.specified import (
     SpecificationBatchSubscriber,
     SpecificationConcurrentBetweenPartitionsSubscriber,
@@ -60,106 +64,67 @@ def create_subscriber(
         no_ack=no_ack,
         auto_commit=auto_commit,
         max_workers=max_workers,
-        group_id=group_id,
     )
 
-    if auto_commit is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST
-
-    if ack_policy is AckPolicy.ACK_FIRST:
-        connection_args["enable_auto_commit"] = True
-        ack_policy = AckPolicy.DO_NOTHING
-        ack_first = True
-    else:
-        ack_first = False
-
-    if batch:
-        return SpecificationBatchSubscriber(
-            *topics,
-            batch_timeout_ms=batch_timeout_ms,
-            max_records=max_records,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
-
-    if max_workers > 1:
-        if ack_first:
-            return SpecificationConcurrentDefaultSubscriber(
-                *topics,
-                max_workers=max_workers,
-                group_id=group_id,
-                listener=listener,
-                pattern=pattern,
-                connection_args=connection_args,
-                partitions=partitions,
-                ack_policy=ack_policy,
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
-            )
-
-        return SpecificationConcurrentBetweenPartitionsSubscriber(
-            topics[0],
-            max_workers=max_workers,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
-
-    return SpecificationDefaultSubscriber(
-        *topics,
+    base_configs = KafkaSubscriberBaseConfigs(
+        topics=topics,
+        partitions=partitions,
+        connection_args=connection_args,
         group_id=group_id,
         listener=listener,
         pattern=pattern,
-        connection_args=connection_args,
-        partitions=partitions,
         ack_policy=ack_policy,
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
         broker_middlewares=broker_middlewares,
+        default_decoder=EMPTY,
+        default_parser=EMPTY,
+        no_ack=no_ack,
+        auto_commit=auto_commit,
+    )
+
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
     )
 
+    if batch:
+        return SpecificationBatchSubscriber(
+            specification_configs=specification_configs,
+            base_configs=base_configs,
+            batch_timeout_ms=batch_timeout_ms,
+            max_records=max_records,
+        )
+
+    if max_workers > 1:
+        if base_configs.ack_first:
+            return SpecificationConcurrentDefaultSubscriber(
+                specification_configs=specification_configs,
+                base_configs=base_configs,
+                max_workers=max_workers,
+            )
+        base_configs.topics = (topics[0],)
+        return SpecificationConcurrentBetweenPartitionsSubscriber(
+            specification_configs=specification_configs,
+            base_configs=base_configs,
+            max_workers=max_workers,
+        )
+
+    return SpecificationDefaultSubscriber(
+        specification_configs=specification_configs,
+        base_configs=base_configs
+    )
+
 
 def _validate_input_for_misconfigure(
     *topics: str,
-    partitions: Iterable["TopicPartition"],
-    pattern: Optional[str],
     ack_policy: "AckPolicy",
     auto_commit: bool,
     no_ack: bool,
-    group_id: Optional[str],
     max_workers: int,
+    pattern: Optional[str],
+    partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:
         warnings.warn(

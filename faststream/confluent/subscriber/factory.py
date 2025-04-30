@@ -4,10 +4,13 @@ from typing import (
     TYPE_CHECKING,
     Optional,
     Union,
-    cast,
 )
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SpecificationSubscriberConfigs,
+)
+from faststream.confluent.subscriber.configs import ConfluentSubscriberBaseConfigs
 from faststream.confluent.subscriber.specified import (
     SpecificationBatchSubscriber,
     SpecificationConcurrentDefaultSubscriber,
@@ -56,95 +59,65 @@ def create_subscriber(
 ]:
     _validate_input_for_misconfigure(
         *topics,
+        group_id=group_id,
         partitions=partitions,
         ack_policy=ack_policy,
         no_ack=no_ack,
         auto_commit=auto_commit,
-        group_id=group_id,
         max_workers=max_workers,
     )
 
-    if auto_commit is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST
-
-    if ack_policy is AckPolicy.ACK_FIRST:
-        connection_data["enable_auto_commit"] = True
-        ack_policy = AckPolicy.DO_NOTHING
-
-    if batch:
-        return SpecificationBatchSubscriber(
-            *topics,
-            partitions=partitions,
-            polling_interval=polling_interval,
-            max_records=max_records,
-            group_id=group_id,
-            connection_data=connection_data,
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=cast(
-                "Sequence[BrokerMiddleware[tuple[ConfluentMsg, ...]]]",
-                broker_middlewares,
-            ),
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
-
-    if max_workers > 1:
-        return SpecificationConcurrentDefaultSubscriber(
-            *topics,
-            partitions=partitions,
-            polling_interval=polling_interval,
-            group_id=group_id,
-            connection_data=connection_data,
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=cast(
-                "Sequence[BrokerMiddleware[ConfluentMsg]]",
-                broker_middlewares,
-            ),
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-            # concurrent arg
-            max_workers=max_workers,
-        )
-
-    return SpecificationDefaultSubscriber(
-        *topics,
+    base_configs = ConfluentSubscriberBaseConfigs(
+        topics=topics,
         partitions=partitions,
         polling_interval=polling_interval,
         group_id=group_id,
         connection_data=connection_data,
-        ack_policy=ack_policy,
+        auto_commit=auto_commit,
+        no_ack=no_ack,
+        broker_middlewares=broker_middlewares,
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
-        broker_middlewares=cast(
-            "Sequence[BrokerMiddleware[ConfluentMsg]]",
-            broker_middlewares,
-        ),
+        ack_policy=ack_policy,
+        default_decoder=EMPTY,
+        default_parser=EMPTY,
+    )
+
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
     )
 
+    if batch:
+        return SpecificationBatchSubscriber(
+            specification_configs=specification_configs,
+            base_configs=base_configs,
+            max_records=max_records,
+        )
+
+    if max_workers > 1:
+        return SpecificationConcurrentDefaultSubscriber(
+            specification_configs=specification_configs,
+            base_configs=base_configs,
+            # concurrent arg
+            max_workers=max_workers,
+        )
+
+    return SpecificationDefaultSubscriber(
+        specification_configs=specification_configs,
+        base_configs=base_configs,
+    )
+
 
 def _validate_input_for_misconfigure(
     *topics: str,
-    partitions: Sequence["TopicPartition"],
     ack_policy: "AckPolicy",
     auto_commit: bool,
     no_ack: bool,
-    group_id: Optional[str],
     max_workers: int,
+    group_id: Optional[str],
+    partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:
         warnings.warn(
@@ -179,13 +152,14 @@ def _validate_input_for_misconfigure(
         msg = "Max workers not work with manual commit mode."
         raise SetupError(msg)
 
-    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
-        msg = "You must use `group_id` with manual commit mode."
-        raise SetupError(msg)
-
     if not topics and not partitions:
         msg = "You should provide either `topics` or `partitions`."
         raise SetupError(msg)
+
     if topics and partitions:
         msg = "You can't provide both `topics` and `partitions`."
+        raise SetupError(msg)
+
+    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
+        msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)

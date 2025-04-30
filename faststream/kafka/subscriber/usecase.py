@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Any, AsyncIterator, Callable, Optional, cast
 
@@ -7,13 +7,11 @@ import anyio
 from aiokafka import ConsumerRecord, TopicPartition
 from aiokafka.errors import ConsumerStoppedError, KafkaError
 from typing_extensions import override
-
+from faststream._internal.subscriber.configs import SpecificationSubscriberConfigs
 from faststream._internal.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.subscriber.usecase import SubscriberUsecase
 from faststream._internal.subscriber.utils import process_msg
 from faststream._internal.types import (
-    AsyncCallable,
-    BrokerMiddleware,
     CustomCallable,
     MsgType,
 )
@@ -22,17 +20,16 @@ from faststream.kafka.listener import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
+from faststream.kafka.subscriber.configs import KafkaSubscriberBaseConfigs
+from faststream.middlewares.acknowledgement.conf import AckPolicy
 
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
-    from aiokafka.abc import ConsumerRebalanceListener
-    from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.publisher.proto import BasePublisherProto
     from faststream._internal.state import BrokerState, Pointer
     from faststream.message import StreamMessage
-    from faststream.middlewares import AckPolicy
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -48,40 +45,16 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     batch: bool
     parser: AioKafkaParser
 
-    def __init__(
-        self,
-        *topics: str,
-        # Kafka information
-        group_id: Optional[str],
-        connection_args: "AnyDict",
-        listener: Optional["ConsumerRebalanceListener"],
-        pattern: Optional[str],
-        partitions: Iterable["TopicPartition"],
-        # Subscriber args
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[MsgType]"],
-    ) -> None:
-        super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
-            # Propagated args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+    def __init__(self, base_configs: KafkaSubscriberBaseConfigs) -> None:
+        super().__init__(configs=base_configs)
 
-        self.topics = topics
-        self.partitions = partitions
-        self.group_id = group_id
+        self.topics = base_configs.topics
+        self.partitions = base_configs.partitions
+        self.group_id = base_configs.group_id
 
-        self._pattern = pattern
-        self._listener = listener
-        self._connection_args = connection_args
+        self._pattern = base_configs.pattern
+        self._listener = base_configs.listener
+        self._connection_args = base_configs.connection_args
 
         # Setup it later
         self.client_id = ""
@@ -97,7 +70,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         builder: Callable[..., "AIOKafkaConsumer"],
         # basic args
         extra_context: "AnyDict",
-        # broker options
+        # broker base_configs
         broker_parser: Optional["CustomCallable"],
         broker_decoder: Optional["CustomCallable"],
         # dependant args
@@ -280,54 +253,27 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
-    def __init__(
-        self,
-        *topics: str,
-        # Kafka information
-        group_id: Optional[str],
-        listener: Optional["ConsumerRebalanceListener"],
-        pattern: Optional[str],
-        connection_args: "AnyDict",
-        partitions: Iterable["TopicPartition"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-    ) -> None:
-        if pattern:
+    def __init__(self, base_configs: KafkaSubscriberBaseConfigs) -> None:
+        if base_configs.pattern:
             reg, pattern = compile_path(
-                pattern,
+                base_configs.pattern,
                 replace_symbol=".*",
                 patch_regex=lambda x: x.replace(r"\*", ".*"),
             )
+            base_configs.pattern = pattern
 
         else:
             reg = None
 
         self.parser = AioKafkaParser(
             msg_class=KafkaMessage
-            if ack_policy is ack_policy.ACK_FIRST
+            if base_configs.ack_policy is base_configs.ack_policy.ACK_FIRST
             else KafkaAckableMessage,
             regex=reg,
         )
-
-        super().__init__(
-            *topics,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            # subscriber args
-            default_parser=self.parser.parse_message,
-            default_decoder=self.parser.decode_message,
-            # Propagated args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_parser = self.parser.parse_message
+        base_configs.default_decoder = self.parser.decode_message
+        super().__init__(base_configs=base_configs)
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."  # nosec B101
@@ -352,59 +298,33 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
 class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
     def __init__(
         self,
-        *topics: str,
+        base_configs: KafkaSubscriberBaseConfigs,
         batch_timeout_ms: int,
         max_records: Optional[int],
-        # Kafka information
-        group_id: Optional[str],
-        listener: Optional["ConsumerRebalanceListener"],
-        pattern: Optional[str],
-        connection_args: "AnyDict",
-        partitions: Iterable["TopicPartition"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence[
-            "BrokerMiddleware[Sequence[tuple[ConsumerRecord, ...]]]"
-        ],
     ) -> None:
         self.batch_timeout_ms = batch_timeout_ms
         self.max_records = max_records
 
-        if pattern:
+        if base_configs.pattern:
             reg, pattern = compile_path(
-                pattern,
+                base_configs.pattern,
                 replace_symbol=".*",
                 patch_regex=lambda x: x.replace(r"\*", ".*"),
             )
+            base_configs.pattern = pattern
 
         else:
             reg = None
 
         self.parser = AioKafkaBatchParser(
             msg_class=KafkaMessage
-            if ack_policy is ack_policy.ACK_FIRST
+            if base_configs.ack_policy is AckPolicy.ACK_FIRST
             else KafkaAckableMessage,
             regex=reg,
         )
-
-        super().__init__(
-            *topics,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            # subscriber args
-            default_parser=self.parser.parse_message,
-            default_decoder=self.parser.decode_message,
-            # Propagated args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_decoder = self.parser.decode_message
+        base_configs.default_parser = self.parser.parse_message
+        super().__init__(base_configs=base_configs)
 
     async def get_msg(
         self, consumer: "AIOKafkaConsumer"
@@ -452,32 +372,11 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
     def __init__(
         self,
-        topic: str,
-        max_workers: int,
-        # Kafka information
-        group_id: Optional[str],
-        listener: Optional["ConsumerRebalanceListener"],
-        pattern: Optional[str],
-        connection_args: "AnyDict",
-        partitions: Iterable["TopicPartition"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
+        base_configs: KafkaSubscriberBaseConfigs,
+        max_workers: int
     ) -> None:
         super().__init__(
-            topic,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            # Subscriber args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
+            base_configs=base_configs
         )
 
         self.max_workers = max_workers

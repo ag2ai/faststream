@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Generic, Optional, TypeVar
 
+from faststream._internal.configs import SpecificationConfigs
 from faststream._internal.proto import EndpointWrapper
 from faststream._internal.types import MsgType
 
@@ -17,14 +18,12 @@ class EndpointSpecification(EndpointWrapper[MsgType], Generic[MsgType, T]):
     def __init__(
         self,
         *args: Any,
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
+        specification_configs: SpecificationConfigs,
         **kwargs: Any,
     ) -> None:
-        self.title_ = title_
-        self.description_ = description_
-        self.include_in_schema = include_in_schema
+        self.title_ = specification_configs.title_
+        self.description_ = specification_configs.description_
+        self.include_in_schema = specification_configs.include_in_schema
 
         # Call next base class parent init
         super().__init__(*args, **kwargs)

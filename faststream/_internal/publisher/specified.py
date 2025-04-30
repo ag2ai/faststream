@@ -1,9 +1,10 @@
 from inspect import Parameter, unwrap
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 from fast_depends.core import build_call_model
 from fast_depends.pydantic._compat import create_model, get_config_base
 
+from faststream._internal.publisher.configs import SpecificationPublisherConfigs
 from faststream._internal.types import (
     MsgType,
     P_HandlerParams,
@@ -23,19 +24,19 @@ if TYPE_CHECKING:
 class SpecificationPublisher(EndpointSpecification[MsgType, PublisherSpec]):
     """A base class for publishers in an asynchronous API."""
 
+    # test
     _state: "Pointer[BrokerState]"  # should be set in next parent
 
     def __init__(
         self,
         *args: Any,
-        schema_: Optional[Any],
+        specification_configs: SpecificationPublisherConfigs,
         **kwargs: Any,
     ) -> None:
         self.calls: list[AnyCallable] = []
-
-        self.schema_ = schema_
-
-        super().__init__(*args, **kwargs)
+        self.schema_ = specification_configs.schema_
+        # Call next base class parent init
+        super().__init__(*args, specification_configs=specification_configs, **kwargs)
 
     def __call__(
         self,

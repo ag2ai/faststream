@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, Union, overload
 
 from aiokafka import ConsumerRecord
@@ -8,6 +8,7 @@ from faststream._internal.publisher.usecase import PublisherUsecase
 from faststream._internal.types import MsgType
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.message import KafkaMessage
+from faststream.kafka.publisher.configs import KafkaPublisherBaseConfigs
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     from aiokafka.structs import RecordMetadata
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
     from faststream.kafka.message import KafkaMessage
     from faststream.kafka.publisher.producer import AioKafkaFastProducer
     from faststream.response.response import PublishCommand
@@ -29,26 +30,13 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
     _producer: "AioKafkaFastProducer"
 
-    def __init__(
-        self,
-        *,
-        topic: str,
-        partition: Optional[int],
-        headers: Optional[dict[str, str]],
-        reply_to: str,
-        # Publisher args
-        broker_middlewares: Sequence["BrokerMiddleware[MsgType]"],
-        middlewares: Sequence["PublisherMiddleware"],
-    ) -> None:
-        super().__init__(
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-        )
+    def __init__(self, *, base_configs: KafkaPublisherBaseConfigs) -> None:
+        super().__init__(publisher_configs=base_configs)
 
-        self.topic = topic
-        self.partition = partition
-        self.reply_to = reply_to
-        self.headers = headers or {}
+        self.topic = base_configs.topic
+        self.partition = base_configs.partition
+        self.reply_to = base_configs.reply_to
+        self.headers = base_configs.headers or {}
 
     def add_prefix(self, prefix: str) -> None:
         self.topic = f"{prefix}{self.topic}"
@@ -134,29 +122,10 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
 
 class DefaultPublisher(LogicPublisher[ConsumerRecord]):
-    def __init__(
-        self,
-        *,
-        key: Union[bytes, str, None],
-        topic: str,
-        partition: Optional[int],
-        headers: Optional[dict[str, str]],
-        reply_to: str,
-        # Publisher args
-        broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-        middlewares: Sequence["PublisherMiddleware"],
-    ) -> None:
-        super().__init__(
-            topic=topic,
-            partition=partition,
-            reply_to=reply_to,
-            headers=headers,
-            # publisher args
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-        )
+    def __init__(self, *, base_configs: KafkaPublisherBaseConfigs) -> None:
+        super().__init__(base_configs=base_configs)
 
-        self.key = key
+        self.key = base_configs.key
 
     @overload
     async def publish(

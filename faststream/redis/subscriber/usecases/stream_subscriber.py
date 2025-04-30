@@ -1,5 +1,5 @@
 import math
-from collections.abc import Awaitable, Iterable, Sequence
+from collections.abc import Awaitable
 from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
@@ -12,31 +12,25 @@ from typing import (
 from redis.exceptions import ResponseError
 from typing_extensions import TypeAlias, override
 
+from faststream._internal.configs import SpecificationConfigs
 from faststream._internal.subscriber.mixins import ConcurrentMixin
 from faststream._internal.subscriber.utils import process_msg
 from faststream.redis.message import (
     BatchStreamMessage,
     DefaultStreamMessage,
     RedisStreamMessage,
-    UnifyRedisDict,
 )
 from faststream.redis.parser import (
     RedisBatchStreamParser,
     RedisStreamParser,
 )
 from faststream.redis.schemas import StreamSub
+from faststream.redis.subscriber.configs import RedisSubscriberBaseConfigs
 
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
-
-    from faststream._internal.types import (
-        AsyncCallable,
-        BrokerMiddleware,
-    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.middlewares import AckPolicy
 
 
 TopicName: TypeAlias = bytes
@@ -45,26 +39,9 @@ Offset: TypeAlias = bytes
 
 class _StreamHandlerMixin(LogicSubscriber):
     def __init__(
-        self,
-        *,
-        stream: StreamSub,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        self, *, stream: StreamSub, base_configs: RedisSubscriberBaseConfigs
     ) -> None:
-        super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        super().__init__(base_configs=base_configs)
 
         self.stream_sub = stream
         self.last_id = stream.last_id
@@ -271,26 +248,12 @@ class _StreamHandlerMixin(LogicSubscriber):
 
 class StreamSubscriber(_StreamHandlerMixin):
     def __init__(
-        self,
-        *,
-        stream: StreamSub,
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        self, *, stream: StreamSub, base_configs: RedisSubscriberBaseConfigs
     ) -> None:
         parser = RedisStreamParser()
-        super().__init__(
-            stream=stream,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        super().__init__(stream=stream, base_configs=base_configs)
 
     async def _get_msgs(
         self,
@@ -330,26 +293,12 @@ class StreamSubscriber(_StreamHandlerMixin):
 
 class StreamBatchSubscriber(_StreamHandlerMixin):
     def __init__(
-        self,
-        *,
-        stream: StreamSub,
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        self, *, stream: StreamSub, base_configs: RedisSubscriberBaseConfigs
     ) -> None:
         parser = RedisBatchStreamParser()
-        super().__init__(
-            stream=stream,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        super().__init__(stream=stream, base_configs=base_configs)
 
     async def _get_msgs(
         self,
@@ -386,30 +335,16 @@ class ConcurrentStreamSubscriber(
     def __init__(
         self,
         *,
+        base_configs: RedisSubscriberBaseConfigs,
+        specification_configs: SpecificationConfigs,
         stream: StreamSub,
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         max_workers: int,
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
     ) -> None:
         super().__init__(
+            base_configs=base_configs,
+            specification_configs=specification_configs,
             stream=stream,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
             max_workers=max_workers,
-            # AsyncAPI
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
     async def start(self) -> None:

@@ -3,7 +3,11 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import TypeAlias
 
+from faststream._internal.publisher.configs import (
+    SpecificationPublisherConfigs,
+)
 from faststream.exceptions import SetupError
+from faststream.redis.publisher.configs import RedisPublisherBaseConfigs
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -45,63 +49,45 @@ def create_publisher(
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)
 
+    base_configs = RedisPublisherBaseConfigs(
+        reply_to=reply_to,
+        headers=headers,
+        broker_middlewares=broker_middlewares,
+        middlewares=middlewares,
+    )
+
+    specification_configs = SpecificationPublisherConfigs(
+        schema_=schema_,
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
+
     if (channel := PubSub.validate(channel)) is not None:
         return SpecificationChannelPublisher(
             channel=channel,
-            # basic args
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            schema_=schema_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if (stream := StreamSub.validate(stream)) is not None:
         return SpecificationStreamPublisher(
             stream=stream,
-            # basic args
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            schema_=schema_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if (list := ListSub.validate(list)) is not None:
         if list.batch:
             return SpecificationListBatchPublisher(
                 list=list,
-                # basic args
-                headers=headers,
-                reply_to=reply_to,
-                broker_middlewares=broker_middlewares,
-                middlewares=middlewares,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                schema_=schema_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         return SpecificationListPublisher(
             list=list,
-            # basic args
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            schema_=schema_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     raise SetupError(INCORRECT_SETUP_MSG)

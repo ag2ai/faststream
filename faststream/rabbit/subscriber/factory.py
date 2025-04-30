@@ -3,8 +3,14 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SpecificationSubscriberConfigs,
+)
 from faststream.exceptions import SetupError
-from faststream.middlewares import AckPolicy
+from faststream.rabbit.schemas.base import RabbitBaseConfigs
+from faststream.rabbit.subscriber.configs import (
+    RabbitSubscriberBaseConfigs,
+)
 from faststream.rabbit.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
@@ -13,6 +19,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware
+    from faststream.middlewares import AckPolicy
     from faststream.rabbit.schemas import (
         Channel,
         RabbitExchange,
@@ -39,26 +46,31 @@ def create_subscriber(
 ) -> SpecificationSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
 
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else AckPolicy.REJECT_ON_ERROR
-
-    consumer_no_ack = ack_policy is AckPolicy.ACK_FIRST
-    if consumer_no_ack:
-        ack_policy = AckPolicy.DO_NOTHING
-
-    return SpecificationSubscriber(
-        queue=queue,
-        exchange=exchange,
-        consume_args=consume_args,
+    base_configs = RabbitSubscriberBaseConfigs(
         ack_policy=ack_policy,
-        no_ack=consumer_no_ack,
-        channel=channel,
         no_reply=no_reply,
         broker_dependencies=broker_dependencies,
         broker_middlewares=broker_middlewares,
+        default_decoder=EMPTY,
+        default_parser=EMPTY,
+        consume_args=consume_args,
+        queue=queue,
+        channel=channel,
+        exchange=exchange
+    )
+
+    specification_configs = SpecificationSubscriberConfigs(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
+    )
+
+    rmq_base_configs = RabbitBaseConfigs(queue=queue, exchange=exchange)
+
+    return SpecificationSubscriber(
+        base_configs=base_configs,
+        specification_configs=specification_configs,
+        rmq_base_configs=rmq_base_configs,
     )
 
 

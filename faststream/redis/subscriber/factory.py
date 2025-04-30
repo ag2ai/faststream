@@ -5,10 +5,14 @@ from typing import TYPE_CHECKING, Optional, Union
 from typing_extensions import TypeAlias
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SpecificationSubscriberConfigs,
+)
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
+from faststream.redis.subscriber.configs import RedisSubscriberBaseConfigs
 from faststream.redis.subscriber.specified import (
     SpecificationChannelConcurrentSubscriber,
     SpecificationChannelSubscriber,
@@ -64,112 +68,74 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else AckPolicy.REJECT_ON_ERROR
+    base_configs = RedisSubscriberBaseConfigs(
+        no_reply=no_reply,
+        broker_dependencies=broker_dependencies,
+        broker_middlewares=broker_middlewares,
+        ack_policy=ack_policy,
+        default_parser=EMPTY,
+        default_decoder=EMPTY,
+        no_ack=no_ack,
+    )
+
+    specification_configs = SpecificationSubscriberConfigs(
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
 
     if (channel_sub := PubSub.validate(channel)) is not None:
         if max_workers > 1:
             return SpecificationChannelConcurrentSubscriber(
                 channel=channel_sub,
-                # basic args
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
                 max_workers=max_workers,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         return SpecificationChannelSubscriber(
             channel=channel_sub,
-            # basic args
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if (stream_sub := StreamSub.validate(stream)) is not None:
         if stream_sub.batch:
             return SpecificationStreamBatchSubscriber(
                 stream=stream_sub,
-                # basic args
-                ack_policy=ack_policy,
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         if max_workers > 1:
             return SpecificationStreamConcurrentSubscriber(
                 stream=stream_sub,
-                # basic args
-                ack_policy=ack_policy,
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
                 max_workers=max_workers,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         return SpecificationStreamSubscriber(
             stream=stream_sub,
-            # basic args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if (list_sub := ListSub.validate(list)) is not None:
         if list_sub.batch:
             return SpecificationListBatchSubscriber(
                 list=list_sub,
-                # basic args
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         if max_workers > 1:
             return SpecificationListConcurrentSubscriber(
                 list=list_sub,
-                # basic args
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
                 max_workers=max_workers,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
         return SpecificationListSubscriber(
             list=list_sub,
-            # basic args
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     raise SetupError(INCORRECT_SETUP_MSG)

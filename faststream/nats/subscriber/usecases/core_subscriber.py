@@ -12,17 +12,14 @@ from faststream._internal.subscriber.mixins import ConcurrentMixin
 from faststream._internal.subscriber.utils import process_msg
 from faststream.middlewares import AckPolicy
 from faststream.nats.parser import NatsParser
+from faststream.nats.subscriber.configs import NatsSubscriberBaseConfigs
 
 from .basic import DefaultSubscriber
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from nats.aio.msg import Msg
     from nats.aio.subscription import Subscription
-    from nats.js.api import ConsumerConfig
 
-    from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
 
@@ -35,36 +32,18 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         self,
         *,
         # default args
-        subject: str,
-        config: "ConsumerConfig",
         queue: str,
-        extra_options: Optional["AnyDict"],
-        ack_policy: AckPolicy,
-        # Subscriber args
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Iterable["BrokerMiddleware[Msg]"],
+        base_configs: NatsSubscriberBaseConfigs,
     ) -> None:
         parser_ = NatsParser(
-            pattern=subject,
-            is_ack_disabled=ack_policy is not AckPolicy.DO_NOTHING,
+            pattern=base_configs.subject,
+            is_ack_disabled=base_configs.ack_policy is not AckPolicy.DO_NOTHING,
         )
 
         self.queue = queue
-
-        super().__init__(
-            subject=subject,
-            config=config,
-            extra_options=extra_options,
-            # subscriber args
-            default_parser=parser_.parse_message,
-            default_decoder=parser_.decode_message,
-            # Propagated args
-            ack_policy=AckPolicy.DO_NOTHING,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_parser = parser_.parse_message
+        base_configs.default_decoder = parser_.decode_message
+        super().__init__(base_configs=base_configs)
 
     @override
     async def get_one(

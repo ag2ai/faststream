@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
@@ -16,21 +16,18 @@ from faststream.redis.message import (
     UnifyRedisDict,
 )
 from faststream.redis.publisher.fake import RedisFakePublisher
+from faststream.redis.subscriber.configs import RedisSubscriberBaseConfigs
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from redis.asyncio.client import Redis
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.publisher.proto import BasePublisherProto
     from faststream._internal.state import BrokerState, Pointer
     from faststream._internal.types import (
-        AsyncCallable,
-        BrokerMiddleware,
         CustomCallable,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.middlewares import AckPolicy
 
 
 TopicName: TypeAlias = bytes
@@ -42,26 +39,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     _client: Optional["Redis[bytes]"]
 
-    def __init__(
-        self,
-        *,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
-    ) -> None:
-        super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+    def __init__(self, *, base_configs: RedisSubscriberBaseConfigs) -> None:
+        super().__init__(configs=base_configs)
 
         self._client = None
 
@@ -160,37 +139,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
 class ConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], LogicSubscriber):
     def __init__(
-        self,
-        *,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
-        # Subscriber args
-        max_workers: int,
-        no_ack: bool,
-        no_reply: bool,
-        retry: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
+        self, *, base_configs: RedisSubscriberBaseConfigs, max_workers: int
     ) -> None:
-        super().__init__(
-            max_workers=max_workers,
-            default_parser=default_parser,
-            default_decoder=default_decoder,
-            # Propagated options
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
+        super().__init__(max_workers=max_workers, base_configs=base_configs)
 
         self._client = None
 

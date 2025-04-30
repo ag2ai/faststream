@@ -13,8 +13,12 @@ from nats.js.client import (
 )
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.subscriber.configs import (
+    SpecificationSubscriberConfigs,
+)
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.nats.subscriber.configs import NatsSubscriberBaseConfigs
 from faststream.nats.subscriber.specified import (
     SpecificationBatchPullStreamSubscriber,
     SpecificationConcurrentCoreSubscriber,
@@ -105,15 +109,6 @@ def create_subscriber(
         stream=stream,
     )
 
-    if ack_first is not EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST if ack_first else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        no_ack = AckPolicy.DO_NOTHING if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.REJECT_ON_ERROR
-
     config = config or ConsumerConfig(filter_subjects=[])
     if config.durable_name is None:
         config.durable_name = durable
@@ -167,105 +162,69 @@ def create_subscriber(
             "max_msgs": max_msgs,
         }
 
+    base_configs = NatsSubscriberBaseConfigs(
+        subject=subject,
+        config=config,
+        extra_options=extra_options,
+        ack_policy=ack_policy,
+        no_reply=no_reply,
+        broker_dependencies=broker_dependencies,
+        broker_middlewares=broker_middlewares,
+        default_decoder=EMPTY,
+        default_parser=EMPTY,
+        ack_first=ack_first,
+        no_ack=no_ack,
+    )
+
+    specification_configs = SpecificationSubscriberConfigs(
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
+
     if obj_watch is not None:
         return SpecificationObjStoreWatchSubscriber(
-            subject=subject,
-            config=config,
             obj_watch=obj_watch,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if kv_watch is not None:
         return SpecificationKeyValueWatchSubscriber(
-            subject=subject,
-            config=config,
             kv_watch=kv_watch,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if stream is None:
         if max_workers > 1:
             return SpecificationConcurrentCoreSubscriber(
                 max_workers=max_workers,
-                subject=subject,
-                config=config,
                 queue=queue,
-                # basic args
-                extra_options=extra_options,
-                # Subscriber args
-                no_reply=no_reply,
-                ack_policy=ack_policy,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # Specification
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
 
         return SpecificationCoreSubscriber(
-            subject=subject,
-            config=config,
             queue=queue,
-            # basic args
-            extra_options=extra_options,
-            # Subscriber args
-            no_reply=no_reply,
-            ack_policy=ack_policy,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # Specification
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if max_workers > 1:
         if pull_sub is not None:
             return SpecificationConcurrentPullStreamSubscriber(
+                queue=queue,
                 max_workers=max_workers,
                 pull_sub=pull_sub,
-                stream=stream,
-                subject=subject,
-                config=config,
-                # basic args
-                extra_options=extra_options,
-                # Subscriber args
-                ack_policy=ack_policy,
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # Specification
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
 
         return SpecificationConcurrentPushStreamSubscriber(
             max_workers=max_workers,
-            stream=stream,
-            subject=subject,
-            config=config,
-            queue=queue,
-            # basic args
-            extra_options=extra_options,
-            # Subscriber args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # Specification
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     if pull_sub is not None:
@@ -273,55 +232,23 @@ def create_subscriber(
             return SpecificationBatchPullStreamSubscriber(
                 pull_sub=pull_sub,
                 stream=stream,
-                subject=subject,
-                config=config,
-                # basic args
-                extra_options=extra_options,
-                # Subscriber args
-                ack_policy=ack_policy,
-                no_reply=no_reply,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # Specification
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                base_configs=base_configs,
+                specification_configs=specification_configs,
             )
 
         return SpecificationPullStreamSubscriber(
+            queue=queue,
             pull_sub=pull_sub,
             stream=stream,
-            subject=subject,
-            config=config,
-            # basic args
-            extra_options=extra_options,
-            # Subscriber args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            # Specification
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            base_configs=base_configs,
+            specification_configs=specification_configs,
         )
 
     return SpecificationPushStreamSubscriber(
-        stream=stream,
-        subject=subject,
         queue=queue,
-        config=config,
-        # basic args
-        extra_options=extra_options,
-        # Subscriber args
-        ack_policy=ack_policy,
-        no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        # Specification information
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
+        stream=stream,
+        base_configs=base_configs,
+        specification_configs=specification_configs,
     )
 
 
@@ -408,10 +335,6 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.REJECT_ON_ERROR
 
-    if not subject and not config:
-        msg = "You must provide either the `subject` or `config` option."
-        raise SetupError(msg)
-
     if stream and kv_watch:
         msg = "You can't use both the `stream` and `kv_watch` options simultaneously."
         raise SetupError(msg)
@@ -428,6 +351,10 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
 
     if pull_sub and not stream:
         msg = "JetStream Pull Subscriber can only be used with the `stream` option."
+        raise SetupError(msg)
+
+    if not subject and not config:
+        msg = "You must provide either the `subject` or `config` option."
         raise SetupError(msg)
 
     if not stream:

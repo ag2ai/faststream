@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from copy import deepcopy
 from typing import TYPE_CHECKING, Annotated, Optional, Union
 
@@ -8,6 +8,7 @@ from typing_extensions import Doc, Unpack, override
 from faststream._internal.publisher.usecase import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
 from faststream.message import gen_cor_id
+from faststream.rabbit.publisher.configs import RabbitPublisherBaseConfigs
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     import aiormq
 
     from faststream._internal.state import BrokerState
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.types import AioPikaSendableMessage
@@ -51,33 +52,27 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
     def __init__(
         self,
         *,
-        routing_key: str,
-        queue: "RabbitQueue",
-        exchange: "RabbitExchange",
-        # PublishCommand options
-        message_kwargs: "PublishKwargs",
-        # Publisher args
-        broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
-        middlewares: Sequence["PublisherMiddleware"],
+        base_configs: RabbitPublisherBaseConfigs,
     ) -> None:
-        self.queue = queue
-        self.routing_key = routing_key
+        self.queue = base_configs.queue
+        self.routing_key = base_configs.routing_key
 
-        self.exchange = exchange
+        self.exchange = base_configs.exchange
 
-        super().__init__(
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
+        super().__init__(publisher_configs=base_configs)
+
+        self.headers = base_configs.message_kwargs.pop("headers") or {}
+        self.reply_to: str = base_configs.message_kwargs.pop("reply_to", None) or ""
+        self.timeout = base_configs.message_kwargs.pop("timeout", None)
+
+        message_options, _ = filter_by_dict(
+            MessageOptions, dict(base_configs.message_kwargs)
         )
-
-        self.headers = message_kwargs.pop("headers") or {}
-        self.reply_to: str = message_kwargs.pop("reply_to", None) or ""
-        self.timeout = message_kwargs.pop("timeout", None)
-
-        message_options, _ = filter_by_dict(MessageOptions, dict(message_kwargs))
         self.message_options = message_options
 
-        publish_options, _ = filter_by_dict(PublishOptions, dict(message_kwargs))
+        publish_options, _ = filter_by_dict(
+            PublishOptions, dict(base_configs.message_kwargs)
+        )
         self.publish_options = publish_options
 
         self.app_id = None

@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
@@ -17,24 +17,18 @@ from faststream._internal.subscriber.utils import process_msg
 from faststream.nats.parser import (
     BatchParser,
 )
+from faststream.nats.subscriber.configs import NatsSubscriberBaseConfigs
 
 from .basic import DefaultSubscriber
 from .stream_basic import StreamSubscriber
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
-    from nats.js.api import ConsumerConfig
 
     from faststream._internal.basic_types import (
-        AnyDict,
         SendableMessage,
     )
-    from faststream._internal.types import (
-        BrokerMiddleware,
-    )
-    from faststream.middlewares import AckPolicy
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream, PullSub
 
@@ -48,32 +42,18 @@ class PullStreamSubscriber(
     def __init__(
         self,
         *,
+        queue: str,
         pull_sub: "PullSub",
         stream: "JStream",
-        # default args
-        subject: str,
-        config: "ConsumerConfig",
-        extra_options: Optional["AnyDict"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Iterable["BrokerMiddleware[Msg]"],
+        base_configs: NatsSubscriberBaseConfigs,
     ) -> None:
         self.pull_sub = pull_sub
 
         super().__init__(
             # basic args
+            queue=queue,
             stream=stream,
-            subject=subject,
-            config=config,
-            extra_options=extra_options,
-            queue="",
-            # Propagated args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
+            base_configs=base_configs,
         )
 
     @override
@@ -139,36 +119,17 @@ class BatchPullStreamSubscriber(
     def __init__(
         self,
         *,
-        # default args
-        subject: str,
-        config: "ConsumerConfig",
         stream: "JStream",
         pull_sub: "PullSub",
-        extra_options: Optional["AnyDict"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Iterable["BrokerMiddleware[list[Msg]]"],
+        base_configs: NatsSubscriberBaseConfigs,
     ) -> None:
-        parser = BatchParser(pattern=subject)
+        parser = BatchParser(pattern=base_configs.subject)
 
         self.stream = stream
         self.pull_sub = pull_sub
-
-        super().__init__(
-            subject=subject,
-            config=config,
-            extra_options=extra_options,
-            # subscriber args
-            default_parser=parser.parse_batch,
-            default_decoder=parser.decode_batch,
-            # Propagated args
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        base_configs.default_decoder = parser.decode_batch
+        base_configs.default_parser = parser.parse_batch
+        super().__init__(base_configs=base_configs)
 
     @override
     async def get_one(

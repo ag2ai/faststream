@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Iterable, Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -11,22 +11,22 @@ from faststream._internal.subscriber.utils import process_msg
 from faststream.exceptions import SetupError
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
+from faststream.rabbit.subscriber.configs import (
+    RabbitSubscriberBaseConfigs,
+)
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
-    from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.publisher.proto import BasePublisherProto
     from faststream._internal.state import BrokerState
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream._internal.types import CustomCallable
     from faststream.message import StreamMessage
-    from faststream.middlewares import AckPolicy
     from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.schemas import (
-        Channel,
         RabbitExchange,
         RabbitQueue,
     )
@@ -45,38 +45,23 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
     def __init__(
         self,
         *,
-        queue: "RabbitQueue",
-        exchange: "RabbitExchange",
-        channel: Optional["Channel"],
-        consume_args: Optional["AnyDict"],
-        # Subscriber args
-        ack_policy: "AckPolicy",
-        no_reply: bool,
-        no_ack: bool,
-        broker_dependencies: Iterable["Dependant"],
-        broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
+        base_configs: RabbitSubscriberBaseConfigs,
     ) -> None:
-        self.queue = queue
-        self.exchange = exchange
+        self.queue = base_configs.queue
+        self.exchange = base_configs.exchange
 
-        parser = AioPikaParser(pattern=queue.path_regex)
+        parser = AioPikaParser(pattern=base_configs.queue.path_regex)
+        base_configs.default_decoder = parser.decode_message
+        base_configs.default_parser = parser.parse_message
+        super().__init__(configs=base_configs)
 
-        super().__init__(
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
-            # Propagated options
-            ack_policy=ack_policy,
-            no_reply=no_reply,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-        )
+        self.consume_args = base_configs.consume_args or {}
 
-        self.consume_args = consume_args or {}
-        self.__no_ack = no_ack
+        self.__no_ack = base_configs.no_ack
 
         self._consumer_tag = None
         self._queue_obj = None
-        self.channel = channel
+        self.channel = base_configs.channel
 
         # Setup it later
         self.declarer = None

@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Optional, Union
 
 from nats.aio.msg import Msg
@@ -6,15 +6,16 @@ from typing_extensions import overload, override
 
 from faststream._internal.publisher.usecase import PublisherUsecase
 from faststream.message import gen_cor_id
+from faststream.nats.publisher.configs import NatsPublisherBaseConfigs
 from faststream.nats.response import NatsPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.producer import NatsFastProducer, NatsJSFastProducer
-    from faststream.nats.schemas import JStream, PubAck
+    from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
 
 
@@ -23,29 +24,15 @@ class LogicPublisher(PublisherUsecase[Msg]):
 
     _producer: Union["NatsFastProducer", "NatsJSFastProducer"]
 
-    def __init__(
-        self,
-        *,
-        subject: str,
-        reply_to: str,
-        headers: Optional[dict[str, str]],
-        stream: Optional["JStream"],
-        timeout: Optional[float],
-        # Publisher args
-        broker_middlewares: Iterable["BrokerMiddleware[Msg]"],
-        middlewares: Sequence["PublisherMiddleware"],
-    ) -> None:
+    def __init__(self, *, base_configs: NatsPublisherBaseConfigs) -> None:
         """Initialize NATS publisher object."""
-        super().__init__(
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-        )
+        super().__init__(publisher_configs=base_configs)
 
-        self.subject = subject
-        self.stream = stream
-        self.timeout = timeout
-        self.headers = headers or {}
-        self.reply_to = reply_to
+        self.subject = base_configs.subject
+        self.stream = base_configs.stream
+        self.timeout = base_configs.timeout
+        self.headers = base_configs.headers or {}
+        self.reply_to = base_configs.reply_to
 
     @overload
     async def publish(

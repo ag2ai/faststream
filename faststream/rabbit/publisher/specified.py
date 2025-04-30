@@ -1,30 +1,26 @@
-from collections.abc import Iterable
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-)
-
+from faststream._internal.configs import SpecificationConfigs
 from faststream._internal.publisher.specified import (
     SpecificationPublisher as SpecificationPublisherMixin,
 )
+from faststream.rabbit.publisher.configs import (
+    RabbitPublisherBaseConfigs,
+)
+from faststream.rabbit.schemas.base import RabbitBaseConfigs
 from faststream.rabbit.schemas.proto import BaseRMQInformation as RMQSpecificationMixin
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
-from faststream.specification.schema import Message, Operation, PublisherSpec
+from faststream.specification.schema import (
+    Message,
+    Operation,
+    PublisherSpec,
+)
 from faststream.specification.schema.bindings import (
     ChannelBinding,
     OperationBinding,
     amqp,
 )
 
-from .usecase import LogicPublisher, PublishKwargs
-
-if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
-
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+from .usecase import LogicPublisher
 
 
 class SpecificationPublisher(
@@ -37,39 +33,17 @@ class SpecificationPublisher(
     def __init__(
         self,
         *,
-        routing_key: str,
-        queue: "RabbitQueue",
-        exchange: "RabbitExchange",
-        # PublishCommand options
-        message_kwargs: "PublishKwargs",
-        # Publisher args
-        broker_middlewares: Iterable["BrokerMiddleware[IncomingMessage]"],
-        middlewares: Iterable["PublisherMiddleware"],
-        # AsyncAPI args
-        schema_: Optional[Any],
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
+        base_configs: RabbitPublisherBaseConfigs,
+        rmq_base_configs: RabbitBaseConfigs,
+        specification_configs: SpecificationConfigs,
     ) -> None:
         super().__init__(
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-            schema_=schema_,
+            specification_configs=specification_configs,
             # propagate to RMQSpecificationMixin
-            queue=queue,
-            exchange=exchange,
+            rmq_base_configs=rmq_base_configs,
         )
 
-        LogicPublisher.__init__(
-            self,
-            queue=queue,
-            exchange=exchange,
-            routing_key=routing_key,
-            message_kwargs=message_kwargs,
-            middlewares=middlewares,
-            broker_middlewares=broker_middlewares,
-        )
+        LogicPublisher.__init__(self, base_configs=base_configs)
 
     def get_default_name(self) -> str:
         routing = (
