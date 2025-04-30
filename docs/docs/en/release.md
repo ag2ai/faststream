@@ -12,51 +12,6 @@ hide:
 ---
 
 # Release Notes
-## 0.5.39
-
-### What's Changed
-* feat: type client args by [@pepellsd](https://github.com/pepellsd){.external-link target="_blank"} in [#2165](https://github.com/ag2ai/faststream/pull/2165){.external-link target="_blank"}
-* docs: Added filtering technical information by [@0xWEBMILK](https://github.com/0xWEBMILK){.external-link target="_blank"} in [#2161](https://github.com/ag2ai/faststream/pull/2161){.external-link target="_blank"}
-* docs: access the msg attribute of BaseMiddleware by @geth-network in [#2166](https://github.com/ag2ai/faststream/pull/2166){.external-link target="_blank"}
-* docs: improve otel docs by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#2167](https://github.com/ag2ai/faststream/pull/2167){.external-link target="_blank"}
-* [FS-2158] Explicit error in case of mixed up fastapi.Depends and faststream.Depends by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2160](https://github.com/ag2ai/faststream/pull/2160){.external-link target="_blank"}
-* feat: raise exception at wrong router including by [@bshelkhonov](https://github.com/bshelkhonov){.external-link target="_blank"} in [#2172](https://github.com/ag2ai/faststream/pull/2172){.external-link target="_blank"}
-* feat: extend asyncapi view for multiply subscribers by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2174](https://github.com/ag2ai/faststream/pull/2174){.external-link target="_blank"}
-* feat: add autoflush on kafka producer by [@mdaffad](https://github.com/mdaffad){.external-link target="_blank"} in [#2170](https://github.com/ag2ai/faststream/pull/2170){.external-link target="_blank"}
-* feat: add RabbitMQ Channel object by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2171](https://github.com/ag2ai/faststream/pull/2171){.external-link target="_blank"}
-
-### New Contributors
-* @geth-network made their first contribution in [#2166](https://github.com/ag2ai/faststream/pull/2166){.external-link target="_blank"}
-* [@mdaffad](https://github.com/mdaffad){.external-link target="_blank"} made their first contribution in [#2170](https://github.com/ag2ai/faststream/pull/2170){.external-link target="_blank"}
-
-**Full Changelog**: [#0.5.38...v0.5.39](https://github.com/ag2ai/faststream/compare/0.5.38...v0.5.39){.external-link target="_blank"}
-
-## 0.5.38
-
-### What's Changed
-
-* Update Release Notes for 0.5.37 by @airt-release-notes-updater in [#2140](https://github.com/ag2ai/faststream/pull/2140){.external-link target="_blank"}
-* chore(deps): bump the pip group with 6 updates by [@dependabot](https://github.com/dependabot){.external-link target="_blank"} in [#2144](https://github.com/ag2ai/faststream/pull/2144){.external-link target="_blank"}
-* fix: pydantic211 compat by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2150](https://github.com/ag2ai/faststream/pull/2150){.external-link target="_blank"}
-* Tweak RabbitMQ queue argument lists by @Arseniy-Popov in [#2148](https://github.com/ag2ai/faststream/pull/2148){.external-link target="_blank"}
-* fix: prevent duplicate logging handler registration when calling broker.start() by [@banksemi](https://github.com/banksemi){.external-link target="_blank"} in [#2153](https://github.com/ag2ai/faststream/pull/2153){.external-link target="_blank"}
-* chore(deps): bump the pip group with 5 updates by [@dependabot](https://github.com/dependabot){.external-link target="_blank"} in [#2154](https://github.com/ag2ai/faststream/pull/2154){.external-link target="_blank"}
-* Move to ag2ai organization by [@davorrunje](https://github.com/davorrunje){.external-link target="_blank"} in [#2156](https://github.com/ag2ai/faststream/pull/2156){.external-link target="_blank"}
-
-### New Contributors
-* [@banksemi](https://github.com/banksemi){.external-link target="_blank"} made their first contribution in [#2153](https://github.com/ag2ai/faststream/pull/2153){.external-link target="_blank"}
-
-**Full Changelog**: [#0.5.37...0.5.38](https://github.com/ag2ai/faststream/compare/0.5.37...0.5.38){.external-link target="_blank"}
-
-## 0.5.37
-
-### What's Changed
-
-* fix: correct Confluent options name mapping by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2137](https://github.com/airtai/faststream/pull/2137){.external-link target="_blank"}
-* fix: correct call_decorators wrapping order by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2138](https://github.com/airtai/faststream/pull/2138){.external-link target="_blank"}
-
-**Full Changelog**: [#0.5.36...0.5.37](https://github.com/airtai/faststream/compare/0.5.36...0.5.37){.external-link target="_blank"}
-
 ## 0.5.36
 
 ### What's Changed
@@ -72,7 +27,7 @@ hide:
 * docs: added pros and cons to publishers page by [@0xWEBMILK](https://github.com/0xWEBMILK){.external-link target="_blank"} in [#2103](https://github.com/airtai/faststream/pull/2103){.external-link target="_blank"}
 * docs: follow off logging recommendations by [@guitvcer](https://github.com/guitvcer){.external-link target="_blank"} in [#2127](https://github.com/airtai/faststream/pull/2127){.external-link target="_blank"}
 * docs: add example for probes by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2108](https://github.com/airtai/faststream/pull/2108){.external-link target="_blank"}
-* docs: fix footer after gurubase intagration by [@Rusich90](https://github.com/Rusich90){.external-link target="_blank"} in [#2120](https://github.com/airtai/faststream/pull/2120){.external-link target="_blank"}
+* docs: fix footer after gurubase integration by [@Rusich90](https://github.com/Rusich90){.external-link target="_blank"} in [#2120](https://github.com/airtai/faststream/pull/2120){.external-link target="_blank"}
 * docs: Toggle Gurubase widget theme by [@bshelkhonov](https://github.com/bshelkhonov){.external-link target="_blank"} in [#2117](https://github.com/airtai/faststream/pull/2117){.external-link target="_blank"}
 * docs(#2109): Inlines the include files directly into the location where it is used(faststream.md, scheduling.md) by [@MaestroXXXVIII](https://github.com/MaestroXXXVIII){.external-link target="_blank"} in [#2113](https://github.com/airtai/faststream/pull/2113){.external-link target="_blank"}
 * docs(#2109): "getting-started/subscription" section has been updated by [@MaximGit1](https://github.com/MaximGit1){.external-link target="_blank"} in [#2114](https://github.com/airtai/faststream/pull/2114){.external-link target="_blank"}
