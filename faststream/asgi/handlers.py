@@ -13,7 +13,9 @@ def get(func: "UserApp", *, include_in_schema: bool = True) -> "ASGIApp": ...
 
 @overload
 def get(
-    func: Optional["UserApp"] = None, *, include_in_schema: bool = True
+    func: None = None,
+    *,
+    include_in_schema: bool = True
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
@@ -50,8 +52,7 @@ def get(
         await response(scope, receive, send)
         return
 
-    asgi_wrapper.include_in_schema = include_in_schema
-
+    setattr(asgi_wrapper, "include_in_schema", include_in_schema)
     return asgi_wrapper
 
 
