@@ -117,7 +117,7 @@ def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
     m: DecodedMessage = body
 
     if (content_type := getattr(message, "content_type", EMPTY)) is not EMPTY:
-        content_type = cast(Optional[str], content_type)
+        content_type = cast("Optional[str]", content_type)
 
         if not content_type:
             with suppress(json.JSONDecodeError, UnicodeDecodeError):

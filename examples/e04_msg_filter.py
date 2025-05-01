@@ -8,12 +8,12 @@ app = FastStream(broker)
 
 @broker.subscriber("test-queue", filter=lambda m: m.content_type == "application/json")
 async def handle_json(msg, logger: Logger):
-    logger.info(f"JSON message: {msg}")
+    logger.info("JSON message: %s", msg)
 
 
 @broker.subscriber("test-queue")
 async def handle_other_messages(msg, logger: Logger):
-    logger.info(f"Default message: {msg}")
+    logger.info("Default message: %s", msg)
 
 
 @app.after_startup

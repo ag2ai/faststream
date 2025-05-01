@@ -5,17 +5,17 @@
 ---
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/3043" target="_blank"><img src="https://trendshift.io/api/badge/repositories/3043" alt="airtai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/3043" target="_blank"><img src="https://trendshift.io/api/badge/repositories/3043" alt="ag2ai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
   <br/>
   <br/>
 
-  <a href="https://github.com/airtai/faststream/actions/workflows/pr_tests.yaml" target="_blank">
-    <img src="https://github.com/airtai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="Test Passing"/>
+  <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml" target="_blank">
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="Test Passing"/>
   </a>
 
-  <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/airtai/faststream" target="_blank">
-      <img src="https://coverage-badge.samuelcolvin.workers.dev/airtai/faststream.svg" alt="Coverage"/>
+  <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream" target="_blank">
+      <img src="https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg" alt="Coverage"/>
   </a>
 
   <a href="https://www.pepy.tech/projects/faststream" target="_blank">
@@ -32,19 +32,19 @@
 
   <br/>
 
-  <a href="https://github.com/airtai/faststream/actions/workflows/pr_codeql.yaml" target="_blank">
-    <img src="https://github.com/airtai/faststream/actions/workflows/pr_codeql.yaml/badge.svg" alt="CodeQL"/>
+  <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml" target="_blank">
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml/badge.svg" alt="CodeQL"/>
   </a>
 
-  <a href="https://github.com/airtai/faststream/actions/workflows/pr_dependency-review.yaml" target="_blank">
-    <img src="https://github.com/airtai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg" alt="Dependency Review"/>
+  <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml" target="_blank">
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg" alt="Dependency Review"/>
   </a>
 
-  <a href="https://github.com/airtai/faststream/blob/main/LICENSE" target="_blank">
-    <img src="https://img.shields.io/github/license/airtai/faststream.png" alt="License"/>
+  <a href="https://github.com/ag2ai/faststream/blob/main/LICENSE" target="_blank">
+    <img src="https://img.shields.io/github/license/ag2ai/faststream.png" alt="License"/>
   </a>
 
-  <a href="https://github.com/airtai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
+  <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
     <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct"/>
   </a>
 
@@ -54,7 +54,7 @@
       <img alt="Discord" src="https://img.shields.io/discord/1085457301214855171?logo=discord&label=EN"/>
   </a>
 
-  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fairtai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
 
   <a href="https://t.me/python_faststream" target="_blank">
     <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram&label=RU"/>
@@ -261,7 +261,7 @@ You can learn more about **CLI** features [here](https://faststream.airt.ai/late
 
 The availability of such documentation significantly simplifies the integration of services: you can immediately see what channels and message formats the application works with. And most importantly, it won't cost anything - **FastStream** has already created the docs for you!
 
-![HTML-page](https://github.com/airtai/faststream/blob/main/docs/docs/assets/img/AsyncAPI-basic-html-short.png?raw=true)
+![HTML-page](https://github.com/ag2ai/faststream/blob/main/docs/docs/assets/img/AsyncAPI-basic-html-short.png?raw=true)
 
 ---
 
@@ -355,7 +355,7 @@ More integration features can be found [here](https://faststream.airt.ai/latest/
 
 Please show your support and stay in touch by:
 
-- giving our [GitHub repository](https://github.com/airtai/faststream/) a star, and
+- giving our [GitHub repository](https://github.com/ag2ai/faststream/) a star, and
 
 - joining our [EN Discord server](https://discord.gg/qFm6aSqq59)
 
@@ -371,6 +371,6 @@ support!
 
 Thanks to all of these amazing people who made the project better!
 
-<a href="https://github.com/airtai/faststream/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=airtai/faststream"/>
+<a href="https://github.com/ag2ai/faststream/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ag2ai/faststream"/>
 </a>

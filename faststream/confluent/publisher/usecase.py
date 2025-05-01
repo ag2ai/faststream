@@ -130,6 +130,10 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
         raise AssertionError("unreachable")
 
+    async def flush(self) -> None:
+        assert self._producer, NOT_CONNECTED_YET  # nosec B101
+        await self._producer.flush()
+
 
 class DefaultPublisher(LogicPublisher[Message]):
     def __init__(
@@ -259,7 +263,7 @@ class BatchPublisher(LogicPublisher[Tuple[Message, ...]]):
         if extra_messages:
             msgs = (cast("SendableMessage", message), *extra_messages)
         else:
-            msgs = cast(Iterable["SendableMessage"], message)
+            msgs = cast("Iterable[SendableMessage]", message)
 
         kwargs: AnyDict = {
             "topic": topic or self.topic,

@@ -5,6 +5,7 @@ from typing_extensions import Annotated, Doc, deprecated, override
 
 from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
+from faststream.exceptions import SetupError
 from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
@@ -212,7 +213,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         stream = self._stream_builder.create(stream)
 
         subscriber = cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 create_subscriber(
                     subject=subject,
@@ -328,7 +329,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         stream = self._stream_builder.create(stream)
 
         publisher = cast(
-            AsyncAPIPublisher,
+            "AsyncAPIPublisher",
             super().publisher(
                 publisher=AsyncAPIPublisher.create(
                     subject=subject,
@@ -356,15 +357,22 @@ class NatsRegistrator(ABCBroker["Msg"]):
         return publisher
 
     @override
-    def include_router(  # type: ignore[override]
+    def include_router(
         self,
-        router: "NatsRegistrator",
+        router: "NatsRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
         dependencies: Iterable["Depends"] = (),
-        middlewares: Sequence["BrokerMiddleware[Msg]"] = (),
+        middlewares: Iterable["BrokerMiddleware[Msg]"] = (),
         include_in_schema: Optional[bool] = None,
     ) -> None:
+        if not isinstance(router, NatsRegistrator):
+            msg = (
+                f"Router must be an instance of NatsRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
         sub_streams = router._stream_builder.objects.copy()
 
         sub_router_subjects = [sub.subject for sub in router._subscribers.values()]

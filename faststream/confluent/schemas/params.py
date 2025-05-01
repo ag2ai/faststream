@@ -2,19 +2,23 @@ from typing import List, Literal, Union
 
 from typing_extensions import Required, TypedDict
 
-
-class SecurityOptions(TypedDict, total=False):
-    sasl_mechanism: Required[
-        Literal[
-            "PLAIN",
-            "GSSAPI",
-            "SCRAM-SHA-256",
-            "SCRAM-SHA-512",
-            "OAUTHBEARER",
-        ]
-    ]
-    sasl_plain_password: str
-    sasl_plain_username: str
+SecurityOptions = TypedDict(
+    "SecurityOptions",
+    {
+        "sasl.mechanism": Required[
+            Literal[
+                "PLAIN",
+                "GSSAPI",
+                "SCRAM-SHA-256",
+                "SCRAM-SHA-512",
+                "OAUTHBEARER",
+            ]
+        ],
+        "sasl.password": str,
+        "sasl.username": str,
+    },
+    total=False,
+)
 
 
 class ConsumerConnectionParams(TypedDict, total=False):

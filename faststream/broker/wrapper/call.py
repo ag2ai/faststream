@@ -9,6 +9,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Reversible,
     Sequence,
     Union,
 )
@@ -152,10 +153,10 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
         is_validate: bool,
         dependencies: Iterable["Depends"],
         _get_dependant: Optional[Callable[..., Any]],
-        _call_decorators: Iterable["Decorator"],
+        _call_decorators: Reversible["Decorator"],
     ) -> Optional["CallModel[..., Any]"]:
         call = self._original_call
-        for decor in _call_decorators:
+        for decor in reversed(_call_decorators):
             call = decor(call)
         self._original_call = call
 

@@ -22,7 +22,7 @@ class BaseNatsMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
         self,
         kwargs: "AnyDict",
     ) -> str:
-        return cast(str, kwargs["subject"])
+        return cast("str", kwargs["subject"])
 
 
 class NatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider["Msg"]):

@@ -16,7 +16,30 @@ Let's start with an example from [hooks page](./hooks.md#another-example){.inter
 
 We create an async function `lifespan()` with `#!python yield` like this:
 
-{! includes/getting_started/lifespan/ml_context.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/kafka/ml_context.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/confluent/ml_context.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/rabbit/ml_context.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/nats/ml_context.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/redis/ml_context.py!}
+    ```
 
 As you can see, `lifespan` parameter is much suitable for case (than `#!python @app.on_startup` and `#!python @app.after_shutdown` separated calls) if you have object needs to process at application startup and shutdown both.
 

@@ -21,7 +21,7 @@ to_output_data = broker.publisher("output_data")
 async def on_input_data(
     msg: Data, logger: Logger, key: bytes = Context("message.raw_message.key")
 ) -> None:
-    logger.info(f"on_input_data({msg=})")
+    logger.info("on_input_data(msg=%s)", msg)
     await to_output_data.publish(Data(data=msg.data + 1.0), key=b"key")
 
 
@@ -29,4 +29,4 @@ async def on_input_data(
 async def on_output_data(
     msg: Data, logger: Logger, key: bytes = Context("message.raw_message.key")
 ) -> None:
-    logger.info(f"on_output_data({msg=})")
+    logger.info("on_output_data(msg=%s)", msg)

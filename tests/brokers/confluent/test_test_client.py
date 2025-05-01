@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -52,6 +52,26 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
                 m.mock.assert_called_once_with("hello")
                 mocked.mock.assert_called_once()
 
+    async def test_publisher_autoflush_mock(
+        self,
+        queue: str,
+    ):
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "1", autoflush=True)
+        publisher.flush = AsyncMock()
+
+        @publisher
+        @broker.subscriber(queue)
+        async def m(msg):
+            pass
+
+        async with TestKafkaBroker(broker) as br:
+            await br.publish("hello", queue)
+            publisher.flush.assert_awaited_once()
+            m.mock.assert_called_once_with("hello")
+            publisher.mock.assert_called_once()
+
     @pytest.mark.confluent
     async def test_with_real_testclient(
         self,
@@ -62,6 +82,33 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
+        @broker.subscriber(*args, **kwargs)
+        def subscriber(m):
+            event.set()
+
+        async with TestKafkaBroker(broker, with_real=True) as br:
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=10,
+            )
+
+        assert event.is_set()
+
+    @pytest.mark.confluent
+    async def test_autoflush_with_real_testclient(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ):
+        broker = self.get_broker()
+        publisher = broker.publisher(queue, autoflush=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @publisher
         @broker.subscriber(*args, **kwargs)
         def subscriber(m):
             event.set()
@@ -120,6 +167,26 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", queue)
+            m.mock.assert_called_once_with("hello")
+            publisher.mock.assert_called_once_with([1, 2, 3])
+
+    async def test_batch_publisher_autoflush_mock(
+        self,
+        queue: str,
+    ):
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
+        publisher.flush = AsyncMock()
+
+        @publisher
+        @broker.subscriber(queue)
+        async def m(msg):
+            return 1, 2, 3
+
+        async with TestKafkaBroker(broker) as br:
+            await br.publish("hello", queue)
+            publisher.flush.assert_awaited_once()
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 

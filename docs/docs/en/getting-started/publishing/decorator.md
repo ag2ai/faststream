@@ -17,7 +17,44 @@ It creates a structured DataPipeline unit with an input and output. The order of
 !!! note
     It uses the handler function's return type annotation to cast the function's return value before sending, so be accurate with it.
 
-{! includes/getting_started/publishing/decorator/1.md !}
+!!! tip "Pros and Cons"
+
+    :material-checkbox-marked:{.checked_mark} **Easy to use** - Publishing messages in **FastStream** is intuitive and requires minimal effort.
+
+    :material-checkbox-marked:{.checked_mark} **AsyncAPI support** - [```AsyncAPI```](../asyncapi/export.md#section{.css-styles}) is a specification for describing asynchronous APIs used in messaging applications.
+
+    :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [```Testing```](./test.md#section{.css-styles}) support.
+
+    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [```Context```](../context/index.md#section{.css-styles}), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+
+    :fontawesome-solid-square-xmark:{.x_mark} **Not reusable** - This method cannot be reused.
+
+    :fontawesome-solid-triangle-exclamation:{.warning_mark} The message will **always** be published.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/kafka/decorator.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/confluent/decorator.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/rabbit/decorator.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/nats/decorator.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/redis/decorator.py !}
+    ```
 
 ## Message Broadcasting
 

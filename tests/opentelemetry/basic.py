@@ -44,7 +44,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
     @staticmethod
     def get_spans(exporter: InMemorySpanExporter) -> List[Span]:
-        spans = cast(Tuple[Span, ...], exporter.get_finished_spans())
+        spans = cast("Tuple[Span, ...]", exporter.get_finished_spans())
         return sorted(spans, key=lambda s: s.start_time)
 
     @staticmethod
@@ -62,7 +62,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         metrics = reader.get_metrics_data()
         metrics = metrics.resource_metrics[0].scope_metrics[0].metrics
         metrics = sorted(metrics, key=lambda m: m.name)
-        return cast(List[Metric], metrics)
+        return cast("List[Metric]", metrics)
 
     @pytest.fixture
     def tracer_provider(self) -> TracerProvider:

@@ -4,6 +4,7 @@ from typing_extensions import Annotated, Doc, deprecated, override
 
 from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
+from faststream.exceptions import SetupError
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
 from faststream.redis.subscriber.asyncapi import AsyncAPISubscriber
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
 
     from faststream.broker.types import (
+        BrokerMiddleware,
         CustomCallable,
         Filter,
         PublisherMiddleware,
@@ -108,7 +110,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = True,
     ) -> AsyncAPISubscriber:
         subscriber = cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 create_subscriber(
                     channel=channel,
@@ -196,7 +198,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
         """
         return cast(
-            AsyncAPIPublisher,
+            "AsyncAPIPublisher",
             super().publisher(
                 AsyncAPIPublisher.create(
                     channel=channel,
@@ -214,4 +216,29 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     include_in_schema=self._solve_include_in_schema(include_in_schema),
                 )
             ),
+        )
+
+    @override
+    def include_router(
+        self,
+        router: "RedisRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Depends"] = (),
+        middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, RedisRegistrator):
+            msg = (
+                f"Router must be an instance of RedisRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
         )

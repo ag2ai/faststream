@@ -10,9 +10,7 @@ from faststream.asyncapi.schema.routes import Route
 from faststream.asyncapi.schema.servers import Server
 from faststream.asyncapi.schema.utils import (
     ExternalDocs,
-    ExternalDocsDict,
     Tag,
-    TagDict,
 )
 from faststream.exceptions import INSTALL_YAML
 
@@ -98,8 +96,8 @@ class Schema(BaseModel):
     channels: Dict[str, Channel]
     routes: Optional[List[Route]] = None
     components: Optional[Components] = None
-    tags: Optional[List[Union[Tag, TagDict, Dict[str, Any]]]] = None
-    externalDocs: Optional[Union[ExternalDocs, ExternalDocsDict, Dict[str, Any]]] = None
+    tags: Optional[List[Union[Tag, Dict[str, Any]]]] = None
+    externalDocs: Optional[Union[ExternalDocs, Dict[str, Any]]] = None
 
     def to_jsonable(self) -> Any:
         """Convert the schema to a JSON-serializable object."""

@@ -16,7 +16,30 @@ Testability is a crucial part of any application, and **FastStream** provides yo
 
 Let's take a look at the original application to test
 
-{! includes/getting_started/subscription/testing/1.md !}
+=== "AIOKafka"
+    ```python linenums="1" title="annotation_kafka.py"
+    {!> docs_src/getting_started/subscription/kafka/annotation.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" title="annotation_confluent.py"
+    {!> docs_src/getting_started/subscription/confluent/annotation.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" title="annotation_rabbit.py"
+    {!> docs_src/getting_started/subscription/rabbit/annotation.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" title="annotation_nats.py"
+    {!> docs_src/getting_started/subscription/nats/annotation.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" title="annotation_redis.py"
+    {!> docs_src/getting_started/subscription/redis/annotation.py !}
+    ```
 
 It consumes **JSON** messages like `#!json { "name": "username", "user_id": 1 }`
 
@@ -38,19 +61,88 @@ For this reason, **FastStream** has a special `TestClient` to make your broker w
 
 Just use it like a regular async context manager - all published messages will be routed in-memory (without any external dependencies) and consumed by the correct handler.
 
-{! includes/getting_started/subscription/testing/2.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:1-4,8-12] !}
+    ```
 
 ### Catching Exceptions
 
 This way you can catch any exceptions that occur inside your handler:
 
-{! includes/getting_started/subscription/testing/3.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:18-23] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:18-23] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:18-23] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:18-23] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:18-23] !}
+    ```
 
 ### Validates Input
 
 Also, your handler has a mock object to validate your input or call counts.
 
-{! includes/getting_started/subscription/testing/4.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:9-14] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:9-14] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:9-14] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:9-14] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-14] !}
+    ```
 
 !!! note
     The Handler mock has a not-serialized **JSON** message body. This way you can validate the incoming message view, not python arguments.
@@ -59,13 +151,59 @@ Also, your handler has a mock object to validate your input or call counts.
 
 You should be careful with this feature: all mock objects will be cleared when the context manager exits.
 
-{! includes/getting_started/subscription/testing/5.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:9-16] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:9-16] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:9-16] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:9-16] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-16] !}
+    ```
 
 ## Real Broker Testing
 
 If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.
 
-{! includes/getting_started/subscription/testing/real.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/kafka/real_testing.py [ln:1-5,9-25] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/confluent/real_testing.py [ln:1-5,9-25] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/rabbit/real_testing.py [ln:1-5,9-25] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/nats/real_testing.py [ln:1-5,9-25] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/redis/real_testing.py [ln:1-5,9-25] !}
+    ```
 
 !!! tip
     When you're using a patched broker to test your consumers, the publish method is called synchronously with a consumer one, so you need not wait until your message is consumed. But in the real broker's case, it doesn't.

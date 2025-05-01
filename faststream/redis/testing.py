@@ -213,7 +213,7 @@ class FakeProducer(RedisFastProducer):
         visitor = ListVisitor()
         for handler in self.broker._subscribers.values():  # pragma: no branch
             if visitor.visit(list=list, sub=handler):
-                casted_handler = cast(_ListHandlerMixin, handler)
+                casted_handler = cast("_ListHandlerMixin", handler)
 
                 if casted_handler.list_sub.batch:
                     msg = visitor.get_message(list, data_to_send, casted_handler)

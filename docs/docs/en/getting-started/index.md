@@ -8,15 +8,89 @@ search:
   boost: 10
 hide:
   - toc
-run_docker: To start a new project, we need a test broker container
 ---
 
 # QUICK START
 
 Install using `pip`:
 
-{% import 'getting_started/index/install.md' as includes with context %}
-{{ includes }}
+=== "AIOKafka"
+    ```console
+    pip install "faststream[kafka]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        docker run -d --rm -p 9092:9092 --name test-mq \
+        -e KAFKA_ENABLE_KRAFT=yes \
+        -e KAFKA_CFG_NODE_ID=1 \
+        -e KAFKA_CFG_PROCESS_ROLES=broker,controller \
+        -e KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+        -e KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
+        -e KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+        -e KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092 \
+        -e KAFKA_BROKER_ID=1 \
+        -e KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+        -e ALLOW_PLAINTEXT_LISTENER=yes \
+        bitnami/kafka:3.5.0
+        ```
+
+=== "Confluent"
+    ```console
+    pip install "faststream[confluent]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        docker run -d --rm -p 9092:9092 --name test-mq \
+        -e KAFKA_ENABLE_KRAFT=yes \
+        -e KAFKA_CFG_NODE_ID=1 \
+        -e KAFKA_CFG_PROCESS_ROLES=broker,controller \
+        -e KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+        -e KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
+        -e KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+        -e KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092 \
+        -e KAFKA_BROKER_ID=1 \
+        -e KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+        -e ALLOW_PLAINTEXT_LISTENER=yes \
+        bitnami/kafka:3.5.0
+        ```
+
+=== "RabbitMQ"
+    ```console
+    pip install "faststream[rabbit]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        docker run -d --rm -p 5672:5672 --name test-mq rabbitmq:alpine
+        ```
+
+
+=== "NATS"
+    ```console
+    pip install "faststream[nats]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        bash docker run -d --rm -p 4222:4222 --name test-mq nats -js
+        ```
+
+=== "Redis"
+    ```console
+    pip install "faststream[redis]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        bash docker run -d --rm -p 6379:6379 --name test-mq redis
+        ```
 
 ## Basic Usage
 
@@ -28,7 +102,31 @@ Install using `pip`:
 
 To create a basic application, add the following code to a new file (e.g. `serve.py`):
 
-{! includes/getting_started/index/base.md !}
+=== "AIOKafka"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_kafka.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_confluent.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_rabbit.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_nats.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_redis.py!}
+    ```
+
 
 And just run this command:
 

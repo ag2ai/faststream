@@ -633,7 +633,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         ] = False,
     ) -> AsyncAPISubscriber:
         return cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 channel=channel,
                 list=list,

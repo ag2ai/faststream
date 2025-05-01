@@ -124,6 +124,9 @@ class AsyncConfluentProducer:
                 self._poll_task.cancel()
             await call_or_await(self.producer.flush)
 
+    async def flush(self) -> None:
+        await call_or_await(self.producer.flush)
+
     async def send(
         self,
         topic: str,
@@ -298,7 +301,7 @@ class AsyncConfluentConsumer:
         self.consumer = Consumer(final_config, logger=self.logger)  # type: ignore[call-arg]
 
         # We shouldn't read messages and close consumer concurrently
-        # https://github.com/airtai/faststream/issues/1904#issuecomment-2506990895
+        # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._lock = anyio.Lock()
 
     @property

@@ -2,8 +2,8 @@ site_name: FastStream
 # description to improve website indexing
 site_description: FastStream Python messaging framework documentation
 site_url: https://faststream.airt.ai/
-site_author: airt
-copyright: '&copy; 2024 <a href="https://airt.ai/" target="_blank" rel="noopener">airt</a>'
+site_author: AG2AI Inc.
+copyright: '&copy; 2024 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
 
 docs_dir: docs
 
@@ -13,9 +13,9 @@ watch:
   - includes
   - overrides
 
-repo_name: airtai/faststream
-repo_url: https://github.com/airtai/faststream
-edit_uri: https://github.com/airtai/faststream/tree/main/docs/docs
+repo_name: ag2ai/faststream
+repo_url: https://github.com/ag2ai/faststream
+edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs
 
 exclude_docs: |
   navigation_template.txt
@@ -68,6 +68,7 @@ extra_css:
 extra_javascript:
   - javascripts/extra.js
   - javascripts/gurubase-widget.js
+  - javascripts/theme-switch.js
 
 plugins:
   - search:
@@ -155,24 +156,25 @@ markdown_extensions:
       alternate_style: true      # create tabs group
   - attr_list                    # specify html attrs in markdown
   - md_in_html                   # render md wrapped to html tags
+  - pymdownx.emoji:              # render material icons
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
   analytics:
     provider: google
     property: G-HDTMP5FFHP
-  social_image: https://opengraph.githubassets.com/1671805243.560327/airtai/faststream
+  social_image: https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream
   social:
     # Discord link should be first
     - icon: fontawesome/brands/discord
       link: https://discord.gg/qFm6aSqq59
     - icon: fontawesome/brands/github-alt
-      link: https://github.com/airtai/faststream
+      link: https://github.com/ag2ai/faststream
     - icon: fontawesome/brands/twitter
-      link: https://x.com/airt_AI
-    - icon: fontawesome/brands/facebook
-      link: https://www.facebook.com/airt.ai.api/
+      link: https://x.com/ag2oss
     - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/company/airt-ai/
+      link: https://www.linkedin.com/company/ag2ai/
 
   version:
     provider: mike

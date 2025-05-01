@@ -29,7 +29,6 @@ from faststream.broker.subscriber.usecase import SubscriberUsecase
 from faststream.broker.types import MsgType
 from faststream.broker.utils import process_msg
 from faststream.exceptions import NOT_CONNECTED_YET
-from faststream.nats.message import NatsMessage
 from faststream.nats.parser import (
     BatchParser,
     JsParser,
@@ -59,7 +58,7 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
-    from faststream.nats.message import NatsKvMessage, NatsObjMessage
+    from faststream.nats.message import NatsKvMessage, NatsMessage, NatsObjMessage
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.types import AnyDict, Decorator, LoggerProto, SendableMessage
 
@@ -920,7 +919,7 @@ class BatchPullStreamSubscriber(
             return None
 
         msg = cast(
-            NatsMessage,
+            "NatsMessage",
             await process_msg(
                 msg=raw_message,
                 middlewares=self._broker_middlewares,
@@ -1080,7 +1079,7 @@ class KeyValueWatchSubscriber(
         while self.running:
             with suppress(ConnectionClosedError, TimeoutError):
                 message = cast(
-                    Optional["KeyValue.Entry"],
+                    "Optional[KeyValue.Entry]",
                     await key_watcher.updates(self.kv_watch.timeout),  # type: ignore[no-untyped-call]
                 )
 
@@ -1234,7 +1233,7 @@ class ObjStoreWatchSubscriber(
         while self.running:
             with suppress(TimeoutError):
                 message = cast(
-                    Optional["ObjectInfo"],
+                    "Optional[ObjectInfo]",
                     await obj_watch.updates(self.obj_watch.timeout),  # type: ignore[no-untyped-call]
                 )
 

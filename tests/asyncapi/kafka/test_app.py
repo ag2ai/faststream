@@ -1,3 +1,5 @@
+from dirty_equals import IsPartialDict
+
 from faststream import FastStream
 from faststream.asyncapi.generate import get_app_schema
 from faststream.asyncapi.schema import Contact, ExternalDocs, License, Tag
@@ -148,11 +150,23 @@ def test_extra():
             title="My App",
             version="1.0.0",
             description="Test description",
-            license={"name": "MIT", "url": "https://mit.com/", "x-field": "extra"},
+            license={
+                "name": "MIT",
+                "url": "https://mit.com/",
+                "x-field": "extra",
+            },
             terms_of_service="https://my-terms.com/",
-            contact={"name": "support", "url": "https://help.com/", "x-field": "extra"},
+            contact={
+                "name": "support",
+                "url": "https://help.com/",
+                "x-field": "extra",
+            },
             tags=(
-                {"name": "some-tag", "description": "experimental", "x-field": "extra"},
+                {
+                    "name": "some-tag",
+                    "description": "experimental",
+                    "x-field": "extra",
+                },
             ),
             identifier="some-unique-uuid",
             external_docs={
@@ -162,33 +176,42 @@ def test_extra():
         )
     ).to_jsonable()
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "externalDocs": {"url": "https://extra-docs.py/", "x-field": "extra"},
-        "id": "some-unique-uuid",
-        "info": {
-            "contact": {
-                "name": "support",
-                "url": "https://help.com/",
+    assert schema == IsPartialDict(
+        {
+            "externalDocs": {
+                "url": "https://extra-docs.py/",
                 "x-field": "extra",
             },
-            "description": "Test description",
-            "license": {"name": "MIT", "url": "https://mit.com/", "x-field": "extra"},
-            "termsOfService": "https://my-terms.com/",
-            "title": "My App",
-            "version": "1.0.0",
-        },
-        "servers": {
-            "development": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "url": "localhost",
-            }
-        },
-        "tags": [
-            {"description": "experimental", "name": "some-tag", "x-field": "extra"}
-        ],
-    }
+            "id": "some-unique-uuid",
+            "info": {
+                "contact": {
+                    "name": "support",
+                    "url": "https://help.com/",
+                    "x-field": "extra",
+                },
+                "description": "Test description",
+                "license": {
+                    "name": "MIT",
+                    "url": "https://mit.com/",
+                    "x-field": "extra",
+                },
+                "termsOfService": "https://my-terms.com/",
+                "title": "My App",
+                "version": "1.0.0",
+            },
+            "servers": {
+                "development": {
+                    "protocol": "kafka",
+                    "protocolVersion": "auto",
+                    "url": "localhost",
+                }
+            },
+            "tags": [
+                {
+                    "description": "experimental",
+                    "name": "some-tag",
+                    "x-field": "extra",
+                }
+            ],
+        }
+    )

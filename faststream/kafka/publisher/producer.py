@@ -36,6 +36,9 @@ class AioKafkaFastProducer(ProducerProto):
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
+    async def flush(self) -> None:
+        await self._producer.flush()
+
     @override
     async def publish(  # type: ignore[override]
         self,

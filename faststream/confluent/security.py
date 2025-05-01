@@ -49,9 +49,9 @@ def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "security_config": {
-            "sasl_mechanism": "PLAIN",
-            "sasl_plain_username": security.username,
-            "sasl_plain_password": security.password,
+            "sasl.mechanism": "PLAIN",
+            "sasl.username": security.username,
+            "sasl.password": security.password,
         },
     }
 
@@ -60,9 +60,9 @@ def _parse_sasl_scram256(security: SASLScram256) -> "AnyDict":
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "security_config": {
-            "sasl_mechanism": "SCRAM-SHA-256",
-            "sasl_plain_username": security.username,
-            "sasl_plain_password": security.password,
+            "sasl.mechanism": "SCRAM-SHA-256",
+            "sasl.username": security.username,
+            "sasl.password": security.password,
         },
     }
 
@@ -71,9 +71,9 @@ def _parse_sasl_scram512(security: SASLScram512) -> "AnyDict":
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "security_config": {
-            "sasl_mechanism": "SCRAM-SHA-512",
-            "sasl_plain_username": security.username,
-            "sasl_plain_password": security.password,
+            "sasl.mechanism": "SCRAM-SHA-512",
+            "sasl.username": security.username,
+            "sasl.password": security.password,
         },
     }
 
@@ -82,7 +82,7 @@ def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> "AnyDict":
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "security_config": {
-            "sasl_mechanism": "OAUTHBEARER",
+            "sasl.mechanism": "OAUTHBEARER",
         },
     }
 
@@ -91,6 +91,6 @@ def _parse_sasl_gssapi(security: SASLGSSAPI) -> "AnyDict":
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "security_config": {
-            "sasl_mechanism": "GSSAPI",
+            "sasl.mechanism": "GSSAPI",
         },
     }

@@ -14,11 +14,57 @@ search:
 
 With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](../dependencies/index.md){.internal-link} usage.
 
-{! includes/getting_started/context/base.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="1 11"
+    {!> docs_src/getting_started/context/kafka/base.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="1 11"
+    {!> docs_src/getting_started/context/confluent/base.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="1 11"
+    {!> docs_src/getting_started/context/rabbit/base.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="1 11"
+    {!> docs_src/getting_started/context/nats/base.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="1 11"
+    {!> docs_src/getting_started/context/redis/base.py !}
+    ```
 
 But, with the [`Annotated`](https://docs.python.org/3/library/typing.html#typing.Annotated){.external-docs target="_blank"} Python feature usage, it is much closer to `#!python @pytest.fixture`.
 
-{! includes/getting_started/context/annotated.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="1 7 16"
+    {!> docs_src/getting_started/context/kafka/annotated.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="1 7 16"
+    {!> docs_src/getting_started/context/confluent/annotated.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="1 7 16"
+    {!> docs_src/getting_started/context/rabbit/annotated.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="1 7 16"
+    {!> docs_src/getting_started/context/nats/annotated.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="1 7 16"
+    {!> docs_src/getting_started/context/redis/annotated.py !}
+    ```
 
 ## Usages
 

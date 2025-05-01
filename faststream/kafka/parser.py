@@ -100,7 +100,7 @@ class AioKafkaBatchParser(AioKafkaParser):
     ) -> "DecodedMessage":
         """Decode a batch of messages."""
         # super() should be here due python can't find it in comprehension
-        super_obj = cast(AioKafkaParser, super())
+        super_obj = cast("AioKafkaParser", super())
 
         return [
             decode_message(await super_obj.parse_message(m)) for m in msg.raw_message

@@ -162,7 +162,7 @@ class AsyncAPIPublisher(LogicPublisher[MsgType]):
                 headers=headers,
                 reply_to=reply_to,
                 broker_middlewares=cast(
-                    Sequence["BrokerMiddleware[Tuple[ConfluentMsg, ...]]"],
+                    "Sequence[BrokerMiddleware[Tuple[ConfluentMsg, ...]]]",
                     broker_middlewares,
                 ),
                 middlewares=middlewares,
@@ -180,7 +180,7 @@ class AsyncAPIPublisher(LogicPublisher[MsgType]):
                 headers=headers,
                 reply_to=reply_to,
                 broker_middlewares=cast(
-                    Sequence["BrokerMiddleware[ConfluentMsg]"], broker_middlewares
+                    "Sequence[BrokerMiddleware[ConfluentMsg]]", broker_middlewares
                 ),
                 middlewares=middlewares,
                 schema_=schema_,

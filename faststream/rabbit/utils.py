@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union
 
 from aio_pika.connection import make_url
 
@@ -6,7 +6,6 @@ from faststream.rabbit.schemas.constants import ExchangeType
 
 if TYPE_CHECKING:
     from aio_pika.abc import SSLOptions
-    from pamqp.common import FieldTable
     from yarl import URL
 
     from faststream.rabbit.schemas import RabbitExchange
@@ -33,7 +32,7 @@ def build_url(
     virtualhost: Optional[str] = None,
     ssl: Optional[bool] = None,
     ssl_options: Optional["SSLOptions"] = None,
-    client_properties: Optional["FieldTable"] = None,
+    client_properties: Optional["RabbitClientProperties"] = None,
     **kwargs: Any,
 ) -> "URL":
     """Construct URL object from attributes."""
@@ -50,7 +49,7 @@ def build_url(
         virtualhost=build_virtual_host(url, virtualhost, original_url.path),
         ssl=use_ssl,
         ssl_options=ssl_options,
-        client_properties=client_properties,
+        client_properties=client_properties,  # type: ignore[arg-type]
         **{
             **kwargs,
             **dict(original_url.query),
@@ -64,3 +63,9 @@ def is_routing_exchange(exchange: Optional["RabbitExchange"]) -> bool:
         ExchangeType.DIRECT.value,
         ExchangeType.TOPIC.value,
     )
+
+
+class RabbitClientProperties(TypedDict, total=False):
+    heartbeat: int
+    connection_timeout: int
+    channel_max: int

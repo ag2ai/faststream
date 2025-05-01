@@ -53,7 +53,7 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas.reply import ReplyConfig
+    from faststream.rabbit.schemas import Channel, ReplyConfig
     from faststream.security import BaseSecurity
     from faststream.types import AnyDict, LoggerProto
 
@@ -494,6 +494,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         *,
+        channel: Optional["Channel"] = None,
         consume_args: Annotated[
             Optional["AnyDict"],
             Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
@@ -692,12 +693,13 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         ] = False,
     ) -> AsyncAPISubscriber:
         return cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 queue=queue,
                 exchange=exchange,
                 consume_args=consume_args,
                 reply_config=reply_config,
+                channel=channel,
                 dependencies=dependencies,
                 parser=parser,
                 decoder=decoder,

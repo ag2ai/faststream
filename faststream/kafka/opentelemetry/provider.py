@@ -41,7 +41,7 @@ class BaseKafkaTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
         self,
         kwargs: "AnyDict",
     ) -> str:
-        return cast(str, kwargs["topic"])
+        return cast("str", kwargs["topic"])
 
 
 class KafkaTelemetrySettingsProvider(
@@ -70,7 +70,7 @@ class KafkaTelemetrySettingsProvider(
         self,
         msg: "StreamMessage[ConsumerRecord]",
     ) -> str:
-        return cast(str, msg.raw_message.topic)
+        return cast("str", msg.raw_message.topic)
 
 
 class BatchKafkaTelemetrySettingsProvider(
@@ -87,7 +87,7 @@ class BatchKafkaTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
-                bytearray().join(cast(Sequence[bytes], msg.body))
+                bytearray().join(cast("Sequence[bytes]", msg.body))
             ),
             SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,
@@ -100,7 +100,7 @@ class BatchKafkaTelemetrySettingsProvider(
         self,
         msg: "StreamMessage[Tuple[ConsumerRecord, ...]]",
     ) -> str:
-        return cast(str, msg.raw_message[0].topic)
+        return cast("str", msg.raw_message[0].topic)
 
 
 def telemetry_attributes_provider_factory(

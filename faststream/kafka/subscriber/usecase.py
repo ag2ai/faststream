@@ -620,4 +620,4 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
         assert consumer, "You should setup subscriber at first."  # nosec B101
         message = await consumer.getone()
         message.consumer = consumer
-        return cast(KafkaRawMessage, message)
+        return cast("KafkaRawMessage", message)

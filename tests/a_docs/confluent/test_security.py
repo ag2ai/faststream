@@ -30,9 +30,9 @@ async def test_scram256():
 
             call_kwargs = {
                 "security_config": {
-                    "sasl_mechanism": "SCRAM-SHA-256",
-                    "sasl_plain_username": "admin",
-                    "sasl_plain_password": "password",  # pragma: allowlist secret
+                    "sasl.mechanism": "SCRAM-SHA-256",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
                 },
                 "security_protocol": "SASL_SSL",
             }
@@ -58,9 +58,9 @@ async def test_scram512():
 
             call_kwargs = {
                 "security_config": {
-                    "sasl_mechanism": "SCRAM-SHA-512",
-                    "sasl_plain_username": "admin",
-                    "sasl_plain_password": "password",  # pragma: allowlist secret
+                    "sasl.mechanism": "SCRAM-SHA-512",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
                 },
                 "security_protocol": "SASL_SSL",
             }
@@ -86,9 +86,9 @@ async def test_plaintext():
 
             call_kwargs = {
                 "security_config": {
-                    "sasl_mechanism": "PLAIN",
-                    "sasl_plain_username": "admin",
-                    "sasl_plain_password": "password",  # pragma: allowlist secret
+                    "sasl.mechanism": "PLAIN",
+                    "sasl.username": "admin",
+                    "sasl.password": "password",  # pragma: allowlist secret
                 },
                 "security_protocol": "SASL_SSL",
             }
@@ -114,7 +114,7 @@ async def test_oathbearer():
 
             call_kwargs = {
                 "security_config": {
-                    "sasl_mechanism": "OAUTHBEARER",
+                    "sasl.mechanism": "OAUTHBEARER",
                 },
                 "security_protocol": "SASL_SSL",
             }
@@ -140,7 +140,7 @@ async def test_gssapi():
 
             call_kwargs = {
                 "security_config": {
-                    "sasl_mechanism": "GSSAPI",
+                    "sasl.mechanism": "GSSAPI",
                 },
                 "security_protocol": "SASL_SSL",
             }

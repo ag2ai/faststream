@@ -497,7 +497,7 @@ class TestConsume(BrokerRealConsumeTestcase):
         async def handler(msg: str):
             pass
 
-        with patch.object(consume_broker, "logger", Mock()) as mock:
+        with patch.object(consume_broker, "logger", Mock(handlers=[])) as mock:
             async with self.patch_broker(consume_broker) as broker:
                 await broker.start()
                 await broker.close()

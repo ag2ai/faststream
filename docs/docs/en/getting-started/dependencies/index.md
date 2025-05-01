@@ -1,7 +1,6 @@
 ---
 search:
   boost: 10
-nested: A nested dependency is called here
 ---
 
 # Dependencies
@@ -17,7 +16,35 @@ The key function in the dependency management and type conversion system in **Fa
 
 By default, it applies to all event handlers, unless you disabled the same option when creating the broker.
 
-{! includes/getting_started/dependencies/1.md !}
+=== "AIOKafka"
+    ```python
+    from faststream.kafka import KafkaBroker
+    broker = KafkaBroker(..., apply_types=False)
+    ```
+
+=== "Confluent"
+    ```python
+    from faststream.confluent import KafkaBroker
+    broker = KafkaBroker(..., apply_types=False)
+    ```
+
+=== "RabbitMQ"
+    ```python
+    from faststream.rabbit import RabbitBroker
+    broker = RabbitBroker(..., apply_types=False)
+    ```
+
+=== "NATS"
+    ```python
+    from faststream.nats import NatsBroker
+    broker = NatsBroker(..., apply_types=False)
+    ```
+
+=== "Redis"
+    ```python
+    from faststream.redis import RedisBroker
+    broker = RedisBroker(..., apply_types=False)
+    ```
 
 !!! warning
     Setting the `apply_types=False` flag not only disables type casting but also `Depends` and `Context`.
@@ -29,7 +56,30 @@ This flag can be useful if you are using **FastStream** within another framework
 
 To implement dependencies in **FastStream**, a special class called **Depends** is used
 
-{! includes/getting_started/dependencies/2.md !}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/kafka/depends.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/confluent/depends.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/depends.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/nats/depends.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/redis/depends.py !}
+    ```
 
 **The first step**: You need to declare a dependency, which can be any `Callable` object.
 
@@ -38,11 +88,57 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
 
     In other words, if you can write code like `my_object()` - `my_object` is `Callable`
 
-{! includes/getting_started/dependencies/3.md !}
+=== "AIOKafka"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/kafka/depends.py [ln:11-12] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/confluent/depends.py [ln:11-12] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/depends.py [ln:11-12] !}
+    ```
+
+=== "NATS"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/nats/depends.py [ln:11-12] !}
+    ```
+
+=== "Redis"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/redis/depends.py [ln:11-12] !}
+    ```
 
 **Second step**: Declare which dependencies you need using `Depends`
 
-{! includes/getting_started/dependencies/4.md !}
+=== "AIOKafka"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/kafka/depends.py [ln:11-12] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/confluent/depends.py [ln:11-12] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/depends.py [ln:11-12] !}
+    ```
+
+=== "NATS"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/nats/depends.py [ln:11-12] !}
+    ```
+
+=== "Redis"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/redis/depends.py [ln:11-12] !}
+    ```
 
 **The last step**: Just use the result of executing your dependency!
 
@@ -79,8 +175,40 @@ broker = RabbitBroker(dependencies=[Depends(...)])
 Dependencies can also contain other dependencies. This works in a very predictable way: just declare
 `Depends` in the dependent function.
 
-{% import 'getting_started/dependencies/5.md' as includes with context %}
-{{ includes }}
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/kafka/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/confluent/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
+
+=== "NATS"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/nats/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
+
+=== "Redis"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/redis/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
 
 !!! Tip "Caching"
     In the example above, the `another_dependency` function will be called at **ONCE**!

@@ -1,18 +1,22 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Callable, Type, TypeVar
+from typing import Callable, Type
 from unittest.mock import Mock
 
 import pytest
 from fastapi import BackgroundTasks, Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
+from typing_extensions import Annotated, Any, TypeVar
 
+from faststream import Context as FSContext
+from faststream import Depends as FSDepends
 from faststream import Response, context
 from faststream.broker.core.usecase import BrokerUsecase
 from faststream.broker.fastapi.context import Context
 from faststream.broker.fastapi.router import StreamRouter
 from faststream.broker.router import BrokerRouter
+from faststream.exceptions import SetupError
 from faststream.types import AnyCallable
 
 from .basic import BaseTestcaseConfig
@@ -98,6 +102,73 @@ class FastAPITestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_with(True)
+
+    async def test_context_annotated(
+        self, mock: Mock, queue: str, event: asyncio.Event
+    ):
+        router = self.router_class()
+
+        context_key = "message.headers"
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(msg: Annotated[Any, Context(context_key)]):
+            event.set()
+            return mock(msg == context.resolve(context_key))
+
+        async with router.broker:
+            await router.broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(router.broker.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_with(True)
+
+    async def test_faststream_context(
+        self, mock: Mock, queue: str, event: asyncio.Event
+    ):
+        router = self.router_class()
+
+        context_key = "message.headers"
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(msg=FSContext(context_key)):
+            event.set()
+            return mock(msg == context.resolve(context_key))
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError), TestClient(app):
+            ...
+
+    async def test_faststream_context_annotated(
+        self, mock: Mock, queue: str, event: asyncio.Event
+    ):
+        router = self.router_class()
+
+        context_key = "message.headers"
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(msg: Annotated[Any, FSContext(context_key)]):
+            event.set()
+            return mock(msg == context.resolve(context_key))
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError), TestClient(app):
+            ...
 
     async def test_initial_context(self, queue: str, event: asyncio.Event):
         router = self.router_class()
@@ -332,6 +403,38 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
             assert r == "hi"
 
         mock.assert_called_once_with("hi")
+
+    async def test_depends_from_fastdepends_default(self, queue: str):
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        subscriber = router.subscriber(*args, **kwargs)
+
+        @subscriber
+        def sub(d: Any = FSDepends(lambda: 1)) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError), TestClient(app):
+            ...
+
+    async def test_depends_from_fastdepends_annotated(self, queue: str):
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        subscriber = router.subscriber(*args, **kwargs)
+
+        @subscriber
+        def sub(d: Annotated[Any, FSDepends(lambda: 1)]) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError), TestClient(app):
+            ...
 
     async def test_yield_depends(self, mock: Mock, queue: str):
         router = self.router_class()

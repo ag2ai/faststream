@@ -51,21 +51,30 @@ def make_asyncapi_asgi(
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
 ) -> "ASGIApp":
-    return AsgiResponse(
-        get_asyncapi_html(
-            get_app_schema(app),
-            sidebar=sidebar,
-            info=info,
-            servers=servers,
-            operations=operations,
-            messages=messages,
-            schemas=schemas,
-            errors=errors,
-            expand_message_examples=expand_message_examples,
-            title=title,
-            asyncapi_js_url=asyncapi_js_url,
-            asyncapi_css_url=asyncapi_css_url,
-        ).encode("utf-8"),
-        200,
-        {"Content-Type": "text/html; charset=utf-8"},
-    )
+    cached_docs = None
+
+    @get
+    async def docs(scope: "Scope") -> AsgiResponse:
+        nonlocal cached_docs
+        if not cached_docs:
+            cached_docs = get_asyncapi_html(
+                get_app_schema(app),
+                sidebar=sidebar,
+                info=info,
+                servers=servers,
+                operations=operations,
+                messages=messages,
+                schemas=schemas,
+                errors=errors,
+                expand_message_examples=expand_message_examples,
+                title=title,
+                asyncapi_js_url=asyncapi_js_url,
+                asyncapi_css_url=asyncapi_css_url,
+            )
+        return AsgiResponse(
+            cached_docs.encode("utf-8"),
+            200,
+            {"Content-Type": "text/html; charset=utf-8"},
+        )
+
+    return docs

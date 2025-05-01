@@ -132,7 +132,7 @@ class ExceptionMiddleware:
                 (
                     exc_type,
                     apply_types(
-                        cast(Callable[..., Awaitable[None]], to_async(handler))
+                        cast("Callable[..., Awaitable[None]]", to_async(handler))
                     ),
                 )
                 for exc_type, handler in (handlers or {}).items()

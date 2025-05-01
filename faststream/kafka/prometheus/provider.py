@@ -22,7 +22,7 @@ class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
         self,
         kwargs: "AnyDict",
     ) -> str:
-        return cast(str, kwargs["topic"])
+        return cast("str", kwargs["topic"])
 
 
 class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRecord"]):
@@ -47,7 +47,7 @@ class BatchKafkaMetricsSettingsProvider(
         raw_message = msg.raw_message[0]
         return {
             "destination_name": raw_message.topic,
-            "message_size": len(bytearray().join(cast(Sequence[bytes], msg.body))),
+            "message_size": len(bytearray().join(cast("Sequence[bytes]", msg.body))),
             "messages_count": len(msg.raw_message),
         }
 

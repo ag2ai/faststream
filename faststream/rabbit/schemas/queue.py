@@ -191,8 +191,9 @@ CommonQueueArgs = TypedDict(
     total=False,
 )
 
-SharedQueueClassicAndQuorumArgs = TypedDict(
-    "SharedQueueClassicAndQuorumArgs",
+
+SharedClassicAndQuorumQueueArgs = TypedDict(
+    "SharedClassicAndQuorumQueueArgs",
     {
         "x-expires": int,
         "x-message-ttl": int,
@@ -200,33 +201,41 @@ SharedQueueClassicAndQuorumArgs = TypedDict(
         "x-dead-letter-exchange": str,
         "x-dead-letter-routing-key": str,
         "x-max-length": int,
-        "x-max-priority": int,
     },
     total=False,
 )
 
 
-QueueClassicTypeSpecificArgs = TypedDict(
-    "QueueClassicTypeSpecificArgs",
-    {"x-overflow": Literal["drop-head", "reject-publish", "reject-publish-dlx"]},
+ClassicQueueSpecificArgs = TypedDict(
+    "ClassicQueueSpecificArgs",
+    {
+        "x-overflow": Literal["drop-head", "reject-publish", "reject-publish-dlx"],
+        "x-queue-master-locator": Literal["client-local", "balanced"],
+        "x-max-priority": int,
+        "x-queue-mode": Literal["default", "lazy"],
+        "x-queue-version": int,
+    },
     total=False,
 )
 
-QueueQuorumTypeSpecificArgs = TypedDict(
-    "QueueQuorumTypeSpecificArgs",
+
+QuorumQueueSpecificArgs = TypedDict(
+    "QuorumQueueSpecificArgs",
     {
         "x-overflow": Literal["drop-head", "reject-publish"],
         "x-delivery-limit": int,
         "x-quorum-initial-group-size": int,
         "x-quorum-target-group-size": int,
         "x-dead-letter-strategy": Literal["at-most-once", "at-least-once"],
+        "x-max-in-memory-length": int,
+        "x-max-in-memory-bytes": int,
     },
     total=False,
 )
 
 
-QueueStreamTypeSpecificArgs = TypedDict(
-    "QueueStreamTypeSpecificArgs",
+StreamQueueSpecificArgs = TypedDict(
+    "StreamQueueSpecificArgs",
     {
         "x-max-age": str,
         "x-stream-max-segment-size-bytes": int,
@@ -237,17 +246,23 @@ QueueStreamTypeSpecificArgs = TypedDict(
 )
 
 
-class StreamQueueArgs(CommonQueueArgs, QueueStreamTypeSpecificArgs):
-    pass
-
-
 class ClassicQueueArgs(
-    CommonQueueArgs, SharedQueueClassicAndQuorumArgs, QueueClassicTypeSpecificArgs
+    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, ClassicQueueSpecificArgs
 ):
+    """rabbitmq-server/deps/rabbit/src/rabbit_classic_queue.erl."""
+
     pass
 
 
 class QuorumQueueArgs(
-    CommonQueueArgs, SharedQueueClassicAndQuorumArgs, QueueQuorumTypeSpecificArgs
+    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, QuorumQueueSpecificArgs
 ):
+    """rabbitmq-server/deps/rabbit/src/rabbit_quorum_queue.erl."""
+
+    pass
+
+
+class StreamQueueArgs(CommonQueueArgs, StreamQueueSpecificArgs):
+    """rabbitmq-server/deps/rabbit/src/rabbit_stream_queue.erl."""
+
     pass

@@ -57,10 +57,21 @@ def get_broker_logger(
     return logger
 
 
+def _handler_exists(logger: logging.Logger) -> bool:
+    # Check if a StreamHandler for sys.stdout already exists in the logger.
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
+            return True
+    return False
+
+
 def set_logger_fmt(
     logger: logging.Logger,
     fmt: str = "%(asctime)s %(levelname)s - %(message)s",
 ) -> None:
+    if _handler_exists(logger):
+        return
+
     handler = logging.StreamHandler(stream=sys.stdout)
 
     formatter = ColourizedFormatter(

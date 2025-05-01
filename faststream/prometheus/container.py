@@ -48,7 +48,7 @@ class MetricsContainer:
         self._metrics_prefix = metrics_prefix
 
         self.received_messages_total = cast(
-            Counter,
+            "Counter",
             self._get_registered_metric(f"{metrics_prefix}_received_messages_total"),
         ) or Counter(
             name=f"{metrics_prefix}_received_messages_total",
@@ -58,7 +58,7 @@ class MetricsContainer:
         )
 
         self.received_messages_size_bytes = cast(
-            Histogram,
+            "Histogram",
             self._get_registered_metric(
                 f"{metrics_prefix}_received_messages_size_bytes"
             ),
@@ -71,7 +71,7 @@ class MetricsContainer:
         )
 
         self.received_messages_in_process = cast(
-            Gauge,
+            "Gauge",
             self._get_registered_metric(
                 f"{metrics_prefix}_received_messages_in_process"
             ),
@@ -83,7 +83,7 @@ class MetricsContainer:
         )
 
         self.received_processed_messages_total = cast(
-            Counter,
+            "Counter",
             self._get_registered_metric(
                 f"{metrics_prefix}_received_processed_messages_total"
             ),
@@ -95,7 +95,7 @@ class MetricsContainer:
         )
 
         self.received_processed_messages_duration_seconds = cast(
-            Histogram,
+            "Histogram",
             self._get_registered_metric(
                 f"{metrics_prefix}_received_processed_messages_duration_seconds"
             ),
@@ -107,7 +107,7 @@ class MetricsContainer:
         )
 
         self.received_processed_messages_exceptions_total = cast(
-            Counter,
+            "Counter",
             self._get_registered_metric(
                 f"{metrics_prefix}_received_processed_messages_exceptions_total"
             ),
@@ -119,7 +119,7 @@ class MetricsContainer:
         )
 
         self.published_messages_total = cast(
-            Counter,
+            "Counter",
             self._get_registered_metric(f"{metrics_prefix}_published_messages_total"),
         ) or Counter(
             name=f"{metrics_prefix}_published_messages_total",
@@ -129,7 +129,7 @@ class MetricsContainer:
         )
 
         self.published_messages_duration_seconds = cast(
-            Histogram,
+            "Histogram",
             self._get_registered_metric(
                 f"{metrics_prefix}_published_messages_duration_seconds"
             ),
@@ -141,7 +141,7 @@ class MetricsContainer:
         )
 
         self.published_messages_exceptions_total = cast(
-            Counter,
+            "Counter",
             self._get_registered_metric(
                 f"{metrics_prefix}_published_messages_exceptions_total"
             ),

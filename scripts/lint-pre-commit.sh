@@ -15,10 +15,8 @@ cd "$(dirname "$0")"/..
 # In my case, I need to use a custom index URL.
 # Avoid pip spending time quietly retrying since
 # likely cause of failure is lack of VPN connection.
-pip install --editable ".[dev]" \
- --retries 1 \
- --no-input \
- --quiet
+pip install uv
+uv pip install --editable ".[dev]" --quiet
 
 # Run on all files,
 # ignoring the paths passed to this script,

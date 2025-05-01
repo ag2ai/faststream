@@ -385,7 +385,7 @@ def _get_span_from_headers(headers: "AnyDict") -> Optional[Span]:
         return None
 
     return cast(
-        Optional[Span],
+        "Optional[Span]",
         next(iter(trace_context.values())),
     )
 

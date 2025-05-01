@@ -8,7 +8,12 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
 
     from faststream.broker.types import BrokerMiddleware
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue, ReplyConfig
+    from faststream.rabbit.schemas import (
+        Channel,
+        RabbitExchange,
+        RabbitQueue,
+        ReplyConfig,
+    )
     from faststream.types import AnyDict
 
 
@@ -18,6 +23,7 @@ def create_subscriber(
     exchange: "RabbitExchange",
     consume_args: Optional["AnyDict"],
     reply_config: Optional["ReplyConfig"],
+    channel: Optional["Channel"],
     # Subscriber args
     no_ack: bool,
     no_reply: bool,
@@ -45,6 +51,7 @@ def create_subscriber(
         exchange=exchange,
         consume_args=consume_args,
         reply_config=reply_config,
+        channel=channel,
         no_ack=no_ack,
         no_reply=no_reply,
         retry=retry,

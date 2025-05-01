@@ -1,7 +1,13 @@
+import inspect
 from typing import TYPE_CHECKING, Any, Callable, Iterable, cast
 
 from fast_depends.utils import get_typed_annotation
-from fastapi.dependencies.utils import get_dependant, get_parameterless_sub_dependant
+from fastapi.dependencies.utils import (
+    get_dependant,
+    get_parameterless_sub_dependant,
+    get_typed_signature,
+)
+from typing_extensions import Annotated, get_args, get_origin
 
 from faststream._compat import PYDANTIC_V2
 
@@ -75,7 +81,7 @@ def _patch_fastapi_dependent(dependant: "Dependant") -> "Dependant":
             if PYDANTIC_V2:
                 from pydantic.fields import FieldInfo
 
-                info = cast(FieldInfo, info)
+                info = cast("FieldInfo", info)
 
                 field_data.update(
                     {
@@ -102,7 +108,7 @@ def _patch_fastapi_dependent(dependant: "Dependant") -> "Dependant":
             else:
                 from pydantic.fields import ModelField  # type: ignore[attr-defined]
 
-                info = cast(ModelField, info)
+                info = cast("ModelField", info)
 
                 field_data.update(
                     {
@@ -131,6 +137,22 @@ def _patch_fastapi_dependent(dependant: "Dependant") -> "Dependant":
     dependant.flat_params = params_unique  # type: ignore[attr-defined]
 
     return dependant
+
+
+def has_signature_param(orig_call: Callable[..., Any], param_type: type) -> bool:
+    """Check if any param of param_type is presented as default or `Annotated` within the call signature."""
+    endpoint_signature = get_typed_signature(orig_call)
+    signature_params = endpoint_signature.parameters
+    for param in signature_params.values():
+        ann = param.annotation
+        if ann is not inspect.Signature.empty and get_origin(ann) is Annotated:
+            annotated_args = get_args(ann)
+            for arg in annotated_args:
+                if isinstance(arg, param_type):
+                    return True
+        if isinstance(param.default, param_type):
+            return True
+    return False
 
 
 FASTSTREAM_FASTAPI_PLUGIN_DECORATOR_MARKER = "__faststream_consumer__"

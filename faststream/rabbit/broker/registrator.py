@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Union, cast
 
-from typing_extensions import Annotated, Doc, deprecated, override
+from typing_extensions import Annotated, deprecated, override
 
 from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
+from faststream.exceptions import SetupError
 from faststream.rabbit.publisher.asyncapi import AsyncAPIPublisher
 from faststream.rabbit.publisher.usecase import PublishKwargs
 from faststream.rabbit.schemas import (
@@ -14,18 +15,19 @@ from faststream.rabbit.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage  # noqa: F401
+    from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Depends
 
     from faststream.broker.types import (
+        BrokerMiddleware,
         CustomCallable,
         Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas.reply import ReplyConfig
+    from faststream.rabbit.schemas import Channel, ReplyConfig
     from faststream.types import AnyDict
 
 
@@ -38,102 +40,72 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: Annotated[
-            Union[str, "RabbitQueue"],
-            Doc(
-                "RabbitMQ queue to listen. "
-                "**FastStream** declares and binds queue object to `exchange` automatically if it is not passive (by default)."
-            ),
-        ],
-        exchange: Annotated[
-            Union[str, "RabbitExchange", None],
-            Doc(
-                "RabbitMQ exchange to bind queue to. "
-                "Uses default exchange if not presented. "
-                "**FastStream** declares exchange object automatically if it is not passive (by default)."
-            ),
-        ] = None,
+        queue: Union[str, "RabbitQueue"],
+        exchange: Union[str, "RabbitExchange", None] = None,
         *,
-        consume_args: Annotated[
-            Optional["AnyDict"],
-            Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
-        ] = None,
+        consume_args: Optional["AnyDict"] = None,
+        dependencies: Iterable["Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Sequence["SubscriberMiddleware[RabbitMessage]"] = (),
+        channel: Optional["Channel"] = None,
         reply_config: Annotated[
             Optional["ReplyConfig"],
-            Doc("Extra options to use at replies publishing."),
             deprecated(
                 "Deprecated in **FastStream 0.5.16**. "
                 "Please, use `RabbitResponse` object as a handler return instead. "
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = None,
-        # broker arguments
-        dependencies: Annotated[
-            Iterable["Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Parser to map original **IncomingMessage** Msg to FastStream one."),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[RabbitMessage]"],
-            Doc("Subscriber middlewares to wrap incoming message processing."),
-        ] = (),
         filter: Annotated[
             "Filter[RabbitMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
             deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
+                "Deprecated in **FastStream 0.5.0**. Please, create `subscriber` object "
+                "and use it explicitly instead. Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = default_filter,
-        retry: Annotated[
-            Union[bool, int],
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
-        no_ack: Annotated[
-            bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
-        no_reply: Annotated[
-            bool,
-            Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
-            ),
-        ] = False,
-        # AsyncAPI information
-        title: Annotated[
-            Optional[str],
-            Doc("AsyncAPI subscriber object title."),
-        ] = None,
-        description: Annotated[
-            Optional[str],
-            Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        retry: Union[bool, int] = False,
+        no_ack: bool = False,
+        no_reply: bool = False,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        include_in_schema: bool = True,
     ) -> AsyncAPISubscriber:
+        """Declares RabbitMQ subscriber object and binds it to the exchange.
+
+        You can use it as a handler decorator - `@broker.subscriber(...)`.
+        Or you can create a subscriber object to call it lately - `broker.subscriber(...)`.
+
+        Args:
+            queue: RabbitMQ queue to listen. **FastStream** declares and binds
+            queue object to `exchange` automatically if it is not passive (by default).
+            exchange: RabbitMQ exchange to bind queue to. Uses default exchange
+            if not presented. **FastStream** declares exchange object automatically
+            if it is not passive (by default).
+            consume_args: Extra consumer arguments to use in `queue.consume(...)` method.
+            channel: Channel to use for consuming messages. If not specified, a default channel will be used.
+            reply_config: Extra options to use at replies publishing.
+            dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
+            parser: Parser to map original **IncomingMessage** Msg to FastStream one.
+            decoder: Function to decode FastStream msg bytes body to python objects.
+            middlewares: Subscriber middlewares to wrap incoming message processing.
+            filter: Overload subscriber to consume various messages from the same source.
+            retry: Whether to `nack` message at processing exception.
+            no_ack: Whether to disable **FastStream** autoacknowledgement logic or not.
+            no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
+            title: AsyncAPI subscriber object title.
+            description: AsyncAPI subscriber object description. Uses decorated docstring as default.
+            include_in_schema: Whether to include operation in AsyncAPI schema or not.
+        """
         subscriber = cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 create_subscriber(
                     queue=RabbitQueue.validate(queue),
                     exchange=RabbitExchange.validate(exchange),
                     consume_args=consume_args,
                     reply_config=reply_config,
+                    channel=channel,
                     # subscriber args
                     no_ack=no_ack,
                     no_reply=no_reply,
@@ -159,111 +131,27 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        queue: Annotated[
-            Union["RabbitQueue", str],
-            Doc("Default message routing key to publish with."),
-        ] = "",
-        exchange: Annotated[
-            Union["RabbitExchange", str, None],
-            Doc("Target exchange to publish message to."),
-        ] = None,
+        queue: Union["RabbitQueue", str] = "",
+        exchange: Union["RabbitExchange", str, None] = None,
         *,
-        routing_key: Annotated[
-            str,
-            Doc(
-                "Default message routing key to publish with. "
-                "Overrides `queue` option if presented."
-            ),
-        ] = "",
-        mandatory: Annotated[
-            bool,
-            Doc(
-                "Client waits for confirmation that the message is placed to some queue. "
-                "RabbitMQ returns message to client if there is no suitable queue."
-            ),
-        ] = True,
-        immediate: Annotated[
-            bool,
-            Doc(
-                "Client expects that there is consumer ready to take the message to work. "
-                "RabbitMQ returns message to client if there is no suitable consumer."
-            ),
-        ] = False,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Send confirmation time from RabbitMQ."),
-        ] = None,
-        persist: Annotated[
-            bool,
-            Doc("Restore the message on RabbitMQ reboot."),
-        ] = False,
-        reply_to: Annotated[
-            Optional[str],
-            Doc(
-                "Reply message routing key to send with (always sending to default exchange)."
-            ),
-        ] = None,
-        priority: Annotated[
-            Optional[int],
-            Doc("The message priority (0 by default)."),
-        ] = None,
-        # specific
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            Doc("Publisher middlewares to wrap outgoing messages."),
-        ] = (),
-        # AsyncAPI information
-        title: Annotated[
-            Optional[str],
-            Doc("AsyncAPI publisher object title."),
-        ] = None,
-        description: Annotated[
-            Optional[str],
-            Doc("AsyncAPI publisher object description."),
-        ] = None,
-        schema: Annotated[
-            Optional[Any],
-            Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
-        # message args
-        headers: Annotated[
-            Optional["HeadersType"],
-            Doc(
-                "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified."
-            ),
-        ] = None,
-        content_type: Annotated[
-            Optional[str],
-            Doc(
-                "Message **content-type** header. "
-                "Used by application, not core RabbitMQ. "
-                "Will be set automatically if not specified."
-            ),
-        ] = None,
-        content_encoding: Annotated[
-            Optional[str],
-            Doc("Message body content encoding, e.g. **gzip**."),
-        ] = None,
-        expiration: Annotated[
-            Optional["DateType"],
-            Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
-        ] = None,
-        message_type: Annotated[
-            Optional[str],
-            Doc("Application-specific message type, e.g. **orders.created**."),
-        ] = None,
-        user_id: Annotated[
-            Optional[str],
-            Doc("Publisher connection User ID, validated if set."),
-        ] = None,
+        routing_key: str = "",
+        mandatory: bool = True,
+        immediate: bool = False,
+        timeout: "TimeoutType" = None,
+        persist: bool = False,
+        reply_to: Optional[str] = None,
+        priority: Optional[int] = None,
+        middlewares: Sequence["PublisherMiddleware"] = (),
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        schema: Optional[Any] = None,
+        include_in_schema: bool = True,
+        headers: Optional["HeadersType"] = None,
+        content_type: Optional[str] = None,
+        content_encoding: Optional[str] = None,
+        expiration: Optional["DateType"] = None,
+        message_type: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> AsyncAPIPublisher:
         """Creates long-living and AsyncAPI-documented publisher object.
 
@@ -271,6 +159,34 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         In such case publisher will publish your handler return value.
 
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
+
+        Args:
+            queue: Default message routing key to publish with.
+            exchange: Target exchange to publish message to.
+            routing_key: Default message routing key to publish with.
+            Overrides `queue` option if presented.
+            mandatory: Client waits for confirmation that the message is placed
+                to some queue. RabbitMQ returns message to client if there is no suitable queue.
+            immediate: Client expects that there is a consumer ready to take the message to work.
+                RabbitMQ returns message to client if there is no suitable consumer.
+            timeout: Send confirmation time from RabbitMQ.
+            persist: Restore the message on RabbitMQ reboot.
+            reply_to: Reply message routing key to send with (always sending to default exchange).
+            priority: The message priority (0 by default).
+            middlewares: Publisher middlewares to wrap outgoing messages.
+            title: AsyncAPI publisher object title.
+            description: AsyncAPI publisher object description.
+            schema: AsyncAPI publishing message type. Should be any python-native
+                object annotation or `pydantic.BaseModel`.
+            include_in_schema: Whether to include operation in AsyncAPI schema or not.
+            headers: Message headers to store meta-information. Can be overridden
+                by `publish.headers` if specified.
+            content_type: Message **content-type** header. Used by application, not core RabbitMQ.
+                Will be set automatically if not specified.
+            content_encoding: Message body content encoding, e.g. **gzip**.
+            expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
+            message_type: Application-specific message type, e.g. **orders.created**.
+            user_id: Publisher connection User ID, validated if set.
         """
         message_kwargs = PublishKwargs(
             mandatory=mandatory,
@@ -288,7 +204,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         )
 
         publisher = cast(
-            AsyncAPIPublisher,
+            "AsyncAPIPublisher",
             super().publisher(
                 AsyncAPIPublisher.create(
                     routing_key=routing_key,
@@ -308,3 +224,28 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         )
 
         return publisher
+
+    @override
+    def include_router(
+        self,
+        router: "RabbitRegistrator",  # type: ignore[override]
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Depends"] = (),
+        middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        if not isinstance(router, RabbitRegistrator):
+            msg = (
+                f"Router must be an instance of RabbitRegistrator, "
+                f"got {type(router).__name__} instead"
+            )
+            raise SetupError(msg)
+
+        super().include_router(
+            router,
+            prefix=prefix,
+            dependencies=dependencies,
+            middlewares=middlewares,
+            include_in_schema=include_in_schema,
+        )

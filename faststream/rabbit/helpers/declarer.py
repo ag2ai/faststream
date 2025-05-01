@@ -1,33 +1,37 @@
-from typing import TYPE_CHECKING, Dict, cast
+from typing import TYPE_CHECKING, Dict, Optional, cast
 
 if TYPE_CHECKING:
     import aio_pika
 
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
+
+    from .channel_manager import ChannelManager
 
 
 class RabbitDeclarer:
     """An utility class to declare RabbitMQ queues and exchanges."""
 
-    __channel: "aio_pika.RobustChannel"
-    __queues: Dict["RabbitQueue", "aio_pika.RobustQueue"]
-    __exchanges: Dict["RabbitExchange", "aio_pika.RobustExchange"]
+    __slots__ = ("__channel_manager", "__exchanges", "__queues")
 
-    def __init__(self, channel: "aio_pika.RobustChannel") -> None:
-        self.__channel = channel
-        self.__queues = {}
-        self.__exchanges = {}
+    def __init__(self, channel_manage: "ChannelManager") -> None:
+        self.__channel_manager = channel_manage
+        self.__queues: Dict[RabbitQueue, aio_pika.RobustQueue] = {}
+        self.__exchanges: Dict[RabbitExchange, aio_pika.RobustExchange] = {}
 
     async def declare_queue(
         self,
         queue: "RabbitQueue",
         passive: bool = False,
+        *,
+        channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
         """Declare a queue."""
         if (q := self.__queues.get(queue)) is None:
+            channel_obj = await self.__channel_manager.get_channel(channel)
+
             self.__queues[queue] = q = cast(
                 "aio_pika.RobustQueue",
-                await self.__channel.declare_queue(
+                await channel_obj.declare_queue(
                     name=queue.name,
                     durable=queue.durable,
                     exclusive=queue.exclusive,
@@ -45,15 +49,19 @@ class RabbitDeclarer:
         self,
         exchange: "RabbitExchange",
         passive: bool = False,
+        *,
+        channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustExchange":
         """Declare an exchange, parent exchanges and bind them each other."""
+        channel_obj = await self.__channel_manager.get_channel(channel)
+
         if not exchange.name:
-            return self.__channel.default_exchange
+            return channel_obj.default_exchange
 
         if (exch := self.__exchanges.get(exchange)) is None:
             self.__exchanges[exchange] = exch = cast(
                 "aio_pika.RobustExchange",
-                await self.__channel.declare_exchange(
+                await channel_obj.declare_exchange(
                     name=exchange.name,
                     type=exchange.type.value,
                     durable=exchange.durable,

@@ -20,7 +20,7 @@ Such a contribution can be:
 * Suggestions for editing specific sections
 * Making additions
 
-You can report all this in [discussions](https://github.com/airtai/faststream/discussions){.external-link target="_blank"} on GitHub, start [issue](https://github.com/airtai/faststream/issues){.external-link target="_blank"}, or write about it in our [discord](https://discord.gg/qFm6aSqq59){.external-link target="_blank"} group.
+You can report all this in [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"} on GitHub, start [issue](https://github.com/ag2ai/faststream/issues){.external-link target="_blank"}, or write about it in our [discord](https://discord.gg/qFm6aSqq59){.external-link target="_blank"} group.
 
 !!! note
     Special thanks to those who are ready to offer help with the case and help in **developing documentation**, as well as translating it into **other languages**.

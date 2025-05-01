@@ -1,6 +1,11 @@
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
     Collection,
+    Dict,
     Iterable,
     Literal,
     Optional,
@@ -11,6 +16,10 @@ from typing import (
 )
 
 from faststream.exceptions import SetupError
+from faststream.kafka.publisher.asyncapi import (
+    AsyncAPIBatchPublisher,
+    AsyncAPIDefaultPublisher,
+)
 from faststream.kafka.subscriber.asyncapi import (
     AsyncAPIBatchSubscriber,
     AsyncAPIConcurrentBetweenPartitionsSubscriber,
@@ -23,7 +32,7 @@ if TYPE_CHECKING:
     from aiokafka.abc import ConsumerRebalanceListener
     from fast_depends.dependencies import Depends
 
-    from faststream.broker.types import BrokerMiddleware
+    from faststream.broker.types import BrokerMiddleware, PublisherMiddleware
     from faststream.types import AnyDict
 
 
@@ -255,3 +264,141 @@ def create_subscriber(
                 description_=description_,
                 include_in_schema=include_in_schema,
             )
+
+
+@overload
+def create_publisher(
+    *,
+    batch: Literal[True],
+    key: Optional[bytes],
+    topic: str,
+    partition: Optional[int],
+    headers: Optional[Dict[str, str]],
+    reply_to: str,
+    # Publisher args
+    broker_middlewares: Sequence["BrokerMiddleware[Tuple[ConsumerRecord, ...]]"],
+    middlewares: Sequence["PublisherMiddleware"],
+    # AsyncAPI args
+    schema_: Optional[Any],
+    title_: Optional[str],
+    description_: Optional[str],
+    include_in_schema: bool,
+    autoflush: bool = False,
+) -> "AsyncAPIBatchPublisher": ...
+
+
+@overload
+def create_publisher(
+    *,
+    batch: Literal[False],
+    key: Optional[bytes],
+    topic: str,
+    partition: Optional[int],
+    headers: Optional[Dict[str, str]],
+    reply_to: str,
+    # Publisher args
+    broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
+    middlewares: Sequence["PublisherMiddleware"],
+    # AsyncAPI args
+    schema_: Optional[Any],
+    title_: Optional[str],
+    description_: Optional[str],
+    include_in_schema: bool,
+    autoflush: bool = False,
+) -> "AsyncAPIDefaultPublisher": ...
+
+
+@overload
+def create_publisher(
+    *,
+    batch: bool,
+    key: Optional[bytes],
+    topic: str,
+    partition: Optional[int],
+    headers: Optional[Dict[str, str]],
+    reply_to: str,
+    # Publisher args
+    broker_middlewares: Sequence[
+        "BrokerMiddleware[Union[Tuple[ConsumerRecord, ...], ConsumerRecord]]"
+    ],
+    middlewares: Sequence["PublisherMiddleware"],
+    # AsyncAPI args
+    schema_: Optional[Any],
+    title_: Optional[str],
+    description_: Optional[str],
+    include_in_schema: bool,
+    autoflush: bool = False,
+) -> Union[
+    "AsyncAPIBatchPublisher",
+    "AsyncAPIDefaultPublisher",
+]: ...
+
+
+def create_publisher(
+    *,
+    batch: bool,
+    key: Optional[bytes],
+    topic: str,
+    partition: Optional[int],
+    headers: Optional[Dict[str, str]],
+    reply_to: str,
+    # Publisher args
+    broker_middlewares: Sequence[
+        "BrokerMiddleware[Union[Tuple[ConsumerRecord, ...], ConsumerRecord]]"
+    ],
+    middlewares: Sequence["PublisherMiddleware"],
+    # AsyncAPI args
+    schema_: Optional[Any],
+    title_: Optional[str],
+    description_: Optional[str],
+    include_in_schema: bool,
+    autoflush: bool = False,
+) -> Union[
+    "AsyncAPIBatchPublisher",
+    "AsyncAPIDefaultPublisher",
+]:
+    publisher: Union[AsyncAPIBatchPublisher, AsyncAPIDefaultPublisher]
+    if batch:
+        if key:
+            raise SetupError("You can't setup `key` with batch publisher")
+
+        publisher = AsyncAPIBatchPublisher(
+            topic=topic,
+            partition=partition,
+            headers=headers,
+            reply_to=reply_to,
+            broker_middlewares=broker_middlewares,
+            middlewares=middlewares,
+            schema_=schema_,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        )
+    else:
+        publisher = AsyncAPIDefaultPublisher(
+            key=key,
+            # basic args
+            topic=topic,
+            partition=partition,
+            headers=headers,
+            reply_to=reply_to,
+            broker_middlewares=broker_middlewares,
+            middlewares=middlewares,
+            schema_=schema_,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        )
+
+    if autoflush:
+        default_publish: Callable[..., Awaitable[Optional[Any]]] = publisher.publish
+
+        @wraps(default_publish)
+        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+            result = await default_publish(*args, **kwargs)
+            await publisher.flush()
+            return result
+
+        publisher.publish = autoflush_wrapper  # type: ignore[method-assign]
+
+    return publisher

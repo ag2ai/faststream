@@ -37,7 +37,6 @@ from faststream.broker.fastapi.router import StreamRouter
 from faststream.broker.utils import default_filter
 from faststream.nats.broker import NatsBroker
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
-from faststream.nats.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.types import EMPTY
 
 if TYPE_CHECKING:
@@ -67,6 +66,7 @@ if TYPE_CHECKING:
     )
     from faststream.nats.message import NatsBatchMessage, NatsMessage
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
+    from faststream.nats.subscriber.asyncapi import AsyncAPISubscriber
     from faststream.security import BaseSecurity
     from faststream.types import AnyDict, LoggerProto
 
@@ -869,7 +869,7 @@ class NatsRouter(StreamRouter["Msg"]):
         ] = False,
     ) -> "AsyncAPISubscriber":
         return cast(
-            AsyncAPISubscriber,
+            "AsyncAPISubscriber",
             super().subscriber(
                 subject=subject,
                 queue=queue,

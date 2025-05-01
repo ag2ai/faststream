@@ -12,7 +12,7 @@ class Data(BaseModel): ...
 
 class FastapiTestCase(DefaultFastAPITestcase):
     async def test_forward_ref(self, queue: str):
-        # see https://github.com/airtai/faststream/issues/2077 for context
+        # see https://github.com/ag2ai/faststream/issues/2077 for context
 
         router = self.router_class()
 

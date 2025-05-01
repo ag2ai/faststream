@@ -9,6 +9,7 @@ from typing import (
     Generic,
     Iterable,
     Optional,
+    Reversible,
     Sequence,
     cast,
 )
@@ -81,7 +82,7 @@ class HandlerItem(SetupAble, Generic[MsgType]):
         apply_types: bool,
         is_validate: bool,
         _get_dependant: Optional[Callable[..., Any]],
-        _call_decorators: Iterable["Decorator"],
+        _call_decorators: Reversible["Decorator"],
     ) -> None:
         if self.dependant is None:
             self.item_parser = parser
@@ -131,8 +132,8 @@ class HandlerItem(SetupAble, Generic[MsgType]):
         cache: Dict[Any, Any],
     ) -> Optional["StreamMessage[MsgType]"]:
         """Check is message suite for current filter."""
-        if not (parser := cast(Optional["AsyncCallable"], self.item_parser)) or not (
-            decoder := cast(Optional["AsyncCallable"], self.item_decoder)
+        if not (parser := cast("Optional[AsyncCallable]", self.item_parser)) or not (
+            decoder := cast("Optional[AsyncCallable]", self.item_decoder)
         ):
             raise SetupError("You should setup `HandlerItem` at first.")
 

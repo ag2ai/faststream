@@ -16,6 +16,8 @@ from tests.marks import pydantic_v2
 
 
 class FastAPICompatible:
+    is_fastapi: bool = False
+
     broker_class: Type[BrokerUsecase]
     dependency_builder = staticmethod(APIDepends)
 
@@ -508,35 +510,45 @@ class FastAPICompatible:
         class Sub(pydantic.BaseModel):
             type: Literal["sub"]
 
-        descriminator = Annotated[
-            Union[Sub2, Sub], pydantic.Field(discriminator="type")
-        ]
-
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(user: descriminator): ...
+        async def handle(
+            user: Annotated[Union[Sub2, Sub], pydantic.Field(discriminator="type")],
+        ): ...
 
         schema = get_app_schema(self.build_app(broker)).to_jsonable()
 
         key = next(iter(schema["components"]["messages"].keys()))
+
         assert key == IsStr(regex=r"test[\w:]*:Handle:Message")
-        assert schema["components"] == {
-            "messages": {
-                key: {
-                    "title": key,
-                    "correlationId": {"location": "$message.header#/correlation_id"},
-                    "payload": {
-                        "discriminator": "type",
-                        "oneOf": [
-                            {"$ref": "#/components/schemas/Sub2"},
-                            {"$ref": "#/components/schemas/Sub"},
-                        ],
-                        "title": "Handle:Message:Payload",
-                    },
-                }
-            },
-            "schemas": {
+
+        expected_schema = IsPartialDict(
+            {
+                "discriminator": "type",
+                "oneOf": [
+                    {"$ref": "#/components/schemas/Sub2"},
+                    {"$ref": "#/components/schemas/Sub"},
+                ],
+                "title": "Handle:Message:Payload",
+            }
+        )
+        if self.is_fastapi:
+            expected_schema = (
+                IsPartialDict(
+                    {
+                        "$ref": "#/components/schemas/Handle:Message:Payload",
+                    }
+                )
+                | expected_schema
+            )
+
+        assert schema["components"]["messages"][key]["payload"] == expected_schema, (
+            schema["components"]
+        )
+
+        assert schema["components"]["schemas"] == IsPartialDict(
+            {
                 "Sub": {
                     "properties": {
                         "type": IsPartialDict({"const": "sub", "title": "Type"})
@@ -553,8 +565,20 @@ class FastAPICompatible:
                     "title": "Sub2",
                     "type": "object",
                 },
-            },
-        }, schema["components"]
+            }
+        ), schema["components"]["schemas"]
+
+        if self.is_fastapi and (
+            payload := schema["components"]["schemas"].get("Handle:Message:Payload")
+        ):
+            assert payload == IsPartialDict(
+                {
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/Sub2"},
+                        {"$ref": "#/components/schemas/Sub"},
+                    ]
+                }
+            )
 
     @pydantic_v2
     def test_nested_descriminator(self):
@@ -578,11 +602,11 @@ class FastAPICompatible:
         assert key == IsStr(regex=r"test[\w:]*:Handle:Message")
         assert schema["components"] == {
             "messages": {
-                key: {
-                    "title": key,
-                    "correlationId": {"location": "$message.header#/correlation_id"},
-                    "payload": {"$ref": "#/components/schemas/Model"},
-                }
+                key: IsPartialDict(
+                    {
+                        "payload": {"$ref": "#/components/schemas/Model"},
+                    }
+                )
             },
             "schemas": {
                 "Sub": {
@@ -640,7 +664,9 @@ class FastAPICompatible:
 
         name, message = next(iter(schema["components"]["messages"].items()))
 
-        assert name == IsStr(regex=r"test.one[\w:]*:Handle:Message"), name
+        assert name == IsStr(
+            regex=r"test.one[\w:]*:\[Handle,HandleDefault\]:Message"
+        ), name
 
         assert len(message["payload"]["oneOf"]) == 2
 

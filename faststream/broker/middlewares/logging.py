@@ -54,7 +54,7 @@ class CriticalLogMiddleware(BaseMiddleware):
             if exc_type:
                 if issubclass(exc_type, IgnoredException):
                     self.logger.log(
-                        logging.INFO,
+                        self.log_level,
                         exc_val,
                         extra=c,
                     )

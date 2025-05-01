@@ -16,7 +16,6 @@ from faststream.broker.publisher.fake import FakePublisher
 from faststream.broker.subscriber.usecase import SubscriberUsecase
 from faststream.broker.utils import process_msg
 from faststream.exceptions import SetupError
-from faststream.rabbit.helpers.declarer import RabbitDeclarer
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.schemas import BaseRMQInformation
 
@@ -26,10 +25,11 @@ if TYPE_CHECKING:
 
     from faststream.broker.message import StreamMessage
     from faststream.broker.types import BrokerMiddleware, CustomCallable
-    from faststream.rabbit.helpers.declarer import RabbitDeclarer
+    from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
     from faststream.rabbit.schemas import (
+        Channel,
         RabbitExchange,
         RabbitQueue,
         ReplyConfig,
@@ -55,6 +55,7 @@ class LogicSubscriber(
         *,
         queue: "RabbitQueue",
         exchange: "RabbitExchange",
+        channel: Optional["Channel"],
         consume_args: Optional["AnyDict"],
         reply_config: Optional["ReplyConfig"],
         # Subscriber args
@@ -90,6 +91,7 @@ class LogicSubscriber(
 
         self._consumer_tag = None
         self._queue_obj = None
+        self.channel = channel
 
         # BaseRMQInformation
         self.queue = queue
@@ -143,14 +145,18 @@ class LogicSubscriber(
         if self.declarer is None:
             raise SetupError("You should setup subscriber at first.")
 
-        self._queue_obj = queue = await self.declarer.declare_queue(self.queue)
+        self._queue_obj = queue = await self.declarer.declare_queue(
+            self.queue, channel=self.channel
+        )
 
         if (
             self.exchange is not None
             and not queue.passive  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
-            exchange = await self.declarer.declare_exchange(self.exchange)
+            exchange = await self.declarer.declare_exchange(
+                self.exchange, channel=self.channel
+            )
 
             await queue.bind(
                 exchange,

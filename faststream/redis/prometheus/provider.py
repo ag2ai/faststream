@@ -47,7 +47,7 @@ class BatchRedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
         return {
             "destination_name": self._get_destination(msg.raw_message),
             "message_size": len(msg.body),
-            "messages_count": len(cast(Sized, msg._decoded_body)),
+            "messages_count": len(cast("Sized", msg._decoded_body)),
         }
 
 
