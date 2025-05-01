@@ -1069,6 +1069,7 @@ search:
                         - [AsyncAPIListBatchPublisher](api/faststream/redis/publisher/asyncapi/AsyncAPIListBatchPublisher.md)
                         - [AsyncAPIListPublisher](api/faststream/redis/publisher/asyncapi/AsyncAPIListPublisher.md)
                         - [AsyncAPIPublisher](api/faststream/redis/publisher/asyncapi/AsyncAPIPublisher.md)
+                        - [AsyncAPIStreamBatchPublisher](api/faststream/redis/publisher/asyncapi/AsyncAPIStreamBatchPublisher.md)
                         - [AsyncAPIStreamPublisher](api/faststream/redis/publisher/asyncapi/AsyncAPIStreamPublisher.md)
                     - producer
                         - [RedisFastProducer](api/faststream/redis/publisher/producer/RedisFastProducer.md)
@@ -1077,6 +1078,7 @@ search:
                         - [ListBatchPublisher](api/faststream/redis/publisher/usecase/ListBatchPublisher.md)
                         - [ListPublisher](api/faststream/redis/publisher/usecase/ListPublisher.md)
                         - [LogicPublisher](api/faststream/redis/publisher/usecase/LogicPublisher.md)
+                        - [StreamBatchPublisher](api/faststream/redis/publisher/usecase/StreamBatchPublisher.md)
                         - [StreamPublisher](api/faststream/redis/publisher/usecase/StreamPublisher.md)
                 - response
                     - [RedisResponse](api/faststream/redis/response/RedisResponse.md)
