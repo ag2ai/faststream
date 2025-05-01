@@ -197,7 +197,9 @@ class FakeProducer(RedisFastProducer):
     async def publish_batch(
         self,
         *msgs: "SendableMessage",
-        list: str,
+        list: Optional[str] = None,
+        stream: Optional[str] = None,
+        maxlen: Optional[int] = None,
         headers: Optional["AnyDict"] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
@@ -209,16 +211,31 @@ class FakeProducer(RedisFastProducer):
             )
             for m in msgs
         ]
-
-        visitor = ListVisitor()
+        destination = _make_destionation_kwargs(None, list, stream)
+        visitors = (ListVisitor(), StreamVisitor())
         for handler in self.broker._subscribers.values():  # pragma: no branch
-            if visitor.visit(list=list, sub=handler):
-                casted_handler = cast("_ListHandlerMixin", handler)
+            for visitor in visitors:
+                if visited_ch := visitor.visit(**destination, sub=handler):
+                    if hasattr(handler, "list_sub"):
+                        list_handler = cast("_ListHandlerMixin", handler)
+                        if list_handler.list_sub.batch:
+                            msg = visitor.get_message(
+                                visited_ch,
+                                data_to_send,
+                                list_handler,  # type: ignore[arg-type]
+                            )
 
-                if casted_handler.list_sub.batch:
-                    msg = visitor.get_message(list, data_to_send, casted_handler)
+                            await self._execute_handler(msg, handler)
+                    elif hasattr(handler, "stream_sub"):
+                        stream_handler = cast("_StreamHandlerMixin", handler)
+                        if stream_handler.stream_sub.batch:
+                            msg = visitor.get_message(
+                                visited_ch,
+                                data_to_send,
+                                stream_handler,  # type: ignore[arg-type]
+                            )
 
-                    await self._execute_handler(msg, handler)
+                            await self._execute_handler(msg, handler)
 
         return None
 

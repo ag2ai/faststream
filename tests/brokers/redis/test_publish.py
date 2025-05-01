@@ -109,6 +109,40 @@ class TestPublish(BrokerPublishTestcase):
         assert event.is_set()
         mock.assert_called_once_with([1, 2, 3])
 
+    async def test_batch_stream_publisher(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ):
+        pub_broker = self.get_broker()
+
+        batch_stream = StreamSub(queue + "resp", batch=True)
+
+        @pub_broker.subscriber(stream=queue)
+        @pub_broker.publisher(stream=batch_stream)
+        async def m(msg):
+            return 1, 2, 3
+
+        @pub_broker.subscriber(stream=batch_stream)
+        async def resp(msg):
+            event.set()
+            mock(msg)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", stream=queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with([1, 2, 3])
+
     async def test_publisher_with_maxlen(
         self,
         queue: str,

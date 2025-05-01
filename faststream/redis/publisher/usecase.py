@@ -768,3 +768,64 @@ class StreamPublisher(LogicPublisher):
             return await return_msg(parsed_msg)
 
         raise AssertionError("unreachable")
+
+
+class StreamBatchPublisher(StreamPublisher):
+    @override
+    async def publish(  # type: ignore[override]
+        self,
+        message: Annotated[
+            Iterable["SendableMessage"],
+            Doc("Message body to send."),
+        ] = (),
+        stream: Annotated[
+            Optional[str],
+            Doc("Redis Stream object name to send message."),
+        ] = None,
+        *,
+        correlation_id: Annotated[
+            Optional[str],
+            Doc("Has no real effect. Option to be compatible with original protocol."),
+        ] = None,
+        headers: Annotated[
+            Optional["AnyDict"],
+            Doc("Message headers to store metainformation."),
+        ] = None,
+        maxlen: Annotated[
+            Optional[int],
+            Doc(
+                "Redis Stream maxlen publish option. "
+                "Remove eldest message if maxlen exceeded."
+            ),
+        ] = None,
+        # publisher specific
+        _extra_middlewares: Annotated[
+            Iterable["PublisherMiddleware"],
+            Doc("Extra middlewares to wrap publishing process."),
+        ] = (),
+    ) -> None:
+        assert self._producer, NOT_CONNECTED_YET  # nosec B101
+
+        stream_sub = StreamSub.validate(stream or self.stream)
+        maxlen = maxlen or stream_sub.maxlen
+        correlation_id = correlation_id or gen_cor_id()
+
+        call: AsyncFunc = self._producer.publish_batch
+
+        for m in chain(
+            self._middlewares[::-1],
+            (
+                _extra_middlewares
+                or (m(None).publish_scope for m in self._broker_middlewares[::-1])
+            ),
+        ):
+            call = partial(m, call)
+
+        await call(
+            *message,
+            stream=stream_sub.name,
+            maxlen=maxlen,
+            # basic args
+            correlation_id=correlation_id,
+            headers=headers or self.headers,
+        )

@@ -190,7 +190,9 @@ class RedisFastProducer(ProducerProto):
     async def publish_batch(
         self,
         *msgs: "SendableMessage",
-        list: str,
+        list: Optional[str] = None,
+        stream: Optional[str] = None,
+        maxlen: Optional[int] = None,
         correlation_id: str,
         headers: Optional["AnyDict"] = None,
     ) -> None:
@@ -203,4 +205,16 @@ class RedisFastProducer(ProducerProto):
             )
             for msg in msgs
         )
-        await self._connection.rpush(list, *batch)
+        if list is not None:
+            await self._connection.rpush(list, *batch)
+        elif stream is not None:
+            async with self._connection.pipeline() as pipe:
+                for msg in batch:
+                    pipe.xadd(
+                        name=stream,
+                        fields={DATA_KEY: msg},
+                        maxlen=maxlen,
+                    )
+                await pipe.execute()
+        else:
+            raise AssertionError("unreachable")

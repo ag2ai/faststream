@@ -17,6 +17,7 @@ from faststream.redis.publisher.usecase import (
     ListBatchPublisher,
     ListPublisher,
     LogicPublisher,
+    StreamBatchPublisher,
     StreamPublisher,
 )
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
 PublisherType: TypeAlias = Union[
     "AsyncAPIChannelPublisher",
     "AsyncAPIStreamPublisher",
+    "AsyncAPIStreamBatchPublisher",
     "AsyncAPIListPublisher",
     "AsyncAPIListBatchPublisher",
 ]
@@ -94,19 +96,34 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
             )
 
         elif (stream := StreamSub.validate(stream)) is not None:
-            return AsyncAPIStreamPublisher(
-                stream=stream,
-                # basic args
-                headers=headers,
-                reply_to=reply_to,
-                broker_middlewares=broker_middlewares,
-                middlewares=middlewares,
-                # AsyncAPI args
-                title_=title_,
-                description_=description_,
-                schema_=schema_,
-                include_in_schema=include_in_schema,
-            )
+            if stream.batch:
+                return AsyncAPIStreamBatchPublisher(
+                    stream=stream,
+                    # basic args
+                    headers=headers,
+                    reply_to=reply_to,
+                    broker_middlewares=broker_middlewares,
+                    middlewares=middlewares,
+                    # AsyncAPI args
+                    title_=title_,
+                    description_=description_,
+                    schema_=schema_,
+                    include_in_schema=include_in_schema,
+                )
+            else:
+                return AsyncAPIStreamPublisher(
+                    stream=stream,
+                    # basic args
+                    headers=headers,
+                    reply_to=reply_to,
+                    broker_middlewares=broker_middlewares,
+                    middlewares=middlewares,
+                    # AsyncAPI args
+                    title_=title_,
+                    description_=description_,
+                    schema_=schema_,
+                    include_in_schema=include_in_schema,
+                )
 
         elif (list := ListSub.validate(list)) is not None:
             if list.batch:
@@ -176,7 +193,9 @@ class AsyncAPIListBatchPublisher(ListBatchPublisher, _ListPublisherMixin):
     pass
 
 
-class AsyncAPIStreamPublisher(StreamPublisher, AsyncAPIPublisher):
+class _AsyncAPIStreamMixin(AsyncAPIPublisher):
+    stream: "StreamSub"
+
     def get_name(self) -> str:
         return f"{self.stream.name}:Publisher"
 
@@ -186,3 +205,11 @@ class AsyncAPIStreamPublisher(StreamPublisher, AsyncAPIPublisher):
             channel=self.stream.name,
             method="xadd",
         )
+
+
+class AsyncAPIStreamPublisher(StreamPublisher, _AsyncAPIStreamMixin):
+    pass
+
+
+class AsyncAPIStreamBatchPublisher(StreamBatchPublisher, _AsyncAPIStreamMixin):
+    pass
