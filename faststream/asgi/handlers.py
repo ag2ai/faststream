@@ -13,9 +13,7 @@ def get(func: "UserApp", *, include_in_schema: bool = True) -> "ASGIApp": ...
 
 @overload
 def get(
-    func: None = None,
-    *,
-    include_in_schema: bool = True
+    func: None = None, *, include_in_schema: bool = True
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
