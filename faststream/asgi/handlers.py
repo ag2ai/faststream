@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
 class GetHandler:
-    def __init__(self, func: "UserApp", include_in_schema=True, description=None):
+    def __init__(self, func: "UserApp", include_in_schema: bool = True, description: Optional[str] = None):
         self.func = func
         self.include_in_schema = include_in_schema
         self.methods = ("GET", "HEAD")
@@ -27,7 +27,7 @@ class GetHandler:
         return
 
 @overload
-def get(func: "UserApp", *, include_in_schema: bool = True, description: str = None) -> "ASGIApp": ...
+def get(func: "UserApp", *, include_in_schema: bool = True, description: Optional[str] = None) -> "ASGIApp": ...
 
 
 @overload
@@ -35,12 +35,12 @@ def get(
     func: None = None,
     *,
     include_in_schema: bool = True,
-    description: str = None
+    description: Optional[str] = None
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
 def get(
-    func: Optional["UserApp"] = None, *, include_in_schema: bool = True, description: str = None
+    func: Optional["UserApp"] = None, *, include_in_schema: bool = True, description: Optional[str] = None
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
 
     if func is None:
