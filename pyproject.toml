@@ -74,7 +74,7 @@ confluent = [
 
 nats = ["nats-py>=2.7.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<6.0.0"]
+redis = ["redis>=5.0.0,<7.0.0"]
 
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
