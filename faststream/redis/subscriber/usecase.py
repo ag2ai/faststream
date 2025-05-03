@@ -449,6 +449,7 @@ class _ListHandlerMixin(LogicSubscriber):
         new_list.name = "".join((prefix, new_list.name))
         self.list_sub = new_list
 
+
 class ListSubscriber(_ListHandlerMixin):
     def __init__(
         self,
