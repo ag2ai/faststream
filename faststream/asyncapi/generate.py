@@ -156,7 +156,7 @@ def get_asgi_routes(
                     Route(
                         path=path,
                         methods=["GET", "HEAD"],
-                        description=asgi_app.__doc__,
+                        description=asgi_app.description,
                     )
                 )
 
