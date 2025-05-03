@@ -223,7 +223,7 @@ faststream run serve_faststream:app
 
 It is advisable to use FastStream's router to keep `serve_faststream.py` clean and to ensure `django.setup()` is always called first. See [FastStream Router](https://faststream.airt.ai/latest/getting-started/routers/) for more information.
 ## Start using Django's management command
-This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When managenment command runs, it automatically sets up Django and makes the ORM available.
+This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When management command runs, it automatically sets up Django and makes the ORM available.
 ```Python
 # serve_faststream.py
 import sys
