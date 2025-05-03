@@ -1,5 +1,4 @@
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence, Union, overload
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Union, overload
 
 from faststream.asgi.response import AsgiResponse
 

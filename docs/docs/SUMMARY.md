@@ -242,6 +242,7 @@ search:
                     - [make_asyncapi_asgi](api/faststream/asgi/factories/make_asyncapi_asgi.md)
                     - [make_ping_asgi](api/faststream/asgi/factories/make_ping_asgi.md)
                 - handlers
+                    - [GetHandler](api/faststream/asgi/handlers/GetHandler.md)
                     - [get](api/faststream/asgi/handlers/get.md)
                 - response
                     - [AsgiResponse](api/faststream/asgi/response/AsgiResponse.md)
