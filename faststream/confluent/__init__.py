@@ -9,9 +9,9 @@ try:
     from .testing import TestKafkaBroker
 
 except ImportError as e:
-    from faststream.exceptions import INSTALL_CONFLUENT_KAFKA
+    from faststream.exceptions import INSTALL_FASTSTREAM_CONFLUENT
 
-    raise ImportError(INSTALL_CONFLUENT_KAFKA) from e
+    raise ImportError(INSTALL_FASTSTREAM_CONFLUENT) from e
 
 __all__ = (
     "KafkaBroker",

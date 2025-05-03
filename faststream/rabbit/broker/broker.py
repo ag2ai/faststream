@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -378,6 +379,16 @@ class RabbitBroker(
 
             if ssl_context := security_args.get("ssl_context"):
                 kwargs["ssl_context"] = ssl_context
+
+        if kwargs:
+            warnings.warn(
+                "`RabbitBroker().connect(...) options were "
+                "deprecated in **FastStream 0.5.40**. "
+                "Please, use `RabbitBroker(...)` instead. "
+                "All these options will be removed in **FastStream 0.6.0**.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         connection = await super().connect(**kwargs)
 

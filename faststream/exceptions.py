@@ -140,7 +140,7 @@ To use Apache Kafka with FastStream, please install dependencies:\n
 pip install faststream[kafka]
 """
 
-INSTALL_CONFLUENT_KAFKA = """
+INSTALL_FASTSTREAM_CONFLUENT = """
 To use Confluent Kafka with FastStream, please install dependencies:\n
 pip install faststream[confluent]"""
 

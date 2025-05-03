@@ -264,14 +264,17 @@ class AsyncConfluentConsumer:
                 ]
             )
 
-
         config_from_params = {
             "allow.auto.create.topics": allow_auto_create_topics,
             "topic.metadata.refresh.interval.ms": 1000,
             "bootstrap.servers": bootstrap_servers,
             "client.id": client_id,
-            "group.id": config.config.get("group.id", group_id or "faststream-consumer-group"),
-            "group.instance.id": config.config.get("group.instance.id", group_instance_id),
+            "group.id": config.config.get(
+                "group.id", group_id or "faststream-consumer-group"
+            ),
+            "group.instance.id": config.config.get(
+                "group.instance.id", group_instance_id
+            ),
             "fetch.wait.max.ms": fetch_max_wait_ms,
             "fetch.max.bytes": fetch_max_bytes,
             "fetch.min.bytes": fetch_min_bytes,

@@ -9,9 +9,9 @@ try:
     from .testing import TestRedisBroker
 
 except ImportError as e:
-    from faststream.exceptions import INSTALL_REDIS
+    from faststream.exceptions import INSTALL_FASTSTREAM_REDIS
 
-    raise ImportError(INSTALL_REDIS) from e
+    raise ImportError(INSTALL_FASTSTREAM_REDIS) from e
 
 __all__ = (
     "ListSub",

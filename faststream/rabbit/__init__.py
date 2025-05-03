@@ -16,9 +16,9 @@ try:
     from .testing import TestRabbitBroker
 
 except ImportError as e:
-    from faststream.exceptions import INSTALL_RABBITMQ
+    from faststream.exceptions import INSTALL_FASTSTREAM_RABBIT
 
-    raise ImportError(INSTALL_RABBITMQ) from e
+    raise ImportError(INSTALL_FASTSTREAM_RABBIT) from e
 
 __all__ = (
     "Channel",
