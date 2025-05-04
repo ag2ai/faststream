@@ -22,7 +22,7 @@ class FakeChannelManager:
         return self.async_mock
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_declare_queue(async_mock, queue: str) -> None:
     declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
@@ -33,7 +33,7 @@ async def test_declare_queue(async_mock, queue: str) -> None:
     async_mock.declare_queue.assert_awaited_once()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_declare_exchange(async_mock, queue: str) -> None:
     declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
@@ -44,7 +44,7 @@ async def test_declare_exchange(async_mock, queue: str) -> None:
     async_mock.declare_exchange.assert_awaited_once()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_declare_nested_exchange_cash_nested(async_mock, queue: str) -> None:
     declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
@@ -57,7 +57,7 @@ async def test_declare_nested_exchange_cash_nested(async_mock, queue: str) -> No
     assert async_mock.declare_exchange.await_count == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_publisher_declare(async_mock, queue: str) -> None:
     declarer = RabbitDeclarer(FakeChannelManager(async_mock))
 
@@ -66,7 +66,7 @@ async def test_publisher_declare(async_mock, queue: str) -> None:
     broker.declarer = declarer
 
     @broker.publisher(queue, queue)
-    async def f(): ...
+    async def f() -> None: ...
 
     await broker.start()
 

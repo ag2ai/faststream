@@ -1,10 +1,14 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Callable
 
+import prometheus_client
 from nats.aio.msg import Msg
 
+from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
-from faststream.types import DecodedMessage
+from faststream.nats.opentelemetry import NatsTelemetryMiddleware
+from faststream.nats.prometheus import NatsPrometheusMiddleware
 
 
 def sync_decoder(msg: NatsMessage) -> DecodedMessage:
@@ -16,7 +20,8 @@ async def async_decoder(msg: NatsMessage) -> DecodedMessage:
 
 
 async def custom_decoder(
-    msg: NatsMessage, original: Callable[[NatsMessage], Awaitable[DecodedMessage]]
+    msg: NatsMessage,
+    original: Callable[[NatsMessage], Awaitable[DecodedMessage]],
 ) -> DecodedMessage:
     return await original(msg)
 
@@ -27,15 +32,16 @@ NatsBroker(decoder=custom_decoder)
 
 
 def sync_parser(msg: Msg) -> NatsMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def async_parser(msg: Msg) -> NatsMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
-    msg: Msg, original: Callable[[Msg], Awaitable[NatsMessage]]
+    msg: Msg,
+    original: Callable[[Msg], Awaitable[NatsMessage]],
 ) -> NatsMessage:
     return await original(msg)
 
@@ -198,7 +204,7 @@ NatsRouter(
             parser=custom_parser,
             decoder=custom_decoder,
         ),
-    )
+    ),
 )
 
 
@@ -264,3 +270,13 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = NatsTelemetryMiddleware()
+NatsBroker().add_middleware(otlp_middleware)
+NatsBroker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = NatsPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+NatsBroker().add_middleware(prometheus_middleware)
+NatsBroker(middlewares=[prometheus_middleware])

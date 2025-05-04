@@ -6,10 +6,11 @@ from opentelemetry.trace import TracerProvider
 from faststream.confluent.opentelemetry.provider import (
     telemetry_attributes_provider_factory,
 )
+from faststream.confluent.response import KafkaPublishCommand
 from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
-class KafkaTelemetryMiddleware(TelemetryMiddleware):
+class KafkaTelemetryMiddleware(TelemetryMiddleware[KafkaPublishCommand]):
     def __init__(
         self,
         *,

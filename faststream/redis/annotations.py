@@ -1,10 +1,12 @@
-from redis.asyncio.client import Redis as RedisClient
-from typing_extensions import Annotated
+from typing import Annotated
 
-from faststream.annotations import ContextRepo, Logger, NoCast
+from redis.asyncio.client import Redis as RedisClient
+
+from faststream._internal.context import Context
+from faststream.annotations import ContextRepo, Logger
+from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import UnifyRedisMessage
-from faststream.utils.context import Context
 
 __all__ = (
     "ContextRepo",

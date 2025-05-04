@@ -1,41 +1,41 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import anyio
 from typing_extensions import override
 
-from faststream.broker.publisher.proto import ProducerProto
-from faststream.broker.utils import resolve_custom_func
-from faststream.exceptions import WRONG_PUBLISH_ARGS, SetupError
+from faststream._internal.publisher.proto import ProducerProto
+from faststream._internal.subscriber.utils import resolve_custom_func
+from faststream._internal.utils.nuid import NUID
+from faststream.redis.helpers.state import (
+    ConnectedState,
+    ConnectionState,
+    EmptyConnectionState,
+)
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RawMessage, RedisPubSubParser
-from faststream.redis.schemas import INCORRECT_SETUP_MSG
-from faststream.utils.functions import timeout_scope
-from faststream.utils.nuid import NUID
+from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import PubSub, Redis
+    from redis.asyncio.client import Redis
 
-    from faststream.broker.types import (
+    from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
     )
-    from faststream.types import AnyDict, SendableMessage
 
 
 class RedisFastProducer(ProducerProto):
     """A class to represent a Redis producer."""
 
-    _connection: "Redis[bytes]"
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
 
     def __init__(
         self,
-        connection: "Redis[bytes]",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:
-        self._connection = connection
+        self._connection: ConnectionState = EmptyConnectionState()
 
         default = RedisPubSubParser()
         self._parser = resolve_custom_func(
@@ -47,136 +47,56 @@ class RedisFastProducer(ProducerProto):
             default.decode_message,
         )
 
+    def connect(self, client: "Redis[bytes]") -> None:
+        self._connection = ConnectedState(client)
+
+    def disconnect(self) -> None:
+        self._connection = EmptyConnectionState()
+
     @override
     async def publish(  # type: ignore[override]
         self,
-        message: "SendableMessage",
-        *,
-        correlation_id: str,
-        channel: Optional[str] = None,
-        list: Optional[str] = None,
-        stream: Optional[str] = None,
-        maxlen: Optional[int] = None,
-        headers: Optional["AnyDict"] = None,
-        reply_to: str = "",
-        rpc: bool = False,
-        rpc_timeout: Optional[float] = 30.0,
-        raise_timeout: bool = False,
-    ) -> Optional[Any]:
-        if not any((channel, list, stream)):
-            raise SetupError(INCORRECT_SETUP_MSG)
-
-        psub: Optional[PubSub] = None
-        if rpc:
-            if reply_to:
-                raise WRONG_PUBLISH_ARGS
-            nuid = NUID()
-            rpc_nuid = str(nuid.next(), "utf-8")
-            reply_to = rpc_nuid
-            psub = self._connection.pubsub()
-            await psub.subscribe(reply_to)
-
+        cmd: "RedisPublishCommand",
+    ) -> Union[int, bytes]:
         msg = RawMessage.encode(
-            message=message,
-            reply_to=reply_to,
-            headers=headers,
-            correlation_id=correlation_id,
+            message=cmd.body,
+            reply_to=cmd.reply_to,
+            headers=cmd.headers,
+            correlation_id=cmd.correlation_id or "",
         )
 
-        if channel is not None:
-            await self._connection.publish(channel, msg)
-        elif list is not None:
-            await self._connection.rpush(list, msg)
-        elif stream is not None:
-            await self._connection.xadd(
-                name=stream,
-                fields={DATA_KEY: msg},
-                maxlen=maxlen,
-            )
-        else:
-            raise AssertionError("unreachable")
-
-        if psub is None:
-            return None
-
-        else:
-            m = None
-            with timeout_scope(rpc_timeout, raise_timeout):
-                # skip subscribe message
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=rpc_timeout or 0.0,
-                )
-
-                # get real response
-                m = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=rpc_timeout or 0.0,
-                )
-
-            await psub.unsubscribe()
-            await psub.aclose()  # type: ignore[attr-defined]
-
-            if m is None:
-                if raise_timeout:
-                    raise TimeoutError()
-                else:
-                    return None
-            else:
-                return await self._decoder(await self._parser(m))
+        return await self.__publish(msg, cmd)
 
     @override
     async def request(  # type: ignore[override]
         self,
-        message: "SendableMessage",
-        *,
-        correlation_id: str,
-        channel: Optional[str] = None,
-        list: Optional[str] = None,
-        stream: Optional[str] = None,
-        maxlen: Optional[int] = None,
-        headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        cmd: "RedisPublishCommand",
     ) -> "Any":
-        if not any((channel, list, stream)):
-            raise SetupError(INCORRECT_SETUP_MSG)
-
         nuid = NUID()
         reply_to = str(nuid.next(), "utf-8")
-        psub = self._connection.pubsub()
+        psub = self._connection.client.pubsub()
         await psub.subscribe(reply_to)
 
         msg = RawMessage.encode(
-            message=message,
+            message=cmd.body,
             reply_to=reply_to,
-            headers=headers,
-            correlation_id=correlation_id,
+            headers=cmd.headers,
+            correlation_id=cmd.correlation_id or "",
         )
 
-        if channel is not None:
-            await self._connection.publish(channel, msg)
-        elif list is not None:
-            await self._connection.rpush(list, msg)
-        elif stream is not None:
-            await self._connection.xadd(
-                name=stream,
-                fields={DATA_KEY: msg},
-                maxlen=maxlen,
-            )
-        else:
-            raise AssertionError("unreachable")
+        await self.__publish(msg, cmd)
 
-        with anyio.fail_after(timeout) as scope:
+        with anyio.fail_after(cmd.timeout) as scope:
             # skip subscribe message
             await psub.get_message(
                 ignore_subscribe_messages=True,
-                timeout=timeout or 0.0,
+                timeout=cmd.timeout or 0.0,
             )
 
             # get real response
             response_msg = await psub.get_message(
                 ignore_subscribe_messages=True,
-                timeout=timeout or 0.0,
+                timeout=cmd.timeout or 0.0,
             )
 
         await psub.unsubscribe()
@@ -187,20 +107,40 @@ class RedisFastProducer(ProducerProto):
 
         return response_msg
 
+    @override
     async def publish_batch(
         self,
-        *msgs: "SendableMessage",
-        list: str,
-        correlation_id: str,
-        headers: Optional["AnyDict"] = None,
-    ) -> None:
-        batch = (
+        cmd: "RedisPublishCommand",
+    ) -> int:
+        batch = [
             RawMessage.encode(
                 message=msg,
-                correlation_id=correlation_id,
-                reply_to=None,
-                headers=headers,
+                correlation_id=cmd.correlation_id or "",
+                reply_to=cmd.reply_to,
+                headers=cmd.headers,
             )
-            for msg in msgs
-        )
-        await self._connection.rpush(list, *batch)
+            for msg in cmd.batch_bodies
+        ]
+        return await self._connection.client.rpush(cmd.destination, *batch)
+
+    async def __publish(
+        self, msg: bytes, cmd: "RedisPublishCommand"
+    ) -> Union[int, bytes]:
+        if cmd.destination_type is DestinationType.Channel:
+            return await self._connection.client.publish(cmd.destination, msg)
+
+        if cmd.destination_type is DestinationType.List:
+            return await self._connection.client.rpush(cmd.destination, msg)
+
+        if cmd.destination_type is DestinationType.Stream:
+            return cast(
+                "bytes",
+                await self._connection.client.xadd(
+                    name=cmd.destination,
+                    fields={DATA_KEY: msg},
+                    maxlen=cmd.maxlen,
+                ),
+            )
+
+        error_msg = "unreachable"
+        raise AssertionError(error_msg)

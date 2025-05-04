@@ -5,13 +5,15 @@ from faststream.rabbit import RabbitBroker
 broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 app = FastStream(broker)
 
+subscriber = broker.subscriber("test-queue")
 
-@broker.subscriber("test-queue", filter=lambda m: m.content_type == "application/json")
+
+@subscriber(filter=lambda m: m.content_type == "application/json")
 async def handle_json(msg, logger: Logger):
     logger.info("JSON message: %s", msg)
 
 
-@broker.subscriber("test-queue")
+@subscriber
 async def handle_other_messages(msg, logger: Logger):
     logger.info("Default message: %s", msg)
 

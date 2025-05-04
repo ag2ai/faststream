@@ -1,6 +1,6 @@
 import ssl
 from asyncio import AbstractEventLoop
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 from aiokafka.abc import AbstractTokenProvider
 from typing_extensions import TypedDict
@@ -25,7 +25,7 @@ class ConsumerConnectionParams(TypedDict, total=False):
         sasl_kerberos_service_name : The service
     """
 
-    bootstrap_servers: Union[str, List[str]]
+    bootstrap_servers: Union[str, list[str]]
     loop: Optional[AbstractEventLoop]
     client_id: str
     request_timeout_ms: int

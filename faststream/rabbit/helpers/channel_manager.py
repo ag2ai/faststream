@@ -1,9 +1,11 @@
 from typing import TYPE_CHECKING, Dict, Optional, cast
 
+from faststream.rabbit.schemas import Channel
+
+from .state import ConnectedState, ConnectionState, EmptyConnectionState
+
 if TYPE_CHECKING:
     import aio_pika
-
-    from faststream.rabbit.schemas import Channel
 
 
 class ChannelManager:
@@ -11,13 +13,20 @@ class ChannelManager:
 
     def __init__(
         self,
-        connection: "aio_pika.RobustConnection",
-        *,
-        default_channel: "Channel",
+        default_channel: Optional["Channel"] = None,
     ) -> None:
-        self.__connection = connection
-        self.__default_channel = default_channel
+        self.__connection: ConnectionState = EmptyConnectionState()
+
+        self.__default_channel = default_channel or Channel()
+
         self.__channels: Dict[Channel, aio_pika.RobustChannel] = {}
+
+    def connect(self, connection: "aio_pika.RobustConnection") -> None:
+        self.__connection = ConnectedState(connection)
+
+    def disconnect(self) -> None:
+        self.__connection = EmptyConnectionState()
+        self.__channels.clear()
 
     async def get_channel(
         self,
@@ -30,7 +39,7 @@ class ChannelManager:
         if (ch := self.__channels.get(channel)) is None:
             self.__channels[channel] = ch = cast(
                 "aio_pika.RobustChannel",
-                await self.__connection.channel(
+                await self.__connection.connection.channel(
                     channel_number=channel.channel_number,
                     publisher_confirms=channel.publisher_confirms,
                     on_return_raises=channel.on_return_raises,

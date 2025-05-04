@@ -1,4 +1,8 @@
-from typing import TYPE_CHECKING, Dict, Optional, cast
+from typing import TYPE_CHECKING, Annotated, Optional, cast
+
+from typing_extensions import deprecated
+
+from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
     import aio_pika
@@ -13,20 +17,37 @@ class RabbitDeclarer:
 
     __slots__ = ("__channel_manager", "__exchanges", "__queues")
 
-    def __init__(self, channel_manage: "ChannelManager") -> None:
-        self.__channel_manager = channel_manage
-        self.__queues: Dict[RabbitQueue, aio_pika.RobustQueue] = {}
-        self.__exchanges: Dict[RabbitExchange, aio_pika.RobustExchange] = {}
+    def __init__(self, channel_manager: "ChannelManager") -> None:
+        self.__channel_manager = channel_manager
+        self.__queues: dict[RabbitQueue, aio_pika.RobustQueue] = {}
+        self.__exchanges: dict[RabbitExchange, aio_pika.RobustExchange] = {}
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(queues={list(self.__queues.keys())}, exchanges={list(self.__exchanges.keys())})"
+
+    def disconnect(self) -> None:
+        self.__queues.clear()
+        self.__exchanges.clear()
 
     async def declare_queue(
         self,
         queue: "RabbitQueue",
-        passive: bool = False,
+        declare: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.7.0 release."),
+        ] = EMPTY,
         *,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
         """Declare a queue."""
         if (q := self.__queues.get(queue)) is None:
+            if passive is not EMPTY:
+                declare = not passive
+
+            elif declare is EMPTY:
+                declare = queue.declare
+
             channel_obj = await self.__channel_manager.get_channel(channel)
 
             self.__queues[queue] = q = cast(
@@ -35,7 +56,7 @@ class RabbitDeclarer:
                     name=queue.name,
                     durable=queue.durable,
                     exclusive=queue.exclusive,
-                    passive=passive or queue.passive,
+                    passive=not declare,
                     auto_delete=queue.auto_delete,
                     arguments=queue.arguments,
                     timeout=queue.timeout,
@@ -48,7 +69,11 @@ class RabbitDeclarer:
     async def declare_exchange(
         self,
         exchange: "RabbitExchange",
-        passive: bool = False,
+        declare: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.7.0 release."),
+        ] = EMPTY,
         *,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustExchange":
@@ -59,6 +84,12 @@ class RabbitDeclarer:
             return channel_obj.default_exchange
 
         if (exch := self.__exchanges.get(exchange)) is None:
+            if passive is not EMPTY:
+                declare = not passive
+
+            elif declare is EMPTY:
+                declare = exchange.declare
+
             self.__exchanges[exchange] = exch = cast(
                 "aio_pika.RobustExchange",
                 await channel_obj.declare_exchange(
@@ -66,7 +97,7 @@ class RabbitDeclarer:
                     type=exchange.type.value,
                     durable=exchange.durable,
                     auto_delete=exchange.auto_delete,
-                    passive=passive or exchange.passive,
+                    passive=not declare,
                     arguments=exchange.arguments,
                     timeout=exchange.timeout,
                     robust=exchange.robust,

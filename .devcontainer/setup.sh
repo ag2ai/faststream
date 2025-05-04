@@ -1,8 +1,8 @@
 # Update pip
-pip install --upgrade pip
+pip install uv
 
 # Install dev packages
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Install pre-commit hooks if not installed already
 pre-commit install

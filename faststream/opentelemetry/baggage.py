@@ -1,12 +1,12 @@
-from typing import TYPE_CHECKING, Any, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from opentelemetry import baggage, context
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from faststream.broker.message import StreamMessage
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
+    from faststream.message import StreamMessage
 
 _BAGGAGE_PROPAGATOR = W3CBaggagePropagator()
 
@@ -15,7 +15,9 @@ class Baggage:
     __slots__ = ("_baggage", "_batch_baggage")
 
     def __init__(
-        self, payload: "AnyDict", batch_payload: Optional[List["AnyDict"]] = None
+        self,
+        payload: "AnyDict",
+        batch_payload: Optional[list["AnyDict"]] = None,
     ) -> None:
         self._baggage = dict(payload)
         self._batch_baggage = [dict(b) for b in batch_payload] if batch_payload else []
@@ -24,7 +26,7 @@ class Baggage:
         """Get a copy of the current baggage."""
         return self._baggage.copy()
 
-    def get_all_batch(self) -> List["AnyDict"]:
+    def get_all_batch(self) -> list["AnyDict"]:
         """Get a copy of all batch baggage if exists."""
         return self._batch_baggage.copy()
 
@@ -60,11 +62,10 @@ class Baggage:
     def from_msg(cls, msg: "StreamMessage[Any]") -> Self:
         """Create a Baggage instance from a StreamMessage."""
         if len(msg.batch_headers) <= 1:
-            payload = baggage.get_all(_BAGGAGE_PROPAGATOR.extract(msg.headers))
-            return cls(cast("AnyDict", payload))
+            return cls.from_headers(msg.headers)
 
         cumulative_baggage: AnyDict = {}
-        batch_baggage: List[AnyDict] = []
+        batch_baggage: list[AnyDict] = []
 
         for headers in msg.batch_headers:
             payload = baggage.get_all(_BAGGAGE_PROPAGATOR.extract(headers))

@@ -4,19 +4,16 @@ from unittest.mock import Mock
 import pytest
 
 from faststream import Context
-from faststream.confluent import KafkaBroker, KafkaResponse
+from faststream.confluent import KafkaResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import ConfluentTestcaseConfig
 
 
-@pytest.mark.confluent
+@pytest.mark.confluent()
 class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
-    def get_broker(self, apply_types: bool = False):
-        return KafkaBroker(apply_types=apply_types)
-
-    @pytest.mark.asyncio
-    async def test_publish_batch(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
@@ -24,7 +21,7 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -42,8 +39,8 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
-    async def test_batch_publisher_manual(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_manual(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
@@ -51,7 +48,7 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         publisher = pub_broker.publisher(queue, batch=True)
@@ -71,8 +68,8 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
-    async def test_batch_publisher_decorator(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_decorator(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
@@ -80,7 +77,7 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
@@ -105,13 +102,14 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: Mock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -124,7 +122,7 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def handle_next(msg=Context("message")):
+        async def handle_next(msg=Context("message")) -> None:
             mock(body=msg.body)
             event.set()
 

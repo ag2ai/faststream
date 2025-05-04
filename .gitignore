@@ -16,6 +16,7 @@ venv*
 htmlcov
 token
 .DS_Store
+*.egg-info
 
 docs/site/
 docs/site_build/

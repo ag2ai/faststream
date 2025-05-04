@@ -4,24 +4,24 @@ from unittest.mock import Mock
 import pytest
 
 from faststream import Context
-from faststream.nats import NatsBroker, NatsResponse
+from faststream.nats import NatsResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
 
+from .basic import NatsTestcaseConfig
 
-@pytest.mark.nats
-class TestPublish(BrokerPublishTestcase):
+
+@pytest.mark.nats()
+class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
     """Test publish method of NATS broker."""
 
-    def get_broker(self, apply_types: bool = False) -> NatsBroker:
-        return NatsBroker(apply_types=apply_types)
-
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: Mock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -30,7 +30,7 @@ class TestPublish(BrokerPublishTestcase):
             return NatsResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(queue + "1")
-        async def handle_next(msg=Context("message")):
+        async def handle_next(msg=Context("message")) -> None:
             mock(
                 body=msg.body,
                 correlation_id=msg.correlation_id,
@@ -54,12 +54,11 @@ class TestPublish(BrokerPublishTestcase):
             correlation_id="1",
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response_for_rpc(
         self,
         queue: str,
-        event: asyncio.Event,
-    ):
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -70,8 +69,8 @@ class TestPublish(BrokerPublishTestcase):
             await br.start()
 
             response = await asyncio.wait_for(
-                br.publish("", queue, rpc=True),
+                br.request("", queue),
                 timeout=3,
             )
 
-            assert response == "Hi!", response
+            assert await response.decode() == "Hi!", response

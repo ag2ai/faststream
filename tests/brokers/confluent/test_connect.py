@@ -4,7 +4,7 @@ from faststream.confluent import KafkaBroker, config
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
 
-def test_correct_config():
+def test_correct_config() -> None:
     broker = KafkaBroker(
         config={
             "compression.codec": config.CompressionCodec.none,
@@ -18,7 +18,7 @@ def test_correct_config():
             "builtin.features": config.BuiltinFeatures.gzip,
             "debug": config.Debug.broker,
             "group.protocol": config.GroupProtocol.classic,
-        }
+        },
     )
 
     assert broker.config.as_config_dict() == {
@@ -36,7 +36,7 @@ def test_correct_config():
     }
 
 
-@pytest.mark.confluent
+@pytest.mark.confluent()
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker
 

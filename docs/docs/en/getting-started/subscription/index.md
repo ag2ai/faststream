@@ -206,7 +206,7 @@ This way **FastStream** still consumes `#!python json.loads` result, but without
 
 !!! warning
     Setting the `apply_types=False` flag not only disables type casting but also `Depends` and `Context`.
-    If you want to disable only type casting, use `validate=False` instead.
+    If you want to disable only type casting, use `serializer=None` instead.
 
 ## Multiple Subscriptions
 

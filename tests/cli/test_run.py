@@ -1,200 +1,175 @@
 import logging
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
+from dirty_equals import IsPartialDict
 from typer.testing import CliRunner
 
-from faststream._internal.application import Application
-from faststream.app import FastStream
-from faststream.asgi import AsgiFastStream
-from faststream.cli.main import cli as faststream_app
-from faststream.cli.utils.logs import get_log_level
+from faststream import FastStream
+from faststream._internal.cli.main import cli as faststream_app
 
-
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
+IMPORT_FUNCTION_MOCK_PATH = (
+    "faststream._internal.cli.utils.imports._import_object_or_factory"
 )
-def test_run(runner: CliRunner, app: Application):
+
+
+def test_run(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
     app.run = AsyncMock()
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory", return_value=(None, app)
-    ):
+    with patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app)):
         result = runner.invoke(
             faststream_app,
             [
                 "run",
                 "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-            ],
-        )
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
-        assert result.exit_code == 0
-
-
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_with_single_worker(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
-
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory", return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
+                "--extra",
                 "1",
             ],
         )
+
+        assert result.exit_code == 0
+
         app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
+            logging.INFO,
+            {"extra": "1"},
         )
-        assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("workers", [3, 5, 7])
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_with_many_workers(
-    runner: CliRunner, workers: int, app: Application
-):
-    asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
-    _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
+def test_run_factory(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
+    app.run = AsyncMock()
+    app_factory = MagicMock(return_value=app)
 
-    with patch(asgi_multiprocess) as asgi_runner, patch(
-        _import_obj_or_factory, return_value=(None, app)
-    ):
+    with patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app_factory)):
         result = runner.invoke(
             faststream_app,
             [
                 "run",
                 "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
-                str(workers),
+                "-f",
             ],
         )
+
         assert result.exit_code == 0
 
-        asgi_runner.assert_called_once()
-        asgi_runner.assert_called_once_with(
-            target="faststream:app",
-            args=("faststream:app", {"host": "0.0.0.0", "port": "8000"}, False, 0),
-            workers=workers,
-        )
-        asgi_runner().run.assert_called_once()
+        app_factory.assert_called_once()
+        app.run.assert_awaited_once()
 
 
-@pytest.mark.parametrize(
-    "log_level",
-    ["critical", "fatal", "error", "warning", "warn", "info", "debug", "notset"],
-)
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_mp_with_log_level(
-    runner: CliRunner, app: Application, log_level: str
-):
-    asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
-    _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
-
-    with patch(asgi_multiprocess) as asgi_runner, patch(
-        _import_obj_or_factory, return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
-                "3",
-                "--log-level",
-                log_level,
-            ],
-        )
-        assert result.exit_code == 0
-
-        asgi_runner.assert_called_once()
-        asgi_runner.assert_called_once_with(
-            target="faststream:app",
-            args=(
-                "faststream:app",
-                {"host": "0.0.0.0", "port": "8000"},
-                False,
-                get_log_level(log_level),
-            ),
-            workers=3,
-        )
-        asgi_runner().run.assert_called_once()
-
-
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run_as_factory(runner: CliRunner, app: Application):
+def test_run_workers(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
     app.run = AsyncMock()
 
-    app_factory = Mock(return_value=app)
-
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory",
-        return_value=(None, app_factory),
+    with (
+        patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app)),
+        patch(
+            "faststream._internal.cli.supervisors.multiprocess.Multiprocess",
+        ) as mock,
     ):
+        app_str = "faststream:app"
         result = runner.invoke(
             faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--factory",
-            ],
+            ["run", app_str, "-w", "2"],
         )
-        app_factory.assert_called()
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
+
         assert result.exit_code == 0
 
+        assert mock.call_args.kwargs == IsPartialDict({
+            "args": (app_str, {}, False, logging.NOTSET, logging.DEBUG),
+            "workers": 2,
+        })
 
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
+
+def test_run_factory_with_workers(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
+    app.run = AsyncMock()
+    app_factory = MagicMock(return_value=app)
+
+    with (
+        patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app_factory)),
+        patch(
+            "faststream._internal.cli.supervisors.multiprocess.Multiprocess",
+        ) as mock,
+    ):
+        app_str = "faststream:app"
+        result = runner.invoke(
+            faststream_app,
+            ["run", app_str, "-f", "-w", "2"],
+        )
+
+        assert result.exit_code == 0
+
+        assert mock.call_args.kwargs == IsPartialDict({
+            "args": (app_str, {}, True, logging.NOTSET, logging.DEBUG),
+            "workers": 2,
+        })
+
+
+def test_run_reloader(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
     app.run = AsyncMock()
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory",
-        return_value=(None, app),
+    with (
+        patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app)),
+        patch(
+            "faststream._internal.cli.supervisors.watchfiles.WatchReloader",
+        ) as mock,
     ):
+        app_str = "faststream:app"
+
         result = runner.invoke(
             faststream_app,
             [
                 "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--factory",
+                app_str,
+                "-r",
+                "--app-dir",
+                "test",
+                "--extension",
+                "yaml",
             ],
         )
-        app.run.assert_not_called()
-        assert result.exit_code != 0
+
+        assert result.exit_code == 0
+
+        assert mock.call_args.kwargs == IsPartialDict({
+            "args": (app_str, {}, False, logging.NOTSET),
+            "reload_dirs": ["test"],
+            "extra_extensions": ["yaml"],
+        })
+
+
+def test_run_reloader_with_factory(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
+    app.run = AsyncMock()
+    app_factory = MagicMock(return_value=app)
+
+    with (
+        patch(IMPORT_FUNCTION_MOCK_PATH, return_value=(None, app_factory)),
+        patch(
+            "faststream._internal.cli.supervisors.watchfiles.WatchReloader",
+        ) as mock,
+    ):
+        app_str = "faststream:app"
+
+        result = runner.invoke(
+            faststream_app,
+            [
+                "run",
+                app_str,
+                "-f",
+                "-r",
+                "--app-dir",
+                "test",
+                "--extension",
+                "yaml",
+            ],
+        )
+
+        assert result.exit_code == 0
+
+        assert mock.call_args.kwargs == IsPartialDict({
+            "args": (app_str, {}, True, logging.NOTSET),
+            "reload_dirs": ["test"],
+            "extra_extensions": ["yaml"],
+        })

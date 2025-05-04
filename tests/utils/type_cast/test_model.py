@@ -1,9 +1,7 @@
-from typing import Tuple
-
 import pytest
 from pydantic import BaseModel
 
-from faststream.utils import apply_types
+from faststream._internal.utils import apply_types
 
 
 class Base(BaseModel):
@@ -11,11 +9,11 @@ class Base(BaseModel):
 
 
 @apply_types
-def cast_model(t: Base) -> Tuple[bool, Base]:
+def cast_model(t: Base) -> tuple[bool, Base]:
     return isinstance(t, Base), t
 
 
-def test_model():
+def test_model() -> None:
     is_casted, m = cast_model({"field": 1})
     assert is_casted, m.field == (True, 1)
 

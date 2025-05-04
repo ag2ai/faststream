@@ -1,6 +1,6 @@
 from typing import Optional
 
-from faststream.broker.schemas import NameRequired
+from faststream._internal.proto import NameRequired
 
 
 class KvWatch(NameRequired):
@@ -50,6 +50,3 @@ class KvWatch(NameRequired):
         self.timeout = timeout
 
         self.declare = declare
-
-    def __hash__(self) -> int:
-        return hash(self.name)

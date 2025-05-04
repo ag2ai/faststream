@@ -1,0 +1,165 @@
+# Configuration file example:  https://docs.astral.sh/ruff/configuration/
+# All settings:                https://docs.astral.sh/ruff/settings/
+
+fix = true
+preview = true
+
+line-length = 88
+indent-width = 4
+
+target-version = "py39"
+
+include = [
+    "faststream/**/*.py",
+    "faststream/**/*.pyi",
+    "tests/**/*.py",
+    "docs/**/*.py",
+    "pyproject.toml",
+]
+
+exclude = [
+    "docs/docs_src"
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = false
+
+[lint]
+select = [
+    "ALL",
+]
+
+ignore = [
+    "A",
+    "FA",
+    "TD",
+    "FIX",
+    "SLOT",
+    "ARG",
+    "EXE",
+
+    "ASYNC109",
+    "ANN401",
+    "COM812",
+    "ISC001",
+    "TRY301",
+    "S101",
+    "SLF001",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR2004",
+    "PYI036",
+    "PYI051",
+    "G004",
+
+    "E501",     # line too long, handled by formatter later
+    "C901",     # too complex
+
+    # preview
+    "CPY",
+    "PLC0415",
+    "PLC2701",  # FIXME
+    "PLC2801",
+    "PLR6301",
+    "PLW1641",
+    "RUF029",
+
+    # pep8-naming
+    "N817",     # CamelCase `*` imported as acronym `*`
+
+    # FIXME pydocstyle
+    "D100",     # missing docstring in public module
+    "D101",
+    "D102",
+    "D103",
+    "D104",     # missing docstring in public package
+    "D105",     # missing docstring in magic methods
+    "D106",     # missing docstring in public nested class
+    "D107",     # missing docstring in __init__
+    "DOC201",
+    "DOC202",
+    "DOC402",
+    "DOC501",
+    "DOC502",
+
+    "FBT", # FIXME
+    "PLW2901", # FIXME
+    "BLE001", # FIXME
+    "S110", # FIXME
+    "PLR0917"  # FIXME
+]
+
+[lint.per-file-ignores]
+"faststream/specification/**/*.py" = [
+    "ERA001",
+    "N815",     # Variable `*` in class scope should not be mixedCase
+]
+
+# FIXME
+# "faststream/specification/asyncapi/**/*.py" = [
+#     "ERA001",
+#     "N815",     # Variable `*` in class scope should not be mixedCase
+# ]
+
+"**/fastapi/**/*.py" = [
+    "N803",     # Argument name `expandMessageExamples` should be lowercase
+]
+
+"**/_compat.py" = [
+    "PYI063",
+    "PLW3201",
+]
+
+"tests/**/*.py" = [
+    "ANN",  # FIXME
+    "S",
+    "PLR0904",
+    "PLR0914",
+    "PLC1901",
+]
+
+"docs/*.py" = [
+    "ALL",      # FIXME
+]
+
+[lint.isort]
+case-sensitive = true
+combine-as-imports = true
+force-wrap-aliases = true
+
+[lint.pydocstyle]
+convention = "google"
+ignore-decorators = ["typing.overload"]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = [
+    "faststream.Header",
+    "faststream.Path",
+    "faststream.Depends",
+    "faststream.Context",
+    "faststream.Depends",
+    "faststream.params.Header",
+    "faststream.params.Path",
+    "faststream.params.Depends",
+    "faststream.params.Context",
+    "faststream.params.Depends",
+    "faststream._internal.fastapi.context.Context",
+    "typer.Argument",
+    "typer.Option",
+    "pydantic.Field",
+    "rocketry.args.Arg",
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.datastructures.Default",
+    "kafka.partitioner.default.DefaultPartitioner",
+]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "tuple"
+parametrize-values-type = "tuple"
+parametrize-values-row-type = "tuple"

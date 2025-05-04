@@ -4,11 +4,11 @@ import anyio
 import pytest
 from anyio.abc import TaskStatus
 
-from faststream.broker.utils import MultiLock
+from faststream._internal.subscriber.utils import MultiLock
 
 
-@pytest.mark.asyncio
-async def test_base():
+@pytest.mark.asyncio()
+async def test_base() -> None:
     lock = MultiLock()
 
     with lock:
@@ -26,15 +26,15 @@ async def test_base():
     assert lock.qsize == 0
 
 
-@pytest.mark.asyncio
-async def test_wait_correct():
+@pytest.mark.asyncio()
+async def test_wait_correct() -> None:
     lock = MultiLock()
 
-    async def func():
+    async def func() -> None:
         with lock:
             await asyncio.sleep(0.01)
 
-    async def check(task_status: TaskStatus):
+    async def check(task_status: TaskStatus) -> None:
         task_status.started()
 
         assert not lock.empty
@@ -50,15 +50,15 @@ async def test_wait_correct():
         await tg.start(check)
 
 
-@pytest.mark.asyncio
-async def test_nowait_correct():
+@pytest.mark.asyncio()
+async def test_nowait_correct() -> None:
     lock = MultiLock()
 
-    async def func():
+    async def func() -> None:
         with lock:
             await asyncio.sleep(0.01)
 
-    async def check(task_status: TaskStatus):
+    async def check(task_status: TaskStatus) -> None:
         task_status.started()
 
         assert not lock.empty

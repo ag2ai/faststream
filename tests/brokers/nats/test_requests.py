@@ -1,31 +1,26 @@
 import pytest
 
 from faststream import BaseMiddleware
-from faststream.nats import NatsBroker, NatsRouter, TestNatsBroker
 from tests.brokers.base.requests import RequestsTestcase
+
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
-        self.msg.data = self.msg.data * 2
+        self.msg.data *= 2
 
     async def consume_scope(self, call_next, msg):
-        msg._decoded_body = msg._decoded_body * 2
+        msg.body *= 2
         return await call_next(msg)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class NatsRequestsTestcase(RequestsTestcase):
     def get_middleware(self, **kwargs):
         return Mid
 
-    def get_broker(self, **kwargs):
-        return NatsBroker(**kwargs)
-
-    def get_router(self, **kwargs):
-        return NatsRouter(**kwargs)
-
-    async def test_broker_stream_request(self, queue: str):
+    async def test_broker_stream_request(self, queue: str) -> None:
         broker = self.get_broker()
 
         stream_name = f"{queue}st"
@@ -33,7 +28,7 @@ class NatsRequestsTestcase(RequestsTestcase):
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -50,7 +45,7 @@ class NatsRequestsTestcase(RequestsTestcase):
         assert await response.decode() == "Response"
         assert response.correlation_id == "1"
 
-    async def test_publisher_stream_request(self, queue: str):
+    async def test_publisher_stream_request(self, queue: str) -> None:
         broker = self.get_broker()
 
         stream_name = f"{queue}st"
@@ -59,7 +54,7 @@ class NatsRequestsTestcase(RequestsTestcase):
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -75,11 +70,10 @@ class NatsRequestsTestcase(RequestsTestcase):
         assert response.correlation_id == "1"
 
 
-@pytest.mark.nats
-class TestRealRequests(NatsRequestsTestcase):
+@pytest.mark.nats()
+class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
     pass
 
 
-class TestRequestTestClient(NatsRequestsTestcase):
-    def patch_broker(self, broker, **kwargs):
-        return TestNatsBroker(broker, **kwargs)
+class TestRequestTestClient(NatsMemoryTestcaseConfig, NatsRequestsTestcase):
+    pass

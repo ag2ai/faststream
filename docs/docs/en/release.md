@@ -192,7 +192,7 @@ Also, thanks to [@Sehat1137](https://github.com/Sehat1137){.external-link target
 Well, you (community) made a new breathtaken release for us!
 Thanks to all of this release contributors.
 
-Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"}. He promores a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
+Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} . He promotes a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
 
 ```python
 from faststream.kafka import KafkaBroker

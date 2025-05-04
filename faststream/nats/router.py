@@ -1,36 +1,39 @@
+from collections.abc import Awaitable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
-    Awaitable,
     Callable,
-    Dict,
-    Iterable,
     Optional,
-    Sequence,
     Union,
 )
 
 from nats.js import api
-from typing_extensions import Annotated, Doc, deprecated
+from typing_extensions import Doc, deprecated
 
-from faststream.broker.router import ArgsContainer, BrokerRouter, SubscriberRoute
-from faststream.broker.utils import default_filter
+from faststream._internal.broker.router import (
+    ArgsContainer,
+    BrokerRouter,
+    SubscriberRoute,
+)
+from faststream._internal.constants import EMPTY
+from faststream.middlewares import AckPolicy
 from faststream.nats.broker.registrator import NatsRegistrator
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Depends
+    from fast_depends.dependencies import Dependant
     from nats.aio.msg import Msg
 
-    from faststream.broker.types import (
+    from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.nats.message import NatsBatchMessage, NatsMessage
+    from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
-    from faststream.types import SendableMessage
 
 
 class NatsPublisher(ArgsContainer):
@@ -47,11 +50,11 @@ class NatsPublisher(ArgsContainer):
         ],
         *,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -63,7 +66,7 @@ class NatsPublisher(ArgsContainer):
             Union[str, "JStream", None],
             Doc(
                 "This option validates that the target `subject` is in presented stream. "
-                "Can be omitted without any effect."
+                "Can be omitted without any effect.",
             ),
         ] = None,
         timeout: Annotated[
@@ -73,6 +76,10 @@ class NatsPublisher(ArgsContainer):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
@@ -88,7 +95,7 @@ class NatsPublisher(ArgsContainer):
             Optional[Any],
             Doc(
                 "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -122,7 +129,7 @@ class NatsRoute(SubscriberRoute):
             ],
             Doc(
                 "Message handler function "
-                "to wrap the same with `@broker.subscriber(...)` way."
+                "to wrap the same with `@broker.subscriber(...)` way.",
             ),
         ],
         subject: Annotated[
@@ -137,7 +144,7 @@ class NatsRoute(SubscriberRoute):
             str,
             Doc(
                 "Subscribers' NATS queue name. Subscribers with same queue name will be load balanced by the NATS "
-                "server."
+                "server.",
             ),
         ] = "",
         pending_msgs_limit: Annotated[
@@ -147,7 +154,7 @@ class NatsRoute(SubscriberRoute):
                 "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
                 "error. "
                 "That's literally means that your worker can't handle the whole load. In case of NATS JetStream, "
-                "you will no longer receive messages until some of delivered messages will be acked in any way."
+                "you will no longer receive messages until some of delivered messages will be acked in any way.",
             ),
         ] = None,
         pending_bytes_limit: Annotated[
@@ -157,7 +164,7 @@ class NatsRoute(SubscriberRoute):
                 "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
                 "error."
                 "That's literally means that your worker can't handle the whole load. In case of NATS JetStream, "
-                "you will no longer receive messages until some of delivered messages will be acked in any way."
+                "you will no longer receive messages until some of delivered messages will be acked in any way.",
             ),
         ] = None,
         # Core arguments
@@ -169,7 +176,7 @@ class NatsRoute(SubscriberRoute):
         durable: Annotated[
             Optional[str],
             Doc(
-                "Name of the durable consumer to which the the subscription should be bound."
+                "Name of the durable consumer to which the the subscription should be bound.",
             ),
         ] = None,
         config: Annotated[
@@ -195,7 +202,7 @@ class NatsRoute(SubscriberRoute):
         headers_only: Annotated[
             Optional[bool],
             Doc(
-                "Should be message delivered without payload, only headers and metadata."
+                "Should be message delivered without payload, only headers and metadata.",
             ),
         ] = None,
         # pull arguments
@@ -203,7 +210,7 @@ class NatsRoute(SubscriberRoute):
             Optional["PullSub"],
             Doc(
                 "NATS Pull consumer parameters container. "
-                "Should be used with `stream` only."
+                "Should be used with `stream` only.",
             ),
         ] = None,
         kv_watch: Annotated[
@@ -217,22 +224,28 @@ class NatsRoute(SubscriberRoute):
         inbox_prefix: Annotated[
             bytes,
             Doc(
-                "Prefix for generating unique inboxes, subjects with that prefix and NUID."
+                "Prefix for generating unique inboxes, subjects with that prefix and NUID.",
             ),
         ] = api.INBOX_PREFIX,
         # custom
         ack_first: Annotated[
             bool,
             Doc("Whether to `ack` message at start of consuming or not."),
-        ] = False,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         stream: Annotated[
             Union[str, "JStream", None],
             Doc("Subscribe to NATS Stream with `subject` filter."),
         ] = None,
         # broker arguments
         dependencies: Annotated[
-            Iterable["Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
+            Iterable["Dependant"],
+            Doc("Dependencies list (`[Dependant(),]`) to apply to the subscriber."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
@@ -244,38 +257,29 @@ class NatsRoute(SubscriberRoute):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[NatsMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            Union[
-                "Filter[NatsMessage]",
-                "Filter[NatsBatchMessage]",
-            ],
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
         max_workers: Annotated[
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
         # AsyncAPI information
@@ -287,7 +291,7 @@ class NatsRoute(SubscriberRoute):
             Optional[str],
             Doc(
                 "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -321,8 +325,7 @@ class NatsRoute(SubscriberRoute):
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
-            filter=filter,
-            retry=retry,
+            ack_policy=ack_policy,
             no_ack=no_ack,
             no_reply=no_reply,
             title=title,
@@ -349,14 +352,18 @@ class NatsRouter(
         ] = (),
         *,
         dependencies: Annotated[
-            Iterable["Depends"],
+            Iterable["Dependant"],
             Doc(
-                "Dependencies list (`[Depends(),]`) to apply to all routers' publishers/subscribers."
+                "Dependencies list (`[Dependant(),]`) to apply to all routers' publishers/subscribers.",
             ),
         ] = (),
         middlewares: Annotated[
             Sequence["BrokerMiddleware[Msg]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
+        ] = (),
+        routers: Annotated[
+            Sequence["ABCBroker[Msg]"],
+            Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
@@ -377,6 +384,7 @@ class NatsRouter(
             prefix=prefix,
             dependencies=dependencies,
             middlewares=middlewares,
+            routers=routers,
             parser=parser,
             decoder=decoder,
             include_in_schema=include_in_schema,

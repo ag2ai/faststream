@@ -1,36 +1,43 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Union, cast
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
-from typing_extensions import Annotated, Doc, deprecated, override
+from typing_extensions import Doc, deprecated, override
 
-from faststream.broker.core.abc import ABCBroker
-from faststream.broker.utils import default_filter
+from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
+from faststream.middlewares import AckPolicy
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
-from faststream.redis.subscriber.asyncapi import AsyncAPISubscriber
+from faststream.redis.publisher.factory import create_publisher
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
+from faststream.redis.subscriber.specified import (
+    SpecificationConcurrentSubscriber,
+    SpecificationSubscriber,
+)
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Depends
+    from fast_depends.dependencies import Dependant
 
-    from faststream.broker.types import (
+    from faststream._internal.basic_types import AnyDict
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
-    from faststream.redis.publisher.asyncapi import PublisherType
+    from faststream.redis.publisher.specified import (
+        PublisherType,
+        SpecificationPublisher,
+    )
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
-    from faststream.types import AnyDict
 
 
 class RedisRegistrator(ABCBroker[UnifyRedisDict]):
     """Includable to RedisBroker router."""
 
-    _subscribers: Dict[int, "SubsciberType"]
-    _publishers: Dict[int, "PublisherType"]
+    _subscribers: list["SubsciberType"]
+    _publishers: list["PublisherType"]
 
     @override
     def subscriber(  # type: ignore[override]
@@ -50,13 +57,13 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = None,
         # broker arguments
         dependencies: Annotated[
-            Iterable["Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
+            Iterable["Dependant"],
+            Doc("Dependencies list (`[Dependant(),]`) to apply to the subscriber."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
             Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one."
+                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
             ),
         ] = None,
         decoder: Annotated[
@@ -65,31 +72,25 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[UnifyRedisMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
         # AsyncAPI information
@@ -101,37 +102,43 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Optional[str],
             Doc(
                 "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> AsyncAPISubscriber:
-        subscriber = cast(
-            "AsyncAPISubscriber",
-            super().subscriber(
-                create_subscriber(
-                    channel=channel,
-                    list=list,
-                    stream=stream,
-                    # subscriber args
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_middlewares=self._middlewares,
-                    broker_dependencies=self._dependencies,
-                    # AsyncAPI
-                    title_=title,
-                    description_=description,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
-                )
-            ),
+        max_workers: Annotated[
+            int,
+            Doc("Number of workers to process messages concurrently."),
+        ] = 1,
+    ) -> Union[SpecificationSubscriber, SpecificationConcurrentSubscriber]:
+        subscriber = create_subscriber(
+            channel=channel,
+            list=list,
+            stream=stream,
+            # subscriber args
+            max_workers=max_workers,
+            no_ack=no_ack,
+            no_reply=no_reply,
+            ack_policy=ack_policy,
+            broker_middlewares=self.middlewares,
+            broker_dependencies=self._dependencies,
+            # AsyncAPI
+            title_=title,
+            description_=description,
+            include_in_schema=self._solve_include_in_schema(include_in_schema),
         )
 
+        if max_workers > 1:
+            subscriber = cast("SpecificationConcurrentSubscriber", subscriber)
+        else:
+            subscriber = cast("SpecificationSubscriber", subscriber)
+
+        subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
+
         return subscriber.add_call(
-            filter_=filter,
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
             dependencies_=dependencies,
@@ -158,7 +165,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Optional["AnyDict"],
             Doc(
                 "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -167,6 +174,10 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = "",
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
@@ -182,14 +193,14 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Optional[Any],
             Doc(
                 "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> AsyncAPIPublisher:
+    ) -> "SpecificationPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -198,23 +209,23 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
         """
         return cast(
-            "AsyncAPIPublisher",
+            "SpecificationPublisher",
             super().publisher(
-                AsyncAPIPublisher.create(
+                create_publisher(
                     channel=channel,
                     list=list,
                     stream=stream,
                     headers=headers,
                     reply_to=reply_to,
                     # Specific
-                    broker_middlewares=self._middlewares,
+                    broker_middlewares=self.middlewares,
                     middlewares=middlewares,
                     # AsyncAPI
                     title_=title,
                     description_=description,
                     schema_=schema,
                     include_in_schema=self._solve_include_in_schema(include_in_schema),
-                )
+                ),
             ),
         )
 
@@ -224,7 +235,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         router: "RedisRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
-        dependencies: Iterable["Depends"] = (),
+        dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
         include_in_schema: Optional[bool] = None,
     ) -> None:

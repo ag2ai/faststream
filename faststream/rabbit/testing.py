@@ -1,5 +1,6 @@
+from collections.abc import Generator, Iterator, Mapping
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generator, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 from unittest import mock
 from unittest.mock import AsyncMock
 
@@ -10,24 +11,24 @@ from pamqp import commands as spec
 from pamqp.header import ContentHeader
 from typing_extensions import override
 
-from faststream.broker.message import gen_cor_id
-from faststream.broker.utils import resolve_custom_func
-from faststream.exceptions import WRONG_PUBLISH_ARGS, SubscriberNotFound
+from faststream._internal.subscriber.utils import resolve_custom_func
+from faststream._internal.testing.broker import TestBroker
+from faststream.exceptions import SubscriberNotFound
+from faststream.message import gen_cor_id
 from faststream.rabbit.broker.broker import RabbitBroker
 from faststream.rabbit.parser import AioPikaParser
-from faststream.rabbit.publisher.asyncapi import AsyncAPIPublisher
 from faststream.rabbit.publisher.producer import AioPikaFastProducer
 from faststream.rabbit.schemas import (
     ExchangeType,
     RabbitExchange,
     RabbitQueue,
 )
-from faststream.testing.broker import TestBroker
-from faststream.utils.functions import timeout_scope
 
 if TYPE_CHECKING:
-    from aio_pika.abc import DateType, HeadersType, TimeoutType
+    from aio_pika.abc import DateType, HeadersType
 
+    from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber.usecase import LogicSubscriber
     from faststream.rabbit.types import AioPikaSendableMessage
 
@@ -39,30 +40,41 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     """A class to test RabbitMQ brokers."""
 
     @contextmanager
-    def _patch_broker(self, broker: RabbitBroker) -> Generator[None, None, None]:
-        with mock.patch.object(
-            broker,
-            "_channel",
-            new_callable=AsyncMock,
-        ), mock.patch.object(
-            broker,
-            "declarer",
-            new_callable=AsyncMock,
-        ), super()._patch_broker(broker):
+    def _patch_broker(self, broker: "RabbitBroker") -> Generator[None, None, None]:
+        with (
+            mock.patch.object(
+                broker,
+                "_channel",
+                new_callable=AsyncMock,
+            ),
+            mock.patch.object(
+                broker,
+                "declarer",
+                new_callable=AsyncMock,
+            ),
+            super()._patch_broker(broker),
+        ):
             yield
 
+    @contextmanager
+    def _patch_producer(self, broker: RabbitBroker) -> Iterator[None]:
+        old_producer = broker._state.get().producer
+        broker._state.patch_value(producer=FakeProducer(broker))
+        yield
+        broker._state.patch_value(producer=old_producer)
+
     @staticmethod
-    async def _fake_connect(broker: RabbitBroker, *args: Any, **kwargs: Any) -> None:
-        broker._producer = FakeProducer(broker)
+    async def _fake_connect(broker: "RabbitBroker", *args: Any, **kwargs: Any) -> None:
+        pass
 
     @staticmethod
     def create_publisher_fake_subscriber(
-        broker: RabbitBroker,
-        publisher: AsyncAPIPublisher,
-    ) -> Tuple["LogicSubscriber", bool]:
+        broker: "RabbitBroker",
+        publisher: "SpecificationPublisher",
+    ) -> tuple["LogicSubscriber", bool]:
         sub: Optional[LogicSubscriber] = None
-        for handler in broker._subscribers.values():
-            if _is_handler_suitable(
+        for handler in broker._subscribers:
+            if _is_handler_matches(
                 handler,
                 publisher.routing,
                 {},
@@ -93,15 +105,12 @@ class PatchedMessage(IncomingMessage):
 
     async def ack(self, multiple: bool = False) -> None:
         """Asynchronously acknowledge a message."""
-        pass
 
     async def nack(self, multiple: bool = False, requeue: bool = True) -> None:
         """Nack the message."""
-        pass
 
     async def reject(self, requeue: bool = False) -> None:
         """Rejects a task."""
-        pass
 
 
 def build_message(
@@ -130,6 +139,7 @@ def build_message(
 
     routing = routing_key or que.routing
 
+    correlation_id = correlation_id or gen_cor_id()
     msg = AioPikaParser.encode_message(
         message=message,
         persist=persist,
@@ -140,7 +150,7 @@ def build_message(
         priority=priority,
         correlation_id=correlation_id,
         expiration=expiration,
-        message_id=message_id or gen_cor_id(),
+        message_id=message_id or correlation_id,
         timestamp=timestamp,
         message_type=message_type,
         user_id=user_id,
@@ -166,7 +176,7 @@ def build_message(
                     message_type=message_type,
                     user_id=msg.user_id,
                     app_id=msg.app_id,
-                )
+                ),
             ),
             body=msg.body,
             channel=AsyncMock(),
@@ -186,127 +196,66 @@ class FakeProducer(AioPikaFastProducer):
         default_parser = AioPikaParser()
         self._parser = resolve_custom_func(broker._parser, default_parser.parse_message)
         self._decoder = resolve_custom_func(
-            broker._decoder, default_parser.decode_message
+            broker._decoder,
+            default_parser.decode_message,
         )
 
     @override
     async def publish(  # type: ignore[override]
         self,
-        message: "AioPikaSendableMessage",
-        exchange: Union["RabbitExchange", str, None] = None,
-        *,
-        correlation_id: str = "",
-        routing_key: str = "",
-        mandatory: bool = True,
-        immediate: bool = False,
-        timeout: "TimeoutType" = None,
-        rpc: bool = False,
-        rpc_timeout: Optional[float] = 30.0,
-        raise_timeout: bool = False,
-        persist: bool = False,
-        reply_to: Optional[str] = None,
-        headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
-        priority: Optional[int] = None,
-        expiration: Optional["DateType"] = None,
-        message_id: Optional[str] = None,
-        timestamp: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-        app_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        cmd: "RabbitPublishCommand",
+    ) -> None:
         """Publish a message to a RabbitMQ queue or exchange."""
-        exch = RabbitExchange.validate(exchange)
-
-        if rpc and reply_to:
-            raise WRONG_PUBLISH_ARGS
-
         incoming = build_message(
-            message=message,
-            exchange=exch,
-            routing_key=routing_key,
-            reply_to=reply_to,
-            app_id=app_id,
-            user_id=user_id,
-            message_type=message_type,
-            headers=headers,
-            persist=persist,
-            message_id=message_id,
-            priority=priority,
-            content_encoding=content_encoding,
-            content_type=content_type,
-            correlation_id=correlation_id,
-            expiration=expiration,
-            timestamp=timestamp,
+            message=cmd.body,
+            exchange=cmd.exchange,
+            routing_key=cmd.destination,
+            correlation_id=cmd.correlation_id,
+            headers=cmd.headers,
+            reply_to=cmd.reply_to,
+            **cmd.message_options,
         )
 
-        for handler in self.broker._subscribers.values():  # pragma: no branch
-            if _is_handler_suitable(
-                handler, incoming.routing_key, incoming.headers, exch
+        for handler in self.broker._subscribers:  # pragma: no branch
+            if _is_handler_matches(
+                handler,
+                incoming.routing_key,
+                incoming.headers,
+                cmd.exchange,
             ):
-                with timeout_scope(rpc_timeout, raise_timeout):
-                    response = await self._execute_handler(incoming, handler)
-                    if rpc:
-                        return await self._decoder(await self._parser(response))
-
-        return None
+                await self._execute_handler(incoming, handler)
 
     @override
     async def request(  # type: ignore[override]
         self,
-        message: "AioPikaSendableMessage" = "",
-        exchange: Union["RabbitExchange", str, None] = None,
-        *,
-        correlation_id: str = "",
-        routing_key: str = "",
-        mandatory: bool = True,
-        immediate: bool = False,
-        timeout: Optional[float] = None,
-        persist: bool = False,
-        headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
-        priority: Optional[int] = None,
-        expiration: Optional["DateType"] = None,
-        message_id: Optional[str] = None,
-        timestamp: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-        app_id: Optional[str] = None,
+        cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
         """Publish a message to a RabbitMQ queue or exchange."""
-        exch = RabbitExchange.validate(exchange)
-
         incoming = build_message(
-            message=message,
-            exchange=exch,
-            routing_key=routing_key,
-            app_id=app_id,
-            user_id=user_id,
-            message_type=message_type,
-            headers=headers,
-            persist=persist,
-            message_id=message_id,
-            priority=priority,
-            content_encoding=content_encoding,
-            content_type=content_type,
-            correlation_id=correlation_id,
-            expiration=expiration,
-            timestamp=timestamp,
+            message=cmd.body,
+            exchange=cmd.exchange,
+            routing_key=cmd.destination,
+            correlation_id=cmd.correlation_id,
+            headers=cmd.headers,
+            **cmd.message_options,
         )
 
-        for handler in self.broker._subscribers.values():  # pragma: no branch
-            if _is_handler_suitable(
-                handler, incoming.routing_key, incoming.headers, exch
+        for handler in self.broker._subscribers:  # pragma: no branch
+            if _is_handler_matches(
+                handler,
+                incoming.routing_key,
+                incoming.headers,
+                cmd.exchange,
             ):
-                with anyio.fail_after(timeout):
+                with anyio.fail_after(cmd.timeout):
                     return await self._execute_handler(incoming, handler)
 
         raise SubscriberNotFound
 
     async def _execute_handler(
-        self, msg: PatchedMessage, handler: "LogicSubscriber"
+        self,
+        msg: PatchedMessage,
+        handler: "LogicSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
 
@@ -318,45 +267,47 @@ class FakeProducer(AioPikaFastProducer):
         )
 
 
-def _is_handler_suitable(
+def _is_handler_matches(
     handler: "LogicSubscriber",
     routing_key: str,
-    headers: "Mapping[Any, Any]",
-    exchange: "RabbitExchange",
+    headers: Optional["Mapping[Any, Any]"] = None,
+    exchange: Optional["RabbitExchange"] = None,
 ) -> bool:
+    headers = headers or {}
+    exchange = RabbitExchange.validate(exchange)
+
     if handler.exchange != exchange:
         return False
 
     if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:
         return handler.queue.name == routing_key
 
-    elif handler.exchange.type == ExchangeType.FANOUT:
+    if handler.exchange.type == ExchangeType.FANOUT:
         return True
 
-    elif handler.exchange.type == ExchangeType.TOPIC:
+    if handler.exchange.type == ExchangeType.TOPIC:
         return apply_pattern(handler.queue.routing, routing_key)
 
-    elif handler.exchange.type == ExchangeType.HEADERS:
+    if handler.exchange.type == ExchangeType.HEADERS:
         queue_headers = (handler.queue.bind_arguments or {}).copy()
 
         if not queue_headers:
             return True
 
-        else:
-            match_rule = queue_headers.pop("x-match", "all")
+        match_rule = queue_headers.pop("x-match", "all")
 
-            full_match = True
-            is_headers_empty = True
-            for k, v in queue_headers.items():
-                if headers.get(k) != v:
-                    full_match = False
-                else:
-                    is_headers_empty = False
+        full_match = True
+        is_headers_empty = True
+        for k, v in queue_headers.items():
+            if headers.get(k) != v:
+                full_match = False
+            else:
+                is_headers_empty = False
 
-            if is_headers_empty:
-                return False
+        if is_headers_empty:
+            return False
 
-            return full_match or (match_rule == "any")
+        return full_match or (match_rule == "any")
 
     raise AssertionError
 
@@ -371,7 +322,7 @@ def apply_pattern(pattern: str, current: str) -> bool:
         if (next_symb := next(current_queue, None)) is None:
             return False
 
-        elif pattern_symb == "#":
+        if pattern_symb == "#":
             next_pattern = next(pattern_queue, None)
 
             if next_pattern is None:
@@ -391,7 +342,7 @@ def apply_pattern(pattern: str, current: str) -> bool:
 
             pattern_symb = next(pattern_queue, None)
 
-        elif pattern_symb == "*" or pattern_symb == next_symb:
+        elif pattern_symb in {"*", next_symb}:
             pattern_symb = next(pattern_queue, None)
 
         else:

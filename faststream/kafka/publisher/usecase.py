@@ -1,79 +1,57 @@
-from contextlib import AsyncExitStack
-from functools import partial
-from itertools import chain
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, Union, overload
 
 from aiokafka import ConsumerRecord
-from typing_extensions import Annotated, Doc, override
+from typing_extensions import Doc, override
 
-from faststream.broker.message import SourceType, gen_cor_id
-from faststream.broker.publisher.usecase import PublisherUsecase
-from faststream.broker.types import MsgType
+from faststream._internal.publisher.usecase import PublisherUsecase
+from faststream._internal.types import MsgType
 from faststream.exceptions import NOT_CONNECTED_YET
-from faststream.utils.functions import return_input
+from faststream.kafka.message import KafkaMessage
+from faststream.kafka.response import KafkaPublishCommand
+from faststream.message import gen_cor_id
+from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream.broker.types import BrokerMiddleware, PublisherMiddleware
+    import asyncio
+
+    from aiokafka.structs import RecordMetadata
+
+    from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
     from faststream.kafka.message import KafkaMessage
     from faststream.kafka.publisher.producer import AioKafkaFastProducer
-    from faststream.types import AsyncFunc, SendableMessage
+    from faststream.response.response import PublishCommand
 
 
 class LogicPublisher(PublisherUsecase[MsgType]):
     """A class to publish messages to a Kafka topic."""
 
-    _producer: Optional["AioKafkaFastProducer"]
+    _producer: "AioKafkaFastProducer"
 
     def __init__(
         self,
         *,
         topic: str,
         partition: Optional[int],
-        headers: Optional[Dict[str, str]],
+        headers: Optional[dict[str, str]],
         reply_to: str,
         # Publisher args
         broker_middlewares: Sequence["BrokerMiddleware[MsgType]"],
         middlewares: Sequence["PublisherMiddleware"],
-        # AsyncAPI args
-        schema_: Optional[Any],
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
     ) -> None:
         super().__init__(
             broker_middlewares=broker_middlewares,
             middlewares=middlewares,
-            # AsyncAPI args
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
         self.topic = topic
         self.partition = partition
         self.reply_to = reply_to
-        self.headers = headers
-
-        self._producer = None
-
-    def __hash__(self) -> int:
-        return hash(self.topic)
+        self.headers = headers or {}
 
     def add_prefix(self, prefix: str) -> None:
-        self.topic = "".join((prefix, self.topic))
+        self.topic = f"{prefix}{self.topic}"
 
     @override
     async def request(
@@ -98,7 +76,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -107,7 +85,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         timestamp_ms: Annotated[
@@ -116,72 +94,39 @@ class LogicPublisher(PublisherUsecase[MsgType]):
                 """
             Epoch milliseconds (from Jan 1 1970 UTC) to use as
             the message timestamp. Defaults to current time.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc("Message headers to store metainformation."),
         ] = None,
         correlation_id: Annotated[
             Optional[str],
             Doc(
                 "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
+                "**correlation_id** is a useful option to trace messages.",
             ),
         ] = None,
         timeout: Annotated[
             float,
             Doc("Timeout to send RPC request."),
         ] = 0.5,
-        # publisher specific
-        _extra_middlewares: Annotated[
-            Iterable["PublisherMiddleware"],
-            Doc("Extra middlewares to wrap publishing process."),
-        ] = (),
     ) -> "KafkaMessage":
-        assert self._producer, NOT_CONNECTED_YET  # nosec B101
-
-        topic = topic or self.topic
-        partition = partition or self.partition
-        headers = headers or self.headers
-        correlation_id = correlation_id or gen_cor_id()
-
-        request: AsyncFunc = self._producer.request
-
-        for pub_m in chain(
-            self._middlewares[::-1],
-            (
-                _extra_middlewares
-                or (m(None).publish_scope for m in self._broker_middlewares[::-1])
-            ),
-        ):
-            request = partial(pub_m, request)
-
-        published_msg = await request(
+        cmd = KafkaPublishCommand(
             message,
-            topic=topic,
+            topic=topic or self.topic,
             key=key,
-            partition=partition,
-            headers=headers,
-            timeout=timeout,
-            correlation_id=correlation_id,
+            partition=partition or self.partition,
+            headers=self.headers | (headers or {}),
+            correlation_id=correlation_id or gen_cor_id(),
             timestamp_ms=timestamp_ms,
+            timeout=timeout,
+            _publish_type=PublishType.REQUEST,
         )
 
-        async with AsyncExitStack() as stack:
-            return_msg: Callable[[KafkaMessage], Awaitable[KafkaMessage]] = return_input
-            for m in self._broker_middlewares[::-1]:
-                mid = m(published_msg)
-                await stack.enter_async_context(mid)
-                return_msg = partial(mid.consume_scope, return_msg)
-
-            parsed_msg = await self._producer._parser(published_msg)
-            parsed_msg._decoded_body = await self._producer._decoder(parsed_msg)
-            parsed_msg._source_type = SourceType.Response
-            return await return_msg(parsed_msg)
-
-        raise AssertionError("unreachable")
+        msg: KafkaMessage = await self._basic_request(cmd)
+        return msg
 
     async def flush(self) -> None:
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
@@ -192,19 +137,14 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
     def __init__(
         self,
         *,
-        key: Optional[bytes],
+        key: Union[bytes, str, None],
         topic: str,
         partition: Optional[int],
-        headers: Optional[Dict[str, str]],
+        headers: Optional[dict[str, str]],
         reply_to: str,
         # Publisher args
         broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
         middlewares: Sequence["PublisherMiddleware"],
-        # AsyncAPI args
-        schema_: Optional[Any],
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
     ) -> None:
         super().__init__(
             topic=topic,
@@ -214,115 +154,121 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             # publisher args
             broker_middlewares=broker_middlewares,
             middlewares=middlewares,
-            # AsyncAPI args
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
         self.key = key
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: Literal[True],
+    ) -> "asyncio.Future[RecordMetadata]": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
+
     @override
     async def publish(
         self,
-        message: Annotated[
-            "SendableMessage",
-            Doc("Message body to send."),
-        ],
-        topic: Annotated[
-            str,
-            Doc("Topic where the message will be published."),
-        ] = "",
+        message: "SendableMessage",
+        topic: str = "",
         *,
-        key: Annotated[
-            Union[bytes, Any, None],
-            Doc(
-                """
-            A key to associate with the message. Can be used to
-            determine which partition to send the message to. If partition
-            is `None` (and producer's partitioner config is left as default),
-            then messages with the same key will be delivered to the same
-            partition (but if key is `None`, partition is chosen randomly).
-            Must be type `bytes`, or be serializable to bytes via configured
-            `key_serializer`.
-            """
-            ),
-        ] = None,
-        partition: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Specify a partition. If not set, the partition will be
-            selected using the configured `partitioner`.
-            """
-            ),
-        ] = None,
-        timestamp_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Epoch milliseconds (from Jan 1 1970 UTC) to use as
-            the message timestamp. Defaults to current time.
-            """
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional[Dict[str, str]],
-            Doc("Message headers to store metainformation."),
-        ] = None,
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message topic name to send response."),
-        ] = "",
-        no_confirm: Annotated[
-            bool,
-            Doc("Do not wait for Kafka publish confirmation."),
-        ] = False,
-        # publisher specific
-        _extra_middlewares: Annotated[
-            Iterable["PublisherMiddleware"],
-            Doc("Extra middlewares to wrap publishing process."),
-        ] = (),
-    ) -> Optional[Any]:
-        assert self._producer, NOT_CONNECTED_YET  # nosec B101
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+        """Publishes a message to Kafka.
 
-        topic = topic or self.topic
-        key = key or self.key
-        partition = partition or self.partition
-        headers = headers or self.headers
-        reply_to = reply_to or self.reply_to
-        correlation_id = correlation_id or gen_cor_id()
+        Args:
+            message:
+                Message body to send.
+            topic:
+                Topic where the message will be published.
+            key:
+                A key to associate with the message. Can be used to
+                determine which partition to send the message to. If partition
+                is `None` (and producer's partitioner config is left as default),
+                then messages with the same key will be delivered to the same
+                partition (but if key is `None`, partition is chosen randomly).
+                Must be type `bytes`, or be serializable to bytes via configured
+                `key_serializer`
+            partition:
+                Specify a partition. If not set, the partition will be
+                selected using the configured `partitioner`
+            timestamp_ms:
+                Epoch milliseconds (from Jan 1 1970 UTC) to use as
+                the message timestamp. Defaults to current time.
+            headers:
+                Message headers to store metainformation.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                **correlation_id** is a useful option to trace messages.
+            reply_to:
+                Reply message topic name to send response.
+            no_confirm:
+                Do not wait for Kafka publish confirmation.
 
-        call: AsyncFunc = self._producer.publish
-
-        for m in chain(
-            self._middlewares[::-1],
-            (
-                _extra_middlewares
-                or (m(None).publish_scope for m in self._broker_middlewares[::-1])
-            ),
-        ):
-            call = partial(m, call)
-
-        return await call(
+        Returns:
+            `asyncio.Future[RecordMetadata]` if no_confirm = True.
+            `RecordMetadata` if no_confirm = False.
+        """
+        cmd = KafkaPublishCommand(
             message,
-            topic=topic,
-            key=key,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            correlation_id=correlation_id,
+            topic=topic or self.topic,
+            key=key or self.key,
+            partition=partition or self.partition,
+            reply_to=reply_to or self.reply_to,
+            headers=self.headers | (headers or {}),
+            correlation_id=correlation_id or gen_cor_id(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
+            _publish_type=PublishType.PUBLISH,
         )
+        return await self._basic_publish(cmd, _extra_middlewares=())
+
+    @override
+    async def _publish(
+        self,
+        cmd: Union["PublishCommand", "KafkaPublishCommand"],
+        *,
+        _extra_middlewares: Iterable["PublisherMiddleware"],
+    ) -> None:
+        """This method should be called in subscriber flow only."""
+        cmd = KafkaPublishCommand.from_cmd(cmd)
+
+        cmd.destination = self.topic
+        cmd.add_headers(self.headers, override=False)
+        cmd.reply_to = cmd.reply_to or self.reply_to
+
+        cmd.partition = cmd.partition or self.partition
+        cmd.key = cmd.key or self.key
+
+        await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
 
     @override
     async def request(
@@ -347,7 +293,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -356,7 +302,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         timestamp_ms: Annotated[
@@ -365,32 +311,27 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
                 """
             Epoch milliseconds (from Jan 1 1970 UTC) to use as
             the message timestamp. Defaults to current time.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc("Message headers to store metainformation."),
         ] = None,
         correlation_id: Annotated[
             Optional[str],
             Doc(
                 "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
+                "**correlation_id** is a useful option to trace messages.",
             ),
         ] = None,
         timeout: Annotated[
             float,
             Doc("Timeout to send RPC request."),
         ] = 0.5,
-        # publisher specific
-        _extra_middlewares: Annotated[
-            Iterable["PublisherMiddleware"],
-            Doc("Extra middlewares to wrap publishing process."),
-        ] = (),
     ) -> "KafkaMessage":
         return await super().request(
-            message=message,
+            message,
             topic=topic,
             key=key or self.key,
             partition=partition,
@@ -398,101 +339,104 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             headers=headers,
             correlation_id=correlation_id,
             timeout=timeout,
-            _extra_middlewares=_extra_middlewares,
         )
 
 
-class BatchPublisher(LogicPublisher[Tuple["ConsumerRecord", ...]]):
+class BatchPublisher(LogicPublisher[tuple["ConsumerRecord", ...]]):
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: Literal[True],
+    ) -> "asyncio.Future[RecordMetadata]": ...
+
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
+
     @override
     async def publish(
         self,
-        message: Annotated[
-            Union["SendableMessage", Iterable["SendableMessage"]],
-            Doc("One message or iterable messages bodies to send."),
-        ],
-        *extra_messages: Annotated[
-            "SendableMessage",
-            Doc("Messages bodies to send."),
-        ],
-        topic: Annotated[
-            str,
-            Doc("Topic where the message will be published."),
-        ] = "",
-        partition: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Specify a partition. If not set, the partition will be
-            selected using the configured `partitioner`.
-            """
-            ),
-        ] = None,
-        timestamp_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Epoch milliseconds (from Jan 1 1970 UTC) to use as
-            the message timestamp. Defaults to current time.
-            """
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional[Dict[str, str]],
-            Doc("Messages headers to store metainformation."),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message topic name to send response."),
-        ] = "",
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
-            ),
-        ] = None,
-        no_confirm: Annotated[
-            bool,
-            Doc("Do not wait for Kafka publish confirmation."),
-        ] = False,
-        # publisher specific
-        _extra_middlewares: Annotated[
-            Iterable["PublisherMiddleware"],
-            Doc("Extra middlewares to wrap publishing process."),
-        ] = (),
-    ) -> None:
-        assert self._producer, NOT_CONNECTED_YET  # nosec B101
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+        """Publish a message batch as a single request to broker.
 
-        msgs: Iterable[SendableMessage]
-        if extra_messages:
-            msgs = (cast("SendableMessage", message), *extra_messages)
-        else:
-            msgs = cast("Iterable[SendableMessage]", message)
+        Args:
+            *messages:
+                Messages bodies to send.
+            topic:
+                Topic where the message will be published.
+            partition:
+                Specify a partition. If not set, the partition will be
+                selected using the configured `partitioner`
+            timestamp_ms:
+                Epoch milliseconds (from Jan 1 1970 UTC) to use as
+                the message timestamp. Defaults to current time.
+            headers:
+                Message headers to store metainformation.
+            reply_to:
+                Reply message topic name to send response.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                **correlation_id** is a useful option to trace messages.
+            no_confirm:
+                Do not wait for Kafka publish confirmation.
 
-        topic = topic or self.topic
-        partition = partition or self.partition
-        headers = headers or self.headers
-        reply_to = reply_to or self.reply_to
-        correlation_id = correlation_id or gen_cor_id()
-
-        call: AsyncFunc = self._producer.publish_batch
-
-        for m in chain(
-            self._middlewares[::-1],
-            (
-                _extra_middlewares
-                or (m(None).publish_scope for m in self._broker_middlewares[::-1])
-            ),
-        ):
-            call = partial(m, call)
-
-        await call(
-            *msgs,
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            correlation_id=correlation_id,
+        Returns:
+            `asyncio.Future[RecordMetadata]` if no_confirm = True.
+            `RecordMetadata` if no_confirm = False.
+        """
+        cmd = KafkaPublishCommand(
+            *messages,
+            key=None,
+            topic=topic or self.topic,
+            partition=partition or self.partition,
+            reply_to=reply_to or self.reply_to,
+            headers=self.headers | (headers or {}),
+            correlation_id=correlation_id or gen_cor_id(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
+            _publish_type=PublishType.PUBLISH,
         )
+
+        return await self._basic_publish_batch(cmd, _extra_middlewares=())
+
+    @override
+    async def _publish(
+        self,
+        cmd: Union["PublishCommand", "KafkaPublishCommand"],
+        *,
+        _extra_middlewares: Iterable["PublisherMiddleware"],
+    ) -> None:
+        """This method should be called in subscriber flow only."""
+        cmd = KafkaPublishCommand.from_cmd(cmd, batch=True)
+
+        cmd.destination = self.topic
+        cmd.add_headers(self.headers, override=False)
+        cmd.reply_to = cmd.reply_to or self.reply_to
+
+        cmd.partition = cmd.partition or self.partition
+
+        await self._basic_publish_batch(cmd, _extra_middlewares=_extra_middlewares)

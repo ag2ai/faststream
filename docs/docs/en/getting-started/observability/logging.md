@@ -63,15 +63,6 @@ from faststream.rabbit import RabbitBroker
 broker = RabbitBroker(log_level=logging.DEBUG)
 ```
 
-## Formatting Logs
-
-If you are not satisfied with the current format of your application logs, you can change it directly in your broker's constructor.
-
-```python
-from faststream.rabbit import RabbitBroker
-broker = RabbitBroker(log_fmt="%(asctime)s %(levelname)s - %(message)s")
-```
-
 ## Using Your Own Loggers
 
 Since **FastStream** works with the standard `logging.Logger` object, you can initiate an application and a broker
@@ -192,9 +183,9 @@ app = FastStream(broker, logger=logger)
 And the job is done! Now you have a perfectly structured logs using **Structlog**.
 
 ```{.shell .no-copy}
-TIMESPAMP [info     ] FastStream app starting...     extra={}
-TIMESPAMP [debug    ] `Handler` waiting for messages extra={'topic': 'topic', 'group_id': 'group', 'message_id': ''}
-TIMESPAMP [debug    ] `Handler` waiting for messages extra={'topic': 'topic', 'group_id': 'group2', 'message_id': ''}
-TIMESPAMP [info     ] FastStream app started successfully! To exit, press CTRL+C extra={'topic': '', 'group_id': '', 'message_id': ''}
+TIMESTAMP [info     ] FastStream app starting...     extra={}
+TIMESTAMP [debug    ] `Handler` waiting for messages extra={'topic': 'topic', 'group_id': 'group', 'message_id': ''}
+TIMESTAMP [debug    ] `Handler` waiting for messages extra={'topic': 'topic', 'group_id': 'group2', 'message_id': ''}
+TIMESTAMP [info     ] FastStream app started successfully! To exit, press CTRL+C extra={'topic': '', 'group_id': '', 'message_id': ''}
 ```
 { data-search-exclude }

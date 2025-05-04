@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
 
 
 class BuiltinFeatures(str, Enum):

@@ -1,4 +1,4 @@
-from typing import List, Literal, Union
+from typing import Literal, Union
 
 from typing_extensions import Required, TypedDict
 
@@ -24,7 +24,7 @@ SecurityOptions = TypedDict(
 class ConsumerConnectionParams(TypedDict, total=False):
     """A class to represent the connection parameters for a consumer."""
 
-    bootstrap_servers: Union[str, List[str]]
+    bootstrap_servers: Union[str, list[str]]
     client_id: str
     retry_backoff_ms: int
     metadata_max_age_ms: int

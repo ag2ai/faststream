@@ -16,7 +16,7 @@ async def handle(
         call()
 
 
-@apply_types
+@apply_types(context__=app.context)
 def call(
     message: RedisMessage,
     correlation_id=Context(),

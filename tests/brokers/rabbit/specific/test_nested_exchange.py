@@ -2,24 +2,29 @@ from asyncio import Event, wait_for
 
 import pytest
 
-from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
+from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange
 
 
-@pytest.mark.asyncio
-@pytest.mark.rabbit
-async def test_bind_to(queue: RabbitQueue, broker: RabbitBroker):
+@pytest.mark.asyncio()
+@pytest.mark.rabbit()
+async def test_bind_to(queue: str) -> None:
+    broker = RabbitBroker(apply_types=False)
+
     consume = Event()
 
     async with broker:
         meta_parent = RabbitExchange("meta", type=ExchangeType.FANOUT)
         parent_exch = RabbitExchange(
-            "main", type=ExchangeType.FANOUT, bind_to=meta_parent
+            "main",
+            type=ExchangeType.FANOUT,
+            bind_to=meta_parent,
         )
 
         @broker.subscriber(
-            queue, exchange=RabbitExchange("nested", bind_to=parent_exch)
+            queue,
+            exchange=RabbitExchange("nested", bind_to=parent_exch),
         )
-        async def handler(m):
+        async def handler(m) -> None:
             consume.set()
 
         await broker.start()

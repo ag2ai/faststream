@@ -16,10 +16,9 @@ def build_virtual_host(
 ) -> str:
     if (not url and not virtualhost) or virtualhost == "/":
         return ""
-    elif virtualhost:
+    if virtualhost:
         return virtualhost.replace("/", "", 1)
-    else:
-        return path.replace("/", "", 1)
+    return path.replace("/", "", 1)
 
 
 def build_url(
@@ -59,10 +58,10 @@ def build_url(
 
 def is_routing_exchange(exchange: Optional["RabbitExchange"]) -> bool:
     """Check if an exchange requires routing_key to deliver message."""
-    return not exchange or exchange.type in (
+    return not exchange or exchange.type in {
         ExchangeType.DIRECT.value,
         ExchangeType.TOPIC.value,
-    )
+    }
 
 
 class RabbitClientProperties(TypedDict, total=False):

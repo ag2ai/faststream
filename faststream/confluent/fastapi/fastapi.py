@@ -1,16 +1,12 @@
 import logging
+from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Literal,
     Optional,
-    Sequence,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -23,13 +19,13 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
-from typing_extensions import Annotated, Doc, deprecated, override
+from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream.broker.fastapi.router import StreamRouter
-from faststream.broker.utils import default_filter
+from faststream._internal.constants import EMPTY
+from faststream._internal.fastapi.router import StreamRouter
 from faststream.confluent.broker.broker import KafkaBroker as KB
-from faststream.types import EMPTY
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -38,34 +34,33 @@ if TYPE_CHECKING:
     from fastapi.types import IncEx
     from starlette.types import ASGIApp, Lifespan
 
-    from faststream.asyncapi import schema as asyncapi
-    from faststream.broker.types import (
+    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
     from faststream.confluent.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.asyncapi import (
-        AsyncAPIBatchPublisher,
-        AsyncAPIDefaultPublisher,
+    from faststream.confluent.publisher.specified import (
+        SpecificationBatchPublisher,
+        SpecificationDefaultPublisher,
     )
     from faststream.confluent.schemas import TopicPartition
-    from faststream.confluent.subscriber.asyncapi import (
-        AsyncAPIBatchSubscriber,
-        AsyncAPIConcurrentDefaultSubscriber,
-        AsyncAPIDefaultSubscriber,
+    from faststream.confluent.subscriber.specified import (
+        SpecificationBatchSubscriber,
+        SpecificationConcurrentDefaultSubscriber,
+        SpecificationDefaultSubscriber,
     )
     from faststream.security import BaseSecurity
-    from faststream.types import AnyDict, LoggerProto
+    from faststream.specification.schema.extra import Tag, TagDict
 
 
 Partition = TypeVar("Partition")
 
 
-class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
+class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
     """A class to represent a Kafka router."""
 
     broker_class = KB
@@ -83,7 +78,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             This does not have to be the full node list.
             It just needs to have at least one broker that will respond to a
             Metadata API Request. Default port is 9092.
-            """
+            """,
             ),
         ] = "localhost",
         *,
@@ -104,7 +99,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             which we force a refresh of metadata even if we haven't seen any
             partition leadership changes to proactively discover any new
             brokers or partitions.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         connections_max_idle_ms: Annotated[
@@ -114,7 +109,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
              Close idle connections after the number
             of milliseconds specified by this config. Specifying `None` will
             disable idle checks.
-            """
+            """,
             ),
         ] = 9 * 60 * 1000,
         client_id: Annotated[
@@ -126,7 +121,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             server-side log entries that correspond to this client. Also
             submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
             for logging with respect to consumer group administration.
-            """
+            """,
             ),
         ] = SERVICE_NAME,
         allow_auto_create_topics: Annotated[
@@ -134,7 +129,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Doc(
                 """
             Allow automatic topic creation on the broker when subscribing to or assigning non-existent topics.
-            """
+            """,
             ),
         ] = True,
         config: Annotated[
@@ -143,7 +138,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
                 Extra configuration for the confluent-kafka-python
                 producer/consumer. See `confluent_kafka.Config <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_.
-                """
+                """,
             ),
         ] = None,
         # publisher args
@@ -175,7 +170,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
             If unset, defaults to ``acks=1``. If `enable_idempotence` is
             :data:`True` defaults to ``acks=all``.
-            """
+            """,
             ),
         ] = EMPTY,
         compression_type: Annotated[
@@ -186,14 +181,14 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Compression is of full batches of data, so the efficacy of batching
             will also impact the compression ratio (more batching means better
             compression).
-            """
+            """,
             ),
         ] = None,
         partitioner: Annotated[
             Union[
                 str,
                 Callable[
-                    [bytes, List[Partition], List[Partition]],
+                    [bytes, list[Partition], list[Partition]],
                     Partition,
                 ],
             ],
@@ -207,7 +202,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             messages with the same key are assigned to the same partition.
             When a key is :data:`None`, the message is delivered to a random partition
             (filtered to partitions with available leaders only, if possible).
-            """
+            """,
             ),
         ] = "consistent_random",
         max_request_size: Annotated[
@@ -219,7 +214,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             has its own cap on record size which may be different from this.
             This setting will limit the number of record batches the producer
             will send in a single request to avoid sending huge requests.
-            """
+            """,
             ),
         ] = 1024 * 1024,
         linger_ms: Annotated[
@@ -234,7 +229,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             This setting accomplishes this by adding a small amount of
             artificial delay; that is, if first request is processed faster,
             than `linger_ms`, producer will wait ``linger_ms - process_time``.
-            """
+            """,
             ),
         ] = 0,
         enable_idempotence: Annotated[
@@ -247,7 +242,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             etc., may write duplicates of the retried message in the stream.
             Note that enabling idempotence acks to set to ``all``. If it is not
             explicitly set by the user it will be chosen.
-            """
+            """,
             ),
         ] = False,
         transactional_id: Optional[str] = None,
@@ -256,7 +251,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         graceful_timeout: Annotated[
             Optional[float],
             Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down."
+                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
             ),
         ] = 15.0,
         decoder: Annotated[
@@ -271,38 +266,40 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Sequence[
                 Union[
                     "BrokerMiddleware[Message]",
-                    "BrokerMiddleware[Tuple[Message, ...]]",
+                    "BrokerMiddleware[tuple[Message, ...]]",
                 ]
             ],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
-        # AsyncAPI args
+        # Specification args
         security: Annotated[
             Optional["BaseSecurity"],
             Doc(
-                "Security options to connect broker and generate AsyncAPI server security information."
+                "Security options to connect broker and generate Specification server security information.",
             ),
         ] = None,
-        asyncapi_url: Annotated[
+        specification_url: Annotated[
             Optional[str],
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
+            Doc(
+                "Specification hardcoded server addresses. Use `servers` if not specified.",
+            ),
         ] = None,
         protocol: Annotated[
             Optional[str],
-            Doc("AsyncAPI server protocol."),
+            Doc("Specification server protocol."),
         ] = None,
         protocol_version: Annotated[
             Optional[str],
-            Doc("AsyncAPI server protocol version."),
+            Doc("Specification server protocol version."),
         ] = "auto",
         description: Annotated[
             Optional[str],
-            Doc("AsyncAPI server description."),
+            Doc("Specification server description."),
         ] = None,
-        asyncapi_tags: Annotated[
-            Optional[Iterable[Union["asyncapi.Tag", "asyncapi.TagDict"]]],
-            Doc("AsyncAPI server tags."),
-        ] = None,
+        specification_tags: Annotated[
+            Iterable[Union["Tag", "TagDict"]],
+            Doc("Specification server tags."),
+        ] = (),
         # logging args
         logger: Annotated[
             Optional["LoggerProto"],
@@ -314,6 +311,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # StreamRouter options
@@ -321,13 +319,13 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             bool,
             Doc(
                 "Whether to add broker to app scope in lifespan. "
-                "You should disable this option at old ASGI servers."
+                "You should disable this option at old ASGI servers.",
             ),
         ] = True,
         schema_url: Annotated[
             Optional[str],
             Doc(
-                "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all."
+                "Specification schema url. You should set this option to `None` to disable Specification routes at all.",
             ),
         ] = "/asyncapi",
         # FastAPI args
@@ -336,7 +334,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Doc("An optional path prefix for the router."),
         ] = "",
         tags: Annotated[
-            Optional[List[Union[str, "Enum"]]],
+            Optional[list[Union[str, "Enum"]]],
             Doc(
                 """
                 A list of tags to be applied to all the *path operations* in this
@@ -346,7 +344,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """
+                """,
             ),
         ] = None,
         dependencies: Annotated[
@@ -358,22 +356,22 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """
+                """,
             ),
         ] = None,
         default_response_class: Annotated[
-            Type["Response"],
+            type["Response"],
             Doc(
                 """
                 The default response class to be used.
 
                 Read more in the
                 [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-                """
+                """,
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            Optional[Dict[Union[int, str], "AnyDict"]],
+            Optional[dict[Union[int, str], "AnyDict"]],
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.
@@ -385,11 +383,11 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 And in the
                 [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """
+                """,
             ),
         ] = None,
         callbacks: Annotated[
-            Optional[List[BaseRoute]],
+            Optional[list[BaseRoute]],
             Doc(
                 """
                 OpenAPI callbacks that should apply to all *path operations* in this
@@ -399,11 +397,11 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-                """
+                """,
             ),
         ] = None,
         routes: Annotated[
-            Optional[List[BaseRoute]],
+            Optional[list[BaseRoute]],
             Doc(
                 """
                 **Note**: you probably shouldn't use this parameter, it is inherited
@@ -412,7 +410,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 ---
 
                 A list of routes to serve incoming HTTP and WebSocket requests.
-                """
+                """,
             ),
             deprecated(
                 """
@@ -421,7 +419,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 In FastAPI, you normally would use the *path operation methods*,
                 like `router.get()`, `router.post()`, etc.
-                """
+                """,
             ),
         ] = None,
         redirect_slashes: Annotated[
@@ -430,7 +428,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
                 Whether to detect and redirect slashes in URLs when the client doesn't
                 use the same format.
-                """
+                """,
             ),
         ] = True,
         default: Annotated[
@@ -439,7 +437,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
                 Default function handler for this router. Used to handle
                 404 Not Found errors.
-                """
+                """,
             ),
         ] = None,
         dependency_overrides_provider: Annotated[
@@ -450,18 +448,18 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 You shouldn't need to use it. It normally points to the `FastAPI` app
                 object.
-                """
+                """,
             ),
         ] = None,
         route_class: Annotated[
-            Type["APIRoute"],
+            type["APIRoute"],
             Doc(
                 """
                 Custom route (*path operation*) class to be used by this router.
 
                 Read more about it in the
                 [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-                """
+                """,
             ),
         ] = APIRoute,
         on_startup: Annotated[
@@ -473,7 +471,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 You should instead use the `lifespan` handlers.
 
                 Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """
+                """,
             ),
         ] = None,
         on_shutdown: Annotated[
@@ -486,7 +484,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """
+                """,
             ),
         ] = None,
         lifespan: Annotated[
@@ -498,7 +496,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """
+                """,
             ),
         ] = None,
         deprecated: Annotated[
@@ -511,7 +509,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """
+                """,
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -525,7 +523,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-                """
+                """,
             ),
         ] = True,
         generate_unique_id_function: Annotated[
@@ -540,7 +538,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
-                """
+                """,
             ),
         ] = Default(generate_unique_id),
     ) -> None:
@@ -572,13 +570,13 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             logger=logger,
             log_level=log_level,
             log_fmt=log_fmt,
-            # AsyncAPI options
+            # Specification options
             security=security,
             protocol=protocol,
             description=description,
             protocol_version=protocol_version,
-            asyncapi_tags=asyncapi_tags,
-            asyncapi_url=asyncapi_url,
+            specification_tags=specification_tags,
+            specification_url=specification_url,
             # FastAPI kwargs
             prefix=prefix,
             tags=tags,
@@ -616,7 +614,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
-            """
+            """,
             ),
         ] = None,
         group_instance_id: Annotated[
@@ -629,7 +627,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment, rebalances). This can be used to assign
             partitions to specific consumers, rather than letting the group
             assign partitions based on consumer metadata.
-            """
+            """,
             ),
         ] = None,
         fetch_max_wait_ms: Annotated[
@@ -640,7 +638,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             the server will block before answering the fetch request if
             there isn't sufficient data to immediately satisfy the
             requirement given by `fetch_min_bytes`.
-            """
+            """,
             ),
         ] = 500,
         fetch_max_bytes: Annotated[
@@ -655,7 +653,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             performs fetches to multiple brokers in parallel so memory
             usage will depend on the number of brokers containing
             partitions for the topic.
-            """
+            """,
             ),
         ] = 50 * 1024 * 1024,
         fetch_min_bytes: Annotated[
@@ -665,7 +663,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Minimum amount of data the server should
             return for a fetch request, otherwise wait up to
             `fetch_max_wait_ms` for more data to accumulate.
-            """
+            """,
             ),
         ] = 1,
         max_partition_fetch_bytes: Annotated[
@@ -680,7 +678,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             send messages larger than the consumer can fetch. If that
             happens, the consumer can get stuck trying to fetch a large
             message on a certain partition.
-            """
+            """,
             ),
         ] = 1 * 1024 * 1024,
         auto_offset_reset: Annotated[
@@ -692,7 +690,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             * `earliest` will move to the oldest available message
             * `latest` will move to the most recent
             * `none` will raise an exception so you can handle this case
-            """
+            """,
             ),
         ] = "latest",
         auto_commit: Annotated[
@@ -701,15 +699,21 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             If `True` the consumer's offset will be
             periodically committed in the background.
-            """
+            """,
             ),
-        ] = True,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: Annotated[
             int,
             Doc(
                 """
             Milliseconds between automatic
-            offset commits, if `auto_commit` is `True`."""
+            offset commits, if `auto_commit` is `True`.""",
             ),
         ] = 5 * 1000,
         check_crcs: Annotated[
@@ -720,7 +724,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             consumed. This ensures no on-the-wire or on-disk corruption to
             the messages occurred. This check adds some overhead, so it may
             be disabled in cases seeking extreme performance.
-            """
+            """,
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
@@ -736,7 +740,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             one. The coordinator will choose the old assignment strategy until
             all members have been updated. Then it will choose the new
             strategy.
-            """
+            """,
             ),
         ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
@@ -749,7 +753,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             rebalance in order to reassign the partitions to another consumer
             group member. If API methods block waiting for messages, that time
             does not count against this timeout.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         session_timeout_ms: Annotated[
@@ -764,7 +768,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             group and trigger a rebalance. The allowed range is configured with
             the **broker** configuration properties
             `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            """
+            """,
             ),
         ] = 10 * 1000,
         heartbeat_interval_ms: Annotated[
@@ -780,7 +784,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             should be set no higher than 1/3 of that value. It can be
             adjusted even lower to control the expected time for normal
             rebalances.
-            """
+            """,
             ),
         ] = 3 * 1000,
         isolation_level: Annotated[
@@ -810,7 +814,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
             return the LSO. See method docs below.
-            """
+            """,
             ),
         ] = "read_uncommitted",
         batch: Annotated[
@@ -836,48 +840,42 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[KafkaMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI subscriber object title."),
+            Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
             Optional[str],
             Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Specification subscriber object description. "
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -911,7 +909,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """
+                """,
             ),
         ] = Default(None),
         response_model_include: Annotated[
@@ -923,7 +921,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_exclude: Annotated[
@@ -935,7 +933,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_by_alias: Annotated[
@@ -947,7 +945,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = True,
         response_model_exclude_unset: Annotated[
@@ -965,7 +963,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_defaults: Annotated[
@@ -982,7 +980,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_none: Annotated[
@@ -999,10 +997,13 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """
+                """,
             ),
         ] = False,
-    ) -> "AsyncAPIDefaultSubscriber": ...
+    ) -> Union[
+        "SpecificationDefaultSubscriber",
+        "SpecificationConcurrentDefaultSubscriber",
+    ]: ...
 
     @overload
     def subscriber(
@@ -1021,7 +1022,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
-            """
+            """,
             ),
         ] = None,
         group_instance_id: Annotated[
@@ -1034,7 +1035,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment, rebalances). This can be used to assign
             partitions to specific consumers, rather than letting the group
             assign partitions based on consumer metadata.
-            """
+            """,
             ),
         ] = None,
         fetch_max_wait_ms: Annotated[
@@ -1045,7 +1046,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             the server will block before answering the fetch request if
             there isn't sufficient data to immediately satisfy the
             requirement given by `fetch_min_bytes`.
-            """
+            """,
             ),
         ] = 500,
         fetch_max_bytes: Annotated[
@@ -1060,7 +1061,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             performs fetches to multiple brokers in parallel so memory
             usage will depend on the number of brokers containing
             partitions for the topic.
-            """
+            """,
             ),
         ] = 50 * 1024 * 1024,
         fetch_min_bytes: Annotated[
@@ -1070,7 +1071,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Minimum amount of data the server should
             return for a fetch request, otherwise wait up to
             `fetch_max_wait_ms` for more data to accumulate.
-            """
+            """,
             ),
         ] = 1,
         max_partition_fetch_bytes: Annotated[
@@ -1085,7 +1086,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             send messages larger than the consumer can fetch. If that
             happens, the consumer can get stuck trying to fetch a large
             message on a certain partition.
-            """
+            """,
             ),
         ] = 1 * 1024 * 1024,
         auto_offset_reset: Annotated[
@@ -1097,7 +1098,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             * `earliest` will move to the oldest available message
             * `latest` will move to the most recent
             * `none` will raise an exception so you can handle this case
-            """
+            """,
             ),
         ] = "latest",
         auto_commit: Annotated[
@@ -1106,15 +1107,21 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             If `True` the consumer's offset will be
             periodically committed in the background.
-            """
+            """,
             ),
-        ] = True,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: Annotated[
             int,
             Doc(
                 """
             Milliseconds between automatic
-            offset commits, if `auto_commit` is `True`."""
+            offset commits, if `auto_commit` is `True`.""",
             ),
         ] = 5 * 1000,
         check_crcs: Annotated[
@@ -1125,7 +1132,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             consumed. This ensures no on-the-wire or on-disk corruption to
             the messages occurred. This check adds some overhead, so it may
             be disabled in cases seeking extreme performance.
-            """
+            """,
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
@@ -1141,7 +1148,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             one. The coordinator will choose the old assignment strategy until
             all members have been updated. Then it will choose the new
             strategy.
-            """
+            """,
             ),
         ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
@@ -1154,7 +1161,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             rebalance in order to reassign the partitions to another consumer
             group member. If API methods block waiting for messages, that time
             does not count against this timeout.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         session_timeout_ms: Annotated[
@@ -1169,7 +1176,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             group and trigger a rebalance. The allowed range is configured with
             the **broker** configuration properties
             `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            """
+            """,
             ),
         ] = 10 * 1000,
         heartbeat_interval_ms: Annotated[
@@ -1185,7 +1192,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             should be set no higher than 1/3 of that value. It can be
             adjusted even lower to control the expected time for normal
             rebalances.
-            """
+            """,
             ),
         ] = 3 * 1000,
         isolation_level: Annotated[
@@ -1215,7 +1222,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
             return the LSO. See method docs below.
-            """
+            """,
             ),
         ] = "read_uncommitted",
         batch: Annotated[
@@ -1241,34 +1248,27 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[KafkaMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI subscriber object title."),
+            Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
             Optional[str],
             Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Specification subscriber object description. "
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -1302,7 +1302,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """
+                """,
             ),
         ] = Default(None),
         response_model_include: Annotated[
@@ -1314,7 +1314,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_exclude: Annotated[
@@ -1326,7 +1326,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_by_alias: Annotated[
@@ -1338,7 +1338,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = True,
         response_model_exclude_unset: Annotated[
@@ -1356,7 +1356,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_defaults: Annotated[
@@ -1373,7 +1373,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_none: Annotated[
@@ -1390,10 +1390,10 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """
+                """,
             ),
         ] = False,
-    ) -> "AsyncAPIBatchSubscriber": ...
+    ) -> "SpecificationBatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -1412,7 +1412,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
-            """
+            """,
             ),
         ] = None,
         group_instance_id: Annotated[
@@ -1425,7 +1425,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment, rebalances). This can be used to assign
             partitions to specific consumers, rather than letting the group
             assign partitions based on consumer metadata.
-            """
+            """,
             ),
         ] = None,
         fetch_max_wait_ms: Annotated[
@@ -1436,7 +1436,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             the server will block before answering the fetch request if
             there isn't sufficient data to immediately satisfy the
             requirement given by `fetch_min_bytes`.
-            """
+            """,
             ),
         ] = 500,
         fetch_max_bytes: Annotated[
@@ -1451,7 +1451,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             performs fetches to multiple brokers in parallel so memory
             usage will depend on the number of brokers containing
             partitions for the topic.
-            """
+            """,
             ),
         ] = 50 * 1024 * 1024,
         fetch_min_bytes: Annotated[
@@ -1461,7 +1461,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Minimum amount of data the server should
             return for a fetch request, otherwise wait up to
             `fetch_max_wait_ms` for more data to accumulate.
-            """
+            """,
             ),
         ] = 1,
         max_partition_fetch_bytes: Annotated[
@@ -1476,7 +1476,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             send messages larger than the consumer can fetch. If that
             happens, the consumer can get stuck trying to fetch a large
             message on a certain partition.
-            """
+            """,
             ),
         ] = 1 * 1024 * 1024,
         auto_offset_reset: Annotated[
@@ -1488,7 +1488,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             * `earliest` will move to the oldest available message
             * `latest` will move to the most recent
             * `none` will raise an exception so you can handle this case
-            """
+            """,
             ),
         ] = "latest",
         auto_commit: Annotated[
@@ -1497,15 +1497,21 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             If `True` the consumer's offset will be
             periodically committed in the background.
-            """
+            """,
             ),
-        ] = True,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: Annotated[
             int,
             Doc(
                 """
             Milliseconds between automatic
-            offset commits, if `auto_commit` is `True`."""
+            offset commits, if `auto_commit` is `True`.""",
             ),
         ] = 5 * 1000,
         check_crcs: Annotated[
@@ -1516,7 +1522,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             consumed. This ensures no on-the-wire or on-disk corruption to
             the messages occurred. This check adds some overhead, so it may
             be disabled in cases seeking extreme performance.
-            """
+            """,
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
@@ -1532,7 +1538,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             one. The coordinator will choose the old assignment strategy until
             all members have been updated. Then it will choose the new
             strategy.
-            """
+            """,
             ),
         ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
@@ -1545,7 +1551,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             rebalance in order to reassign the partitions to another consumer
             group member. If API methods block waiting for messages, that time
             does not count against this timeout.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         session_timeout_ms: Annotated[
@@ -1560,7 +1566,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             group and trigger a rebalance. The allowed range is configured with
             the **broker** configuration properties
             `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            """
+            """,
             ),
         ] = 10 * 1000,
         heartbeat_interval_ms: Annotated[
@@ -1576,7 +1582,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             should be set no higher than 1/3 of that value. It can be
             adjusted even lower to control the expected time for normal
             rebalances.
-            """
+            """,
             ),
         ] = 3 * 1000,
         isolation_level: Annotated[
@@ -1606,7 +1612,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
             return the LSO. See method docs below.
-            """
+            """,
             ),
         ] = "read_uncommitted",
         batch: Annotated[
@@ -1632,48 +1638,42 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[KafkaMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI subscriber object title."),
+            Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
             Optional[str],
             Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Specification subscriber object description. "
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -1707,7 +1707,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """
+                """,
             ),
         ] = Default(None),
         response_model_include: Annotated[
@@ -1719,7 +1719,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_exclude: Annotated[
@@ -1731,7 +1731,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_by_alias: Annotated[
@@ -1743,7 +1743,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = True,
         response_model_exclude_unset: Annotated[
@@ -1761,7 +1761,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_defaults: Annotated[
@@ -1778,7 +1778,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_none: Annotated[
@@ -1795,12 +1795,13 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """
+                """,
             ),
         ] = False,
     ) -> Union[
-        "AsyncAPIBatchSubscriber",
-        "AsyncAPIDefaultSubscriber",
+        "SpecificationBatchSubscriber",
+        "SpecificationDefaultSubscriber",
+        "SpecificationConcurrentDefaultSubscriber",
     ]: ...
 
     @override
@@ -1820,7 +1821,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
-            """
+            """,
             ),
         ] = None,
         group_instance_id: Annotated[
@@ -1833,7 +1834,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition assignment, rebalances). This can be used to assign
             partitions to specific consumers, rather than letting the group
             assign partitions based on consumer metadata.
-            """
+            """,
             ),
         ] = None,
         fetch_max_wait_ms: Annotated[
@@ -1844,7 +1845,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             the server will block before answering the fetch request if
             there isn't sufficient data to immediately satisfy the
             requirement given by `fetch_min_bytes`.
-            """
+            """,
             ),
         ] = 500,
         fetch_max_bytes: Annotated[
@@ -1859,7 +1860,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             performs fetches to multiple brokers in parallel so memory
             usage will depend on the number of brokers containing
             partitions for the topic.
-            """
+            """,
             ),
         ] = 50 * 1024 * 1024,
         fetch_min_bytes: Annotated[
@@ -1869,7 +1870,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Minimum amount of data the server should
             return for a fetch request, otherwise wait up to
             `fetch_max_wait_ms` for more data to accumulate.
-            """
+            """,
             ),
         ] = 1,
         max_partition_fetch_bytes: Annotated[
@@ -1884,7 +1885,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             send messages larger than the consumer can fetch. If that
             happens, the consumer can get stuck trying to fetch a large
             message on a certain partition.
-            """
+            """,
             ),
         ] = 1 * 1024 * 1024,
         auto_offset_reset: Annotated[
@@ -1896,7 +1897,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             * `earliest` will move to the oldest available message
             * `latest` will move to the most recent
             * `none` will raise an exception so you can handle this case
-            """
+            """,
             ),
         ] = "latest",
         auto_commit: Annotated[
@@ -1905,15 +1906,21 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             If `True` the consumer's offset will be
             periodically committed in the background.
-            """
+            """,
             ),
-        ] = True,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: Annotated[
             int,
             Doc(
                 """
             Milliseconds between automatic
-            offset commits, if `auto_commit` is `True`."""
+            offset commits, if `auto_commit` is `True`.""",
             ),
         ] = 5 * 1000,
         check_crcs: Annotated[
@@ -1924,7 +1931,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             consumed. This ensures no on-the-wire or on-disk corruption to
             the messages occurred. This check adds some overhead, so it may
             be disabled in cases seeking extreme performance.
-            """
+            """,
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
@@ -1940,7 +1947,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             one. The coordinator will choose the old assignment strategy until
             all members have been updated. Then it will choose the new
             strategy.
-            """
+            """,
             ),
         ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
@@ -1953,7 +1960,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             rebalance in order to reassign the partitions to another consumer
             group member. If API methods block waiting for messages, that time
             does not count against this timeout.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         session_timeout_ms: Annotated[
@@ -1968,7 +1975,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             group and trigger a rebalance. The allowed range is configured with
             the **broker** configuration properties
             `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            """
+            """,
             ),
         ] = 10 * 1000,
         heartbeat_interval_ms: Annotated[
@@ -1984,7 +1991,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             should be set no higher than 1/3 of that value. It can be
             adjusted even lower to control the expected time for normal
             rebalances.
-            """
+            """,
             ),
         ] = 3 * 1000,
         isolation_level: Annotated[
@@ -2014,7 +2021,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
             return the LSO. See method docs below.
-            """
+            """,
             ),
         ] = "read_uncommitted",
         batch: Annotated[
@@ -2040,48 +2047,42 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[KafkaMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI subscriber object title."),
+            Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
             Optional[str],
             Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Specification subscriber object description. "
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -2115,7 +2116,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """
+                """,
             ),
         ] = Default(None),
         response_model_include: Annotated[
@@ -2127,7 +2128,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_exclude: Annotated[
@@ -2139,7 +2140,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = None,
         response_model_by_alias: Annotated[
@@ -2151,7 +2152,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """
+                """,
             ),
         ] = True,
         response_model_exclude_unset: Annotated[
@@ -2169,7 +2170,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_defaults: Annotated[
@@ -2186,7 +2187,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """
+                """,
             ),
         ] = False,
         response_model_exclude_none: Annotated[
@@ -2203,7 +2204,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
 
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """
+                """,
             ),
         ] = False,
         max_workers: Annotated[
@@ -2211,9 +2212,9 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
     ) -> Union[
-        "AsyncAPIBatchSubscriber",
-        "AsyncAPIDefaultSubscriber",
-        "AsyncAPIConcurrentDefaultSubscriber",
+        "SpecificationBatchSubscriber",
+        "SpecificationDefaultSubscriber",
+        "SpecificationConcurrentDefaultSubscriber",
     ]:
         subscriber = super().subscriber(
             *topics,
@@ -2242,8 +2243,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
-            filter=filter,
-            retry=retry,
+            ack_policy=ack_policy,
             no_ack=no_ack,
             no_reply=no_reply,
             title=title,
@@ -2260,12 +2260,10 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         )
 
         if batch:
-            return cast("AsyncAPIBatchSubscriber", subscriber)
-        else:
-            if max_workers > 1:
-                return cast("AsyncAPIConcurrentDefaultSubscriber", subscriber)
-            else:
-                return cast("AsyncAPIDefaultSubscriber", subscriber)
+            return cast("SpecificationBatchSubscriber", subscriber)
+        if max_workers > 1:
+            return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+        return cast("SpecificationDefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
     def publisher(
@@ -2286,7 +2284,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -2295,15 +2293,15 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -2317,29 +2315,33 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object title."),
+            Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object description."),
+            Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
             Optional[Any],
             Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Specification publishing message type. "
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "AsyncAPIDefaultPublisher": ...
+    ) -> "SpecificationDefaultPublisher": ...
 
     @overload
     def publisher(
@@ -2360,7 +2362,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -2369,15 +2371,15 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -2391,29 +2393,33 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object title."),
+            Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object description."),
+            Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
             Optional[Any],
             Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Specification publishing message type. "
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "AsyncAPIBatchPublisher": ...
+    ) -> "SpecificationBatchPublisher": ...
 
     @overload
     def publisher(
@@ -2434,7 +2440,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -2443,15 +2449,15 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -2465,31 +2471,35 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object title."),
+            Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object description."),
+            Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
             Optional[Any],
             Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Specification publishing message type. "
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "AsyncAPIBatchPublisher",
-        "AsyncAPIDefaultPublisher",
+        "SpecificationBatchPublisher",
+        "SpecificationDefaultPublisher",
     ]: ...
 
     @override
@@ -2511,7 +2521,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -2520,15 +2530,15 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -2542,31 +2552,35 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
-        # AsyncAPI args
+        # Specification args
         title: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object title."),
+            Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
             Optional[str],
-            Doc("AsyncAPI publisher object description."),
+            Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
             Optional[Any],
             Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Specification publishing message type. "
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "AsyncAPIBatchPublisher",
-        "AsyncAPIDefaultPublisher",
+        "SpecificationBatchPublisher",
+        "SpecificationDefaultPublisher",
     ]:
         return self.broker.publisher(
             topic=topic,
@@ -2577,7 +2591,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             reply_to=reply_to,
             # broker options
             middlewares=middlewares,
-            # AsyncAPI options
+            # Specification options
             title=title,
             description=description,
             schema=schema,

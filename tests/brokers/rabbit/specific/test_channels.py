@@ -5,8 +5,8 @@ import pytest
 from faststream.rabbit import Channel, RabbitBroker
 
 
-@pytest.mark.asyncio
-@pytest.mark.rabbit
+@pytest.mark.asyncio()
+@pytest.mark.rabbit()
 async def test_subscriber_use_shared_channel():
     broker = RabbitBroker(logger=None)
 

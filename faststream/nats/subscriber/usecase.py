@@ -1,16 +1,15 @@
 from abc import abstractmethod
+from collections.abc import Awaitable, Iterable, Sequence
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
-    Awaitable,
     Callable,
     Dict,
     Generic,
-    Iterable,
     List,
     Optional,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -21,7 +20,7 @@ from fast_depends.dependencies import Depends
 from nats.aio.msg import Msg
 from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.api import ConsumerConfig, ObjectInfo
-from typing_extensions import Annotated, Doc, override
+from typing_extensions import Doc, override
 
 from faststream.broker.publisher.fake import FakePublisher
 from faststream.broker.subscriber.mixins import ConcurrentMixin, TasksMixin
@@ -66,7 +65,7 @@ if TYPE_CHECKING:
 ConnectionType = TypeVar("ConnectionType")
 
 
-class LogicSubscriber(Generic[ConnectionType, MsgType], SubscriberUsecase[MsgType]):
+class LogicSubscriber(SubscriberUsecase[MsgType], Generic[ConnectionType, MsgType]):
     """A class to represent a NATS handler."""
 
     subscription: Optional[Unsubscriptable]
@@ -186,7 +185,7 @@ class LogicSubscriber(Generic[ConnectionType, MsgType], SubscriberUsecase[MsgTyp
         connection: ConnectionType,
     ) -> None:
         """Create NATS subscription object to consume messages."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @staticmethod
     def build_log_context(
