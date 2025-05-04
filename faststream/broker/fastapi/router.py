@@ -31,9 +31,6 @@ from starlette.routing import BaseRoute, _DefaultLifespan
 
 from faststream.asyncapi.proto import AsyncAPIApplication
 from faststream.asyncapi.site import get_asyncapi_html
-from faststream.broker.fastapi.config import FastAPIConfig
-from faststream.broker.fastapi.get_dependant import get_fastapi_dependant
-from faststream.broker.fastapi.route import wrap_callable_to_fastapi_compatible
 from faststream.broker.middlewares import BaseMiddleware
 from faststream.broker.router import BrokerRouter
 from faststream.broker.types import (
@@ -43,6 +40,10 @@ from faststream.broker.types import (
 )
 from faststream.utils.context.repository import context
 from faststream.utils.functions import fake_context, to_async
+
+from .config import FastAPIConfig
+from .get_dependant import get_fastapi_dependant
+from .route import wrap_callable_to_fastapi_compatible
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -190,8 +191,7 @@ class StreamRouter(
         )
 
         self.fastapi_config = FastAPIConfig(
-            application=cast("FastAPI", None),  # lazy initialize
-            dependency_overrides_provider=dependency_overrides_provider,
+            dependency_overrides_provider=dependency_overrides_provider
         )
 
         if self.include_in_schema:
@@ -287,9 +287,7 @@ class StreamRouter(
             app: "FastAPI",
         ) -> AsyncIterator[Mapping[str, Any]]:
             """Starts the lifespan of a broker."""
-            self.fastapi_config.application = app
-            if self.fastapi_config.dependency_overrides_provider is None:
-                self.fastapi_config.dependency_overrides_provider = lambda: app
+            self.fastapi_config.set_application(app)
 
             if self.docs_router:
                 self.title = app.title

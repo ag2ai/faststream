@@ -279,7 +279,8 @@ class FastAPITestcase(BaseTestcaseConfig):
 
         @router.subscriber(*args, **kwargs)
         async def subscriber(msg: StreamMessage) -> None:
-            assert "app" in msg.scope
+            mock("app" in msg.scope)
+            event.set()
 
         async with router.broker:
             await router.broker.start()
@@ -290,6 +291,8 @@ class FastAPITestcase(BaseTestcaseConfig):
                 ),
                 timeout=self.timeout,
             )
+
+        mock.assert_called_once_with(True)
 
 
 @pytest.mark.asyncio

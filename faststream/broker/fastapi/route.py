@@ -18,13 +18,6 @@ from fast_depends.dependencies import model
 from fastapi.routing import run_endpoint_function, serialize_response
 from starlette.requests import Request
 
-from faststream.broker.fastapi.config import FastAPIConfig
-from faststream.broker.fastapi.get_dependant import (
-    get_fastapi_native_dependant,
-    has_signature_param,
-    is_faststream_decorated,
-    mark_faststream_decorated,
-)
 from faststream.broker.response import Response, ensure_response
 from faststream.broker.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
@@ -35,6 +28,13 @@ from ._compat import (
     create_response_field,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
+)
+from .config import FastAPIConfig
+from .get_dependant import (
+    get_fastapi_native_dependant,
+    has_signature_param,
+    is_faststream_decorated,
+    mark_faststream_decorated,
 )
 
 if TYPE_CHECKING:
@@ -221,17 +221,10 @@ def make_fastapi_execution(
 
             request.scope["app"] = fastapi_config.application
 
-            if fastapi_config.dependency_overrides_provider is not None:
-                dependency_overrides_provider = (
-                    fastapi_config.dependency_overrides_provider()
-                )
-            else:
-                dependency_overrides_provider = None
-
             solved_result = await solve_faststream_dependency(
                 request=request,
                 dependant=dependent,
-                dependency_overrides_provider=dependency_overrides_provider,
+                dependency_overrides_provider=fastapi_config.dependency_overrides_provider,
                 **kwargs,
             )
 
