@@ -142,6 +142,7 @@ def test_run_as_asgi_mp_with_log_level(
                 "faststream:app",
                 {"host": "0.0.0.0", "port": "8000"},
                 False,
+                None,
                 get_log_level(log_level),
             ),
             workers=3,
