@@ -109,7 +109,7 @@ def test_run_as_asgi_with_many_workers(
     ["critical", "fatal", "error", "warning", "warn", "info", "debug", "notset"],
 )
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_mp_with_log_level(
+def (
     runner: CliRunner, app: Application, log_level: str
 ):
     asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
@@ -209,7 +209,7 @@ def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
 
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_mp_with_log_config(
-    runner: CliRunner, app: Application, log_level: str
+    runner: CliRunner, app: Application,
 ):
     app.run = AsyncMock()
     logging_config = {
