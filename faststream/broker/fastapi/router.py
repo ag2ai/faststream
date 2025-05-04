@@ -21,7 +21,6 @@ from typing import (
     cast,
     overload,
 )
-from weakref import WeakSet
 
 from fastapi.datastructures import Default
 from fastapi.responses import HTMLResponse
@@ -32,6 +31,7 @@ from starlette.routing import BaseRoute, _DefaultLifespan
 
 from faststream.asyncapi.proto import AsyncAPIApplication
 from faststream.asyncapi.site import get_asyncapi_html
+from faststream.broker.fastapi.config import FastAPIConfig
 from faststream.broker.fastapi.get_dependant import get_fastapi_dependant
 from faststream.broker.fastapi.route import wrap_callable_to_fastapi_compatible
 from faststream.broker.middlewares import BaseMiddleware
@@ -189,9 +189,10 @@ class StreamRouter(
             on_shutdown=on_shutdown,
         )
 
-        self.weak_dependencies_provider: WeakSet[Any] = WeakSet()
-        if dependency_overrides_provider is not None:
-            self.weak_dependencies_provider.add(dependency_overrides_provider)
+        self.fastapi_config = FastAPIConfig(
+            application=cast("FastAPI", None),  # lazy initialize
+            dependency_overrides_provider=dependency_overrides_provider,
+        )
 
         if self.include_in_schema:
             self.docs_router = self._asyncapi_router(schema_url)
@@ -200,13 +201,6 @@ class StreamRouter(
 
         self._after_startup_hooks = []
         self._on_shutdown_hooks = []
-
-    def _get_dependencies_overides_provider(self) -> Optional[Any]:
-        """Dependency provider WeakRef resolver."""
-        if self.dependency_overrides_provider is not None:
-            return self.dependency_overrides_provider
-        else:
-            return next(iter(self.weak_dependencies_provider), None)
 
     def _add_api_mq_route(
         self,
@@ -238,7 +232,7 @@ class StreamRouter(
                 response_model_exclude_unset=response_model_exclude_unset,
                 response_model_exclude_defaults=response_model_exclude_defaults,
                 response_model_exclude_none=response_model_exclude_none,
-                provider_factory=self._get_dependencies_overides_provider,
+                fastapi_config=self.fastapi_config,
             )
 
         return wrapper
@@ -293,8 +287,9 @@ class StreamRouter(
             app: "FastAPI",
         ) -> AsyncIterator[Mapping[str, Any]]:
             """Starts the lifespan of a broker."""
-            if not len(self.weak_dependencies_provider):
-                self.weak_dependencies_provider.add(app)
+            self.fastapi_config.application = app
+            if self.fastapi_config.dependency_overrides_provider is None:
+                self.fastapi_config.dependency_overrides_provider = lambda: app
 
             if self.docs_router:
                 self.title = app.title
@@ -308,9 +303,6 @@ class StreamRouter(
                 self.schema = get_app_schema(self)
 
                 app.include_router(self.docs_router)
-
-            if not len(self.weak_dependencies_provider):
-                self.weak_dependencies_provider.add(app)
 
             async with lifespan_context(app) as maybe_context:
                 if maybe_context is None:
@@ -529,7 +521,7 @@ class StreamRouter(
         if isinstance(router, StreamRouter):  # pragma: no branch
             router.lifespan_context = fake_context
             self.broker.include_router(router.broker)
-            router.weak_dependencies_provider = self.weak_dependencies_provider
+            router.fastapi_config = self.fastapi_config
 
         super().include_router(
             router=router,

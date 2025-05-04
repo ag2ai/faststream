@@ -14,6 +14,7 @@ from faststream import Depends as FSDepends
 from faststream import Response, context
 from faststream.broker.core.usecase import BrokerUsecase
 from faststream.broker.fastapi.context import Context
+from faststream.broker.fastapi.route import StreamMessage
 from faststream.broker.fastapi.router import StreamRouter
 from faststream.broker.router import BrokerRouter
 from faststream.exceptions import SetupError
@@ -265,6 +266,30 @@ class FastAPITestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_once_with("hi")
+
+    async def test_injection_fastapi(
+        self,
+        mock: Mock,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def subscriber(msg: StreamMessage) -> None:
+            assert "app" in msg.scope
+
+        async with router.broker:
+            await router.broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(router.broker.publish(None, queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
 
 
 @pytest.mark.asyncio

@@ -18,6 +18,7 @@ from fast_depends.dependencies import model
 from fastapi.routing import run_endpoint_function, serialize_response
 from starlette.requests import Request
 
+from faststream.broker.fastapi.config import FastAPIConfig
 from faststream.broker.fastapi.get_dependant import (
     get_fastapi_native_dependant,
     has_signature_param,
@@ -37,7 +38,7 @@ from ._compat import (
 )
 
 if TYPE_CHECKING:
-    from fastapi import params
+    from fastapi import FastAPI, params
     from fastapi._compat import ModelField
     from fastapi.dependencies.models import Dependant
     from fastapi.types import IncEx
@@ -74,7 +75,7 @@ class StreamMessage(Request):
 def wrap_callable_to_fastapi_compatible(
     user_callable: Callable[P_HandlerParams, T_HandlerReturn],
     *,
-    provider_factory: Callable[[], Any],
+    fastapi_config: FastAPIConfig,
     dependencies: Iterable["params.Depends"],
     response_model: Any,
     response_model_include: Optional["IncEx"],
@@ -106,7 +107,7 @@ def wrap_callable_to_fastapi_compatible(
 
     parsed_callable = build_faststream_to_fastapi_parser(
         dependent=get_fastapi_native_dependant(user_callable, list(dependencies)),
-        provider_factory=provider_factory,
+        fastapi_config=fastapi_config,
         response_field=response_field,
         response_model_include=response_model_include,
         response_model_exclude=response_model_exclude,
@@ -123,7 +124,7 @@ def wrap_callable_to_fastapi_compatible(
 def build_faststream_to_fastapi_parser(
     *,
     dependent: "Dependant",
-    provider_factory: Callable[[], Any],
+    fastapi_config: FastAPIConfig,
     response_field: Optional["ModelField"],
     response_model_include: Optional["IncEx"],
     response_model_exclude: Optional["IncEx"],
@@ -137,7 +138,7 @@ def build_faststream_to_fastapi_parser(
 
     consume = make_fastapi_execution(
         dependent=dependent,
-        provider_factory=provider_factory,
+        fastapi_config=fastapi_config,
         response_field=response_field,
         response_model_include=response_model_include,
         response_model_exclude=response_model_exclude,
@@ -191,7 +192,7 @@ def build_faststream_to_fastapi_parser(
 def make_fastapi_execution(
     *,
     dependent: "Dependant",
-    provider_factory: Callable[[], Any],
+    fastapi_config: FastAPIConfig,
     response_field: Optional["ModelField"],
     response_model_include: Optional["IncEx"],
     response_model_exclude: Optional["IncEx"],
@@ -218,10 +219,12 @@ def make_fastapi_execution(
                 request.scope["fastapi_astack"] = stack
                 kwargs = {}
 
+            request.scope["app"] = fastapi_config.application
+
             solved_result = await solve_faststream_dependency(
                 request=request,
                 dependant=dependent,
-                dependency_overrides_provider=provider_factory(),
+                dependency_overrides_provider=fastapi_config.dependency_overrides_provider,
                 **kwargs,
             )
 
