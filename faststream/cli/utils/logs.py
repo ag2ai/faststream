@@ -1,7 +1,10 @@
+import json
 import logging
+import logging.config
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, DefaultDict, Optional, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, DefaultDict, Dict, Optional, Union
 
 if TYPE_CHECKING:
     from faststream._internal.application import Application
@@ -44,6 +47,12 @@ LOG_LEVELS: DefaultDict[str, int] = defaultdict(
 )
 
 
+class LogFiles(str, Enum):
+    """The class to represent supported log configuration files."""
+
+    json = ".json"
+
+
 def get_log_level(level: Union[LogLevels, str, int]) -> int:
     """Get the log level.
 
@@ -72,3 +81,26 @@ def set_log_level(level: int, app: "Application") -> None:
     broker_logger: Optional[LoggerProto] = getattr(app.broker, "logger", None)
     if broker_logger is not None and getattr(broker_logger, "setLevel", None):
         broker_logger.setLevel(level)  # type: ignore[attr-defined]
+
+
+def get_log_config(file: Path) -> Union[Dict[str, Any], Any]:
+    """Read dict config from file."""
+    file_path = Path(file)
+
+    if not file_path.exists():
+        raise ValueError(f"File {file} not found")
+
+    file_format = file_path.suffix
+
+    if file_format == LogFiles.json:
+        with file_path.open("r") as config_file:
+            logging_config = json.load(config_file)
+    else:
+        raise ValueError(f"Format {file_format} is not supported")
+
+    return logging_config
+
+
+def set_log_config(configuration: Dict[str, Any]) -> None:
+    """Set the logging config from file."""
+    logging.config.dictConfig(configuration)
