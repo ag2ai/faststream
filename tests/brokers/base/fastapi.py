@@ -660,20 +660,21 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
     async def test_dependency_overrides(self, mock: Mock, queue: str):
         router = self.router_class()
         router2 = self.router_class()
+        router3 = self.router_class()
 
         def dep1():
-            mock.not_call()
-            pass
+            raise AssertionError
 
         app = FastAPI()
         app.dependency_overrides[dep1] = lambda: mock()
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @router2.subscriber(*args, **kwargs)
+        @router3.subscriber(*args, **kwargs)
         async def hello_router2(dep=Depends(dep1)):
             return "hi"
 
+        router2.include_router(router3)
         router.include_router(router2)
         app.include_router(router)
 
@@ -690,4 +691,3 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                 assert r == "hi"
 
         mock.assert_called_once()
-        assert not mock.not_call.called
