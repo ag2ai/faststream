@@ -224,7 +224,7 @@ def make_fastapi_execution(
             solved_result = await solve_faststream_dependency(
                 request=request,
                 dependant=dependent,
-                dependency_overrides_provider=fastapi_config.dependency_overrides_provider,
+                dependency_overrides_provider=fastapi_config.dependency_overrides_provider(),
                 **kwargs,
             )
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -8,4 +8,4 @@ if TYPE_CHECKING:
 @dataclass
 class FastAPIConfig:
     application: "FastAPI"
-    dependency_overrides_provider: Optional[Any]
+    dependency_overrides_provider: Any
