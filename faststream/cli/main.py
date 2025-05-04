@@ -84,7 +84,7 @@ def run(
         envvar="FASTSTREAM_LOG_LEVEL",
     ),
     log_config: Path = typer.Option(
-        "",
+        None,
         help=f"Set file to configure logging. Supported {[x.value for x in LogFiles]}",
     ),
     reload: bool = typer.Option(
@@ -224,7 +224,7 @@ def _run_imported_app(
     if log_level > 0:
         set_log_level(log_level, app_obj)
 
-    if log_config:
+    if log_config is not None:
         config = get_log_config(log_config)
         set_log_config(config)
 
