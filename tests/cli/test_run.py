@@ -109,7 +109,7 @@ def test_run_as_asgi_with_many_workers(
     ["critical", "fatal", "error", "warning", "warn", "info", "debug", "notset"],
 )
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def (
+def test_run_as_asgi_mp_with_log_level(
     runner: CliRunner, app: Application, log_level: str
 ):
     asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
