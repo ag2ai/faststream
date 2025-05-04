@@ -221,10 +221,15 @@ def make_fastapi_execution(
 
             request.scope["app"] = fastapi_config.application
 
+            if fastapi_config.dependency_overrides_provider is not None:
+                dependency_overrides_provider = fastapi_config.dependency_overrides_provider()
+            else:
+                dependency_overrides_provider = None
+
             solved_result = await solve_faststream_dependency(
                 request=request,
                 dependant=dependent,
-                dependency_overrides_provider=fastapi_config.dependency_overrides_provider(),
+                dependency_overrides_provider=dependency_overrides_provider,
                 **kwargs,
             )
 
