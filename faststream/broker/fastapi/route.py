@@ -38,7 +38,7 @@ from ._compat import (
 )
 
 if TYPE_CHECKING:
-    from fastapi import FastAPI, params
+    from fastapi import params
     from fastapi._compat import ModelField
     from fastapi.dependencies.models import Dependant
     from fastapi.types import IncEx
