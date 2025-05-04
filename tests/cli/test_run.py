@@ -209,7 +209,8 @@ def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
 
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_mp_with_log_config(
-    runner: CliRunner, app: Application,
+    runner: CliRunner,
+    app: Application,
 ):
     app.run = AsyncMock()
     logging_config = {
