@@ -5,6 +5,7 @@ from faststream.asgi.response import AsgiResponse
 if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
+
 class GetHandler:
     def __init__(
         self,
@@ -20,7 +21,7 @@ class GetHandler:
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         if scope["method"] not in self.methods:
-            response: ASGIApp =  _get_method_not_allowed_response(self.methods)
+            response: ASGIApp = _get_method_not_allowed_response(self.methods)
 
         else:
             try:
@@ -30,6 +31,7 @@ class GetHandler:
 
         await response(scope, receive, send)
         return
+
 
 @overload
 def get(
@@ -56,7 +58,9 @@ def get(
     description: Optional[str] = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
-        return GetHandler(inner_func, include_in_schema=include_in_schema, description=description)
+        return GetHandler(
+            inner_func, include_in_schema=include_in_schema, description=description
+        )
 
     if func is None:
         return decorator
