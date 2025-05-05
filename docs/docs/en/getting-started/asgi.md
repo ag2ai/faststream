@@ -103,6 +103,31 @@ app = AsgiFastStream(
     You do not need to setup all routes using the `asgi_routes=[]` parameter.<br/>
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
 
+### ASGI Documentation
+By default, any ASGI routes will be added to your AsyncAPI documentation. If you wish to exclude these routes, just do the following:
+
+```
+app = AsgiFastStream(
+    broker,
+    asgi_routes=[
+        ("/health", make_ping_asgi(broker, timeout=5.0, include_in_schema=False)),
+    ]
+)
+```
+
+Or, for custom ASGI routes:
+
+```
+@get(include_in_schema=False)
+async def liveness_ping(scope):
+    return AsgiResponse(b"", status_code=200)
+
+app = AsgiFastStream(
+    broker,
+    asgi_routes=[("/health", liveness_ping)]
+)
+```
+
 ### AsyncAPI Documentation
 
 You can also host your **AsyncAPI** documentation in the same process, by running [`#!shell faststream docs serve ...`](./asyncapi/hosting.md){.internal-link}, in the same container and runtime.
@@ -158,7 +183,7 @@ app = FastStream(broker).as_asgi(
 
 ## Other ASGI Compatibility
 
-Moreover, our wrappers can be used as ready-to-use endpoins for other **ASGI** frameworks. This can be very helpful When you are running **FastStream** in the same runtime as any other **ASGI** frameworks.
+Moreover, our wrappers can be used as ready-to-use endpoints for other **ASGI** frameworks. This can be very helpful When you are running **FastStream** in the same runtime as any other **ASGI** frameworks.
 
 Just follow the following example in such cases:
 

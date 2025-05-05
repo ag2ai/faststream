@@ -6,6 +6,7 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from faststream.asgi import AsgiFastStream, AsgiResponse, get, make_ping_asgi
+from faststream.asyncapi.generate import get_app_schema
 
 
 class AsgiTestcase:
@@ -95,3 +96,39 @@ class AsgiTestcase:
                 response = client.get("/test")
                 assert response.status_code == 200
                 assert response.text == "test"
+
+    @pytest.mark.asyncio
+    async def test_get_decorator_with_include_in_schema(self):
+        @get(include_in_schema=True)
+        async def some_handler(scope):
+            return AsgiResponse(body=b"test", status_code=200)
+
+        broker = self.get_broker()
+        app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
+
+        assert app.routes[0][1].include_in_schema is True
+
+    def test_asyncapi_generate(self):
+        broker = self.get_broker()
+
+        @get(include_in_schema=True)
+        async def liveness_ping(scope):
+            """Liveness ping."""
+            return AsgiResponse(b"", status_code=200)
+
+        routes = [
+            ("/liveness", liveness_ping),
+            ("/readiness", make_ping_asgi(broker, timeout=5.0, include_in_schema=True)),
+        ]
+
+        schema = get_app_schema(
+            AsgiFastStream(broker, asgi_routes=routes)
+        ).to_jsonable()
+
+        assert schema["routes"][0] == {
+            "path": "/liveness",
+            "methods": ["GET", "HEAD"],
+            "description": "Liveness ping.",
+        }
+
+        assert schema["routes"][1] == {"path": "/readiness", "methods": ["GET", "HEAD"]}

@@ -16,6 +16,7 @@ from faststream.asyncapi.schema.info import (
 from faststream.asyncapi.schema.main import ASYNC_API_VERSION, Components, Schema
 from faststream.asyncapi.schema.message import CorrelationId, Message
 from faststream.asyncapi.schema.operations import Operation
+from faststream.asyncapi.schema.routes import Route
 from faststream.asyncapi.schema.security import SecuritySchemaComponent
 from faststream.asyncapi.schema.servers import Server
 from faststream.asyncapi.schema.utils import (
@@ -48,6 +49,7 @@ __all__ = (
     "Operation",
     "OperationBinding",
     "Reference",
+    "Route",  # routes
     "Schema",
     # security
     "SecuritySchemaComponent",

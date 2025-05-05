@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from faststream._compat import DEF_KEY
 from faststream.asyncapi.schema import (
@@ -7,6 +7,7 @@ from faststream.asyncapi.schema import (
     Info,
     Message,
     Reference,
+    Route,
     Schema,
     Server,
 )
@@ -27,6 +28,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
 
     servers = get_broker_server(broker)
     channels = get_broker_channels(broker)
+    asgi_routes = get_asgi_routes(app)
 
     messages: Dict[str, Message] = {}
     payloads: Dict[str, Dict[str, Any]] = {}
@@ -54,6 +56,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
                     payloads,
                     messages,
                 )
+
     schema = Schema(
         info=Info(
             title=app.title,
@@ -69,6 +72,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
         externalDocs=app.external_docs,
         servers=servers,
         channels=channels,
+        routes=asgi_routes,
         components=Components(
             messages=messages,
             schemas=payloads,
@@ -134,6 +138,29 @@ def get_broker_channels(
         channels.update(p.schema())
 
     return channels
+
+
+def get_asgi_routes(
+    app: "AsyncAPIApplication",
+) -> Optional[List[Route]]:
+    """Get the ASGI routes for an application."""
+    routes: Optional[List[Route]] = None
+
+    if hasattr(app, "routes"):
+        routes = []
+        for route in app.routes:
+            path, asgi_app = route
+
+            if asgi_app.include_in_schema:
+                routes.append(
+                    Route(
+                        path=path,
+                        methods=["GET", "HEAD"],
+                        description=asgi_app.description,
+                    )
+                )
+
+    return routes
 
 
 def _resolve_msg_payloads(

@@ -6,6 +6,7 @@ from faststream._compat import PYDANTIC_V2, model_to_json, model_to_jsonable
 from faststream.asyncapi.schema.channels import Channel
 from faststream.asyncapi.schema.info import Info
 from faststream.asyncapi.schema.message import Message
+from faststream.asyncapi.schema.routes import Route
 from faststream.asyncapi.schema.servers import Server
 from faststream.asyncapi.schema.utils import (
     ExternalDocs,
@@ -75,6 +76,7 @@ class Schema(BaseModel):
         info : information about the schema
         servers : optional dictionary of servers
         channels : dictionary of channels
+        routes : optional list of asgi routes
         components : optional components of the schema
         tags : optional list of tags
         externalDocs : optional external documentation
@@ -92,6 +94,7 @@ class Schema(BaseModel):
     info: Info
     servers: Optional[Dict[str, Server]] = None
     channels: Dict[str, Channel]
+    routes: Optional[List[Route]] = None
     components: Optional[Components] = None
     tags: Optional[List[Union[Tag, Dict[str, Any]]]] = None
     externalDocs: Optional[Union[ExternalDocs, Dict[str, Any]]] = None
