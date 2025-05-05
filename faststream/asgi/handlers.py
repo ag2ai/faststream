@@ -6,7 +6,13 @@ if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
 class GetHandler:
-    def __init__(self, func: "UserApp", include_in_schema: bool = True, description: Optional[str] = None):
+    def __init__(
+        self,
+        func: "UserApp",
+        *,
+        include_in_schema: bool = True,
+        description: Optional[str] = None,
+    ):
         self.func = func
         self.include_in_schema = include_in_schema
         self.methods = ("GET", "HEAD")
@@ -26,7 +32,12 @@ class GetHandler:
         return
 
 @overload
-def get(func: "UserApp", *, include_in_schema: bool = True, description: Optional[str] = None) -> "ASGIApp": ...
+def get(
+    func: "UserApp",
+    *,
+    include_in_schema: bool = True,
+    description: Optional[str] = None,
+) -> "ASGIApp": ...
 
 
 @overload
@@ -34,21 +45,23 @@ def get(
     func: None = None,
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None
+    description: Optional[str] = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
 def get(
-    func: Optional["UserApp"] = None, *, include_in_schema: bool = True, description: Optional[str] = None
+    func: Optional["UserApp"] = None,
+    *,
+    include_in_schema: bool = True,
+    description: Optional[str] = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
+    def decorator(inner_func: "UserApp") -> "ASGIApp":
+        return GetHandler(inner_func, include_in_schema=include_in_schema, description=description)
 
     if func is None:
-
-        def decorator(inner_func: "UserApp") -> "ASGIApp":
-            return GetHandler(inner_func, include_in_schema=include_in_schema, description=description)  # type: ignore
         return decorator
 
-    return GetHandler(func, include_in_schema=include_in_schema, description=description)
+    return decorator(func)
 
 
 def _get_method_not_allowed_response(methods: Sequence[str]) -> AsgiResponse:
