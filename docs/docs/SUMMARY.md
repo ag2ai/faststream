@@ -481,7 +481,6 @@ search:
                     - logs
                         - [LogFiles](api/faststream/cli/utils/logs/LogFiles.md)
                         - [LogLevels](api/faststream/cli/utils/logs/LogLevels.md)
-                        - [get_log_config](api/faststream/cli/utils/logs/get_log_config.md)
                         - [get_log_level](api/faststream/cli/utils/logs/get_log_level.md)
                         - [set_log_config](api/faststream/cli/utils/logs/set_log_config.md)
                         - [set_log_level](api/faststream/cli/utils/logs/set_log_level.md)
