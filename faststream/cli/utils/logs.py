@@ -85,15 +85,13 @@ def set_log_level(level: int, app: "Application") -> None:
 
 def get_log_config(file: Path) -> Union[Dict[str, Any], Any]:
     """Read dict config from file."""
-    file_path = Path(file)
-
-    if not file_path.exists():
+    if not file.exists():
         raise ValueError(f"File {file} not found")
 
-    file_format = file_path.suffix
+    file_format = file.suffix
 
     if file_format == LogFiles.json:
-        with file_path.open("r") as config_file:
+        with file.open("r") as config_file:
             logging_config = json.load(config_file)
     else:
         raise ValueError(f"Format {file_format} is not supported")
