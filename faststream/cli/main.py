@@ -19,7 +19,6 @@ from faststream.cli.utils.imports import import_from_string
 from faststream.cli.utils.logs import (
     LogFiles,
     LogLevels,
-    get_log_config,
     get_log_level,
     set_log_config,
     set_log_level,
@@ -225,8 +224,7 @@ def _run_imported_app(
         set_log_level(log_level, app_obj)
 
     if log_config is not None:
-        config = get_log_config(log_config)
-        set_log_config(config)
+        set_log_config(log_config)
 
     if sys.platform not in ("win32", "cygwin", "cli"):  # pragma: no cover
         with suppress(ImportError):

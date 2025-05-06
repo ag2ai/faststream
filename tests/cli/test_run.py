@@ -207,16 +207,21 @@ def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
         assert result.exit_code != 0
 
 
+@pytest.mark.parametrize(
+    "log_config",
+    ["config.json", "config.toml", "config.yaml", "config.yml"],
+)
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_mp_with_log_config(
     runner: CliRunner,
     app: Application,
+    log_config: str,
 ):
     app.run = AsyncMock()
     logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
-        "formatters": {"app": {"format": " JSON CONFIG: %(message)s"}},
+        "formatters": {"app": {"format": "%(message)s"}},
         "handlers": {
             "app": {
                 "class": "logging.StreamHandler",
@@ -228,7 +233,7 @@ def test_run_as_asgi_mp_with_log_config(
     }
 
     with patch(
-        "faststream.cli.utils.logs.get_log_config",
+        "faststream.cli.utils.logs._get_log_config",
         return_value=logging_config,
     ):
         result = runner.invoke(
@@ -240,7 +245,7 @@ def test_run_as_asgi_mp_with_log_config(
                 "0.0.0.0",
                 "--port",
                 "8000",
-                "--log_config config.json",
+                f"--log_config {log_config}",
             ],
         )
         app.run.assert_not_called()
