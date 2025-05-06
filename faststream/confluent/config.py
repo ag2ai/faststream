@@ -268,7 +268,7 @@ ConfluentConfig = TypedDict(
 
 class ConfluentFastConfig:
     def __init__(self, config: Optional[ConfluentConfig]) -> None:
-        self.config = config
+        self.config = config or {}
 
     def as_config_dict(self) -> "AnyDict":
         if not self.config:

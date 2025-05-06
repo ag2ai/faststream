@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -605,11 +606,22 @@ class KafkaBroker(
         Consumes the same with `KafkaBroker.__init__` arguments and overrides them.
         To startup subscribers too you should use `broker.start()` after/instead this method.
         """
+        if bootstrap_servers is not EMPTY or kwargs:
+            warnings.warn(
+                "`KafkaBroker().connect(...) options were "
+                "deprecated in **FastStream 0.5.40**. "
+                "Please, use `KafkaBroker(...)` instead. "
+                "All these options will be removed in **FastStream 0.6.0**.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if bootstrap_servers is not EMPTY:
             connect_kwargs: AnyDict = {
                 **kwargs,
                 "bootstrap_servers": bootstrap_servers,
             }
+
         else:
             connect_kwargs = {**kwargs}
 

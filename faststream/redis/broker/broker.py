@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -258,6 +259,16 @@ class RedisBroker(
         **kwargs: "Unpack[RedisInitKwargs]",
     ) -> "Redis[bytes]":
         """Connect to the Redis server."""
+        if url is not EMPTY or kwargs:
+            warnings.warn(
+                "`RedisBroker().connect(...) options were "
+                "deprecated in **FastStream 0.5.40**. "
+                "Please, use `RedisBroker(...)` instead. "
+                "All these options will be removed in **FastStream 0.6.0**.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if url is not EMPTY:
             connect_kwargs: AnyDict = {
                 "url": url,

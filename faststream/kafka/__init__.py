@@ -1,11 +1,18 @@
-from aiokafka import TopicPartition
+try:
+    from aiokafka import TopicPartition
 
-from faststream.kafka.annotations import KafkaMessage
-from faststream.kafka.broker import KafkaBroker
-from faststream.kafka.response import KafkaResponse
-from faststream.kafka.router import KafkaPublisher, KafkaRoute, KafkaRouter
-from faststream.kafka.testing import TestKafkaBroker
-from faststream.testing.app import TestApp
+    from faststream.testing.app import TestApp
+
+    from .annotations import KafkaMessage
+    from .broker import KafkaBroker
+    from .response import KafkaResponse
+    from .router import KafkaPublisher, KafkaRoute, KafkaRouter
+    from .testing import TestKafkaBroker
+
+except ImportError as e:
+    from faststream.exceptions import INSTALL_FASTSTREAM_KAFKA
+
+    raise ImportError(INSTALL_FASTSTREAM_KAFKA) from e
 
 __all__ = (
     "KafkaBroker",
