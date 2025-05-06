@@ -120,8 +120,13 @@ NOT_CONNECTED_YET = "Please, `connect()` the broker first."
 
 
 INSTALL_YAML = """
-To generate YAML documentation, please install dependencies:\n
+To use feature which need yaml, please install dependencies:\n
 pip install PyYAML
+"""
+
+INSTALL_TOML = """
+To use feature which need toml, please install dependencies:\n
+pip install tomli
 """
 
 INSTALL_WATCHFILES = """
