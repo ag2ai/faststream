@@ -83,7 +83,7 @@ def run(
         help="Set selected level for FastStream and brokers logger objects.",
         envvar="FASTSTREAM_LOG_LEVEL",
     ),
-    log_config: Path = typer.Option(
+    log_config: Optional[Path] = typer.Option(
         None,
         help=f"Set file to configure logging. Supported {[x.value for x in LogFiles]}",
     ),
@@ -194,7 +194,7 @@ def _run(
     app: str,
     extra_options: Dict[str, "SettingField"],
     is_factory: bool,
-    log_config: Path,
+    log_config: Optional[Path],
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:
@@ -212,7 +212,7 @@ def _run(
 def _run_imported_app(
     app_obj: "Application",
     extra_options: Dict[str, "SettingField"],
-    log_config: Path,
+    log_config: Optional[Path],
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:
