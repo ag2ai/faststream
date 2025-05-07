@@ -12,6 +12,7 @@ class StreamSub(NameRequired):
         "batch",
         "consumer",
         "group",
+        "last_history_id",
         "last_id",
         "max_records",
         "maxlen",
@@ -29,6 +30,7 @@ class StreamSub(NameRequired):
         batch: bool = False,
         no_ack: bool = False,
         last_id: Optional[str] = None,
+        last_history_id: Optional[str] = None,
         maxlen: Optional[int] = None,
         max_records: Optional[int] = None,
     ) -> None:
@@ -45,6 +47,9 @@ class StreamSub(NameRequired):
         if last_id is None:
             last_id = "$"
 
+        if last_history_id is None:
+            last_history_id = ">"
+
         super().__init__(stream)
 
         self.group = group
@@ -53,6 +58,7 @@ class StreamSub(NameRequired):
         self.batch = batch
         self.no_ack = no_ack
         self.last_id = last_id
+        self.last_history_id = last_history_id
         self.maxlen = maxlen
         self.max_records = max_records
 
