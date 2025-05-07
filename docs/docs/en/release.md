@@ -12,6 +12,25 @@ hide:
 ---
 
 # Release Notes
+## 0.5.40
+
+### What's Changed
+* fix: repair AsyncAPI render by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2175](https://github.com/ag2ai/faststream/pull/2175){.external-link target="_blank"}
+* fix: prevent redis stream subscriber timeout when polling_interval exceeds 3000ms by [@caozheliang](https://github.com/caozheliang){.external-link target="_blank"} in [#2200](https://github.com/ag2ai/faststream/pull/2200){.external-link target="_blank"}
+* feat: auto flush confluent broker by [@mdaffad](https://github.com/mdaffad){.external-link target="_blank"} in [#2182](https://github.com/ag2ai/faststream/pull/2182){.external-link target="_blank"}
+* feat (#2169): Error on faststream.Context instead of faststream.[broker].fastapi.Context by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2181](https://github.com/ag2ai/faststream/pull/2181){.external-link target="_blank"}
+* docs: add information about manual AsyncAPI hosting by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2177](https://github.com/ag2ai/faststream/pull/2177){.external-link target="_blank"}
+* docs: update Django integration guide and add FastStream ORM access e… by [@Lodimup](https://github.com/Lodimup){.external-link target="_blank"} in [#2187](https://github.com/ag2ai/faststream/pull/2187){.external-link target="_blank"}
+* docs: add  Django management command integration by [@Lodimup](https://github.com/Lodimup){.external-link target="_blank"} in [#2190](https://github.com/ag2ai/faststream/pull/2190){.external-link target="_blank"}
+* chore: bump redis to 6.0.0 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2201](https://github.com/ag2ai/faststream/pull/2201){.external-link target="_blank"}
+* chore: deprecate connect options by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2202](https://github.com/ag2ai/faststream/pull/2202){.external-link target="_blank"}
+
+### New Contributors
+* [@Lodimup](https://github.com/Lodimup){.external-link target="_blank"} made their first contribution in [#2187](https://github.com/ag2ai/faststream/pull/2187){.external-link target="_blank"}
+* [@caozheliang](https://github.com/caozheliang){.external-link target="_blank"} made their first contribution in [#2200](https://github.com/ag2ai/faststream/pull/2200){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.39...0.5.40](https://github.com/ag2ai/faststream/compare/0.5.39...0.5.40){.external-link target="_blank"}
+
 ## 0.5.39
 
 ### What's Changed
