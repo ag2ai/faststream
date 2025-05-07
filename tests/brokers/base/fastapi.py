@@ -660,7 +660,6 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
     async def test_dependency_overrides(self, mock: Mock, queue: str):
         router = self.router_class()
         router2 = self.router_class()
-        router3 = self.router_class()
 
         def dep1():
             raise AssertionError
@@ -670,11 +669,10 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @router3.subscriber(*args, **kwargs)
+        @router2.subscriber(*args, **kwargs)
         async def hello_router2(dep=Depends(dep1)):
             return "hi"
 
-        router2.include_router(router3)
         router.include_router(router2)
         app.include_router(router)
 
