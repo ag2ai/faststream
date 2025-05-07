@@ -708,9 +708,7 @@ class TestConsumeStream:
             await br.start()
 
             await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hello", stream=queue)),
-                ),
+                (asyncio.create_task(br.publish("hello", stream=queue)),),
                 timeout=3,
             )
 
@@ -718,9 +716,7 @@ class TestConsumeStream:
             await br.start()
 
             await asyncio.wait(
-                (
-                    asyncio.create_task(event.wait()),
-                ),
+                (asyncio.create_task(event.wait()),),
                 timeout=3,
             )
 
