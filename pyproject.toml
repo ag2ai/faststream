@@ -74,12 +74,12 @@ confluent = [
 
 nats = ["nats-py>=2.7.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<6.0.0"]
+redis = ["redis>=5.0.0,<7.0.0"]
 
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
-    "typer>=0.9,!=0.12,<=0.15.2",
+    "typer>=0.9,!=0.12,<=0.15.3",
     "watchfiles>=0.15.0,<1.1.0"
 ]
 
@@ -122,10 +122,10 @@ types = [
 
 lint = [
     "faststream[types]",
-    "ruff==0.11.7",
+    "ruff==0.11.8",
     "bandit==1.8.3; python_version >= '3.9'",
     "bandit==1.7.10; python_version < '3.9'",
-    "semgrep==1.120.0; python_version >= '3.9'",
+    "semgrep==1.120.1; python_version >= '3.9'",
     "semgrep==1.99.0; python_version < '3.9'",
     "codespell==2.4.1",
 ]

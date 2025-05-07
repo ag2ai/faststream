@@ -394,6 +394,32 @@ class TestConsumeStream:
         mock.assert_called_once_with("hello")
 
     @pytest.mark.slow
+    async def test_consume_stream_with_big_interval(
+        self,
+        event: asyncio.Event,
+        mock: MagicMock,
+        queue,
+    ):
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(stream=StreamSub(queue, polling_interval=100000))
+        async def handler(msg):
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", stream=queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        mock.assert_called_once_with("hello")
+
+    @pytest.mark.slow
     async def test_consume_stream_native(
         self,
         event: asyncio.Event,
