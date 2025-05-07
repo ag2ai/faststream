@@ -666,7 +666,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 return client.xreadgroup(
                     groupname=stream.group,
                     consumername=stream.consumer,
-                    streams={stream.name: ">"},
+                    streams={stream.name: stream.last_history_id},
                     count=stream.max_records,
                     block=stream.polling_interval,
                     noack=stream.no_ack,

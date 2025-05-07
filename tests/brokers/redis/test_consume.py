@@ -682,3 +682,46 @@ class TestConsumeStream:
 
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
+
+    async def test_get_message_from_pending_messages_list(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ):
+        consume_broker = self.get_broker(apply_types=True)
+        history_consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue), no_ack=True
+        )
+        async def handler_no_ack(msg): ...
+
+        @history_consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_history_id="0")
+        )
+        async def handler_history(msg):
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", stream=queue)),
+                ),
+                timeout=3,
+            )
+
+        async with self.patch_broker(history_consume_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        mock.assert_called_once_with("hello")
