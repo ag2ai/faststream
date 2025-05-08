@@ -209,7 +209,12 @@ def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
 
 @pytest.mark.parametrize(
     "log_config",
-    ["config.json", "config.toml", "config.yaml", "config.yml"],
+    [
+        pytest.param("config.json"),
+        pytest.param("config.toml"),
+        pytest.param("config.yaml"),
+        pytest.param("config.yml"),
+    ],
 )
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_mp_with_log_config(
