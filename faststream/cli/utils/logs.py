@@ -126,7 +126,7 @@ def _get_toml_config(file: Path) -> Union[Dict[str, Any], Any]:
 def _get_log_config(file: Path) -> Union[Dict[str, Any], Any]:
     """Read dict config from file."""
     if not file.exists():
-        raise ValueError(f"File {file} not found")
+        raise ValueError(f"File {file} specified to --log-config not found")
 
     file_format = file.suffix
 
@@ -137,7 +137,9 @@ def _get_log_config(file: Path) -> Union[Dict[str, Any], Any]:
     elif file_format == LogFiles.toml:
         logging_config = _get_toml_config(file)
     else:
-        raise ValueError(f"Format {file_format} is not supported")
+        raise ValueError(
+            f"Format {file_format} specified to --log-config file is not supported"
+        )
 
     return logging_config
 
