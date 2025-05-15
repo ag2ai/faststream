@@ -19,6 +19,7 @@ from typing import (
 
 import aiokafka
 import anyio
+from aiokafka.admin.client import AIOKafkaAdminClient
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
 from typing_extensions import Annotated, Doc, override
@@ -236,6 +237,7 @@ class KafkaBroker(
 ):
     url: List[str]
     _producer: Optional["AioKafkaFastProducer"]
+    _admin_client: Optional["AIOKafkaAdminClient"]
 
     def __init__(
         self,
@@ -579,6 +581,7 @@ class KafkaBroker(
 
         self.client_id = client_id
         self._producer = None
+        self._admin_client = None
 
     async def _close(
         self,
@@ -589,6 +592,9 @@ class KafkaBroker(
         if self._producer is not None:  # pragma: no branch
             await self._producer.stop()
             self._producer = None
+        if self._admin_client is not None:
+            await self._admin_client.close()
+            self._admin_client = None
 
         await super()._close(exc_type, exc_val, exc_tb)
 
@@ -637,11 +643,18 @@ class KafkaBroker(
         security_params = parse_security(self.security)
         kwargs.update(security_params)
 
+        self._admin_client = AIOKafkaAdminClient(
+            loop=kwargs["loop"],
+            bootstrap_servers=kwargs["bootstrap_servers"],
+            client_id=client_id,
+            **security_params,
+        )
         producer = aiokafka.AIOKafkaProducer(
             **kwargs,
             client_id=client_id,
         )
 
+        await self._admin_client.start()
         await producer.start()
         self._producer = AioKafkaFastProducer(
             producer=producer,
@@ -907,6 +920,14 @@ class KafkaBroker(
     @override
     async def ping(self, timeout: Optional[float]) -> bool:
         sleep_time = (timeout or 10) / 10
+
+        if self._admin_client is None:
+            return False
+
+        try: 
+            await self._admin_client.describe_cluster()
+        except Exception:
+            return False
 
         with anyio.move_on_after(timeout) as cancel_scope:
             if self._producer is None:
