@@ -370,6 +370,8 @@ search:
                 - fastapi
                     - [StreamMessage](api/faststream/broker/fastapi/StreamMessage.md)
                     - [StreamRouter](api/faststream/broker/fastapi/StreamRouter.md)
+                    - config
+                        - [FastAPIConfig](api/faststream/broker/fastapi/config/FastAPIConfig.md)
                     - context
                         - [Context](api/faststream/broker/fastapi/context/Context.md)
                     - get_dependant
