@@ -242,6 +242,7 @@ search:
                     - [make_asyncapi_asgi](api/faststream/asgi/factories/make_asyncapi_asgi.md)
                     - [make_ping_asgi](api/faststream/asgi/factories/make_ping_asgi.md)
                 - handlers
+                    - [GetHandler](api/faststream/asgi/handlers/GetHandler.md)
                     - [get](api/faststream/asgi/handlers/get.md)
                 - response
                     - [AsgiResponse](api/faststream/asgi/response/AsgiResponse.md)
@@ -254,6 +255,7 @@ search:
                     - [AsyncAPIOperation](api/faststream/asyncapi/abc/AsyncAPIOperation.md)
                 - generate
                     - [get_app_schema](api/faststream/asyncapi/generate/get_app_schema.md)
+                    - [get_asgi_routes](api/faststream/asyncapi/generate/get_asgi_routes.md)
                     - [get_broker_channels](api/faststream/asyncapi/generate/get_broker_channels.md)
                     - [get_broker_server](api/faststream/asyncapi/generate/get_broker_server.md)
                 - message
@@ -279,6 +281,7 @@ search:
                     - [Operation](api/faststream/asyncapi/schema/Operation.md)
                     - [OperationBinding](api/faststream/asyncapi/schema/OperationBinding.md)
                     - [Reference](api/faststream/asyncapi/schema/Reference.md)
+                    - [Route](api/faststream/asyncapi/schema/Route.md)
                     - [Schema](api/faststream/asyncapi/schema/Schema.md)
                     - [SecuritySchemaComponent](api/faststream/asyncapi/schema/SecuritySchemaComponent.md)
                     - [Server](api/faststream/asyncapi/schema/Server.md)
@@ -332,6 +335,8 @@ search:
                         - [Message](api/faststream/asyncapi/schema/message/Message.md)
                     - operations
                         - [Operation](api/faststream/asyncapi/schema/operations/Operation.md)
+                    - routes
+                        - [Route](api/faststream/asyncapi/schema/routes/Route.md)
                     - security
                         - [OauthFlowObj](api/faststream/asyncapi/schema/security/OauthFlowObj.md)
                         - [OauthFlows](api/faststream/asyncapi/schema/security/OauthFlows.md)

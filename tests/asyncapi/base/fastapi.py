@@ -34,6 +34,7 @@ class FastAPITestCase:
             contact={"name": "support", "url": "https://support.com"},
             license_info={"name": "some", "url": "https://some.com"},
         )
+
         app.include_router(broker)
 
         async with self.broker_wrapper(broker.broker):
@@ -67,6 +68,7 @@ class FastAPITestCase:
                     },
                     "channels": {},
                     "components": {"messages": {}, "schemas": {}},
+                    "routes": [],
                 }
 
     @pytest.mark.asyncio
