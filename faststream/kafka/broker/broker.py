@@ -19,6 +19,7 @@ from typing import (
 )
 
 import aiokafka
+import aiokafka.admin
 import anyio
 from aiokafka.admin.client import AIOKafkaAdminClient
 from aiokafka.partitioner import DefaultPartitioner
@@ -644,7 +645,7 @@ class KafkaBroker(
         security_params = parse_security(self.security)
         kwargs.update(security_params)
 
-        self._admin_client = AIOKafkaAdminClient(
+        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
             **filter_by_dict(AdminClientConnectionParams, kwargs),
         )
         producer = aiokafka.AIOKafkaProducer(
