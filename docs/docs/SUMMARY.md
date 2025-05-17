@@ -481,8 +481,10 @@ search:
                         - [import_object](api/faststream/cli/utils/imports/import_object.md)
                         - [try_import_app](api/faststream/cli/utils/imports/try_import_app.md)
                     - logs
+                        - [LogFiles](api/faststream/cli/utils/logs/LogFiles.md)
                         - [LogLevels](api/faststream/cli/utils/logs/LogLevels.md)
                         - [get_log_level](api/faststream/cli/utils/logs/get_log_level.md)
+                        - [set_log_config](api/faststream/cli/utils/logs/set_log_config.md)
                         - [set_log_level](api/faststream/cli/utils/logs/set_log_level.md)
                     - parser
                         - [is_bind_arg](api/faststream/cli/utils/parser/is_bind_arg.md)

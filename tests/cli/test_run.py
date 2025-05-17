@@ -92,7 +92,13 @@ def test_run_as_asgi_with_many_workers(
         asgi_runner.assert_called_once()
         asgi_runner.assert_called_once_with(
             target="faststream:app",
-            args=("faststream:app", {"host": "0.0.0.0", "port": "8000"}, False, 0),
+            args=(
+                "faststream:app",
+                {"host": "0.0.0.0", "port": "8000"},
+                False,
+                None,
+                0,
+            ),
             workers=workers,
         )
         asgi_runner().run.assert_called_once()
@@ -136,6 +142,7 @@ def test_run_as_asgi_mp_with_log_level(
                 "faststream:app",
                 {"host": "0.0.0.0", "port": "8000"},
                 False,
+                None,
                 get_log_level(log_level),
             ),
             workers=3,
@@ -194,6 +201,56 @@ def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
                 "--port",
                 "8000",
                 "--factory",
+            ],
+        )
+        app.run.assert_not_called()
+        assert result.exit_code != 0
+
+
+@pytest.mark.parametrize(
+    "log_config",
+    [
+        pytest.param("config.json"),
+        pytest.param("config.toml"),
+        pytest.param("config.yaml"),
+        pytest.param("config.yml"),
+    ],
+)
+@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
+def test_run_as_asgi_mp_with_log_config(
+    runner: CliRunner,
+    app: Application,
+    log_config: str,
+):
+    app.run = AsyncMock()
+    logging_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"app": {"format": "%(message)s"}},
+        "handlers": {
+            "app": {
+                "class": "logging.StreamHandler",
+                "formatter": "app",
+                "level": "INFO",
+            }
+        },
+        "loggers": {"app": {"level": "INFO", "handlers": ["app"]}},
+    }
+
+    with patch(
+        "faststream.cli.utils.logs._get_log_config",
+        return_value=logging_config,
+    ):
+        result = runner.invoke(
+            faststream_app,
+            [
+                "run",
+                "faststream:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                f"--log_config {log_config}",
             ],
         )
         app.run.assert_not_called()
