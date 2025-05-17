@@ -687,6 +687,7 @@ search:
                     - [KafkaRouter](api/faststream/kafka/router/KafkaRouter.md)
                 - schemas
                     - params
+                        - [AdminClientConnectionParams](api/faststream/kafka/schemas/params/AdminClientConnectionParams.md)
                         - [ConsumerConnectionParams](api/faststream/kafka/schemas/params/ConsumerConnectionParams.md)
                 - security
                     - [parse_security](api/faststream/kafka/security/parse_security.md)
