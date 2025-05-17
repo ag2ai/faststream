@@ -924,7 +924,7 @@ class KafkaBroker(
         if self._admin_client is None:
             return False
 
-        try: 
+        try:
             await self._admin_client.describe_cluster()
         except Exception:
             return False
