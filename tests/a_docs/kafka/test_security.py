@@ -13,7 +13,7 @@ def patch_aio_consumer_and_producer() -> Tuple[MagicMock, MagicMock]:
         admin_client = MagicMock(return_value=AsyncMock())
 
         with (
-            patch("aiokafka.AIOKafkaProducer", new=producer), 
+            patch("aiokafka.AIOKafkaProducer", new=producer),
             patch("aiokafka.admin.client.AIOKafkaAdminClient", new=admin_client),
         ):
             yield producer
