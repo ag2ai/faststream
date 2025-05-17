@@ -1,6 +1,6 @@
-from contextlib import suppress
 import logging
 import warnings
+from contextlib import suppress
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -32,7 +32,10 @@ from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.broker.logging import KafkaLoggingBroker
 from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
-from faststream.kafka.schemas.params import AdminClientConnectionParams, ConsumerConnectionParams
+from faststream.kafka.schemas.params import (
+    AdminClientConnectionParams,
+    ConsumerConnectionParams,
+)
 from faststream.kafka.security import parse_security
 from faststream.types import EMPTY
 from faststream.utils.data import filter_by_dict
