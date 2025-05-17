@@ -1,3 +1,4 @@
+from contextlib import suppress
 import logging
 import warnings
 from functools import partial
@@ -30,7 +31,7 @@ from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.broker.logging import KafkaLoggingBroker
 from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
-from faststream.kafka.schemas.params import ConsumerConnectionParams
+from faststream.kafka.schemas.params import AdminClientConnectionParams, ConsumerConnectionParams
 from faststream.kafka.security import parse_security
 from faststream.types import EMPTY
 from faststream.utils.data import filter_by_dict
@@ -644,10 +645,7 @@ class KafkaBroker(
         kwargs.update(security_params)
 
         self._admin_client = AIOKafkaAdminClient(
-            loop=kwargs["loop"],
-            bootstrap_servers=kwargs["bootstrap_servers"],
-            client_id=client_id,
-            **security_params,
+            **filter_by_dict(AdminClientConnectionParams, kwargs),
         )
         producer = aiokafka.AIOKafkaProducer(
             **kwargs,
@@ -924,22 +922,14 @@ class KafkaBroker(
         if self._admin_client is None:
             return False
 
-        try: 
-            await self._admin_client.describe_cluster()
-        except Exception:
-            return False
-
         with anyio.move_on_after(timeout) as cancel_scope:
-            if self._producer is None:
-                return False
-
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                if not self._producer._producer._closed:
+                with suppress(Exception):
+                    await self._admin_client.describe_cluster()
                     return True
-
                 await anyio.sleep(sleep_time)
 
         return False
