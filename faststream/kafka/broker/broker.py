@@ -21,7 +21,6 @@ from typing import (
 import aiokafka
 import aiokafka.admin
 import anyio
-from aiokafka.admin.client import AIOKafkaAdminClient
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
 from typing_extensions import Annotated, Doc, override
@@ -48,6 +47,7 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
+    from aiokafka.admin.client import AIOKafkaAdminClient
     from fast_depends.dependencies import Depends
     from typing_extensions import TypedDict, Unpack
 
