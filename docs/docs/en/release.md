@@ -12,6 +12,19 @@ hide:
 ---
 
 # Release Notes
+## 0.5.41
+
+### What's Changed
+
+* feature: injection FastAPI in StreamMessage scope by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#2205](https://github.com/ag2ai/faststream/pull/2205){.external-link target="_blank"}
+* feat: logging configuration from file by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2203](https://github.com/ag2ai/faststream/pull/2203){.external-link target="_blank"}
+* feat: add cluster metadata request via aiokafka admin client in ping by [@murzinov01](https://github.com/murzinov01){.external-link target="_blank"} in [#2212](https://github.com/ag2ai/faststream/pull/2212){.external-link target="_blank"}
+
+### New Contributors
+* [@murzinov01](https://github.com/murzinov01){.external-link target="_blank"} made their first contribution in [#2212](https://github.com/ag2ai/faststream/pull/2212){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.40...0.5.41](https://github.com/ag2ai/faststream/compare/0.5.40...0.5.41){.external-link target="_blank"}
+
 ## 0.5.40
 
 ### What's Changed
