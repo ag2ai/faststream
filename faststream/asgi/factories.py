@@ -50,10 +50,11 @@ def make_asyncapi_asgi(
     title: str = "FastStream",
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    include_in_schema: bool = True,
 ) -> "ASGIApp":
     cached_docs = None
 
-    @get
+    @get(include_in_schema=include_in_schema)
     async def docs(scope: "Scope") -> AsgiResponse:
         nonlocal cached_docs
         if not cached_docs:

@@ -144,21 +144,28 @@ def get_asgi_routes(
     app: "AsyncAPIApplication",
 ) -> Optional[List[Route]]:
     """Get the ASGI routes for an application."""
-    routes: Optional[List[Route]] = None
+    # We should import this here due
+    # ASGI > Application > asynciapi.proto
+    # so it looks like a circular import
+    from faststream.asgi import AsgiFastStream
+    from faststream.asgi.handlers import HttpHandler
 
-    if hasattr(app, "routes"):
-        routes = []
-        for route in app.routes:
-            path, asgi_app = route
+    if not isinstance(app, AsgiFastStream):
+        return None
 
-            if asgi_app.include_in_schema:
-                routes.append(
-                    Route(
-                        path=path,
-                        methods=["GET", "HEAD"],
-                        description=asgi_app.description,
-                    )
+    routes: List[Route] = []
+
+    for route in app.routes:
+        path, asgi_app = route
+
+        if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
+            routes.append(
+                Route(
+                    path=path,
+                    methods=asgi_app.methods,
+                    description=asgi_app.description,
                 )
+            )
 
     return routes
 

@@ -6,17 +6,18 @@ if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
 
-class GetHandler:
+class HttpHandler:
     def __init__(
         self,
         func: "UserApp",
         *,
         include_in_schema: bool = True,
         description: Optional[str] = None,
+        methods: Optional[Sequence[str]] = None,
     ):
         self.func = func
+        self.methods = methods or ()
         self.include_in_schema = include_in_schema
-        self.methods = ("GET", "HEAD")
         self.description = description or func.__doc__
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
@@ -31,6 +32,22 @@ class GetHandler:
 
         await response(scope, receive, send)
         return
+
+
+class GetHandler(HttpHandler):
+    def __init__(
+        self,
+        func: "UserApp",
+        *,
+        include_in_schema: bool = True,
+        description: Optional[str] = None,
+    ):
+        super().__init__(
+            func,
+            include_in_schema=include_in_schema,
+            description=description,
+            methods=("GET", "HEAD"),
+        )
 
 
 @overload
