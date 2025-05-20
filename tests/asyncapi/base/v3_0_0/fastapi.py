@@ -94,9 +94,9 @@ class FastAPITestCase:
                 )
 
                 response_json = client.get("/asyncapi_schema.json")
-                assert response_json.json() == schema.to_jsonable(), (
-                    schema.to_jsonable()
-                )
+                assert (
+                    response_json.json() == schema.to_jsonable()
+                ), schema.to_jsonable()
 
                 response_yaml = client.get("/asyncapi_schema.yaml")
                 assert response_yaml.text == schema.to_yaml()

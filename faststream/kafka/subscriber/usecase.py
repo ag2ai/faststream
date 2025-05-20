@@ -1,7 +1,7 @@
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, AsyncIterator, Callable, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition

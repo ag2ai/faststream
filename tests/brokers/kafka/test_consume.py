@@ -10,7 +10,7 @@ from aiokafka.structs import RecordMetadata
 
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage
-from faststream.kafka import KafkaBroker, KafkaMessage, TestKafkaBroker, TopicPartition
+from faststream.kafka import KafkaBroker, KafkaMessage, TopicPartition
 from faststream.kafka.listener import _LoggingListener
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
@@ -587,13 +587,17 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
 
         if warning:
             assert (
-                len([x for x in logger.log.call_args_list if x[0][0] == logging.WARNING])
+                len([
+                    x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
+                ])
                 == 2
             )
 
         else:
             assert (
-                len([x for x in logger.log.call_args_list if x[0][0] == logging.WARNING])
+                len([
+                    x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
+                ])
                 == 0
             )
 

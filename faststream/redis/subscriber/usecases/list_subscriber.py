@@ -1,8 +1,8 @@
+from collections.abc import AsyncIterator, Iterable, Sequence
 from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Optional,
 )
 
@@ -64,7 +64,8 @@ class _ListHandlerMixin(LogicSubscriber):
         *,
         start_signal: "anyio.Event",
     ) -> None:
-        start_signal.set()
+        if await client.ping():
+            start_signal.set()
         await super()._consume(client, start_signal=start_signal)
 
     @override

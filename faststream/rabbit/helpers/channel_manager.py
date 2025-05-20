@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from faststream.rabbit.schemas import Channel
 
@@ -19,7 +19,7 @@ class ChannelManager:
 
         self.__default_channel = default_channel or Channel()
 
-        self.__channels: Dict[Channel, aio_pika.RobustChannel] = {}
+        self.__channels: dict[Channel, aio_pika.RobustChannel] = {}
 
     def connect(self, connection: "aio_pika.RobustConnection") -> None:
         self.__connection = ConnectedState(connection)

@@ -322,8 +322,6 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             ),
         )
 
-        return publisher
-
     @override
     def include_router(
         self,

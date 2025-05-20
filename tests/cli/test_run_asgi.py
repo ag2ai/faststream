@@ -24,7 +24,7 @@ def test_run_as_asgi(runner: CliRunner) -> None:
                 "--host",
                 "0.0.0.0",
                 "--port",
-                "8000",
+                "8001",
                 "--workers",
                 "1",
             ],
@@ -34,7 +34,7 @@ def test_run_as_asgi(runner: CliRunner) -> None:
 
         app.run.assert_awaited_once_with(
             logging.INFO,
-            {"host": "0.0.0.0", "port": "8000"},
+            {"host": "0.0.0.0", "port": "8001"},
         )
 
 
@@ -66,7 +66,7 @@ def test_run_as_asgi_with_workers(runner: CliRunner) -> None:
 
         asgi_runner.assert_called_once_with(
             target="faststream:app",
-            args=("faststream:app", {}, False, 0),
+            args=("faststream:app", {}, False, None, 0),
             workers=workers,
         )
 
@@ -119,6 +119,7 @@ def test_run_as_asgi_multiprocess_with_log_level(runner: CliRunner) -> None:
                 "faststream:app",
                 {},
                 False,
+                None,
                 logging.CRITICAL,
             ),
             workers=2,

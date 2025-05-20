@@ -20,6 +20,13 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
 )
 from faststream.specification.base.specification import Specification
 
+from .options import (
+    APP_DIR_OPTION,
+    FACTORY_OPTION,
+    RELOAD_EXTENSIONS_OPTION,
+    RELOAD_FLAG,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -30,7 +37,8 @@ docs_app = typer.Typer(pretty_exceptions_short=True)
 def serve(
     docs: str = typer.Argument(
         ...,
-        help="[python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation.",
+        help="[python_module:Specification] or [asyncapi.json/.yaml] - path to your application or documentation.",
+        show_default=False,
     ),
     host: str = typer.Option(
         "localhost",
@@ -40,26 +48,10 @@ def serve(
         8000,
         help="Documentation hosting port.",
     ),
-    reload: bool = typer.Option(
-        False,
-        "--reload",
-        is_flag=True,
-        help="Restart documentation at directory files changes.",
-    ),
-    app_dir: str = typer.Option(
-        ".",
-        "--app-dir",
-        help=(
-            "Look for APP in the specified directory, by adding this to the PYTHONPATH."
-            " Defaults to the current working directory."
-        ),
-    ),
-    is_factory: bool = typer.Option(
-        False,
-        "--factory",
-        is_flag=True,
-        help="Treat APP as an application factory.",
-    ),
+    app_dir: str = APP_DIR_OPTION,
+    is_factory: bool = FACTORY_OPTION,
+    reload: bool = RELOAD_FLAG,
+    watch_extensions: list[str] = RELOAD_EXTENSIONS_OPTION,
 ) -> None:
     """Serve project AsyncAPI schema."""
     if ":" in docs:
@@ -69,12 +61,12 @@ def serve(
         module, _ = import_from_string(docs, is_factory=is_factory)
 
         module_parent = module.parent
-        extra_extensions: Sequence[str] = ()
+        extra_extensions: Sequence[str] = watch_extensions
 
     else:
         module_parent = Path.cwd()
         schema_filepath = module_parent / docs
-        extra_extensions = (schema_filepath.suffix,)
+        extra_extensions = (schema_filepath.suffix, *watch_extensions)
 
     if reload:
         try:
@@ -101,6 +93,7 @@ def gen(
     asyncapi: str = typer.Argument(
         ...,
         help="[python_module:Specification] - path to your AsyncAPI object.",
+        show_default=False,
     ),
     yaml: bool = typer.Option(
         False,
@@ -111,26 +104,10 @@ def gen(
     out: Optional[str] = typer.Option(
         None,
         help="Output filename.",
+        show_default="asyncapi.json/.yaml",
     ),
-    app_dir: str = typer.Option(
-        ".",
-        "--app-dir",
-        help=(
-            "Look for APP in the specified directory, by adding this to the PYTHONPATH."
-            " Defaults to the current working directory."
-        ),
-    ),
-    is_factory: bool = typer.Option(
-        False,
-        "--factory",
-        is_flag=True,
-        help="Treat APP as an application factory.",
-    ),
-    asyncapi_version: str = typer.Option(
-        "3.0.0",
-        "--version",
-        help="Version of asyncapi schema. Currently supported only 3.0.0 and 2.6.0",
-    ),
+    app_dir: str = APP_DIR_OPTION,
+    is_factory: bool = FACTORY_OPTION,
 ) -> None:
     """Generate project AsyncAPI schema."""
     if app_dir:  # pragma: no branch

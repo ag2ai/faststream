@@ -11,10 +11,13 @@ if TYPE_CHECKING:
 def parse_security(security: Optional[BaseSecurity]) -> "AnyDict":
     if security is None:
         return {}
+
     if isinstance(security, SASLPlaintext):
         return _parse_sasl_plaintext(security)
+
     if isinstance(security, BaseSecurity):
         return _parse_base_security(security)
+
     msg = f"RedisBroker does not support {type(security)}"
     raise NotImplementedError(msg)
 

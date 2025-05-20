@@ -41,7 +41,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.confluent.config import ConfluentConfig
+    from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.confluent.publisher.specified import (
         SpecificationBatchPublisher,

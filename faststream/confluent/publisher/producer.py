@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
 
     from faststream._internal.types import CustomCallable
-    from faststream.confluent.client import AsyncConfluentProducer
+    from faststream.confluent.helpers.client import AsyncConfluentProducer
     from faststream.confluent.response import KafkaPublishCommand
 
 

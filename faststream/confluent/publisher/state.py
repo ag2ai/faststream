@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Protocol
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
-    from faststream.confluent.client import AsyncConfluentProducer
+    from faststream.confluent.helpers.client import AsyncConfluentProducer
 
 
 class ProducerState(Protocol):

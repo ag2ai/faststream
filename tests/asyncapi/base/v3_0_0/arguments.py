@@ -549,12 +549,16 @@ class FastAPICompatible:
         })
 
         if self.is_fastapi:
-            assert payload == IsPartialDict({
-                "anyOf": [
-                    {"$ref": "#/components/schemas/Sub2"},
-                    {"$ref": "#/components/schemas/Sub"},
-                ]
-            }) | descriminator_payload, payload
+            assert (
+                payload
+                == IsPartialDict({
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/Sub2"},
+                        {"$ref": "#/components/schemas/Sub"},
+                    ]
+                })
+                | descriminator_payload
+            ), payload
 
         else:
             assert payload == descriminator_payload

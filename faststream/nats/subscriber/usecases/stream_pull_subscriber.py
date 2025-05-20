@@ -1,8 +1,7 @@
-from collections.abc import Awaitable
+from collections.abc import AsyncIterator, Awaitable, Iterable
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
-    AsyncIterator,
     Callable,
     Optional,
     cast,
@@ -175,7 +174,7 @@ class BatchPullStreamSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]: # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
         assert (  # nosec B101
             not self.calls
         ), "You can't use iterator if subscriber has registered handlers."
@@ -201,7 +200,8 @@ class BatchPullStreamSubscriber(
                 await process_msg(
                     msg=raw_message,
                     middlewares=(
-                        m(raw_message, context=context) for m in self._broker_middlewares
+                        m(raw_message, context=context)
+                        for m in self._broker_middlewares
                     ),
                     parser=self._parser,
                     decoder=self._decoder,

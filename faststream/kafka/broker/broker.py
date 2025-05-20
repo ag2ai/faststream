@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Sequence
+from contextlib import suppress
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -14,6 +15,7 @@ from typing import (
 )
 
 import aiokafka
+import aiokafka.admin
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
@@ -26,7 +28,10 @@ from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.kafka.schemas.params import ConsumerConnectionParams
+from faststream.kafka.schemas.params import (
+    AdminClientConnectionParams,
+    ConsumerConnectionParams,
+)
 from faststream.kafka.security import parse_security
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
@@ -42,10 +47,11 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
+    from aiokafka.admin import AIOKafkaAdminClient
     from aiokafka.structs import RecordMetadata
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
-    from typing_extensions import TypedDict, Unpack
+    from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import (
         AnyDict,
@@ -242,6 +248,7 @@ class KafkaBroker(
 ):
     url: list[str]
     _producer: "AioKafkaFastProducer"
+    _admin_client: Optional["AIOKafkaAdminClient"]
 
     def __init__(
         self,
@@ -534,30 +541,33 @@ class KafkaBroker(
             specification_url = servers
 
         super().__init__(
-            bootstrap_servers=servers,
-            # both args
-            client_id=client_id,
-            api_version=protocol_version,
-            request_timeout_ms=request_timeout_ms,
-            retry_backoff_ms=retry_backoff_ms,
-            metadata_max_age_ms=metadata_max_age_ms,
-            connections_max_idle_ms=connections_max_idle_ms,
-            sasl_kerberos_service_name=sasl_kerberos_service_name,
-            sasl_kerberos_domain_name=sasl_kerberos_domain_name,
-            sasl_oauth_token_provider=sasl_oauth_token_provider,
-            loop=loop,
-            # publisher args
-            acks=acks,
-            key_serializer=key_serializer,
-            value_serializer=value_serializer,
-            compression_type=compression_type,
-            max_batch_size=max_batch_size,
-            partitioner=partitioner,
-            max_request_size=max_request_size,
-            linger_ms=linger_ms,
-            enable_idempotence=enable_idempotence,
-            transactional_id=transactional_id,
-            transaction_timeout_ms=transaction_timeout_ms,
+            **dict(
+                bootstrap_servers=servers,
+                # both args
+                client_id=client_id,
+                api_version=protocol_version,
+                request_timeout_ms=request_timeout_ms,
+                retry_backoff_ms=retry_backoff_ms,
+                metadata_max_age_ms=metadata_max_age_ms,
+                connections_max_idle_ms=connections_max_idle_ms,
+                sasl_kerberos_service_name=sasl_kerberos_service_name,
+                sasl_kerberos_domain_name=sasl_kerberos_domain_name,
+                sasl_oauth_token_provider=sasl_oauth_token_provider,
+                loop=loop,
+                # publisher args
+                acks=acks,
+                key_serializer=key_serializer,
+                value_serializer=value_serializer,
+                compression_type=compression_type,
+                max_batch_size=max_batch_size,
+                partitioner=partitioner,
+                max_request_size=max_request_size,
+                linger_ms=linger_ms,
+                enable_idempotence=enable_idempotence,
+                transactional_id=transactional_id,
+                transaction_timeout_ms=transaction_timeout_ms,
+                **parse_security(security),
+            ),
             # Basic args
             graceful_timeout=graceful_timeout,
             dependencies=dependencies,
@@ -592,6 +602,25 @@ class KafkaBroker(
                 decoder=self._decoder,
             )
         )
+        self._admin_client = None
+
+    @override
+    async def _connect(self) -> Callable[..., aiokafka.AIOKafkaConsumer]:
+        producer = aiokafka.AIOKafkaProducer(**self._connection_kwargs)
+        await self._producer.connect(producer)
+
+        admin_options, _ = filter_by_dict(
+            AdminClientConnectionParams, self._connection_kwargs
+        )
+        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
+            **admin_options
+        )
+        await self._admin_client.start()
+
+        consumer_options, _ = filter_by_dict(
+            ConsumerConnectionParams, self._connection_kwargs
+        )
+        return partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
     async def close(
         self,
@@ -601,53 +630,13 @@ class KafkaBroker(
     ) -> None:
         await super().close(exc_type, exc_val, exc_tb)
 
+        if self._admin_client is not None:
+            await self._admin_client.close()
+            self._admin_client = None
+
         await self._producer.disconnect()
 
         self._connection = None
-
-    @override
-    async def connect(  # type: ignore[override]
-        self,
-        bootstrap_servers: Annotated[
-            Union[str, Iterable[str]],
-            Doc("Kafka addresses to connect."),
-        ] = EMPTY,
-        **kwargs: "Unpack[KafkaInitKwargs]",
-    ) -> Callable[..., aiokafka.AIOKafkaConsumer]:
-        """Connect to Kafka servers manually.
-
-        Consumes the same with `KafkaBroker.__init__` arguments and overrides them.
-        To startup subscribers too you should use `broker.start()` after/instead this method.
-        """
-        if bootstrap_servers is not EMPTY:
-            connect_kwargs: AnyDict = {
-                **kwargs,
-                "bootstrap_servers": bootstrap_servers,
-            }
-        else:
-            connect_kwargs = {**kwargs}
-
-        return await super().connect(**connect_kwargs)
-
-    @override
-    async def _connect(  # type: ignore[override]
-        self,
-        *,
-        client_id: str,
-        **kwargs: Any,
-    ) -> Callable[..., aiokafka.AIOKafkaConsumer]:
-        security_params = parse_security(self.security)
-        kwargs.update(security_params)
-
-        producer = aiokafka.AIOKafkaProducer(
-            **kwargs,
-            client_id=client_id,
-        )
-
-        await self._producer.connect(producer)
-
-        connection_kwargs, _ = filter_by_dict(ConsumerConnectionParams, kwargs)
-        return partial(aiokafka.AIOKafkaConsumer, **connection_kwargs)
 
     async def start(self) -> None:
         """Connect broker to Kafka and startup all subscribers."""
@@ -920,17 +909,17 @@ class KafkaBroker(
     async def ping(self, timeout: Optional[float]) -> bool:
         sleep_time = (timeout or 10) / 10
 
-        with anyio.move_on_after(timeout) as cancel_scope:
-            if not self._producer:
-                return False
+        if self._admin_client is None:
+            return False
 
+        with anyio.move_on_after(timeout) as cancel_scope:
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                if not self._producer.closed:
+                with suppress(Exception):
+                    await self._admin_client.describe_cluster()
                     return True
-
                 await anyio.sleep(sleep_time)
 
         return False

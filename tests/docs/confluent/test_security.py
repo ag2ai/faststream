@@ -1,4 +1,5 @@
 import pytest
+from dirty_equals import IsPartialDict
 
 from tests.brokers.confluent.test_security import patch_aio_consumer_and_producer
 
@@ -10,11 +11,8 @@ async def test_base_security() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with basic_broker:
-            producer_call_kwargs = producer.call_args.kwargs
-
-            call_kwargs = {}
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
+            producer_config = producer.call_args.kwargs["config"].producer_config
+            assert producer_config
 
 
 @pytest.mark.asyncio()
@@ -26,23 +24,14 @@ async def test_scram256() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with scram256_broker:
-            producer_call_kwargs = producer.call_args.kwargs
+            producer_config = producer.call_args.kwargs["config"].producer_config
 
-            call_kwargs = {
-                "security_config": {
-                    "sasl.mechanism": "SCRAM-SHA-256",
-                    "sasl.username": "admin",
-                    "sasl.password": "password",  # pragma: allowlist secret
-                },
-                "security_protocol": "SASL_SSL",
-            }
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
-
-            assert (
-                producer_call_kwargs["security_protocol"]
-                == call_kwargs["security_protocol"]
-            )
+            assert producer_config == IsPartialDict({
+                "sasl.mechanism": "SCRAM-SHA-256",
+                "sasl.username": "admin",
+                "sasl.password": "password",  # pragma: allowlist secret
+                "security.protocol": "sasl_ssl",
+            })
 
 
 @pytest.mark.asyncio()
@@ -54,23 +43,14 @@ async def test_scram512() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with scram512_broker:
-            producer_call_kwargs = producer.call_args.kwargs
+            producer_config = producer.call_args.kwargs["config"].producer_config
 
-            call_kwargs = {
-                "security_config": {
-                    "sasl.mechanism": "SCRAM-SHA-512",
-                    "sasl.username": "admin",
-                    "sasl.password": "password",  # pragma: allowlist secret
-                },
-                "security_protocol": "SASL_SSL",
-            }
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
-
-            assert (
-                producer_call_kwargs["security_protocol"]
-                == call_kwargs["security_protocol"]
-            )
+            assert producer_config == IsPartialDict({
+                "sasl.mechanism": "SCRAM-SHA-512",
+                "sasl.username": "admin",
+                "sasl.password": "password",  # pragma: allowlist secret
+                "security.protocol": "sasl_ssl",
+            })
 
 
 @pytest.mark.asyncio()
@@ -82,23 +62,14 @@ async def test_plaintext() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with plaintext_broker:
-            producer_call_kwargs = producer.call_args.kwargs
+            producer_config = producer.call_args.kwargs["config"].producer_config
 
-            call_kwargs = {
-                "security_config": {
-                    "sasl.mechanism": "PLAIN",
-                    "sasl.username": "admin",
-                    "sasl.password": "password",  # pragma: allowlist secret
-                },
-                "security_protocol": "SASL_SSL",
-            }
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
-
-            assert (
-                producer_call_kwargs["security_protocol"]
-                == call_kwargs["security_protocol"]
-            )
+            assert producer_config == IsPartialDict({
+                "sasl.mechanism": "PLAIN",
+                "sasl.username": "admin",
+                "sasl.password": "password",  # pragma: allowlist secret
+                "security.protocol": "sasl_ssl",
+            })
 
 
 @pytest.mark.asyncio()
@@ -110,21 +81,12 @@ async def test_oathbearer() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with oauthbearer_broker:
-            producer_call_kwargs = producer.call_args.kwargs
+            producer_config = producer.call_args.kwargs["config"].producer_config
 
-            call_kwargs = {
-                "security_config": {
-                    "sasl.mechanism": "OAUTHBEARER",
-                },
-                "security_protocol": "SASL_SSL",
-            }
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
-
-            assert (
-                producer_call_kwargs["security_protocol"]
-                == call_kwargs["security_protocol"]
-            )
+            assert producer_config == IsPartialDict({
+                "sasl.mechanism": "OAUTHBEARER",
+                "security.protocol": "sasl_ssl",
+            })
 
 
 @pytest.mark.asyncio()
@@ -136,18 +98,9 @@ async def test_gssapi() -> None:
 
     with patch_aio_consumer_and_producer() as producer:
         async with gssapi_broker:
-            producer_call_kwargs = producer.call_args.kwargs
+            producer_config = producer.call_args.kwargs["config"].producer_config
 
-            call_kwargs = {
-                "security_config": {
-                    "sasl.mechanism": "GSSAPI",
-                },
-                "security_protocol": "SASL_SSL",
-            }
-
-            assert call_kwargs.items() <= producer_call_kwargs.items()
-
-            assert (
-                producer_call_kwargs["security_protocol"]
-                == call_kwargs["security_protocol"]
-            )
+            assert producer_config == IsPartialDict({
+                "sasl.mechanism": "GSSAPI",
+                "security.protocol": "sasl_ssl",
+            })

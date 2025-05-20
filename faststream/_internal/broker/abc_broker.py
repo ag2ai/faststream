@@ -36,6 +36,11 @@ class FinalPublisher(
 
 
 class ABCBroker(Generic[MsgType]):
+    """Basic class for brokers and routers.
+
+    Contains subscribers & publishers registration logic only.
+    """
+
     _subscribers: list[FinalSubscriber[MsgType]]
     _publishers: list[FinalPublisher[MsgType]]
 
@@ -57,8 +62,8 @@ class ABCBroker(Generic[MsgType]):
         self._subscribers = []
         self._publishers = []
 
-        self._dependencies = dependencies
         self.middlewares = middlewares
+        self._dependencies = dependencies
         self._parser = parser
         self._decoder = decoder
 
@@ -169,7 +174,17 @@ class ABCBroker(Generic[MsgType]):
             self.include_router(r)
 
     def _solve_include_in_schema(self, include_in_schema: bool) -> bool:
-        # should be `is False` to pass `None` case
+        """Resolve router `include_in_schema` option with current value respect.
+
+        >>> self.include_in_schema = False
+        False
+
+        >>> self.include_in_schema = True | None, include_in_schema = False
+        False
+
+        >>> self.include_in_schema = True | None, include_in_schema = True
+        True
+        """
         if self.include_in_schema is False:
             return False
 

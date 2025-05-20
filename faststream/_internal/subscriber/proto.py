@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, AsyncIterator, Optional
+from collections.abc import AsyncIterator, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import Self
 

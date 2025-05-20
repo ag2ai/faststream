@@ -58,10 +58,9 @@ if TYPE_CHECKING:
     from nats.js.api import Placement, RePublish, StorageType
     from nats.js.kv import KeyValue
     from nats.js.object_store import ObjectStore
-    from typing_extensions import TypedDict, Unpack
+    from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import (
-        AnyDict,
         Decorator,
         LoggerProto,
         SendableMessage,
@@ -529,35 +528,8 @@ class NatsBroker(
 
         self._connection_state: BrokerState = EmptyBrokerState()
 
-    @override
-    async def connect(  # type: ignore[override]
-        self,
-        servers: Union[str, Iterable[str]] = EMPTY,
-        **kwargs: "Unpack[NatsInitKwargs]",
-    ) -> "Client":
-        """Connect broker object to NATS cluster.
-
-        To startup subscribers too you should use `broker.start()` after/instead this method.
-
-        Args:
-            servers: NATS cluster addresses to connect.
-            **kwargs: all other options from connection signature.
-
-        Returns:
-            `nats.aio.Client` connected object.
-        """
-        if servers is not EMPTY:
-            connect_kwargs: AnyDict = {
-                **kwargs,
-                "servers": servers,
-            }
-        else:
-            connect_kwargs = {**kwargs}
-
-        return await super().connect(**connect_kwargs)
-
-    async def _connect(self, **kwargs: Any) -> "Client":
-        connection = await nats.connect(**kwargs)
+    async def _connect(self) -> "Client":
+        connection = await nats.connect(**self._connection_kwargs)
 
         stream = connection.jetstream()
 

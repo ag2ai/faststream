@@ -6,9 +6,7 @@ from typing import (
     Annotated,
     Any,
     Callable,
-    Dict,
     Generic,
-    List,
     Optional,
     TypeVar,
     Union,
@@ -206,7 +204,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType], Generic[ConnectionType, MsgTyp
             str,
             Doc("Stream object we are listening"),
         ] = "",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Static method to build log context out of `self.consume` scope."""
         return {
             "subject": subject,
@@ -218,11 +216,10 @@ class LogicSubscriber(SubscriberUsecase[MsgType], Generic[ConnectionType, MsgTyp
     def add_prefix(self, prefix: str) -> None:
         """Include Subscriber in router."""
         if self.subject:
-            self.subject = "".join((prefix, self.subject))
+            self.subject = f"{prefix}{self.subject}"
         else:
             self.config.filter_subjects = [
-                "".join((prefix, subject))
-                for subject in (self.config.filter_subjects or ())
+                f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())
             ]
 
     @property
@@ -309,7 +306,7 @@ class _DefaultSubscriber(LogicSubscriber[ConnectionType, MsgType]):
             Optional["StreamMessage[MsgType]"],
             Doc("Message which we are building context for"),
         ],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,
@@ -419,7 +416,7 @@ class CoreSubscriber(_DefaultSubscriber["Client", "Msg"]):
             Optional["StreamMessage[Msg]"],
             Doc("Message which we are building context for"),
         ],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,
@@ -544,7 +541,7 @@ class _StreamSubscriber(_DefaultSubscriber["JetStreamContext", "Msg"]):
             Optional["StreamMessage[Msg]"],
             Doc("Message which we are building context for"),
         ],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,
@@ -838,7 +835,7 @@ class ConcurrentPullStreamSubscriber(
 
 class BatchPullStreamSubscriber(
     TasksMixin,
-    _DefaultSubscriber["JetStreamContext", List["Msg"]],
+    _DefaultSubscriber["JetStreamContext", list["Msg"]],
 ):
     """Batch-message consumer class."""
 
@@ -859,7 +856,7 @@ class BatchPullStreamSubscriber(
         no_reply: bool,
         retry: Union[bool, int],
         broker_dependencies: Iterable[Depends],
-        broker_middlewares: Sequence["BrokerMiddleware[List[Msg]]"],
+        broker_middlewares: Sequence["BrokerMiddleware[list[Msg]]"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
@@ -917,7 +914,7 @@ class BatchPullStreamSubscriber(
         except TimeoutError:
             return None
 
-        msg = cast(
+        return cast(
             "NatsMessage",
             await process_msg(
                 msg=raw_message,
@@ -926,7 +923,6 @@ class BatchPullStreamSubscriber(
                 decoder=self._decoder,
             ),
         )
-        return msg
 
     @override
     async def _create_subscription(
@@ -1104,7 +1100,7 @@ class KeyValueWatchSubscriber(
             Optional["StreamMessage[KeyValue.Entry]"],
             Doc("Message which we are building context for"),
         ],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,
@@ -1130,7 +1126,7 @@ class ObjStoreWatchSubscriber(
         config: "ConsumerConfig",
         obj_watch: "ObjWatch",
         broker_dependencies: Iterable[Depends],
-        broker_middlewares: Sequence["BrokerMiddleware[List[Msg]]"],
+        broker_middlewares: Sequence["BrokerMiddleware[list[Msg]]"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
@@ -1259,7 +1255,7 @@ class ObjStoreWatchSubscriber(
             Optional["StreamMessage[ObjectInfo]"],
             Doc("Message which we are building context for"),
         ],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,

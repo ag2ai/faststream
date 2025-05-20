@@ -16,6 +16,7 @@ from faststream import (
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.broker.router import BrokerRouter
 from faststream._internal.fastapi.context import Context
+from faststream._internal.fastapi.route import StreamMessage
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.exceptions import SetupError
 
@@ -284,6 +285,33 @@ class FastAPITestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_once_with("hi")
+
+    async def test_injection_fastapi(
+        self,
+        mock: Mock,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def subscriber(msg: StreamMessage) -> None:
+            mock("app" in msg.scope)
+            event.set()
+
+        async with router.broker:
+            await router.broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(router.broker.publish(None, queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        mock.assert_called_once_with(True)
 
 
 @pytest.mark.asyncio()
@@ -677,7 +705,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         router = self.router_class()
 
         def dep1() -> None:
-            mock.not_call()
+            raise AssertionError
 
         def dep2() -> None:
             mock()
@@ -705,7 +733,6 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                 assert await r.decode() == "hi", r
 
         mock.assert_called_once()
-        assert not mock.not_call.called
 
     async def test_nested_router(self, queue: str) -> None:
         router = self.router_class()
@@ -731,4 +758,4 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                     queue,
                     timeout=0.5,
                 )
-                assert r.body == b"hi"
+                assert await r.decode() == "hi", r

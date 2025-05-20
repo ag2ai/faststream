@@ -1,9 +1,8 @@
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Callable,
     Optional,
 )
@@ -28,6 +27,12 @@ if TYPE_CHECKING:
     from faststream._internal.state import BrokerState
     from faststream._internal.types import CustomCallable
     from faststream.confluent.client import AsyncConfluentConsumer
+    from faststream._internal.types import (
+        AsyncCallable,
+        BrokerMiddleware,
+        CustomCallable,
+    )
+    from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.message import StreamMessage
 
 
@@ -135,7 +140,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]: # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:  # type: ignore[override]
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls

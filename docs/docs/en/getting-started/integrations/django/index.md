@@ -70,7 +70,7 @@ django_asgi = get_asgi_application()
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
-app = Starlette(
+application = Starlette(
     routes=(
         Mount("/", django_asgi()),  # redirect all requests to Django
     ),
@@ -100,7 +100,7 @@ It creates a `static/` directory in the root of your project, so you can serve i
 
 from starlette.staticfiles import StaticFiles
 
-app = Starlette(
+application = Starlette(
     routes=(
         # /static is your STATIC_URL setting
         Mount("/static", StaticFiles(directory="static"), name="static"),
@@ -129,7 +129,7 @@ async def broker_lifespan(app):
     finally:
         await broker.close()
 
-app = Starlette(
+application = Starlette(
     ...,
     lifespan=broker_lifespan,
 )
@@ -162,7 +162,7 @@ app = Starlette(
         finally:
             await broker.close()
 
-    app = Starlette(
+    application = Starlette(
         routes=(
             Mount("/static", StaticFiles(directory="static"), name="static"),
             Mount("/", get_asgi_application()),
@@ -172,3 +172,118 @@ app = Starlette(
     ```
 
 This way we can easily integrate our **FastStream** application with the **Django**!
+
+# Accessing Django ORM from within a FastStream Consumer
+## Start using FastStream CLI
+
+In order to access the **Django** ORM from within a FastStream consumer, you need to ensure that the Django settings are properly configured and that the Django application is initialized before accessing the ORM. Here is how to do it using `serve_faststream.py` as an entry point for your FastStream consumer application.
+
+```
+project-root/
+├── manage.py
+├── serve_faststream.py
+```
+```Python
+# serve_faststream.py
+# ruff: noqa: E402
+###############################################################################
+import os
+
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+django.setup()
+# These lines are necessary to set up Django, call them before any Django Related imports.
+###############################################################################
+from django.contrib.auth.models import User  # This line must be after django.setup()
+
+from faststream import FastStream
+from faststream.rabbit import RabbitBroker
+
+
+broker = RabbitBroker("amqp://guest:guest@localhost:5672")
+
+@broker.subscriber("demo")
+async def faststream_django_orm_demo_handler(message: str):
+    """
+    This demonstrates how to access Django ORM from within a FastStream consumer.
+    """
+    qs = User.objects.all()
+    async for user in qs:  # async django ORM is accessible
+        print(user)
+    print(message)
+
+app = FastStream(broker)
+```
+
+Start consumer with:
+```bash
+faststream run serve_faststream:app
+```
+
+It is advisable to use FastStream's router to keep `serve_faststream.py` clean and to ensure `django.setup()` is always called first. See [FastStream Router](https://faststream.airt.ai/latest/getting-started/routers/) for more information.
+## Start using Django's management command
+This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When management command runs, it automatically sets up Django and makes the ORM available.
+```Python
+# serve_faststream.py
+import sys
+
+# From previous example, this run django.setup() only when started by FastStream CLI
+# Remove this block entirely if you are not using FastStream CLI
+if "bin/faststream" in sys.argv[0]:
+    import os
+
+    import django
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+    django.setup()
+
+from django.contrib.auth.models import User
+
+from faststream import FastStream
+from faststream.rabbit import RabbitBroker
+
+
+broker = RabbitBroker("amqp://guest:guest@localhost:5672")
+
+@broker.subscriber("demo")
+async def faststream_django_orm_demo_handler(message: str):
+    """
+    This demonstrates how to access Django ORM from within a FastStream consumer.
+    """
+    qs = User.objects.all()
+    async for user in qs:  # async django ORM is accessible
+        print(user)
+    print(message)
+
+app = FastStream(broker)
+```
+Create a management command in your Django app:
+```
+project-root/
+├──<your-django-app-name>/
+    ├──management/
+        ├──commands/
+            ├── __init__.py
+            ├── faststream.py
+├── manage.py
+├── serve_faststream.py
+```
+```Python
+# faststream.py
+import asyncio
+
+from django.core.management.base import BaseCommand
+from serve_faststream import app as faststream_app
+
+
+class Command(BaseCommand):
+    help = "Start FastStream consumer"
+
+    def handle(self, *args, **options):
+        asyncio.run(faststream_app.run())
+```
+You can now start consumer with:
+```bash
+./manage.py faststream
+```

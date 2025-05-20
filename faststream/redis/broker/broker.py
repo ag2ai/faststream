@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from redis.asyncio.connection import BaseParser
-    from typing_extensions import TypedDict, Unpack
+    from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import (
         AnyDict,
@@ -207,26 +207,29 @@ class RedisBroker(
             protocol = url_kwargs.scheme
 
         super().__init__(
-            url=url,
-            host=host,
-            port=port,
-            db=db,
-            client_name=client_name,
-            health_check_interval=health_check_interval,
-            max_connections=max_connections,
-            socket_timeout=socket_timeout,
-            socket_connect_timeout=socket_connect_timeout,
-            socket_read_size=socket_read_size,
-            socket_keepalive=socket_keepalive,
-            socket_keepalive_options=socket_keepalive_options,
-            socket_type=socket_type,
-            retry_on_timeout=retry_on_timeout,
-            encoding=encoding,
-            encoding_errors=encoding_errors,
-            decode_responses=decode_responses,
-            parser_class=parser_class,
-            connection_class=connection_class,
-            encoder_class=encoder_class,
+            **_resolve_url_options(
+                url,
+                security=security,
+                host=host,
+                port=port,
+                db=db,
+                client_name=client_name,
+                health_check_interval=health_check_interval,
+                max_connections=max_connections,
+                socket_timeout=socket_timeout,
+                socket_connect_timeout=socket_connect_timeout,
+                socket_read_size=socket_read_size,
+                socket_keepalive=socket_keepalive,
+                socket_keepalive_options=socket_keepalive_options,
+                socket_type=socket_type,
+                retry_on_timeout=retry_on_timeout,
+                encoding=encoding,
+                encoding_errors=encoding_errors,
+                decode_responses=decode_responses,
+                parser_class=parser_class,
+                connection_class=connection_class,
+                encoder_class=encoder_class,
+            ),
             # Basic args
             # broker base
             graceful_timeout=graceful_timeout,
@@ -263,78 +266,9 @@ class RedisBroker(
         )
 
     @override
-    async def connect(  # type: ignore[override]
-        self,
-        url: Optional[str] = EMPTY,
-        **kwargs: "Unpack[RedisInitKwargs]",
-    ) -> "Redis[bytes]":
-        """Connect to the Redis server."""
-        if url is not EMPTY:
-            connect_kwargs: AnyDict = {
-                "url": url,
-                **kwargs,
-            }
-        else:
-            connect_kwargs = dict(kwargs).copy()
-
-        return await super().connect(**connect_kwargs)
-
-    @override
-    async def _connect(  # type: ignore[override]
-        self,
-        url: str,
-        *,
-        host: str,
-        port: Union[str, int],
-        db: Union[str, int],
-        connection_class: type["Connection"],
-        client_name: Optional[str],
-        health_check_interval: float,
-        max_connections: Optional[int],
-        socket_timeout: Optional[float],
-        socket_connect_timeout: Optional[float],
-        socket_read_size: int,
-        socket_keepalive: bool,
-        socket_keepalive_options: Optional[Mapping[int, Union[int, bytes]]],
-        socket_type: int,
-        retry_on_timeout: bool,
-        encoding: str,
-        encoding_errors: str,
-        decode_responses: bool,
-        parser_class: type["BaseParser"],
-        encoder_class: type["Encoder"],
-    ) -> "Redis[bytes]":
-        url_options: AnyDict = {
-            **dict(parse_url(url)),
-            **parse_security(self.security),
-            "client_name": client_name,
-            "health_check_interval": health_check_interval,
-            "max_connections": max_connections,
-            "socket_timeout": socket_timeout,
-            "socket_connect_timeout": socket_connect_timeout,
-            "socket_read_size": socket_read_size,
-            "socket_keepalive": socket_keepalive,
-            "socket_keepalive_options": socket_keepalive_options,
-            "socket_type": socket_type,
-            "retry_on_timeout": retry_on_timeout,
-            "encoding": encoding,
-            "encoding_errors": encoding_errors,
-            "decode_responses": decode_responses,
-            "parser_class": parser_class,
-            "encoder_class": encoder_class,
-        }
-
-        if port is not EMPTY:
-            url_options["port"] = port
-        if host is not EMPTY:
-            url_options["host"] = host
-        if db is not EMPTY:
-            url_options["db"] = db
-        if connection_class is not EMPTY:
-            url_options["connection_class"] = connection_class
-
+    async def _connect(self) -> "Redis[bytes]":
         pool = ConnectionPool(
-            **url_options,
+            **self._connection_kwargs,
             lib_name="faststream",
             lib_version=__version__,
         )
@@ -536,3 +470,16 @@ class RedisBroker(
                 await anyio.sleep(sleep_time)
 
         return False
+
+
+def _resolve_url_options(
+    url: str,
+    *,
+    security: Optional["BaseSecurity"],
+    **kwargs: Any,
+) -> "AnyDict":
+    return {
+        **dict(parse_url(url)),
+        **parse_security(security),
+        **{k: v for k, v in kwargs.items() if v is not EMPTY},
+    }

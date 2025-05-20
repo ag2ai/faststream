@@ -42,18 +42,6 @@ class TestRouter(FastAPITestcase):
         assert event.is_set()
         mock.assert_called_once_with(msg="hello", name="john")
 
-    async def test_connection_params(self, settings) -> None:
-        broker = self.router_class(
-            host="fake-host",
-            port=6377,
-        ).broker  # kwargs will be ignored
-        await broker.connect(
-            host=settings.host,
-            port=settings.port,
-        )
-        await broker._connection.ping()
-        await broker.close()
-
     async def test_batch_real(
         self,
         mock: Mock,
@@ -91,8 +79,8 @@ class TestRouter(FastAPITestcase):
 
         router = self.router_class()
 
-        @router.subscriber(stream=StreamSub(queue, polling_interval=10))
-        async def handler(msg) -> None:
+        @router.subscriber(stream=StreamSub(queue, polling_interval=1000))
+        async def handler(msg):
             mock(msg)
             event.set()
 
@@ -120,8 +108,8 @@ class TestRouter(FastAPITestcase):
 
         router = self.router_class()
 
-        @router.subscriber(stream=StreamSub(queue, polling_interval=10, batch=True))
-        async def handler(msg: list[str]) -> None:
+        @router.subscriber(stream=StreamSub(queue, polling_interval=1000, batch=True))
+        async def handler(msg: list[str]):
             mock(msg)
             event.set()
 

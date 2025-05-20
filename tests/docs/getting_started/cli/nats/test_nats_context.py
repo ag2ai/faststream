@@ -9,8 +9,8 @@ from tests.mocks import mock_pydantic_settings_env
 @pydantic_v2
 @pytest.mark.asyncio()
 async def test() -> None:
-    with mock_pydantic_settings_env({"host": "localhost"}):
+    with mock_pydantic_settings_env({"any_flag": "True"}):
         from docs.docs_src.getting_started.cli.nats_context import app, broker
 
         async with TestNatsBroker(broker), TestApp(app, {"env": ""}):
-            assert app.context.get("settings").host == "localhost"
+            assert app.context.get("settings").any_flag

@@ -1,10 +1,9 @@
 import math
-from collections.abc import Awaitable
+from collections.abc import AsyncIterator, Awaitable, Iterable, Sequence
 from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Callable,
     Optional,
 )
@@ -30,6 +29,13 @@ from faststream.redis.subscriber.configs import RedisSubscriberBaseConfigs
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from anyio import Event
+    from fast_depends.dependencies import Dependant
+
+    from faststream._internal.types import (
+        AsyncCallable,
+        BrokerMiddleware,
+    )
     from faststream.message import StreamMessage as BrokerStreamMessage
 
 
@@ -54,6 +60,13 @@ class _StreamHandlerMixin(LogicSubscriber):
             message=message,
             channel=self.stream_sub.name,
         )
+
+    @override
+    async def _consume(self, *args: Any, start_signal: "Event") -> None:
+        assert self._client, "You should setup subscriber at first."  # nosec B101
+        if await self._client.ping():
+            start_signal.set()
+        await super()._consume(*args, start_signal=start_signal)
 
     @override
     async def start(self) -> None:
@@ -199,7 +212,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:
         assert self._client, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls

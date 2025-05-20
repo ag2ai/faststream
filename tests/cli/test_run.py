@@ -75,7 +75,7 @@ def test_run_workers(runner: CliRunner) -> None:
         assert result.exit_code == 0
 
         assert mock.call_args.kwargs == IsPartialDict({
-            "args": (app_str, {}, False, logging.NOTSET, logging.DEBUG),
+            "args": (app_str, {}, False, None, logging.NOTSET, logging.DEBUG),
             "workers": 2,
         })
 
@@ -100,7 +100,7 @@ def test_run_factory_with_workers(runner: CliRunner) -> None:
         assert result.exit_code == 0
 
         assert mock.call_args.kwargs == IsPartialDict({
-            "args": (app_str, {}, True, logging.NOTSET, logging.DEBUG),
+            "args": (app_str, {}, True, None, logging.NOTSET, logging.DEBUG),
             "workers": 2,
         })
 
@@ -133,7 +133,7 @@ def test_run_reloader(runner: CliRunner) -> None:
         assert result.exit_code == 0
 
         assert mock.call_args.kwargs == IsPartialDict({
-            "args": (app_str, {}, False, logging.NOTSET),
+            "args": (app_str, {}, False, None, logging.NOTSET),
             "reload_dirs": ["test"],
             "extra_extensions": ["yaml"],
         })
@@ -169,7 +169,7 @@ def test_run_reloader_with_factory(runner: CliRunner) -> None:
         assert result.exit_code == 0
 
         assert mock.call_args.kwargs == IsPartialDict({
-            "args": (app_str, {}, True, logging.NOTSET),
+            "args": (app_str, {}, True, None, logging.NOTSET),
             "reload_dirs": ["test"],
             "extra_extensions": ["yaml"],
         })

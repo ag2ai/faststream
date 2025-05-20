@@ -19,13 +19,14 @@ from typing_extensions import Doc, deprecated, override
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.utils.data import filter_by_dict
-from faststream.confluent.client import AsyncConfluentConsumer, AsyncConfluentProducer
-from faststream.confluent.config import ConfluentFastConfig
+from faststream.confluent.helpers import (
+    AdminService,
+    AsyncConfluentConsumer,
+    AsyncConfluentProducer,
+    ConfluentFastConfig,
+)
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
 from faststream.confluent.response import KafkaPublishCommand
-from faststream.confluent.schemas.params import ConsumerConnectionParams
-from faststream.confluent.security import parse_security
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
 
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
     )
-    from faststream.confluent.config import ConfluentConfig
+    from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
@@ -356,9 +357,10 @@ class KafkaBroker(  # type: ignore[misc]
         else:
             specification_url = servers
 
-        super().__init__(
+        self.config = ConfluentFastConfig(
+            config=config,
+            security=security,
             bootstrap_servers=servers,
-            # both args
             client_id=client_id,
             request_timeout_ms=request_timeout_ms,
             retry_backoff_ms=retry_backoff_ms,
@@ -374,6 +376,11 @@ class KafkaBroker(  # type: ignore[misc]
             enable_idempotence=enable_idempotence,
             transactional_id=transactional_id,
             transaction_timeout_ms=transaction_timeout_ms,
+        )
+
+        self.admin_service = AdminService(self.config)
+
+        super().__init__(
             # Basic args
             graceful_timeout=graceful_timeout,
             dependencies=dependencies,
@@ -402,13 +409,27 @@ class KafkaBroker(  # type: ignore[misc]
         )
         self.client_id = client_id
 
-        self.config = ConfluentFastConfig(config)
-
         self._state.patch_value(
             producer=AsyncConfluentFastProducer(
                 parser=self._parser,
                 decoder=self._decoder,
             )
+        )
+
+    @override
+    async def _connect(self) -> Callable[..., AsyncConfluentConsumer]:
+        native_producer = AsyncConfluentProducer(
+            config=self.config,
+            logger=self._state.get().logger_state,
+        )
+
+        self._producer.connect(native_producer)
+
+        return partial(
+            AsyncConfluentConsumer,
+            config=self.config,
+            admin_service=self.admin_service,
+            logger=self._state.get().logger_state,
         )
 
     async def close(
@@ -420,52 +441,14 @@ class KafkaBroker(  # type: ignore[misc]
         await super().close(exc_type, exc_val, exc_tb)
 
         await self._producer.disconnect()
+        await self.admin_service.close()
 
         self._connection = None
-
-    async def connect(
-        self,
-        bootstrap_servers: Annotated[
-            Union[str, Iterable[str]],
-            Doc("Kafka addresses to connect."),
-        ] = EMPTY,
-        **kwargs: Any,
-    ) -> Callable[..., AsyncConfluentConsumer]:
-        if bootstrap_servers is not EMPTY:
-            kwargs["bootstrap_servers"] = bootstrap_servers
-
-        return await super().connect(**kwargs)
-
-    @override
-    async def _connect(  # type: ignore[override]
-        self,
-        *,
-        client_id: str,
-        **kwargs: Any,
-    ) -> Callable[..., AsyncConfluentConsumer]:
-        security_params = parse_security(self.security)
-        kwargs.update(security_params)
-
-        native_producer = AsyncConfluentProducer(
-            **kwargs,
-            client_id=client_id,
-            config=self.config,
-            logger=self._state.get().logger_state,
-        )
-
-        self._producer.connect(native_producer)
-
-        connection_kwargs, _ = filter_by_dict(ConsumerConnectionParams, kwargs)
-        return partial(
-            AsyncConfluentConsumer,
-            **connection_kwargs,
-            logger=self._state.get().logger_state,
-            config=self.config,
-        )
 
     async def start(self) -> None:
         await self.connect()
         self._setup()
+        await self.admin_service.start()
         await super().start()
 
     @property

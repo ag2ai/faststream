@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from time import time
@@ -14,20 +14,20 @@ from typing import (
 
 import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
-from confluent_kafka.admin import AdminClient, NewTopic
 
-from faststream._internal.constants import EMPTY
-from faststream._internal.log import logger as faststream_logger
 from faststream._internal.utils.functions import call_or_await, run_in_executor
-from faststream.confluent import config as config_module
 from faststream.confluent.schemas import TopicPartition
 from faststream.exceptions import SetupError
+
+from . import config as config_module
 
 if TYPE_CHECKING:
     from typing_extensions import NotRequired, TypedDict
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import AnyDict
     from faststream._internal.state.logger import LoggerState
+
+    from .admin import AdminService
 
     class _SendKwargs(TypedDict):
         value: Optional[Union[str, bytes]]
@@ -46,65 +46,14 @@ class AsyncConfluentProducer:
         *,
         logger: "LoggerState",
         config: config_module.ConfluentFastConfig,
-        bootstrap_servers: Union[str, list[str]] = "localhost",
-        client_id: Optional[str] = None,
-        metadata_max_age_ms: int = 300000,
-        request_timeout_ms: int = 40000,
-        acks: Any = EMPTY,
-        compression_type: Optional[str] = None,
-        partitioner: str = "consistent_random",
-        max_request_size: int = 1048576,
-        linger_ms: int = 0,
-        retry_backoff_ms: int = 100,
-        security_protocol: str = "PLAINTEXT",
-        connections_max_idle_ms: int = 540000,
-        enable_idempotence: bool = False,
-        transactional_id: Optional[Union[str, int]] = None,
-        transaction_timeout_ms: int = 60000,
-        allow_auto_create_topics: bool = True,
-        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
         self.logger_state = logger
 
-        if isinstance(bootstrap_servers, Iterable) and not isinstance(
-            bootstrap_servers,
-            str,
-        ):
-            bootstrap_servers = ",".join(bootstrap_servers)
-
-        if compression_type is None:
-            compression_type = "none"
-
-        if acks is EMPTY or acks == "all":
-            acks = -1
-
-        config_from_params = {
-            # "topic.metadata.refresh.interval.ms": 1000,
-            "bootstrap.servers": bootstrap_servers,
-            "client.id": client_id,
-            "metadata.max.age.ms": metadata_max_age_ms,
-            "request.timeout.ms": request_timeout_ms,
-            "acks": acks,
-            "compression.type": compression_type,
-            "partitioner": partitioner,
-            "message.max.bytes": max_request_size,
-            "linger.ms": linger_ms,
-            "enable.idempotence": enable_idempotence,
-            "transactional.id": transactional_id,
-            "transaction.timeout.ms": transaction_timeout_ms,
-            "retry.backoff.ms": retry_backoff_ms,
-            "security.protocol": security_protocol.lower(),
-            "connections.max.idle.ms": connections_max_idle_ms,
-            "allow.auto.create.topics": allow_auto_create_topics,
-        }
-
-        final_config = {
-            **config.as_config_dict(),
-            **config_from_params,
-            **dict(security_config or {}),
-        }
-
-        self.producer = Producer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
+        self.config = config.producer_config
+        self.producer = Producer(
+            self.config,
+            logger=self.logger_state.logger.logger,  # type: ignore[call-arg]
+        )
 
         self.__running = True
         self._poll_task = asyncio.create_task(self._poll_loop())
@@ -220,10 +169,12 @@ class AsyncConfluentConsumer:
     def __init__(
         self,
         *topics: str,
-        partitions: Sequence["TopicPartition"],
         logger: "LoggerState",
         config: config_module.ConfluentFastConfig,
+        admin_service: "AdminService",
+        partitions: Sequence["TopicPartition"],
         bootstrap_servers: Union[str, list[str]] = "localhost",
+        # consumer options
         client_id: Optional[str] = "confluent-kafka-consumer",
         group_id: Optional[str] = None,
         group_instance_id: Optional[str] = None,
@@ -245,15 +196,9 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
-        security_config: Optional["SecurityOptions"] = None,
     ) -> None:
+        self.admin_client = admin_service
         self.logger_state = logger
-
-        if isinstance(bootstrap_servers, Iterable) and not isinstance(
-            bootstrap_servers,
-            str,
-        ):
-            bootstrap_servers = ",".join(bootstrap_servers)
 
         self.topics = list(topics)
         self.partitions = partitions
@@ -266,17 +211,13 @@ class AsyncConfluentConsumer:
                 ],
             )
 
-        final_config = config.as_config_dict()
-
         config_from_params = {
             "allow.auto.create.topics": allow_auto_create_topics,
             "topic.metadata.refresh.interval.ms": 1000,
             "bootstrap.servers": bootstrap_servers,
             "client.id": client_id,
-            "group.id": group_id
-            or final_config.get("group.id", "faststream-consumer-group"),
-            "group.instance.id": group_instance_id
-            or final_config.get("group.instance.id", None),
+            "group.id": group_id,
+            "group.instance.id": group_instance_id,
             "fetch.wait.max.ms": fetch_max_wait_ms,
             "fetch.max.bytes": fetch_max_bytes,
             "fetch.min.bytes": fetch_min_bytes,
@@ -294,13 +235,10 @@ class AsyncConfluentConsumer:
             "security.protocol": security_protocol.lower(),
             "connections.max.idle.ms": connections_max_idle_ms,
             "isolation.level": isolation_level,
-        }
-        self.allow_auto_create_topics = allow_auto_create_topics
-        final_config.update(config_from_params)
-        final_config.update(**dict(security_config or {}))
+        } | config.consumer_config
 
-        self.config = final_config
-        self.consumer = Consumer(final_config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
+        self.config = config_from_params
+        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
@@ -312,14 +250,19 @@ class AsyncConfluentConsumer:
 
     async def start(self) -> None:
         """Starts the Kafka consumer and subscribes to the specified topics."""
-        if self.allow_auto_create_topics:
-            await run_in_executor(
+        if self.config.get("allow.auto.create.topics", True):
+            topics_creation_result = await run_in_executor(
                 self._thread_pool,
-                create_topics,
-                topics=self.topics_to_create,
-                config=self.config,
-                logger_=self.logger_state.logger.logger,
+                self.admin_client.create_topics,
+                self.topics_to_create,
             )
+
+            for create_result in topics_creation_result:
+                if create_result.error:
+                    self.logger_state.log(
+                        log_level=logging.WARNING,
+                        message=f"Failed to create topic {create_result.topic}: {create_result.error}",
+                    )
 
         else:
             self.logger_state.log(
@@ -353,7 +296,8 @@ class AsyncConfluentConsumer:
         """Stops the Kafka consumer and releases all resources."""
         # NOTE: If we don't explicitly call commit and then close the consumer, the confluent consumer gets stuck.
         # We are doing this to avoid the issue.
-        enable_auto_commit = self.config["enable.auto.commit"]
+        enable_auto_commit = self.config.get("enable.auto.commit", True)
+
         try:
             if enable_auto_commit:
                 await self.commit(asynchronous=False)
@@ -446,43 +390,3 @@ class BatchBuilder:
                 "headers": headers or [],
             },
         )
-
-
-def create_topics(
-    topics: list[str],
-    config: dict[str, Optional[Union[str, int, float, bool, Any]]],
-    logger_: Optional["LoggerProto"] = None,
-) -> None:
-    logger_ = logger_ or faststream_logger
-
-    """Creates Kafka topics using the provided configuration."""
-    admin_client = AdminClient(
-        {x: config[x] for x in ADMINCLIENT_CONFIG_PARAMS if x in config},
-    )
-
-    fs = admin_client.create_topics(
-        [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics],
-    )
-
-    for topic, f in fs.items():
-        try:
-            f.result()  # The result itself is None
-        except Exception as e:  # noqa: PERF203
-            if "TOPIC_ALREADY_EXISTS" not in str(e):
-                logger_.log(logging.WARNING, f"Failed to create topic {topic}: {e}")
-        else:
-            logger_.log(logging.INFO, f"Topic `{topic}` created.")
-
-
-ADMINCLIENT_CONFIG_PARAMS = (
-    "allow.auto.create.topics",
-    "bootstrap.servers",
-    "client.id",
-    "request.timeout.ms",
-    "metadata.max.age.ms",
-    "security.protocol",
-    "connections.max.idle.ms",
-    "sasl.mechanism",
-    "sasl.username",
-    "sasl.password",
-)

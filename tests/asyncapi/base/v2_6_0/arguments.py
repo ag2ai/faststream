@@ -542,59 +542,52 @@ class FastAPICompatible:
 
         assert key == IsStr(regex=r"test[\w:]*:Handle:Message"), key
 
-        expected_schema = IsPartialDict(
-            {
-                "discriminator": "type",
-                "oneOf": [
-                    {"$ref": "#/components/schemas/Sub2"},
-                    {"$ref": "#/components/schemas/Sub"},
-                ],
-                "title": "Handle:Message:Payload",
-            }
-        )
+        expected_schema = IsPartialDict({
+            "discriminator": "type",
+            "oneOf": [
+                {"$ref": "#/components/schemas/Sub2"},
+                {"$ref": "#/components/schemas/Sub"},
+            ],
+            "title": "Handle:Message:Payload",
+        })
 
         fastapi_payload = schema["components"]["schemas"].get("Handle:Message:Payload")
         if self.is_fastapi:
             if fastapi_payload:
-                assert fastapi_payload == IsPartialDict(
-                    {
-                        "anyOf": [
-                            {"$ref": "#/components/schemas/Sub2"},
-                            {"$ref": "#/components/schemas/Sub"},
-                        ]
-                    }
-                )
+                assert fastapi_payload == IsPartialDict({
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/Sub2"},
+                        {"$ref": "#/components/schemas/Sub"},
+                    ]
+                })
 
-            expected_schema = IsPartialDict(
-                {
-                    "$ref": "#/components/schemas/Handle:Message:Payload"
-                }
-            ) | expected_schema
+            expected_schema = (
+                IsPartialDict({"$ref": "#/components/schemas/Handle:Message:Payload"})
+                | expected_schema
+            )
 
-        assert schema["components"]["messages"][key]["payload"] == expected_schema, (
-            schema["components"]
-        )
+        assert (
+            schema["components"]["messages"][key]["payload"] == expected_schema
+        ), schema["components"]
 
-        assert schema["components"]["schemas"] == IsPartialDict(
-            {
-                "Sub": {
-                    "properties": {
-                        "type": IsPartialDict({"const": "sub", "title": "Type"}),
-                    },
-                    "required": ["type"],
-                    "title": "Sub",
-                    "type": "object",
+        assert schema["components"]["schemas"] == IsPartialDict({
+            "Sub": {
+                "properties": {
+                    "type": IsPartialDict({"const": "sub", "title": "Type"}),
                 },
-                "Sub2": {
-                    "properties": {
-                        "type": IsPartialDict({"const": "sub2", "title": "Type"}),
-                    },
-                    "required": ["type"],
-                    "title": "Sub2",
-                    "type": "object",
+                "required": ["type"],
+                "title": "Sub",
+                "type": "object",
+            },
+            "Sub2": {
+                "properties": {
+                    "type": IsPartialDict({"const": "sub2", "title": "Type"}),
                 },
-            }
-        ), schema["components"]["schemas"]
+                "required": ["type"],
+                "title": "Sub2",
+                "type": "object",
+            },
+        }), schema["components"]["schemas"]
 
     @pydantic_v2
     def test_nested_descriminator(self) -> None:
@@ -618,11 +611,9 @@ class FastAPICompatible:
         assert key == IsStr(regex=r"test[\w:]*:Handle:Message")
         assert schema["components"] == {
             "messages": {
-                key: IsPartialDict(
-                    {
-                        "payload": {"$ref": "#/components/schemas/Model"},
-                    }
-                )
+                key: IsPartialDict({
+                    "payload": {"$ref": "#/components/schemas/Model"},
+                })
             },
             "schemas": {
                 "Sub": {
@@ -680,9 +671,7 @@ class FastAPICompatible:
 
         name, message = next(iter(schema["components"]["messages"].items()))
 
-        assert name == IsStr(
-            regex=r"test[\w:]*:\[Handle,HandleDefault\]:Message"
-        ), name
+        assert name == IsStr(regex=r"test[\w:]*:\[Handle,HandleDefault\]:Message"), name
 
         assert len(message["payload"]["oneOf"]) == 2
 

@@ -2,6 +2,7 @@ import logging
 import sys
 import warnings
 from contextlib import suppress
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -15,8 +16,21 @@ from faststream.asgi import AsgiFastStream
 from faststream.exceptions import INSTALL_WATCHFILES, SetupError, StartupValidationError
 
 from .docs import docs_app
+from .options import (
+    APP_ARGUMENT,
+    APP_DIR_OPTION,
+    FACTORY_OPTION,
+    RELOAD_EXTENSIONS_OPTION,
+    RELOAD_FLAG,
+)
 from .utils.imports import import_from_string
-from .utils.logs import LogLevels, get_log_level, set_log_level
+from .utils.logs import (
+    LogFiles,
+    LogLevels,
+    get_log_level,
+    set_log_config,
+    set_log_level,
+)
 from .utils.parser import parse_cli_args
 
 if TYPE_CHECKING:
@@ -59,10 +73,7 @@ def main(
 )
 def run(
     ctx: typer.Context,
-    app: str = typer.Argument(
-        ...,
-        help="[python_module:FastStream] - path to your application.",
-    ),
+    app: str = APP_ARGUMENT,
     workers: int = typer.Option(
         1,
         "-w",
@@ -71,6 +82,10 @@ def run(
         help="Run [workers] applications with process spawning.",
         envvar="FASTSTREAM_WORKERS",
     ),
+    app_dir: str = APP_DIR_OPTION,
+    is_factory: bool = FACTORY_OPTION,
+    reload: bool = RELOAD_FLAG,
+    watch_extensions: list[str] = RELOAD_EXTENSIONS_OPTION,
     log_level: LogLevels = typer.Option(
         LogLevels.notset,
         "-l",
@@ -78,36 +93,16 @@ def run(
         case_sensitive=False,
         help="Set selected level for FastStream and brokers logger objects.",
         envvar="FASTSTREAM_LOG_LEVEL",
+        show_default=False,
     ),
-    reload: bool = typer.Option(
-        False,
-        "-r",
-        "--reload",
-        is_flag=True,
-        help="Restart app at directory files changes.",
-    ),
-    watch_extensions: list[str] = typer.Option(
-        (),
-        "--extension",
-        "--ext",
-        "--reload-extension",
-        "--reload-ext",
-        help="List of file extensions to watch by.",
-    ),
-    app_dir: str = typer.Option(
-        ".",
-        "--app-dir",
+    log_config: Optional[Path] = typer.Option(
+        None,
+        "--log-config",
         help=(
-            "Look for APP in the specified directory, by adding this to the PYTHONPATH."
-            " Defaults to the current working directory."
+            "Set file to configure logging. Support "
+            f"{', '.join(f'`{x.value}`' for x in LogFiles)} extensions."  # noqa: B008
         ),
-        envvar="FASTSTREAM_APP_DIR",
-    ),
-    is_factory: bool = typer.Option(
-        False,
-        "-f",
-        "--factory",
-        help="Treat APP as an application factory.",
+        show_default=False,
     ),
 ) -> None:
     """Run [MODULE:APP] FastStream application."""
@@ -127,7 +122,7 @@ def run(
     module_path, app_obj = import_from_string(app, is_factory=is_factory)
     app_obj = cast("Application", app_obj)
 
-    args = (app, extra, is_factory, casted_log_level)
+    args = (app, extra, is_factory, log_config, casted_log_level)
 
     if reload and workers > 1:
         msg = "You can't use reload option with multiprocessing"
@@ -184,6 +179,7 @@ def run(
             app_obj,
             extra_options=extra,
             log_level=casted_log_level,
+            log_config=log_config,
         )
 
 
@@ -192,6 +188,7 @@ def _run(
     app: str,
     extra_options: dict[str, "SettingField"],
     is_factory: bool,
+    log_config: Optional[Path],
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:
@@ -203,12 +200,14 @@ def _run(
         extra_options=extra_options,
         log_level=log_level,
         app_level=app_level,
+        log_config=log_config,
     )
 
 
 def _run_imported_app(
     app_obj: "Application",
     extra_options: dict[str, "SettingField"],
+    log_config: Optional[Path],
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:
@@ -220,6 +219,9 @@ def _run_imported_app(
 
     if log_level > 0:
         set_log_level(log_level, app_obj)
+
+    if log_config is not None:
+        set_log_config(log_config)
 
     if sys.platform not in {"win32", "cygwin", "cli"}:  # pragma: no cover
         with suppress(ImportError):
@@ -246,23 +248,17 @@ def _run_imported_app(
 )
 def publish(
     ctx: typer.Context,
-    app: str = typer.Argument(
-        ...,
-        help="FastStream app instance, e.g., main:app.",
-    ),
+    app: str = APP_ARGUMENT,
     message: str = typer.Argument(
         ...,
         help="JSON Message string to publish.",
+        show_default=False,
     ),
     rpc: bool = typer.Option(
         False,
         help="Enable RPC mode and system output.",
     ),
-    is_factory: bool = typer.Option(
-        False,
-        "--factory",
-        help="Treat APP as an application factory.",
-    ),
+    is_factory: bool = FACTORY_OPTION,
 ) -> None:
     """Publish a message using the specified broker in a FastStream application.
 

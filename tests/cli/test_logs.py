@@ -61,3 +61,38 @@ def test_run_with_wrong_log_level(runner: CliRunner) -> None:
         )
 
         assert result.exit_code == 2, result.output
+
+
+def test_run_with_log_config(runner: CliRunner) -> None:
+    app = FastStream(MagicMock())
+    app.run = AsyncMock()
+
+    logging_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"app": {"format": "%(message)s"}},
+        "handlers": {
+            "app": {
+                "class": "logging.StreamHandler",
+                "formatter": "app",
+                "level": "INFO",
+            }
+        },
+        "loggers": {"app": {"level": "INFO", "handlers": ["app"]}},
+    }
+
+    with patch(
+        "faststream._internal.cli.utils.logs._get_log_config",
+        return_value=logging_config,
+    ):
+        result = runner.invoke(
+            faststream_app,
+            [
+                "run",
+                "faststream:app",
+                "--log-config",
+                "log_config.json",
+            ],
+        )
+        app.run.assert_not_called()
+        assert result.exit_code != 0

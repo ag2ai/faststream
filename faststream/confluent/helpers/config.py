@@ -1,10 +1,15 @@
+from collections.abc import Iterable
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
+
+from faststream._internal.constants import EMPTY
+from faststream.confluent.security import parse_security
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
+    from faststream.security import BaseSecurity
 
 
 class BuiltinFeatures(str, Enum):
@@ -103,6 +108,34 @@ class ClientDNSLookup(str, Enum):
         "resolve_canonical_bootstrap_servers_only"
     )
 
+
+_SharedConfig = {
+    "bootstrap_servers": "bootstrap.servers",
+    "client_id": "client.id",
+    "allow_auto_create_topics": "allow.auto.create.topics",
+    "connections_max_idle_ms": "connections.max.idle.ms",
+    "metadata_max_age_ms": "metadata.max.age.ms",
+}
+
+_ProducerConfig = _SharedConfig | {
+    "request_timeout_ms": "request.timeout.ms",
+    "compression_type": "compression.type",
+    "acks": "acks",
+    "retry_backoff_ms": "retry.backoff.ms",
+    "partitioner": "partitioner",
+    "max_request_size": "message.max.bytes",
+    "linger_ms": "linger.ms",
+    "enable_idempotence": "enable.idempotence",
+    "transactional_id": "transactional.id",
+    "transaction_timeout_ms": "transaction.timeout.ms",
+}
+
+_ConsumerConfig = _SharedConfig
+
+_AdminConfig = _SharedConfig | {
+    "request_timeout_ms": "request.timeout.ms",
+    "retry_backoff_ms": "retry.backoff.ms",
+}
 
 ConfluentConfig = TypedDict(
     "ConfluentConfig",
@@ -267,29 +300,123 @@ ConfluentConfig = TypedDict(
 
 
 class ConfluentFastConfig:
-    def __init__(self, config: Optional[ConfluentConfig]) -> None:
-        self.config = config
+    def __init__(
+        self,
+        *,
+        security: Optional["BaseSecurity"],
+        config: Optional[ConfluentConfig],
+        # shared
+        bootstrap_servers: Union[str, Iterable[str]],
+        retry_backoff_ms: int,
+        client_id: Optional[str],
+        allow_auto_create_topics: bool,
+        connections_max_idle_ms: int,
+        metadata_max_age_ms: int,
+        # producer
+        request_timeout_ms: int,
+        acks: Literal[0, 1, -1, "all"],
+        compression_type: Optional[Literal["gzip", "snappy", "lz4", "zstd"]],
+        partitioner: Union[
+            str,
+            Callable[
+                [bytes, list[Any], list[Any]],
+                Any,
+            ],
+        ],
+        max_request_size: int,
+        linger_ms: int,
+        enable_idempotence: bool,
+        transactional_id: Optional[str],
+        transaction_timeout_ms: int,
+    ) -> None:
+        self.config = parse_security(security) | (config or {})
 
-    def as_config_dict(self) -> "AnyDict":
-        if not self.config:
-            return {}
+        shared_config = {
+            "bootstrap_servers": bootstrap_servers,
+            "client_id": client_id,
+            "allow_auto_create_topics": allow_auto_create_topics,
+            "connections_max_idle_ms": connections_max_idle_ms,
+            "metadata_max_age_ms": metadata_max_age_ms,
+        }
 
-        data = dict(self.config)
+        # extended consumer options are passing in `broker.subscriber` method
+        self.raw_consumer_config = shared_config
 
-        for key, enum in (
-            ("compression.codec", CompressionCodec),
-            ("compression.type", CompressionType),
-            ("client.dns.lookup", ClientDNSLookup),
-            ("offset.store.method", OffsetStoreMethod),
-            ("isolation.level", IsolationLevel),
-            ("sasl.oauthbearer.method", SASLOAUTHBearerMethod),
-            ("security.protocol", SecurityProtocol),
-            ("broker.address.family", BrokerAddressFamily),
-            ("builtin.features", BuiltinFeatures),
-            ("debug", Debug),
-            ("group.protocol", GroupProtocol),
-        ):
-            if key in data:
-                data[key] = enum(data[key]).value
+        self.raw_producer_config = shared_config | {
+            "request_timeout_ms": request_timeout_ms,
+            "partitioner": partitioner,
+            "retry_backoff_ms": retry_backoff_ms,
+            "max_request_size": max_request_size,
+            "linger_ms": linger_ms,
+            "enable_idempotence": enable_idempotence,
+            "transactional_id": transactional_id,
+            "transaction_timeout_ms": transaction_timeout_ms,
+        }
 
-        return data
+        if compression_type:
+            self.raw_producer_config["compression_type"] = compression_type
+
+        if acks is EMPTY or acks == "all":
+            self.raw_producer_config["acks"] = -1
+        else:
+            self.raw_producer_config["acks"] = acks
+
+        self.raw_admin_config = shared_config | {
+            "request_timeout_ms": request_timeout_ms,
+            "retry_backoff_ms": retry_backoff_ms,
+        }
+
+    @property
+    def consumer_config(self) -> "AnyDict":
+        consumer_config = _to_confluent(
+            {_ConsumerConfig[k]: v for k, v in self.raw_consumer_config.items()}
+            | self.config
+        )
+
+        if "group.id" not in consumer_config:
+            consumer_config["group.id"] = "faststream-consumer-group"
+
+        return consumer_config
+
+    @property
+    def producer_config(self) -> "AnyDict":
+        return _to_confluent(
+            {_ProducerConfig[k]: v for k, v in self.raw_producer_config.items()}
+            | self.config
+        )
+
+    @property
+    def admin_config(self) -> "AnyDict":
+        return _to_confluent(
+            {_AdminConfig[k]: v for k, v in self.raw_admin_config.items()} | self.config
+        )
+
+
+def _to_confluent(config: "AnyDict") -> "AnyDict":
+    data = config.copy()
+
+    for key, enum in (
+        ("compression.codec", CompressionCodec),
+        ("compression.type", CompressionType),
+        ("client.dns.lookup", ClientDNSLookup),
+        ("offset.store.method", OffsetStoreMethod),
+        ("isolation.level", IsolationLevel),
+        ("sasl.oauthbearer.method", SASLOAUTHBearerMethod),
+        ("security.protocol", SecurityProtocol),
+        ("broker.address.family", BrokerAddressFamily),
+        ("builtin.features", BuiltinFeatures),
+        ("debug", Debug),
+        ("group.protocol", GroupProtocol),
+    ):
+        if v := data.get(key):
+            data[key] = enum(v).value
+
+    bootstrap_servers = data.get("bootstrap.servers")
+    if (
+        bootstrap_servers
+        and isinstance(bootstrap_servers, Iterable)
+        and not isinstance(bootstrap_servers, str)
+    ):
+        data["bootstrap.servers"] = ",".join(bootstrap_servers)
+
+    return data

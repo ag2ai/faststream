@@ -59,7 +59,10 @@ class BrokerUsecase(
     BrokerPublishMixin[MsgType],
     Generic[MsgType, ConnectionType],
 ):
-    """A class representing a broker async use case."""
+    """Basic class for brokers-only.
+
+    Extends `ABCBroker` by connection, publish and AsyncAPI behavior.
+    """
 
     url: Union[str, list[str]]
     _connection: Optional[ConnectionType]
@@ -234,13 +237,10 @@ class BrokerUsecase(
 
         state._setup_logger_state()
 
-    async def connect(self, **kwargs: Any) -> ConnectionType:
+    async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
-            connection_kwargs = self._connection_kwargs.copy()
-            connection_kwargs.update(kwargs)
-            self._connection = await self._connect(**connection_kwargs)
-
+            self._connection = await self._connect()
         return self._connection
 
     @abstractmethod

@@ -37,7 +37,6 @@ from .logging import make_rabbit_logger_state
 from .registrator import RabbitRegistrator
 
 if TYPE_CHECKING:
-    from ssl import SSLContext
     from types import TracebackType
 
     import aiormq
@@ -253,96 +252,10 @@ class RabbitBroker(
         )
 
     @override
-    async def connect(  # type: ignore[override]
-        self,
-        url: Union[str, "URL", None] = EMPTY,
-        *,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        virtualhost: Optional[str] = None,
-        ssl_options: Optional["SSLOptions"] = None,
-        client_properties: Optional["RabbitClientProperties"] = None,
-        security: Optional["BaseSecurity"] = None,
-        timeout: "TimeoutType" = None,
-        fail_fast: bool = EMPTY,
-        reconnect_interval: "TimeoutType" = EMPTY,
-    ) -> "RobustConnection":
-        """Connect broker object to RabbitMQ.
-
-        To startup subscribers too you should use `broker.start()` after/instead this method.
-
-        Args:
-            url: RabbitMQ destination location to connect.
-            host: Destination host. This option overrides `url` option host.
-            port: Destination port. This option overrides `url` option port.
-            virtualhost: RabbitMQ virtual host to use in the current broker connection.
-            ssl_options: Extra ssl options to establish connection.
-            client_properties: Add custom client capability.
-            security: Security options to connect broker and generate AsyncAPI server security information.
-            timeout: Connection establishement timeout.
-            fail_fast: Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.
-            reconnect_interval: Time to sleep between reconnection attempts.
-        """
-        kwargs: AnyDict = {}
-
-        if timeout:
-            kwargs["timeout"] = timeout
-
-        if fail_fast is not EMPTY:
-            kwargs["fail_fast"] = fail_fast
-
-        if reconnect_interval is not EMPTY:
-            kwargs["reconnect_interval"] = reconnect_interval
-
-        url = None if url is EMPTY else url
-
-        if any((
-            url,
-            host,
-            port,
-            virtualhost,
-            ssl_options,
-            client_properties,
-            security,
-        )):
-            security_args = parse_security(security)
-
-            kwargs["url"] = build_url(
-                url,
-                host=host,
-                port=port,
-                virtualhost=virtualhost,
-                ssl_options=ssl_options,
-                client_properties=client_properties,
-                login=security_args.get("login"),
-                password=security_args.get("password"),
-                ssl=security_args.get("ssl"),
-            )
-
-            if ssl_context := security_args.get("ssl_context"):
-                kwargs["ssl_context"] = ssl_context
-
-        return await super().connect(**kwargs)
-
-    @override
-    async def _connect(  # type: ignore[override]
-        self,
-        url: str,
-        *,
-        fail_fast: bool,
-        reconnect_interval: "TimeoutType",
-        timeout: "TimeoutType",
-        ssl_context: Optional["SSLContext"],
-    ) -> "RobustConnection":
+    async def _connect(self) -> "RobustConnection":
         connection = cast(
             "RobustConnection",
-            await connect_robust(
-                url,
-                timeout=timeout,
-                ssl_context=ssl_context,
-                reconnect_interval=reconnect_interval,
-                fail_fast=fail_fast,
-            ),
+            await connect_robust(**self._connection_kwargs),
         )
 
         if self._channel is None:

@@ -92,7 +92,11 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         mock.assert_called_once_with("hello")
 
-    async def test_concurrent_consume_channel(self, queue: str, mock: MagicMock):
+    async def test_concurrent_consume_channel(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
         event = asyncio.Event()
         event2 = asyncio.Event()
 
@@ -187,7 +191,7 @@ class TestConsumeList(RedisTestcaseConfig):
     async def test_consume_list_batch_with_one(
         self,
         queue: str,
-        mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -217,7 +221,7 @@ class TestConsumeList(RedisTestcaseConfig):
     async def test_consume_list_batch_headers(
         self,
         queue: str,
-        mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -386,7 +390,11 @@ class TestConsumeList(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
-    async def test_concurrent_consume_list(self, queue: str, mock: MagicMock):
+    async def test_concurrent_consume_list(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
         event = asyncio.Event()
         event2 = asyncio.Event()
 
@@ -455,7 +463,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_stream(
         self,
         mock: MagicMock,
-        queue,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -480,10 +488,36 @@ class TestConsumeStream(RedisTestcaseConfig):
         mock.assert_called_once_with("hello")
 
     @pytest.mark.slow()
+    async def test_consume_stream_with_big_interval(
+        self,
+        event: asyncio.Event,
+        mock: MagicMock,
+        queue: str,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(stream=StreamSub(queue, polling_interval=100000))
+        async def handler(msg):
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", stream=queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        mock.assert_called_once_with("hello")
+
+    @pytest.mark.slow()
     async def test_consume_stream_native(
         self,
         mock: MagicMock,
-        queue,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -513,7 +547,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_stream_batch(
         self,
         mock: MagicMock,
-        queue,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -543,7 +577,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_stream_batch_headers(
         self,
         queue: str,
-        mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -582,7 +616,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     @pytest.mark.slow()
     async def test_consume_stream_batch_complex(
         self,
-        queue,
+        queue: str,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
@@ -615,7 +649,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_stream_batch_native(
         self,
         mock: MagicMock,
-        queue,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -775,7 +809,11 @@ class TestConsumeStream(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
-    async def test_concurrent_consume_stream(self, queue: str, mock: MagicMock):
+    async def test_concurrent_consume_stream(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
         event = asyncio.Event()
         event2 = asyncio.Event()
 

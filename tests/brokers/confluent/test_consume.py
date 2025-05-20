@@ -5,7 +5,7 @@ import pytest
 
 from faststream import AckPolicy
 from faststream.confluent.annotations import KafkaMessage
-from faststream.confluent.client import AsyncConfluentConsumer
+from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from faststream.exceptions import AckMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator

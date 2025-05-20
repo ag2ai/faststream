@@ -8,6 +8,7 @@ from faststream._internal.publisher.usecase import PublisherUsecase
 from faststream._internal.types import MsgType
 from faststream.confluent.publisher.configs import ConfluentPublisherBaseConfigs
 from faststream.confluent.response import KafkaPublishCommand
+from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
 
