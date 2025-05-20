@@ -375,6 +375,8 @@ search:
                 - fastapi
                     - [StreamMessage](api/faststream/broker/fastapi/StreamMessage.md)
                     - [StreamRouter](api/faststream/broker/fastapi/StreamRouter.md)
+                    - config
+                        - [FastAPIConfig](api/faststream/broker/fastapi/config/FastAPIConfig.md)
                     - context
                         - [Context](api/faststream/broker/fastapi/context/Context.md)
                     - get_dependant
@@ -484,8 +486,10 @@ search:
                         - [import_object](api/faststream/cli/utils/imports/import_object.md)
                         - [try_import_app](api/faststream/cli/utils/imports/try_import_app.md)
                     - logs
+                        - [LogFiles](api/faststream/cli/utils/logs/LogFiles.md)
                         - [LogLevels](api/faststream/cli/utils/logs/LogLevels.md)
                         - [get_log_level](api/faststream/cli/utils/logs/get_log_level.md)
+                        - [set_log_config](api/faststream/cli/utils/logs/set_log_config.md)
                         - [set_log_level](api/faststream/cli/utils/logs/set_log_level.md)
                     - parser
                         - [is_bind_arg](api/faststream/cli/utils/parser/is_bind_arg.md)
@@ -690,6 +694,7 @@ search:
                     - [KafkaRouter](api/faststream/kafka/router/KafkaRouter.md)
                 - schemas
                     - params
+                        - [AdminClientConnectionParams](api/faststream/kafka/schemas/params/AdminClientConnectionParams.md)
                         - [ConsumerConnectionParams](api/faststream/kafka/schemas/params/ConsumerConnectionParams.md)
                 - security
                     - [parse_security](api/faststream/kafka/security/parse_security.md)

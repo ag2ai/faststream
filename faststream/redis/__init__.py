@@ -1,10 +1,17 @@
-from faststream.redis.annotations import Redis, RedisMessage
-from faststream.redis.broker.broker import RedisBroker
-from faststream.redis.response import RedisResponse
-from faststream.redis.router import RedisPublisher, RedisRoute, RedisRouter
-from faststream.redis.schemas import ListSub, PubSub, StreamSub
-from faststream.redis.testing import TestRedisBroker
-from faststream.testing.app import TestApp
+try:
+    from faststream.testing.app import TestApp
+
+    from .annotations import Redis, RedisMessage
+    from .broker.broker import RedisBroker
+    from .response import RedisResponse
+    from .router import RedisPublisher, RedisRoute, RedisRouter
+    from .schemas import ListSub, PubSub, StreamSub
+    from .testing import TestRedisBroker
+
+except ImportError as e:
+    from faststream.exceptions import INSTALL_FASTSTREAM_REDIS
+
+    raise ImportError(INSTALL_FASTSTREAM_REDIS) from e
 
 __all__ = (
     "ListSub",

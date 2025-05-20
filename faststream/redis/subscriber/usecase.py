@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    cast,
 )
 
 import anyio
@@ -397,7 +398,8 @@ class _ListHandlerMixin(LogicSubscriber):
         *,
         start_signal: "anyio.Event",
     ) -> None:
-        start_signal.set()
+        if await client.ping():
+            start_signal.set()
         await super()._consume(client, start_signal=start_signal)
 
     @override
@@ -598,6 +600,13 @@ class _StreamHandlerMixin(LogicSubscriber):
             message=message,
             channel=self.stream_sub.name,
         )
+
+    @override
+    async def _consume(self, *args: Any, start_signal: anyio.Event) -> None:
+        self._client = cast("Redis[bytes]", self._client)
+        if await self._client.ping():
+            start_signal.set()
+        await super()._consume(*args, start_signal=start_signal)
 
     @override
     async def start(self) -> None:

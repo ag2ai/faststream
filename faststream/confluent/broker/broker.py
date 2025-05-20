@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -417,6 +418,16 @@ class KafkaBroker(  # type: ignore[misc]
         ] = EMPTY,
         **kwargs: Any,
     ) -> Callable[..., AsyncConfluentConsumer]:
+        if bootstrap_servers is not EMPTY or kwargs:
+            warnings.warn(
+                "`KafkaBroker().connect(...) options were "
+                "deprecated in **FastStream 0.5.40**. "
+                "Please, use `KafkaBroker(...)` instead. "
+                "All these options will be removed in **FastStream 0.6.0**.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if bootstrap_servers is not EMPTY:
             kwargs["bootstrap_servers"] = bootstrap_servers
 
