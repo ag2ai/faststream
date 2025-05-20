@@ -436,6 +436,11 @@ class KafkaRegistrator(
         retry: Annotated[
             bool,
             Doc("Whether to `nack` message at processing exception."),
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
         ] = False,
         no_ack: Annotated[
             bool,
@@ -828,6 +833,11 @@ class KafkaRegistrator(
         retry: Annotated[
             bool,
             Doc("Whether to `nack` message at processing exception."),
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
         ] = False,
         no_ack: Annotated[
             bool,
@@ -1220,6 +1230,11 @@ class KafkaRegistrator(
         retry: Annotated[
             bool,
             Doc("Whether to `nack` message at processing exception."),
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
         ] = False,
         no_ack: Annotated[
             bool,
@@ -1615,6 +1630,11 @@ class KafkaRegistrator(
         retry: Annotated[
             bool,
             Doc("Whether to `nack` message at processing exception."),
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
         ] = False,
         no_ack: Annotated[
             bool,
