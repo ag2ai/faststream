@@ -80,7 +80,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             queue: RabbitMQ queue to listen. **FastStream** declares and binds
             queue object to `exchange` automatically if it is not passive (by default).
             exchange: RabbitMQ exchange to bind queue to. Uses default exchange
-            if not presented. **FastStream** declares exchange object automatically
+            if not present. **FastStream** declares exchange object automatically
             if it is not passive (by default).
             consume_args: Extra consumer arguments to use in `queue.consume(...)` method.
             channel: Channel to use for consuming messages. If not specified, a default channel will be used.

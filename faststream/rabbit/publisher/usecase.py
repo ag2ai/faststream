@@ -211,11 +211,11 @@ class LogicPublisher(
         ] = None,
         message_id: Annotated[
             Optional[str],
-            Doc("Arbitrary message id. Generated automatically if not presented."),
+            Doc("Arbitrary message id. Generated automatically if not present."),
         ] = None,
         timestamp: Annotated[
             Optional["DateType"],
-            Doc("Message publish timestamp. Generated automatically if not presented."),
+            Doc("Message publish timestamp. Generated automatically if not present."),
         ] = None,
         # rpc args
         rpc: Annotated[
@@ -318,11 +318,11 @@ class LogicPublisher(
         ] = None,
         message_id: Annotated[
             Optional[str],
-            Doc("Arbitrary message id. Generated automatically if not presented."),
+            Doc("Arbitrary message id. Generated automatically if not present."),
         ] = None,
         timestamp: Annotated[
             Optional["DateType"],
-            Doc("Message publish timestamp. Generated automatically if not presented."),
+            Doc("Message publish timestamp. Generated automatically if not present."),
         ] = None,
         # publisher specific
         _extra_middlewares: Annotated[
