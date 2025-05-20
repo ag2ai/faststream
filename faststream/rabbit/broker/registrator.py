@@ -64,7 +64,14 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
                 "and use it explicitly instead. Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = default_filter,
-        retry: Union[bool, int] = False,
+        retry: Annotated[
+            Union[bool, int],
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
+        ] = False,
         no_ack: bool = False,
         no_reply: bool = False,
         title: Optional[str] = None,
