@@ -14,6 +14,7 @@ from faststream import Depends as FSDepends
 from faststream import Response, context
 from faststream.broker.core.usecase import BrokerUsecase
 from faststream.broker.fastapi.context import Context
+from faststream.broker.fastapi.route import StreamMessage
 from faststream.broker.fastapi.router import StreamRouter
 from faststream.broker.router import BrokerRouter
 from faststream.exceptions import SetupError
@@ -265,6 +266,33 @@ class FastAPITestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_once_with("hi")
+
+    async def test_injection_fastapi(
+        self,
+        mock: Mock,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def subscriber(msg: StreamMessage) -> None:
+            mock("app" in msg.scope)
+            event.set()
+
+        async with router.broker:
+            await router.broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(router.broker.publish(None, queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        mock.assert_called_once_with(True)
 
 
 @pytest.mark.asyncio
@@ -634,8 +662,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         router2 = self.router_class()
 
         def dep1():
-            mock.not_call()
-            pass
+            raise AssertionError
 
         app = FastAPI()
         app.dependency_overrides[dep1] = lambda: mock()
@@ -662,4 +689,3 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                 assert r == "hi"
 
         mock.assert_called_once()
-        assert not mock.not_call.called
