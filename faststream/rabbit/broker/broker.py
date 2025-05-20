@@ -1,4 +1,3 @@
-import datetime
 import logging
 import warnings
 from typing import (
@@ -564,8 +563,6 @@ class RabbitBroker(
         """
         routing = routing_key or RabbitQueue.validate(queue).routing
         correlation_id = correlation_id or gen_cor_id()
-        if timestamp is None:
-            timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
 
         return await super().publish(
             message,
@@ -647,8 +644,6 @@ class RabbitBroker(
         """
         routing = routing_key or RabbitQueue.validate(queue).routing
         correlation_id = correlation_id or gen_cor_id()
-        if timestamp is None:
-            timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
 
         msg: RabbitMessage = await super().request(
             message,

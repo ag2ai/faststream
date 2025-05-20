@@ -1,9 +1,9 @@
 import asyncio
 import datetime as dt
-from contextlib import AsyncExitStack
 from unittest.mock import Mock, patch
 
 import pytest
+from dirty_equals import IsNow
 
 from faststream import Context
 from faststream.rabbit import RabbitBroker, RabbitResponse, ReplyConfig
@@ -136,7 +136,6 @@ class TestPublish(BrokerPublishTestcase):
         event: asyncio.Event,
         mock: Mock,
     ):
-        real_now = dt.datetime.now(tz=dt.timezone.utc)
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -144,12 +143,7 @@ class TestPublish(BrokerPublishTestcase):
             mock(body=msg.body, timestamp=msg.raw_message.timestamp)
             event.set()
 
-        async with AsyncExitStack() as stack:
-            br = await stack.enter_async_context(self.patch_broker(pub_broker))
-            mock_datetime = stack.enter_context(
-                patch("faststream.rabbit.broker.broker.datetime")
-            )
-            mock_datetime.datetime.now.return_value = real_now
+        async with self.patch_broker(pub_broker) as br:
             await br.start()
 
             await asyncio.wait(
@@ -162,8 +156,6 @@ class TestPublish(BrokerPublishTestcase):
 
             assert event.is_set()
 
-        # microseconds are lost as timestamps are passed around
-        # as epochs with second resolution in Rabbit
         mock.assert_called_once_with(
-            body=b"", timestamp=real_now.replace(microsecond=0)
+            body=b"", timestamp=IsNow(delta=3, tz=dt.timezone.utc)
         )
