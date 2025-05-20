@@ -1,4 +1,6 @@
 import asyncio
+import datetime as dt
+from contextlib import AsyncExitStack
 from unittest.mock import Mock, patch
 
 import pytest
@@ -126,3 +128,42 @@ class TestPublish(BrokerPublishTestcase):
             )
 
             assert response == "Hi!", response
+
+    @pytest.mark.asyncio
+    async def test_default_timestamp(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: Mock,
+    ):
+        real_now = dt.datetime.now(tz=dt.timezone.utc)
+        pub_broker = self.get_broker(apply_types=True)
+
+        @pub_broker.subscriber(queue)
+        async def handle(msg=Context("message")):
+            mock(body=msg.body, timestamp=msg.raw_message.timestamp)
+            event.set()
+
+        async with AsyncExitStack() as stack:
+            br = await stack.enter_async_context(self.patch_broker(pub_broker))
+            mock_datetime = stack.enter_context(
+                patch("faststream.rabbit.broker.broker.datetime")
+            )
+            mock_datetime.datetime.now.return_value = real_now
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+            assert event.is_set()
+
+        # microseconds are lost as timestamps are passed around
+        # as epochs with second resolution in Rabbit
+        mock.assert_called_once_with(
+            body=b"", timestamp=real_now.replace(microsecond=0)
+        )

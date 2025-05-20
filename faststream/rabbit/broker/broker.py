@@ -1,3 +1,4 @@
+import datetime
 import logging
 import warnings
 from typing import (
@@ -555,14 +556,16 @@ class RabbitBroker(
             Used by application, not core RabbitMQ. Will be set automatically if not specified.
             content_encoding: Message body content encoding, e.g. **gzip**.
             expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
-            message_id: Arbitrary message id. Generated automatically if not presented.
-            timestamp: Message publish timestamp. Generated automatically if not presented.
+            message_id: Arbitrary message id. Generated automatically if not present.
+            timestamp: Message publish timestamp. Generated automatically if not present.
             message_type: Application-specific message type, e.g. **orders.created**.
             user_id: Publisher connection User ID, validated if set.
             priority: The message priority (0 by default).
         """
         routing = routing_key or RabbitQueue.validate(queue).routing
         correlation_id = correlation_id or gen_cor_id()
+        if timestamp is None:
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
 
         return await super().publish(
             message,
@@ -636,14 +639,16 @@ class RabbitBroker(
             Will be set automatically if not specified.
             content_encoding: Message body content encoding, e.g. **gzip**.
             expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
-            message_id: Arbitrary message id. Generated automatically if not presented.
-            timestamp: Message publish timestamp. Generated automatically if not presented.
+            message_id: Arbitrary message id. Generated automatically if not present.
+            timestamp: Message publish timestamp. Generated automatically if not present.
             message_type: Application-specific message type, e.g. **orders.created**.
             user_id: Publisher connection User ID, validated if set.
             priority: The message priority (0 by default).
         """
         routing = routing_key or RabbitQueue.validate(queue).routing
         correlation_id = correlation_id or gen_cor_id()
+        if timestamp is None:
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
 
         msg: RabbitMessage = await super().request(
             message,
