@@ -256,14 +256,14 @@ def build_message(
         value=msg,
         topic=topic,
         partition=partition or 0,
-        timestamp=timestamp_ms or int(datetime.now().timestamp()),
-        timestamp_type=0,
         key=k,
         serialized_key_size=len(k),
         serialized_value_size=len(msg),
         checksum=sum(msg),
         offset=0,
         headers=[(i, j.encode()) for i, j in headers.items()],
+        timestamp_type=1,
+        timestamp=timestamp_ms or int(datetime.now().timestamp() * 1000),
     )
 
 
