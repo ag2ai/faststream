@@ -1,11 +1,11 @@
 from itertools import zip_longest
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Annotated, Optional
 
 from nats.js.api import DiscardPolicy, StreamConfig
-from typing_extensions import Annotated, Doc
+from typing_extensions import Doc
 
-from faststream.broker.schemas import NameRequired
-from faststream.utils.path import compile_path
+from faststream._internal.proto import NameRequired
+from faststream._internal.utils.path import compile_path
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -40,12 +40,12 @@ class JStream(NameRequired):
             Doc("Stream description if needed."),
         ] = None,
         subjects: Annotated[
-            Optional[List[str]],
+            Optional[list[str]],
             Doc(
                 "Subjects, used by stream to grab messages from them. Any message sent by NATS Core will be consumed "
                 "by stream. Also, stream acknowledge message publisher with message, sent on reply subject of "
                 "publisher. Can be single string or list of them. Dots separate tokens of subjects, every token may "
-                "be matched with exact same token or wildcards."
+                "be matched with exact same token or wildcards.",
             ),
         ] = None,
         retention: Annotated[
@@ -60,24 +60,25 @@ class JStream(NameRequired):
                 "which guarantees message to be consumed only once. Since message acked, it will be deleted from the "
                 "stream immediately. Note: Message will be deleted only if limit is reached or message acked "
                 "successfully. Message that reached MaxDelivery limit will remain in the stream and should be "
-                "manually deleted! Note: All policies will be responsive to Limits."
+                "manually deleted! Note: All policies will be responsive to Limits.",
             ),
         ] = None,
         max_consumers: Annotated[
-            Optional[int], Doc("Max number of consumers to be bound with this stream.")
+            Optional[int],
+            Doc("Max number of consumers to be bound with this stream."),
         ] = None,
         max_msgs: Annotated[
             Optional[int],
             Doc(
                 "Max number of messages to be stored in the stream. Stream can automatically delete old messages or "
-                "stop receiving new messages, look for 'DiscardPolicy'"
+                "stop receiving new messages, look for 'DiscardPolicy'",
             ),
         ] = None,
         max_bytes: Annotated[
             Optional[int],
             Doc(
                 "Max bytes of all messages to be stored in the stream. Stream can automatically delete old messages or "
-                "stop receiving new messages, look for 'DiscardPolicy'"
+                "stop receiving new messages, look for 'DiscardPolicy'",
             ),
         ] = None,
         discard: Annotated[
@@ -88,27 +89,27 @@ class JStream(NameRequired):
             Optional[float],
             Doc(
                 "TTL in seconds for messages. Since message arrive, TTL begun. As soon as TTL exceeds, message will be "
-                "deleted."
+                "deleted.",
             ),
         ] = None,  # in seconds
         max_msgs_per_subject: Annotated[
             int,
             Doc(
-                "Limit message count per every unique subject. Stream index subjects to it's pretty fast tho.-"
+                "Limit message count per every unique subject. Stream index subjects to it's pretty fast tho.-",
             ),
         ] = -1,
         max_msg_size: Annotated[
             Optional[int],
             Doc(
                 "Limit message size to be received. Note: the whole message can't be larger than NATS Core message "
-                "limit."
+                "limit.",
             ),
         ] = -1,
         storage: Annotated[
             Optional["StorageType"],
             Doc(
                 "Storage type, disk or memory. Disk is more durable, memory is faster. Memory can be better choice "
-                "for systems, where new value overrides previous."
+                "for systems, where new value overrides previous.",
             ),
         ] = None,
         num_replicas: Annotated[
@@ -116,7 +117,7 @@ class JStream(NameRequired):
             Doc(
                 "Replicas of stream to be used. All replicas create RAFT group with leader. In case of losing lesser "
                 "than half, cluster will be available to reads and writes. In case of losing slightly more than half, "
-                "cluster may be available but for reads only."
+                "cluster may be available but for reads only.",
             ),
         ] = None,
         no_ack: Annotated[
@@ -132,25 +133,25 @@ class JStream(NameRequired):
             Doc(
                 "A TTL for keys in implicit TTL-based hashmap of stream. That hashmap allows to early drop duplicate "
                 "messages. Essential feature for idempotent writes. Note: disabled by default. Look for 'Nats-Msg-Id' "
-                "in NATS documentation for more information."
+                "in NATS documentation for more information.",
             ),
         ] = 0,
         placement: Annotated[
             Optional["Placement"],
             Doc(
-                "NATS Cluster for stream to be deployed in. Value is name of that cluster."
+                "NATS Cluster for stream to be deployed in. Value is name of that cluster.",
             ),
         ] = None,
         mirror: Annotated[
             Optional["StreamSource"],
             Doc(
-                "Should stream be read-only replica of another stream, if so, value is name of that stream."
+                "Should stream be read-only replica of another stream, if so, value is name of that stream.",
             ),
         ] = None,
         sources: Annotated[
-            Optional[List["StreamSource"]],
+            Optional[list["StreamSource"]],
             Doc(
-                "Should stream mux multiple streams into single one, if so, values is names of those streams."
+                "Should stream mux multiple streams into single one, if so, values is names of those streams.",
             ),
         ] = None,
         sealed: Annotated[
@@ -193,6 +194,7 @@ class JStream(NameRequired):
 
         self.subjects = subjects
         self.declare = declare
+
         self.config = StreamConfig(
             name=name,
             description=description,
@@ -245,14 +247,14 @@ def is_subject_match_wildcard(subject: str, wildcard: str) -> bool:
         if base == ">":
             break
 
-        if base != "*" and current != base:
+        if base not in {"*", current}:
             call = False
             break
 
     return call
 
 
-def compile_nats_wildcard(pattern: str) -> Tuple[Optional["Pattern[str]"], str]:
+def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:
     return compile_path(
         pattern,
         replace_symbol="*",

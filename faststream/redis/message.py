@@ -1,7 +1,5 @@
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
     Literal,
     Optional,
     TypeVar,
@@ -10,12 +8,12 @@ from typing import (
 
 from typing_extensions import NotRequired, TypeAlias, TypedDict, override
 
-from faststream.broker.message import StreamMessage as BrokerStreamMessage
+from faststream.message import StreamMessage as BrokerStreamMessage
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
 
-    from faststream.types import DecodedMessage
+    from faststream._internal.basic_types import DecodedMessage
 
 
 BaseMessage: TypeAlias = Union[
@@ -39,9 +37,9 @@ class UnifyRedisDict(TypedDict):
     channel: str
     data: Union[
         bytes,
-        List[bytes],
-        Dict[bytes, bytes],
-        List[Dict[bytes, bytes]],
+        list[bytes],
+        dict[bytes, bytes],
+        list[dict[bytes, bytes]],
     ]
     pattern: NotRequired[Optional[bytes]]
 
@@ -63,58 +61,56 @@ class RedisMessage(BrokerStreamMessage[PubSubMessage]):
     pass
 
 
-class ListMessage(TypedDict):
+class _ListMessage(TypedDict):
     """A class to represent an Abstract List message."""
 
     channel: str
 
 
-class DefaultListMessage(ListMessage):
+class DefaultListMessage(_ListMessage):
     """A class to represent a single List message."""
 
     type: Literal["list"]
     data: bytes
 
 
-class BatchListMessage(ListMessage):
+class BatchListMessage(_ListMessage):
     """A class to represent a List messages batch."""
 
     type: Literal["blist"]
-    data: List[bytes]
+    data: list[bytes]
 
 
 class RedisListMessage(BrokerStreamMessage[DefaultListMessage]):
     """StreamMessage for single List message."""
 
-    pass
-
 
 class RedisBatchListMessage(BrokerStreamMessage[BatchListMessage]):
     """StreamMessage for single List message."""
 
-    decoded_body: List["DecodedMessage"]
+    decoded_body: list["DecodedMessage"]
 
 
 DATA_KEY = "__data__"
 bDATA_KEY = DATA_KEY.encode()  # noqa: N816
 
 
-class StreamMessage(TypedDict):
+class _StreamMessage(TypedDict):
     channel: str
-    message_ids: List[bytes]
+    message_ids: list[bytes]
 
 
-class DefaultStreamMessage(StreamMessage):
+class DefaultStreamMessage(_StreamMessage):
     type: Literal["stream"]
-    data: Dict[bytes, bytes]
+    data: dict[bytes, bytes]
 
 
-class BatchStreamMessage(StreamMessage):
+class BatchStreamMessage(_StreamMessage):
     type: Literal["bstream"]
-    data: List[Dict[bytes, bytes]]
+    data: list[dict[bytes, bytes]]
 
 
-_StreamMsgType = TypeVar("_StreamMsgType", bound=StreamMessage)
+_StreamMsgType = TypeVar("_StreamMsgType", bound=_StreamMessage)
 
 
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
@@ -152,4 +148,4 @@ class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
 
 
 class RedisBatchStreamMessage(_RedisStreamMessageMixin[BatchStreamMessage]):
-    decoded_body: List["DecodedMessage"]
+    decoded_body: list["DecodedMessage"]

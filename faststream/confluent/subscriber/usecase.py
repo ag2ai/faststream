@@ -1,40 +1,32 @@
 from abc import abstractmethod
+from collections.abc import AsyncIterator, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
 )
 
 import anyio
 from confluent_kafka import KafkaException, Message
 from typing_extensions import override
 
-from faststream.broker.publisher.fake import FakePublisher
-from faststream.broker.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream.broker.subscriber.usecase import SubscriberUsecase
-from faststream.broker.types import MsgType
-from faststream.broker.utils import process_msg
+from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
+from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.types import MsgType
 from faststream.confluent.parser import AsyncConfluentParser
+from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import TopicPartition
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Depends
-
-    from faststream.broker.message import StreamMessage
-    from faststream.broker.publisher.proto import ProducerProto
-    from faststream.broker.types import (
-        AsyncCallable,
-        BrokerMiddleware,
-        CustomCallable,
-    )
-    from faststream.confluent.client import AsyncConfluentConsumer
-    from faststream.types import AnyDict, Decorator, LoggerProto
+    from faststream._internal.basic_types import AnyDict
+    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.state import BrokerState
+    from faststream._internal.types import CustomCallable
+    from faststream.confluent.configs import KafkaSubscriberConfig
+    from faststream.confluent.helpers.client import AsyncConfluentConsumer
+    from faststream.message import StreamMessage
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -45,94 +37,48 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     builder: Optional[Callable[..., "AsyncConfluentConsumer"]]
     consumer: Optional["AsyncConfluentConsumer"]
+    parser: AsyncConfluentParser
 
     client_id: Optional[str]
 
-    def __init__(
-        self,
-        *topics: str,
-        partitions: Sequence["TopicPartition"],
-        polling_interval: float,
-        # Kafka information
-        group_id: Optional[str],
-        connection_data: "AnyDict",
-        is_manual: bool,
-        # Subscriber args
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
-        no_ack: bool,
-        no_reply: bool,
-        retry: bool,
-        broker_dependencies: Iterable["Depends"],
-        broker_middlewares: Sequence["BrokerMiddleware[MsgType]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
-    ) -> None:
-        super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
-            # Propagated args
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
+    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+        super().__init__(config)
 
-        self.__connection_data = connection_data
+        self.__connection_data = config.connection_data
 
-        self.group_id = group_id
-        self.topics = topics
-        self.partitions = partitions
-        self.is_manual = is_manual
+        self.group_id = config.group_id
+        self.topics = config.topics
+        self.partitions = config.partitions
 
         self.consumer = None
-        self.polling_interval = polling_interval
+        self.polling_interval = config.polling_interval
 
         # Setup it later
         self.client_id = ""
         self.builder = None
 
     @override
-    def setup(  # type: ignore[override]
+    def _setup(  # type: ignore[override]
         self,
         *,
         client_id: Optional[str],
         builder: Callable[..., "AsyncConfluentConsumer"],
-        # basic args
-        logger: Optional["LoggerProto"],
-        producer: Optional["ProducerProto"],
-        graceful_timeout: Optional[float],
+        # basic args,
         extra_context: "AnyDict",
         # broker options
         broker_parser: Optional["CustomCallable"],
         broker_decoder: Optional["CustomCallable"],
         # dependant args
-        apply_types: bool,
-        is_validate: bool,
-        _get_dependant: Optional[Callable[..., Any]],
-        _call_decorators: Iterable["Decorator"],
+        state: "BrokerState",
     ) -> None:
         self.client_id = client_id
         self.builder = builder
 
-        super().setup(
-            logger=logger,
-            producer=producer,
-            graceful_timeout=graceful_timeout,
+        super()._setup(
             extra_context=extra_context,
             broker_parser=broker_parser,
             broker_decoder=broker_decoder,
-            apply_types=apply_types,
-            is_validate=is_validate,
-            _get_dependant=_get_dependant,
-            _call_decorators=_call_decorators,
+            state=state,
         )
 
     @override
@@ -147,6 +93,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             client_id=self.client_id,
             **self.__connection_data,
         )
+        self.parser._setup(consumer)
         await consumer.start()
 
         await super().start()
@@ -174,26 +121,50 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
+        context = self._state.get().di_state.context
+
         return await process_msg(
             msg=raw_message,  # type: ignore[arg-type]
-            middlewares=self._broker_middlewares,
+            middlewares=(
+                m(raw_message, context=context) for m in self._broker_middlewares
+            ),
             parser=self._parser,
             decoder=self._decoder,
         )
 
+    @override
+    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:  # type: ignore[override]
+        assert self.consumer, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator if subscriber has registered handlers."
+
+        timeout = 5.0
+        while True:
+            raw_message = await self.consumer.getone(timeout=timeout)
+
+            if raw_message is None:
+                continue
+
+            context = self._state.get().di_state.context
+
+            yield await process_msg(
+                msg=raw_message,  # type: ignore[arg-type]
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",
-    ) -> Sequence[FakePublisher]:
-        if self._producer is None:
-            return ()
-
+    ) -> Sequence["BasePublisherProto"]:
         return (
-            FakePublisher(
-                self._producer.publish,
-                publish_kwargs={
-                    "topic": message.reply_to,
-                },
+            KafkaFakePublisher(
+                self._state.get().producer,
+                topic=message.reply_to,
             ),
         )
 
@@ -202,7 +173,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @abstractmethod
     async def get_msg(self) -> Optional[MsgType]:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     async def _consume(self) -> None:
         assert self.consumer, "You should start subscriber at first."  # nosec B101
@@ -224,28 +195,17 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     await self.consume_one(msg)
 
     @property
-    def topic_names(self) -> List[str]:
+    def topic_names(self) -> list[str]:
         if self.topics:
             return list(self.topics)
-        else:
-            return [f"{p.topic}-{p.partition}" for p in self.partitions]
-
-    @staticmethod
-    def get_routing_hash(topics: Iterable[str], group_id: Optional[str] = None) -> int:
-        return hash("".join((*topics, group_id or "")))
-
-    def __hash__(self) -> int:
-        return self.get_routing_hash(
-            topics=self.topic_names,
-            group_id=self.group_id,
-        )
+        return [f"{p.topic}-{p.partition}" for p in self.partitions]
 
     @staticmethod
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         topic: str,
         group_id: Optional[str] = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         return {
             "topic": topic,
             "group_id": group_id or "",
@@ -253,11 +213,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         }
 
     def add_prefix(self, prefix: str) -> None:
-        self.topics = tuple("".join((prefix, t)) for t in self.topics)
+        self.topics = tuple(f"{prefix}{t}" for t in self.topics)
 
         self.partitions = [
             TopicPartition(
-                topic="".join((prefix, p.topic)),
+                topic=f"{prefix}{p.topic}",
                 partition=p.partition,
                 offset=p.offset,
                 metadata=p.metadata,
@@ -268,47 +228,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber[Message]):
-    def __init__(
-        self,
-        *topics: str,
-        # Kafka information
-        partitions: Sequence["TopicPartition"],
-        polling_interval: float,
-        group_id: Optional[str],
-        connection_data: "AnyDict",
-        is_manual: bool,
-        # Subscriber args
-        no_ack: bool,
-        no_reply: bool,
-        retry: bool,
-        broker_dependencies: Iterable["Depends"],
-        broker_middlewares: Sequence["BrokerMiddleware[Message]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
-    ) -> None:
-        super().__init__(
-            *topics,
-            partitions=partitions,
-            polling_interval=polling_interval,
-            group_id=group_id,
-            connection_data=connection_data,
-            is_manual=is_manual,
-            # subscriber args
-            default_parser=AsyncConfluentParser.parse_message,
-            default_decoder=AsyncConfluentParser.decode_message,
-            # Propagated args
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
+    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
+        config.default_decoder = self.parser.decode_message
+        config.default_parser = self.parser.parse_message
+        super().__init__(config)
 
     async def get_msg(self) -> Optional["Message"]:
         assert self.consumer, "You should setup subscriber at first."  # nosec B101
@@ -317,7 +241,7 @@ class DefaultSubscriber(LogicSubscriber[Message]):
     def get_log_context(
         self,
         message: Optional["StreamMessage[Message]"],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         if message is None:
             topic = ",".join(self.topic_names)
         else:
@@ -330,70 +254,43 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         )
 
 
-class BatchSubscriber(LogicSubscriber[Tuple[Message, ...]]):
+class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
+    async def start(self) -> None:
+        await super().start()
+        self.start_consume_task()
+
+    async def consume_one(self, msg: "Message") -> None:
+        await self._put_msg(msg)
+
+
+class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
     def __init__(
         self,
-        *topics: str,
-        partitions: Sequence["TopicPartition"],
-        polling_interval: float,
+        config: "KafkaSubscriberConfig",
+        /,
         max_records: Optional[int],
-        # Kafka information
-        group_id: Optional[str],
-        connection_data: "AnyDict",
-        is_manual: bool,
-        # Subscriber args
-        no_ack: bool,
-        no_reply: bool,
-        retry: bool,
-        broker_dependencies: Iterable["Depends"],
-        broker_middlewares: Sequence["BrokerMiddleware[Tuple[Message, ...]]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
     ) -> None:
         self.max_records = max_records
 
-        super().__init__(
-            *topics,
-            partitions=partitions,
-            polling_interval=polling_interval,
-            group_id=group_id,
-            connection_data=connection_data,
-            is_manual=is_manual,
-            # subscriber args
-            default_parser=AsyncConfluentParser.parse_message_batch,
-            default_decoder=AsyncConfluentParser.decode_message_batch,
-            # Propagated args
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
+        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
+        config.default_decoder = self.parser.decode_message_batch
+        config.default_parser = self.parser.parse_message_batch
+        super().__init__(config)
 
-    async def get_msg(self) -> Optional[Tuple["Message", ...]]:
+    async def get_msg(self) -> Optional[tuple["Message", ...]]:
         assert self.consumer, "You should setup subscriber at first."  # nosec B101
-
-        messages = await self.consumer.getmany(
-            timeout=self.polling_interval,
-            max_records=self.max_records,
+        return (
+            await self.consumer.getmany(
+                timeout=self.polling_interval,
+                max_records=self.max_records,
+            )
+            or None
         )
-
-        if not messages:  # TODO: why we are sleeping here?
-            await anyio.sleep(self.polling_interval)
-            return None
-
-        return messages
 
     def get_log_context(
         self,
-        message: Optional["StreamMessage[Tuple[Message, ...]]"],
-    ) -> Dict[str, str]:
+        message: Optional["StreamMessage[tuple[Message, ...]]"],
+    ) -> dict[str, str]:
         if message is None:
             topic = ",".join(self.topic_names)
         else:
@@ -404,54 +301,3 @@ class BatchSubscriber(LogicSubscriber[Tuple[Message, ...]]):
             topic=topic,
             group_id=self.group_id,
         )
-
-
-class ConcurrentDefaultSubscriber(ConcurrentMixin[Message], DefaultSubscriber):
-    def __init__(
-        self,
-        *topics: str,
-        # Kafka information
-        partitions: Sequence["TopicPartition"],
-        polling_interval: float,
-        group_id: Optional[str],
-        connection_data: "AnyDict",
-        is_manual: bool,
-        # Subscriber args
-        max_workers: int,
-        no_ack: bool,
-        no_reply: bool,
-        retry: bool,
-        broker_dependencies: Iterable["Depends"],
-        broker_middlewares: Sequence["BrokerMiddleware[Message]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
-    ) -> None:
-        super().__init__(
-            *topics,
-            partitions=partitions,
-            polling_interval=polling_interval,
-            group_id=group_id,
-            connection_data=connection_data,
-            is_manual=is_manual,
-            # subscriber args
-            max_workers=max_workers,
-            # Propagated args
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI args
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "Message") -> None:
-        await self._put_msg(msg)

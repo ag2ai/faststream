@@ -1,9 +1,9 @@
-from faststream import Context, FastStream, context
+from faststream import Context, FastStream
 from faststream.kafka import KafkaBroker
 
 broker = KafkaBroker("localhost:9092")
 app = FastStream(broker)
-context.set_global("secret", "1")
+app.context.set_global("secret", "1")
 
 @broker.subscriber("test-topic")
 async def handle(

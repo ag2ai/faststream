@@ -1,10 +1,14 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Callable
 
+import prometheus_client
 from aio_pika import IncomingMessage
 
+from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRouter
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
-from faststream.types import DecodedMessage
+from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
+from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:
@@ -16,7 +20,8 @@ async def async_decoder(msg: RabbitMessage) -> DecodedMessage:
 
 
 async def custom_decoder(
-    msg: RabbitMessage, original: Callable[[RabbitMessage], Awaitable[DecodedMessage]]
+    msg: RabbitMessage,
+    original: Callable[[RabbitMessage], Awaitable[DecodedMessage]],
 ) -> DecodedMessage:
     return await original(msg)
 
@@ -27,11 +32,11 @@ RabbitBroker(decoder=custom_decoder)
 
 
 def sync_parser(msg: IncomingMessage) -> RabbitMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def async_parser(msg: IncomingMessage) -> RabbitMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
@@ -198,7 +203,7 @@ RabbitRouter(
             parser=custom_parser,
             decoder=custom_decoder,
         ),
-    )
+    ),
 )
 
 
@@ -265,3 +270,13 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = RabbitTelemetryMiddleware()
+RabbitBroker().add_middleware(otlp_middleware)
+RabbitBroker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = RabbitPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+RabbitBroker().add_middleware(prometheus_middleware)
+RabbitBroker(middlewares=[prometheus_middleware])

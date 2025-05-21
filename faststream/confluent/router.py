@@ -1,37 +1,39 @@
+from collections.abc import Awaitable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
-    Awaitable,
     Callable,
-    Dict,
-    Iterable,
     Literal,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 
-from typing_extensions import Annotated, Doc, deprecated
+from typing_extensions import Doc, deprecated
 
-from faststream.broker.router import ArgsContainer, BrokerRouter, SubscriberRoute
-from faststream.broker.utils import default_filter
+from faststream._internal.broker.router import (
+    ArgsContainer,
+    BrokerRouter,
+    SubscriberRoute,
+)
+from faststream._internal.constants import EMPTY
 from faststream.confluent.broker.registrator import KafkaRegistrator
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from confluent_kafka import Message
-    from fast_depends.dependencies import Depends
+    from fast_depends.dependencies import Dependant
 
-    from faststream.broker.types import (
+    from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
     from faststream.confluent.message import KafkaMessage
     from faststream.confluent.schemas import TopicPartition
-    from faststream.types import SendableMessage
 
 
 class KafkaPublisher(ArgsContainer):
@@ -58,7 +60,7 @@ class KafkaPublisher(ArgsContainer):
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -67,15 +69,15 @@ class KafkaPublisher(ArgsContainer):
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -89,6 +91,10 @@ class KafkaPublisher(ArgsContainer):
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI args
@@ -104,7 +110,7 @@ class KafkaPublisher(ArgsContainer):
             Optional[Any],
             Doc(
                 "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -159,7 +165,7 @@ class KafkaRoute(SubscriberRoute):
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
-            """
+            """,
             ),
         ] = None,
         group_instance_id: Annotated[
@@ -172,7 +178,7 @@ class KafkaRoute(SubscriberRoute):
             partition assignment, rebalances). This can be used to assign
             partitions to specific consumers, rather than letting the group
             assign partitions based on consumer metadata.
-            """
+            """,
             ),
         ] = None,
         fetch_max_wait_ms: Annotated[
@@ -183,7 +189,7 @@ class KafkaRoute(SubscriberRoute):
             the server will block before answering the fetch request if
             there isn't sufficient data to immediately satisfy the
             requirement given by `fetch_min_bytes`.
-            """
+            """,
             ),
         ] = 500,
         fetch_max_bytes: Annotated[
@@ -198,7 +204,7 @@ class KafkaRoute(SubscriberRoute):
             performs fetches to multiple brokers in parallel so memory
             usage will depend on the number of brokers containing
             partitions for the topic.
-            """
+            """,
             ),
         ] = 50 * 1024 * 1024,
         fetch_min_bytes: Annotated[
@@ -208,7 +214,7 @@ class KafkaRoute(SubscriberRoute):
             Minimum amount of data the server should
             return for a fetch request, otherwise wait up to
             `fetch_max_wait_ms` for more data to accumulate.
-            """
+            """,
             ),
         ] = 1,
         max_partition_fetch_bytes: Annotated[
@@ -223,7 +229,7 @@ class KafkaRoute(SubscriberRoute):
             send messages larger than the consumer can fetch. If that
             happens, the consumer can get stuck trying to fetch a large
             message on a certain partition.
-            """
+            """,
             ),
         ] = 1 * 1024 * 1024,
         auto_offset_reset: Annotated[
@@ -235,7 +241,7 @@ class KafkaRoute(SubscriberRoute):
             * `earliest` will move to the oldest available message
             * `latest` will move to the most recent
             * `none` will raise an exception so you can handle this case
-            """
+            """,
             ),
         ] = "latest",
         auto_commit: Annotated[
@@ -244,15 +250,21 @@ class KafkaRoute(SubscriberRoute):
                 """
             If `True` the consumer's offset will be
             periodically committed in the background.
-            """
+            """,
             ),
-        ] = True,
+            deprecated(
+                """
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """,
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: Annotated[
             int,
             Doc(
                 """
             Milliseconds between automatic
-            offset commits, if `auto_commit` is `True`."""
+            offset commits, if `auto_commit` is `True`.""",
             ),
         ] = 5 * 1000,
         check_crcs: Annotated[
@@ -263,7 +275,7 @@ class KafkaRoute(SubscriberRoute):
             consumed. This ensures no on-the-wire or on-disk corruption to
             the messages occurred. This check adds some overhead, so it may
             be disabled in cases seeking extreme performance.
-            """
+            """,
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
@@ -279,7 +291,7 @@ class KafkaRoute(SubscriberRoute):
             one. The coordinator will choose the old assignment strategy until
             all members have been updated. Then it will choose the new
             strategy.
-            """
+            """,
             ),
         ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
@@ -292,7 +304,7 @@ class KafkaRoute(SubscriberRoute):
             rebalance in order to reassign the partitions to another consumer
             group member. If API methods block waiting for messages, that time
             does not count against this timeout.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         session_timeout_ms: Annotated[
@@ -307,7 +319,7 @@ class KafkaRoute(SubscriberRoute):
             group and trigger a rebalance. The allowed range is configured with
             the **broker** configuration properties
             `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            """
+            """,
             ),
         ] = 10 * 1000,
         heartbeat_interval_ms: Annotated[
@@ -323,7 +335,7 @@ class KafkaRoute(SubscriberRoute):
             should be set no higher than 1/3 of that value. It can be
             adjusted even lower to control the expected time for normal
             rebalances.
-            """
+            """,
             ),
         ] = 3 * 1000,
         isolation_level: Annotated[
@@ -353,7 +365,7 @@ class KafkaRoute(SubscriberRoute):
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
             return the LSO. See method docs below.
-            """
+            """,
             ),
         ] = "read_uncommitted",
         batch: Annotated[
@@ -366,8 +378,8 @@ class KafkaRoute(SubscriberRoute):
         ] = None,
         # broker args
         dependencies: Annotated[
-            Iterable["Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
+            Iterable["Dependant"],
+            Doc("Dependencies list (`[Dependant(),]`) to apply to the subscriber."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
@@ -379,31 +391,25 @@ class KafkaRoute(SubscriberRoute):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[KafkaMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
         # AsyncAPI args
@@ -415,7 +421,7 @@ class KafkaRoute(SubscriberRoute):
             Optional[str],
             Doc(
                 "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -456,14 +462,12 @@ class KafkaRoute(SubscriberRoute):
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
-            filter=filter,
             no_reply=no_reply,
             # AsyncAPI args
             title=title,
             description=description,
             include_in_schema=include_in_schema,
-            # FastDepends args
-            retry=retry,
+            ack_policy=ack_policy,
             no_ack=no_ack,
         )
 
@@ -473,7 +477,7 @@ class KafkaRouter(
     BrokerRouter[
         Union[
             "Message",
-            Tuple["Message", ...],
+            tuple["Message", ...],
         ]
     ],
 ):
@@ -491,19 +495,23 @@ class KafkaRouter(
         ] = (),
         *,
         dependencies: Annotated[
-            Iterable["Depends"],
+            Iterable["Dependant"],
             Doc(
-                "Dependencies list (`[Depends(),]`) to apply to all routers' publishers/subscribers."
+                "Dependencies list (`[Dependant(),]`) to apply to all routers' publishers/subscribers.",
             ),
         ] = (),
         middlewares: Annotated[
             Sequence[
                 Union[
                     "BrokerMiddleware[Message]",
-                    "BrokerMiddleware[Tuple[Message, ...]]",
+                    "BrokerMiddleware[tuple[Message, ...]]",
                 ]
             ],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
+        ] = (),
+        routers: Annotated[
+            Sequence["ABCBroker[Message]"],
+            Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
@@ -524,6 +532,7 @@ class KafkaRouter(
             prefix=prefix,
             dependencies=dependencies,
             middlewares=middlewares,  # type: ignore[arg-type]
+            routers=routers,
             parser=parser,
             decoder=decoder,
             include_in_schema=include_in_schema,

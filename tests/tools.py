@@ -1,35 +1,36 @@
 import inspect
 from functools import wraps
-from typing import Any, Iterable
+from typing import Callable, Protocol, TypeVar
 from unittest.mock import MagicMock
 
+from typing_extensions import ParamSpec
 
-def spy_decorator(method):
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+class SmartMock(Protocol[P, T]):
+    mock: MagicMock
+
+    def __call__(self, *args: P.args, **kwds: P.kwargs) -> T: ...
+
+
+def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
     mock = MagicMock()
 
     if inspect.iscoroutinefunction(method):
 
         @wraps(method)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             mock(*args, **kwargs)
             return await method(*args, **kwargs)
+
     else:
 
         @wraps(method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             mock(*args, **kwargs)
             return method(*args, **kwargs)
 
     wrapper.mock = mock
     return wrapper
-
-
-class AsyncIterator:
-    def __init__(self, iterable: Iterable[Any]) -> None:
-        self.iter = iter(iterable)
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        return next(self.iter)

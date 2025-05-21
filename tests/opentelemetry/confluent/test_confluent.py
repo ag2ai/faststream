@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -17,16 +17,17 @@ from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 from faststream.opentelemetry.middleware import MessageAction as Action
 from tests.brokers.confluent.basic import ConfluentTestcaseConfig
+from tests.opentelemetry.basic import LocalTelemetryTestcase
 
-from ..basic import LocalTelemetryTestcase
 
-
-@pytest.mark.confluent
+@pytest.mark.confluent()
 class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "kafka"
     include_messages_counters = True
-    broker_class = KafkaBroker
     telemetry_middleware_class = KafkaTelemetryMiddleware
+
+    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
+        return KafkaBroker(apply_types=apply_types, **kwargs)
 
     def assert_span(
         self,
@@ -40,12 +41,12 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system
         assert attrs[SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID
         assert span.name == f"{self.destination_name(queue)} {action}"
-        assert span.kind in (SpanKind.CONSUMER, SpanKind.PRODUCER)
+        assert span.kind in {SpanKind.CONSUMER, SpanKind.PRODUCER}
 
-        if span.kind == SpanKind.PRODUCER and action in (Action.CREATE, Action.PUBLISH):
+        if span.kind == SpanKind.PRODUCER and action in {Action.CREATE, Action.PUBLISH}:
             assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
-        if span.kind == SpanKind.CONSUMER and action in (Action.CREATE, Action.PROCESS):
+        if span.kind == SpanKind.CONSUMER and action in {Action.CREATE, Action.PROCESS}:
             assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == queue
             assert attrs[SpanAttr.MESSAGING_MESSAGE_ID] == IsStr(regex=r"0-.+")
             assert attrs[SpanAttr.MESSAGING_KAFKA_DESTINATION_PARTITION] == 0
@@ -63,48 +64,48 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
 
     async def test_batch(
         self,
-        event: asyncio.Event,
         queue: str,
         mock: Mock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         mid = self.telemetry_middleware_class(
-            meter_provider=meter_provider, tracer_provider=tracer_provider
+            meter_provider=meter_provider,
+            tracer_provider=tracer_provider,
         )
-        broker = self.broker_class(middlewares=(mid,))
+        broker = self.get_broker(middlewares=(mid,), apply_types=True)
         expected_msg_count = 3
         expected_link_count = 1
         expected_link_attrs = {"messaging.batch.message_count": 3}
         expected_baggage = {"with_batch": "True", "foo": "bar"}
         expected_baggage_batch = [
-            {"with_batch": "True", "foo": "bar"}
+            {"with_batch": "True", "foo": "bar"},
         ] * expected_msg_count
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage):
+        async def handler(m, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
             mock(m)
             event.set()
 
-        broker = self.patch_broker(broker)
-
-        async with broker:
-            await broker.start()
+        async with self.patch_broker(broker) as br:
+            await br.start()
             tasks = (
                 asyncio.create_task(
-                    broker.publish_batch(
+                    br.publish_batch(
                         1,
                         "hi",
                         3,
                         topic=queue,
                         headers=Baggage({"foo": "bar"}).to_headers(),
-                    )
+                    ),
                 ),
                 asyncio.create_task(event.wait()),
             )
@@ -136,11 +137,12 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
-    ):
+    ) -> None:
         mid = self.telemetry_middleware_class(
-            meter_provider=meter_provider, tracer_provider=tracer_provider
+            meter_provider=meter_provider,
+            tracer_provider=tracer_provider,
         )
-        broker = self.broker_class(middlewares=(mid,))
+        broker = self.get_broker(middlewares=(mid,), apply_types=True)
         msgs_queue = asyncio.Queue(maxsize=3)
         expected_msg_count = 3
         expected_link_count = 1
@@ -151,17 +153,19 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg, baggage: CurrentBaggage):
+        async def handler(msg, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == []
             await msgs_queue.put(msg)
 
-        broker = self.patch_broker(broker)
-
-        async with broker:
-            await broker.start()
-            await broker.publish_batch(
-                1, "hi", 3, topic=queue, headers=Baggage({"foo": "bar"}).to_headers()
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish_batch(
+                1,
+                "hi",
+                3,
+                topic=queue,
+                headers=Baggage({"foo": "bar"}).to_headers(),
             )
             result, _ = await asyncio.wait(
                 (
@@ -195,18 +199,20 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
 
     async def test_single_publish_with_batch_consume(
         self,
-        event: asyncio.Event,
         queue: str,
         mock: Mock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         mid = self.telemetry_middleware_class(
-            meter_provider=meter_provider, tracer_provider=tracer_provider
+            meter_provider=meter_provider,
+            tracer_provider=tracer_provider,
         )
-        broker = self.broker_class(middlewares=(mid,))
+        broker = self.get_broker(middlewares=(mid,), apply_types=True)
         expected_msg_count = 2
         expected_link_count = 2
         expected_span_count = 6
@@ -216,27 +222,29 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage):
+        async def handler(m, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert len(baggage.get_all_batch()) == expected_msg_count
             m.sort()
             mock(m)
             event.set()
 
-        broker = self.patch_broker(broker)
-
-        async with broker:
-            await broker.start()
+        async with self.patch_broker(broker) as br:
+            await br.start()
             tasks = (
                 asyncio.create_task(
-                    broker.publish(
-                        "hi", topic=queue, headers=Baggage({"foo": "bar"}).to_headers()
-                    )
+                    br.publish(
+                        "hi",
+                        topic=queue,
+                        headers=Baggage({"foo": "bar"}).to_headers(),
+                    ),
                 ),
                 asyncio.create_task(
-                    broker.publish(
-                        "buy", topic=queue, headers=Baggage({"bar": "baz"}).to_headers()
-                    )
+                    br.publish(
+                        "buy",
+                        topic=queue,
+                        headers=Baggage({"bar": "baz"}).to_headers(),
+                    ),
                 ),
                 asyncio.create_task(event.wait()),
             )

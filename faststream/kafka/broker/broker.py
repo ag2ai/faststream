@@ -1,21 +1,17 @@
 import logging
-import warnings
+from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
     Literal,
     Optional,
-    Sequence,
-    Tuple,
-    Type,
     TypeVar,
     Union,
+    overload,
 )
 
 import aiokafka
@@ -23,47 +19,54 @@ import aiokafka.admin
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
-from typing_extensions import Annotated, Doc, override
+from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream.broker.message import gen_cor_id
+from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.constants import EMPTY
+from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import NOT_CONNECTED_YET
-from faststream.kafka.broker.logging import KafkaLoggingBroker
-from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
+from faststream.kafka.response import KafkaPublishCommand
 from faststream.kafka.schemas.params import (
     AdminClientConnectionParams,
     ConsumerConnectionParams,
 )
 from faststream.kafka.security import parse_security
-from faststream.types import EMPTY
-from faststream.utils.data import filter_by_dict
+from faststream.message import gen_cor_id
+from faststream.response.publish_type import PublishType
+
+from .logging import make_kafka_logger_state
+from .registrator import KafkaRegistrator
 
 Partition = TypeVar("Partition")
 
 if TYPE_CHECKING:
-    from asyncio import AbstractEventLoop
+    import asyncio
     from types import TracebackType
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
-    from aiokafka.admin.client import AIOKafkaAdminClient
-    from fast_depends.dependencies import Depends
-    from typing_extensions import TypedDict, Unpack
+    from aiokafka.admin import AIOKafkaAdminClient
+    from aiokafka.structs import RecordMetadata
+    from fast_depends.dependencies import Dependant
+    from fast_depends.library.serializer import SerializerProto
+    from typing_extensions import TypedDict
 
-    from faststream.asyncapi import schema as asyncapi
-    from faststream.broker.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
-    from faststream.security import BaseSecurity
-    from faststream.types import (
+    from faststream._internal.basic_types import (
         AnyDict,
-        AsyncFunc,
         Decorator,
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.types import (
+        BrokerMiddleware,
+        CustomCallable,
+    )
+    from faststream.kafka.message import KafkaMessage
+    from faststream.security import BaseSecurity
+    from faststream.specification.schema.extra import Tag, TagDict
 
     class KafkaInitKwargs(TypedDict, total=False):
         request_timeout_ms: Annotated[
@@ -82,7 +85,7 @@ if TYPE_CHECKING:
             which we force a refresh of metadata even if we haven't seen any
             partition leadership changes to proactively discover any new
             brokers or partitions.
-            """
+            """,
             ),
         ]
         connections_max_idle_ms: Annotated[
@@ -92,7 +95,7 @@ if TYPE_CHECKING:
              Close idle connections after the number
             of milliseconds specified by this config. Specifying `None` will
             disable idle checks.
-            """
+            """,
             ),
         ]
         sasl_kerberos_service_name: str
@@ -101,7 +104,7 @@ if TYPE_CHECKING:
             Optional[AbstractTokenProvider],
             Doc("OAuthBearer token provider instance."),
         ]
-        loop: Optional[AbstractEventLoop]
+        loop: Optional[asyncio.AbstractEventLoop]
         client_id: Annotated[
             Optional[str],
             Doc(
@@ -111,7 +114,7 @@ if TYPE_CHECKING:
             server-side log entries that correspond to this client. Also
             submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
             for logging with respect to consumer group administration.
-            """
+            """,
             ),
         ]
         # publisher args
@@ -143,7 +146,7 @@ if TYPE_CHECKING:
 
             If unset, defaults to ``acks=1``. If `enable_idempotence` is
             :data:`True` defaults to ``acks=all``.
-            """
+            """,
             ),
         ]
         key_serializer: Annotated[
@@ -162,7 +165,7 @@ if TYPE_CHECKING:
             Compression is of full batches of data, so the efficacy of batching
             will also impact the compression ratio (more batching means better
             compression).
-            """
+            """,
             ),
         ]
         max_batch_size: Annotated[
@@ -171,12 +174,12 @@ if TYPE_CHECKING:
                 """
             Maximum size of buffered data per partition.
             After this amount `send` coroutine will block until batch is drained.
-            """
+            """,
             ),
         ]
         partitioner: Annotated[
             Callable[
-                [bytes, List[Partition], List[Partition]],
+                [bytes, list[Partition], list[Partition]],
                 Partition,
             ],
             Doc(
@@ -189,7 +192,7 @@ if TYPE_CHECKING:
             messages with the same key are assigned to the same partition.
             When a key is :data:`None`, the message is delivered to a random partition
             (filtered to partitions with available leaders only, if possible).
-            """
+            """,
             ),
         ]
         max_request_size: Annotated[
@@ -201,7 +204,7 @@ if TYPE_CHECKING:
             has its own cap on record size which may be different from this.
             This setting will limit the number of record batches the producer
             will send in a single request to avoid sending huge requests.
-            """
+            """,
             ),
         ]
         linger_ms: Annotated[
@@ -216,7 +219,7 @@ if TYPE_CHECKING:
             This setting accomplishes this by adding a small amount of
             artificial delay; that is, if first request is processed faster,
             than `linger_ms`, producer will wait ``linger_ms - process_time``.
-            """
+            """,
             ),
         ]
         enable_idempotence: Annotated[
@@ -229,7 +232,7 @@ if TYPE_CHECKING:
             etc., may write duplicates of the retried message in the stream.
             Note that enabling idempotence acks to set to ``all``. If it is not
             explicitly set by the user it will be chosen.
-            """
+            """,
             ),
         ]
         transactional_id: Optional[str]
@@ -238,10 +241,13 @@ if TYPE_CHECKING:
 
 class KafkaBroker(
     KafkaRegistrator,
-    KafkaLoggingBroker,
+    BrokerUsecase[
+        Union[aiokafka.ConsumerRecord, tuple[aiokafka.ConsumerRecord, ...]],
+        Callable[..., aiokafka.AIOKafkaConsumer],
+    ],
 ):
-    url: List[str]
-    _producer: Optional["AioKafkaFastProducer"]
+    url: list[str]
+    _producer: "AioKafkaFastProducer"
     _admin_client: Optional["AIOKafkaAdminClient"]
 
     def __init__(
@@ -256,7 +262,7 @@ class KafkaBroker(
             This does not have to be the full node list.
             It just needs to have at least one broker that will respond to a
             Metadata API Request. Default port is 9092.
-            """
+            """,
             ),
         ] = "localhost",
         *,
@@ -277,7 +283,7 @@ class KafkaBroker(
             which we force a refresh of metadata even if we haven't seen any
             partition leadership changes to proactively discover any new
             brokers or partitions.
-            """
+            """,
             ),
         ] = 5 * 60 * 1000,
         connections_max_idle_ms: Annotated[
@@ -287,7 +293,7 @@ class KafkaBroker(
              Close idle connections after the number
             of milliseconds specified by this config. Specifying `None` will
             disable idle checks.
-            """
+            """,
             ),
         ] = 9 * 60 * 1000,
         sasl_kerberos_service_name: str = "kafka",
@@ -296,7 +302,7 @@ class KafkaBroker(
             Optional["AbstractTokenProvider"],
             Doc("OAuthBearer token provider instance."),
         ] = None,
-        loop: Optional["AbstractEventLoop"] = None,
+        loop: Optional["asyncio.AbstractEventLoop"] = None,
         client_id: Annotated[
             Optional[str],
             Doc(
@@ -306,7 +312,7 @@ class KafkaBroker(
             server-side log entries that correspond to this client. Also
             submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
             for logging with respect to consumer group administration.
-            """
+            """,
             ),
         ] = SERVICE_NAME,
         # publisher args
@@ -338,7 +344,7 @@ class KafkaBroker(
 
             If unset, defaults to ``acks=1``. If `enable_idempotence` is
             :data:`True` defaults to ``acks=all``.
-            """
+            """,
             ),
         ] = _missing,
         key_serializer: Annotated[
@@ -357,7 +363,7 @@ class KafkaBroker(
             Compression is of full batches of data, so the efficacy of batching
             will also impact the compression ratio (more batching means better
             compression).
-            """
+            """,
             ),
         ] = None,
         max_batch_size: Annotated[
@@ -366,12 +372,12 @@ class KafkaBroker(
                 """
             Maximum size of buffered data per partition.
             After this amount `send` coroutine will block until batch is drained.
-            """
+            """,
             ),
         ] = 16 * 1024,
         partitioner: Annotated[
             Callable[
-                [bytes, List[Partition], List[Partition]],
+                [bytes, list[Partition], list[Partition]],
                 Partition,
             ],
             Doc(
@@ -384,7 +390,7 @@ class KafkaBroker(
             messages with the same key are assigned to the same partition.
             When a key is :data:`None`, the message is delivered to a random partition
             (filtered to partitions with available leaders only, if possible).
-            """
+            """,
             ),
         ] = DefaultPartitioner(),
         max_request_size: Annotated[
@@ -396,7 +402,7 @@ class KafkaBroker(
             has its own cap on record size which may be different from this.
             This setting will limit the number of record batches the producer
             will send in a single request to avoid sending huge requests.
-            """
+            """,
             ),
         ] = 1024 * 1024,
         linger_ms: Annotated[
@@ -411,7 +417,7 @@ class KafkaBroker(
             This setting accomplishes this by adding a small amount of
             artificial delay; that is, if first request is processed faster,
             than `linger_ms`, producer will wait ``linger_ms - process_time``.
-            """
+            """,
             ),
         ] = 0,
         enable_idempotence: Annotated[
@@ -424,7 +430,7 @@ class KafkaBroker(
             etc., may write duplicates of the retried message in the stream.
             Note that enabling idempotence acks to set to ``all``. If it is not
             explicitly set by the user it will be chosen.
-            """
+            """,
             ),
         ] = False,
         transactional_id: Optional[str] = None,
@@ -433,7 +439,7 @@ class KafkaBroker(
         graceful_timeout: Annotated[
             Optional[float],
             Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down."
+                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
             ),
         ] = 15.0,
         decoder: Annotated[
@@ -445,26 +451,27 @@ class KafkaBroker(
             Doc("Custom parser object."),
         ] = None,
         dependencies: Annotated[
-            Iterable["Depends"],
+            Iterable["Dependant"],
             Doc("Dependencies to apply to all broker subscribers."),
         ] = (),
         middlewares: Annotated[
             Sequence[
-                Union[
-                    "BrokerMiddleware[ConsumerRecord]",
-                    "BrokerMiddleware[Tuple[ConsumerRecord, ...]]",
-                ]
+                "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
             ],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
+        ] = (),
+        routers: Annotated[
+            Sequence["ABCBroker[ConsumerRecord]"],
+            Doc("Routers to apply to broker."),
         ] = (),
         # AsyncAPI args
         security: Annotated[
             Optional["BaseSecurity"],
             Doc(
-                "Security options to connect broker and generate AsyncAPI server security information."
+                "Security options to connect broker and generate AsyncAPI server security information.",
             ),
         ] = None,
-        asyncapi_url: Annotated[
+        specification_url: Annotated[
             Union[str, Iterable[str], None],
             Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
         ] = None,
@@ -481,9 +488,9 @@ class KafkaBroker(
             Doc("AsyncAPI server description."),
         ] = None,
         tags: Annotated[
-            Optional[Iterable[Union["asyncapi.Tag", "asyncapi.TagDict"]]],
+            Iterable[Union["Tag", "TagDict"]],
             Doc("AsyncAPI server tags."),
-        ] = None,
+        ] = (),
         # logging args
         logger: Annotated[
             Optional["LoggerProto"],
@@ -495,6 +502,7 @@ class KafkaBroker(
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
             Doc("Default logger log format."),
         ] = None,
         # FastDepends args
@@ -502,10 +510,7 @@ class KafkaBroker(
             bool,
             Doc("Whether to use FastDepends or not."),
         ] = True,
-        validate: Annotated[
-            bool,
-            Doc("Whether to cast types using Pydantic validation."),
-        ] = True,
+        serializer: Optional["SerializerProto"] = EMPTY,
         _get_dependant: Annotated[
             Optional[Callable[..., Any]],
             Doc("Custom library dependant generator callback."),
@@ -527,158 +532,115 @@ class KafkaBroker(
             else list(bootstrap_servers)
         )
 
-        if asyncapi_url is not None:
-            if isinstance(asyncapi_url, str):
-                asyncapi_url = [asyncapi_url]
+        if specification_url is not None:
+            if isinstance(specification_url, str):
+                specification_url = [specification_url]
             else:
-                asyncapi_url = list(asyncapi_url)
+                specification_url = list(specification_url)
         else:
-            asyncapi_url = servers
+            specification_url = servers
 
         super().__init__(
-            bootstrap_servers=servers,
-            # both args
-            client_id=client_id,
-            api_version=protocol_version,
-            request_timeout_ms=request_timeout_ms,
-            retry_backoff_ms=retry_backoff_ms,
-            metadata_max_age_ms=metadata_max_age_ms,
-            connections_max_idle_ms=connections_max_idle_ms,
-            sasl_kerberos_service_name=sasl_kerberos_service_name,
-            sasl_kerberos_domain_name=sasl_kerberos_domain_name,
-            sasl_oauth_token_provider=sasl_oauth_token_provider,
-            loop=loop,
-            # publisher args
-            acks=acks,
-            key_serializer=key_serializer,
-            value_serializer=value_serializer,
-            compression_type=compression_type,
-            max_batch_size=max_batch_size,
-            partitioner=partitioner,
-            max_request_size=max_request_size,
-            linger_ms=linger_ms,
-            enable_idempotence=enable_idempotence,
-            transactional_id=transactional_id,
-            transaction_timeout_ms=transaction_timeout_ms,
+            **dict(
+                bootstrap_servers=servers,
+                # both args
+                client_id=client_id,
+                api_version=protocol_version,
+                request_timeout_ms=request_timeout_ms,
+                retry_backoff_ms=retry_backoff_ms,
+                metadata_max_age_ms=metadata_max_age_ms,
+                connections_max_idle_ms=connections_max_idle_ms,
+                sasl_kerberos_service_name=sasl_kerberos_service_name,
+                sasl_kerberos_domain_name=sasl_kerberos_domain_name,
+                sasl_oauth_token_provider=sasl_oauth_token_provider,
+                loop=loop,
+                # publisher args
+                acks=acks,
+                key_serializer=key_serializer,
+                value_serializer=value_serializer,
+                compression_type=compression_type,
+                max_batch_size=max_batch_size,
+                partitioner=partitioner,
+                max_request_size=max_request_size,
+                linger_ms=linger_ms,
+                enable_idempotence=enable_idempotence,
+                transactional_id=transactional_id,
+                transaction_timeout_ms=transaction_timeout_ms,
+                **parse_security(security),
+            ),
             # Basic args
             graceful_timeout=graceful_timeout,
             dependencies=dependencies,
             decoder=decoder,
             parser=parser,
             middlewares=middlewares,
+            routers=routers,
             # AsyncAPI args
             description=description,
-            asyncapi_url=asyncapi_url,
+            specification_url=specification_url,
             protocol=protocol,
             protocol_version=protocol_version,
             security=security,
             tags=tags,
             # Logging args
-            logger=logger,
-            log_level=log_level,
-            log_fmt=log_fmt,
+            logger_state=make_kafka_logger_state(
+                logger=logger,
+                log_level=log_level,
+                log_fmt=log_fmt,
+            ),
             # FastDepends args
             _get_dependant=_get_dependant,
             _call_decorators=_call_decorators,
             apply_types=apply_types,
-            validate=validate,
+            serializer=serializer,
         )
 
         self.client_id = client_id
-        self._producer = None
+        self._state.patch_value(
+            producer=AioKafkaFastProducer(
+                parser=self._parser,
+                decoder=self._decoder,
+            )
+        )
         self._admin_client = None
 
-    async def _close(
+    @override
+    async def _connect(self) -> Callable[..., aiokafka.AIOKafkaConsumer]:
+        producer = aiokafka.AIOKafkaProducer(**self._connection_kwargs)
+        await self._producer.connect(producer)
+
+        admin_options, _ = filter_by_dict(
+            AdminClientConnectionParams, self._connection_kwargs
+        )
+        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(**admin_options)
+        await self._admin_client.start()
+
+        consumer_options, _ = filter_by_dict(
+            ConsumerConnectionParams, self._connection_kwargs
+        )
+        return partial(aiokafka.AIOKafkaConsumer, **consumer_options)
+
+    async def close(
         self,
-        exc_type: Optional[Type[BaseException]] = None,
+        exc_type: Optional[type[BaseException]] = None,
         exc_val: Optional[BaseException] = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        if self._producer is not None:  # pragma: no branch
-            await self._producer.stop()
-            self._producer = None
+        await super().close(exc_type, exc_val, exc_tb)
+
         if self._admin_client is not None:
             await self._admin_client.close()
             self._admin_client = None
 
-        await super()._close(exc_type, exc_val, exc_tb)
+        await self._producer.disconnect()
 
-    @override
-    async def connect(  # type: ignore[override]
-        self,
-        bootstrap_servers: Annotated[
-            Union[str, Iterable[str]],
-            Doc("Kafka addresses to connect."),
-        ] = EMPTY,
-        **kwargs: "Unpack[KafkaInitKwargs]",
-    ) -> Callable[..., aiokafka.AIOKafkaConsumer]:
-        """Connect to Kafka servers manually.
-
-        Consumes the same with `KafkaBroker.__init__` arguments and overrides them.
-        To startup subscribers too you should use `broker.start()` after/instead this method.
-        """
-        if bootstrap_servers is not EMPTY or kwargs:
-            warnings.warn(
-                "`KafkaBroker().connect(...) options were "
-                "deprecated in **FastStream 0.5.40**. "
-                "Please, use `KafkaBroker(...)` instead. "
-                "All these options will be removed in **FastStream 0.6.0**.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        if bootstrap_servers is not EMPTY:
-            connect_kwargs: AnyDict = {
-                **kwargs,
-                "bootstrap_servers": bootstrap_servers,
-            }
-
-        else:
-            connect_kwargs = {**kwargs}
-
-        return await super().connect(**connect_kwargs)
-
-    @override
-    async def _connect(  # type: ignore[override]
-        self,
-        *,
-        client_id: str,
-        **kwargs: Any,
-    ) -> Callable[..., aiokafka.AIOKafkaConsumer]:
-        security_params = parse_security(self.security)
-        kwargs.update(security_params)
-
-        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
-            **filter_by_dict(AdminClientConnectionParams, kwargs),
-        )
-        producer = aiokafka.AIOKafkaProducer(
-            **kwargs,
-            client_id=client_id,
-        )
-
-        await self._admin_client.start()
-        await producer.start()
-        self._producer = AioKafkaFastProducer(
-            producer=producer,
-            parser=self._parser,
-            decoder=self._decoder,
-        )
-
-        return partial(
-            aiokafka.AIOKafkaConsumer,
-            **filter_by_dict(ConsumerConnectionParams, kwargs),
-        )
+        self._connection = None
 
     async def start(self) -> None:
         """Connect broker to Kafka and startup all subscribers."""
+        await self.connect()
+        self._setup()
         await super().start()
-
-        for handler in self._subscribers.values():
-            self._log(
-                f"`{handler.call_name}` waiting for messages",
-                extra=handler.get_log_context(None),
-            )
-            await handler.start()
 
     @property
     def _subscriber_setup_extra(self) -> "AnyDict":
@@ -688,94 +650,103 @@ class KafkaBroker(
             "builder": self._connection,
         }
 
-    @override
-    async def publish(  # type: ignore[override]
+    @overload
+    async def publish(
         self,
-        message: Annotated[
-            "SendableMessage",
-            Doc("Message body to send."),
-        ],
-        topic: Annotated[
-            str,
-            Doc("Topic where the message will be published."),
-        ],
+        message: "SendableMessage",
+        topic: str = "",
         *,
-        key: Annotated[
-            Union[bytes, Any, None],
-            Doc(
-                """
-            A key to associate with the message. Can be used to
-            determine which partition to send the message to. If partition
-            is `None` (and producer's partitioner config is left as default),
-            then messages with the same key will be delivered to the same
-            partition (but if key is `None`, partition is chosen randomly).
-            Must be type `bytes`, or be serializable to bytes via configured
-            `key_serializer`.
-            """
-            ),
-        ] = None,
-        partition: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Specify a partition. If not set, the partition will be
-            selected using the configured `partitioner`.
-            """
-            ),
-        ] = None,
-        timestamp_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Epoch milliseconds (from Jan 1 1970 UTC) to use as
-            the message timestamp. Defaults to current time.
-            """
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional[Dict[str, str]],
-            Doc("Message headers to store metainformation."),
-        ] = None,
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message topic name to send response."),
-        ] = "",
-        no_confirm: Annotated[
-            bool,
-            Doc("Do not wait for Kafka publish confirmation."),
-        ] = False,
-        # extra options to be compatible with test client
-        **kwargs: Any,
-    ) -> Optional[Any]:
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: Literal[True],
+    ) -> "asyncio.Future[RecordMetadata]": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
+
+    @override
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        reply_to: str = "",
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish message directly.
 
         This method allows you to publish message in not AsyncAPI-documented way. You can use it in another frameworks
         applications or to publish messages from time to time.
 
         Please, use `@broker.publisher(...)` or `broker.publisher(...).publish(...)` instead in a regular way.
-        """
-        correlation_id = correlation_id or gen_cor_id()
 
-        return await super().publish(
+        Args:
+            message:
+                Message body to send.
+            topic:
+                Topic where the message will be published.
+            key:
+                A key to associate with the message. Can be used to
+                determine which partition to send the message to. If partition
+                is `None` (and producer's partitioner config is left as default),
+                then messages with the same key will be delivered to the same
+                partition (but if key is `None`, partition is chosen randomly).
+                Must be type `bytes`, or be serializable to bytes via configured
+                `key_serializer`
+            partition:
+                Specify a partition. If not set, the partition will be
+                selected using the configured `partitioner`
+            timestamp_ms:
+                Epoch milliseconds (from Jan 1 1970 UTC) to use as
+                the message timestamp. Defaults to current time.
+            headers:
+                Message headers to store metainformation.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                **correlation_id** is a useful option to trace messages.
+            reply_to:
+                Reply message topic name to send response.
+            no_confirm:
+                Do not wait for Kafka publish confirmation.
+
+        Returns:
+            `asyncio.Future[RecordMetadata]` if no_confirm = True.
+            `RecordMetadata` if no_confirm = False.
+        """
+        cmd = KafkaPublishCommand(
             message,
-            producer=self._producer,
             topic=topic,
             key=key,
             partition=partition,
             timestamp_ms=timestamp_ms,
             headers=headers,
-            correlation_id=correlation_id,
             reply_to=reply_to,
             no_confirm=no_confirm,
-            **kwargs,
+            correlation_id=correlation_id or gen_cor_id(),
+            _publish_type=PublishType.PUBLISH,
         )
+        return await super()._basic_publish(cmd, producer=self._producer)
 
     @override
     async def request(  # type: ignore[override]
@@ -800,7 +771,7 @@ class KafkaBroker(
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """
+            """,
             ),
         ] = None,
         partition: Annotated[
@@ -809,7 +780,7 @@ class KafkaBroker(
                 """
             Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """
+            """,
             ),
         ] = None,
         timestamp_ms: Annotated[
@@ -818,106 +789,119 @@ class KafkaBroker(
                 """
             Epoch milliseconds (from Jan 1 1970 UTC) to use as
             the message timestamp. Defaults to current time.
-            """
+            """,
             ),
         ] = None,
         headers: Annotated[
-            Optional[Dict[str, str]],
+            Optional[dict[str, str]],
             Doc("Message headers to store metainformation."),
         ] = None,
         correlation_id: Annotated[
             Optional[str],
             Doc(
                 "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
+                "**correlation_id** is a useful option to trace messages.",
             ),
         ] = None,
         timeout: Annotated[
             float,
             Doc("Timeout to send RPC request."),
         ] = 0.5,
-    ) -> Optional[Any]:
-        correlation_id = correlation_id or gen_cor_id()
-
-        return await super().request(
+    ) -> "KafkaMessage":
+        cmd = KafkaPublishCommand(
             message,
-            producer=self._producer,
             topic=topic,
             key=key,
             partition=partition,
             timestamp_ms=timestamp_ms,
             headers=headers,
-            correlation_id=correlation_id,
             timeout=timeout,
+            correlation_id=correlation_id or gen_cor_id(),
+            _publish_type=PublishType.REQUEST,
         )
+
+        msg: KafkaMessage = await super()._basic_request(cmd, producer=self._producer)
+        return msg
+
+    @overload
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: Literal[True],
+    ) -> "asyncio.Future[RecordMetadata]": ...
+
+    @overload
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
 
     async def publish_batch(
         self,
-        *msgs: Annotated[
-            "SendableMessage",
-            Doc("Messages bodies to send."),
-        ],
-        topic: Annotated[
-            str,
-            Doc("Topic where the message will be published."),
-        ],
-        partition: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Specify a partition. If not set, the partition will be
-            selected using the configured `partitioner`.
-            """
-            ),
-        ] = None,
-        timestamp_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Epoch milliseconds (from Jan 1 1970 UTC) to use as
-            the message timestamp. Defaults to current time.
-            """
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional[Dict[str, str]],
-            Doc("Messages headers to store metainformation."),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message topic name to send response."),
-        ] = "",
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages."
-            ),
-        ] = None,
-        no_confirm: Annotated[
-            bool,
-            Doc("Do not wait for Kafka publish confirmation."),
-        ] = False,
-    ) -> None:
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        reply_to: str = "",
+        correlation_id: Optional[str] = None,
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+        """Publish a message batch as a single request to broker.
+
+        Args:
+            *messages:
+                Messages bodies to send.
+            topic:
+                Topic where the message will be published.
+            partition:
+                Specify a partition. If not set, the partition will be
+                selected using the configured `partitioner`
+            timestamp_ms:
+                Epoch milliseconds (from Jan 1 1970 UTC) to use as
+                the message timestamp. Defaults to current time.
+            headers:
+                Message headers to store metainformation.
+            reply_to:
+                Reply message topic name to send response.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                **correlation_id** is a useful option to trace messages.
+            no_confirm:
+                Do not wait for Kafka publish confirmation.
+
+        Returns:
+            `asyncio.Future[RecordMetadata]` if no_confirm = True.
+            `RecordMetadata` if no_confirm = False.
+        """
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
 
-        correlation_id = correlation_id or gen_cor_id()
-
-        call: AsyncFunc = self._producer.publish_batch
-
-        for m in self._middlewares[::-1]:
-            call = partial(m(None).publish_scope, call)
-
-        await call(
-            *msgs,
+        cmd = KafkaPublishCommand(
+            *messages,
             topic=topic,
             partition=partition,
             timestamp_ms=timestamp_ms,
             headers=headers,
             reply_to=reply_to,
-            correlation_id=correlation_id,
             no_confirm=no_confirm,
+            correlation_id=correlation_id or gen_cor_id(),
+            _publish_type=PublishType.PUBLISH,
         )
+
+        return await self._basic_publish_batch(cmd, producer=self._producer)
 
     @override
     async def ping(self, timeout: Optional[float]) -> bool:

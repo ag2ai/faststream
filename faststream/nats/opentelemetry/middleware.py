@@ -4,10 +4,11 @@ from opentelemetry.metrics import Meter, MeterProvider
 from opentelemetry.trace import TracerProvider
 
 from faststream.nats.opentelemetry.provider import telemetry_attributes_provider_factory
+from faststream.nats.response import NatsPublishCommand
 from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
-class NatsTelemetryMiddleware(TelemetryMiddleware):
+class NatsTelemetryMiddleware(TelemetryMiddleware[NatsPublishCommand]):
     def __init__(
         self,
         *,

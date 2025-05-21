@@ -11,6 +11,6 @@ async def handler(body):
     nested_func(body)
 
 
-@apply_types
+@apply_types(context__=broker.context)
 def nested_func(body, logger=Context()):
     logger.info(body)

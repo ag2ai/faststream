@@ -1,6 +1,6 @@
 import ssl
 from asyncio import AbstractEventLoop
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 from aiokafka.abc import AbstractTokenProvider
 from typing_extensions import TypedDict
@@ -28,7 +28,7 @@ class AdminClientConnectionParams(TypedDict, total=False):
         sasl_oauth_token_provider : OAuthBearer token provider instance.
     """
 
-    bootstrap_servers: Union[str, List[str]]
+    bootstrap_servers: Union[str, list[str]]
     loop: Optional[AbstractEventLoop]
     client_id: str
     request_timeout_ms: int
@@ -77,7 +77,7 @@ class ConsumerConnectionParams(TypedDict, total=False):
         sasl_oauth_token_provider : OAuthBearer token provider instance.
     """
 
-    bootstrap_servers: Union[str, List[str]]
+    bootstrap_servers: Union[str, list[str]]
     loop: Optional[AbstractEventLoop]
     client_id: str
     request_timeout_ms: int

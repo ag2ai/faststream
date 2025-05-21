@@ -7,9 +7,9 @@ from faststream.nats import NatsBroker
 from tests.tools import spy_decorator
 
 
-@pytest.mark.asyncio
-@pytest.mark.nats
-async def test_object_storage_cache():
+@pytest.mark.asyncio()
+@pytest.mark.nats()
+async def test_object_storage_cache() -> None:
     broker = NatsBroker()
     await broker.connect()
 

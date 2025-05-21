@@ -1,6 +1,6 @@
-try:
-    from faststream.testing.app import TestApp
+from faststream._internal.testing.app import TestApp
 
+try:
     from .annotations import Redis, RedisMessage
     from .broker.broker import RedisBroker
     from .response import RedisResponse
@@ -9,6 +9,9 @@ try:
     from .testing import TestRedisBroker
 
 except ImportError as e:
+    if "'redis'" not in e.msg:
+        raise
+
     from faststream.exceptions import INSTALL_FASTSTREAM_REDIS
 
     raise ImportError(INSTALL_FASTSTREAM_REDIS) from e

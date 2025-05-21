@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Union, cast
 
-from faststream.broker.message import MsgType, StreamMessage
-from faststream.prometheus import (
-    MetricsSettingsProvider,
-)
+from faststream.message.message import MsgType, StreamMessage
+from faststream.prometheus import MetricsSettingsProvider
 
 if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
     from faststream.prometheus import ConsumeAttrs
-    from faststream.types import AnyDict
+    from faststream.response import PublishCommand
 
 
 class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
@@ -18,11 +17,11 @@ class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
     def __init__(self) -> None:
         self.messaging_system = "kafka"
 
-    def get_publish_destination_name_from_kwargs(
+    def get_publish_destination_name_from_cmd(
         self,
-        kwargs: "AnyDict",
+        cmd: "PublishCommand",
     ) -> str:
-        return cast("str", kwargs["topic"])
+        return cmd.destination
 
 
 class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRecord"]):
@@ -38,11 +37,11 @@ class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRec
 
 
 class BatchKafkaMetricsSettingsProvider(
-    BaseKafkaMetricsSettingsProvider[Tuple["ConsumerRecord", ...]]
+    BaseKafkaMetricsSettingsProvider[tuple["ConsumerRecord", ...]]
 ):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[Tuple[ConsumerRecord, ...]]",
+        msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> "ConsumeAttrs":
         raw_message = msg.raw_message[0]
         return {
@@ -60,5 +59,4 @@ def settings_provider_factory(
 ]:
     if isinstance(msg, Sequence):
         return BatchKafkaMetricsSettingsProvider()
-    else:
-        return KafkaMetricsSettingsProvider()
+    return KafkaMetricsSettingsProvider()

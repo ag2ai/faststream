@@ -5,9 +5,10 @@ from opentelemetry.trace import TracerProvider
 
 from faststream.opentelemetry.middleware import TelemetryMiddleware
 from faststream.redis.opentelemetry.provider import RedisTelemetrySettingsProvider
+from faststream.redis.response import RedisPublishCommand
 
 
-class RedisTelemetryMiddleware(TelemetryMiddleware):
+class RedisTelemetryMiddleware(TelemetryMiddleware[RedisPublishCommand]):
     def __init__(
         self,
         *,

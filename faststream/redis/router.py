@@ -1,34 +1,31 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Iterable,
-    Optional,
-    Sequence,
-    Union,
+from collections.abc import Awaitable, Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Union
+
+from typing_extensions import Doc, deprecated
+
+from faststream._internal.broker.router import (
+    ArgsContainer,
+    BrokerRouter,
+    SubscriberRoute,
 )
-
-from typing_extensions import Annotated, Doc, deprecated
-
-from faststream.broker.router import ArgsContainer, BrokerRouter, SubscriberRoute
-from faststream.broker.utils import default_filter
+from faststream._internal.constants import EMPTY
+from faststream.middlewares import AckPolicy
 from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.message import BaseMessage
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Depends
+    from fast_depends.dependencies import Dependant
 
-    from faststream.broker.types import (
+    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
-    from faststream.types import AnyDict, SendableMessage
 
 
 class RedisPublisher(ArgsContainer):
@@ -56,7 +53,7 @@ class RedisPublisher(ArgsContainer):
             Optional["AnyDict"],
             Doc(
                 "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified."
+                "Can be overridden by `publish.headers` if specified.",
             ),
         ] = None,
         reply_to: Annotated[
@@ -65,6 +62,10 @@ class RedisPublisher(ArgsContainer):
         ] = "",
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
@@ -80,7 +81,7 @@ class RedisPublisher(ArgsContainer):
             Optional[Any],
             Doc(
                 "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`."
+                "Should be any python-native object annotation or `pydantic.BaseModel`.",
             ),
         ] = None,
         include_in_schema: Annotated[
@@ -114,7 +115,7 @@ class RedisRoute(SubscriberRoute):
             ],
             Doc(
                 "Message handler function "
-                "to wrap the same with `@broker.subscriber(...)` way."
+                "to wrap the same with `@broker.subscriber(...)` way.",
             ),
         ],
         channel: Annotated[
@@ -136,13 +137,13 @@ class RedisRoute(SubscriberRoute):
         ] = None,
         # broker arguments
         dependencies: Annotated[
-            Iterable["Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
+            Iterable["Dependant"],
+            Doc("Dependencies list (`[Dependant(),]`) to apply to the subscriber."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
             Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one."
+                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
             ),
         ] = None,
         decoder: Annotated[
@@ -151,31 +152,25 @@ class RedisRoute(SubscriberRoute):
         ] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
-        filter: Annotated[
-            "Filter[UnifyRedisMessage]",
-            Doc(
-                "Overload subscriber to consume various messages from the same source."
-            ),
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. "
-                "Please, create `subscriber` object and use it explicitly instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            bool,
-            Doc("Whether to `nack` message at processing exception."),
-        ] = False,
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** autoacknowledgement logic or not."),
-        ] = False,
+            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         no_reply: Annotated[
             bool,
             Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not."
+                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
         # AsyncAPI information
@@ -187,13 +182,17 @@ class RedisRoute(SubscriberRoute):
             Optional[str],
             Doc(
                 "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default."
+                "Uses decorated docstring as default.",
             ),
         ] = None,
         include_in_schema: Annotated[
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        max_workers: Annotated[
+            int,
+            Doc("Number of workers to process messages concurrently."),
+        ] = 1,
     ) -> None:
         super().__init__(
             call,
@@ -202,11 +201,11 @@ class RedisRoute(SubscriberRoute):
             list=list,
             stream=stream,
             dependencies=dependencies,
+            max_workers=max_workers,
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
-            filter=filter,
-            retry=retry,
+            ack_policy=ack_policy,
             no_ack=no_ack,
             no_reply=no_reply,
             title=title,
@@ -215,10 +214,7 @@ class RedisRoute(SubscriberRoute):
         )
 
 
-class RedisRouter(
-    RedisRegistrator,
-    BrokerRouter[BaseMessage],
-):
+class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
     """Includable to RedisBroker router."""
 
     def __init__(
@@ -233,14 +229,18 @@ class RedisRouter(
         ] = (),
         *,
         dependencies: Annotated[
-            Iterable["Depends"],
+            Iterable["Dependant"],
             Doc(
-                "Dependencies list (`[Depends(),]`) to apply to all routers' publishers/subscribers."
+                "Dependencies list (`[Dependant(),]`) to apply to all routers' publishers/subscribers.",
             ),
         ] = (),
         middlewares: Annotated[
             Sequence["BrokerMiddleware[BaseMessage]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
+        ] = (),
+        routers: Annotated[
+            Sequence["ABCBroker[BaseMessage]"],
+            Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
@@ -261,6 +261,7 @@ class RedisRouter(
             prefix=prefix,
             dependencies=dependencies,
             middlewares=middlewares,
+            routers=routers,
             parser=parser,
             decoder=decoder,
             include_in_schema=include_in_schema,

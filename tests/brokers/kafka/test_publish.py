@@ -1,35 +1,33 @@
 import asyncio
-from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from aiokafka.structs import RecordMetadata
 
 from faststream import Context
-from faststream.kafka import KafkaBroker, KafkaResponse
+from faststream.kafka import KafkaResponse
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from tests.brokers.base.publish import BrokerPublishTestcase
 
+from .basic import KafkaTestcaseConfig
 
-@pytest.mark.kafka
-class TestPublish(BrokerPublishTestcase):
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
-        return KafkaBroker(apply_types=apply_types, **kwargs)
 
-    @pytest.mark.asyncio
-    async def test_publish_batch(self, queue: str):
+@pytest.mark.kafka()
+class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
+    @pytest.mark.asyncio()
+    async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(queue)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
-            await br.publish_batch(1, "hi", topic=queue)
-
+            record_metadata = await br.publish_batch(1, "hi", topic=queue)
             result, _ = await asyncio.wait(
                 (
                     asyncio.create_task(msgs_queue.get()),
@@ -37,17 +35,18 @@ class TestPublish(BrokerPublishTestcase):
                 ),
                 timeout=3,
             )
+            assert isinstance(record_metadata, RecordMetadata)
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
-    async def test_batch_publisher_manual(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_manual(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(queue)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         publisher = pub_broker.publisher(queue, batch=True)
@@ -67,14 +66,14 @@ class TestPublish(BrokerPublishTestcase):
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
-    async def test_batch_publisher_decorator(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_decorator(self, queue: str) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(queue)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         @pub_broker.publisher(queue, batch=True)
@@ -85,7 +84,7 @@ class TestPublish(BrokerPublishTestcase):
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
-            await br.publish("", queue + "1")
+            record_metadata = await br.publish("", queue + "1")
 
             result, _ = await asyncio.wait(
                 (
@@ -94,16 +93,18 @@ class TestPublish(BrokerPublishTestcase):
                 ),
                 timeout=3,
             )
+            assert isinstance(record_metadata, RecordMetadata)
 
         assert {1, "hi"} == {r.result() for r in result}
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: Mock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -112,7 +113,7 @@ class TestPublish(BrokerPublishTestcase):
             return KafkaResponse(1, key=b"1")
 
         @pub_broker.subscriber(queue + "1")
-        async def handle_next(msg=Context("message")):
+        async def handle_next(msg=Context("message")) -> None:
             mock(
                 body=msg.body,
                 key=msg.raw_message.key,
@@ -136,7 +137,29 @@ class TestPublish(BrokerPublishTestcase):
             key=b"1",
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
+    async def test_return_future(
+        self,
+        queue: str,
+        mock: Mock,
+    ) -> None:
+        pub_broker = self.get_broker()
+
+        @pub_broker.subscriber(queue)
+        async def handler(m) -> None:
+            pass
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            batch_record_metadata_future = await br.publish_batch(
+                1, "hi", topic=queue, no_confirm=True
+            )
+            record_metadata_future = await br.publish("", topic=queue, no_confirm=True)
+            assert isinstance(batch_record_metadata_future, asyncio.Future)
+            assert isinstance(record_metadata_future, asyncio.Future)
+
+    @pytest.mark.asyncio()
     async def test_raise_buffer_overflow_exception(
         self, queue: str, mock: Mock
     ) -> None:

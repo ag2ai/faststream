@@ -1,7 +1,7 @@
+from faststream._internal.testing.app import TestApp
+
 try:
     from aiokafka import TopicPartition
-
-    from faststream.testing.app import TestApp
 
     from .annotations import KafkaMessage
     from .broker import KafkaBroker
@@ -10,6 +10,9 @@ try:
     from .testing import TestKafkaBroker
 
 except ImportError as e:
+    if "'aiokafka'" not in e.msg:
+        raise
+
     from faststream.exceptions import INSTALL_FASTSTREAM_KAFKA
 
     raise ImportError(INSTALL_FASTSTREAM_KAFKA) from e

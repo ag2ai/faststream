@@ -1,16 +1,19 @@
-from typing import TYPE_CHECKING, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Union, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
 
-from faststream.broker.types import MsgType
+from faststream._internal.types import MsgType
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 
 if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
-    from faststream.broker.message import StreamMessage
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
+    from faststream.kafka.response import KafkaPublishCommand
+    from faststream.message import StreamMessage
+    from faststream.response import PublishCommand
 
 
 class BaseKafkaTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
@@ -19,33 +22,33 @@ class BaseKafkaTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
     def __init__(self) -> None:
         self.messaging_system = "kafka"
 
-    def get_publish_attrs_from_kwargs(
+    def get_publish_attrs_from_cmd(
         self,
-        kwargs: "AnyDict",
+        cmd: "KafkaPublishCommand",
     ) -> "AnyDict":
-        attrs = {
+        attrs: AnyDict = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: kwargs["topic"],
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: kwargs["correlation_id"],
+            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
+            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
-        if (partition := kwargs.get("partition")) is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = partition
+        if cmd.partition is not None:
+            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
 
-        if (key := kwargs.get("key")) is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = key
+        if cmd.key is not None:
+            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
 
         return attrs
 
     def get_publish_destination_name(
         self,
-        kwargs: "AnyDict",
+        cmd: "PublishCommand",
     ) -> str:
-        return cast("str", kwargs["topic"])
+        return cmd.destination
 
 
 class KafkaTelemetrySettingsProvider(
-    BaseKafkaTelemetrySettingsProvider["ConsumerRecord"]
+    BaseKafkaTelemetrySettingsProvider["ConsumerRecord"],
 ):
     def get_consume_attrs_from_message(
         self,
@@ -74,31 +77,29 @@ class KafkaTelemetrySettingsProvider(
 
 
 class BatchKafkaTelemetrySettingsProvider(
-    BaseKafkaTelemetrySettingsProvider[Tuple["ConsumerRecord", ...]]
+    BaseKafkaTelemetrySettingsProvider[tuple["ConsumerRecord", ...]],
 ):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[Tuple[ConsumerRecord, ...]]",
+        msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> "AnyDict":
         raw_message = msg.raw_message[0]
 
-        attrs = {
+        return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
-                bytearray().join(cast("Sequence[bytes]", msg.body))
+                bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
             SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic,
         }
 
-        return attrs
-
     def get_consume_destination_name(
         self,
-        msg: "StreamMessage[Tuple[ConsumerRecord, ...]]",
+        msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> str:
         return cast("str", msg.raw_message[0].topic)
 
@@ -111,5 +112,4 @@ def telemetry_attributes_provider_factory(
 ]:
     if isinstance(msg, Sequence):
         return BatchKafkaTelemetrySettingsProvider()
-    else:
-        return KafkaTelemetrySettingsProvider()
+    return KafkaTelemetrySettingsProvider()

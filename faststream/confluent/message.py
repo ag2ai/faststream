@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Any, Optional, Protocol, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Union
 
-from faststream.broker.message import StreamMessage
+from faststream.message import AckStatus, StreamMessage
 
 if TYPE_CHECKING:
     from confluent_kafka import Message
@@ -41,9 +41,9 @@ class KafkaMessage(
     StreamMessage[
         Union[
             "Message",
-            Tuple["Message", ...],
+            tuple["Message", ...],
         ]
-    ]
+    ],
 ):
     """Represents a Kafka message in the FastStream framework.
 
@@ -59,8 +59,11 @@ class KafkaMessage(
     ) -> None:
         super().__init__(*args, **kwargs)
 
-        self.is_manual = is_manual
         self.consumer = consumer
+
+        self.is_manual = is_manual
+        if not is_manual:
+            self.committed = AckStatus.ACKED
 
     async def ack(self) -> None:
         """Acknowledge the Kafka message."""

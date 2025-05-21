@@ -1,74 +1,93 @@
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Optional
 
-from nats.aio.client import Client
-from nats.aio.msg import Msg
-
-from faststream.broker.core.usecase import BrokerUsecase
-from faststream.log.logging import get_broker_logger
-from faststream.types import EMPTY
+from faststream._internal.log.logging import get_broker_logger
+from faststream._internal.state.logger import (
+    DefaultLoggerStorage,
+    make_logger_state,
+)
 
 if TYPE_CHECKING:
-    from faststream.types import LoggerProto
+    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.context import ContextRepo
 
 
-class NatsLoggingBroker(BrokerUsecase[Msg, Client]):
-    """A class that extends the LoggingMixin class and adds additional functionality for logging NATS related information."""
-
-    _max_queue_len: int
-    _max_subject_len: int
-    __max_msg_id_ln: ClassVar[int] = 10
-
+class NatsParamsStorage(DefaultLoggerStorage):
     def __init__(
         self,
-        *args: Any,
-        logger: Optional["LoggerProto"] = EMPTY,
-        log_level: int = logging.INFO,
-        log_fmt: Optional[str] = None,
-        **kwargs: Any,
+        log_fmt: Optional[str],
     ) -> None:
-        """Initialize the NATS logging mixin."""
-        super().__init__(
-            *args,
-            logger=logger,
-            # TODO: generate unique logger names to not share between brokers
-            default_logger=get_broker_logger(
+        super().__init__(log_fmt)
+
+        self._max_queue_len = 0
+        self._max_stream_len = 0
+        self._max_subject_len = 4
+
+        self.logger_log_level = logging.INFO
+
+    def set_level(self, level: int) -> None:
+        self.logger_log_level = level
+
+    def setup_log_contest(self, params: "AnyDict") -> None:
+        self._max_subject_len = max(
+            (
+                self._max_subject_len,
+                len(params.get("subject", "")),
+            ),
+        )
+        self._max_queue_len = max(
+            (
+                self._max_queue_len,
+                len(params.get("queue", "")),
+            ),
+        )
+        self._max_stream_len = max(
+            (
+                self._max_stream_len,
+                len(params.get("stream", "")),
+            ),
+        )
+
+    def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
+        message_id_ln = 10
+
+        # TODO: generate unique logger names to not share between brokers
+        if not (lg := self._get_logger_ref()):
+            lg = get_broker_logger(
                 name="nats",
                 default_context={
                     "subject": "",
                     "stream": "",
                     "queue": "",
                 },
-                message_id_ln=self.__max_msg_id_ln,
-            ),
-            log_level=log_level,
-            log_fmt=log_fmt,
-            **kwargs,
-        )
+                message_id_ln=message_id_ln,
+                fmt=self._log_fmt
+                or "".join((
+                    "%(asctime)s %(levelname)-8s - ",
+                    (
+                        f"%(stream)-{self._max_stream_len}s | "
+                        if self._max_stream_len
+                        else ""
+                    ),
+                    (
+                        f"%(queue)-{self._max_queue_len}s | "
+                        if self._max_queue_len
+                        else ""
+                    ),
+                    f"%(subject)-{self._max_subject_len}s | ",
+                    f"%(message_id)-{message_id_ln}s - ",
+                    "%(message)s",
+                )),
+                context=context,
+                log_level=self.logger_log_level,
+            )
+            self._logger_ref.add(lg)
 
-        self._max_queue_len = 0
-        self._max_stream_len = 0
-        self._max_subject_len = 4
+        return lg
 
-    def get_fmt(self) -> str:
-        """Fallback method to get log format if `log_fmt` if not specified."""
-        return (
-            "%(asctime)s %(levelname)-8s - "
-            + (f"%(stream)-{self._max_stream_len}s | " if self._max_stream_len else "")
-            + (f"%(queue)-{self._max_queue_len}s | " if self._max_queue_len else "")
-            + f"%(subject)-{self._max_subject_len}s | "
-            + f"%(message_id)-{self.__max_msg_id_ln}s - "
-            "%(message)s"
-        )
 
-    def _setup_log_context(
-        self,
-        *,
-        queue: Optional[str] = None,
-        subject: Optional[str] = None,
-        stream: Optional[str] = None,
-    ) -> None:
-        """Setup subscriber's information to generate default log format."""
-        self._max_subject_len = max((self._max_subject_len, len(subject or "")))
-        self._max_queue_len = max((self._max_queue_len, len(queue or "")))
-        self._max_stream_len = max((self._max_stream_len, len(stream or "")))
+make_nats_logger_state = partial(
+    make_logger_state,
+    default_storage_cls=NatsParamsStorage,
+)

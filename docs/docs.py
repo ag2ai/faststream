@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG = BASE_DIR / "mkdocs.yml"
 DOCS_DIR = BASE_DIR / "docs"
 LANGUAGES_DIRS = tuple(
-    filter(lambda f: f.is_dir() and f.name not in IGNORE_DIRS, DOCS_DIR.iterdir())
+    filter(lambda f: f.is_dir() and f.name not in IGNORE_DIRS, DOCS_DIR.iterdir()),
 )
 BUILD_DIR = BASE_DIR / "site"
 
