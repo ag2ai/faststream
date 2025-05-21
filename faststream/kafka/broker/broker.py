@@ -1,5 +1,6 @@
 import logging
 import warnings
+from contextlib import suppress
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -18,6 +19,7 @@ from typing import (
 )
 
 import aiokafka
+import aiokafka.admin
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
@@ -29,7 +31,10 @@ from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.kafka.broker.logging import KafkaLoggingBroker
 from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
-from faststream.kafka.schemas.params import ConsumerConnectionParams
+from faststream.kafka.schemas.params import (
+    AdminClientConnectionParams,
+    ConsumerConnectionParams,
+)
 from faststream.kafka.security import parse_security
 from faststream.types import EMPTY
 from faststream.utils.data import filter_by_dict
@@ -42,6 +47,7 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
+    from aiokafka.admin.client import AIOKafkaAdminClient
     from fast_depends.dependencies import Depends
     from typing_extensions import TypedDict, Unpack
 
@@ -236,6 +242,7 @@ class KafkaBroker(
 ):
     url: List[str]
     _producer: Optional["AioKafkaFastProducer"]
+    _admin_client: Optional["AIOKafkaAdminClient"]
 
     def __init__(
         self,
@@ -579,6 +586,7 @@ class KafkaBroker(
 
         self.client_id = client_id
         self._producer = None
+        self._admin_client = None
 
     async def _close(
         self,
@@ -589,6 +597,9 @@ class KafkaBroker(
         if self._producer is not None:  # pragma: no branch
             await self._producer.stop()
             self._producer = None
+        if self._admin_client is not None:
+            await self._admin_client.close()
+            self._admin_client = None
 
         await super()._close(exc_type, exc_val, exc_tb)
 
@@ -637,11 +648,15 @@ class KafkaBroker(
         security_params = parse_security(self.security)
         kwargs.update(security_params)
 
+        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
+            **filter_by_dict(AdminClientConnectionParams, kwargs),
+        )
         producer = aiokafka.AIOKafkaProducer(
             **kwargs,
             client_id=client_id,
         )
 
+        await self._admin_client.start()
         await producer.start()
         self._producer = AioKafkaFastProducer(
             producer=producer,
@@ -908,17 +923,17 @@ class KafkaBroker(
     async def ping(self, timeout: Optional[float]) -> bool:
         sleep_time = (timeout or 10) / 10
 
-        with anyio.move_on_after(timeout) as cancel_scope:
-            if self._producer is None:
-                return False
+        if self._admin_client is None:
+            return False
 
+        with anyio.move_on_after(timeout) as cancel_scope:
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                if not self._producer._producer._closed:
+                with suppress(Exception):
+                    await self._admin_client.describe_cluster()
                     return True
-
                 await anyio.sleep(sleep_time)
 
         return False

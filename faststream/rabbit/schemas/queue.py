@@ -142,7 +142,7 @@ class RabbitQueue(NameRequired):
         :param timeout: Send confirmation time from RabbitMQ.
         :param robust: Whether to declare queue object as restorable.
         :param bind_arguments: Queue-exchange binding options.
-        :param routing_key: Explicit binding routing key. Uses name if not presented.
+        :param routing_key: Explicit binding routing key. Uses name if not present.
         """
         re, routing_key = compile_path(
             routing_key,

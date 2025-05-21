@@ -1,3 +1,4 @@
+import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -210,6 +211,9 @@ class AioPikaFastProducer(ProducerProto):
         app_id: Optional[str],
     ) -> Union["aiormq.abc.ConfirmationFrameType", "SendableMessage"]:
         """Publish a message to a RabbitMQ exchange."""
+        if timestamp is None:
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+
         message = AioPikaParser.encode_message(
             message=message,
             persist=persist,

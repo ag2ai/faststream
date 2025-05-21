@@ -64,7 +64,14 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
                 "and use it explicitly instead. Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = default_filter,
-        retry: Union[bool, int] = False,
+        retry: Annotated[
+            Union[bool, int],
+            deprecated(
+                "Deprecated in **FastStream 0.5.40**."
+                "Please, manage acknowledgement policy manually."
+                "Argument will be removed in **FastStream 0.6.0**."
+            ),
+        ] = False,
         no_ack: bool = False,
         no_reply: bool = False,
         title: Optional[str] = None,
@@ -80,7 +87,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             queue: RabbitMQ queue to listen. **FastStream** declares and binds
             queue object to `exchange` automatically if it is not passive (by default).
             exchange: RabbitMQ exchange to bind queue to. Uses default exchange
-            if not presented. **FastStream** declares exchange object automatically
+            if not present. **FastStream** declares exchange object automatically
             if it is not passive (by default).
             consume_args: Extra consumer arguments to use in `queue.consume(...)` method.
             channel: Channel to use for consuming messages. If not specified, a default channel will be used.
