@@ -282,7 +282,6 @@ search:
                     - [Operation](api/faststream/asyncapi/schema/Operation.md)
                     - [OperationBinding](api/faststream/asyncapi/schema/OperationBinding.md)
                     - [Reference](api/faststream/asyncapi/schema/Reference.md)
-                    - [Route](api/faststream/asyncapi/schema/Route.md)
                     - [Schema](api/faststream/asyncapi/schema/Schema.md)
                     - [SecuritySchemaComponent](api/faststream/asyncapi/schema/SecuritySchemaComponent.md)
                     - [Server](api/faststream/asyncapi/schema/Server.md)
@@ -336,8 +335,6 @@ search:
                         - [Message](api/faststream/asyncapi/schema/message/Message.md)
                     - operations
                         - [Operation](api/faststream/asyncapi/schema/operations/Operation.md)
-                    - routes
-                        - [Route](api/faststream/asyncapi/schema/routes/Route.md)
                     - security
                         - [OauthFlowObj](api/faststream/asyncapi/schema/security/OauthFlowObj.md)
                         - [OauthFlows](api/faststream/asyncapi/schema/security/OauthFlows.md)
