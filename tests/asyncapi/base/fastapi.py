@@ -68,7 +68,6 @@ class FastAPITestCase:
                     },
                     "channels": {},
                     "components": {"messages": {}, "schemas": {}},
-                    "routes": [],
                 }
 
     @pytest.mark.asyncio
