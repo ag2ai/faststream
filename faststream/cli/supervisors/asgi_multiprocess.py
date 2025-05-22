@@ -1,14 +1,18 @@
 import inspect
-from typing import Dict, Tuple
+from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 from faststream.asgi.app import cast_uvicorn_params
 
 
 class ASGIMultiprocess:
     def __init__(
-        self, target: str, args: Tuple[str, Dict[str, str], bool, int], workers: int
+        self,
+        target: str,
+        args: Tuple[str, Dict[str, str], bool, Optional[Path], int],
+        workers: int,
     ) -> None:
-        _, uvicorn_kwargs, is_factory, log_level = args
+        _, uvicorn_kwargs, is_factory, _, log_level = args
         self._target = target
         self._uvicorn_kwargs = cast_uvicorn_params(uvicorn_kwargs or {})
         self._workers = workers
