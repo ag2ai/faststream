@@ -63,6 +63,103 @@ from faststream.rabbit import RabbitBroker
 broker = RabbitBroker(log_level=logging.DEBUG)
 ```
 
+## Setting logging configuration from file
+
+If you use **FastStream CLI**, you have the option to use a file to configure your logging of the entire application directly from the command line.
+
+=== "JSON"
+
+    ```console
+    faststream run serve:app --log-file config.json
+    ```
+
+=== "TOML"
+
+    ```console
+    faststream run serve:app --log-file config.toml
+    ```
+
+=== "YAML"
+
+    ```console
+    faststream run serve:app --log-file config.yaml
+    ```
+
+Faststream supported few file formats to logging configure. See examples below:
+
+=== "JSON"
+
+    ``` json linenums="1" title="config.json"
+    {
+        "version": 1,
+        "disable_existing_loggers": false,
+        "formatters": {
+            "app": {
+                "format": "JSON: %(message)s"
+            }
+        },
+        "handlers": {
+            "app": {
+                "class": "logging.StreamHandler",
+                "formatter": "app",
+                "level": "INFO"
+            }
+        },
+        "loggers": {
+            "app": {
+                "level": "INFO",
+                "handlers": ["app"]
+            }
+
+        }
+    }
+
+    ```
+
+=== "TOML"
+
+    ``` toml linenums="1" title="config.toml"
+    version = 1
+    disable_existing_loggers = false
+
+    [formatters]
+
+    [formatters.app]
+    format = "TOML - %(message)s"
+
+    [handlers]
+
+    [handlers.app]
+    class = "logging.StreamHandler"
+    formatter = "app"
+    level = "INFO"
+
+    [loggers]
+
+    [loggers.app]
+    level = "INFO"
+    handlers = ["app"]
+    ```
+
+=== "YAML"
+
+    ``` yaml linenums="1" title="config.yaml"
+    version: 1
+    disable_existing_loggers: false
+    formatters:
+    app:
+        format: "YAML - %(message)s"
+    handlers:
+    app:
+        class: "logging.StreamHandler"
+        formatter: "app"
+        level: "INFO"
+    loggers:
+    app:
+        level: "INFO"
+        handlers: ["app"]
+    ```
+
 ## Formatting Logs
 
 If you are not satisfied with the current format of your application logs, you can change it directly in your broker's constructor.
