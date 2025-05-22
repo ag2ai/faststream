@@ -75,7 +75,6 @@ class Schema(BaseModel):
         info : information about the schema
         servers : optional dictionary of servers
         channels : dictionary of channels
-        routes : optional list of asgi routes
         components : optional components of the schema
         tags : optional list of tags
         externalDocs : optional external documentation
@@ -84,7 +83,6 @@ class Schema(BaseModel):
         to_jsonable() -> Any: Convert the schema to a JSON-serializable object.
         to_json() -> str: Convert the schema to a JSON string.
         to_yaml() -> str: Convert the schema to a YAML string.
-
     """
 
     asyncapi: str = ASYNC_API_VERSION
