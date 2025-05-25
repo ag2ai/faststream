@@ -12,6 +12,23 @@ hide:
 ---
 
 # Release Notes
+## 0.5.42
+
+### What's Changed
+
+* Feature: add deprecate on retry arg by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2224](https://github.com/ag2ai/faststream/pull/2224){.external-link target="_blank"}
+* Fix default rabbit timestamp by [@dmder](https://github.com/dmder){.external-link target="_blank"} in [#2226](https://github.com/ag2ai/faststream/pull/2226){.external-link target="_blank"}
+* Fix ASGIMultiprocess args mismatch by [@dolfinus](https://github.com/dolfinus){.external-link target="_blank"} in [#2228](https://github.com/ag2ai/faststream/pull/2228){.external-link target="_blank"}
+* Add docs about cli --log-file by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2229](https://github.com/ag2ai/faststream/pull/2229){.external-link target="_blank"}
+* fix (#2227): use ms as generated timestamp in Kafka by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2230](https://github.com/ag2ai/faststream/pull/2230){.external-link target="_blank"}
+* feat: Add AsyncAPI HTTP Support by [@tmulligan98](https://github.com/tmulligan98){.external-link target="_blank"} in [#2142](https://github.com/ag2ai/faststream/pull/2142){.external-link target="_blank"}
+
+### New Contributors
+* [@dmder](https://github.com/dmder){.external-link target="_blank"} made their first contribution in [#2226](https://github.com/ag2ai/faststream/pull/2226){.external-link target="_blank"}
+* [@tmulligan98](https://github.com/tmulligan98){.external-link target="_blank"} made their first contribution in [#2142](https://github.com/ag2ai/faststream/pull/2142){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.41...0.5.42](https://github.com/ag2ai/faststream/compare/0.5.41...0.5.42){.external-link target="_blank"}
+
 ## 0.5.41
 
 ### What's Changed

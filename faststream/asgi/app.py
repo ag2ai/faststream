@@ -19,7 +19,16 @@ from faststream._internal.application import Application
 from faststream.asgi.factories import make_asyncapi_asgi
 from faststream.asgi.response import AsgiResponse
 from faststream.asgi.websocket import WebSocketClose
+from faststream.exceptions import INSTALL_UVICORN
 from faststream.log.logging import logger
+
+try:
+    import uvicorn
+except ImportError:
+    uvicorn = None
+    HAS_UVICORN = False
+else:
+    HAS_UVICORN = True
 
 if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send
@@ -102,6 +111,9 @@ class AsgiFastStream(Application):
         if asyncapi_path:
             self.mount(asyncapi_path, make_asyncapi_asgi(self))
 
+        self._log_level: int = logging.INFO
+        self._run_extra_options: Dict[str, SettingField] = {}
+
     @classmethod
     def from_app(
         cls,
@@ -155,24 +167,19 @@ class AsgiFastStream(Application):
         run_extra_options: Optional[Dict[str, "SettingField"]] = None,
         sleep_time: float = 0.1,
     ) -> None:
-        try:
-            import uvicorn
-        except ImportError as e:
-            raise ImportError(
-                "You need uvicorn to run FastStream ASGI App via CLI. pip install uvicorn"
-            ) from e
+        if not HAS_UVICORN:
+            raise ImportError(INSTALL_UVICORN)
 
-        run_extra_options = cast_uvicorn_params(run_extra_options or {})
-
-        uvicorn_config_params = set(inspect.signature(uvicorn.Config).parameters.keys())
+        self._log_level = log_level
+        self._run_extra_options = cast_uvicorn_params(run_extra_options or {})
 
         config = uvicorn.Config(
             app=self,
-            log_level=log_level,
+            log_level=self._log_level,
             **{
                 key: v
-                for key, v in run_extra_options.items()
-                if key in uvicorn_config_params
+                for key, v in self._run_extra_options.items()
+                if key in set(inspect.signature(uvicorn.Config).parameters.keys())
             },
         )
 
@@ -182,7 +189,7 @@ class AsgiFastStream(Application):
     @asynccontextmanager
     async def start_lifespan_context(self) -> AsyncIterator[None]:
         async with anyio.create_task_group() as tg, self.lifespan_context():
-            tg.start_soon(self._startup)
+            tg.start_soon(self._startup, self._log_level, self._run_extra_options)
 
             try:
                 yield
