@@ -134,6 +134,9 @@ To use restart feature, please install dependencies:\n
 pip install watchfiles
 """
 
+INSTALL_UVICORN = """
+You need uvicorn to run FastStream ASGI App via CLI. pip install uvicorn
+"""
 
 INSTALL_FASTSTREAM_RABBIT = """
 To use RabbitMQ with FastStream, please install dependencies:\n
