@@ -692,7 +692,7 @@ class TestConsumeStream:
             await asyncio.sleep(0.1)
 
             final_length = await br._connection.xlen(queue)
-            
+
             assert final_length == 0, f"Expected stream to be empty, but found {final_length} messages"
 
         assert event.is_set()
