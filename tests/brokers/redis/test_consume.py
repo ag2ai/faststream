@@ -664,6 +664,39 @@ class TestConsumeStream:
 
         assert event.is_set()
 
+    async def test_consume_ack_deletes_message_from_stream(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ):
+        """Integration test: verify messages are actually deleted from Redis stream."""
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue)
+        )
+        async def handler(msg: RedisMessage):
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            await br.publish("hello", stream=queue)
+
+            await asyncio.wait(
+                (asyncio.create_task(event.wait()),),
+                timeout=3,
+            )
+
+            # Add a small delay to ensure all operations complete
+            await asyncio.sleep(0.1)
+
+            final_length = await br._connection.xlen(queue)
+            
+            assert final_length == 0, f"Expected stream to be empty, but found {final_length} messages"
+
+        assert event.is_set()
+
     async def test_get_one(
         self,
         queue: str,
