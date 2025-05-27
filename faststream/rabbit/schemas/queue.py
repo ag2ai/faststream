@@ -76,7 +76,7 @@ class RabbitQueue(NameRequired):
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
-            Doc("Do not create exchange automatically."),
+            Doc("Do not create queue automatically."),
         ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["ClassicQueueArgs"] = None,
@@ -97,7 +97,7 @@ class RabbitQueue(NameRequired):
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
-            Doc("Do not create exchange automatically."),
+            Doc("Do not create queue automatically."),
         ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["QuorumQueueArgs"] = None,
@@ -118,7 +118,7 @@ class RabbitQueue(NameRequired):
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
-            Doc("Do not create exchange automatically."),
+            Doc("Do not create queue automatically."),
         ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["StreamQueueArgs"] = None,
@@ -138,7 +138,7 @@ class RabbitQueue(NameRequired):
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
-            Doc("Do not create exchange automatically."),
+            Doc("Do not create queue automatically."),
         ] = EMPTY,
         auto_delete: bool = False,
         arguments: Union[
