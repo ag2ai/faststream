@@ -84,13 +84,13 @@ async def test_response():
 
 The subscriber processes the request and sends back the response, which is received by the client.
 
-!!! tip 
-    You can use the `no_reply=True` flag in the `@broker.subscriber` decorator to suppress automatic RPC and `reply_to` responses. 
+!!! tip
+    You can use the `no_reply=True` flag in the `@broker.subscriber` decorator to suppress automatic RPC and `reply_to` responses.
     This is useful when you want the subscriber to process the message without sending a response back to the client.
 
 ## Using the Response class
-The `Response` class allows you to attach metadata, such as headers, to the response message. 
-This is useful for adding context or tracking information to your responses. 
+The `Response` class allows you to attach metadata, such as headers, to the response message.
+This is useful for adding context or tracking information to your responses.
 
 Below is an example of how to use the `Response` class in an RPC subscriber.
 
@@ -127,9 +127,9 @@ async def test_response():
 ```
 
 ## Using the NatsResponse class
-For NATS-specific use cases, you can use the `NatsResponse` class instead of the generic `Response` class. 
-The `NatsResponse` class extends `Response` and adds support for specifying a `stream` parameter, 
-which is required when publishing responses to a JetStream-enabled subject. 
+For NATS-specific use cases, you can use the `NatsResponse` class instead of the generic `Response` class.
+The `NatsResponse` class extends `Response` and adds support for specifying a `stream` parameter,
+which is required when publishing responses to a JetStream-enabled subject.
 This ensures the response is published to the correct stream in a JetStream context.
 
 ```python hl_lines="1 8"
