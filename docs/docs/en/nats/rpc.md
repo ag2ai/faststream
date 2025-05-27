@@ -49,3 +49,50 @@ await broker.publish(
     reply_to="response-subject",
 )
 ```
+
+## Creating an RPC subscriber
+
+To handle an RPC request, you need to create a subscriber that processes the incoming message and returns a response. 
+The subscriber should be decorated with `@broker.subscriber` and return either a raw value or a `Response` object. 
+
+Below is an example of a simple RPC subscriber that processes a message and returns a response.
+
+```python hl_lines="1 8"
+@broker.subscriber("test")
+async def handle(msg):
+    return f"Received: {msg}"
+```
+
+When the client sends a request like this:
+
+```python hl_lines="1 8"
+msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
+assert msg.body == b"Received: Hello, NATS!"
+```
+
+The subscriber processes the request and sends back the response, which is received by the client.
+
+## Using the Response class
+The Response class allows you to attach metadata, such as headers, to the response message. 
+This is useful for adding context or tracking information to your responses. 
+
+Below is an example of how to use the `Response` class in an RPC subscriber.
+
+```python hl_lines="1 8"
+from faststream import Response
+
+@broker.subscriber("test")
+async def handle_rpc_request(msg):
+    return Response(
+        body=f"Processed: {msg}",
+        headers={"x-token": "some-token"},
+    )
+```
+
+When the client sends a request:
+
+```python hl_lines="1 8"
+msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
+assert msg.body == b"Processed: Hello, NATS!"
+assert msg.headers == {"custom-header": "value"}
+```
