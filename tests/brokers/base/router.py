@@ -621,6 +621,35 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    async def test_correct_include_router_with_same_name(
+        self,
+        router: BrokerRouter,
+    ) -> None:
+        pub_broker = self.get_broker()
+
+        router1 = type(router)()
+        router2 = type(router)()
+
+        @router1.subscriber("l1")
+        @router1.publisher("l3")
+        async def handler1(x: int):
+            return x
+
+        @router2.subscriber("l2")
+        @router2.publisher("l3")
+        async def handler2(x: int):
+            return x
+
+        pub_broker.include_routers(router2, router1)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+        pub1 = router1._publishers[0]
+        pub2 = router2._publishers[0]
+        assert pub1._producer is not None
+        assert pub2._producer is not None
+
 
 @pytest.mark.asyncio()
 class RouterLocalTestcase(RouterTestcase):
