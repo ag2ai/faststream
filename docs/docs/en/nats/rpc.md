@@ -52,8 +52,8 @@ await broker.publish(
 
 ## Creating an RPC subscriber
 
-To handle an RPC request, you need to create a subscriber that processes the incoming message and returns a response. 
-The subscriber should be decorated with `@broker.subscriber` and return either a raw value or a `Response` object. 
+To handle an RPC request, you need to create a subscriber that processes the incoming message and returns a response.
+The subscriber should be decorated with `@broker.subscriber` and return either a raw value or a `Response` object.
 
 Below is an example of a simple RPC subscriber that processes a message and returns a response.
 
@@ -73,8 +73,8 @@ assert msg.body == b"Received: Hello, NATS!"
 The subscriber processes the request and sends back the response, which is received by the client.
 
 ## Using the Response class
-The Response class allows you to attach metadata, such as headers, to the response message. 
-This is useful for adding context or tracking information to your responses. 
+The Response class allows you to attach metadata, such as headers, to the response message.
+This is useful for adding context or tracking information to your responses.
 
 Below is an example of how to use the `Response` class in an RPC subscriber.
 
