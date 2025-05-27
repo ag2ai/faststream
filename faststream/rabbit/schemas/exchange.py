@@ -138,6 +138,12 @@ class RabbitExchange(NameRequired):
         self.arguments = arguments
 
         if passive is not EMPTY:
+            warnings.warn(
+                DeprecationWarning(
+                    "Use `declare` instead. Will be removed in the 0.6.0 release.",
+                ),
+                stacklevel=2,
+            )
             self.declare = not passive
         else:
             self.declare = declare

@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, Annotated, Dict, Optional, cast
+import warnings
+from typing import TYPE_CHECKING, Dict, Optional, cast
 
-from typing_extensions import deprecated
+from typing_extensions import Annotated, deprecated
 
 from faststream.types import EMPTY
 
@@ -37,6 +38,12 @@ class RabbitDeclarer:
         if (q := self.__queues.get(queue)) is None:
             channel_obj = await self.__channel_manager.get_channel(channel)
             if passive is not EMPTY:
+                warnings.warn(
+                    DeprecationWarning(
+                        "Use `declare` instead. Will be removed in the 0.6.0 release.",
+                    ),
+                    stacklevel=2,
+                )
                 declare = not passive
 
             elif declare is EMPTY:
@@ -71,14 +78,17 @@ class RabbitDeclarer:
     ) -> "aio_pika.RobustExchange":
         """Declare an exchange, parent exchanges and bind them each other."""
         channel_obj = await self.__channel_manager.get_channel(channel)
-        if type(passive) is bool:
-            declare = passive
-
         if not exchange.name:
             return channel_obj.default_exchange
 
         if (exch := self.__exchanges.get(exchange)) is None:
             if passive is not EMPTY:
+                warnings.warn(
+                    DeprecationWarning(
+                        "Use `declare` instead. Will be removed in the 0.6.0 release.",
+                    ),
+                    stacklevel=2,
+                )
                 declare = not passive
 
             elif declare is EMPTY:

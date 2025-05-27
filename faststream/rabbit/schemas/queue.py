@@ -1,6 +1,9 @@
+import warnings
 from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, Optional, TypedDict, Union, overload
+
+from typing_extensions import Annotated, Doc, deprecated
 
 from faststream.broker.schemas import NameRequired
 from faststream.exceptions import SetupError
@@ -70,7 +73,11 @@ class RabbitQueue(NameRequired):
         durable: bool = EMPTY,
         exclusive: bool = False,
         declare: bool = True,
-        passive: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
+            Doc("Do not create exchange automatically."),
+        ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["ClassicQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -87,7 +94,11 @@ class RabbitQueue(NameRequired):
         durable: Literal[True],
         exclusive: bool = False,
         declare: bool = True,
-        passive: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
+            Doc("Do not create exchange automatically."),
+        ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["QuorumQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -104,7 +115,11 @@ class RabbitQueue(NameRequired):
         durable: Literal[True],
         exclusive: bool = False,
         declare: bool = True,
-        passive: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
+            Doc("Do not create exchange automatically."),
+        ] = EMPTY,
         auto_delete: bool = False,
         arguments: Optional["StreamQueueArgs"] = None,
         timeout: "TimeoutType" = None,
@@ -120,7 +135,11 @@ class RabbitQueue(NameRequired):
         durable: bool = EMPTY,
         exclusive: bool = False,
         declare: bool = True,
-        passive: bool = EMPTY,
+        passive: Annotated[
+            bool,
+            deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
+            Doc("Do not create exchange automatically."),
+        ] = EMPTY,
         auto_delete: bool = False,
         arguments: Union[
             "QuorumQueueArgs",
@@ -180,6 +199,12 @@ class RabbitQueue(NameRequired):
         self.timeout = timeout
 
         if passive is not EMPTY:
+            warnings.warn(
+                DeprecationWarning(
+                    "Use `declare` instead. Will be removed in the 0.6.0 release.",
+                ),
+                stacklevel=2,
+            )
             self.declare = not passive
         else:
             self.declare = declare
