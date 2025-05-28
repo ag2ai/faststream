@@ -205,9 +205,9 @@ class RabbitQueue(NameRequired):
                 ),
                 stacklevel=2,
             )
-            self.declare = not passive
+            self.declare = passive
         else:
-            self.declare = declare
+            self.declare = not declare
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)

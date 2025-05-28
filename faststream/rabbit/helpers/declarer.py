@@ -26,7 +26,7 @@ class RabbitDeclarer:
     async def declare_queue(
         self,
         queue: "RabbitQueue",
-        declare: bool = False,
+        declare: bool = True,
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
@@ -44,10 +44,9 @@ class RabbitDeclarer:
                     ),
                     stacklevel=2,
                 )
-                declare = not passive
-
-            elif declare is EMPTY:
-                declare = queue.declare
+                declare = passive
+            else:
+                declare = not declare
 
             self.__queues[queue] = q = cast(
                 "aio_pika.RobustQueue",
@@ -55,7 +54,7 @@ class RabbitDeclarer:
                     name=queue.name,
                     durable=queue.durable,
                     exclusive=queue.exclusive,
-                    passive=not declare,
+                    passive=declare or queue.declare,
                     auto_delete=queue.auto_delete,
                     arguments=queue.arguments,
                     timeout=queue.timeout,
@@ -68,7 +67,7 @@ class RabbitDeclarer:
     async def declare_exchange(
         self,
         exchange: "RabbitExchange",
-        declare: bool = False,
+        declare: bool = True,
         passive: Annotated[
             bool,
             deprecated("Use `declare` instead. Will be removed in the 0.6.0 release."),
@@ -89,10 +88,9 @@ class RabbitDeclarer:
                     ),
                     stacklevel=2,
                 )
-                declare = not passive
-
-            elif declare is EMPTY:
-                declare = exchange.declare
+                declare = passive
+            else:
+                declare = not declare
 
             self.__exchanges[exchange] = exch = cast(
                 "aio_pika.RobustExchange",
@@ -101,7 +99,7 @@ class RabbitDeclarer:
                     type=exchange.type.value,
                     durable=exchange.durable,
                     auto_delete=exchange.auto_delete,
-                    passive=not declare,
+                    passive=declare or exchange.declare,
                     arguments=exchange.arguments,
                     timeout=exchange.timeout,
                     robust=exchange.robust,

@@ -144,9 +144,9 @@ class RabbitExchange(NameRequired):
                 ),
                 stacklevel=2,
             )
-            self.declare = not passive
+            self.declare = passive
         else:
-            self.declare = declare
+            self.declare = not declare
 
         self.bind_to = bind_to
         self.bind_arguments = bind_arguments

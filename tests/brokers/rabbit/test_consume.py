@@ -53,8 +53,8 @@ class TestConsume(BrokerRealConsumeTestcase):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
-            queue=RabbitQueue(name=queue, passive=True),
-            exchange=RabbitExchange(name=exchange.name, passive=True),
+            queue=RabbitQueue(name=queue, declare=False),
+            exchange=RabbitExchange(name=exchange.name, declare=False),
             retry=True,
         )
         def h(m):
