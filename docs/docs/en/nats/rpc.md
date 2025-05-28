@@ -70,16 +70,13 @@ async def handle(msg):
 When the client sends a request like this:
 
 ```python hl_lines="1 8"
-from faststream import FastStream
-from faststream.nats import NatsBroker, NatsMessage
+from faststream.nats import NatsMessage
 
-broker = NatsBroker()
-app = FastStream(broker)
-
-@app.after_startup
-async def test_response():
-    msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
-    assert msg.body == b"Received: Hello, NATS!"
+msg: NatsMessage = await broker.request(
+    "Hello, NATS!",
+    subject="test",
+)
+assert msg.body == b"Received: Hello, NATS!"
 ```
 
 The subscriber processes the request and sends back the response, which is received by the client.
@@ -112,18 +109,12 @@ async def handle(msg):
 When the client sends a request:
 
 ```python hl_lines="1 8"
-from faststream import FastStream
-from faststream.nats import NatsBroker, NatsMessage
+from faststream.nats import NatsMessage
 
-broker = NatsBroker()
-app = FastStream(broker)
-
-@app.after_startup
-async def test_response():
-    msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
-    assert msg.body == b"Processed: Hello, NATS!"
-    assert msg.headers == {"custom-header": "value"}
-    assert msg.correlation_id == "some-correlation-id"
+msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
+assert msg.body == b"Processed: Hello, NATS!"
+assert msg.headers == {"x-token": "some-token"}
+assert msg.correlation_id == "some-correlation-id"
 ```
 
 ## Using the NatsResponse class
@@ -154,21 +145,15 @@ async def handle(msg):
 When the client sends a request:
 
 ```python hl_lines="1 8"
-from faststream import FastStream
-from faststream.nats import NatsBroker, NatsMessage
+from faststream.nats import NatsMessage
 
-broker = NatsBroker()
-app = FastStream(broker)
-
-@app.after_startup
-async def test_response():
-    msg: NatsMessage = await broker.request(
-        "Hello, NATS!",
-        subject="test",
-        stream="stream",
-    )
-    assert msg.body == b"Processed: Hello, NATS!"
-    assert msg.headers == {"custom-header": "value"}
-    assert msg.correlation_id == "some-correlation-id"
-    assert msg.stream == "stream"
+msg: NatsMessage = await broker.request(
+    "Hello, NATS!",
+    subject="test",
+    stream="stream",
+)
+assert msg.body == b"Processed: Hello, NATS!"
+assert msg.headers == {"x-token": "some-token"}
+assert msg.correlation_id == "some-correlation-id"
+assert msg.stream == "stream"
 ```
