@@ -1,8 +1,9 @@
 import logging
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional
+import warnings
 
-from typing_extensions import Annotated, Doc
+from typing_extensions import Annotated, Doc, deprecated
 
 from faststream.broker.core.abc import ABCBroker
 from faststream.broker.types import MsgType
@@ -43,8 +44,12 @@ class LoggingBroker(ABCBroker[MsgType]):
         ],
         log_fmt: Annotated[
             Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
             Doc("Default logger log format."),
-        ],
+        ] = EMPTY,
         **kwargs: Any,
     ) -> None:
         if logger is not EMPTY:
@@ -55,6 +60,15 @@ class LoggingBroker(ABCBroker[MsgType]):
             self.use_custom = False
 
         self._msg_log_level = log_level
+
+        if log_fmt is not EMPTY:
+            warnings.warn(
+                DeprecationWarning(
+                    "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                    "Pass a pre-configured `logger` instead."
+                ),
+                stacklevel=2,
+            )
         self._fmt = log_fmt
 
         super().__init__(*args, **kwargs)
