@@ -1,7 +1,7 @@
 import logging
+import warnings
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional
-import warnings
 
 from typing_extensions import Annotated, Doc, deprecated
 
