@@ -49,3 +49,111 @@ await broker.publish(
     reply_to="response-subject",
 )
 ```
+
+## Creating an RPC subscriber
+
+To handle an RPC request, you need to create a subscriber that processes the incoming message and returns a response.
+The subscriber should be decorated with `@broker.subscriber` and return either a raw value or a `Response` object.
+
+Below is an example of a simple RPC subscriber that processes a message and returns a response.
+
+```python hl_lines="1 8"
+from faststream.nats import NatsBroker
+
+broker = NatsBroker()
+
+@broker.subscriber("test")
+async def handle(msg):
+    return f"Received: {msg}"
+```
+
+When the client sends a request like this:
+
+```python hl_lines="1 8"
+from faststream.nats import NatsMessage
+
+msg: NatsMessage = await broker.request(
+    "Hello, NATS!",
+    subject="test",
+)
+assert msg.body == b"Received: Hello, NATS!"
+```
+
+The subscriber processes the request and sends back the response, which is received by the client.
+
+!!! tip
+    You can use the `no_reply=True` flag in the `@broker.subscriber` decorator to suppress automatic RPC and `reply_to` responses.
+    This is useful when you want the subscriber to process the message without sending a response back to the client.
+
+## Using the Response class
+The `Response` class allows you to attach metadata, such as headers, to the response message.
+This is useful for adding context or tracking information to your responses.
+
+Below is an example of how to use the `Response` class in an RPC subscriber.
+
+```python hl_lines="1 8"
+from faststream import Response
+from faststream.nats import NatsBroker
+
+broker = NatsBroker()
+
+@broker.subscriber("test")
+async def handle(msg):
+    return Response(
+        body=f"Processed: {msg}",
+        headers={"x-token": "some-token"},
+        correlation_id="some-correlation-id",
+    )
+```
+
+When the client sends a request:
+
+```python hl_lines="1 8"
+from faststream.nats import NatsMessage
+
+msg: NatsMessage = await broker.request("Hello, NATS!", subject="test")
+assert msg.body == b"Processed: Hello, NATS!"
+assert msg.headers == {"x-token": "some-token"}
+assert msg.correlation_id == "some-correlation-id"
+```
+
+## Using the NatsResponse class
+For NATS-specific use cases, you can use the `NatsResponse` class instead of the generic `Response` class.
+The `NatsResponse` class extends `Response` and adds support for specifying a `stream` parameter,
+which is required when publishing responses to a JetStream-enabled subject.
+This ensures the response is published to the correct stream in a JetStream context.
+
+```python hl_lines="1 8"
+from faststream import FastStream
+from faststream.nats import JStream, NatsBroker, NatsResponse
+
+broker = NatsBroker()
+app = FastStream(broker)
+
+stream = JStream(name="stream")
+
+@broker.subscriber("test", stream=stream)
+async def handle(msg):
+    return NatsResponse(
+        body=f"Processed: {msg}",
+        headers={"x-token": "some-token"},
+        correlation_id="some-correlation-id",
+        stream="stream",
+    )
+```
+
+When the client sends a request:
+
+```python hl_lines="1 8"
+from faststream.nats import NatsMessage
+
+msg: NatsMessage = await broker.request(
+    "Hello, NATS!",
+    subject="test",
+    stream="stream",
+)
+assert msg.body == b"Processed: Hello, NATS!"
+assert msg.headers == {"x-token": "some-token"}
+assert msg.correlation_id == "some-correlation-id"
+assert msg.stream == "stream"
+```
