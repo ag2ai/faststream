@@ -135,7 +135,13 @@ class RabbitBroker(
         tags: Optional[Iterable[Union["asyncapi.Tag", "asyncapi.TagDict"]]] = None,
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
-        log_fmt: Optional[str] = None,
+        log_fmt: Annotated[
+            Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
+        ] = EMPTY,
         apply_types: bool = True,
         validate: bool = True,
         _get_dependant: Optional[Callable[..., Any]] = None,
