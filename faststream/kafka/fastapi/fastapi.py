@@ -323,8 +323,12 @@ class KafkaRouter(StreamRouter[Union[ConsumerRecord, Tuple[ConsumerRecord, ...]]
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
             Doc("Default logger log format."),
-        ] = None,
+        ] = EMPTY,
         # StreamRouter options
         setup_state: Annotated[
             bool,
