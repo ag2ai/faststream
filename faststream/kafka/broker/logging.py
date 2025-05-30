@@ -1,6 +1,8 @@
 import logging
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Tuple, Union
 
+from typing_extensions import Annotated, deprecated
+
 from faststream.broker.core.usecase import BrokerUsecase
 from faststream.log.logging import get_broker_logger
 from faststream.types import EMPTY
@@ -28,7 +30,13 @@ class KafkaLoggingBroker(
         *args: Any,
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
-        log_fmt: Optional[str] = None,
+        log_fmt: Annotated[
+            Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
+        ] = EMPTY,
         **kwargs: Any,
     ) -> None:
         """Initialize the class."""
