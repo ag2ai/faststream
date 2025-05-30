@@ -69,7 +69,9 @@ class LoggingBroker(ABCBroker[MsgType]):
                 ),
                 stacklevel=2,
             )
-        self._fmt = log_fmt
+            self._fmt = log_fmt
+        else:
+            self._fmt = None
 
         super().__init__(*args, **kwargs)
 
