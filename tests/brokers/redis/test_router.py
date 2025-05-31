@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,13 +24,9 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RedisRoute
     publisher_class = RedisPublisher
 
-    async def test_router_path(
-        self,
-        event,
-        mock,
-        router,
-    ) -> None:
+    async def test_router_path(self, event: asyncio.Event, mock: MagicMock) -> None:
         pub_broker = self.get_broker(apply_types=True)
+        router = self.get_router()
 
         @router.subscriber("in.{name}.{id}")
         async def h(
@@ -50,14 +47,11 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
             mock.assert_called_once_with(name="john", id=2)
 
     async def test_router_path_with_prefix(
-        self,
-        event,
-        mock,
-        router,
+        self, event: asyncio.Event, mock: MagicMock
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        router.prefix = "test."
+        router = self.get_router(prefix="test.")
 
         @router.subscriber("in.{name}.{id}")
         async def h(
@@ -78,12 +72,10 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
             mock.assert_called_once_with(name="john", id=2)
 
     async def test_router_delay_handler_path(
-        self,
-        event,
-        mock,
-        router,
+        self, event: asyncio.Event, mock: MagicMock
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
+        router = self.get_router()
 
         async def h(
             name: str = Path(),
@@ -104,10 +96,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
             assert event.is_set()
             mock.assert_called_once_with(name="john", id=2)
 
-    async def test_delayed_channel_handlers(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_delayed_channel_handlers(self, queue: str) -> None:
         event = asyncio.Event()
 
         pub_broker = self.get_broker()
@@ -132,10 +121,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
 
             assert event.is_set()
 
-    async def test_delayed_list_handlers(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_delayed_list_handlers(self, queue: str) -> None:
         event = asyncio.Event()
 
         pub_broker = self.get_broker()
@@ -160,10 +146,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
 
             assert event.is_set()
 
-    async def test_delayed_stream_handlers(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_delayed_stream_handlers(self, queue: str) -> None:
         event = asyncio.Event()
 
         pub_broker = self.get_broker()

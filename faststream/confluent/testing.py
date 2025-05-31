@@ -1,5 +1,5 @@
 from collections.abc import Generator, Iterable, Iterator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
@@ -13,7 +13,7 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
-from faststream._internal.testing.broker import TestBroker
+from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -38,10 +38,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:
-        old_producer = broker._state.get().producer
-        broker._state.patch_value(producer=FakeProducer(broker))
-        yield
-        broker._state.patch_value(producer=old_producer)
+        fake_producer = FakeProducer(broker)
+
+        with ExitStack() as es:
+            es.enter_context(change_producer(broker.config.broker_config, fake_producer))
+            yield
 
     @staticmethod
     async def _fake_connect(  # type: ignore[override]
@@ -49,6 +50,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
+        broker.config.broker_config.admin.admin_client = MagicMock()
         return _fake_connection
 
     @staticmethod
@@ -57,7 +59,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         publisher: "SpecificationPublisher[Any, Any]",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: Optional[LogicSubscriber[Any]] = None
-        for handler in broker._subscribers:
+        for handler in broker.subscribers:
             if _is_handler_matches(
                 handler,
                 topic=publisher.topic,
@@ -102,7 +104,6 @@ class FakeProducer(AsyncConfluentFastProducer):
         self.broker = broker
 
         default = AsyncConfluentParser()
-
         self._parser = resolve_custom_func(broker._parser, default.parse_message)
         self._decoder = resolve_custom_func(broker._decoder, default.decode_message)
 
@@ -130,7 +131,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -146,7 +147,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -186,7 +187,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):

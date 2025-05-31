@@ -14,15 +14,19 @@ if TYPE_CHECKING:
         RabbitExchange,
         RabbitQueue,
     )
-    from faststream.rabbit.schemas.exchange import RabbitExchange
-    from faststream.rabbit.schemas.queue import RabbitQueue
+
+    from .broker import RabbitBrokerConfig
 
 
 @dataclass(kw_only=True)
-class RabbitSubscriberConfig(SubscriberUsecaseConfig):
+class RabbitEndpointConfig:
+    config: "RabbitBrokerConfig"
     queue: "RabbitQueue"
     exchange: "RabbitExchange"
 
+
+@dataclass(kw_only=True)
+class RabbitSubscriberConfig(RabbitEndpointConfig, SubscriberUsecaseConfig):
     consume_args: Optional["AnyDict"] = None
     channel: Optional["Channel"] = None
 
@@ -51,9 +55,6 @@ class RabbitSubscriberConfig(SubscriberUsecaseConfig):
 
 
 @dataclass(kw_only=True)
-class RabbitPublisherConfig(PublisherUsecaseConfig):
-    queue: "RabbitQueue"
-    exchange: "RabbitExchange"
-
+class RabbitPublisherConfig(RabbitEndpointConfig, PublisherUsecaseConfig):
     routing_key: str
     message_kwargs: "PublishKwargs"

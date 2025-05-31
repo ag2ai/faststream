@@ -6,6 +6,8 @@ from faststream._internal.endpoint.publisher import PublisherUsecaseConfig
 from faststream._internal.endpoint.subscriber import SubscriberUsecaseConfig
 from faststream.middlewares import AckPolicy
 
+from .broker import NatsBrokerConfig
+
 if TYPE_CHECKING:
     from nats.js.api import ConsumerConfig
 
@@ -15,10 +17,12 @@ if TYPE_CHECKING:
     from faststream.nats.schemas import JStream
 
 
-@dataclass
+@dataclass(kw_only=True)
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
+    config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
+
     subject: str
-    config: "ConsumerConfig"
+    sub_config: "ConsumerConfig"
     extra_options: Optional["AnyDict"] = field(default_factory=dict)
 
     _ack_first: bool = field(default_factory=lambda: EMPTY, repr=False)
@@ -38,8 +42,10 @@ class NatsSubscriberConfig(SubscriberUsecaseConfig):
         return self._ack_policy
 
 
-@dataclass
+@dataclass(kw_only=True)
 class NatsPublisherConfig(PublisherUsecaseConfig):
+    config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
+
     subject: str
     reply_to: str
     headers: Optional[dict[str, str]]

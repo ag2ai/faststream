@@ -112,7 +112,7 @@ if PYDANTIC_V2:
         return json_dumps(model_to_jsonable(data))
 
     def get_model_fields(model: type[BaseModel]) -> AnyDict:
-        return model.model_fields  # type: ignore[return-value]
+        return model.__pydantic_fields__  # type: ignore[return-value]
 
     def model_to_json(model: BaseModel, **kwargs: Any) -> str:
         return model.model_dump_json(**kwargs)

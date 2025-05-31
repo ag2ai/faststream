@@ -2,25 +2,12 @@ import logging
 import sys
 from collections.abc import Mapping
 from logging import LogRecord
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TextIO
 
-from faststream._internal.log.formatter import ColourizedFormatter
+from .formatter import ColourizedFormatter
 
 if TYPE_CHECKING:
     from faststream._internal.context.repository import ContextRepo
-
-
-logger = logging.getLogger("faststream")
-logger.setLevel(logging.INFO)
-logger.propagate = False
-main_handler = logging.StreamHandler(stream=sys.stderr)
-main_handler.setFormatter(
-    ColourizedFormatter(
-        fmt="%(asctime)s %(levelname)8s - %(message)s",
-        use_colors=True,
-    ),
-)
-logger.addHandler(main_handler)
 
 
 class ExtendedFilter(logging.Filter):
@@ -60,22 +47,33 @@ def get_broker_logger(
     context: "ContextRepo",
     log_level: int,
 ) -> logging.Logger:
-    logger = logging.getLogger(f"faststream.access.{name}")
+    logger = get_logger(
+        name=f"faststream.access.{name}",
+        log_level=log_level,
+        stream=sys.stdout,
+        fmt=fmt,
+    )
+    logger.addFilter(ExtendedFilter(default_context, message_id_ln, context=context))
+    return logger
+
+
+def get_logger(name: str, log_level: int, stream: "TextIO", fmt: str) -> logging.Logger:
+    logger = logging.getLogger(name)
     logger.setLevel(log_level)
     logger.propagate = False
-    logger.addFilter(ExtendedFilter(default_context, message_id_ln, context=context))
-    logger.setLevel(logging.INFO)
+    set_logger_fmt(logger, stream=stream, fmt=fmt)
     return logger
 
 
 def set_logger_fmt(
     logger: logging.Logger,
-    fmt: str = "%(asctime)s %(levelname)s - %(message)s",
+    stream: "TextIO",
+    fmt: str,
 ) -> None:
     if _handler_exists(logger):
-        return None
+        return
 
-    handler = logging.StreamHandler(stream=sys.stdout)
+    handler = logging.StreamHandler(stream=stream)
     handler.setFormatter(
         ColourizedFormatter(
             fmt=fmt,
@@ -83,7 +81,6 @@ def set_logger_fmt(
         ),
     )
     logger.addHandler(handler)
-    return logger
 
 
 def _handler_exists(logger: logging.Logger) -> bool:
@@ -92,3 +89,11 @@ def _handler_exists(logger: logging.Logger) -> bool:
         if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
             return True
     return False
+
+
+logger = get_logger(
+    name="faststream",
+    log_level=logging.INFO,
+    stream=sys.stderr,
+    fmt="%(asctime)s %(levelname)8s - %(message)s",
+)

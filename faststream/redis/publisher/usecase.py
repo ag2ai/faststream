@@ -1,13 +1,11 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from copy import deepcopy
 from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream.message import gen_cor_id
-from faststream.redis.configs import RedisPublisherConfig
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
@@ -15,6 +13,7 @@ from faststream.response.publish_type import PublishType
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.types import PublisherMiddleware
+    from faststream.redis.configs import RedisPublisherConfig
     from faststream.redis.message import RedisMessage
     from faststream.redis.publisher.producer import RedisFastProducer
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
@@ -47,7 +46,11 @@ class ChannelPublisher(LogicPublisher):
     ) -> None:
         super().__init__(config)
 
-        self.channel = channel
+        self._channel = channel
+
+    @property
+    def channel(self) -> "PubSub":
+        return self._channel.add_prefix(self._outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> "AnyDict":
@@ -56,11 +59,6 @@ class ChannelPublisher(LogicPublisher):
             "list": None,
             "stream": None,
         }
-
-    def add_prefix(self, prefix: str) -> None:
-        channel = deepcopy(self.channel)
-        channel.name = f"{prefix}{channel.name}"
-        self.channel = channel
 
     @override
     async def publish(
@@ -131,7 +129,11 @@ class ListPublisher(LogicPublisher):
     ) -> None:
         super().__init__(config)
 
-        self.list = list
+        self._list = list
+
+    @property
+    def list(self) -> "ListSub":
+        return self._list.add_prefix(self._outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> "AnyDict":
@@ -140,11 +142,6 @@ class ListPublisher(LogicPublisher):
             "list": self.list.name if name_only else self.list,
             "stream": None,
         }
-
-    def add_prefix(self, prefix: str) -> None:
-        list_sub = deepcopy(self.list)
-        list_sub.name = f"{prefix}{list_sub.name}"
-        self.list = list_sub
 
     @override
     async def publish(
@@ -254,8 +251,11 @@ class StreamPublisher(LogicPublisher):
         stream: "StreamSub",
     ) -> None:
         super().__init__(config)
+        self._stream = stream
 
-        self.stream = stream
+    @property
+    def stream(self) -> "StreamSub":
+        return self._stream.add_prefix(self._outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> "AnyDict":
@@ -264,11 +264,6 @@ class StreamPublisher(LogicPublisher):
             "list": None,
             "stream": self.stream.name if name_only else self.stream,
         }
-
-    def add_prefix(self, prefix: str) -> None:
-        stream_sub = deepcopy(self.stream)
-        stream_sub.name = f"{prefix}{stream_sub.name}"
-        self.stream = stream_sub
 
     @override
     async def publish(

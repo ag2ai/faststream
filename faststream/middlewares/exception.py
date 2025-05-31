@@ -14,7 +14,7 @@ from typing_extensions import Literal, TypeAlias
 
 from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
-from faststream._internal.utils.functions import sync_fake_context, to_async
+from faststream._internal.utils.functions import FakeContext, to_async
 from faststream.exceptions import IgnoredException
 
 if TYPE_CHECKING:
@@ -201,7 +201,7 @@ class _BaseExceptionMiddleware(BaseMiddleware):
                     if not self.context.get_local("message"):
                         scope = self.context.scope("message", self.msg)
                     else:
-                        scope = sync_fake_context()
+                        scope = FakeContext()
 
                     with scope:
                         await handler(exc_val, context__=self.context)

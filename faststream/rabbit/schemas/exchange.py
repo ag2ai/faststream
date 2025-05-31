@@ -35,7 +35,7 @@ class RabbitExchange(NameRequired):
         else:
             body = ""
 
-        return f"{self.__class__.__name__}({self.name}, type={self.type}, routing_key='{self.routing}'{body})"
+        return f"{self.__class__.__name__}({self.name}, type={self.type}, routing_key='{self.routing()}'{body})"
 
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
@@ -49,7 +49,6 @@ class RabbitExchange(NameRequired):
             ),
         )
 
-    @property
     def routing(self) -> str:
         """Return real routing_key of object."""
         return self.routing_key or self.name

@@ -17,15 +17,11 @@ from faststream.specification.schema import PublisherSpec
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyCallable, AnyDict
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-    from faststream._internal.state import BrokerState, Pointer
 
     from .config import PublisherSpecificationConfig
 
 
 class SpecificationPublisher(SpecificationEndpoint[MsgType, PublisherSpec]):
-
-    _state: "Pointer[BrokerState]"  # should be set in next parent
-
     def __init__(
         self,
         config: "PublisherSpecificationConfig",
@@ -63,13 +59,13 @@ class SpecificationPublisher(SpecificationEndpoint[MsgType, PublisherSpec]):
                 payloads.append((body, ""))
 
         else:
-            di_state = self._state.get().di_state
+            di_state = self._outer_config.fd_config
 
             for call in self.calls:
                 call_model = build_call_model(
                     call,
                     dependency_provider=di_state.provider,
-                    serializer_cls=di_state.serializer,
+                    serializer_cls=di_state._serializer,
                 )
 
                 response_type = next(

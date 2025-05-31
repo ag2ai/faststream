@@ -23,6 +23,76 @@ if TYPE_CHECKING:
 class AsyncConfluentFastProducer(ProducerProto):
     """A class to represent Kafka producer."""
 
+    def connect(self, producer: "AsyncConfluentProducer") -> None: ...
+
+    async def disconnect(self) -> None: ...
+
+    def __bool__(self) -> bool: ...
+
+    async def ping(self, timeout: float) -> bool: ...
+
+    async def flush(self) -> None: ...
+
+    @override
+    async def publish(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]": ...
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> None: ...
+
+    @override
+    async def request(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> NoReturn: ...
+
+
+class FakeConfluentFastProducer(AsyncConfluentFastProducer):
+    def connect(self, producer: "AsyncConfluentProducer") -> None:
+        raise NotImplementedError
+
+    async def disconnect(self) -> None:
+        raise NotImplementedError
+
+    def __bool__(self) -> bool:
+        return False
+
+    async def ping(self, timeout: float) -> bool:
+        raise NotImplementedError
+
+    async def flush(self) -> None:
+        raise NotImplementedError
+
+    @override
+    async def publish(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
+        raise NotImplementedError
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> None:
+        raise NotImplementedError
+
+    @override
+    async def request(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> NoReturn:
+        raise NotImplementedError
+
+
+class AsyncConfluentFastProducerImpl(ProducerProto):
+    """A class to represent Kafka producer."""
+
     def __init__(
         self,
         parser: Optional["CustomCallable"],
@@ -48,8 +118,11 @@ class AsyncConfluentFastProducer(ProducerProto):
     async def ping(self, timeout: float) -> bool:
         return await self._producer.ping(timeout=timeout)
 
+    async def flush(self) -> None:
+        await self._producer.flush()
+
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         cmd: "KafkaPublishCommand",
     ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
@@ -71,12 +144,7 @@ class AsyncConfluentFastProducer(ProducerProto):
             no_confirm=cmd.no_confirm,
         )
 
-    async def stop(self) -> None:
-        await self._producer.stop()
-
-    async def flush(self) -> None:
-        await self._producer.flush()
-
+    @override
     async def publish_batch(
         self,
         cmd: "KafkaPublishCommand",

@@ -2,9 +2,8 @@ from faststream._internal.testing.app import TestApp
 
 try:
     from .annotations import Redis, RedisMessage
-    from .broker.broker import RedisBroker
+    from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
     from .response import RedisResponse
-    from .router import RedisPublisher, RedisRoute, RedisRouter
     from .schemas import ListSub, PubSub, StreamSub
     from .testing import TestRedisBroker
 

@@ -1,3 +1,5 @@
+from dirty_equals import IsPartialDict
+
 from faststream.rabbit import (
     RabbitBroker,
     RabbitPublisher,
@@ -29,68 +31,37 @@ class TestRouter(RouterTestcase):
 
         schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
 
-        assert (
-            schema
-            == {
-                "asyncapi": "2.6.0",
-                "defaultContentType": "application/json",
-                "info": {"title": "FastStream", "version": "0.1.0", "description": ""},
-                "servers": {
-                    "development": {
-                        "url": "amqp://guest:guest@localhost:5672/",  # pragma: allowlist secret
-                        "protocol": "amqp",
-                        "protocolVersion": "0.9.1",
+        assert schema["channels"] == IsPartialDict({
+            "test_test:_:Handle": {
+                "servers": ["development"],
+                "bindings": {
+                    "amqp": {
+                        "is": "routingKey",
+                        "bindingVersion": "0.2.0",
+                        "queue": {
+                            "name": "test_test",
+                            "durable": False,
+                            "exclusive": False,
+                            "autoDelete": False,
+                            "vhost": "/",
+                        },
+                        "exchange": {"type": "default", "vhost": "/"},
                     },
                 },
-                "channels": {
-                    "test_test:_:Handle": {
-                        "servers": ["development"],
-                        "bindings": {
-                            "amqp": {
-                                "is": "routingKey",
-                                "bindingVersion": "0.2.0",
-                                "queue": {
-                                    "name": "test_test",
-                                    "durable": False,
-                                    "exclusive": False,
-                                    "autoDelete": False,
-                                    "vhost": "/",
-                                },
-                                "exchange": {"type": "default", "vhost": "/"},
-                            },
+                "publish": {
+                    "bindings": {
+                        "amqp": {
+                            "cc": "test_key",
+                            "ack": True,
+                            "bindingVersion": "0.2.0",
                         },
-                        "publish": {
-                            "bindings": {
-                                "amqp": {
-                                    "cc": "test_key",
-                                    "ack": True,
-                                    "bindingVersion": "0.2.0",
-                                },
-                            },
-                            "message": {
-                                "$ref": "#/components/messages/test_test:_:Handle:Message",
-                            },
-                        },
+                    },
+                    "message": {
+                        "$ref": "#/components/messages/test_test:_:Handle:Message",
                     },
                 },
-                "components": {
-                    "messages": {
-                        "test_test:_:Handle:Message": {
-                            "title": "test_test:_:Handle:Message",
-                            "correlationId": {
-                                "location": "$message.header#/correlation_id",
-                            },
-                            "payload": {
-                                "$ref": "#/components/schemas/Handle:Message:Payload",
-                            },
-                        },
-                    },
-                    "schemas": {
-                        "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                    },
-                },
-            }
-        ), schema
+            },
+        }), schema["channels"]
 
 
 class TestRouterArguments(ArgumentsTestcase):

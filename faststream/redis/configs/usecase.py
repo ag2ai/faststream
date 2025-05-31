@@ -10,15 +10,21 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
+    from .broker import RedisBrokerConfig
+
 
 @dataclass
 class RedisPublisherConfig(PublisherUsecaseConfig):
+    config: "RedisBrokerConfig"
+
     reply_to: str
     headers: Optional["AnyDict"]
 
 
 @dataclass
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
+    config: "RedisBrokerConfig"
+
     list_sub: Optional["ListSub"] = field(default=None, repr=False)
     channel_sub: Optional["PubSub"] = field(default=None, repr=False)
     stream_sub: Optional["StreamSub"] = field(default=None, repr=False)

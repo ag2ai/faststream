@@ -35,12 +35,12 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         *,
         queue: str,
     ) -> None:
-        parser_ = NatsParser(
+        parser = NatsParser(
             pattern=config.subject,
             is_ack_disabled=config.ack_policy is not AckPolicy.DO_NOTHING,
         )
-        config.default_parser = parser_.parse_message
-        config.default_decoder = parser_.decode_message
+        config.parser = parser.parse_message
+        config.decoder = parser.decode_message
         super().__init__(config)
 
         self.queue = queue
@@ -56,7 +56,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         ), "You can't use `get_one` method if subscriber has registered handlers."
 
         if self._fetch_sub is None:
-            fetch_sub = self._fetch_sub = await self._connection_state.client.subscribe(
+            fetch_sub = self._fetch_sub = await self.connection.subscribe(
                 subject=self.clear_subject,
                 queue=self.queue,
                 **self.extra_options,
@@ -69,7 +69,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         except TimeoutError:
             return None
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
@@ -88,7 +88,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         ), "You can't use iterator if subscriber has registered handlers."
 
         if self._fetch_sub is None:
-            fetch_sub = self._fetch_sub = await self._connection_state.client.subscribe(
+            fetch_sub = self._fetch_sub = await self.connection.subscribe(
                 subject=self.clear_subject,
                 queue=self.queue,
                 **self.extra_options,
@@ -97,7 +97,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
             fetch_sub = self._fetch_sub
 
         async for raw_message in fetch_sub.messages:
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
@@ -114,7 +114,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         if self.subscription:
             return
 
-        self.subscription = await self._connection_state.client.subscribe(
+        self.subscription = await self.connection.subscribe(
             subject=self.clear_subject,
             queue=self.queue,
             cb=self.consume,
@@ -145,7 +145,7 @@ class ConcurrentCoreSubscriber(ConcurrentMixin["Msg"], CoreSubscriber):
 
         self.start_consume_task()
 
-        self.subscription = await self._connection_state.client.subscribe(
+        self.subscription = await self.connection.subscribe(
             subject=self.clear_subject,
             queue=self.queue,
             cb=self._put_msg,

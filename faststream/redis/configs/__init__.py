@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 
+from .broker import RedisBrokerConfig
 from .specification import (
     RedisPublisherSpecificationConfig,
     RedisSubscriberSpecificationConfig,
 )
+from .state import ConnectionState
 from .usecase import RedisPublisherConfig, RedisSubscriberConfig
 
 
@@ -24,6 +26,8 @@ class RedisPublisherConfigFacade(
 
 
 __all__ = (
+    "ConnectionState",
+    "RedisBrokerConfig",
     "RedisPublisherConfig",
     "RedisPublisherConfigFacade",
     "RedisPublisherSpecificationConfig",

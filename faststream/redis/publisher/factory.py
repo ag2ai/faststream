@@ -17,8 +17,8 @@ from .specified import (
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
-    from faststream.redis.message import UnifyRedisDict
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.redis.configs import RedisBrokerConfig
 
 
 PublisherType: TypeAlias = Union[
@@ -36,7 +36,7 @@ def create_publisher(
     stream: Union["StreamSub", str, None],
     headers: Optional["AnyDict"],
     reply_to: str,
-    broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+    config: "RedisBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
     title_: Optional[str],
@@ -49,7 +49,7 @@ def create_publisher(
     config = RedisPublisherConfigFacade(
         reply_to=reply_to,
         headers=headers,
-        broker_middlewares=broker_middlewares,
+        config=config,
         middlewares=middlewares,
         # specification
         schema_=schema_,

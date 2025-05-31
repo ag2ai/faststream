@@ -72,8 +72,8 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert consume2.is_set()
         assert consume.is_set()
+        assert consume2.is_set()
         assert mock.call_count == 2
 
     async def test_consume_double(
@@ -238,10 +238,7 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
             assert event.is_set()
             mock.assert_called_once_with({"x": 1}, "100", consume_broker)
 
-    async def test_dynamic_sub(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_dynamic_sub(self, queue: str) -> None:
         event = asyncio.Event()
 
         consume_broker = self.get_broker()
@@ -255,7 +252,6 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
             args, kwargs = self.get_subscriber_params(queue)
             sub = br.subscriber(*args, **kwargs)
             sub(subscriber)
-            br.setup_subscriber(sub)
             await sub.start()
 
             await br.publish("hello", queue)

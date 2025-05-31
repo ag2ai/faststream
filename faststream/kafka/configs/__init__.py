@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from .broker import KafkaBrokerConfig
 from .specification import (
     KafkaPublisherSpecificationConfig,
     KafkaSubscriberSpecificationConfig,
@@ -24,6 +25,7 @@ class KafkaPublisherConfigFacade(
 
 
 __all__ = (
+    "KafkaBrokerConfig",
     "KafkaPublisherConfig",
     "KafkaPublisherConfigFacade",
     "KafkaPublisherSpecificationConfig",

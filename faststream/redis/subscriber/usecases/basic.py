@@ -20,14 +20,9 @@ from faststream.redis.publisher.fake import RedisFakePublisher
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream._internal.state import BrokerState, Pointer
-    from faststream._internal.types import (
-        CustomCallable,
-    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.configs import RedisSubscriberConfig
+    from faststream.redis.configs import RedisBrokerConfig, RedisSubscriberConfig
 
 
 TopicName: TypeAlias = bytes
@@ -37,34 +32,11 @@ Offset: TypeAlias = bytes
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
-    _client: Optional["Redis[bytes]"]
+    _outer_config: "RedisBrokerConfig"
 
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
-        super().__init__(config)
-
-        self._client = None
-
-    @override
-    def _setup(  # type: ignore[override]
-        self,
-        *,
-        connection: Optional["Redis[bytes]"],
-        # basic args
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        state: "Pointer[BrokerState]",
-    ) -> None:
-        self._client = connection
-
-        super()._setup(
-            extra_context=extra_context,
-            broker_parser=broker_parser,
-            broker_decoder=broker_decoder,
-            state=state,
-        )
+    @property
+    def _client(self) -> "Redis[bytes]":
+        return self._outer_config.connection.client
 
     def _make_response_publisher(
         self,
@@ -72,7 +44,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     ) -> Sequence["BasePublisherProto"]:
         return (
             RedisFakePublisher(
-                self._state.get().producer,
+                self._outer_config.producer,
                 channel=message.reply_to,
             ),
         )
@@ -86,6 +58,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             return
 
         await super().start()
+
+        self._post_start()
 
         start_signal = anyio.Event()
 

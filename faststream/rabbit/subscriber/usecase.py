@@ -8,46 +8,32 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream.exceptions import SetupError
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream._internal.state import BrokerState
-    from faststream._internal.types import CustomCallable
     from faststream.message import StreamMessage
-    from faststream.rabbit.configs import RabbitSubscriberConfig
-    from faststream.rabbit.helpers import RabbitDeclarer
+    from faststream.rabbit.configs import RabbitBrokerConfig, RabbitSubscriberConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.publisher.producer import AioPikaFastProducer
-    from faststream.rabbit.schemas import (
-        RabbitExchange,
-        RabbitQueue,
-    )
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 
 class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     app_id: Optional[str]
-    declarer: Optional["RabbitDeclarer"]
+    _outer_config: "RabbitBrokerConfig"
 
     _consumer_tag: Optional[str]
     _queue_obj: Optional["RobustQueue"]
-    _producer: Optional["AioPikaFastProducer"]
 
-    def __init__(
-        self,
-        config: "RabbitSubscriberConfig",
-        /
-    ) -> None:
+    def __init__(self, config: "RabbitSubscriberConfig", /) -> None:
         parser = AioPikaParser(pattern=config.queue.path_regex)
-        config.default_decoder = parser.decode_message
-        config.default_parser = parser.parse_message
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
         self.queue = config.queue
@@ -61,58 +47,42 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         self._queue_obj = None
         self.channel = config.channel
 
-        # Setup it later
-        self.declarer = None
+    @property
+    def app_id(self) -> str:
+        return self._outer_config.app_id
 
-    @override
-    def _setup(  # type: ignore[override]
-        self,
-        *,
-        declarer: "RabbitDeclarer",
-        # basic args
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        state: "BrokerState",
-    ) -> None:
-        self.declarer = declarer
-
-        super()._setup(
-            extra_context=extra_context,
-            broker_parser=broker_parser,
-            broker_decoder=broker_decoder,
-            state=state,
-        )
+    def routing(self) -> str:
+        return f"{self._outer_config.prefix}{self.queue.routing()}"
 
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        if self.declarer is None:
-            msg = "You should setup subscriber at first."
-            raise SetupError(msg)
+        await super().start()
 
-        self._queue_obj = queue = await self.declarer.declare_queue(
-            self.queue,
+        queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
+
+        declarer = self._outer_config.declarer
+
+        self._queue_obj = queue = await declarer.declare_queue(
+            queue_to_bind,
             channel=self.channel,
         )
 
         if (
             self.exchange is not None
-            and self.queue.declare  # queue just getted from RMQ
+            and queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
-            exchange = await self.declarer.declare_exchange(
+            exchange = await declarer.declare_exchange(
                 self.exchange,
                 channel=self.channel,
             )
 
             await queue.bind(
                 exchange,
-                routing_key=self.queue.routing,
-                arguments=self.queue.bind_arguments,
-                timeout=self.queue.timeout,
+                routing_key=queue_to_bind.routing(),
+                arguments=queue_to_bind.bind_arguments,
+                timeout=queue_to_bind.timeout,
                 robust=self.queue.robust,
             )
 
@@ -124,7 +94,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
                 arguments=self.consume_args,
             )
 
-        await super().start()
+        self._post_start()
 
     async def close(self) -> None:
         await super().close()
@@ -165,7 +135,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: Optional[RabbitMessage] = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
@@ -178,13 +148,13 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:
         assert self._queue_obj, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
         ), "You can't use iterator method if subscriber has registered handlers."
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         async with self._queue_obj.iterator() as queue_iter:
             async for raw_message in queue_iter:
@@ -207,7 +177,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
     ) -> Sequence["BasePublisherProto"]:
         return (
             RabbitFakePublisher(
-                self._state.get().producer,
+                self._outer_config.producer,
                 routing_key=message.reply_to,
                 app_id=self.app_id,
             ),
@@ -234,7 +204,3 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
             queue=self.queue,
             exchange=self.exchange,
         )
-
-    def add_prefix(self, prefix: str) -> None:
-        """Include Subscriber in router."""
-        self.queue = self.queue.add_prefix(prefix)

@@ -13,6 +13,8 @@ from faststream._internal.endpoint.subscriber import (
 )
 from faststream.middlewares.acknowledgement.conf import AckPolicy
 
+from .broker import KafkaBrokerConfig
+
 if TYPE_CHECKING:
     from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
@@ -20,8 +22,10 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
 
 
-@dataclass
+@dataclass(kw_only=True)
 class KafkaPublisherConfig(PublisherUsecaseConfig):
+    config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
+
     key: Union[bytes, str, None]
     topic: str
     partition: Optional[int]
@@ -29,8 +33,10 @@ class KafkaPublisherConfig(PublisherUsecaseConfig):
     reply_to: Optional[str]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
+    config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
+
     topics: Sequence[str] = field(default_factory=list)
     group_id: Optional[str] = None
     connection_args: "AnyDict" = field(default_factory=dict)

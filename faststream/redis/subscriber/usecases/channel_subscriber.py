@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -27,6 +26,7 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisSubscriberConfig
+    from faststream.redis.schemas import PubSub
 
 
 TopicName: TypeAlias = bytes
@@ -39,12 +39,16 @@ class ChannelSubscriber(LogicSubscriber):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         assert config.channel_sub  # nosec B101
         parser = RedisPubSubParser(pattern=config.channel_sub.path_regex)
-        config.default_decoder = parser.decode_message
-        config.default_parser = parser.parse_message
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
-        self.channel = config.channel_sub
+        self._channel = config.channel_sub
         self.subscription = None
+
+    @property
+    def channel(self) -> "PubSub":
+        return self._channel.add_prefix(self._outer_config.prefix)
 
     def get_log_context(
         self,
@@ -98,7 +102,7 @@ class ChannelSubscriber(LogicSubscriber):
             while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
                 await anyio.sleep(sleep_interval)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: Optional[RedisMessage] = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
@@ -129,7 +133,7 @@ class ChannelSubscriber(LogicSubscriber):
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             if raw_message is None:
                 continue
@@ -163,11 +167,6 @@ class ChannelSubscriber(LogicSubscriber):
     async def _get_msgs(self, psub: RPubSub) -> None:
         if msg := await self._get_message(psub):
             await self.consume_one(msg)
-
-    def add_prefix(self, prefix: str) -> None:
-        new_ch = deepcopy(self.channel)
-        new_ch.name = f"{prefix}{new_ch.name}"
-        self.channel = new_ch
 
 
 class ConcurrentChannelSubscriber(

@@ -1,4 +1,3 @@
-
 from faststream._internal.endpoint.subscriber.specification.specified import (
     SpecificationSubscriber as SpecificationSubscriberMixin,
 )
@@ -26,13 +25,15 @@ class SpecificationSubscriber(
     """AsyncAPI-compatible Rabbit Subscriber class."""
 
     def get_default_name(self) -> str:
-        return f"{self.queue.name}:{getattr(self.exchange, 'name', None) or '_'}:{self.call_name}"
+        return f"{self._outer_config.prefix}{self.queue.name}:{getattr(self.exchange, 'name', None) or '_'}:{self.call_name}"
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
+        queue = self.queue.add_prefix(self._outer_config.prefix)
+
         exchange_binding = amqp.Exchange.from_exchange(self.exchange)
-        queue_binding = amqp.Queue.from_queue(self.queue)
+        queue_binding = amqp.Queue.from_queue(queue)
 
         return {
             self.name: SubscriberSpec(
@@ -40,7 +41,7 @@ class SpecificationSubscriber(
                 operation=Operation(
                     bindings=OperationBinding(
                         amqp=amqp.OperationBinding(
-                            routing_key=self.queue.routing,
+                            routing_key=queue.routing(),
                             queue=queue_binding,
                             exchange=exchange_binding,
                             ack=True,

@@ -62,8 +62,8 @@ class RabbitQueue(NameRequired):
         else:
             body = ""
 
-        if self.routing != self.name:
-            body = f", routing_key='{self.routing}'{body}"
+        if (r := self.routing()) != self.name:
+            body = f", routing_key='{r}'{body}"
 
         return f"{self.__class__.__name__}({self.name}{body})"
 
@@ -78,10 +78,19 @@ class RabbitQueue(NameRequired):
             ),
         )
 
-    @property
     def routing(self) -> str:
         """Return real routing_key of object."""
         return self.routing_key or self.name
+
+    def add_prefix(self, prefix: str) -> "RabbitQueue":
+        new_q: RabbitQueue = deepcopy(self)
+
+        new_q.name = f"{prefix}{new_q.name}"
+
+        if new_q.routing_key:
+            new_q.routing_key = f"{prefix}{new_q.routing_key}"
+
+        return new_q
 
     @overload
     def __init__(
@@ -207,16 +216,6 @@ class RabbitQueue(NameRequired):
             self.declare = not passive
         else:
             self.declare = declare
-
-    def add_prefix(self, prefix: str) -> "RabbitQueue":
-        new_q: RabbitQueue = deepcopy(self)
-
-        new_q.name = f"{prefix}{new_q.name}"
-
-        if new_q.routing_key:
-            new_q.routing_key = f"{prefix}{new_q.routing_key}"
-
-        return new_q
 
 
 CommonQueueArgs = TypedDict(

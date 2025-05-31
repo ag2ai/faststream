@@ -1,6 +1,5 @@
+import logging
 from typing import TYPE_CHECKING, Optional
-
-from faststream._internal.state.proto import SetupAble
 
 from .logger_proxy import (
     EmptyLoggerObject,
@@ -10,6 +9,7 @@ from .logger_proxy import (
 )
 from .params_storage import (
     DefaultLoggerStorage,
+    EmptyLoggerStorage,
     LoggerParamsStorage,
     make_logger_storage,
 )
@@ -22,12 +22,10 @@ if TYPE_CHECKING:
 def make_logger_state(
     logger: Optional["LoggerProto"],
     log_level: int,
-    log_fmt: Optional[str],
     default_storage_cls: type["DefaultLoggerStorage"],
 ) -> "LoggerState":
     storage = make_logger_storage(
         logger=logger,
-        log_fmt=log_fmt,
         default_storage_cls=default_storage_cls,
     )
 
@@ -37,14 +35,14 @@ def make_logger_state(
     )
 
 
-class LoggerState(SetupAble):
+class LoggerState:
     def __init__(
         self,
-        log_level: int,
-        storage: LoggerParamsStorage,
+        log_level: int = logging.INFO,
+        storage: Optional["LoggerParamsStorage"] = None,
     ) -> None:
         self.log_level = log_level
-        self.params_storage = storage
+        self.params_storage = storage or EmptyLoggerStorage()
 
         self.logger: LoggerObject = NotSetLoggerObject()
 

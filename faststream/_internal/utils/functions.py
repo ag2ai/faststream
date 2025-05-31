@@ -1,12 +1,14 @@
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Iterator
+from collections.abc import AsyncIterator, Awaitable
 from concurrent.futures import Executor
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from functools import partial, wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
+    Self,
     TypeVar,
     Union,
     cast,
@@ -22,6 +24,9 @@ from fast_depends.utils import (
 from typing_extensions import ParamSpec
 
 from faststream._internal.basic_types import F_Return, F_Spec
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 __all__ = (
     "call_or_await",
@@ -71,9 +76,33 @@ async def fake_context(*args: Any, **kwargs: Any) -> AsyncIterator[None]:
     yield None
 
 
-@contextmanager
-def sync_fake_context(*args: Any, **kwargs: Any) -> Iterator[None]:
-    yield None
+class FakeContext:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        if exc_val:
+            raise exc_val
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        if exc_val:
+            raise exc_val
 
 
 def drop_response_type(model: CallModel) -> CallModel:

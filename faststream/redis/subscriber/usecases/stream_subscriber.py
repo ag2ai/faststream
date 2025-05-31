@@ -1,6 +1,5 @@
 import math
 from collections.abc import AsyncIterator, Awaitable
-from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,6 +29,7 @@ if TYPE_CHECKING:
 
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisSubscriberConfig
+    from faststream.redis.schemas import StreamSub
 
 
 TopicName: TypeAlias = bytes
@@ -41,8 +41,12 @@ class _StreamHandlerMixin(LogicSubscriber):
         super().__init__(config)
 
         assert config.stream_sub  # nosec B101
-        self.stream_sub = config.stream_sub
+        self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
+
+    @property
+    def stream_sub(self) -> "StreamSub":
+        return self._stream_sub.add_prefix(self._outer_config.prefix)
 
     def get_log_context(
         self,
@@ -191,7 +195,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             data=raw_message,
         )
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
             msg=redis_incoming_msg,
@@ -232,7 +236,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 data=raw_message,
             )
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
@@ -245,17 +249,12 @@ class _StreamHandlerMixin(LogicSubscriber):
             )
             yield msg
 
-    def add_prefix(self, prefix: str) -> None:
-        new_stream = deepcopy(self.stream_sub)
-        new_stream.name = f"{prefix}{new_stream.name}"
-        self.stream_sub = new_stream
-
 
 class StreamSubscriber(_StreamHandlerMixin):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         parser = RedisStreamParser()
-        config.default_decoder = parser.decode_message
-        config.default_parser = parser.parse_message
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
     async def _get_msgs(
@@ -297,8 +296,8 @@ class StreamSubscriber(_StreamHandlerMixin):
 class StreamBatchSubscriber(_StreamHandlerMixin):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         parser = RedisBatchStreamParser()
-        config.default_decoder = parser.decode_message
-        config.default_parser = parser.parse_message
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
     async def _get_msgs(

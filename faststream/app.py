@@ -8,6 +8,7 @@ from typing import (
 )
 
 import anyio
+from fast_depends import Provider
 from typing_extensions import ParamSpec
 
 from faststream._internal._compat import ExceptionGroup
@@ -16,11 +17,11 @@ from faststream._internal.basic_types import Lifespan, LoggerProto
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.cli.supervisors.utils import set_exit
 from faststream._internal.constants import EMPTY
-from faststream._internal.log import logger
+from faststream._internal.di import FastDependsConfig
+from faststream._internal.logger import logger
 from faststream.asgi.app import AsgiFastStream
 
 if TYPE_CHECKING:
-    from fast_depends import Provider
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import (
@@ -43,7 +44,6 @@ class FastStream(Application):
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
-        # regular broker args
         logger: Optional["LoggerProto"] = logger,
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -56,14 +56,17 @@ class FastStream(Application):
         super().__init__(
             broker,
             logger=logger,
-            provider=provider,
-            serializer=serializer,
+            config=FastDependsConfig(
+                provider=provider or Provider(),
+                serializer=serializer,
+            ),
             lifespan=lifespan,
             on_startup=on_startup,
             after_startup=after_startup,
             on_shutdown=on_shutdown,
             after_shutdown=after_shutdown,
         )
+
         self._should_exit = False
 
     async def run(

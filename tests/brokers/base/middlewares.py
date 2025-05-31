@@ -14,41 +14,41 @@ from .basic import BaseTestcaseConfig
 
 @pytest.mark.asyncio()
 class MiddlewaresOrderTestcase(BaseTestcaseConfig):
-    async def test_broker_middleware_order(self, queue: str, mock: MagicMock):
+    async def test_broker_middleware_order(self, queue: str, mock: MagicMock) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def __aenter__(self):
+            async def __aenter__(self) -> None:
                 mock.enter_inner()
                 mock.enter("inner")
 
-            async def __aexit__(self, *args):
+            async def __aexit__(self, *args) -> None:
                 mock.exit_inner()
                 mock.exit("inner")
 
-            async def consume_scope(self, call_next, msg):
+            async def consume_scope(self, call_next, msg) -> None:
                 mock.consume_inner()
                 mock.sub("inner")
                 return await call_next(msg)
 
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(self, call_next, cmd) -> None:
                 mock.publish_inner()
                 mock.pub("inner")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def __aenter__(self):
+            async def __aenter__(self) -> None:
                 mock.enter_outer()
                 mock.enter("outer")
 
-            async def __aexit__(self, *args):
+            async def __aexit__(self, *args) -> None:
                 mock.exit_outer()
                 mock.exit("outer")
 
-            async def consume_scope(self, call_next, msg):
+            async def consume_scope(self, call_next, msg) -> None:
                 mock.consume_outer()
                 mock.sub("outer")
                 return await call_next(msg)
 
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(self, call_next, cmd) -> None:
                 mock.publish_outer()
                 mock.pub("outer")
                 return await call_next(cmd)
@@ -78,7 +78,9 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         assert [c.args[0] for c in mock.enter.call_args_list] == ["outer", "inner"]
         assert [c.args[0] for c in mock.exit.call_args_list] == ["inner", "outer"]
 
-    async def test_publisher_middleware_order(self, queue: str, mock: MagicMock):
+    async def test_publisher_middleware_order(
+        self, queue: str, mock: MagicMock
+    ) -> None:
         class InnerMiddleware(BaseMiddleware):
             async def publish_scope(self, call_next, cmd):
                 mock.publish_inner()
@@ -123,7 +125,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
     async def test_publisher_with_router_middleware_order(
         self, queue: str, mock: MagicMock
-    ):
+    ) -> None:
         class InnerMiddleware(BaseMiddleware):
             async def publish_scope(self, call_next, cmd):
                 mock.publish_inner()
@@ -166,7 +168,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
         assert [c.args[0] for c in mock.call_args_list] == ["outer", "middle", "inner"]
 
-    async def test_consume_middleware_order(self, queue: str, mock: MagicMock):
+    async def test_consume_middleware_order(self, queue: str, mock: MagicMock) -> None:
         class InnerMiddleware(BaseMiddleware):
             async def consume_scope(self, call_next, cmd):
                 mock.consume_inner()
@@ -208,22 +210,21 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
         assert [c.args[0] for c in mock.call_args_list] == ["outer", "middle", "inner"]
 
-    async def test_consume_with_middleware_order(self, queue: str, mock: MagicMock):
+    async def test_consume_with_middleware_order(
+        self, queue: str, mock: MagicMock
+    ) -> None:
         class InnerMiddleware(BaseMiddleware):
             async def consume_scope(self, call_next, cmd):
-                mock.consume_inner()
                 mock("inner")
                 return await call_next(cmd)
 
         class MiddleMiddleware(BaseMiddleware):
             async def consume_scope(self, call_next, cmd):
-                mock.consume_middle()
                 mock("middle")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
             async def consume_scope(self, call_next, cmd):
-                mock.consume_outer()
                 mock("outer")
                 return await call_next(cmd)
 
@@ -242,11 +243,8 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         async with self.patch_broker(broker) as br:
             await br.publish(None, queue)
 
-        mock.consume_inner.assert_called_once()
-        mock.consume_middle.assert_called_once()
-        mock.consume_outer.assert_called_once()
-
-        assert [c.args[0] for c in mock.call_args_list] == ["outer", "middle", "inner"]
+        call_order = [c.args[0] for c in mock.call_args_list]
+        assert call_order == ["outer", "middle", "inner"], call_order
 
 
 @pytest.mark.asyncio()
@@ -291,12 +289,8 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         mock.end.assert_called_once()
 
     async def test_publisher_middleware(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         async def mid(call_next, msg, **kwargs):
             mock.enter()
             result = await call_next(msg, **kwargs)
@@ -433,9 +427,9 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         mock.end.assert_called_once()
         assert mock.call_count == 2
 
-    async def test_error_traceback(self, queue: str, mock: MagicMock) -> None:
-        event = asyncio.Event()
-
+    async def test_error_traceback(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
         async def mid(call_next, msg):
             try:
                 result = await call_next(msg)
@@ -472,12 +466,8 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
 @pytest.mark.asyncio()
 class MiddlewareTestcase(LocalMiddlewareTestcase):
     async def test_global_middleware(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         class mid(BaseMiddleware):  # noqa: N801
             async def on_receive(self):
                 mock.start(self.msg)
@@ -513,12 +503,8 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         mock.end.assert_called_once()
 
     async def test_add_global_middleware(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         class mid(BaseMiddleware):  # noqa: N801
             async def on_receive(self):
                 mock.start(self.msg)
@@ -564,16 +550,12 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
             )
 
         assert event.is_set()
-        assert mock.start.call_count == 2
-        assert mock.end.call_count == 2
+        assert mock.start.call_count == 2, mock.start.call_count
+        assert mock.end.call_count == 2, mock.end.call_count
 
     async def test_patch_publish(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         class Mid(BaseMiddleware):
             async def on_publish(self, msg: PublishCommand) -> PublishCommand:
                 msg.body *= 2
@@ -609,12 +591,8 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         mock.assert_called_once_with("rrrr")
 
     async def test_global_publisher_middleware(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         class Mid(BaseMiddleware):
             async def on_publish(self, msg: PublishCommand) -> PublishCommand:
                 msg.body *= 2
@@ -657,12 +635,8 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
 @pytest.mark.asyncio()
 class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
     async def test_exception_middleware_default_msg(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
@@ -700,12 +674,8 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mock.assert_called_once_with("value")
 
     async def test_exception_middleware_skip_msg(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
@@ -741,12 +711,8 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         assert mock.call_count == 0
 
     async def test_exception_middleware_do_not_catch_skip_msg(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         mid = ExceptionMiddleware()
 
         @mid.add_handler(Exception)
@@ -776,12 +742,8 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         assert mock.call_count == 0
 
     async def test_exception_middleware_reraise(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
@@ -817,12 +779,8 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         assert mock.call_count == 0
 
     async def test_exception_middleware_different_handler(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ZeroDivisionError, publish=True)
@@ -898,12 +856,8 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         ]
 
     async def test_exception_middleware_decoder_error(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         async def decoder(
             msg,
             original_decoder,

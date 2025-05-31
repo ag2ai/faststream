@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from typing_extensions import Literal, TypedDict
 
+from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream.confluent.security import parse_security
 
@@ -303,31 +304,31 @@ class ConfluentFastConfig:
     def __init__(
         self,
         *,
-        security: Optional["BaseSecurity"],
-        config: Optional[ConfluentConfig],
+        security: Optional["BaseSecurity"] = None,
+        config: Optional[ConfluentConfig] = None,
         # shared
-        bootstrap_servers: Union[str, Iterable[str]],
-        retry_backoff_ms: int,
-        client_id: Optional[str],
-        allow_auto_create_topics: bool,
-        connections_max_idle_ms: int,
-        metadata_max_age_ms: int,
+        bootstrap_servers: Union[str, Iterable[str]] = "localhost",
+        retry_backoff_ms: int = 100,
+        client_id: Optional[str] = SERVICE_NAME,
+        allow_auto_create_topics: bool = True,
+        connections_max_idle_ms: int = 9 * 60 * 1000,
+        metadata_max_age_ms: int = 5 * 60 * 1000,
         # producer
-        request_timeout_ms: int,
-        acks: Literal[0, 1, -1, "all"],
-        compression_type: Optional[Literal["gzip", "snappy", "lz4", "zstd"]],
+        request_timeout_ms: int = 40 * 1000,
+        acks: Literal[0, 1, -1, "all"] = EMPTY,
+        compression_type: Optional[Literal["gzip", "snappy", "lz4", "zstd"]] = None,
         partitioner: Union[
             str,
             Callable[
                 [bytes, list[Any], list[Any]],
                 Any,
             ],
-        ],
-        max_request_size: int,
-        linger_ms: int,
-        enable_idempotence: bool,
-        transactional_id: Optional[str],
-        transaction_timeout_ms: int,
+        ] = "consistent_random",
+        max_request_size: int = 1024 * 1024,
+        linger_ms: int = 0,
+        enable_idempotence: bool = False,
+        transactional_id: Optional[str] = None,
+        transaction_timeout_ms: int = 60 * 1000,
     ) -> None:
         self.config = parse_security(security) | (config or {})
 

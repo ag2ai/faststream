@@ -1,5 +1,4 @@
 import warnings
-from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import TypeAlias
@@ -22,10 +21,7 @@ from faststream.redis.subscriber.specified import (
 )
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
-
-    from faststream._internal.types import BrokerMiddleware
-    from faststream.redis.message import UnifyRedisDict
+    from faststream.redis.configs import RedisBrokerConfig
 
 SubsciberType: TypeAlias = Union[
     SpecificationChannelSubscriber,
@@ -47,9 +43,8 @@ def create_subscriber(
     # Subscriber args
     ack_policy: "AckPolicy",
     no_ack: bool,
+    config: "RedisBrokerConfig",
     no_reply: bool = False,
-    broker_dependencies: Iterable["Dependant"] = (),
-    broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"] = (),
     # AsyncAPI args
     title_: Optional[str] = None,
     description_: Optional[str] = None,
@@ -70,10 +65,7 @@ def create_subscriber(
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        default_parser=EMPTY,
-        default_decoder=EMPTY,
+        config=config,
         _ack_policy=ack_policy,
         _no_ack=no_ack,
         # specification

@@ -9,7 +9,6 @@ from typing import (
     Union,
 )
 
-from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from typing_extensions import Doc, deprecated
 
 from faststream._internal.broker.router import (
@@ -18,13 +17,13 @@ from faststream._internal.broker.router import (
     SubscriberRoute,
 )
 from faststream._internal.constants import EMPTY
-from faststream.kafka.broker.registrator import KafkaRegistrator
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
+from .registrator import KafkaRegistrator
+
 if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord, TopicPartition
-    from aiokafka.abc import ConsumerRebalanceListener
-    from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
+    from confluent_kafka import Message
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
@@ -35,7 +34,8 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.kafka.message import KafkaMessage
+    from faststream.confluent.message import KafkaMessage
+    from faststream.confluent.schemas import TopicPartition
 
 
 class KafkaPublisher(ArgsContainer):
@@ -138,7 +138,7 @@ class KafkaPublisher(ArgsContainer):
 
 
 class KafkaRoute(SubscriberRoute):
-    """Class to store delayed KafkaBroker subscriber registration."""
+    """Class to store delaied KafkaBroker subscriber registration."""
 
     def __init__(
         self,
@@ -147,10 +147,7 @@ class KafkaRoute(SubscriberRoute):
                 Callable[..., "SendableMessage"],
                 Callable[..., Awaitable["SendableMessage"]],
             ],
-            Doc(
-                "Message handler function "
-                "to wrap the same with `@broker.subscriber(...)` way.",
-            ),
+            Doc("Message handler function."),
         ],
         *topics: Annotated[
             str,
@@ -160,10 +157,8 @@ class KafkaRoute(SubscriberRoute):
             Iterable[KafkaPublisher],
             Doc("Kafka publishers to broadcast the handler result."),
         ] = (),
-        batch: Annotated[
-            bool,
-            Doc("Whether to consume messages in batches or not."),
-        ] = False,
+        partitions: Sequence["TopicPartition"] = (),
+        polling_interval: float = 0.1,
         group_id: Annotated[
             Optional[str],
             Doc(
@@ -175,20 +170,30 @@ class KafkaRoute(SubscriberRoute):
             """,
             ),
         ] = None,
-        key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+        group_instance_id: Annotated[
+            Optional[str],
             Doc(
-                "Any callable that takes a raw message `bytes` "
-                "key and returns a deserialized one.",
+                """
+            A unique string that identifies the consumer instance.
+            If set, the consumer is treated as a static member of the group
+            and does not participate in consumer group management (e.g.
+            partition assignment, rebalances). This can be used to assign
+            partitions to specific consumers, rather than letting the group
+            assign partitions based on consumer metadata.
+            """,
             ),
         ] = None,
-        value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+        fetch_max_wait_ms: Annotated[
+            int,
             Doc(
-                "Any callable that takes a raw message `bytes` "
-                "value and returns a deserialized value.",
+                """
+            The maximum amount of time in milliseconds
+            the server will block before answering the fetch request if
+            there isn't sufficient data to immediately satisfy the
+            requirement given by `fetch_min_bytes`.
+            """,
             ),
-        ] = None,
+        ] = 500,
         fetch_max_bytes: Annotated[
             int,
             Doc(
@@ -214,17 +219,6 @@ class KafkaRoute(SubscriberRoute):
             """,
             ),
         ] = 1,
-        fetch_max_wait_ms: Annotated[
-            int,
-            Doc(
-                """
-            The maximum amount of time in milliseconds
-            the server will block before answering the fetch request if
-            there isn't sufficient data to immediately satisfy the
-            requirement given by `fetch_min_bytes`.
-            """,
-            ),
-        ] = 500,
         max_partition_fetch_bytes: Annotated[
             int,
             Doc(
@@ -287,7 +281,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = True,
         partition_assignment_strategy: Annotated[
-            Sequence["AbstractPartitionAssignor"],
+            Sequence[str],
             Doc(
                 """
             List of objects to use to
@@ -301,7 +295,7 @@ class KafkaRoute(SubscriberRoute):
             strategy.
             """,
             ),
-        ] = (RoundRobinPartitionAssignor,),
+        ] = ("roundrobin",),
         max_poll_interval_ms: Annotated[
             int,
             Doc(
@@ -315,20 +309,6 @@ class KafkaRoute(SubscriberRoute):
             """,
             ),
         ] = 5 * 60 * 1000,
-        rebalance_timeout_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            The maximum time server will wait for this
-            consumer to rejoin the group in a case of rebalance. In Java client
-            this behaviour is bound to `max.poll.interval.ms` configuration,
-            but as ``aiokafka`` will rejoin the group in the background, we
-            decouple this setting to allow finer tuning by users that use
-            `ConsumerRebalanceListener` to delay rebalacing. Defaults
-            to ``session_timeout_ms``
-            """,
-            ),
-        ] = None,
         session_timeout_ms: Annotated[
             int,
             Doc(
@@ -360,36 +340,6 @@ class KafkaRoute(SubscriberRoute):
             """,
             ),
         ] = 3 * 1000,
-        consumer_timeout_ms: Annotated[
-            int,
-            Doc(
-                """
-            Maximum wait timeout for background fetching
-            routine. Mostly defines how fast the system will see rebalance and
-            request new data for new partitions.
-            """,
-            ),
-        ] = 200,
-        max_poll_records: Annotated[
-            Optional[int],
-            Doc(
-                """
-            The maximum number of records returned in a
-            single call by batch consumer. Has no limit by default.
-            """,
-            ),
-        ] = None,
-        exclude_internal_topics: Annotated[
-            bool,
-            Doc(
-                """
-            Whether records from internal topics
-            (such as offsets) should be exposed to the consumer. If set to True
-            the only way to receive records from an internal topic is
-            subscribing to it.
-            """,
-            ),
-        ] = True,
         isolation_level: Annotated[
             Literal["read_uncommitted", "read_committed"],
             Doc(
@@ -420,65 +370,14 @@ class KafkaRoute(SubscriberRoute):
             """,
             ),
         ] = "read_uncommitted",
-        batch_timeout_ms: Annotated[
-            int,
-            Doc(
-                """
-            Milliseconds spent waiting if
-            data is not available in the buffer. If 0, returns immediately
-            with any records that are available currently in the buffer,
-            else returns empty.
-            """,
-            ),
-        ] = 200,
+        batch: Annotated[
+            bool,
+            Doc("Whether to consume messages in batches or not."),
+        ] = False,
         max_records: Annotated[
             Optional[int],
             Doc("Number of messages to consume as one batch."),
         ] = None,
-        listener: Annotated[
-            Optional["ConsumerRebalanceListener"],
-            Doc(
-                """
-            Optionally include listener
-               callback, which will be called before and after each rebalance
-               operation.
-               As part of group management, the consumer will keep track of
-               the list of consumers that belong to a particular group and
-               will trigger a rebalance operation if one of the following
-               events trigger:
-
-               * Number of partitions change for any of the subscribed topics
-               * Topic is created or deleted
-               * An existing member of the consumer group dies
-               * A new member is added to the consumer group
-
-               When any of these events are triggered, the provided listener
-               will be invoked first to indicate that the consumer's
-               assignment has been revoked, and then again when the new
-               assignment has been received. Note that this listener will
-               immediately override any listener set in a previous call
-               to subscribe. It is guaranteed, however, that the partitions
-               revoked/assigned
-               through this interface are from topics subscribed in this call.
-            """,
-            ),
-        ] = None,
-        pattern: Annotated[
-            Optional[str],
-            Doc(
-                """
-            Pattern to match available topics. You must provide either topics or pattern, but not both.
-            """,
-            ),
-        ] = None,
-        partitions: Annotated[
-            Optional[Iterable["TopicPartition"]],
-            Doc(
-                """
-            A topic and partition tuple. You can't use 'topics' and 'partitions' in the same time.
-            """,
-            ),
-        ] = (),
         # broker args
         dependencies: Annotated[
             Iterable["Dependant"],
@@ -486,7 +385,7 @@ class KafkaRoute(SubscriberRoute):
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
-            Doc("Parser to map original **ConsumerRecord** object to FastStream one."),
+            Doc("Parser to map original **Message** object to FastStream one."),
         ] = None,
         decoder: Annotated[
             Optional["CustomCallable"],
@@ -541,9 +440,10 @@ class KafkaRoute(SubscriberRoute):
             *topics,
             publishers=publishers,
             max_workers=max_workers,
+            partitions=partitions,
+            polling_interval=polling_interval,
             group_id=group_id,
-            key_deserializer=key_deserializer,
-            value_deserializer=value_deserializer,
+            group_instance_id=group_instance_id,
             fetch_max_wait_ms=fetch_max_wait_ms,
             fetch_max_bytes=fetch_max_bytes,
             fetch_min_bytes=fetch_min_bytes,
@@ -554,31 +454,23 @@ class KafkaRoute(SubscriberRoute):
             check_crcs=check_crcs,
             partition_assignment_strategy=partition_assignment_strategy,
             max_poll_interval_ms=max_poll_interval_ms,
-            rebalance_timeout_ms=rebalance_timeout_ms,
             session_timeout_ms=session_timeout_ms,
             heartbeat_interval_ms=heartbeat_interval_ms,
-            consumer_timeout_ms=consumer_timeout_ms,
-            max_poll_records=max_poll_records,
-            exclude_internal_topics=exclude_internal_topics,
             isolation_level=isolation_level,
             max_records=max_records,
-            batch_timeout_ms=batch_timeout_ms,
             batch=batch,
-            listener=listener,
-            pattern=pattern,
-            partitions=partitions,
             # basic args
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
             no_reply=no_reply,
-            ack_policy=ack_policy,
-            no_ack=no_ack,
             # AsyncAPI args
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            ack_policy=ack_policy,
+            no_ack=no_ack,
         )
 
 
@@ -586,8 +478,8 @@ class KafkaRouter(
     KafkaRegistrator,
     BrokerRouter[
         Union[
-            "ConsumerRecord",
-            tuple["ConsumerRecord", ...],
+            "Message",
+            tuple["Message", ...],
         ]
     ],
 ):
@@ -613,19 +505,19 @@ class KafkaRouter(
         middlewares: Annotated[
             Sequence[
                 Union[
-                    "BrokerMiddleware[ConsumerRecord]",
-                    "BrokerMiddleware[tuple[ConsumerRecord, ...]]",
+                    "BrokerMiddleware[Message]",
+                    "BrokerMiddleware[tuple[Message, ...]]",
                 ]
             ],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["ABCBroker[ConsumerRecord]"],
+            Sequence["ABCBroker[Message]"],
             Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
-            Doc("Parser to map original **ConsumerRecord** object to FastStream one."),
+            Doc("Parser to map original **Message** object to FastStream one."),
         ] = None,
         decoder: Annotated[
             Optional["CustomCallable"],
@@ -638,12 +530,13 @@ class KafkaRouter(
     ) -> None:
         super().__init__(
             handlers=handlers,
-            # basic args
-            prefix=prefix,
-            dependencies=dependencies,
-            middlewares=middlewares,
+            config=KafkaBrokerConfig(
+                broker_middlewares=middlewares,
+                broker_dependencies=dependencies,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                include_in_schema=include_in_schema,
+                prefix=prefix,
+            ),
             routers=routers,
-            parser=parser,
-            decoder=decoder,
-            include_in_schema=include_in_schema,
         )

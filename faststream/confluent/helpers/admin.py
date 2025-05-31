@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from confluent_kafka.admin import AdminClient, NewTopic
 
-from .config import ConfluentFastConfig
+if TYPE_CHECKING:
+    from .config import ConfluentFastConfig
 
 
 @dataclass
@@ -13,18 +14,17 @@ class CreateResult:
 
 
 class AdminService:
-    def __init__(self, config: ConfluentFastConfig) -> None:
-        self.config = config
+    def __init__(self) -> None:
         self.admin_client = None
 
-    async def start(self) -> None:
+    async def connect(self, config: "ConfluentFastConfig") -> None:
         if self.admin_client is None:
-            self.admin_client = AdminClient(self.config.admin_config)
+            self.admin_client = AdminClient(config.admin_config)
 
-    async def close(self) -> None:
+    async def disconnect(self) -> None:
         self.admin_client = None
 
-    def create_topics(self, topics: str) -> list[CreateResult]:
+    def create_topics(self, topics: list[str]) -> list[CreateResult]:
         assert self.admin_client is not None
 
         create_result = self.admin_client.create_topics(

@@ -235,7 +235,7 @@ broker = RabbitBroker()
         pytest.param(
             reqular_queue,
             exch_direct,
-            reqular_queue.routing,
+            reqular_queue.routing(),
             {},
             True,
             id="direct match",

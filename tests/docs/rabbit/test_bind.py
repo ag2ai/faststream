@@ -17,13 +17,13 @@ async def test_bind(monkeypatch, async_mock: AsyncMock):
         m.setattr(RobustQueue, "bind", async_mock)
 
         async with TestApp(app):
-            assert len(broker.declarer._RabbitDeclarer__queues) == 2  # with `reply-to`
-            assert len(broker.declarer._RabbitDeclarer__exchanges) == 1
+            assert len(broker.config.declarer._queues) == 2  # with `reply-to`
+            assert len(broker.config.declarer._exchanges) == 1
 
-            assert some_queue in broker.declarer._RabbitDeclarer__queues
-            assert some_exchange in broker.declarer._RabbitDeclarer__exchanges
+            assert some_queue in broker.config.declarer._queues
+            assert some_exchange in broker.config.declarer._exchanges
 
-            row_exchange = await broker.declarer.declare_exchange(some_exchange)
+            row_exchange = await broker.config.declarer.declare_exchange(some_exchange)
             async_mock.assert_awaited_once_with(
                 exchange=row_exchange,
                 routing_key=some_queue.name,

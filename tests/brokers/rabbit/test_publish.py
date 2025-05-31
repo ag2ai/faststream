@@ -8,7 +8,7 @@ from dirty_equals import IsNow
 
 from faststream import Context
 from faststream.rabbit import RabbitResponse
-from faststream.rabbit.publisher.producer import AioPikaFastProducer
+from faststream.rabbit.publisher.producer import AioPikaFastProducerImpl
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
@@ -43,9 +43,9 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             with patch.object(
-                AioPikaFastProducer,
+                AioPikaFastProducerImpl,
                 "publish",
-                spy_decorator(AioPikaFastProducer.publish),
+                spy_decorator(AioPikaFastProducerImpl.publish),
             ) as m:
                 await br.start()
 
@@ -88,9 +88,9 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             with patch.object(
-                AioPikaFastProducer,
+                AioPikaFastProducerImpl,
                 "publish",
-                spy_decorator(AioPikaFastProducer.publish),
+                spy_decorator(AioPikaFastProducerImpl.publish),
             ) as m:
                 await br.start()
 
@@ -130,7 +130,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
             assert await response.decode() == "Hi!", response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_default_timestamp(
         self,
         queue: str,
@@ -157,7 +157,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
             assert event.is_set()
 
-        mock.assert_called_once_with(
-            body=b"",
-            timestamp=IsNow(delta=3, tz=dt.timezone.utc),
-        )
+        assert mock.call_args.kwargs == {
+            "body": b"",
+            "timestamp": IsNow(delta=dt.timedelta(seconds=10), tz=dt.timezone.utc),
+        }

@@ -17,9 +17,8 @@ try:
     )
 
     from .annotations import NatsMessage
-    from .broker.broker import NatsBroker
+    from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
     from .response import NatsResponse
-    from .router import NatsPublisher, NatsRoute, NatsRouter
     from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub
     from .testing import TestNatsBroker
 

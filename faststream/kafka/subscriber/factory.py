@@ -14,12 +14,11 @@ from faststream.kafka.subscriber.specified import (
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord, TopicPartition
+    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
-    from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
+    from faststream.kafka.configs import KafkaBrokerConfig
 
 
 def create_subscriber(
@@ -39,10 +38,7 @@ def create_subscriber(
     max_workers: int,
     no_ack: bool,
     no_reply: bool,
-    broker_dependencies: Collection["Dependant"],
-    broker_middlewares: Collection[
-        "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
-    ],
+    config: "KafkaBrokerConfig",
     # Specification args
     title_: Optional[str],
     description_: Optional[str],
@@ -71,10 +67,7 @@ def create_subscriber(
         listener=listener,
         pattern=pattern,
         no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        default_decoder=EMPTY,
-        default_parser=EMPTY,
+        config=config,
         _ack_policy=ack_policy,
         # deprecated options to remove in 0.7.0
         _auto_commit=auto_commit,

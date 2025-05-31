@@ -5,9 +5,7 @@ from typing import TYPE_CHECKING
 from faststream._internal.endpoint.usecase import EndpointConfig
 
 if TYPE_CHECKING:
-    from faststream._internal.types import (
-        PublisherMiddleware,
-    )
+    from faststream._internal.types import PublisherMiddleware
 
 
 @dataclass

@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, Response
 from faststream._internal._compat import dump_json, model_to_json
+from faststream.exceptions import SubscriberNotFound
 
 from .basic import BaseTestcaseConfig
 
@@ -582,7 +584,9 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_publisher_after_connect(self, queue: str) -> None:
         async with self.patch_broker(self.get_broker()) as br:
             # Should pass without error
-            await br.publisher(queue).publish(None)
+            # suppress TestClient error due where is no suitable subscriber
+            with suppress(SubscriberNotFound):
+                await br.publisher(queue).publish(None)
 
     @pytest.mark.asyncio()
     async def test_publisher_after_start(

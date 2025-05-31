@@ -281,7 +281,6 @@ def publish(
             msg = "Broker instance not found in the app."
             raise ValueError(msg)
 
-        app_obj._setup()
         result = anyio.run(publish_message, app_obj.broker, rpc, message, publish_extra)
 
         if rpc:

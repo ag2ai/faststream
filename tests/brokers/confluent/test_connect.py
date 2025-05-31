@@ -59,7 +59,7 @@ def test_correct_config_with_dict() -> None:
         },
     )
 
-    assert broker.config.consumer_config == IsPartialDict({
+    assert broker.config.connection_config.consumer_config == IsPartialDict({
         "compression.codec": config.CompressionCodec.none.value,
         "compression.type": config.CompressionType.none.value,
         "client.dns.lookup": config.ClientDNSLookup.use_all_dns_ips.value,

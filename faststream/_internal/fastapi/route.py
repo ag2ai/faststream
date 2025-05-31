@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from fastapi.types import IncEx
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.state import DIState
+    from faststream._internal.di import FastDependsConfig
     from faststream.message import StreamMessage as NativeMessage
 
 
@@ -83,7 +83,7 @@ def wrap_callable_to_fastapi_compatible(
     response_model_exclude_unset: bool,
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
-    state: "DIState",
+    config: "FastDependsConfig",
 ) -> Callable[["NativeMessage[Any]"], Awaitable[Any]]:
     if has_forbidden_types(user_callable, (Dependant,)):
         msg = (
@@ -121,7 +121,7 @@ def wrap_callable_to_fastapi_compatible(
         response_model_exclude_unset=response_model_exclude_unset,
         response_model_exclude_defaults=response_model_exclude_defaults,
         response_model_exclude_none=response_model_exclude_none,
-        state=state,
+        config=config,
     )
 
     mark_faststream_decorated(parsed_callable)
@@ -139,7 +139,7 @@ def build_faststream_to_fastapi_parser(
     response_model_exclude_unset: bool,
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
-    state: "DIState",
+    config: "FastDependsConfig",
 ) -> Callable[["NativeMessage[Any]"], Awaitable[Any]]:
     """Creates a session for handling requests."""
     assert dependent.call  # nosec B101
@@ -181,14 +181,14 @@ def build_faststream_to_fastapi_parser(
 
             stream_message = StreamMessage(
                 body=fastapi_body,
-                headers={"context__": state.context, **message.headers},
+                headers={"context__": config.context, **message.headers},
                 path={**path, **message.path},
             )
 
         else:
             stream_message = StreamMessage(
                 body={},
-                headers={"context__": state.context},
+                headers={"context__": config.context},
                 path={},
             )
 

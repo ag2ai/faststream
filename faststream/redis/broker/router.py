@@ -10,14 +10,15 @@ from faststream._internal.broker.router import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.rabbit.broker.registrator import RabbitRegistrator
+from faststream.redis.configs.broker import RedisRouterConfig
+from faststream.redis.message import BaseMessage
+
+from .registrator import RedisRegistrator
 
 if TYPE_CHECKING:
-    from aio_pika.abc import DateType, HeadersType, TimeoutType
-    from aio_pika.message import IncomingMessage
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict
+    from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.broker.abc_broker import ABCBroker
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -25,71 +26,42 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import (
-        RabbitExchange,
-        RabbitQueue,
-    )
-    from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.redis.message import UnifyRedisMessage
+    from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
-class RabbitPublisher(ArgsContainer):
-    """Delayed RabbitPublisher registration object.
+class RedisPublisher(ArgsContainer):
+    """Delayed RedisPublisher registration object.
 
-    Just a copy of `RabbitRegistrator.publisher(...)` arguments.
+    Just a copy of RedisRegistrator.publisher(...) arguments.
     """
 
     def __init__(
         self,
-        queue: Annotated[
-            Union["RabbitQueue", str],
-            Doc("Default message routing key to publish with."),
-        ] = "",
-        exchange: Annotated[
-            Union["RabbitExchange", str, None],
-            Doc("Target exchange to publish message to."),
+        channel: Annotated[
+            Union["PubSub", str, None],
+            Doc("Redis PubSub object name to send message."),
         ] = None,
         *,
-        routing_key: Annotated[
-            str,
-            Doc(
-                "Default message routing key to publish with. "
-                "Overrides `queue` option if presented.",
-            ),
-        ] = "",
-        mandatory: Annotated[
-            bool,
-            Doc(
-                "Client waits for confirmation that the message is placed to some queue. "
-                "RabbitMQ returns message to client if there is no suitable queue.",
-            ),
-        ] = True,
-        immediate: Annotated[
-            bool,
-            Doc(
-                "Client expects that there is consumer ready to take the message to work. "
-                "RabbitMQ returns message to client if there is no suitable consumer.",
-            ),
-        ] = False,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Send confirmation time from RabbitMQ."),
+        list: Annotated[
+            Union["ListSub", str, None],
+            Doc("Redis List object name to send message."),
         ] = None,
-        persist: Annotated[
-            bool,
-            Doc("Restore the message on RabbitMQ reboot."),
-        ] = False,
+        stream: Annotated[
+            Union["StreamSub", str, None],
+            Doc("Redis Stream object name to send message."),
+        ] = None,
+        headers: Annotated[
+            Optional["AnyDict"],
+            Doc(
+                "Message headers to store metainformation. "
+                "Can be overridden by `publish.headers` if specified.",
+            ),
+        ] = None,
         reply_to: Annotated[
-            Optional[str],
-            Doc(
-                "Reply message routing key to send with (always sending to default exchange).",
-            ),
-        ] = None,
-        priority: Annotated[
-            Optional[int],
-            Doc("The message priority (0 by default)."),
-        ] = None,
-        # basic args
+            str,
+            Doc("Reply message destination PubSub object name."),
+        ] = "",
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -98,7 +70,7 @@ class RabbitPublisher(ArgsContainer):
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
-        # AsyncAPI args
+        # AsyncAPI information
         title: Annotated[
             Optional[str],
             Doc("AsyncAPI publisher object title."),
@@ -118,58 +90,14 @@ class RabbitPublisher(ArgsContainer):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-        # message args
-        headers: Annotated[
-            Optional["HeadersType"],
-            Doc(
-                "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified.",
-            ),
-        ] = None,
-        content_type: Annotated[
-            Optional[str],
-            Doc(
-                "Message **content-type** header. "
-                "Used by application, not core RabbitMQ. "
-                "Will be set automatically if not specified.",
-            ),
-        ] = None,
-        content_encoding: Annotated[
-            Optional[str],
-            Doc("Message body content encoding, e.g. **gzip**."),
-        ] = None,
-        expiration: Annotated[
-            Optional["DateType"],
-            Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
-        ] = None,
-        message_type: Annotated[
-            Optional[str],
-            Doc("Application-specific message type, e.g. **orders.created**."),
-        ] = None,
-        user_id: Annotated[
-            Optional[str],
-            Doc("Publisher connection User ID, validated if set."),
-        ] = None,
     ) -> None:
         super().__init__(
-            queue=queue,
-            exchange=exchange,
-            routing_key=routing_key,
-            mandatory=mandatory,
-            immediate=immediate,
-            timeout=timeout,
-            persist=persist,
-            reply_to=reply_to,
-            priority=priority,
+            channel=channel,
+            list=list,
+            stream=stream,
             headers=headers,
-            content_type=content_type,
-            content_encoding=content_encoding,
-            expiration=expiration,
-            message_type=message_type,
-            user_id=user_id,
-            # basic args
+            reply_to=reply_to,
             middlewares=middlewares,
-            # AsyncAPI args
             title=title,
             description=description,
             schema=schema,
@@ -177,47 +105,37 @@ class RabbitPublisher(ArgsContainer):
         )
 
 
-class RabbitRoute(SubscriberRoute):
-    """Class to store delayed RabbitBroker subscriber registration.
-
-    Just a copy of `RabbitRegistrator.subscriber(...)` arguments.
-    """
+class RedisRoute(SubscriberRoute):
+    """Class to store delayed RedisBroker subscriber registration."""
 
     def __init__(
         self,
         call: Annotated[
             Union[
-                Callable[..., "AioPikaSendableMessage"],
-                Callable[..., Awaitable["AioPikaSendableMessage"]],
+                Callable[..., "SendableMessage"],
+                Callable[..., Awaitable["SendableMessage"]],
             ],
             Doc(
                 "Message handler function "
                 "to wrap the same with `@broker.subscriber(...)` way.",
             ),
         ],
-        queue: Annotated[
-            Union[str, "RabbitQueue"],
-            Doc(
-                "RabbitMQ queue to listen. "
-                "**FastStream** declares and binds queue object to `exchange` automatically if it is not passive (by default).",
-            ),
-        ],
-        exchange: Annotated[
-            Union[str, "RabbitExchange", None],
-            Doc(
-                "RabbitMQ exchange to bind queue to. "
-                "Uses default exchange if not present. "
-                "**FastStream** declares exchange object automatically if it is not passive (by default)."
-            ),
+        channel: Annotated[
+            Union["PubSub", str, None],
+            Doc("Redis PubSub object name to send message."),
         ] = None,
         *,
         publishers: Annotated[
-            Iterable[RabbitPublisher],
-            Doc("RabbitMQ publishers to broadcast the handler result."),
+            Iterable["RedisPublisher"],
+            Doc("Redis publishers to broadcast the handler result."),
         ] = (),
-        consume_args: Annotated[
-            Optional["AnyDict"],
-            Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
+        list: Annotated[
+            Union["ListSub", str, None],
+            Doc("Redis List object name to send message."),
+        ] = None,
+        stream: Annotated[
+            Union["StreamSub", str, None],
+            Doc("Redis Stream object name to send message."),
         ] = None,
         # broker arguments
         dependencies: Annotated[
@@ -226,14 +144,16 @@ class RabbitRoute(SubscriberRoute):
         ] = (),
         parser: Annotated[
             Optional["CustomCallable"],
-            Doc("Parser to map original **IncomingMessage** Msg to FastStream one."),
+            Doc(
+                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
+            ),
         ] = None,
         decoder: Annotated[
             Optional["CustomCallable"],
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[RabbitMessage]"],
+            Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0"
@@ -271,14 +191,19 @@ class RabbitRoute(SubscriberRoute):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
+        max_workers: Annotated[
+            int,
+            Doc("Number of workers to process messages concurrently."),
+        ] = 1,
     ) -> None:
         super().__init__(
             call,
+            channel=channel,
             publishers=publishers,
-            queue=queue,
-            exchange=exchange,
-            consume_args=consume_args,
+            list=list,
+            stream=stream,
             dependencies=dependencies,
+            max_workers=max_workers,
             parser=parser,
             decoder=decoder,
             middlewares=middlewares,
@@ -291,8 +216,8 @@ class RabbitRoute(SubscriberRoute):
         )
 
 
-class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
-    """Includable to RabbitBroker router."""
+class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
+    """Includable to RedisBroker router."""
 
     def __init__(
         self,
@@ -301,7 +226,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             Doc("String prefix to add to all subscribers queues."),
         ] = "",
         handlers: Annotated[
-            Iterable[RabbitRoute],
+            Iterable[RedisRoute],
             Doc("Route object to include."),
         ] = (),
         *,
@@ -312,11 +237,11 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[IncomingMessage]"],
+            Sequence["BrokerMiddleware[BaseMessage]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["ABCBroker[IncomingMessage]"],
+            Sequence["ABCBroker[BaseMessage]"],
             Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
@@ -334,12 +259,13 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
     ) -> None:
         super().__init__(
             handlers=handlers,
-            # basic args
-            prefix=prefix,
-            dependencies=dependencies,
-            middlewares=middlewares,
+            config=RedisRouterConfig(
+                prefix=prefix,
+                broker_dependencies=dependencies,
+                broker_middlewares=middlewares,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                include_in_schema=include_in_schema,
+            ),
             routers=routers,
-            parser=parser,
-            decoder=decoder,
-            include_in_schema=include_in_schema,
         )

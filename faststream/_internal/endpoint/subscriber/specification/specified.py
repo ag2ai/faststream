@@ -55,6 +55,8 @@ class SpecificationSubscriber(SpecificationEndpoint[MsgType, SubscriberSpec]):
 
     def get_payloads(self) -> list[tuple["AnyDict", str]]:
         """Get the payloads of the handler."""
+        self._build_fastdepends_model()
+
         payloads: list[tuple[AnyDict, str]] = []
 
         for h in self.calls:

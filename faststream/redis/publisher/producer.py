@@ -6,22 +6,13 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.producer import ProducerProto
 from faststream._internal.utils.nuid import NUID
-from faststream.redis.helpers.state import (
-    ConnectedState,
-    ConnectionState,
-    EmptyConnectionState,
-)
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RawMessage, RedisPubSubParser
 from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import Redis
-
-    from faststream._internal.types import (
-        AsyncCallable,
-        CustomCallable,
-    )
+    from faststream._internal.types import AsyncCallable, CustomCallable
+    from faststream.redis.configs import ConnectionState
 
 
 class RedisFastProducer(ProducerProto):
@@ -32,10 +23,11 @@ class RedisFastProducer(ProducerProto):
 
     def __init__(
         self,
+        connection: "ConnectionState",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:
-        self._connection: ConnectionState = EmptyConnectionState()
+        self._connection = connection
 
         default = RedisPubSubParser()
         self._parser = resolve_custom_func(
@@ -46,12 +38,6 @@ class RedisFastProducer(ProducerProto):
             decoder,
             default.decode_message,
         )
-
-    def connect(self, client: "Redis[bytes]") -> None:
-        self._connection = ConnectedState(client)
-
-    def disconnect(self) -> None:
-        self._connection = EmptyConnectionState()
 
     @override
     async def publish(  # type: ignore[override]

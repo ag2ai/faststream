@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
+    from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.kafka.message import KafkaMessage
     from faststream.kafka.publisher.specified import (
         SpecificationBatchPublisher,
@@ -56,6 +57,8 @@ class KafkaRegistrator(
     ],
 ):
     """Includable to KafkaBroker router."""
+
+    config: "KafkaBrokerConfig"
 
     _subscribers: list[
         Union[
@@ -1647,12 +1650,11 @@ class KafkaRegistrator(
             auto_commit=auto_commit,
             # subscriber args
             no_reply=no_reply,
-            broker_middlewares=self.middlewares,
-            broker_dependencies=self._dependencies,
+            config=self.config,
             # Specification
             title_=title,
             description_=description,
-            include_in_schema=self._solve_include_in_schema(include_in_schema),
+            include_in_schema=include_in_schema,
         )
 
         subscriber = super().subscriber(sub)
@@ -1673,8 +1675,8 @@ class KafkaRegistrator(
             subscriber = cast("SpecificationDefaultSubscriber", subscriber)
 
         return subscriber.add_call(
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser,
+            decoder_=decoder,
             dependencies_=dependencies,
             middlewares_=middlewares,
         )
@@ -2031,18 +2033,20 @@ class KafkaRegistrator(
             headers=headers,
             reply_to=reply_to,
             # publisher-specific
-            broker_middlewares=self.middlewares,
+            config=self.config,
             middlewares=middlewares,
             # Specification
             title_=title,
             description_=description,
             schema_=schema,
-            include_in_schema=self._solve_include_in_schema(include_in_schema),
+            include_in_schema=include_in_schema,
         )
 
+        publisher = super().publisher(publisher)
+
         if batch:
-            return cast("SpecificationBatchPublisher", super().publisher(publisher))
-        return cast("SpecificationDefaultPublisher", super().publisher(publisher))
+            return cast("SpecificationBatchPublisher", publisher)
+        return cast("SpecificationDefaultPublisher", publisher)
 
     @override
     def include_router(

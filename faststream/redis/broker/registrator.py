@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
+    from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.message import UnifyRedisMessage
     from faststream.redis.publisher.specified import (
         PublisherType,
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 class RedisRegistrator(ABCBroker[UnifyRedisDict]):
     """Includable to RedisBroker router."""
 
+    config: "RedisBrokerConfig"
     _subscribers: list["SubsciberType"]
     _publishers: list["PublisherType"]
 
@@ -123,12 +125,11 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             no_ack=no_ack,
             no_reply=no_reply,
             ack_policy=ack_policy,
-            broker_middlewares=self.middlewares,
-            broker_dependencies=self._dependencies,
+            config=self.config,
             # AsyncAPI
             title_=title,
             description_=description,
-            include_in_schema=self._solve_include_in_schema(include_in_schema),
+            include_in_schema=include_in_schema,
         )
 
         if max_workers > 1:
@@ -218,13 +219,13 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     headers=headers,
                     reply_to=reply_to,
                     # Specific
-                    broker_middlewares=self.middlewares,
+                    config=self.config,
                     middlewares=middlewares,
                     # AsyncAPI
                     title_=title,
                     description_=description,
                     schema_=schema,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
+                    include_in_schema=include_in_schema,
                 ),
             ),
         )

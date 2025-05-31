@@ -22,7 +22,7 @@ class PushStreamSubscription(StreamSubscriber):
         if self.subscription:
             return
 
-        self.subscription = await self._connection_state.js.subscribe(
+        self.subscription = await self.jetstream.subscribe(
             subject=self.clear_subject,
             queue=self.queue,
             cb=self.consume,
@@ -42,7 +42,7 @@ class ConcurrentPushStreamSubscriber(ConcurrentMixin["Msg"], StreamSubscriber):
 
         self.start_consume_task()
 
-        self.subscription = await self._connection_state.js.subscribe(
+        self.subscription = await self.jetstream.subscribe(
             subject=self.clear_subject,
             queue=self.queue,
             cb=self._put_msg,

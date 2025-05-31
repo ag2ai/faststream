@@ -1,12 +1,14 @@
+from unittest.mock import MagicMock
+
 from faststream import AckPolicy
-from faststream.rabbit import RabbitExchange, RabbitQueue
 from faststream.rabbit.configs import RabbitSubscriberConfig
 
 
 def test_default() -> None:
     config = RabbitSubscriberConfig(
-        queue=RabbitQueue("test_queue"),
-        exchange=RabbitExchange("test_exchange"),
+        config=MagicMock(),
+        queue=MagicMock(),
+        exchange=MagicMock(),
     )
 
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
@@ -14,8 +16,9 @@ def test_default() -> None:
 
 def test_ack_first() -> None:
     config = RabbitSubscriberConfig(
-        queue=RabbitQueue("test_queue"),
-        exchange=RabbitExchange("test_exchange"),
+        config=MagicMock(),
+        queue=MagicMock(),
+        exchange=MagicMock(),
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
@@ -25,8 +28,9 @@ def test_ack_first() -> None:
 
 def test_custom_ack() -> None:
     config = RabbitSubscriberConfig(
-        queue=RabbitQueue("test_queue"),
-        exchange=RabbitExchange("test_exchange"),
+        config=MagicMock(),
+        queue=MagicMock(),
+        exchange=MagicMock(),
         _ack_policy=AckPolicy.ACK,
     )
 
@@ -35,8 +39,9 @@ def test_custom_ack() -> None:
 
 def test_no_ack() -> None:
     config = RabbitSubscriberConfig(
-        queue=RabbitQueue("test_queue"),
-        exchange=RabbitExchange("test_exchange"),
+        config=MagicMock(),
+        queue=MagicMock(),
+        exchange=MagicMock(),
         _no_ack=True,
     )
 

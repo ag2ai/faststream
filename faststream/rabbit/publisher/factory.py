@@ -6,9 +6,8 @@ from faststream.rabbit.configs import RabbitPublisherConfigFacade
 from .specified import SpecificationPublisher
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
-
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
     from .usecase import PublishKwargs
@@ -20,8 +19,9 @@ def create_publisher(
     queue: "RabbitQueue",
     exchange: "RabbitExchange",
     message_kwargs: "PublishKwargs",
+    # Broker args
+    config: "RabbitBrokerConfig",
     # Publisher args
-    broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
     middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
     schema_: Optional[Any],
@@ -32,8 +32,9 @@ def create_publisher(
     config = RabbitPublisherConfigFacade(
         routing_key=routing_key,
         message_kwargs=message_kwargs,
-        broker_middlewares=broker_middlewares,
         middlewares=middlewares,
+        # broker
+        config=config,
         # rmq
         queue=queue,
         exchange=exchange,

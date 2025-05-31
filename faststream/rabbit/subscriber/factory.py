@@ -1,5 +1,4 @@
 import warnings
-from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.constants import EMPTY
@@ -10,12 +9,9 @@ from faststream.rabbit.configs import (
 from faststream.rabbit.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
-    from fast_depends.dependencies import Dependant
-
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
     from faststream.middlewares import AckPolicy
+    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.schemas import (
         Channel,
         RabbitExchange,
@@ -31,11 +27,11 @@ def create_subscriber(
     channel: Optional["Channel"],
     # Subscriber args
     no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
     ack_policy: "AckPolicy",
     no_ack: bool,
-    # AsyncAPI args
+    # Broker args
+    config: "RabbitBrokerConfig",
+    # Specification args
     title_: Optional[str],
     description_: Optional[str],
     include_in_schema: bool,
@@ -43,15 +39,11 @@ def create_subscriber(
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
 
     config = RabbitSubscriberConfigFacade(
-        _ack_policy=ack_policy,
-        _no_ack=no_ack,
         no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        default_decoder=EMPTY,
-        default_parser=EMPTY,
         consume_args=consume_args,
         channel=channel,
+        _ack_policy=ack_policy,
+        _no_ack=no_ack,
         # rmq
         queue=queue,
         exchange=exchange,
@@ -59,6 +51,8 @@ def create_subscriber(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
+        # broker
+        config=config,
     )
 
     return SpecificationSubscriber(config)

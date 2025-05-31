@@ -31,7 +31,7 @@ def get_mock_app(broker_type, producer_type) -> tuple[FastStream, AsyncMock]:
     mock_producer.publish = AsyncMock()
     mock_producer._parser = AsyncMock()
     mock_producer._decoder = AsyncMock()
-    broker._state.patch_value(producer=mock_producer)
+    broker.config.broker_config.producer = mock_producer
     return FastStream(broker), mock_producer
 
 

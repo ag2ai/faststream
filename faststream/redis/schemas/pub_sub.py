@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from faststream._internal.proto import NameRequired
 from faststream._internal.utils.path import compile_path
 
@@ -32,3 +34,8 @@ class PubSub(NameRequired):
         self.path_regex = reg
         self.pattern = channel if pattern else None
         self.polling_interval = polling_interval
+
+    def add_prefix(self, prefix: str) -> "PubSub":
+        new_ch = deepcopy(self)
+        new_ch.name = f"{prefix}{new_ch.name}"
+        return new_ch
