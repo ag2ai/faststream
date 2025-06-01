@@ -8,7 +8,6 @@ from typing import (
     Any,
     Callable,
     Optional,
-    Self,
     TypeVar,
     Union,
     cast,
@@ -21,7 +20,7 @@ from fast_depends.utils import (
     run_async as call_or_await,
     run_in_threadpool,
 )
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Self
 
 from faststream._internal.basic_types import F_Return, F_Spec
 
