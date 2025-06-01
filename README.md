@@ -41,7 +41,7 @@
   </a>
 
   <a href="https://github.com/ag2ai/faststream/blob/main/LICENSE" target="_blank">
-    <img src="https://img.shields.io/github/license/ag2ai/faststream.png" alt="License"/>
+    <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License"/>
   </a>
 
   <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
