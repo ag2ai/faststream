@@ -210,7 +210,7 @@ This way **FastStream** still consumes `#!python json.loads` result, but without
 
 ## Multiple Subscriptions
 
-You can also subscribe to multiple event streams at the same time with one function. Just wrap it with multiple `#!python @broker.subscriber(...)` decorators (they have no effect on each other).
+You can also subscribe to multiple event streams at the same time with one function. Just wrap it with multiple `#!python @broker.subscriber(...)` decorators.
 
 ```python hl_lines="1-2"
 @broker.subscriber("first_sub")
