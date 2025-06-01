@@ -8,13 +8,13 @@ router = KafkaRouter("localhost:9092")
 class Incoming(BaseModel):
     m: dict
 
-def call():
+def call() -> bool:
     return True
 
 @router.subscriber("test")
 @router.publisher("response")
-async def hello(m: Incoming, logger: Logger, d=Depends(call)):
-    logger.info(m)
+async def hello(m: Incoming, logger: Logger, d: bool = Depends(call)):
+    logger.info(m, d)
     return {"response": "Hello, Kafka!"}
 
 @router.get("/")

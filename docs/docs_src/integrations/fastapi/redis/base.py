@@ -8,13 +8,13 @@ router = RedisRouter("redis://localhost:6379")
 class Incoming(BaseModel):
     m: dict
 
-def call():
+def call() -> bool:
     return True
 
 @router.subscriber("test")
 @router.publisher("response")
-async def hello(m: Incoming, logger: Logger, d=Depends(call)):
-    logger.info(m)
+async def hello(m: Incoming, logger: Logger, d: bool = Depends(call)):
+    logger.info(m, d)
     return {"response": "Hello, Redis!"}
 
 @router.get("/")
