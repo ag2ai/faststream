@@ -278,6 +278,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
         broker = self.get_broker(middlewares=(mid,))
+        broker_without_middlewares = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
 
@@ -288,12 +289,13 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         broker = self.patch_broker(broker)
         msg = "start"
 
-        async with broker:
+        async with broker, broker_without_middlewares:
             await broker.start()
+            await broker_without_middlewares.start()
 
             broker.config.broker_config.middlewares = ()
             tasks = (
-                asyncio.create_task(broker.publish(msg, queue)),
+                asyncio.create_task(broker_without_middlewares.publish(msg, queue)),
                 asyncio.create_task(event.wait()),
             )
             await asyncio.wait(tasks, timeout=self.timeout)
