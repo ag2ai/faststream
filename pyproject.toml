@@ -176,6 +176,8 @@ exclude = ["/tests", "/docs"]
 [tool.mypy]
 files = ["faststream", "tests/mypy"]
 strict = true
+strict_bytes = true
+local_partial_types = true
 python_version = "3.8"
 ignore_missing_imports = true
 install_types = true
