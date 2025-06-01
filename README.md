@@ -112,13 +112,13 @@ That's **FastStream** in a nutshell—easy, efficient, and powerful. Whether you
 You can install it with `pip` as usual:
 
 ```sh
-pip install faststream[kafka]
+pip install 'faststream[kafka]'
 # or
-pip install faststream[rabbit]
+pip install 'faststream[rabbit]'
 # or
-pip install faststream[nats]
+pip install 'faststream[nats]'
 # or
-pip install faststream[redis]
+pip install 'faststream[redis]'
 ```
 
 By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.

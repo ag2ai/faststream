@@ -116,27 +116,27 @@ You can install it with `pip` as usual:
 
 === "AIOKafka"
     ```sh
-    pip install faststream[kafka]
+    pip install 'faststream[kafka]'
     ```
 
 === "Confluent"
     ```sh
-    pip install faststream[confluent]
+    pip install 'faststream[confluent]'
     ```
 
 === "RabbitMQ"
     ```sh
-    pip install faststream[rabbit]
+    pip install 'faststream[rabbit]'
     ```
 
 === "NATS"
     ```sh
-    pip install faststream[nats]
+    pip install 'faststream[nats]'
     ```
 
 === "Redis"
     ```sh
-    pip install faststream[redis]
+    pip install 'faststream[redis]'
     ```
 
 
