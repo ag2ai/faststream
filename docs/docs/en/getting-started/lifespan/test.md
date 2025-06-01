@@ -48,4 +48,4 @@ Also, **TestApp** and **TestBroker** are calling `broker.start()` both. Accordin
 This behavior is ruled by `connect_only` **TestBroker** argument. By default it has `None` value, but **TestApp** can set it to `True/False` by inner logic. To prevent this "magic", just setup `connect_only` argument manually.
 
 !!! warning
-    With `#!python connect_only=False`, all `FastStream` hooks will be called after **broker was started**, what can breaks some `@app.on_startup` logic.
+    With `#!python connect_only=False`, all `FastStream` hooks will be called after **broker was started**, what can breaks some `#!python @app.on_startup` logic.
