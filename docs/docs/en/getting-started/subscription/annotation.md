@@ -65,31 +65,9 @@ But it doesn't looks like a correct message validation, does it?
 
 For this reason, **FastStream** supports per-argument message serialization: you can declare multiple arguments with various types and your message will unpack to them:
 
-=== "AIOKafka"
-    ```python hl_lines="3-4"
-    {!> docs_src/getting_started/subscription/kafka/annotation.py [ln:8-14] !}
-    ```
-
-=== "Confluent"
-    ```python hl_lines="3-4"
-    {!> docs_src/getting_started/subscription/confluent/annotation.py [ln:8-14] !}
-    ```
-
-=== "RabbitMQ"
-    ```python hl_lines="3-4"
-    {!> docs_src/getting_started/subscription/rabbit/annotation.py [ln:8-14] !}
-    ```
-
-=== "NATS"
-    ```python hl_lines="3-4"
-    {!> docs_src/getting_started/subscription/nats/annotation.py [ln:8-14] !}
-    ```
-
-=== "Redis"
-    ```python hl_lines="3-4"
-    {!> docs_src/getting_started/subscription/redis/annotation.py [ln:8-14] !}
-    ```
-
+```python hl_lines="3-4"
+{!> docs_src/getting_started/subscription/kafka/annotation.py [ln:8-14] !}
+```
 
 !!! tip
     By default **FastStream** uses `json.loads` to decode and `json.dumps` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"}, just install it and framework will use it automatically.
