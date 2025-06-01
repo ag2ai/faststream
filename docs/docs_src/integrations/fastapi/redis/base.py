@@ -13,8 +13,8 @@ def call() -> bool:
 
 @router.subscriber("test")
 @router.publisher("response")
-async def hello(m: Incoming, logger: Logger, d: bool = Depends(call)):
-    logger.info(m, d)
+async def hello(message: Incoming, logger: Logger, dependency: bool = Depends(call)):
+    logger.info("Incoming value: %s, depends value: %s" % (message.m, dependency))
     return {"response": "Hello, Redis!"}
 
 @router.get("/")
