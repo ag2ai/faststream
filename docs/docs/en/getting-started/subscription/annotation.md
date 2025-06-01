@@ -65,8 +65,14 @@ But it doesn't looks like a correct message validation, does it?
 
 For this reason, **FastStream** supports per-argument message serialization: you can declare multiple arguments with various types and your message will unpack to them:
 
-```python hl_lines="3-4"
-{!> docs_src/getting_started/subscription/kafka/annotation.py [ln:8-14] !}
+```python
+@broker.subscriber("test")
+async def handle(
+    name: str,
+    user_id: int,
+):
+    assert name == "John"
+    assert user_id == 1
 ```
 
 !!! tip
