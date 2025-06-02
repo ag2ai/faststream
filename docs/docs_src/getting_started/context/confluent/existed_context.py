@@ -1,5 +1,5 @@
-from faststream import Context, FastStream, Logger, ContextRepo
-from faststream.confluent import KafkaBroker, KafkaMessage
+from faststream import Context, FastStream
+from faststream.confluent import KafkaBroker
 from faststream.confluent.annotations import (
     ContextRepo,
     KafkaMessage,
@@ -14,10 +14,10 @@ app = FastStream(broker_object)
 @broker_object.subscriber("test-topic")
 async def handle(
     msg: str,
-    logger: Logger = Context(),
-    message: KafkaMessage = Context(),
-    broker: KafkaBroker = Context(),
-    context: ContextRepo = Context(),
+    logger=Context(),
+    message=Context(),
+    broker=Context(),
+    context=Context(),
 ):
     logger.info(message)
     await broker.publish("test", "response")

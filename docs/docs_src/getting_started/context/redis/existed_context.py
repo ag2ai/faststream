@@ -1,5 +1,5 @@
-from faststream import Context, FastStream, Logger, ContextRepo
-from faststream.redis import RedisBroker, RedisMessage
+from faststream import Context, FastStream
+from faststream.redis import RedisBroker
 from faststream.redis.annotations import (
     ContextRepo,
     RedisMessage,
@@ -14,10 +14,10 @@ app = FastStream(broker_object)
 @broker_object.subscriber("test-channel")
 async def handle(
     msg: str,
-    logger: Logger = Context(),
-    message: RedisMessage = Context(),
-    broker: RedisBroker = Context(),
-    context: ContextRepo = Context(),
+    logger=Context(),
+    message=Context(),
+    broker=Context(),
+    context=Context(),
 ):
     logger.info(message)
     await broker.publish("test", "response")
