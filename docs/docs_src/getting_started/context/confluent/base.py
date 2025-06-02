@@ -1,5 +1,6 @@
 from faststream import Context, FastStream
-from faststream.confluent import KafkaBroker, KafkaMessage
+from faststream.confluent import KafkaBroker
+from faststream.confluent.message import KafkaMessage
 
 broker = KafkaBroker("localhost:9092")
 app = FastStream(broker)
