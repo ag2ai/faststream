@@ -134,4 +134,3 @@ class TestNatsPrometheusMiddleware:
         # In single process mode, there should be no MultiProcessCollector
         collectors = list(middleware._metrics_container._registry._collector_to_names.keys())
         assert not any("MultiProcessCollector" in str(c) for c in collectors)
-
