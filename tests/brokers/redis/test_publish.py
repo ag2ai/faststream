@@ -1,5 +1,6 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+import itertools
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
@@ -209,53 +210,52 @@ class TestPublish(BrokerPublishTestcase):
 
     @pytest.mark.asyncio
     @pytest.mark.pipe
-    async def test_pipeline(
+    @pytest.mark.parametrize("type_queue", ["channel", "list", "stream"])
+    async def test_pipeline_channel(
         self,
+        type_queue: str,
         queue: str,
         event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
+        publisher = pub_broker.publisher(**{type_queue: queue + "resp"})
         total_calls = 0
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(**{type_queue: queue})
         async def m(msg: str, pipe: Pipeline) -> None:
             nonlocal total_calls
-
             mock.m(msg)
-            for i in range(10):
-                await pub_broker.publish(f"hello {i}", queue + "resp", pipeline=pipe)
+
+            cnt = itertools.count(0)
+            for _ in range(5):
+                await publisher.publish(f"hello {cnt.__next__()}", pipeline=pipe)
+                await pub_broker.publish(
+                    f"hello {cnt.__next__()}",
+                    **{type_queue: queue + "resp"},
+                    pipeline=pipe,
+                )
 
             res = await pipe.execute()
             total_calls = len(res)
 
-        @pub_broker.subscriber(queue + "resp")
+        @pub_broker.subscriber(**{type_queue: queue + "resp"})
         async def resp(msg: str) -> None:
-            event.set()
+            if msg == "hello 9":
+                event.set()
             mock.resp(msg)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
             tasks = (
-                asyncio.create_task(br.publish("", queue)),
+                asyncio.create_task(br.publish("", **{type_queue: queue})),
                 asyncio.create_task(event.wait()),
             )
             await asyncio.wait(tasks, timeout=3)
 
+        mock.m.assert_called_once_with("")
         assert total_calls == 10
         assert event.is_set()
-        # assert mock.resp.call_count == 10, mock.resp.call_count  # Падает тут, 4 == 10
-        # mock.resp.assert_has_calls([call(f"hello {i}") for i in range(10)])  # И тут >>>
-        # E               AssertionError: Calls not found.
-        # E               Expected: [call('hello 0'),
-        # E                call('hello 1'),
-        # E                call('hello 2'),
-        # E                call('hello 3'),
-        # E                call('hello 4'),
-        # E                call('hello 5'),
-        # E                call('hello 6'),
-        # E                call('hello 7'),
-        # E                call('hello 8'),
-        # E                call('hello 9')]
-        # E                 Actual: [call('hello 0'), call('hello 1'), call('hello 2'), call('hello 3')]
+        assert mock.resp.call_count == 10
+        mock.resp.assert_has_calls([call(f"hello {i}") for i in range(10)])
