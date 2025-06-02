@@ -365,7 +365,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
     async def start(self) -> None:
         """Start the consumer subgroup."""
-        await super().start()
+        await super(LogicSubscriber, self).start()
 
         if self.calls:
             self.consumer_subgroup = [

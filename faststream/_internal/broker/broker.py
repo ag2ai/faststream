@@ -165,7 +165,6 @@ class BrokerUsecase(
 
     @abstractmethod
     async def _connect(self) -> ConnectionType:
-        """Connect to a resource."""
         raise NotImplementedError
 
     async def close(

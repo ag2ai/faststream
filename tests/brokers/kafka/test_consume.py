@@ -549,8 +549,8 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.parametrize(
     ("partitions", "warning"),
     (
-        pytest.param(2, True, id="unassigned consumers"),
-        pytest.param(3, False, id="no unassigned consumers"),
+        pytest.param(2, True, id="partitions < consumers"),
+        pytest.param(3, False, id="partitions > consumers"),
     ),
 )
 async def test_concurrent_consume_between_partitions_assignment_warning(
@@ -583,21 +583,13 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
     async with consume_broker as broker:
         await broker.start()
 
+    warning_logs = [x for x in logger.log.call_args_list if x[0][0] == logging.WARNING]
+
     if warning:
-        assert (
-            len([
-                x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
-            ])
-            == 2
-        )
+        assert len(warning_logs) == 2
 
     else:
-        assert (
-            len([
-                x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
-            ])
-            == 0
-    )
+        assert len(warning_logs) == 0
 
 
 @pytest.mark.asyncio()

@@ -48,6 +48,7 @@ class BrokerPublishMixin(Generic[MsgType]):
 
         return await publish(cmd)
 
+    @abstractmethod
     async def publish_batch(
         self,
         *messages: "SendableMessage",

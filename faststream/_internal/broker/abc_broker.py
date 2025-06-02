@@ -1,11 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Optional,
-)
+from typing import TYPE_CHECKING, Generic, Optional
 
 from faststream._internal.endpoint.publisher import PublisherProto
 from faststream._internal.endpoint.specification.base import SpecificationEndpoint
@@ -93,7 +88,7 @@ class ABCBroker(Generic[MsgType]):
 
     def include_router(
         self,
-        router: "ABCBroker[Any]",
+        router: "ABCBroker[MsgType]",
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
