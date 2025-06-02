@@ -224,10 +224,10 @@ class TestPublish(BrokerPublishTestcase):
 
             mock.m(msg)
             for i in range(10):
-                total_calls += 1
                 await pub_broker.publish(f"hello {i}", queue + "resp", pipeline=pipe)
 
-            await pipe.execute()
+            res = await pipe.execute()
+            total_calls = len(res)
 
         @pub_broker.subscriber(queue + "resp")
         async def resp(msg: str) -> None:
