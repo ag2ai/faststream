@@ -40,6 +40,7 @@ from faststream.testing.broker import TestBroker
 from faststream.utils.functions import timeout_scope
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Pipeline
     from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
     from faststream.types import AnyDict, SendableMessage
 
@@ -124,6 +125,7 @@ class FakeProducer(RedisFastProducer):
         rpc: bool = False,
         rpc_timeout: Optional[float] = 30.0,
         raise_timeout: bool = False,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> Optional[Any]:
         if rpc and reply_to:
             raise WRONG_PUBLISH_ARGS

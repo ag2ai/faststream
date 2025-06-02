@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import anyio
 from typing_extensions import override
@@ -13,7 +13,7 @@ from faststream.utils.functions import timeout_scope
 from faststream.utils.nuid import NUID
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import PubSub, Redis
+    from redis.asyncio.client import PubSub, Redis, Pipeline
 
     from faststream.broker.types import (
         AsyncCallable,
@@ -62,6 +62,7 @@ class RedisFastProducer(ProducerProto):
         rpc: bool = False,
         rpc_timeout: Optional[float] = 30.0,
         raise_timeout: bool = False,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> Optional[Any]:
         if not any((channel, list, stream)):
             raise SetupError(INCORRECT_SETUP_MSG)
@@ -83,12 +84,13 @@ class RedisFastProducer(ProducerProto):
             correlation_id=correlation_id,
         )
 
+        conn = pipeline or self._connection
         if channel is not None:
-            await self._connection.publish(channel, msg)
+            await conn.publish(channel, msg)
         elif list is not None:
-            await self._connection.rpush(list, msg)
+            await conn.rpush(list, msg)
         elif stream is not None:
-            await self._connection.xadd(
+            await conn.xadd(
                 name=stream,
                 fields={DATA_KEY: msg},
                 maxlen=maxlen,

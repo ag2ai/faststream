@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import anyio
 from anyio import move_on_after
-from redis.asyncio.client import Redis
+from redis.asyncio.client import Pipeline, Redis
 from redis.asyncio.connection import (
     Connection,
     ConnectionPool,
@@ -451,6 +451,13 @@ class RedisBroker(
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = False,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
     ) -> Optional["DecodedMessage"]:
         """Publish message directly.
 
@@ -472,6 +479,7 @@ class RedisBroker(
             rpc=rpc,
             rpc_timeout=rpc_timeout,
             raise_timeout=raise_timeout,
+            pipeline=pipeline,
         )
 
     @override

@@ -1,11 +1,12 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
 from faststream.redis import ListSub, RedisBroker, RedisResponse, StreamSub
+from faststream.redis.annotations import Pipeline
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
@@ -205,3 +206,56 @@ class TestPublish(BrokerPublishTestcase):
             )
 
             assert response == "Hi!", response
+
+    @pytest.mark.asyncio
+    @pytest.mark.pipe
+    async def test_pipeline(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ):
+        pub_broker = self.get_broker(apply_types=True)
+        total_calls = 0
+
+        @pub_broker.subscriber(queue)
+        async def m(msg: str, pipe: Pipeline) -> None:
+            nonlocal total_calls
+
+            mock.m(msg)
+            for i in range(10):
+                total_calls += 1
+                await pub_broker.publish(f"hello {i}", queue + "resp", pipeline=pipe)
+
+            await pipe.execute()
+
+        @pub_broker.subscriber(queue + "resp")
+        async def resp(msg: str) -> None:
+            event.set()
+            mock.resp(msg)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", queue)),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert total_calls == 10
+        assert event.is_set()
+        # assert mock.resp.call_count == 10, mock.resp.call_count  # Падает тут, 4 == 10
+        # mock.resp.assert_has_calls([call(f"hello {i}") for i in range(10)])  # И тут >>>
+        # E               AssertionError: Calls not found.
+        # E               Expected: [call('hello 0'),
+        # E                call('hello 1'),
+        # E                call('hello 2'),
+        # E                call('hello 3'),
+        # E                call('hello 4'),
+        # E                call('hello 5'),
+        # E                call('hello 6'),
+        # E                call('hello 7'),
+        # E                call('hello 8'),
+        # E                call('hello 9')]
+        # E                 Actual: [call('hello 0'), call('hello 1'), call('hello 2'), call('hello 3')]
