@@ -54,6 +54,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
+        broker.config.broker_config._admin_client = AsyncMock()
+
+        builder = MagicMock(return_value=FakeConsumer())
+        broker.config.broker_config.builder = builder
+
         return _fake_connection
 
     @staticmethod
@@ -88,6 +93,17 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
             is_real = True
 
         return sub, is_real
+
+
+class FakeConsumer:
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
+
+    def subscribe(self, *args: Any, **kwargs: Any) -> None:
+        pass
 
 
 class FakeProducer(AioKafkaFastProducer):
