@@ -19,6 +19,6 @@ async def handle(
 @apply_types
 def call(
     message: RedisMessage,
-    correlation_id=Context(),
+    correlation_id: str = Context(),
 ):
     assert correlation_id == message.correlation_id

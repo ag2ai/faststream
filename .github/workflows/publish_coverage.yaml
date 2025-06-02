@@ -23,7 +23,7 @@ jobs:
       - run: |
           uv pip install --system smokeshow
 
-      - uses: dawidd6/action-download-artifact@v9  # nosemgrep
+      - uses: dawidd6/action-download-artifact@v10  # nosemgrep
         with:
           workflow: pr_tests.yaml
           workflow_conclusion: success

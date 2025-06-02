@@ -8,13 +8,13 @@ router = NatsRouter("nats://localhost:4222")
 class Incoming(BaseModel):
     m: dict
 
-def call():
+def call() -> bool:
     return True
 
 @router.subscriber("test")
 @router.publisher("response")
-async def hello(m: Incoming, logger: Logger, d=Depends(call)):
-    logger.info(m)
+async def hello(message: Incoming, logger: Logger, dependency: bool = Depends(call)):
+    logger.info("Incoming value: %s, depends value: %s" % (message.m, dependency))
     return {"response": "Hello, NATS!"}
 
 @router.get("/")

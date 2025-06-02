@@ -143,6 +143,8 @@ You can install it with `pip` as usual:
 !!! tip ""
     By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
 
+    To choose the **Pydantic** version, you can install the required one using the regular `pip install pydantic==X.Y.Z` command. **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+
 ---
 
 ## Writing app code
@@ -218,7 +220,7 @@ to define messages using a declarative syntax, making it easy to specify the fie
 
 ## Testing the service
 
-The service can be tested using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
 
 The Tester will redirect your `subscriber` and `publisher` decorated functions to the InMemory brokers, allowing you to quickly test your app without the need for a running broker and all its dependencies.
 

@@ -56,7 +56,12 @@ def test_gen_asyncapi_yaml_for_kafka_app(runner: CliRunner, kafka_basic_project:
 def test_gen_wrong_path(runner: CliRunner):
     r = runner.invoke(cli, GEN_JSON_CMD + ["basic:app1"])  # noqa: RUF005
     assert r.exit_code == 2
-    assert "No such file or directory" in r.stdout
+
+    if r.stdout:  # click <= 8.2.0
+        assert "No such file or directory" in r.stdout
+
+    else:
+        assert "No such file or directory" in r.stderr
 
 
 @require_aiokafka
