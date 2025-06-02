@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
 from typing_extensions import override
@@ -13,7 +13,7 @@ from faststream.utils.functions import timeout_scope
 from faststream.utils.nuid import NUID
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import PubSub, Redis, Pipeline
+    from redis.asyncio.client import Pipeline, PubSub, Redis
 
     from faststream.broker.types import (
         AsyncCallable,

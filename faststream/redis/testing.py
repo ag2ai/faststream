@@ -41,6 +41,7 @@ from faststream.utils.functions import timeout_scope
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
+
     from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
     from faststream.types import AnyDict, SendableMessage
 
