@@ -1,6 +1,8 @@
 import time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
+from prometheus_client import multiprocess
+
 from faststream import BaseMiddleware
 from faststream.exceptions import IgnoredException
 from faststream.prometheus.consts import (
@@ -182,7 +184,7 @@ class BasePrometheusMiddleware:
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Optional[Sequence[float]] = None,
-        multiprocess: bool = False,
+        is_multiprocess: bool = False,
         multiprocess_dir: Optional[str] = None,
     ):
         if app_name is EMPTY:
@@ -199,7 +201,7 @@ class BasePrometheusMiddleware:
             app_name=app_name,
         )
 
-        if multiprocess:
+        if is_multiprocess:
             if multiprocess_dir is None:
                 raise ValueError("Multiprocess mode requires multiprocess_dir.")
             multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)

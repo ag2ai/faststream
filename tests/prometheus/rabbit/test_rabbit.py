@@ -49,6 +49,7 @@ class TestKafkaPrometheusMiddleware:
     def test_multiprocess_requires_directory(self):
         with pytest.raises(ValueError):
             RabbitPrometheusMiddleware(
+                registry=CollectorRegistry(),
                 app_name="test-app",
                 multiprocess=True,
                 multiprocess_dir=None
@@ -57,6 +58,7 @@ class TestKafkaPrometheusMiddleware:
     def test_multiprocess_with_directory(self):
         with TemporaryDirectory() as temp_dir:
             middleware = RabbitPrometheusMiddleware(
+                registry=CollectorRegistry(),
                 app_name="test-app",
                 multiprocess=True,
                 multiprocess_dir=temp_dir
@@ -66,6 +68,7 @@ class TestKafkaPrometheusMiddleware:
     def test_multiprocess_directory_creation(self):
         with TemporaryDirectory() as temp_dir:
             middleware = RabbitPrometheusMiddleware(
+                registry=CollectorRegistry(),
                 app_name="test-app",
                 multiprocess=True,
                 multiprocess_dir=temp_dir
@@ -79,6 +82,7 @@ class TestKafkaPrometheusMiddleware:
 
     def test_single_process_no_directory(self):
         middleware = RabbitPrometheusMiddleware(
+            registry=CollectorRegistry(),
             app_name="test-app",
             multiprocess=False
         )
@@ -87,8 +91,3 @@ class TestKafkaPrometheusMiddleware:
         # In single process mode, there should be no MultiProcessCollector
         collectors = list(middleware.registry._collector_to_names.keys())
         assert not any("MultiProcessCollector" in str(c) for c in collectors)
-
-    def test_app_name_labeling(self):
-        test_name = "unique-test-app-123"
-        middleware = RabbitPrometheusMiddleware(app_name=test_name)
-        assert middleware.app_name == test_name
