@@ -90,7 +90,7 @@ class TestKafkaPrometheusMiddleware:
             KafkaPrometheusMiddleware(
                 registry=CollectorRegistry(),
                 app_name="test-app",
-                multiprocess=True,
+                is_multiprocess=True,
                 multiprocess_dir=None
             )
 
@@ -99,35 +99,35 @@ class TestKafkaPrometheusMiddleware:
             middleware = KafkaPrometheusMiddleware(
                 registry=CollectorRegistry(),
                 app_name="test-app",
-                multiprocess=True,
+                is_multiprocess=True,
                 multiprocess_dir=temp_dir
             )
-            assert middleware.registry is not None
+            assert middleware._metrics_container._registry is not None
 
     def test_multiprocess_directory_creation(self):
         with TemporaryDirectory() as temp_dir:
             middleware = KafkaPrometheusMiddleware(
                 registry=CollectorRegistry(),
                 app_name="test-app",
-                multiprocess=True,
+                is_multiprocess=True,
                 multiprocess_dir=temp_dir
             )
 
             assert Path(temp_dir).exists()
 
             # In multiprocess mode, the registry should have a MultiProcessCollector
-            collectors = list(middleware.registry._collector_to_names.keys())
+            collectors = list(middleware._metrics_container._registry._collector_to_names.keys())
             assert any("MultiProcessCollector" in str(c) for c in collectors)
 
     def test_single_process_no_directory(self):
         middleware = KafkaPrometheusMiddleware(
             registry=CollectorRegistry(),
             app_name="test-app",
-            multiprocess=False
+            is_multiprocess=False
         )
-        assert middleware.registry is not None
+        assert middleware._metrics_container._registry is not None
 
         # In single process mode, there should be no MultiProcessCollector
-        collectors = list(middleware.registry._collector_to_names.keys())
+        collectors = list(middleware._metrics_container._registry._collector_to_names.keys())
         assert not any("MultiProcessCollector" in str(c) for c in collectors)
 
