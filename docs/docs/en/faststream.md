@@ -143,7 +143,7 @@ You can install it with `pip` as usual:
 !!! tip ""
     By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
 
-    To choose the **Pydantic** version you can install required one as regulter `pip install pydantic==X.Y.Z`. **FastStream** (and **FastDepends** inside) should works correctly with almost any version.
+    To choose the **Pydantic** version, you can install the required one using the regular `pip install pydantic==X.Y.Z` command. **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
 
 ---
 

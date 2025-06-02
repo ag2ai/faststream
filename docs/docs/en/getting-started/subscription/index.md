@@ -133,7 +133,7 @@ Also, synchronous functions are supported as well:
 
 !!! note "Technical details"
 
-    Such functions are running in a ThreadPool by `#!python anyio.to_thread.run_sync()`, so they don't lock an event-loop.
+    Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
 
 ## Message Body Serialization
 
