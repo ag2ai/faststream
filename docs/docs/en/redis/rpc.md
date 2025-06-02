@@ -60,11 +60,11 @@ By embracing **Redis** RPC with **FastStream**, you can build sophisticated mess
 ## Creating an RPC subscriber
 
 To handle an RPC request, you need to create a subscriber that processes the incoming message and returns a response.
-The subscriber should be decorated with `@broker.subscriber` and return either a raw value or a `Response` object.
+The subscriber should be decorated with `#!python @broker.subscriber` and return either a raw value or a `Response` object.
 
 Below is an example of a simple RPC subscriber that processes a message and returns a response.
 
-```python hl_lines="1 8"
+```python linenums="1" hl_lines="7"
 from faststream.redis import RedisBroker
 
 broker = RedisBroker()
@@ -76,13 +76,12 @@ async def handle(msg):
 
 When the client sends a request like this:
 
-```python hl_lines="1 8"
+```python  linenums="1" hl_lines="3"
 from faststream.redis import RedisMessage
 
 msg: RedisMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
-    timeout=3.0,
 )
 assert await msg.decode() == "Received: Hello, Redis!"
 ```
@@ -90,16 +89,17 @@ assert await msg.decode() == "Received: Hello, Redis!"
 The subscriber processes the request and sends back the response, which is received by the client.
 
 !!! tip
-    You can use the `no_reply=True` flag in the `@broker.subscriber` decorator to suppress automatic RPC and `reply_to` responses.
+    You can use the `no_reply=True` flag in the `#!python @broker.subscriber` decorator to suppress automatic RPC and `reply_to` responses.
     This is useful when you want the subscriber to process the message without sending a response back to the client.
 
 ## Using the Response class
+
 The `Response` class allows you to attach metadata, such as headers, to the response message.
 This is useful for adding context or tracking information to your responses.
 
 Below is an example of how to use the `Response` class in an RPC subscriber.
 
-```python hl_lines="1 8"
+```python linenums="1" hl_lines="1 8-12"
 from faststream import Response
 from faststream.redis import RedisBroker
 
@@ -116,32 +116,30 @@ async def handle(msg):
 
 When the client sends a request:
 
-```python hl_lines="1 8"
+```python linenums="1" hl_lines="7-9"
 from faststream.redis import RedisMessage
 
 msg: RedisMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
-    timeout=3.0,
 )
-assert await msg.decode() == "Processed: Hello, Redis!"
+assert msg.body == b"Processed: Hello, Redis!"
 assert msg.headers == {"x-token": "some-token"}
 assert msg.correlation_id == "some-correlation-id"
 ```
 
 ## Using the RedisResponse class
+
 For Redis-specific use cases, you can use the `RedisResponse` class instead of the generic `Response` class.
-The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter,
-which is useful when publishing responses to a Redis stream to limit the stream's length.
+
+The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter, which is useful when publishing responses to a Redis stream to limit the stream's length. This option could be helpful with Reply-To feature, when reply-to destination is a Redis stream.
 
 Below is an example of how to use the RedisResponse class in an RPC subscriber.
 
-```python hl_lines="1 8"
-from faststream import FastStream
+```python linenums="1" hl_lines="1 7-12"
 from faststream.redis import RedisBroker, RedisResponse
 
 broker = RedisBroker()
-app = FastStream(broker)
 
 @broker.subscriber(stream="test-stream")
 async def handle(msg):
@@ -151,20 +149,4 @@ async def handle(msg):
         correlation_id="some-correlation-id",
         maxlen=1000,
     )
-```
-
-When the client sends a request:
-
-```python hl_lines="1 8"
-from faststream.redis import RedisMessage
-
-msg: RedisMessage = await broker.request(
-    "Hello, Redis!",
-    stream="test-stream",
-    timeout=3.0,
-)
-assert await msg.decode() == "Processed: Hello, Redis!"
-assert msg.headers == {"x-token": "some-token"}
-assert msg.correlation_id == "some-correlation-id"
-assert msg.maxlen == 1000
 ```
