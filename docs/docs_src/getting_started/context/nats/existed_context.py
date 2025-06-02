@@ -1,5 +1,5 @@
-from faststream import Context, FastStream
-from faststream.nats import NatsBroker
+from faststream import Context, FastStream, Logger, ContextRepo
+from faststream.nats import NatsBroker, NatsMessage
 from faststream.nats.annotations import (
     ContextRepo,
     NatsMessage,
@@ -14,10 +14,10 @@ app = FastStream(broker_object)
 @broker_object.subscriber("test-subject")
 async def handle(
     msg: str,
-    logger=Context(),
-    message=Context(),
-    broker=Context(),
-    context=Context(),
+    logger: Logger = Context(),
+    message: NatsMessage = Context(),
+    broker: NatsBroker = Context(),
+    context: ContextRepo = Context(),
 ):
     logger.info(message)
     await broker.publish("test", "response")

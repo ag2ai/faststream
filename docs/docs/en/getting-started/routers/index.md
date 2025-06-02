@@ -14,7 +14,7 @@ Sometimes you want to:
 
 * split an application into includable modules
 * separate business logic from your handler registration
-* apply some [decoder](../serialization/index.md)/[middleware](../middlewares/index.md)/[dependencies](../dependencies/global.md) to a subscribers group
+* apply some [decoder](../serialization/index.md) / [middleware](../middlewares/index.md) / [dependencies](../dependencies/index.md) to a subscribers group
 
 For these reasons, **FastStream** has a special *Broker Router*.
 

@@ -1,5 +1,5 @@
-from faststream import Context, FastStream
-from faststream.rabbit import RabbitBroker
+from faststream import Context, FastStream, Logger, ContextRepo
+from faststream.rabbit import RabbitBroker, RabbitMessage
 from faststream.rabbit.annotations import (
     ContextRepo,
     RabbitMessage,
@@ -14,10 +14,10 @@ app = FastStream(broker_object)
 @broker_object.subscriber("test-queue")
 async def handle(
     msg: str,
-    logger=Context(),
-    message=Context(),
-    broker=Context(),
-    context=Context(),
+    logger: Logger = Context(),
+    message: RabbitMessage = Context(),
+    broker: RabbitBroker = Context(),
+    context: ContextRepo = Context(),
 ):
     logger.info(message)
     await broker.publish("test", "response")
