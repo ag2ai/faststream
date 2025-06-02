@@ -2,10 +2,10 @@ import asyncio
 import pytest
 from faststream import Depends, apply_types
 
-async def simple_dependency(a: int, b: int = 3):
+async def simple_dependency(a: int, b: int = 3) -> int:
     return a + b
 
-def another_dependency(a: int):
+def another_dependency(a: int) -> int:
     return a
 
 @apply_types
@@ -17,5 +17,5 @@ async def method(
     return a + b + c
 
 @pytest.mark.asyncio
-async def test_async_dependency():
-    assert 6 == await method("1")
+async def test_async_dependency() -> None:
+    assert 6 == await method(1)
