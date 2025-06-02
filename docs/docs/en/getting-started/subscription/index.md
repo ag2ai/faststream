@@ -131,6 +131,10 @@ Also, synchronous functions are supported as well:
         ...
     ```
 
+!!! note "Technical details"
+
+    Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
+
 ## Message Body Serialization
 
 Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).

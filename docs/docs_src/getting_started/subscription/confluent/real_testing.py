@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from faststream.confluent import TestKafkaBroker
 
-from .pydantic_fields import broker, handle, wrong_handle
+from .pydantic_fields import broker, handle
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_handle():
 async def test_validation_error():
     async with TestKafkaBroker(broker, with_real=True) as br:
         with pytest.raises(ValidationError):
-            await br.publish("wrong message", topic="test-confluent-wrong-fields")
-            await wrong_handle.wait_call(timeout=30)
+            await br.publish("wrong message", topic="test-topic-confluent")
+            await handle.wait_call(timeout=30)
 
-        wrong_handle.mock.assert_called_once_with("wrong message")
+        handle.mock.assert_called_once_with("wrong message")
