@@ -124,12 +124,9 @@ which is required when publishing responses to a JetStream-enabled subject.
 This ensures the response is published to the correct stream in a JetStream context.
 
 ```python hl_lines="1 8"
-from faststream import FastStream
 from faststream.nats import JStream, NatsBroker, NatsResponse
 
 broker = NatsBroker()
-app = FastStream(broker)
-
 stream = JStream(name="stream")
 
 @broker.subscriber("test", stream=stream)
