@@ -1,5 +1,6 @@
 from faststream import Context, FastStream
-from faststream.nats import NatsBroker, NatsMessage
+from faststream.nats import NatsBroker
+from faststream.nats.message import NatsMessage
 
 broker = NatsBroker("nats://localhost:4222")
 app = FastStream(broker)

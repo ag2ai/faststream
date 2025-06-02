@@ -15,27 +15,27 @@ search:
 With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](../dependencies/index.md){.internal-link} usage.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="1 11"
+    ```python linenums="1" hl_lines="1 3 12"
     {!> docs_src/getting_started/context/kafka/base.py !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="1 11"
+    ```python linenums="1" hl_lines="1 3 12"
     {!> docs_src/getting_started/context/confluent/base.py !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="1 11"
+    ```python linenums="1" hl_lines="1 3 12"
     {!> docs_src/getting_started/context/rabbit/base.py !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="1 11"
+    ```python linenums="1" hl_lines="1 3 12"
     {!> docs_src/getting_started/context/nats/base.py !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="1 11"
+    ```python linenums="1" hl_lines="1 3 12"
     {!> docs_src/getting_started/context/redis/base.py !}
     ```
 

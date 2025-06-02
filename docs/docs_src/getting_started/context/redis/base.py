@@ -1,5 +1,6 @@
 from faststream import Context, FastStream
-from faststream.redis import RedisBroker, RedisMessage
+from faststream.redis import RedisBroker
+from faststream.redis.message import RedisMessage
 
 broker = RedisBroker("redis://localhost:6379")
 app = FastStream(broker)
