@@ -81,8 +81,8 @@ By default, the context is available in the same place as `Depends`:
 
 To use context in other functions, use the `#!python @apply_types` decorator. In this case, the context of the called function will correspond to the context of the event handler from which it was called.
 
-```python linenums="1" hl_lines="5 7-8"
-{! docs_src/getting_started/context/nested.py [ln:1-2,9-12,14-16] !}
+```python linenums="1" hl_lines="8 10-11"
+{! docs_src/getting_started/context/nested.py [ln:1-5,10-13,15-17] !}
 ```
 
-In the example above, we did not pass the `logger` function at calling it; it was placed from context.
+In the example above, we did not pass the `logger` argument explicitly; it was used from the existing `Context`.
