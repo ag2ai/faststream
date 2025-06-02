@@ -116,7 +116,7 @@ assert msg.correlation_id == "some-correlation-id"
 
 ## Using the RabbitResponse class
 For RabbitMQ-specific use cases, you can use the `RabbitResponse` class instead of the generic `Response` class.
-The `RabbitResponse` class extends `Response` and adds support for RabbitMQ-specific message properties, such as `message_id`, `priority`, `expiration`, and more. 
+The `RabbitResponse` class extends `Response` and adds support for RabbitMQ-specific message properties, such as `message_id`, `priority`, `expiration`, and more.
 This is particularly useful when you need fine-grained control over the message properties in a RabbitMQ context.
 
 Below is an example of how to use the `RabbitResponse` class in an RPC subscriber.

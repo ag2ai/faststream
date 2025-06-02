@@ -130,8 +130,8 @@ assert msg.correlation_id == "some-correlation-id"
 ```
 
 ## Using the RedisResponse class
-For Redis-specific use cases, you can use the `RedisResponse` class instead of the generic `Response` class. 
-The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter, 
+For Redis-specific use cases, you can use the `RedisResponse` class instead of the generic `Response` class.
+The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter,
 which is useful when publishing responses to a Redis stream to limit the stream's length.
 
 Below is an example of how to use the RedisResponse class in an RPC subscriber.
