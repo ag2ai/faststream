@@ -16,6 +16,8 @@ class RabbitPrometheusMiddleware(BasePrometheusMiddleware):
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Optional[Sequence[float]] = None,
+        multiprocess: bool = False,
+        multiprocess_dir: Optional[str] = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=lambda _: RabbitMetricsSettingsProvider(),
@@ -23,4 +25,6 @@ class RabbitPrometheusMiddleware(BasePrometheusMiddleware):
             app_name=app_name,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            multiprocess=multiprocess,
+            multiprocess_dir=multiprocess_dir,
         )
