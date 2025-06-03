@@ -90,7 +90,7 @@ class TestConsumeWithPrometheus(TestConsume):
 
 class TestNatsPrometheusMiddleware:
     def test_multiprocess_requires_directory(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError):  # noqa: PT011
             NatsPrometheusMiddleware(
                 registry=CollectorRegistry(),
                 app_name="test-app",

@@ -17,7 +17,7 @@ class NatsPrometheusMiddleware(BasePrometheusMiddleware):
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Optional[Sequence[float]] = None,
         is_multiprocess: bool = False,
-        multiprocess_dir: str = None,
+        multiprocess_dir: Optional[str] = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=settings_provider_factory,

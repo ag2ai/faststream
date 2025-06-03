@@ -47,7 +47,7 @@ class TestConsumeWithPrometheus(TestConsume):
 
 class TestKafkaPrometheusMiddleware:
     def test_multiprocess_requires_directory(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError):  # noqa: PT011
             RabbitPrometheusMiddleware(
                 registry=CollectorRegistry(),
                 app_name="test-app",
