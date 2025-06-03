@@ -119,6 +119,7 @@ search:
         - [Batching](redis/streams/batch.md)
         - [Acknowledgement](redis/streams/ack.md)
     - [RPC](redis/rpc.md)
+    - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
 - [Reference - Code API](api/index.md)
@@ -1021,6 +1022,8 @@ search:
                 - [StreamSub](api/faststream/redis/StreamSub.md)
                 - [TestApp](api/faststream/redis/TestApp.md)
                 - [TestRedisBroker](api/faststream/redis/TestRedisBroker.md)
+                - annotations
+                    - [get_pipeline](api/faststream/redis/annotations/get_pipeline.md)
                 - broker
                     - broker
                         - [RedisBroker](api/faststream/redis/broker/broker/RedisBroker.md)
