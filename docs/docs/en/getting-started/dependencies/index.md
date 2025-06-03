@@ -84,7 +84,7 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
 **The first step**: You need to declare a dependency, which can be any `Callable` object.
 
 ??? note "Callable"
-    A "Callable" is an object that can be "called". It can be a function, a class, or a class method.
+    A ["Callable"](https://docs.python.org/3/glossary.html#term-callable){.external-link target="_blank"} is an object that can be "called". It can be a function, a class, or a class method.
 
     In other words, if you can write code like `my_object()` - `my_object` is `Callable`
 
@@ -140,13 +140,7 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
     {!> docs_src/getting_started/dependencies/basic/redis/depends.py [ln:11-12] !}
     ```
 
-**The last step**: Just use the result of executing your dependency!
-
-It's easy, isn't it?
-
-!!! tip "Auto `#!python @apply_types`"
-    In the code above, we didn't use this decorator for our dependencies. However, it still applies
-    to all functions used as dependencies. Please keep this in your mind.
+**The last step**: Use the result of executing your dependency!
 
 ## Top-level Dependencies
 
@@ -210,6 +204,10 @@ Dependencies can also contain other dependencies. This works in a very predictab
 
     1. A nested dependency is called here
 
+!!! tip "Auto `#!python @apply_types`"
+    In the code above, we didn't use this decorator on our `simple_dependency`.
+    However, it still automatically applies to all functions used as dependencies.
+
 !!! Tip "Caching"
     In the example above, the `another_dependency` function will be called at **ONCE**!
     **FastDepends** caches all dependency execution results within **ONE** `#!python @apply_types` call stack.
@@ -247,6 +245,8 @@ these types have the same annotation. Just keep it in mind. Or not... Anyway, I'
 from faststream import Depends, apply_types
 
 def simple_dependency(a: int, b: int = 3) -> str:
+    # NOTE: This will make type-checkers unhappy,
+    # it is better to avoid this pattern in production code!
     return a + b  # 'return' is cast to `str` for the first time
 
 @apply_types
@@ -254,6 +254,8 @@ def method(a: int, d: int = Depends(simple_dependency)):
     # 'd' is cast to `int` for the second time
     return a + d
 
+# NOTE: This will make type-checkers unhappy,
+# it is better to avoid this pattern in production code!
 assert method("1") == 5
 ```
 

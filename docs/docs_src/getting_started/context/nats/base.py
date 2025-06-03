@@ -1,5 +1,6 @@
 from faststream import Context, FastStream
 from faststream.nats import NatsBroker
+from faststream.nats.message import NatsMessage
 
 broker = NatsBroker("nats://localhost:4222")
 app = FastStream(broker)
@@ -8,6 +9,6 @@ app = FastStream(broker)
 @broker.subscriber("test")
 async def base_handler(
     body: str,
-    message=Context(),  # get access to raw message
+    message: NatsMessage = Context(),  # get access to raw message
 ):
     ...

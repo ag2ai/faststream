@@ -4,7 +4,7 @@ from faststream.nats import NatsBroker
 broker = NatsBroker("nats://localhost:4222")
 app = FastStream(broker)
 
-def simple_dependency():
+def simple_dependency() -> int:
     return 1
 
 @broker.subscriber("test")
