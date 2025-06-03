@@ -206,7 +206,6 @@ class BasePrometheusMiddleware:
                 raise ValueError("Multiprocess mode requires multiprocess_dir.")
             multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)
 
-
     def __call__(self, msg: Optional[Any]) -> BaseMiddleware:
         return PrometheusMiddleware(
             msg=msg,
