@@ -13,7 +13,7 @@ async def handle(msg: str, logger: Logger, pipe: Pipeline) -> None:
     for i in range(10):
         await broker.publish(
             f"hello {i}",
-            "test-output",  # you can choose any type of queue: [channel, list, stream]
+            "test-output",  # queue can be channel, list, or stream
             pipeline=pipe,
         )
 
