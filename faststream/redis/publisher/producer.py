@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from faststream.broker.publisher.proto import ProducerProto
 from faststream.broker.utils import resolve_custom_func
-from faststream.exceptions import WRONG_PUBLISH_ARGS, SetupError
+from faststream.exceptions import WRONG_DELIVERY_ARGS, WRONG_PUBLISH_ARGS, SetupError
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RawMessage, RedisPubSubParser
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
@@ -66,6 +66,9 @@ class RedisFastProducer(ProducerProto):
     ) -> Optional[Any]:
         if not any((channel, list, stream)):
             raise SetupError(INCORRECT_SETUP_MSG)
+
+        if pipeline is not None and rpc is True:
+            raise WRONG_DELIVERY_ARGS
 
         psub: Optional[PubSub] = None
         if rpc:

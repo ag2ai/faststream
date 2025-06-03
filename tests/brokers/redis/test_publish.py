@@ -6,6 +6,7 @@ import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
+from faststream.exceptions import SetupError
 from faststream.redis import ListSub, RedisBroker, RedisResponse, StreamSub
 from faststream.redis.annotations import Pipeline
 from tests.brokers.base.publish import BrokerPublishTestcase
@@ -209,9 +210,8 @@ class TestPublish(BrokerPublishTestcase):
             assert response == "Hi!", response
 
     @pytest.mark.asyncio
-    @pytest.mark.pipe
     @pytest.mark.parametrize("type_queue", ["channel", "list", "stream"])
-    async def test_pipeline_channel(
+    async def test_pipeline(
         self,
         type_queue: str,
         queue: str,
@@ -225,7 +225,6 @@ class TestPublish(BrokerPublishTestcase):
         @pub_broker.subscriber(**{type_queue: queue})
         async def m(msg: str, pipe: Pipeline) -> None:
             nonlocal total_calls
-            mock.m(msg)
 
             cnt = itertools.count(0)
             for _ in range(5):
@@ -241,9 +240,9 @@ class TestPublish(BrokerPublishTestcase):
 
         @pub_broker.subscriber(**{type_queue: queue + "resp"})
         async def resp(msg: str) -> None:
+            mock(msg)
             if msg == "hello 9":
                 event.set()
-            mock.resp(msg)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
@@ -254,8 +253,30 @@ class TestPublish(BrokerPublishTestcase):
             )
             await asyncio.wait(tasks, timeout=3)
 
-        mock.m.assert_called_once_with("")
-        assert total_calls == 10
         assert event.is_set()
-        assert mock.resp.call_count == 10
-        mock.resp.assert_has_calls([call(f"hello {i}") for i in range(10)])
+        assert total_calls == mock.call_count
+        mock.assert_has_calls([call(f"hello {i}") for i in range(10)])
+
+    @pytest.mark.asyncio
+    async def test_pipeline_both_delivery(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.connect()
+
+            async with br._connection.pipeline() as pipe:
+                with pytest.raises(
+                    (SetupError, TimeoutError), match=r"^You cannot use both"
+                ):
+                    await asyncio.wait_for(
+                        br.publish("", queue, pipeline=pipe, rpc=True),
+                        timeout=0.15,
+                    )
+
+                with pytest.raises(
+                    (SetupError, TimeoutError), match=r"^You cannot use both"
+                ):
+                    await asyncio.wait_for(
+                        br.publisher(queue).publish("", pipeline=pipe, rpc=True),
+                        timeout=0.15,
+                    )
