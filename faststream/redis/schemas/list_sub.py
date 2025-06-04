@@ -1,7 +1,8 @@
+from copy import deepcopy
 from functools import cached_property
 from typing import Optional
 
-from faststream.broker.schemas import NameRequired
+from faststream._internal.proto import NameRequired
 
 
 class ListSub(NameRequired):
@@ -31,5 +32,7 @@ class ListSub(NameRequired):
     def records(self) -> Optional[int]:
         return self.max_records if self.batch else None
 
-    def __hash__(self) -> int:
-        return hash(f"list:{self.name}")
+    def add_prefix(self, prefix: str) -> "ListSub":
+        new_list = deepcopy(self)
+        new_list.name = f"{prefix}{new_list.name}"
+        return new_list

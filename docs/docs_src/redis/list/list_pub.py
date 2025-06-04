@@ -10,7 +10,7 @@ class Data(BaseModel):
     )
 
 
-broker = RedisBroker("localhost:6379")
+broker = RedisBroker("redis://localhost:6379")
 app = FastStream(broker)
 
 

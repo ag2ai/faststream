@@ -5,9 +5,10 @@ from opentelemetry.trace import TracerProvider
 
 from faststream.opentelemetry.middleware import TelemetryMiddleware
 from faststream.rabbit.opentelemetry.provider import RabbitTelemetrySettingsProvider
+from faststream.rabbit.response import RabbitPublishCommand
 
 
-class RabbitTelemetryMiddleware(TelemetryMiddleware):
+class RabbitTelemetryMiddleware(TelemetryMiddleware[RabbitPublishCommand]):
     def __init__(
         self,
         *,

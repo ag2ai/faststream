@@ -47,7 +47,6 @@ class PullSub:
     def validate(cls, value: Union[bool, "PullSub"]) -> Optional["PullSub"]:
         if value is True:
             return PullSub()
-        elif value is False:
+        if value is False:
             return None
-        else:
-            return value
+        return value

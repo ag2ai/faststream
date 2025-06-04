@@ -1,0 +1,120 @@
+from abc import abstractmethod
+from collections.abc import Iterable, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+    Optional,
+)
+
+from faststream._internal.endpoint.publisher import PublisherProto
+from faststream._internal.endpoint.specification.base import SpecificationEndpoint
+from faststream._internal.endpoint.subscriber import (
+    SubscriberProto,
+)
+from faststream._internal.types import BrokerMiddleware, MsgType
+from faststream.specification.schema import PublisherSpec, SubscriberSpec
+
+from .config import BrokerConfig, ConfigComposition
+
+if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+
+
+class FinalSubscriber(
+    SpecificationEndpoint[MsgType, SubscriberSpec],
+    SubscriberProto[MsgType],
+):
+    @property
+    @abstractmethod
+    def call_name(self) -> str:
+        raise NotImplementedError
+
+
+class FinalPublisher(
+    SpecificationEndpoint[MsgType, PublisherSpec],
+    PublisherProto[MsgType],
+):
+    pass
+
+
+class ABCBroker(Generic[MsgType]):
+    """Basic class for brokers and routers.
+
+    Contains subscribers & publishers registration logic only.
+    """
+
+    def __init__(
+        self,
+        *,
+        config: "BrokerConfig",
+        routers: Sequence["ABCBroker[MsgType]"],
+    ) -> None:
+        self.config = ConfigComposition(config)
+        self._parser = self.config.broker_parser
+        self._decoder = self.config.broker_decoder
+
+        self._subscribers: list[FinalSubscriber[MsgType]] = []
+        self._publishers: list[FinalPublisher[MsgType]] = []
+        self.routers: list[ABCBroker] = []
+
+        self.include_routers(*routers)
+
+    @property
+    def subscribers(self) -> list[FinalSubscriber[MsgType]]:
+        return self._subscribers + [sub for r in self.routers for sub in r.subscribers]
+
+    @property
+    def publishers(self) -> list[FinalPublisher[MsgType]]:
+        return self._publishers + [pub for r in self.routers for pub in r.publishers]
+
+    def add_middleware(self, middleware: "BrokerMiddleware[MsgType]") -> None:
+        """Append BrokerMiddleware to the end of middlewares list.
+
+        Current middleware will be used as a most inner of already existed ones.
+        """
+        self.config.add_middleware(middleware)
+
+    @abstractmethod
+    def subscriber(
+        self,
+        subscriber: "FinalSubscriber[MsgType]",
+    ) -> "FinalSubscriber[MsgType]":
+        self._subscribers.append(subscriber)
+        return subscriber
+
+    @abstractmethod
+    def publisher(
+        self,
+        publisher: "FinalPublisher[MsgType]",
+    ) -> "FinalPublisher[MsgType]":
+        self._publishers.append(publisher)
+        return publisher
+
+    def include_router(
+        self,
+        router: "ABCBroker[MsgType]",
+        *,
+        prefix: str = "",
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Iterable["BrokerMiddleware[MsgType]"] = (),
+        include_in_schema: Optional[bool] = None,
+    ) -> None:
+        """Includes a router in the current object."""
+        if options_config := BrokerConfig(
+            prefix=prefix,
+            include_in_schema=include_in_schema,
+            broker_middlewares=middlewares,
+            broker_dependencies=dependencies,
+        ):
+            router.config.add_config(options_config)
+
+        router.config.add_config(self.config)
+        self.routers.append(router)
+
+    def include_routers(
+        self,
+        *routers: "ABCBroker[MsgType]",
+    ) -> None:
+        """Includes routers in the object."""
+        for r in routers:
+            self.include_router(r)

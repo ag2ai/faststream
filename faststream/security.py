@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
 
 
 class BaseSecurity:
@@ -30,11 +30,11 @@ class BaseSecurity:
         self.use_ssl = use_ssl
         self.ssl_context = ssl_context
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements."""
         return []
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema."""
         return {}
 
@@ -68,11 +68,11 @@ class SASLPlaintext(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements for SASL/PLAINTEXT authentication."""
         return [{"user-password": []}]
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/PLAINTEXT authentication."""
         return {"user-password": {"type": "userPassword"}}
 
@@ -106,11 +106,11 @@ class SASLScram256(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements for SASL/SCRAM-SHA-256 authentication."""
         return [{"scram256": []}]
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/SCRAM-SHA-256 authentication."""
         return {"scram256": {"type": "scramSha256"}}
 
@@ -144,11 +144,11 @@ class SASLScram512(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements for SASL/SCRAM-SHA-512 authentication."""
         return [{"scram512": []}]
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/SCRAM-SHA-512 authentication."""
         return {"scram512": {"type": "scramSha512"}}
 
@@ -161,11 +161,11 @@ class SASLOAuthBearer(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements for SASL/OAUTHBEARER authentication."""
         return [{"oauthbearer": []}]
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/OAUTHBEARER authentication."""
         return {"oauthbearer": {"type": "oauth2", "$ref": ""}}
 
@@ -178,10 +178,10 @@ class SASLGSSAPI(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
-    def get_requirement(self) -> List["AnyDict"]:
+    def get_requirement(self) -> list["AnyDict"]:
         """Get the security requirements for SASL/GSSAPI authentication."""
         return [{"gssapi": []}]
 
-    def get_schema(self) -> Dict[str, Dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/GSSAPI authentication."""
         return {"gssapi": {"type": "gssapi"}}

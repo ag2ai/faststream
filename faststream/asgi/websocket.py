@@ -15,5 +15,5 @@ class WebSocketClose:
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         await send(
-            {"type": "websocket.close", "code": self.code, "reason": self.reason}
+            {"type": "websocket.close", "code": self.code, "reason": self.reason},
         )

@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Union, cast
 
-from faststream.broker.message import MsgType, StreamMessage
+from faststream.message.message import MsgType, StreamMessage
 from faststream.prometheus import (
     ConsumeAttrs,
     MetricsSettingsProvider,
@@ -9,7 +10,7 @@ from faststream.prometheus import (
 if TYPE_CHECKING:
     from confluent_kafka import Message
 
-    from faststream.types import AnyDict
+    from faststream.response import PublishCommand
 
 
 class BaseConfluentMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
@@ -18,11 +19,11 @@ class BaseConfluentMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
     def __init__(self) -> None:
         self.messaging_system = "kafka"
 
-    def get_publish_destination_name_from_kwargs(
+    def get_publish_destination_name_from_cmd(
         self,
-        kwargs: "AnyDict",
+        cmd: "PublishCommand",
     ) -> str:
-        return cast("str", kwargs["topic"])
+        return cmd.destination
 
 
 class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Message"]):
@@ -38,11 +39,11 @@ class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Mes
 
 
 class BatchConfluentMetricsSettingsProvider(
-    BaseConfluentMetricsSettingsProvider[Tuple["Message", ...]]
+    BaseConfluentMetricsSettingsProvider[tuple["Message", ...]]
 ):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[Tuple[Message, ...]]",
+        msg: "StreamMessage[tuple[Message, ...]]",
     ) -> ConsumeAttrs:
         raw_message = msg.raw_message[0]
         return {
@@ -60,5 +61,4 @@ def settings_provider_factory(
 ]:
     if isinstance(msg, Sequence):
         return BatchConfluentMetricsSettingsProvider()
-    else:
-        return ConfluentMetricsSettingsProvider()
+    return ConfluentMetricsSettingsProvider()

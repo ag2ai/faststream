@@ -1,19 +1,20 @@
 import pytest
 
-from faststream.confluent import KafkaPublisher, KafkaRoute, KafkaRouter
+from faststream.confluent import (
+    KafkaPublisher,
+    KafkaRoute,
+)
 from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 
-from .basic import ConfluentTestcaseConfig
+from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
 
 
-@pytest.mark.confluent
+@pytest.mark.confluent()
 class TestRouter(ConfluentTestcaseConfig, RouterTestcase):
-    broker_class = KafkaRouter
     route_class = KafkaRoute
     publisher_class = KafkaPublisher
 
 
-class TestRouterLocal(ConfluentTestcaseConfig, RouterLocalTestcase):
-    broker_class = KafkaRouter
+class TestRouterLocal(ConfluentMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher

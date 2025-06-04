@@ -2,9 +2,10 @@ version: "3"
 services:
   # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
   rabbitmq:
-    image: rabbitmq:alpine
+    image: rabbitmq:4-management
     ports:
       - "5672:5672"
+      - "15672:15672"
     # https://semgrep.dev/r?q=yaml.docker-compose.security.no-new-privileges.no-new-privileges
     security_opt:
       - no-new-privileges:true

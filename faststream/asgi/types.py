@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, MutableMapping
+from collections.abc import Awaitable, MutableMapping
+from typing import Any, Callable
 
 Scope = MutableMapping[str, Any]
 Message = MutableMapping[str, Any]

@@ -1,12 +1,19 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Callable
 
-from faststream.redis import RedisBroker as Broker
-from faststream.redis import RedisMessage as Message
-from faststream.redis import RedisRoute as Route
-from faststream.redis import RedisRouter as StreamRouter
+import prometheus_client
+
+from faststream._internal.basic_types import DecodedMessage
+from faststream.redis import (
+    RedisBroker as Broker,
+    RedisMessage as Message,
+    RedisRoute as Route,
+    RedisRouter as StreamRouter,
+)
 from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
-from faststream.types import DecodedMessage
+from faststream.redis.opentelemetry import RedisTelemetryMiddleware
+from faststream.redis.prometheus import RedisPrometheusMiddleware
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -18,7 +25,8 @@ async def async_decoder(msg: Message) -> DecodedMessage:
 
 
 async def custom_decoder(
-    msg: Message, original: Callable[[Message], Awaitable[DecodedMessage]]
+    msg: Message,
+    original: Callable[[Message], Awaitable[DecodedMessage]],
 ) -> DecodedMessage:
     return await original(msg)
 
@@ -29,15 +37,16 @@ Broker(decoder=custom_decoder)
 
 
 def sync_parser(msg: Msg) -> Message:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def async_parser(msg: Msg) -> Message:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
-    msg: Msg, original: Callable[[Msg], Awaitable[Message]]
+    msg: Msg,
+    original: Callable[[Msg], Awaitable[Message]],
 ) -> Message:
     return await original(msg)
 
@@ -201,7 +210,7 @@ StreamRouter(
             parser=custom_parser,
             decoder=custom_decoder,
         ),
-    )
+    ),
 )
 
 
@@ -267,3 +276,13 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = RedisTelemetryMiddleware()
+Broker().add_middleware(otlp_middleware)
+Broker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = RedisPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+Broker().add_middleware(prometheus_middleware)
+Broker(middlewares=[prometheus_middleware])

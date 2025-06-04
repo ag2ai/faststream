@@ -6,18 +6,18 @@ from faststream.security import (
 )
 
 if TYPE_CHECKING:
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
 
 
 def parse_security(security: Optional[BaseSecurity]) -> "AnyDict":
     if security is None:
         return {}
-    elif isinstance(security, SASLPlaintext):
+    if isinstance(security, SASLPlaintext):
         return _parse_sasl_plaintext(security)
-    elif isinstance(security, BaseSecurity):
+    if isinstance(security, BaseSecurity):
         return _parse_base_security(security)
-    else:
-        raise NotImplementedError(f"NatsBroker does not support {type(security)}")
+    msg = f"NatsBroker does not support {type(security)}"
+    raise NotImplementedError(msg)
 
 
 def _parse_base_security(security: BaseSecurity) -> "AnyDict":

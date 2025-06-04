@@ -4,7 +4,7 @@ from faststream.nats import NatsBroker
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
 
-@pytest.mark.nats
+@pytest.mark.nats()
 class TestConnection(BrokerConnectionTestcase):
     broker = NatsBroker
 

@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Union, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Callable, Optional, Union, overload
 
 from faststream.asgi.response import AsgiResponse
 
@@ -14,7 +15,7 @@ class HttpHandler:
         include_in_schema: bool = True,
         description: Optional[str] = None,
         methods: Optional[Sequence[str]] = None,
-    ):
+    ) -> None:
         self.func = func
         self.methods = methods or ()
         self.include_in_schema = include_in_schema
@@ -31,7 +32,6 @@ class HttpHandler:
                 response = AsgiResponse(body=b"Internal Server Error", status_code=500)
 
         await response(scope, receive, send)
-        return
 
 
 class GetHandler(HttpHandler):
@@ -41,7 +41,7 @@ class GetHandler(HttpHandler):
         *,
         include_in_schema: bool = True,
         description: Optional[str] = None,
-    ):
+    ) -> None:
         super().__init__(
             func,
             include_in_schema=include_in_schema,

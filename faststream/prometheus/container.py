@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Optional, Sequence, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Optional, cast
 
 from prometheus_client import Counter, Gauge, Histogram
 
@@ -43,114 +44,127 @@ class MetricsContainer:
         *,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Optional[Sequence[float]] = None,
-    ):
+    ) -> None:
         self._registry = registry
         self._metrics_prefix = metrics_prefix
 
+        received_messages_total_name = f"{metrics_prefix}_received_messages_total"
         self.received_messages_total = cast(
             "Counter",
-            self._get_registered_metric(f"{metrics_prefix}_received_messages_total"),
+            self._get_registered_metric(received_messages_total_name),
         ) or Counter(
-            name=f"{metrics_prefix}_received_messages_total",
+            name=received_messages_total_name,
             documentation="Count of received messages by broker and handler",
             labelnames=["app_name", "broker", "handler"],
             registry=registry,
         )
 
+        received_messages_size_bytes_name = (
+            f"{metrics_prefix}_received_messages_size_bytes"
+        )
         self.received_messages_size_bytes = cast(
             "Histogram",
-            self._get_registered_metric(
-                f"{metrics_prefix}_received_messages_size_bytes"
-            ),
+            self._get_registered_metric(received_messages_size_bytes_name),
         ) or Histogram(
-            name=f"{metrics_prefix}_received_messages_size_bytes",
+            name=received_messages_size_bytes_name,
             documentation="Histogram of received messages size in bytes by broker and handler",
             labelnames=["app_name", "broker", "handler"],
             registry=registry,
             buckets=received_messages_size_buckets or self.DEFAULT_SIZE_BUCKETS,
         )
 
+        received_messages_in_process_name = (
+            f"{metrics_prefix}_received_messages_in_process"
+        )
         self.received_messages_in_process = cast(
             "Gauge",
-            self._get_registered_metric(
-                f"{metrics_prefix}_received_messages_in_process"
-            ),
+            self._get_registered_metric(received_messages_in_process_name),
         ) or Gauge(
-            name=f"{metrics_prefix}_received_messages_in_process",
+            name=received_messages_in_process_name,
             documentation="Gauge of received messages in process by broker and handler",
             labelnames=["app_name", "broker", "handler"],
             registry=registry,
         )
 
+        received_processed_messages_total_name = (
+            f"{metrics_prefix}_received_processed_messages_total"
+        )
         self.received_processed_messages_total = cast(
             "Counter",
-            self._get_registered_metric(
-                f"{metrics_prefix}_received_processed_messages_total"
-            ),
+            self._get_registered_metric(received_processed_messages_total_name),
         ) or Counter(
-            name=f"{metrics_prefix}_received_processed_messages_total",
+            name=received_processed_messages_total_name,
             documentation="Count of received processed messages by broker, handler and status",
             labelnames=["app_name", "broker", "handler", "status"],
             registry=registry,
         )
 
+        received_processed_messages_duration_seconds_name = (
+            f"{metrics_prefix}_received_processed_messages_duration_seconds"
+        )
         self.received_processed_messages_duration_seconds = cast(
             "Histogram",
             self._get_registered_metric(
-                f"{metrics_prefix}_received_processed_messages_duration_seconds"
+                received_processed_messages_duration_seconds_name
             ),
         ) or Histogram(
-            name=f"{metrics_prefix}_received_processed_messages_duration_seconds",
+            name=received_processed_messages_duration_seconds_name,
             documentation="Histogram of received processed messages duration in seconds by broker and handler",
             labelnames=["app_name", "broker", "handler"],
             registry=registry,
         )
 
+        received_processed_messages_exceptions_total_name = (
+            f"{metrics_prefix}_received_processed_messages_exceptions_total"
+        )
         self.received_processed_messages_exceptions_total = cast(
             "Counter",
             self._get_registered_metric(
-                f"{metrics_prefix}_received_processed_messages_exceptions_total"
+                received_processed_messages_exceptions_total_name
             ),
         ) or Counter(
-            name=f"{metrics_prefix}_received_processed_messages_exceptions_total",
+            name=received_processed_messages_exceptions_total_name,
             documentation="Count of received processed messages exceptions by broker, handler and exception_type",
             labelnames=["app_name", "broker", "handler", "exception_type"],
             registry=registry,
         )
 
+        published_messages_total_name = f"{metrics_prefix}_published_messages_total"
         self.published_messages_total = cast(
             "Counter",
-            self._get_registered_metric(f"{metrics_prefix}_published_messages_total"),
+            self._get_registered_metric(published_messages_total_name),
         ) or Counter(
-            name=f"{metrics_prefix}_published_messages_total",
+            name=published_messages_total_name,
             documentation="Count of published messages by destination and status",
             labelnames=["app_name", "broker", "destination", "status"],
             registry=registry,
         )
 
+        published_messages_duration_seconds_name = (
+            f"{metrics_prefix}_published_messages_duration_seconds"
+        )
         self.published_messages_duration_seconds = cast(
             "Histogram",
-            self._get_registered_metric(
-                f"{metrics_prefix}_published_messages_duration_seconds"
-            ),
+            self._get_registered_metric(published_messages_duration_seconds_name),
         ) or Histogram(
-            name=f"{metrics_prefix}_published_messages_duration_seconds",
+            name=published_messages_duration_seconds_name,
             documentation="Histogram of published messages duration in seconds by broker and destination",
             labelnames=["app_name", "broker", "destination"],
             registry=registry,
         )
 
+        published_messages_exceptions_total_name = (
+            f"{metrics_prefix}_published_messages_exceptions_total"
+        )
         self.published_messages_exceptions_total = cast(
             "Counter",
-            self._get_registered_metric(
-                f"{metrics_prefix}_published_messages_exceptions_total"
-            ),
+            self._get_registered_metric(published_messages_exceptions_total_name),
         ) or Counter(
-            name=f"{metrics_prefix}_published_messages_exceptions_total",
+            name=published_messages_exceptions_total_name,
             documentation="Count of published messages exceptions by broker, destination and exception_type",
             labelnames=["app_name", "broker", "destination", "exception_type"],
             registry=registry,
         )
 
-    def _get_registered_metric(self, metric_name: str) -> Union["Collector", None]:
+    def _get_registered_metric(self, metric_name: str) -> Optional["Collector"]:
         return self._registry._names_to_collectors.get(metric_name)

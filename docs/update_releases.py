@@ -35,7 +35,9 @@ def convert_links_and_usernames(text):
     if "](" not in text:
         # Convert HTTP/HTTPS links
         text = re.sub(
-            r"(https?://.*\/(.*))", r'[#\2](\1){.external-link target="_blank"}', text
+            r"(https?://.*\/(.*))",
+            r'[#\2](\1){.external-link target="_blank"}',
+            text,
         )
 
         # Convert GitHub usernames to links
@@ -83,7 +85,7 @@ def update_release_notes(realease_notes_path: Path):
             + "\n"  # adding an addition newline after the header results in one empty file being added every time we run the script
             + changelog
             + "\n"
-        ).replace("\r", "")
+        ).replace("\r", ""),
     )
 
 

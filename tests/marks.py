@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from faststream._compat import PYDANTIC_V2
+from faststream._internal._compat import PYDANTIC_V2
 
 python39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
