@@ -1,4 +1,6 @@
 import asyncio
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock
 
 import pytest
@@ -84,3 +86,53 @@ class TestConsumeWithPrometheus(TestConsume):
             apply_types=apply_types,
             **kwargs,
         )
+
+
+class TestNatsPrometheusMiddleware:
+    def test_multiprocess_requires_directory(self):
+        with pytest.raises(ValueError):  # noqa: PT011
+            NatsPrometheusMiddleware(
+                registry=CollectorRegistry(),
+                app_name="test-app",
+                is_multiprocess=True,
+                multiprocess_dir=None,
+            )
+
+    def test_multiprocess_with_directory(self):
+        with TemporaryDirectory() as temp_dir:
+            middleware = NatsPrometheusMiddleware(
+                registry=CollectorRegistry(),
+                app_name="test-app",
+                is_multiprocess=True,
+                multiprocess_dir=temp_dir,
+            )
+            assert middleware._metrics_container._registry is not None
+
+    def test_multiprocess_directory_creation(self):
+        with TemporaryDirectory() as temp_dir:
+            middleware = NatsPrometheusMiddleware(
+                registry=CollectorRegistry(),
+                app_name="test-app",
+                is_multiprocess=True,
+                multiprocess_dir=temp_dir,
+            )
+
+            assert Path(temp_dir).exists()
+
+            # In multiprocess mode, the registry should have a MultiProcessCollector
+            collectors = list(
+                middleware._metrics_container._registry._collector_to_names.keys()
+            )
+            assert any("MultiProcessCollector" in str(c) for c in collectors)
+
+    def test_single_process_no_directory(self):
+        middleware = NatsPrometheusMiddleware(
+            registry=CollectorRegistry(), app_name="test-app", is_multiprocess=False
+        )
+        assert middleware._metrics_container._registry is not None
+
+        # In single process mode, there should be no MultiProcessCollector
+        collectors = list(
+            middleware._metrics_container._registry._collector_to_names.keys()
+        )
+        assert not any("MultiProcessCollector" in str(c) for c in collectors)
