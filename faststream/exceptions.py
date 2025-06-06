@@ -115,11 +115,6 @@ WRONG_PUBLISH_ARGS = SetupError(
     "and `rpc` to get response in sync mode."
 )
 
-WRONG_DELIVERY_ARGS = SetupError(
-    "You cannot use both rpc and pipeline arguments at the same time: "
-    "select only one delivery mechanism."
-)
-
 
 NOT_CONNECTED_YET = "Please, `connect()` the broker first."
 

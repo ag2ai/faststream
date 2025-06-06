@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from faststream.broker.publisher.proto import ProducerProto
 from faststream.broker.utils import resolve_custom_func
-from faststream.exceptions import WRONG_DELIVERY_ARGS, WRONG_PUBLISH_ARGS, SetupError
+from faststream.exceptions import WRONG_PUBLISH_ARGS, SetupError
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RawMessage, RedisPubSubParser
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
@@ -68,7 +68,10 @@ class RedisFastProducer(ProducerProto):
             raise SetupError(INCORRECT_SETUP_MSG)
 
         if pipeline is not None and rpc is True:
-            raise WRONG_DELIVERY_ARGS
+            raise RuntimeError(
+                "You cannot use both rpc and pipeline arguments at the same time: "
+                "select only one delivery mechanism."
+            )
 
         psub: Optional[PubSub] = None
         if rpc:
@@ -198,6 +201,7 @@ class RedisFastProducer(ProducerProto):
         list: str,
         correlation_id: str,
         headers: Optional["AnyDict"] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> None:
         batch = (
             RawMessage.encode(
@@ -208,4 +212,5 @@ class RedisFastProducer(ProducerProto):
             )
             for msg in msgs
         )
-        await self._connection.rpush(list, *batch)
+        conn = pipeline or self._connection
+        await conn.rpush(list, *batch)
