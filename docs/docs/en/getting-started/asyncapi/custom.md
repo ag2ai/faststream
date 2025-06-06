@@ -14,7 +14,7 @@ In this guide, we will explore how to customize **AsyncAPI** documentation for y
 
 ## Prerequisites
 
-Before we dive into customization, ensure you have a basic **FastStream** application up and running. If you haven't done that yet, let's setup a simple application right now.
+Before we dive into customization, ensure you have a instance **AsyncAPI** specififcation. If you haven't done that yet, let's create a simple instance right now.
 
 Copy the following code in your basic.py file:
 
@@ -124,7 +124,7 @@ To describe your message payload effectively, you can use Pydantic models. Here'
 
 Copy the following code in your basic.py file, we have highlighted the creation of payload info and you can see it being passed to the return type and the `msg` argument type in the `on_input_data` function:
 
-```python linenums="1" hl_lines="7-10 19"
+```python linenums="1" hl_lines="7-10 24"
 {! docs_src/getting_started/asyncapi/asyncapi_customization/payload_info.py !}
 ```
 

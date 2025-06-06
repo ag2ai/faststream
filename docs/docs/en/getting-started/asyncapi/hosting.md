@@ -21,7 +21,7 @@ search:
 {! docs_src/getting_started/asyncapi/serve.py [ln:17] !}
 ```
 
-In the above command, the path is specified in the format of `python_module:FastStream`. Alternatively, you can also specify `asyncapi.json` or `asyncapi.yaml` to serve the **AsyncAPI** documentation.
+In the above command, the path is specified in the format of `python_module:AsyncAPI`. Alternatively, you can also specify `asyncapi.json` or `asyncapi.yaml` to serve the **AsyncAPI** documentation.
 
 === "JSON"
     ```shell
@@ -61,15 +61,18 @@ FastStream includes lightweight [**ASGI** support](../asgi.md){.internal-link} t
 ```python linenums="1"
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
+from faststream.specification.asyncapi import AsyncAPI
+from faststream.asgi import make_asyncapi_asgi
 
 broker = KafkaBroker()
+asyncapi = AsyncAPI(broker)
 
 @broker.subscriber('topic')
 async def my_handler(msg: str) -> None:
     print(msg)
 
 app = FastStream(broker).as_asgi(
-    asyncapi_path="/docs/asyncapi",
+    asgi_routes=("/docs/asyncapi", make_asyncapi_asgi(asyncapi)),
 )
 
 if __name__ == "__main__":
@@ -85,16 +88,16 @@ After running the script, the **AsyncAPI** docs will be available at: <http://lo
 You can choose the method that best fits with your application architecture.
 
 === "Option 1"
-    ```python linenums="1" hl_lines="23-26"
+    ```python linenums="1" hl_lines="24-27"
     from typing import AsyncIterator
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI, responses
-    from faststream import FastStream
-    from faststream.asyncapi import get_asyncapi_html, get_app_schema
+    from faststream.specification.asyncapi import get_asyncapi_html, AsyncAPI
     from faststream.kafka import KafkaBroker
 
     broker = KafkaBroker()
+    asyncapi = AsyncAPI(broker)
 
     @broker.subscriber('topic')
     async def my_handler(msg: str) -> None:
@@ -109,23 +112,24 @@ You can choose the method that best fits with your application architecture.
     app = FastAPI(lifespan=broker_lifespan)
 
     @app.get('/docs/asyncapi')
-    async def asyncapi() -> responses.HTMLResponse:
-        schema = get_app_schema(FastStream(broker))
-        return responses.HTMLResponse(get_asyncapi_html(schema))
+    async def docs() -> responses.HTMLResponse:
+        return responses.HTMLResponse(get_asyncapi_html(asyncapi))
     ```
 
 === "Option 2"
-    ```python linenums="1" hl_lines="23"
+    ```python linenums="1" hl_lines="25"
     from typing import AsyncIterator
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI
     from faststream import FastStream
     from faststream.asgi import make_asyncapi_asgi
+    from faststream.specification.asyncapi import AsyncAPI
     from faststream.kafka import KafkaBroker
 
     broker = KafkaBroker()
     fs_app = FastStream(broker)
+    asyncapi = AsyncAPI(broker)
 
     @broker.subscriber('topic')
     async def my_handler(msg: str) -> None:
@@ -138,7 +142,7 @@ You can choose the method that best fits with your application architecture.
             yield
 
     app = FastAPI(lifespan=broker_lifespan)
-    app.mount("/docs/asyncapi", make_asyncapi_asgi(fs_app))
+    app.mount("/docs/asyncapi", make_asyncapi_asgi(asyncapi))
     ```
 
 After running the app, the documentation will be available at:

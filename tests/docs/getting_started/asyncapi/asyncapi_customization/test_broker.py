@@ -1,10 +1,10 @@
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.custom_broker import (
-    docs_obj,
+    asyncapi,
 )
 
 
 def test_broker_customization() -> None:
-    schema = docs_obj.to_jsonable()
+    schema = asyncapi.to_jsonable()
 
     assert schema["servers"] == {
         "development": {

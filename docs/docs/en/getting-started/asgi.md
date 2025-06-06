@@ -134,15 +134,18 @@ You can also host your **AsyncAPI** documentation in the same process, by runnin
 
 Just create an `AsgiFastStream` object with a special option:
 
-```python linenums="1" hl_lines="8"
+```python linenums="1" hl_lines="11"
 from faststream.nats import NatsBroker
 from faststream.asgi import AsgiFastStream
+from faststream.specification.asyncapi import AsyncAPI
+from faststream.asgi import make_asyncapi_asgi
 
 broker = NatsBroker()
+asyncapi = AsyncAPI(broker)
 
 app = AsgiFastStream(
     broker,
-    asyncapi_path="/docs",
+    asgi_routes=("/docs/asyncapi", make_asyncapi_asgi(asyncapi)),
 )
 ```
 
@@ -152,12 +155,15 @@ Now, your **AsyncAPI HTML** representation can be found by the `/docs` url.
 
 You may also use regular `FastStream` application object for similar result.
 
-```python linenums="1" hl_lines="2 11"
+```python linenums="1" hl_lines="2 14"
 from faststream import FastStream
 from faststream.nats import NatsBroker
+from faststream.specification.asyncapi import AsyncAPI
+from faststream.asgi import make_asyncapi_asgi, make_ping_asgi, AsgiResponse
 from faststream.asgi import make_ping_asgi, AsgiResponse
 
 broker = NatsBroker()
+asyncapi = AsyncAPI(broker)
 
 @get
 async def liveness_ping(scope):
@@ -167,8 +173,8 @@ app = FastStream(broker).as_asgi(
     asgi_routes=[
         ("/liveness", liveness_ping),
         ("/readiness", make_ping_asgi(broker, timeout=5.0)),
+        ("/docs/asyncapi", make_asyncapi_asgi(asyncapi))
     ],
-    asyncapi_path="/docs",
 )
 ```
 
@@ -187,15 +193,16 @@ Moreover, our wrappers can be used as ready-to-use endpoints for other **ASGI** 
 
 Just follow the following example in such cases:
 
-```python linenums="1" hl_lines="6 19-20"
+```python linenums="1" hl_lines="6 20-21"
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from faststream import FastStream
 from faststream.nats import NatsBroker
+from faststream.specification.asyncapi import AsyncAPI
 from faststream.asgi import make_ping_asgi, make_asyncapi_asgi
 
 broker = NatsBroker()
+asyncapi = AsyncAPI(broker)
 
 @asynccontextmanager
 async def start_broker(app):
@@ -207,7 +214,7 @@ async def start_broker(app):
 app = FastAPI(lifespan=start_broker)
 
 app.mount("/health", make_ping_asgi(broker, timeout=5.0))
-app.mount("/asyncapi", make_asyncapi_asgi(FastStream(broker)))
+app.mount("/asyncapi", make_asyncapi_asgi(asyncapi))
 ```
 
 !!! tip

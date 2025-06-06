@@ -8,7 +8,7 @@ broker = KafkaBroker(
     specification_url="non-sensitive-url:9092",
 )
 app = FastStream(broker)
-docs_obj = AsyncAPI(
+asyncapi = AsyncAPI(
     broker,
     schema_version="2.6.0",
 )

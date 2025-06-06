@@ -7,7 +7,7 @@ broker = KafkaBroker("localhost:9092")
 description="""# Title of the description
 This description supports **Markdown** syntax"""
 app = FastStream(broker)
-docs_obj = AsyncAPI(
+asyncapi = AsyncAPI(
     broker,
     title="My App",
     app_version="1.0.0",

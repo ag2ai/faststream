@@ -13,7 +13,7 @@ class DataBasic(BaseModel):
 
 broker = KafkaBroker("localhost:9092")
 app = FastStream(broker)
-docs_obj = AsyncAPI(
+asyncapi = AsyncAPI(
     broker,
     schema_version="2.6.0",
 )
