@@ -209,7 +209,6 @@ class TestPublish(BrokerPublishTestcase):
             assert response == "Hi!", response
 
     @pytest.mark.asyncio
-    @pytest.mark.pipe
     @pytest.mark.parametrize("type_queue", ["channel", "list", "stream"])
     async def test_pipeline(self, type_queue: str, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
@@ -253,7 +252,6 @@ class TestPublish(BrokerPublishTestcase):
         mock.assert_has_calls([call(f"hello {i}") for i in range(10)])
 
     @pytest.mark.asyncio
-    @pytest.mark.pipe
     async def test_pipebatch(self, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
         pub_broker = self.get_broker(apply_types=True)
@@ -294,7 +292,6 @@ class TestPublish(BrokerPublishTestcase):
         mock.assert_called_once_with([f"hello {i}" for i in range(10)])
 
     @pytest.mark.asyncio
-    @pytest.mark.pipe
     async def test_pipeline_both_delivery(self, queue: str) -> None:
         pub_broker = self.get_broker(apply_types=True)
 

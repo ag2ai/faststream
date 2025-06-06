@@ -5,7 +5,6 @@ from faststream.testing.app import TestApp
 
 
 @pytest.mark.asyncio
-@pytest.mark.pipe
 async def test_pipeline():
     from docs.docs_src.redis.pipeline.pipeline import (
         app,
