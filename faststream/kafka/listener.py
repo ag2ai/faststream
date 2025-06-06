@@ -50,6 +50,8 @@ class _LoggingListener(ConsumerRebalanceListener):
         self.logger = logger
         self.log_extra = log_extra
 
+        self._log_unassigned_consumer_task: Optional[asyncio.Task[None]] = None
+
     async def on_partitions_revoked(self, revoked: set["TopicPartition"]) -> None:
         pass
 
@@ -81,8 +83,8 @@ class _LoggingListener(ConsumerRebalanceListener):
                 extra=self.log_extra,
             )
 
-            self._log_unassigned_consumer_task: Optional[asyncio.Task[None]] = (
-                asyncio.create_task(self.log_unassigned_consumer())
+            self._log_unassigned_consumer_task = asyncio.create_task(
+                self.log_unassigned_consumer()
             )
 
         elif self._log_unassigned_consumer_task:

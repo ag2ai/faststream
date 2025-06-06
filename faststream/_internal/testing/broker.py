@@ -13,20 +13,30 @@ from typing import (
 from unittest import mock
 from unittest.mock import MagicMock
 
-from faststream._internal.broker.broker import BrokerUsecase
-from faststream._internal.endpoint.subscriber.utils import MultiLock
-from faststream._internal.state.logger.logger_proxy import RealLoggerObject
+from faststream._internal.broker import BrokerUsecase
+from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.ast import is_contains_context_name
-from faststream._internal.utils.functions import sync_fake_context
+from faststream._internal.utils.functions import FakeContext
 
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.endpoint.subscriber.proto import SubscriberProto
+    from faststream._internal.broker import BrokerConfig
+    from faststream._internal.endpoint.subscriber import SubscriberProto
+    from faststream._internal.producer import ProducerProto
 
 
 Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
+
+
+@contextmanager
+def change_producer(
+    config: "BrokerConfig", producer: "ProducerProto"
+) -> Generator[None, None, None]:
+    old_producer, config.producer = config.producer, producer
+    yield
+    config.producer = old_producer
 
 
 class TestBroker(Generic[Broker]):
@@ -81,7 +91,7 @@ class TestBroker(Generic[Broker]):
     async def _create_ctx(self) -> AsyncGenerator[Broker, None]:
         if self.with_real:
             self._fake_start(self.broker)
-            context = sync_fake_context()
+            context = FakeContext()
         else:
             context = self._patch_broker(self.broker)
 
@@ -100,15 +110,18 @@ class TestBroker(Generic[Broker]):
 
     @contextmanager
     def _patch_logger(self, broker: Broker) -> Iterator[None]:
-        state = broker._state.get()
-        state._setup_logger_state()
+        broker._setup_logger()
 
-        logger_state = state.logger_state
-        old_log_object = logger_state.logger
+        logger_state = broker.config.logger
 
-        logger_state.logger = RealLoggerObject(MagicMock())
+        old_log_object, logger_state.logger = (
+            logger_state.logger,
+            RealLoggerObject(MagicMock()),
+        )
+
         try:
             yield
+
         finally:
             logger_state.logger = old_log_object
 
@@ -142,17 +155,14 @@ class TestBroker(Generic[Broker]):
                 return_value=True,
             ),
         ):
-            broker._setup()
             yield
 
     def _fake_start(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
-        patch_broker_calls(broker)
-
-        for p in broker._publishers:
-            if getattr(p, "_fake_handler", None):
+        for publisher in broker.publishers:
+            if getattr(publisher, "_fake_handler", None):
                 continue
 
-            sub, is_real = self.create_publisher_fake_subscriber(broker, p)
+            sub, is_real = self.create_publisher_fake_subscriber(broker, publisher)
 
             if not is_real:
                 self._fake_subscribers.append(sub)
@@ -163,11 +173,9 @@ class TestBroker(Generic[Broker]):
                 async def publisher_response_subscriber(msg: Any) -> None:
                     pass
 
-                broker.setup_subscriber(sub)
-
             if is_real:
                 mock = MagicMock()
-                p.set_test(mock=mock, with_fake=False)  # type: ignore[attr-defined]
+                publisher.set_test(mock=mock, with_fake=False)  # type: ignore[attr-defined]
                 for h in sub.calls:
                     h.handler.set_test()
                     assert h.handler.mock  # nosec B101
@@ -177,11 +185,12 @@ class TestBroker(Generic[Broker]):
                 handler = sub.calls[0].handler
                 handler.set_test()
                 assert handler.mock  # nosec B101
-                p.set_test(mock=handler.mock, with_fake=True)  # type: ignore[attr-defined]
+                publisher.set_test(mock=handler.mock, with_fake=True)  # type: ignore[attr-defined]
 
-        for subscriber in broker._subscribers:
-            subscriber.running = True
-            subscriber.lock = MultiLock()  # type: ignore[attr-defined]
+        patch_broker_calls(broker)
+
+        for subscriber in broker.subscribers:
+            subscriber._post_start()
 
     def _fake_close(
         self,
@@ -190,7 +199,7 @@ class TestBroker(Generic[Broker]):
         exc_val: Optional[BaseException] = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        for p in broker._publishers:
+        for p in broker.publishers:
             if getattr(p, "_fake_handler", None):
                 p.reset_test()  # type: ignore[attr-defined]
 
@@ -199,9 +208,9 @@ class TestBroker(Generic[Broker]):
         ]
         self._fake_subscribers.clear()
 
-        for h in broker._subscribers:
-            h.running = False
-            for call in h.calls:
+        for sub in broker.subscribers:
+            sub.running = False
+            for call in sub.calls:
                 call.handler.reset_test()
 
     @staticmethod
@@ -220,8 +229,8 @@ class TestBroker(Generic[Broker]):
 
 def patch_broker_calls(broker: "BrokerUsecase[Any, Any]") -> None:
     """Patch broker calls."""
-    broker._setup()
+    for sub in broker.subscribers:
+        sub._build_fastdepends_model()
 
-    for handler in broker._subscribers:
-        for h in handler.calls:
+        for h in sub.calls:
             h.handler.set_test()

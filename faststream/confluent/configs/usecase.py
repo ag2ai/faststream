@@ -15,9 +15,13 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.confluent.schemas import TopicPartition
 
+    from .broker import KafkaBrokerConfig
+
 
 @dataclass
 class KafkaPublisherConfig(PublisherUsecaseConfig):
+    config: "KafkaBrokerConfig"
+
     key: Union[bytes, str, None]
     topic: str
     partition: Optional[int]
@@ -27,6 +31,8 @@ class KafkaPublisherConfig(PublisherUsecaseConfig):
 
 @dataclass
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
+    config: "KafkaBrokerConfig"
+
     topics: Sequence[str] = field(default_factory=list)
     partitions: Sequence["TopicPartition"] = field(default_factory=list)
     polling_interval: float = 0.1

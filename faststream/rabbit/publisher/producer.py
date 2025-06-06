@@ -6,7 +6,7 @@ from typing import (
 )
 
 import anyio
-from typing_extensions import Unpack, override
+from typing_extensions import ReadOnly, Unpack, override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.producer import ProducerProto
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class LockState(Protocol):
-    lock: "anyio.Lock"
+    lock: ReadOnly["anyio.Lock"]
 
 
 class LockUnset(LockState):
@@ -52,6 +52,64 @@ class RealLock(LockState):
 
 
 class AioPikaFastProducer(ProducerProto):
+    def connect(self) -> None: ...
+
+    def disconnect(self) -> None: ...
+
+    @override
+    async def publish(  # type: ignore[override]
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+        """Publish a message to a RabbitMQ queue."""
+
+    @override
+    async def request(  # type: ignore[override]
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> "IncomingMessage":
+        """Publish a message to a RabbitMQ queue."""
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> None: ...
+
+
+class FakeAioPikaFastProducer(AioPikaFastProducer):
+    def __bool__(self) -> bool:
+        return False
+
+    def connect(self) -> None:
+        raise NotImplementedError
+
+    def disconnect(self) -> None:
+        raise NotImplementedError
+
+    @override
+    async def publish(  # type: ignore[override]
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+        raise NotImplementedError
+
+    @override
+    async def request(  # type: ignore[override]
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> "IncomingMessage":
+        raise NotImplementedError
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "RabbitPublishCommand",
+    ) -> None:
+        raise NotImplementedError
+
+
+class AioPikaFastProducerImpl(AioPikaFastProducer):
     """A class for fast producing messages using aio-pika."""
 
     _decoder: "AsyncCallable"
@@ -87,7 +145,6 @@ class AioPikaFastProducer(ProducerProto):
         self,
         cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        """Publish a message to a RabbitMQ queue."""
         return await self._publish(
             message=cmd.body,
             exchange=cmd.exchange,
@@ -104,7 +161,6 @@ class AioPikaFastProducer(ProducerProto):
         self,
         cmd: "RabbitPublishCommand",
     ) -> "IncomingMessage":
-        """Publish a message to a RabbitMQ queue."""
         async with _RPCCallback(
             self.__lock.lock,
             await self.declarer.declare_queue(RABBIT_REPLY),
@@ -133,7 +189,6 @@ class AioPikaFastProducer(ProducerProto):
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        """Publish a message to a RabbitMQ exchange."""
         message = AioPikaParser.encode_message(message=message, **message_options)
 
         exchange_obj = await self.declarer.declare_exchange(

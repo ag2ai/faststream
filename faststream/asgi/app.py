@@ -11,10 +11,12 @@ import anyio
 from faststream._internal._compat import HAS_TYPER, ExceptionGroup
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
-from faststream._internal.log import logger
-from faststream.asgi.response import AsgiResponse
-from faststream.asgi.websocket import WebSocketClose
+from faststream._internal.di import FastDependsConfig
+from faststream._internal.logger import logger
 from faststream.exceptions import StartupValidationError
+
+from .response import AsgiResponse
+from .websocket import WebSocketClose
 
 if TYPE_CHECKING:
     from types import FrameType
@@ -30,7 +32,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SettingField,
     )
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send
 
     class UvicornServerProtocol(Protocol):
@@ -99,8 +101,10 @@ class AsgiFastStream(Application):
         super().__init__(
             broker,
             logger=logger,
-            provider=provider,
-            serializer=serializer,
+            config=FastDependsConfig(
+                provider=provider,
+                serializer=serializer,
+            ),
             lifespan=lifespan,
             on_startup=on_startup,
             after_startup=after_startup,

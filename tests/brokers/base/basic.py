@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.broker.router import BrokerRouter
 
 

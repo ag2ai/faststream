@@ -1,6 +1,6 @@
 import re
 from collections.abc import Generator, Iterable, Iterator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
@@ -15,7 +15,7 @@ from aiokafka import ConsumerRecord
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
-from faststream._internal.testing.broker import TestBroker
+from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.kafka import TopicPartition
 from faststream.kafka.broker import KafkaBroker
@@ -40,10 +40,13 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:
-        old_producer = broker._state.get().producer
-        broker._state.patch_value(producer=FakeProducer(broker))
-        yield
-        broker._state.patch_value(producer=old_producer)
+        fake_producer = FakeProducer(broker)
+
+        with ExitStack() as es:
+            es.enter_context(
+                change_producer(broker.config.broker_config, fake_producer)
+            )
+            yield
 
     @staticmethod
     async def _fake_connect(  # type: ignore[override]
@@ -51,6 +54,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
+        broker.config.broker_config._admin_client = AsyncMock()
+
+        builder = MagicMock(return_value=FakeConsumer())
+        broker.config.broker_config.builder = builder
+
         return _fake_connection
 
     @staticmethod
@@ -59,7 +67,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         publisher: "SpecificationPublisher[Any, Any]",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: Optional[LogicSubscriber[Any]] = None
-        for handler in broker._subscribers:
+        for handler in broker.subscribers:
             if _is_handler_matches(handler, publisher.topic, publisher.partition):
                 sub = handler
                 break
@@ -85,6 +93,17 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
             is_real = True
 
         return sub, is_real
+
+
+class FakeConsumer:
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
+
+    def subscribe(self, *args: Any, **kwargs: Any) -> None:
+        pass
 
 
 class FakeProducer(AioKafkaFastProducer):
@@ -129,7 +148,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -155,7 +174,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -176,7 +195,7 @@ class FakeProducer(AioKafkaFastProducer):
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
         for handler in _find_handler(
-            self.broker._subscribers,
+            self.broker.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -245,14 +264,14 @@ def build_message(
         value=msg,
         topic=topic,
         partition=partition or 0,
-        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp()),
-        timestamp_type=0,
         key=k,
         serialized_key_size=len(k),
         serialized_value_size=len(msg),
         checksum=sum(msg),
         offset=0,
         headers=[(i, j.encode()) for i, j in headers.items()],
+        timestamp_type=1,
+        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
     )
 
 
@@ -290,5 +309,5 @@ def _is_handler_matches(
             for p in handler.partitions
         )
         or topic in handler.topics
-        or (handler._pattern and re.match(handler._pattern, topic)),
+        or (handler.pattern and re.match(handler.pattern, topic)),
     )

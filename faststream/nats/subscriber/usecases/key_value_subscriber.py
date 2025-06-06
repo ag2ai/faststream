@@ -36,11 +36,15 @@ class KeyValueWatchSubscriber(
     _fetch_sub: Optional[UnsubscribeAdapter["KeyValue.KeyWatcher"]]
 
     def __init__(
-        self, config: "NatsSubscriberConfig", /, *, kv_watch: "KvWatch",
+        self,
+        config: "NatsSubscriberConfig",
+        /,
+        *,
+        kv_watch: "KvWatch",
     ) -> None:
         parser = KvParser(pattern=config.subject)
-        config.default_decoder = parser.decode_message
-        config.default_parser = parser.parse_message
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
         self.kv_watch = kv_watch
@@ -56,7 +60,7 @@ class KeyValueWatchSubscriber(
         ), "You can't use `get_one` method if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            bucket = await self._connection_state.kv_declarer.create_key_value(
+            bucket = await self._outer_config.kv_declarer.create_key_value(
                 bucket=self.kv_watch.name,
                 declare=self.kv_watch.declare,
             )
@@ -82,7 +86,7 @@ class KeyValueWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: NatsKvMessage = await process_msg(
             msg=raw_message,
@@ -101,7 +105,7 @@ class KeyValueWatchSubscriber(
         ), "You can't use iterator if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            bucket = await self._connection_state.kv_declarer.create_key_value(
+            bucket = await self._outer_config.kv_declarer.create_key_value(
                 bucket=self.kv_watch.name,
                 declare=self.kv_watch.declare,
             )
@@ -133,7 +137,7 @@ class KeyValueWatchSubscriber(
             if raw_message is None:
                 continue
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: NatsKvMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
@@ -150,7 +154,7 @@ class KeyValueWatchSubscriber(
         if self.subscription:
             return
 
-        bucket = await self._connection_state.kv_declarer.create_key_value(
+        bucket = await self._outer_config.kv_declarer.create_key_value(
             bucket=self.kv_watch.name,
             declare=self.kv_watch.declare,
         )

@@ -6,13 +6,13 @@ from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream.message import gen_cor_id
-from faststream.nats.configs import NatsPublisherConfig
 from faststream.nats.response import NatsPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
+    from faststream.nats.configs import NatsBrokerConfig, NatsPublisherConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.producer import NatsFastProducer, NatsJSFastProducer
     from faststream.nats.schemas import PubAck
@@ -22,17 +22,21 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase[Msg]):
     """A class to represent a NATS publisher."""
 
-    _producer: Union["NatsFastProducer", "NatsJSFastProducer"]
+    _outer_config: "NatsBrokerConfig"
 
-    def __init__(self, config: NatsPublisherConfig, /) -> None:
+    def __init__(self, config: "NatsPublisherConfig", /) -> None:
         """Initialize NATS publisher object."""
         super().__init__(config)
 
-        self.subject = config.subject
+        self._subject = config.subject
         self.stream = config.stream
         self.timeout = config.timeout
         self.headers = config.headers or {}
         self.reply_to = config.reply_to
+
+    @property
+    def subject(self) -> str:
+        return f"{self._outer_config.prefix}{self._subject}"
 
     @overload
     async def publish(
@@ -107,6 +111,12 @@ class LogicPublisher(PublisherUsecase[Msg]):
         )
         return await self._basic_publish(cmd, _extra_middlewares=())
 
+    @property
+    def _producer(self) -> Union["NatsFastProducer", "NatsJSFastProducer"]:
+        if self.stream:
+            return self._outer_config.js_producer
+        return self._outer_config.producer
+
     @override
     async def _publish(
         self,
@@ -176,6 +186,3 @@ class LogicPublisher(PublisherUsecase[Msg]):
 
         msg: NatsMessage = await self._basic_request(cmd)
         return msg
-
-    def add_prefix(self, prefix: str) -> None:
-        self.subject = prefix + self.subject

@@ -1,6 +1,6 @@
 import re
 from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,7 +15,7 @@ import anyio
 from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
-from faststream._internal.testing.broker import TestBroker
+from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
@@ -46,6 +46,16 @@ __all__ = ("TestRedisBroker",)
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
 
+    @contextmanager
+    def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
+        fake_producer = FakeProducer(broker)
+
+        with ExitStack() as es:
+            es.enter_context(
+                change_producer(broker.config.broker_config, fake_producer)
+            )
+            yield
+
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: RedisBroker,
@@ -56,7 +66,7 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         named_property = publisher.subscriber_property(name_only=True)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in broker._subscribers:  # pragma: no branch
+        for handler in broker.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
                     sub = handler
@@ -70,13 +80,6 @@ class TestRedisBroker(TestBroker[RedisBroker]):
             is_real = True
 
         return sub, is_real
-
-    @contextmanager
-    def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
-        old_producer = broker._state.get().producer
-        broker._state.patch_value(producer=FakeProducer(broker))
-        yield
-        broker._state.patch_value(producer=old_producer)
 
     @staticmethod
     async def _fake_connect(  # type: ignore[override]
@@ -92,6 +95,8 @@ class TestRedisBroker(TestBroker[RedisBroker]):
             await anyio.sleep(timeout)
 
         pub_sub.get_message = get_msg
+
+        broker.config.broker_config.connection._client = connection
 
         connection.pubsub.side_effect = lambda: pub_sub
         return connection
@@ -126,7 +131,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destionation_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker._subscribers:  # pragma: no branch
+        for handler in self.broker.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -151,7 +156,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destionation_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker._subscribers:  # pragma: no branch
+        for handler in self.broker.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -179,7 +184,7 @@ class FakeProducer(RedisFastProducer):
         ]
 
         visitor = ListVisitor()
-        for handler in self.broker._subscribers:  # pragma: no branch
+        for handler in self.broker.subscribers:  # pragma: no branch)
             if visitor.visit(list=cmd.destination, sub=handler):
                 casted_handler = cast("_ListHandlerMixin", handler)
 

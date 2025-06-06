@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Optional
 
 from faststream.exceptions import IncorrectState
 
@@ -7,72 +7,39 @@ if TYPE_CHECKING:
     from nats.js import JetStreamContext
 
 
-class BrokerState(Protocol):
+class BrokerState:
     stream: "JetStreamContext"
     connection: "Client"
 
-    def __bool__(self) -> bool: ...
+    def __init__(self) -> None:
+        self._connected = False
 
-    def brake(self) -> "BrokerState": ...
+        self._stream: Optional[JetStreamContext] = None
+        self._connection: Optional[Client] = None
 
-    def reconnect(self) -> "BrokerState": ...
-
-
-class EmptyBrokerState(BrokerState):
     @property
     def connection(self) -> "Client":
-        msg = "Connection is not available yet. Please, connect the broker first."
-        raise IncorrectState(msg)
+        if not self._connection:
+            msg = "Connection is not available yet. Please, connect the broker first."
+            raise IncorrectState(msg)
+        return self._connection
 
     @property
     def stream(self) -> "JetStreamContext":
-        msg = "Stream is not available yet. Please, connect the broker first."
-        raise IncorrectState(msg)
-
-    def brake(self) -> "BrokerState":
-        return self
-
-    def reconnect(self) -> "BrokerState":
-        msg = "You can't reconnect an empty state. Please, connect the broker first."
-        raise IncorrectState(msg)
+        if not self._stream:
+            msg = "Stream is not available yet. Please, connect the broker first."
+            raise IncorrectState(msg)
+        return self._stream
 
     def __bool__(self) -> bool:
-        return False
+        return self._connected
 
+    def connect(self, connection: "Client", stream: "JetStreamContext") -> None:
+        self._connection = connection
+        self._stream = stream
+        self._connected = True
 
-class ConnectedState(BrokerState):
-    def __init__(
-        self,
-        connection: "Client",
-        stream: "JetStreamContext",
-    ) -> None:
-        self.connection = connection
-        self.stream = stream
-
-    def __bool__(self) -> bool:
-        return True
-
-    def brake(self) -> "ConnectionBrokenState":
-        return ConnectionBrokenState(
-            connection=self.connection,
-            stream=self.stream,
-        )
-
-
-class ConnectionBrokenState(BrokerState):
-    def __init__(
-        self,
-        connection: "Client",
-        stream: "JetStreamContext",
-    ) -> None:
-        self.connection = connection
-        self.stream = stream
-
-    def __bool__(self) -> bool:
-        return False
-
-    def reconnect(self) -> "ConnectedState":
-        return ConnectedState(
-            connection=self.connection,
-            stream=self.stream,
-        )
+    def disconnect(self) -> None:
+        self._connection = None
+        self._stream = None
+        self._connected = False

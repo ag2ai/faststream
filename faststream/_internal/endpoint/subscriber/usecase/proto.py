@@ -10,16 +10,9 @@ from faststream._internal.types import MsgType
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.endpoint.publisher import BasePublisherProto
     from faststream._internal.endpoint.subscriber.call_item import HandlerItem
-    from faststream._internal.producer import ProducerProto
-    from faststream._internal.state import BrokerState, Pointer
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-        SubscriberMiddleware,
-    )
+    from faststream._internal.types import CustomCallable, SubscriberMiddleware
     from faststream.message import StreamMessage
     from faststream.response import Response
 
@@ -28,12 +21,7 @@ class SubscriberProto(Endpoint[MsgType]):
     calls: list["HandlerItem[MsgType]"]
     running: bool
 
-    _broker_dependencies: Iterable["Dependant"]
-    _broker_middlewares: Sequence["BrokerMiddleware[MsgType]"]
-    _producer: Optional["ProducerProto"]
-
-    @abstractmethod
-    def add_middleware(self, middleware: "BrokerMiddleware[MsgType]") -> None: ...
+    async def start(self) -> None: ...
 
     @abstractmethod
     def get_log_context(
@@ -43,25 +31,10 @@ class SubscriberProto(Endpoint[MsgType]):
     ) -> dict[str, str]: ...
 
     @abstractmethod
-    def _setup(
-        self,
-        *,
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        state: "Pointer[BrokerState]",
-    ) -> None: ...
-
-    @abstractmethod
     def _make_response_publisher(
         self,
         message: "StreamMessage[MsgType]",
     ) -> Iterable["BasePublisherProto"]: ...
-
-    @abstractmethod
-    async def start(self) -> None: ...
 
     @abstractmethod
     async def close(self) -> None: ...

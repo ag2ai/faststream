@@ -54,6 +54,8 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
     {!> docs_src/getting_started/publishing/redis/object.py !}
     ```
 
+`#!python @publisher` properly sets the same `correlation_id` as the incoming message. This way, you get the same `correlation_id` for the entire message pipeline across all services, allowing you to collect a trace.
+
 ## Message Broadcasting
 
 The decorator can be used multiple times with one function to broadcast the function's return:
@@ -70,7 +72,3 @@ This way, you will send a copy of your return to all output topics.
 
 !!! note
     Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
-
-## Details
-
-Additionally, `#!python @publisher` automatically sends a message with the same `correlation_id` as the incoming message. This way, you get the same `correlation_id` for the entire message pipeline process across all services, allowing you to collect a trace.

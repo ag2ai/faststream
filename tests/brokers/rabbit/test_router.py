@@ -10,7 +10,6 @@ from faststream.rabbit import (
     RabbitPublisher,
     RabbitQueue,
     RabbitRoute,
-    RabbitRouter,
 )
 from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 
@@ -27,8 +26,9 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         queue: str,
         event: asyncio.Event,
         mock: MagicMock,
-        router: RabbitRouter,
     ) -> None:
+        router = self.get_router()
+
         @router.subscriber(
             RabbitQueue(
                 queue,
@@ -65,7 +65,6 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         queue: str,
         event: asyncio.Event,
         mock: MagicMock,
-        router: RabbitRouter,
     ) -> None:
         async def h(
             name: str = Path(),
@@ -74,7 +73,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
             event.set()
             mock(name=name, id=id)
 
-        r = type(router)(
+        router = self.get_router(
             handlers=(
                 self.route_class(
                     h,
@@ -91,7 +90,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         )
 
         pub_broker = self.get_broker(apply_types=True)
-        pub_broker.include_router(r)
+        pub_broker.include_router(router)
 
         await pub_broker.start()
 
@@ -106,16 +105,14 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
     async def test_queue_obj(
         self,
-        router: RabbitRouter,
         queue: str,
     ) -> None:
-        event = asyncio.Event()
-
         broker = self.get_broker()
-
-        router.prefix = "test/"
+        router = self.get_router(prefix="test/")
 
         r_queue = RabbitQueue(queue)
+
+        event = asyncio.Event()
 
         @router.subscriber(r_queue)
         def subscriber(m) -> None:
@@ -140,14 +137,12 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
     async def test_queue_obj_with_routing_key(
         self,
-        router: RabbitRouter,
         queue: str,
     ) -> None:
         event = asyncio.Event()
 
         broker = self.get_broker()
-
-        router.prefix = "test/"
+        router = self.get_router(prefix="test/")
 
         r_queue = RabbitQueue("useless", routing_key=f"{queue}1")
         exchange = RabbitExchange(f"{queue}exch")
@@ -175,7 +170,6 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
     async def test_delayed_handlers_with_queue(
         self,
-        router: RabbitRouter,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -185,13 +179,13 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
         r_queue = RabbitQueue(queue)
 
-        r = type(router)(
+        router = self.get_router(
             prefix="test/",
             handlers=(self.route_class(response, queue=r_queue),),
         )
 
         pub_broker = self.get_broker()
-        pub_broker.include_router(r)
+        pub_broker.include_router(router)
 
         async with pub_broker:
             await pub_broker.start()

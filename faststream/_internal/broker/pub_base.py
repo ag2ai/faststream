@@ -16,7 +16,10 @@ if TYPE_CHECKING:
 
 
 class BrokerPublishMixin(Generic[MsgType]):
-    middlewares: Sequence["BrokerMiddleware[MsgType]"]
+    @property
+    @abstractmethod
+    def middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -46,6 +49,7 @@ class BrokerPublishMixin(Generic[MsgType]):
 
         return await publish(cmd)
 
+    @abstractmethod
     async def publish_batch(
         self,
         *messages: "SendableMessage",

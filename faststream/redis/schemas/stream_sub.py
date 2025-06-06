@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Optional
 
 from faststream._internal.proto import NameRequired
@@ -48,3 +49,8 @@ class StreamSub(NameRequired):
         self.last_id = last_id
         self.maxlen = maxlen
         self.max_records = max_records
+
+    def add_prefix(self, prefix: str) -> "StreamSub":
+        new_stream = deepcopy(self)
+        new_stream.name = f"{prefix}{new_stream.name}"
+        return new_stream

@@ -47,3 +47,12 @@ class TopicPartition:
         if self.leader_epoch is not None:
             kwargs["leader_epoch"] = self.leader_epoch
         return ConfluentPartition(**kwargs)
+
+    def add_prefix(self, prefix: str) -> "TopicPartition":
+        return TopicPartition(
+            topic=f"{prefix}{self.topic}",
+            partition=self.partition,
+            offset=self.offset,
+            metadata=self.metadata,
+            leader_epoch=self.leader_epoch,
+        )

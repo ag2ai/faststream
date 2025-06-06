@@ -48,7 +48,7 @@ To enable tracing your broker:
 1. Install `FastStream` with the `opentelemetry-sdk`:
 
     ```shell
-    pip install faststream[otel]
+    pip install 'faststream[otel]'
     ```
 
 2. Configure `TracerProvider`:

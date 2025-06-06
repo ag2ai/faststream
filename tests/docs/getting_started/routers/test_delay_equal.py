@@ -22,15 +22,15 @@ async def test_delay_router_kafka() -> None:
     )
     from faststream.kafka import TestKafkaBroker
 
-    assert len(broker._subscribers) == len(control_broker._subscribers)
-    assert len(broker._publishers) == len(control_broker._publishers)
+    assert len(broker.subscribers) == len(control_broker.subscribers)
+    assert len(broker.publishers) == len(control_broker.publishers)
 
     async with TestKafkaBroker(broker) as br, TestApp(app):
-        next(iter(br._subscribers)).calls[0].handler.mock.assert_called_once_with(
+        br.subscribers[1].calls[0].handler.mock.assert_called_once_with(
             {"name": "John", "user_id": 1},
         )
 
-        next(iter(br._publishers)).mock.assert_called_once_with("Hi!")
+        br.publishers[0].mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -45,15 +45,15 @@ async def test_delay_router_confluent() -> None:
     )
     from faststream.confluent import TestKafkaBroker as TestConfluentKafkaBroker
 
-    assert len(broker._subscribers) == len(control_broker._subscribers)
-    assert len(broker._publishers) == len(control_broker._publishers)
+    assert len(broker.subscribers) == len(control_broker.subscribers)
+    assert len(broker.publishers) == len(control_broker.publishers)
 
     async with TestConfluentKafkaBroker(broker) as br, TestApp(app):
-        next(iter(br._subscribers)).calls[0].handler.mock.assert_called_once_with(
+        br.subscribers[1].calls[0].handler.mock.assert_called_once_with(
             {"name": "John", "user_id": 1},
         )
 
-        next(iter(br._publishers)).mock.assert_called_once_with("Hi!")
+        br.publishers[0].mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -68,15 +68,15 @@ async def test_delay_router_rabbit() -> None:
     )
     from faststream.rabbit import TestRabbitBroker
 
-    assert len(broker._subscribers) == len(control_broker._subscribers)
-    assert len(broker._publishers) == len(control_broker._publishers)
+    assert len(broker.subscribers) == len(control_broker.subscribers)
+    assert len(broker.publishers) == len(control_broker.publishers)
 
     async with TestRabbitBroker(broker) as br, TestApp(app):
-        next(iter(br._subscribers)).calls[0].handler.mock.assert_called_once_with(
+        br.subscribers[1].calls[0].handler.mock.assert_called_once_with(
             {"name": "John", "user_id": 1},
         )
 
-        next(iter(br._publishers)).mock.assert_called_once_with("Hi!")
+        br.publishers[0].mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -91,15 +91,15 @@ async def test_delay_router_nats() -> None:
     )
     from faststream.nats import TestNatsBroker
 
-    assert len(broker._subscribers) == len(control_broker._subscribers)
-    assert len(broker._publishers) == len(control_broker._publishers)
+    assert len(broker.subscribers) == len(control_broker.subscribers)
+    assert len(broker.publishers) == len(control_broker.publishers)
 
     async with TestNatsBroker(broker) as br, TestApp(app):
-        next(iter(br._subscribers)).calls[0].handler.mock.assert_called_once_with(
+        br.subscribers[1].calls[0].handler.mock.assert_called_once_with(
             {"name": "John", "user_id": 1},
         )
 
-        next(iter(br._publishers)).mock.assert_called_once_with("Hi!")
+        br.publishers[0].mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -114,12 +114,12 @@ async def test_delay_router_redis() -> None:
     )
     from faststream.redis import TestRedisBroker
 
-    assert len(broker._subscribers) == len(control_broker._subscribers)
-    assert len(broker._publishers) == len(control_broker._publishers)
+    assert len(broker.subscribers) == len(control_broker.subscribers)
+    assert len(broker.publishers) == len(control_broker.publishers)
 
     async with TestRedisBroker(broker) as br, TestApp(app):
-        next(iter(br._subscribers)).calls[0].handler.mock.assert_called_once_with(
+        br.subscribers[1].calls[0].handler.mock.assert_called_once_with(
             {"name": "John", "user_id": 1},
         )
 
-        next(iter(br._publishers)).mock.assert_called_once_with("Hi!")
+        br.publishers[0].mock.assert_called_once_with("Hi!")

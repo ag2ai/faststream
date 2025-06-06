@@ -6,7 +6,7 @@ from faststream.kafka import TestApp, TestKafkaBroker
 
 @pytest.mark.asyncio()
 async def test_example() -> None:
-    sub = next(iter(broker._subscribers))
+    sub = broker.subscribers[0]
     sub.topic = "prefix_in"
     handle = sub.calls[0].handler
 

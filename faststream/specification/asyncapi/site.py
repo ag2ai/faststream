@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
 from faststream._internal._compat import json_dumps
-from faststream._internal.log import logger
+from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
     from faststream.specification.base.specification import Specification

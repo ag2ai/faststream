@@ -17,11 +17,8 @@ from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from confluent_kafka import Message as ConfluentMsg
-    from fast_depends.dependencies import Dependant
-
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
+    from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.schemas import TopicPartition
 
 
@@ -40,11 +37,7 @@ def create_subscriber(
     no_ack: bool,
     max_workers: int,
     no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Union[
-        Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-        Sequence["BrokerMiddleware[ConfluentMsg]"],
-    ],
+    config: "KafkaBrokerConfig",
     # Specification args
     title_: Optional[str],
     description_: Optional[str],
@@ -70,11 +63,8 @@ def create_subscriber(
         polling_interval=polling_interval,
         group_id=group_id,
         connection_data=connection_data,
-        broker_middlewares=broker_middlewares,
         no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        default_decoder=EMPTY,
-        default_parser=EMPTY,
+        config=config,
         _ack_policy=ack_policy,
         # deprecated options to remove in 0.7.0
         _auto_commit=auto_commit,

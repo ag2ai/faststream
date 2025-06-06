@@ -1,12 +1,12 @@
 import logging
 from functools import partial
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from faststream._internal.log.logging import get_broker_logger
-from faststream._internal.state.logger import (
+from faststream._internal.logger import (
     DefaultLoggerStorage,
     make_logger_state,
 )
+from faststream._internal.logger.logging import get_broker_logger
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, LoggerProto
@@ -14,11 +14,8 @@ if TYPE_CHECKING:
 
 
 class RedisParamsStorage(DefaultLoggerStorage):
-    def __init__(
-        self,
-        log_fmt: Optional[str],
-    ) -> None:
-        super().__init__(log_fmt)
+    def __init__(self) -> None:
+        super().__init__()
 
         self._max_channel_name = 4
 
@@ -27,7 +24,7 @@ class RedisParamsStorage(DefaultLoggerStorage):
     def set_level(self, level: int) -> None:
         self.logger_log_level = level
 
-    def setup_log_contest(self, params: "AnyDict") -> None:
+    def register_subscriber(self, params: "AnyDict") -> None:
         self._max_channel_name = max(
             (
                 self._max_channel_name,
@@ -46,8 +43,7 @@ class RedisParamsStorage(DefaultLoggerStorage):
                     "channel": "",
                 },
                 message_id_ln=message_id_ln,
-                fmt=self._log_fmt
-                or (
+                fmt=(
                     "%(asctime)s %(levelname)-8s - "
                     f"%(channel)-{self._max_channel_name}s | "
                     f"%(message_id)-{message_id_ln}s "

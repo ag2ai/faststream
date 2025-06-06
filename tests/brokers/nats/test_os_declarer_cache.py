@@ -20,5 +20,5 @@ async def test_object_storage_cache() -> None:
     ) as m:
         await broker.object_storage("test")
         await broker.object_storage("test")
-        assert broker._os_declarer.buckets["test"]
+        assert broker.config.os_declarer.buckets["test"]
         m.mock.assert_called_once()

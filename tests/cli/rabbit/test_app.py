@@ -10,7 +10,7 @@ import pytest
 
 from faststream import FastStream, TestApp
 from faststream._internal._compat import IS_WINDOWS
-from faststream._internal.log import logger
+from faststream._internal.logger import logger
 from faststream.rabbit import RabbitBroker, TestRabbitBroker
 
 

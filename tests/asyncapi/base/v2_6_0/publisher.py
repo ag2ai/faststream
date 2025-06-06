@@ -1,6 +1,6 @@
 import pydantic
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream.specification.asyncapi import AsyncAPI
 
 

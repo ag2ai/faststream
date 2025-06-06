@@ -1,3 +1,4 @@
+from .broker import BrokerSpec
 from .extra import (
     Contact,
     ContactDict,
@@ -14,6 +15,7 @@ from .publisher import PublisherSpec
 from .subscriber import SubscriberSpec
 
 __all__ = (
+    "BrokerSpec",
     "Contact",
     "ContactDict",
     "ExternalDocs",

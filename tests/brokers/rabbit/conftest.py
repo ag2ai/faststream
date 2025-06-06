@@ -10,14 +10,14 @@ from faststream.rabbit import (
 
 @dataclass
 class Settings:
-    url = "amqp://guest:guest@localhost:5672/"  # pragma: allowlist secret
+    url: str = "amqp://guest:guest@localhost:5672/"  # pragma: allowlist secret
 
-    host = "localhost"
-    port = 5672
-    login = "guest"
-    password = "guest"  # pragma: allowlist secret
+    host: str = "localhost"
+    port: int = 5672
+    login: str = "guest"
+    password: str = "guest"  # pragma: allowlist secret
 
-    queue = "test_queue"
+    queue: str = "test_queue"
 
 
 @pytest.fixture()

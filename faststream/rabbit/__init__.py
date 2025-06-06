@@ -2,9 +2,8 @@ from faststream._internal.testing.app import TestApp
 
 try:
     from .annotations import RabbitMessage
-    from .broker import RabbitBroker
+    from .broker import RabbitBroker, RabbitPublisher, RabbitRoute, RabbitRouter
     from .response import RabbitResponse
-    from .router import RabbitPublisher, RabbitRoute, RabbitRouter
     from .schemas import (
         Channel,
         ExchangeType,

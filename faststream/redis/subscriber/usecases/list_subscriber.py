@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
 
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisSubscriberConfig
+    from faststream.redis.schemas import ListSub
 
 
 TopicName: TypeAlias = bytes
@@ -38,7 +38,11 @@ class _ListHandlerMixin(LogicSubscriber):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         super().__init__(config)
         assert config.list_sub  # nosec B101
-        self.list_sub = config.list_sub
+        self._list_sub = config.list_sub
+
+    @property
+    def list_sub(self) -> "ListSub":
+        return self._list_sub.add_prefix(self._outer_config.prefix)
 
     def get_log_context(
         self,
@@ -98,7 +102,7 @@ class _ListHandlerMixin(LogicSubscriber):
             channel=self.list_sub.name,
         )
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
             msg=redis_incoming_msg,
@@ -137,7 +141,7 @@ class _ListHandlerMixin(LogicSubscriber):
                 channel=self.list_sub.name,
             )
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
@@ -150,17 +154,12 @@ class _ListHandlerMixin(LogicSubscriber):
             )
             yield msg
 
-    def add_prefix(self, prefix: str) -> None:
-        new_list = deepcopy(self.list_sub)
-        new_list.name = f"{prefix}{new_list.name}"
-        self.list_sub = new_list
-
 
 class ListSubscriber(_ListHandlerMixin):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         parser = RedisListParser()
-        config.default_parser = parser.parse_message
-        config.default_decoder = parser.decode_message
+        config.parser = parser.parse_message
+        config.decoder = parser.decode_message
         super().__init__(config)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
@@ -184,8 +183,8 @@ class ListSubscriber(_ListHandlerMixin):
 class BatchListSubscriber(_ListHandlerMixin):
     def __init__(self, config: "RedisSubscriberConfig", /) -> None:
         parser = RedisBatchListParser()
-        config.default_parser = parser.parse_message
-        config.default_decoder = parser.decode_message
+        config.parser = parser.parse_message
+        config.decoder = parser.decode_message
         super().__init__(config)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:

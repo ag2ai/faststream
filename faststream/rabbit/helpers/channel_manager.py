@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional, Protocol, cast
 
 from faststream.rabbit.schemas import Channel
 
@@ -8,7 +8,34 @@ if TYPE_CHECKING:
     import aio_pika
 
 
-class ChannelManager:
+class ChannelManager(Protocol):
+    def connect(self, connection: "aio_pika.RobustConnection") -> None: ...
+
+    def disconnect(self) -> None: ...
+
+    async def get_channel(
+        self,
+        channel: Optional["Channel"] = None,
+    ) -> "aio_pika.RobustChannel":
+        """Declare a channel."""
+        ...
+
+
+class FakeChannelManager(ChannelManager):
+    def connect(self, connection: "aio_pika.RobustConnection") -> None:
+        raise NotImplementedError
+
+    def disconnect(self) -> None:
+        raise NotImplementedError
+
+    async def get_channel(
+        self,
+        channel: Optional["Channel"] = None,
+    ) -> "aio_pika.RobustChannel":
+        raise NotImplementedError
+
+
+class ChannelManagerImpl(ChannelManager):
     __slots__ = ("__channels", "__connection", "__default_channel")
 
     def __init__(
@@ -32,7 +59,6 @@ class ChannelManager:
         self,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustChannel":
-        """Declare a channel."""
         if channel is None:
             channel = self.__default_channel
 

@@ -163,11 +163,6 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             int,
             Doc("Service messages log level."),
         ] = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
-            Doc("Default logger log format."),
-        ] = None,
         # StreamRouter options
         setup_state: Annotated[
             bool,
@@ -419,7 +414,6 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             description=description,
             logger=logger,
             log_level=log_level,
-            log_fmt=log_fmt,
             specification_tags=specification_tags,
             schema_url=schema_url,
             setup_state=setup_state,
@@ -450,7 +444,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Union[str, RabbitQueue],
             Doc(
                 "RabbitMQ queue to listen. "
-                "**FastStream** declares and binds queue object to `exchange` automatically if it is not passive (by default).",
+                "**FastStream** declares and binds queue object to `exchange` automatically by default.",
             ),
         ],
         exchange: Annotated[
@@ -458,7 +452,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc(
                 "RabbitMQ exchange to bind queue to. "
                 "Uses default exchange if not present. "
-                "**FastStream** declares exchange object automatically if it is not passive (by default)."
+                "**FastStream** declares exchange object automatically by default."
             ),
         ] = None,
         *,

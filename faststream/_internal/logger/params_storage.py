@@ -1,5 +1,4 @@
 import logging
-import warnings
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional, Protocol
 from weakref import WeakSet
@@ -13,24 +12,16 @@ if TYPE_CHECKING:
 
 def make_logger_storage(
     logger: Optional["LoggerProto"],
-    log_fmt: Optional[str],
     default_storage_cls: type["DefaultLoggerStorage"],
 ) -> "LoggerParamsStorage":
     if logger is EMPTY:
-        return default_storage_cls(log_fmt)
-
-    if log_fmt:
-        warnings.warn(
-            message="You can't set custom `logger` with `log_fmt` both.",
-            category=RuntimeWarning,
-            stacklevel=4,
-        )
+        return default_storage_cls()
 
     return EmptyLoggerStorage() if logger is None else ManualLoggerStorage(logger)
 
 
 class LoggerParamsStorage(Protocol):
-    def setup_log_contest(self, params: "AnyDict") -> None: ...
+    def register_subscriber(self, params: "AnyDict") -> None: ...
 
     def get_logger(self, *, context: "ContextRepo") -> Optional["LoggerProto"]: ...
 
@@ -38,7 +29,7 @@ class LoggerParamsStorage(Protocol):
 
 
 class EmptyLoggerStorage(LoggerParamsStorage):
-    def setup_log_contest(self, params: "AnyDict") -> None:
+    def register_subscriber(self, params: "AnyDict") -> None:
         pass
 
     def get_logger(self, *, context: "ContextRepo") -> None:
@@ -52,7 +43,7 @@ class ManualLoggerStorage(LoggerParamsStorage):
     def __init__(self, logger: "LoggerProto") -> None:
         self.__logger = logger
 
-    def setup_log_contest(self, params: "AnyDict") -> None:
+    def register_subscriber(self, params: "AnyDict") -> None:
         pass
 
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
@@ -64,10 +55,10 @@ class ManualLoggerStorage(LoggerParamsStorage):
 
 
 class DefaultLoggerStorage(LoggerParamsStorage):
-    def __init__(self, log_fmt: Optional[str]) -> None:
-        self._log_fmt = log_fmt
-
+    def __init__(self) -> None:
+        # will be used to build logger in `get_logger` method
         self.logger_log_level = logging.INFO
+
         self._logger_ref = WeakSet[logging.Logger]()
 
     @abstractmethod
@@ -77,6 +68,7 @@ class DefaultLoggerStorage(LoggerParamsStorage):
     def _get_logger_ref(self) -> Optional[logging.Logger]:
         if self._logger_ref:
             return next(iter(self._logger_ref))
+
         return None
 
     def set_level(self, level: int) -> None:

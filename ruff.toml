@@ -117,8 +117,10 @@ ignore = [
     "ANN",  # FIXME
     "S",
     "PLR0904",
+    "PT030",  # FIXME
     "PLR0914",
     "PLC1901",
+    "RUF045",
 ]
 
 "docs/*.py" = [

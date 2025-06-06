@@ -35,7 +35,7 @@ from .utils.parser import parse_cli_args
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SettingField
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
 
 cli = typer.Typer(pretty_exceptions_short=True)
 cli.add_typer(docs_app, name="docs", help="Documentations commands")
@@ -281,7 +281,6 @@ def publish(
             msg = "Broker instance not found in the app."
             raise ValueError(msg)
 
-        app_obj._setup()
         result = anyio.run(publish_message, app_obj.broker, rpc, message, publish_extra)
 
         if rpc:

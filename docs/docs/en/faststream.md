@@ -48,7 +48,7 @@ search:
   </a>
 
   <a href="https://github.com/ag2ai/faststream/blob/main/LICENSE" target="_blank">
-    <img src="https://img.shields.io/github/license/ag2ai/faststream.png" alt="License"/>
+    <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License"/>
   </a>
 
   <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
@@ -116,32 +116,34 @@ You can install it with `pip` as usual:
 
 === "AIOKafka"
     ```sh
-    pip install faststream[kafka]
+    pip install 'faststream[kafka]'
     ```
 
 === "Confluent"
     ```sh
-    pip install faststream[confluent]
+    pip install 'faststream[confluent]'
     ```
 
 === "RabbitMQ"
     ```sh
-    pip install faststream[rabbit]
+    pip install 'faststream[rabbit]'
     ```
 
 === "NATS"
     ```sh
-    pip install faststream[nats]
+    pip install 'faststream[nats]'
     ```
 
 === "Redis"
     ```sh
-    pip install faststream[redis]
+    pip install 'faststream[redis]'
     ```
 
 
 !!! tip ""
     By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
+
+    To choose the **Pydantic** version, you can install the required one using the regular `pip install pydantic==X.Y.Z` command. **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
 
 ---
 
@@ -162,27 +164,27 @@ JSON-encoded data into Python objects, making it easy to work with structured da
 Here is an example Python app using **FastStream** that consumes data from an incoming data stream and outputs the data to another one:
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="9"
+    ```python linenums="1" hl_lines="2 4"
     {!> docs_src/index/kafka/basic.py!}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="9"
+    ```python linenums="1" hl_lines="2 4"
     {!> docs_src/index/confluent/basic.py!}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="9"
+    ```python linenums="1" hl_lines="2 4"
     {!> docs_src/index/rabbit/basic.py!}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="9"
+    ```python linenums="1" hl_lines="2 4"
     {!> docs_src/index/nats/basic.py!}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="9"
+    ```python linenums="1" hl_lines="2 4"
     {!> docs_src/index/redis/basic.py!}
     ```
 
@@ -218,7 +220,7 @@ to define messages using a declarative syntax, making it easy to specify the fie
 
 ## Testing the service
 
-The service can be tested using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
 
 The Tester will redirect your `subscriber` and `publisher` decorated functions to the InMemory brokers, allowing you to quickly test your app without the need for a running broker and all its dependencies.
 
@@ -313,7 +315,7 @@ The availability of such documentation significantly simplifies the integration 
 
 ## Dependencies
 
-**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"}) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
+**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"}) has a dependency management system similar to [`pytest fixtures`](https://docs.pytest.org/en/latest/explanation/fixtures.html){.external-link target="_blank"} and [`FastAPI Depends`](https://fastapi.tiangolo.com/tutorial/dependencies/){.external-link target="_blank"} at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
 
 ```python linenums="1" hl_lines="8-9"
 {! docs_src/index/dependencies.py [ln:1,5-14] !}

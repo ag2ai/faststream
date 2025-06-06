@@ -5,7 +5,7 @@ from dirty_equals import IsStr
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi.router import StreamRouter
 from faststream._internal.types import MsgType
 from faststream.specification.asyncapi import AsyncAPI
@@ -94,9 +94,9 @@ class FastAPITestCase:
                 )
 
                 response_json = client.get("/asyncapi_schema.json")
-                assert (
-                    response_json.json() == schema.to_jsonable()
-                ), schema.to_jsonable()
+                assert response_json.json() == schema.to_jsonable(), (
+                    schema.to_jsonable()
+                )
 
                 response_yaml = client.get("/asyncapi_schema.yaml")
                 assert response_yaml.text == schema.to_yaml()

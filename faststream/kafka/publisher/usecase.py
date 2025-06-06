@@ -33,13 +33,14 @@ class LogicPublisher(PublisherUsecase[MsgType]):
     def __init__(self, config: "KafkaPublisherConfig", /) -> None:
         super().__init__(config)
 
-        self.topic = config.topic
+        self._topic = config.topic
         self.partition = config.partition
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
 
-    def add_prefix(self, prefix: str) -> None:
-        self.topic = f"{prefix}{self.topic}"
+    @property
+    def topic(self) -> str:
+        return f"{self._outer_config.prefix}{self._topic}"
 
     @override
     async def request(

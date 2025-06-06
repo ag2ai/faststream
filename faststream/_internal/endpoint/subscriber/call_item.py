@@ -10,8 +10,6 @@ from typing import (
     cast,
 )
 
-from typing_extensions import override
-
 from faststream._internal.types import MsgType
 from faststream.exceptions import IgnoredException, SetupError
 
@@ -19,8 +17,8 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AsyncFuncAny, Decorator
+    from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-    from faststream._internal.state import BrokerState, Pointer
     from faststream._internal.types import (
         AsyncCallable,
         AsyncFilter,
@@ -68,19 +66,16 @@ class HandlerItem(Generic[MsgType]):
         filter_name = getattr(filter_call, "__name__", str(filter_call))
         return f"<'{self.call_name}': filter='{filter_name}'>"
 
-    @override
-    def _setup(  # type: ignore[override]
+    def _setup(
         self,
         *,
         parser: "AsyncCallable",
         decoder: "AsyncCallable",
-        state: "Pointer[BrokerState]",
+        config: "FastDependsConfig",
         broker_dependencies: Iterable["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
         if self.dependant is None:
-            di_state = state.get().di_state
-
             self.item_parser = parser
             self.item_decoder = decoder
 
@@ -88,14 +83,15 @@ class HandlerItem(Generic[MsgType]):
 
             dependant = self.handler.set_wrapped(
                 dependencies=dependencies,
-                _call_decorators=(*_call_decorators, *di_state.call_decorators),
-                state=di_state,
+                _call_decorators=_call_decorators,
+                config=config,
             )
 
-            if di_state.get_dependent is None:
+            if config.get_dependent is None:
                 self.dependant = dependant
+
             else:
-                self.dependant = di_state.get_dependent(
+                self.dependant = config.get_dependent(
                     self.handler._original_call,
                     dependencies,
                 )

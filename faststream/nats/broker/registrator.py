@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.specified import SpecificationPublisher
 
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
 class NatsRegistrator(ABCBroker["Msg"]):
     """Includable to NatsBroker router."""
 
+    config: "NatsBrokerConfig"
     _subscribers: list["SpecificationSubscriber"]
     _publishers: list["SpecificationPublisher"]
 
@@ -239,12 +241,11 @@ class NatsRegistrator(ABCBroker["Msg"]):
                     ack_policy=ack_policy,
                     no_ack=no_ack,
                     no_reply=no_reply,
-                    broker_middlewares=self.middlewares,
-                    broker_dependencies=self._dependencies,
+                    broker_config=self.config,
                     # AsyncAPI
                     title_=title,
                     description_=description,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
+                    include_in_schema=include_in_schema,
                 ),
             ),
         )
@@ -253,8 +254,8 @@ class NatsRegistrator(ABCBroker["Msg"]):
             stream.add_subject(subscriber.subject)
 
         return subscriber.add_call(
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser,
+            decoder_=decoder,
             dependencies_=dependencies,
             middlewares_=middlewares,
         )
@@ -342,13 +343,13 @@ class NatsRegistrator(ABCBroker["Msg"]):
                     timeout=timeout,
                     stream=stream,
                     # Specific
-                    broker_middlewares=self.middlewares,
+                    broker_config=self.config,
                     middlewares=middlewares,
                     # AsyncAPI
                     title_=title,
                     description_=description,
                     schema_=schema,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
+                    include_in_schema=include_in_schema,
                 ),
             ),
         )
@@ -377,13 +378,13 @@ class NatsRegistrator(ABCBroker["Msg"]):
 
         sub_streams = router._stream_builder.objects.copy()
 
-        sub_router_subjects = [sub.subject for sub in router._subscribers]
+        sub_router_subjects = [sub.subject for sub in router.subscribers]
 
         for stream in sub_streams.values():
             new_subjects = []
             for subj in stream.subjects:
                 if subj in sub_router_subjects:
-                    new_subjects.append(f"{self.prefix}{subj}")
+                    new_subjects.append(f"{self.config.prefix}{subj}")
                 else:
                     new_subjects.append(subj)
             stream.subjects = new_subjects

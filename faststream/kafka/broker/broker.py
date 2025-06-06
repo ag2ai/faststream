@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Iterable, Sequence
-from contextlib import suppress
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -15,26 +14,25 @@ from typing import (
 )
 
 import aiokafka
-import aiokafka.admin
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import Doc, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.di import FastDependsConfig
 from faststream._internal.utils.data import filter_by_dict
-from faststream.exceptions import NOT_CONNECTED_YET
-from faststream.kafka.publisher.producer import AioKafkaFastProducer
+from faststream.exceptions import IncorrectState
+from faststream.kafka.configs import KafkaBrokerConfig
+from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.kafka.schemas.params import (
-    AdminClientConnectionParams,
-    ConsumerConnectionParams,
-)
+from faststream.kafka.schemas.params import ConsumerConnectionParams
 from faststream.kafka.security import parse_security
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
+from faststream.specification.schema import BrokerSpec
 
 from .logging import make_kafka_logger_state
 from .registrator import KafkaRegistrator
@@ -47,15 +45,12 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
-    from aiokafka.admin import AIOKafkaAdminClient
     from aiokafka.structs import RecordMetadata
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import (
-        AnyDict,
-        Decorator,
         LoggerProto,
         SendableMessage,
     )
@@ -247,279 +242,171 @@ class KafkaBroker(
     ],
 ):
     url: list[str]
-    _producer: "AioKafkaFastProducer"
-    _admin_client: Optional["AIOKafkaAdminClient"]
 
     def __init__(
         self,
-        bootstrap_servers: Annotated[
-            Union[str, Iterable[str]],
-            Doc(
-                """
-            A `host[:port]` string (or list of `host[:port]` strings) that the consumer should contact to bootstrap
-            initial cluster metadata.
-
-            This does not have to be the full node list.
-            It just needs to have at least one broker that will respond to a
-            Metadata API Request. Default port is 9092.
-            """,
-            ),
-        ] = "localhost",
+        bootstrap_servers: Union[str, Iterable[str]] = "localhost",
         *,
         # both
-        request_timeout_ms: Annotated[
-            int,
-            Doc("Client request timeout in milliseconds."),
-        ] = 40 * 1000,
-        retry_backoff_ms: Annotated[
-            int,
-            Doc("Milliseconds to backoff when retrying on errors."),
-        ] = 100,
-        metadata_max_age_ms: Annotated[
-            int,
-            Doc(
-                """
-            The period of time in milliseconds after
-            which we force a refresh of metadata even if we haven't seen any
-            partition leadership changes to proactively discover any new
-            brokers or partitions.
-            """,
-            ),
-        ] = 5 * 60 * 1000,
-        connections_max_idle_ms: Annotated[
-            int,
-            Doc(
-                """
-             Close idle connections after the number
-            of milliseconds specified by this config. Specifying `None` will
-            disable idle checks.
-            """,
-            ),
-        ] = 9 * 60 * 1000,
+        request_timeout_ms: int = 40 * 1000,
+        retry_backoff_ms: int = 100,
+        metadata_max_age_ms: int = 5 * 60 * 1000,
+        connections_max_idle_ms: int = 9 * 60 * 1000,
         sasl_kerberos_service_name: str = "kafka",
         sasl_kerberos_domain_name: Optional[str] = None,
-        sasl_oauth_token_provider: Annotated[
-            Optional["AbstractTokenProvider"],
-            Doc("OAuthBearer token provider instance."),
-        ] = None,
+        sasl_oauth_token_provider: Optional["AbstractTokenProvider"] = None,
         loop: Optional["asyncio.AbstractEventLoop"] = None,
-        client_id: Annotated[
-            Optional[str],
-            Doc(
-                """
-            A name for this client. This string is passed in
-            each request to servers and can be used to identify specific
-            server-side log entries that correspond to this client. Also
-            submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
-            for logging with respect to consumer group administration.
-            """,
-            ),
-        ] = SERVICE_NAME,
+        client_id: Optional[str] = SERVICE_NAME,
         # publisher args
-        acks: Annotated[
-            Union[Literal[0, 1, -1, "all"], object],
-            Doc(
-                """
-            One of ``0``, ``1``, ``all``. The number of acknowledgments
-            the producer requires the leader to have received before considering a
-            request complete. This controls the durability of records that are
-            sent. The following settings are common:
-
-            * ``0``: Producer will not wait for any acknowledgment from the server
-              at all. The message will immediately be added to the socket
-              buffer and considered sent. No guarantee can be made that the
-              server has received the record in this case, and the retries
-              configuration will not take effect (as the client won't
-              generally know of any failures). The offset given back for each
-              record will always be set to -1.
-            * ``1``: The broker leader will write the record to its local log but
-              will respond without awaiting full acknowledgement from all
-              followers. In this case should the leader fail immediately
-              after acknowledging the record but before the followers have
-              replicated it then the record will be lost.
-            * ``all``: The broker leader will wait for the full set of in-sync
-              replicas to acknowledge the record. This guarantees that the
-              record will not be lost as long as at least one in-sync replica
-              remains alive. This is the strongest available guarantee.
-
-            If unset, defaults to ``acks=1``. If `enable_idempotence` is
-            :data:`True` defaults to ``acks=all``.
-            """,
-            ),
-        ] = _missing,
-        key_serializer: Annotated[
-            Optional[Callable[[Any], bytes]],
-            Doc("Used to convert user-supplied keys to bytes."),
-        ] = None,
-        value_serializer: Annotated[
-            Optional[Callable[[Any], bytes]],
-            Doc("used to convert user-supplied message values to bytes."),
-        ] = None,
-        compression_type: Annotated[
-            Optional[Literal["gzip", "snappy", "lz4", "zstd"]],
-            Doc(
-                """
-            The compression type for all data generated bythe producer.
-            Compression is of full batches of data, so the efficacy of batching
-            will also impact the compression ratio (more batching means better
-            compression).
-            """,
-            ),
-        ] = None,
-        max_batch_size: Annotated[
-            int,
-            Doc(
-                """
-            Maximum size of buffered data per partition.
-            After this amount `send` coroutine will block until batch is drained.
-            """,
-            ),
-        ] = 16 * 1024,
-        partitioner: Annotated[
-            Callable[
-                [bytes, list[Partition], list[Partition]],
-                Partition,
-            ],
-            Doc(
-                """
-            Callable used to determine which partition
-            each message is assigned to. Called (after key serialization):
-            ``partitioner(key_bytes, all_partitions, available_partitions)``.
-            The default partitioner implementation hashes each non-None key
-            using the same murmur2 algorithm as the Java client so that
-            messages with the same key are assigned to the same partition.
-            When a key is :data:`None`, the message is delivered to a random partition
-            (filtered to partitions with available leaders only, if possible).
-            """,
-            ),
+        acks: Union[Literal[0, 1, -1, "all"], object] = _missing,
+        key_serializer: Optional[Callable[[Any], bytes]] = None,
+        value_serializer: Optional[Callable[[Any], bytes]] = None,
+        compression_type: Optional[Literal["gzip", "snappy", "lz4", "zstd"]] = None,
+        max_batch_size: int = 16 * 1024,
+        partitioner: Callable[
+            [bytes, list[Partition], list[Partition]],
+            Partition,
         ] = DefaultPartitioner(),
-        max_request_size: Annotated[
-            int,
-            Doc(
-                """
-            The maximum size of a request. This is also
-            effectively a cap on the maximum record size. Note that the server
-            has its own cap on record size which may be different from this.
-            This setting will limit the number of record batches the producer
-            will send in a single request to avoid sending huge requests.
-            """,
-            ),
-        ] = 1024 * 1024,
-        linger_ms: Annotated[
-            int,
-            Doc(
-                """
-            The producer groups together any records that arrive
-            in between request transmissions into a single batched request.
-            Normally this occurs only under load when records arrive faster
-            than they can be sent out. However in some circumstances the client
-            may want to reduce the number of requests even under moderate load.
-            This setting accomplishes this by adding a small amount of
-            artificial delay; that is, if first request is processed faster,
-            than `linger_ms`, producer will wait ``linger_ms - process_time``.
-            """,
-            ),
-        ] = 0,
-        enable_idempotence: Annotated[
-            bool,
-            Doc(
-                """
-            When set to `True`, the producer will
-            ensure that exactly one copy of each message is written in the
-            stream. If `False`, producer retries due to broker failures,
-            etc., may write duplicates of the retried message in the stream.
-            Note that enabling idempotence acks to set to ``all``. If it is not
-            explicitly set by the user it will be chosen.
-            """,
-            ),
-        ] = False,
+        max_request_size: int = 1024 * 1024,
+        linger_ms: int = 0,
+        enable_idempotence: bool = False,
         transactional_id: Optional[str] = None,
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
-        graceful_timeout: Annotated[
-            Optional[float],
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = 15.0,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc("Dependencies to apply to all broker subscribers."),
+        graceful_timeout: Optional[float] = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence[
+            "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
         ] = (),
-        middlewares: Annotated[
-            Sequence[
-                "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
-            ],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
-        routers: Annotated[
-            Sequence["ABCBroker[ConsumerRecord]"],
-            Doc("Routers to apply to broker."),
-        ] = (),
+        routers: Sequence["ABCBroker[ConsumerRecord]"] = (),
         # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            Union[str, Iterable[str], None],
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server protocol."),
-        ] = None,
-        protocol_version: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server protocol version."),
-        ] = "auto",
-        description: Annotated[
-            Optional[str],
-            Doc("AsyncAPI server description."),
-        ] = None,
-        tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
+        security: Optional["BaseSecurity"] = None,
+        specification_url: Union[str, Iterable[str], None] = None,
+        protocol: Optional[str] = None,
+        protocol_version: Optional[str] = "auto",
+        description: Optional[str] = None,
+        tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
-            Doc("Default logger log format."),
-        ] = None,
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
         # FastDepends args
-        apply_types: Annotated[
-            bool,
-            Doc("Whether to use FastDepends or not."),
-        ] = True,
+        apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        _get_dependant: Annotated[
-            Optional[Callable[..., Any]],
-            Doc("Custom library dependant generator callback."),
-        ] = None,
-        _call_decorators: Annotated[
-            Iterable["Decorator"],
-            Doc("Any custom decorator to apply to wrapped functions."),
-        ] = (),
     ) -> None:
+        """Kafka broker constructor.
+
+        Args:
+            bootstrap_servers (Union[str, Iterable[str]]):
+                A `host[:port]` string (or list of `host[:port]` strings) that the consumer should contact to bootstrap
+                initial cluster metadata. This does not have to be the full node list.
+                It just needs to have at least one broker that will respond to a
+                Metadata API Request. Default port is 9092.
+            request_timeout_ms (int):
+                Client request timeout in milliseconds.
+            retry_backoff_ms (int):
+                Milliseconds to backoff when retrying on errors.
+            metadata_max_age_ms (int):
+                The period of time in milliseconds after which we force a refresh of metadata even if we haven't seen any
+                partition leadership changes to proactively discover any new brokers or partitions.
+            connections_max_idle_ms (int):
+                Close idle connections after the number of milliseconds specified by this config. Specifying `None` will
+                disable idle checks.
+            sasl_kerberos_service_name (str):
+                Kerberos service name.
+            sasl_kerberos_domain_name (Optional[str]):
+                Kerberos domain name.
+            sasl_oauth_token_provider (Optional[AbstractTokenProvider]):
+                OAuthBearer token provider instance.
+            loop (Optional[asyncio.AbstractEventLoop]):
+                Event loop to use.
+            client_id (Optional[str]):
+                A name for this client. This string is passed in each request to servers and can be used to identify specific
+                server-side log entries that correspond to this client. Also submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
+                for logging with respect to consumer group administration.
+            acks (Union[Literal[0, 1, -1, "all"], object]):
+                One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
+                request complete. This controls the durability of records that are sent. The following settings are common:
+                * ``0``: Producer will not wait for any acknowledgment from the server at all. The message will immediately be added to the socket
+                  buffer and considered sent. No guarantee can be made that the server has received the record in this case, and the retries
+                  configuration will not take effect (as the client won't generally know of any failures). The offset given back for each
+                  record will always be set to -1.
+                * ``1``: The broker leader will write the record to its local log but will respond without awaiting full acknowledgement from all
+                  followers. In this case should the leader fail immediately after acknowledging the record but before the followers have
+                  replicated it then the record will be lost.
+                * ``all``: The broker leader will wait for the full set of in-sync replicas to acknowledge the record. This guarantees that the
+                  record will not be lost as long as at least one in-sync replica remains alive. This is the strongest available guarantee.
+                If unset, defaults to ``acks=1``. If `enable_idempotence` is :data:`True` defaults to ``acks=all``.
+            key_serializer (Optional[Callable[[Any], bytes]]):
+                Used to convert user-supplied keys to bytes.
+            value_serializer (Optional[Callable[[Any], bytes]]):
+                Used to convert user-supplied message values to bytes.
+            compression_type (Optional[Literal["gzip", "snappy", "lz4", "zstd"]]):
+                The compression type for all data generated by the producer.
+                Compression is of full batches of data, so the efficacy of batching will also impact the compression ratio (more batching means better compression).
+            max_batch_size (int):
+                Maximum size of buffered data per partition. After this amount `send` coroutine will block until batch is drained.
+            partitioner (Callable):
+                Callable used to determine which partition each message is assigned to. Called (after key serialization):
+                ``partitioner(key_bytes, all_partitions, available_partitions)``.
+                The default partitioner implementation hashes each non-None key using the same murmur2 algorithm as the Java client so that
+                messages with the same key are assigned to the same partition. When a key is :data:`None`, the message is delivered to a random partition
+                (filtered to partitions with available leaders only, if possible).
+            max_request_size (int):
+                The maximum size of a request. This is also effectively a cap on the maximum record size. Note that the server
+                has its own cap on record size which may be different from this. This setting will limit the number of record batches the producer
+                will send in a single request to avoid sending huge requests.
+            linger_ms (int):
+                The producer groups together any records that arrive in between request transmissions into a single batched request.
+                Normally this occurs only under load when records arrive faster than they can be sent out. However in some circumstances the client
+                may want to reduce the number of requests even under moderate load. This setting accomplishes this by adding a small amount of
+                artificial delay; that is, if first request is processed faster, than `linger_ms`, producer will wait ``linger_ms - process_time``.
+            enable_idempotence (bool):
+                When set to `True`, the producer will ensure that exactly one copy of each message is written in the stream.
+                If `False`, producer retries due to broker failures, etc., may write duplicates of the retried message in the stream.
+                Note that enabling idempotence acks to set to ``all``. If it is not explicitly set by the user it will be chosen.
+            transactional_id (Optional[str]):
+                Transactional id for the producer.
+            transaction_timeout_ms (int):
+                Transaction timeout in milliseconds.
+            graceful_timeout (Optional[float]):
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder (Optional[CustomCallable]):
+                Custom decoder object.
+            parser (Optional[CustomCallable]):
+                Custom parser object.
+            dependencies (Iterable[Dependant]):
+                Dependencies to apply to all broker subscribers.
+            middlewares (Sequence[BrokerMiddleware]):
+                Middlewares to apply to all broker publishers/subscribers.
+            routers (Sequence[ABCBroker]):
+                Routers to apply to broker.
+            security (Optional[BaseSecurity]):
+                Security options to connect broker and generate AsyncAPI server security information.
+            specification_url (Union[str, Iterable[str], None]):
+                AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol (Optional[str]):
+                AsyncAPI server protocol.
+            protocol_version (Optional[str]):
+                AsyncAPI server protocol version.
+            description (Optional[str]):
+                AsyncAPI server description.
+            tags (Iterable[Union[Tag, TagDict]]):
+                AsyncAPI server tags.
+            logger (Optional[LoggerProto]):
+                User specified logger to pass into Context and log service messages.
+            log_level (int):
+                Service messages log level.
+            apply_types (bool):
+                Whether to use FastDepends or not.
+            serializer (Optional[SerializerProto]):
+                Serializer to use.
+            _get_dependant (Optional[Callable[..., Any]]):
+                Custom library dependant generator callback.
+            _call_decorators (Iterable[Decorator]):
+                Any custom decorator to apply to wrapped functions.
+        """
         if protocol is None:
             if security is not None and security.use_ssl:
                 protocol = "kafka-secure"
@@ -540,85 +427,82 @@ class KafkaBroker(
         else:
             specification_url = servers
 
-        super().__init__(
-            **dict(
-                bootstrap_servers=servers,
-                # both args
-                client_id=client_id,
-                api_version=protocol_version,
-                request_timeout_ms=request_timeout_ms,
-                retry_backoff_ms=retry_backoff_ms,
-                metadata_max_age_ms=metadata_max_age_ms,
-                connections_max_idle_ms=connections_max_idle_ms,
-                sasl_kerberos_service_name=sasl_kerberos_service_name,
-                sasl_kerberos_domain_name=sasl_kerberos_domain_name,
-                sasl_oauth_token_provider=sasl_oauth_token_provider,
-                loop=loop,
-                # publisher args
-                acks=acks,
-                key_serializer=key_serializer,
-                value_serializer=value_serializer,
-                compression_type=compression_type,
-                max_batch_size=max_batch_size,
-                partitioner=partitioner,
-                max_request_size=max_request_size,
-                linger_ms=linger_ms,
-                enable_idempotence=enable_idempotence,
-                transactional_id=transactional_id,
-                transaction_timeout_ms=transaction_timeout_ms,
-                **parse_security(security),
-            ),
-            # Basic args
-            graceful_timeout=graceful_timeout,
-            dependencies=dependencies,
-            decoder=decoder,
-            parser=parser,
-            middlewares=middlewares,
-            routers=routers,
-            # AsyncAPI args
-            description=description,
-            specification_url=specification_url,
-            protocol=protocol,
-            protocol_version=protocol_version,
-            security=security,
-            tags=tags,
-            # Logging args
-            logger_state=make_kafka_logger_state(
-                logger=logger,
-                log_level=log_level,
-                log_fmt=log_fmt,
-            ),
-            # FastDepends args
-            _get_dependant=_get_dependant,
-            _call_decorators=_call_decorators,
-            apply_types=apply_types,
-            serializer=serializer,
+        connection_params = dict(
+            bootstrap_servers=servers,
+            # both args
+            client_id=client_id,
+            api_version=protocol_version,
+            request_timeout_ms=request_timeout_ms,
+            retry_backoff_ms=retry_backoff_ms,
+            metadata_max_age_ms=metadata_max_age_ms,
+            connections_max_idle_ms=connections_max_idle_ms,
+            sasl_kerberos_service_name=sasl_kerberos_service_name,
+            sasl_kerberos_domain_name=sasl_kerberos_domain_name,
+            sasl_oauth_token_provider=sasl_oauth_token_provider,
+            loop=loop,
+            # publisher args
+            acks=acks,
+            key_serializer=key_serializer,
+            value_serializer=value_serializer,
+            compression_type=compression_type,
+            max_batch_size=max_batch_size,
+            partitioner=partitioner,
+            max_request_size=max_request_size,
+            linger_ms=linger_ms,
+            enable_idempotence=enable_idempotence,
+            transactional_id=transactional_id,
+            transaction_timeout_ms=transaction_timeout_ms,
+            **parse_security(security),
         )
 
-        self.client_id = client_id
-        self._state.patch_value(
-            producer=AioKafkaFastProducer(
-                parser=self._parser,
-                decoder=self._decoder,
-            )
+        consumer_options, _ = filter_by_dict(
+            ConsumerConnectionParams, connection_params
         )
-        self._admin_client = None
+        builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
+
+        super().__init__(
+            **connection_params,
+            routers=routers,
+            config=KafkaBrokerConfig(
+                client_id=client_id,
+                builder=builder,
+                producer=AioKafkaFastProducerImpl(
+                    parser=parser,
+                    decoder=decoder,
+                ),
+                # both args,
+                broker_decoder=decoder,
+                broker_parser=parser,
+                broker_middlewares=middlewares,
+                logger=make_kafka_logger_state(
+                    logger=logger,
+                    log_level=log_level,
+                ),
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
+                # subscriber args
+                graceful_timeout=graceful_timeout,
+                broker_dependencies=dependencies,
+                extra_context={
+                    "broker": self,
+                },
+            ),
+            specification=BrokerSpec(
+                description=description,
+                url=specification_url,
+                protocol=protocol,
+                protocol_version=protocol_version,
+                security=security,
+                tags=tags,
+            ),
+        )
 
     @override
     async def _connect(self) -> Callable[..., aiokafka.AIOKafkaConsumer]:
-        producer = aiokafka.AIOKafkaProducer(**self._connection_kwargs)
-        await self._producer.connect(producer)
-
-        admin_options, _ = filter_by_dict(
-            AdminClientConnectionParams, self._connection_kwargs
-        )
-        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(**admin_options)
-        await self._admin_client.start()
-
-        consumer_options, _ = filter_by_dict(
-            ConsumerConnectionParams, self._connection_kwargs
-        )
-        return partial(aiokafka.AIOKafkaConsumer, **consumer_options)
+        await self.config.connect(**self._connection_kwargs)
+        return self.config.builder
 
     async def close(
         self,
@@ -627,28 +511,13 @@ class KafkaBroker(
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         await super().close(exc_type, exc_val, exc_tb)
-
-        if self._admin_client is not None:
-            await self._admin_client.close()
-            self._admin_client = None
-
-        await self._producer.disconnect()
-
+        await self.config.disconnect()
         self._connection = None
 
     async def start(self) -> None:
         """Connect broker to Kafka and startup all subscribers."""
         await self.connect()
-        self._setup()
         await super().start()
-
-    @property
-    def _subscriber_setup_extra(self) -> "AnyDict":
-        return {
-            **super()._subscriber_setup_extra,
-            "client_id": self.client_id,
-            "builder": self._connection,
-        }
 
     @overload
     async def publish(
@@ -746,68 +615,45 @@ class KafkaBroker(
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
         )
-        return await super()._basic_publish(cmd, producer=self._producer)
+        return await super()._basic_publish(cmd, producer=self.config.producer)
 
     @override
     async def request(  # type: ignore[override]
         self,
-        message: Annotated[
-            "SendableMessage",
-            Doc("Message body to send."),
-        ],
-        topic: Annotated[
-            str,
-            Doc("Topic where the message will be published."),
-        ],
+        message: "SendableMessage",
+        topic: str,
         *,
-        key: Annotated[
-            Union[bytes, Any, None],
-            Doc(
-                """
-            A key to associate with the message. Can be used to
+        key: Union[bytes, Any, None] = None,
+        partition: Optional[int] = None,
+        timestamp_ms: Optional[int] = None,
+        headers: Optional[dict[str, str]] = None,
+        correlation_id: Optional[str] = None,
+        timeout: float = 0.5,
+    ) -> "KafkaMessage":
+        """Send a request message and wait for a response.
+
+        Args:
+            message: Message body to send.
+            topic: Topic where the message will be published.
+            key: A key to associate with the message. Can be used to
             determine which partition to send the message to. If partition
             is `None` (and producer's partitioner config is left as default),
             then messages with the same key will be delivered to the same
             partition (but if key is `None`, partition is chosen randomly).
             Must be type `bytes`, or be serializable to bytes via configured
             `key_serializer`.
-            """,
-            ),
-        ] = None,
-        partition: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Specify a partition. If not set, the partition will be
+            partition: Specify a partition. If not set, the partition will be
             selected using the configured `partitioner`.
-            """,
-            ),
-        ] = None,
-        timestamp_ms: Annotated[
-            Optional[int],
-            Doc(
-                """
-            Epoch milliseconds (from Jan 1 1970 UTC) to use as
+            timestamp_ms: Epoch milliseconds (from Jan 1 1970 UTC) to use as
             the message timestamp. Defaults to current time.
-            """,
-            ),
-        ] = None,
-        headers: Annotated[
-            Optional[dict[str, str]],
-            Doc("Message headers to store metainformation."),
-        ] = None,
-        correlation_id: Annotated[
-            Optional[str],
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages.",
-            ),
-        ] = None,
-        timeout: Annotated[
-            float,
-            Doc("Timeout to send RPC request."),
-        ] = 0.5,
-    ) -> "KafkaMessage":
+            headers: Message headers to store metainformation.
+            correlation_id: Manual message **correlation_id** setter.
+            **correlation_id** is a useful option to trace messages.
+            timeout: Timeout to send RPC request.
+
+        Returns:
+            KafkaMessage: The response message.
+        """
         cmd = KafkaPublishCommand(
             message,
             topic=topic,
@@ -820,7 +666,9 @@ class KafkaBroker(
             _publish_type=PublishType.REQUEST,
         )
 
-        msg: KafkaMessage = await super()._basic_request(cmd, producer=self._producer)
+        msg: KafkaMessage = await super()._basic_request(
+            cmd, producer=self.config.producer
+        )
         return msg
 
     @overload
@@ -887,8 +735,6 @@ class KafkaBroker(
             `asyncio.Future[RecordMetadata]` if no_confirm = True.
             `RecordMetadata` if no_confirm = False.
         """
-        assert self._producer, NOT_CONNECTED_YET  # nosec B101
-
         cmd = KafkaPublishCommand(
             *messages,
             topic=topic,
@@ -901,23 +747,27 @@ class KafkaBroker(
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(cmd, producer=self._producer)
+        return await self._basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def ping(self, timeout: Optional[float]) -> bool:
         sleep_time = (timeout or 10) / 10
-
-        if self._admin_client is None:
-            return False
 
         with anyio.move_on_after(timeout) as cancel_scope:
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                with suppress(Exception):
-                    await self._admin_client.describe_cluster()
+                try:
+                    await self.config.admin_client.describe_cluster()
+
+                except IncorrectState:
+                    return False
+
+                except Exception:
+                    await anyio.sleep(sleep_time)
+
+                else:
                     return True
-                await anyio.sleep(sleep_time)
 
         return False

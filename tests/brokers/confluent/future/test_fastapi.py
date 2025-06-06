@@ -1,7 +1,7 @@
 import pytest
 
+from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.fastapi import KafkaRouter as StreamRouter
-from faststream.confluent.router import KafkaRouter
 from tests.brokers.base.future.fastapi import FastapiTestCase
 from tests.brokers.confluent.basic import ConfluentTestcaseConfig
 

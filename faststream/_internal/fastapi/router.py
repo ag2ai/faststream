@@ -23,11 +23,8 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, _DefaultLifespan
 
 from faststream._internal.application import StartAbleApplication
-from faststream._internal.broker.router import BrokerRouter
-from faststream._internal.fastapi.get_dependant import get_fastapi_dependant
-from faststream._internal.fastapi.route import (
-    wrap_callable_to_fastapi_compatible,
-)
+from faststream._internal.broker import BrokerRouter
+from faststream._internal.di.config import FastDependsConfig
 from faststream._internal.types import (
     MsgType,
     P_HandlerParams,
@@ -51,7 +48,7 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp, AppType, Lifespan
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.proto import NameRequired
@@ -139,7 +136,6 @@ class StreamRouter(
                 # allow to catch background exceptions in user middlewares
                 _BackgroundMiddleware,
             ),
-            _get_dependant=get_fastapi_dependant,
             tags=specification_tags,
             apply_types=False,
             **connection_kwars,
@@ -147,7 +143,7 @@ class StreamRouter(
 
         self._init_setupable_(
             broker,
-            provider=None,
+            config=FastDependsConfig(get_dependent=get_fastapi_dependant),
         )
 
         self.setup_state = setup_state
@@ -231,7 +227,7 @@ class StreamRouter(
                 response_model_exclude_unset=response_model_exclude_unset,
                 response_model_exclude_defaults=response_model_exclude_defaults,
                 response_model_exclude_none=response_model_exclude_none,
-                state=self._state.di_state,
+                config=self.config,
                 fastapi_config=self.fastapi_config,
             )
 
@@ -306,7 +302,6 @@ class StreamRouter(
                     app_version=self.version,
                     contact=self.contact,
                     license=self.license,
-                    schema_version="3.0.0",
                 )
 
                 app.include_router(self.docs_router)
@@ -501,7 +496,7 @@ class StreamRouter(
     ) -> None:
         """Includes a router in the API."""
         if isinstance(router, BrokerRouter):
-            for sub in router._subscribers:
+            for sub in router.subscribers:
                 sub._call_decorators = (  # type: ignore[attr-defined]
                     self._add_api_mq_route(
                         dependencies=(),

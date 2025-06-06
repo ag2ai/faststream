@@ -8,11 +8,11 @@ from faststream.rabbit import RabbitBroker
 
 
 def test_set_level() -> None:
-    app = FastStream(RabbitBroker())
+    broker = RabbitBroker()
+    app = FastStream(broker)
     set_log_level(logging.ERROR, app)
-    broker_state = app.broker._state.get()
-    broker_state._setup_logger_state()
-    broker_logger = broker_state.logger_state.logger.logger
+    broker._setup_logger()
+    broker_logger = broker.config.logger.logger.logger
     assert app.logger.level == broker_logger.level == logging.ERROR
 
 
@@ -41,5 +41,4 @@ def test_set_default(broker) -> None:
     ),
 )
 def test_set_level_to_none(app: FastStream) -> None:
-    app._setup()
     set_log_level(logging.CRITICAL, app)

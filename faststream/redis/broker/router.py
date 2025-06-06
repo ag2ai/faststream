@@ -10,8 +10,10 @@ from faststream._internal.broker.router import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.redis.broker.registrator import RedisRegistrator
+from faststream.redis.configs.broker import RedisRouterConfig
 from faststream.redis.message import BaseMessage
+
+from .registrator import RedisRegistrator
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -257,12 +259,13 @@ class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
     ) -> None:
         super().__init__(
             handlers=handlers,
-            # basic args
-            prefix=prefix,
-            dependencies=dependencies,
-            middlewares=middlewares,
+            config=RedisRouterConfig(
+                prefix=prefix,
+                broker_dependencies=dependencies,
+                broker_middlewares=middlewares,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                include_in_schema=include_in_schema,
+            ),
             routers=routers,
-            parser=parser,
-            decoder=decoder,
-            include_in_schema=include_in_schema,
         )

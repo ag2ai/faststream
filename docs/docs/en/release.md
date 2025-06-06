@@ -12,6 +12,23 @@ hide:
 ---
 
 # Release Notes
+## 0.5.42
+
+### What's Changed
+
+* Feature: add deprecate on retry arg by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2224](https://github.com/ag2ai/faststream/pull/2224){.external-link target="_blank"}
+* Fix default rabbit timestamp by [@dmder](https://github.com/dmder){.external-link target="_blank"} in [#2226](https://github.com/ag2ai/faststream/pull/2226){.external-link target="_blank"}
+* Fix ASGIMultiprocess args mismatch by [@dolfinus](https://github.com/dolfinus){.external-link target="_blank"} in [#2228](https://github.com/ag2ai/faststream/pull/2228){.external-link target="_blank"}
+* Add docs about cli --log-file by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2229](https://github.com/ag2ai/faststream/pull/2229){.external-link target="_blank"}
+* fix (#2227): use ms as generated timestamp in Kafka by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2230](https://github.com/ag2ai/faststream/pull/2230){.external-link target="_blank"}
+* feat: Add AsyncAPI HTTP Support by [@tmulligan98](https://github.com/tmulligan98){.external-link target="_blank"} in [#2142](https://github.com/ag2ai/faststream/pull/2142){.external-link target="_blank"}
+
+### New Contributors
+* [@dmder](https://github.com/dmder){.external-link target="_blank"} made their first contribution in [#2226](https://github.com/ag2ai/faststream/pull/2226){.external-link target="_blank"}
+* [@tmulligan98](https://github.com/tmulligan98){.external-link target="_blank"} made their first contribution in [#2142](https://github.com/ag2ai/faststream/pull/2142){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.41...0.5.42](https://github.com/ag2ai/faststream/compare/0.5.41...0.5.42){.external-link target="_blank"}
+
 ## 0.5.41
 
 ### What's Changed
@@ -314,7 +331,7 @@ Special thanks to @roma-frolov and @draincoder (again) for it!
 To collect **Prometheus** metrics for your **FastStream** application you just need to install special distribution
 
 ```cmd
-pip install faststream[prometheus]
+pip install 'faststream[prometheus]'
 ```
 
 And use **PrometheusMiddleware**. Also, it could be helpful to use our [**ASGI**](https://faststream.airt.ai/latest/getting-started/asgi/) to serve metrics endpoint in the same app.
@@ -432,7 +449,7 @@ Also, current release has little bugfixes related to **CLI** and **AsyncAPI** sc
 
 We made last release just a few days ago, but there are some big changes here already!
 
-1. First of all - you can't use `faststream run ...` command without `pip install faststream[cli]` distribution anymore. It was made to minify default (and production) distribution by removing **typer** (**rich** and **click**) dependencies. **CLI** is a development-time feature, so if you don't need - just don't install! Special thanks to @RubenRibGarcia for this change
+1. First of all - you can't use `faststream run ...` command without `pip install 'faststream[cli]'` distribution anymore. It was made to minify default (and production) distribution by removing **typer** (**rich** and **click**) dependencies. **CLI** is a development-time feature, so if you don't need - just don't install! Special thanks to @RubenRibGarcia for this change
 
 2. The next big change - **Kafka** publish confirmations by default! Previous **FastStream** version was working in *publish & forgot* style, but the new one blocks your `broker.publish(...)` call until **Kafka** confirmation frame received. To fallback to previous logic just use a new flag `broker.publish(..., no_confirm=True)`
 
@@ -933,7 +950,7 @@ Finally, FastStream supports [OpenTelemetry](https://opentelemetry.io/) in a nat
 First of all you need to install required dependencies to support OpenTelemetry:
 
 ```bash
-pip install faststream[otel]
+pip install 'faststream[otel]'
 ```
 
 Then you can just add a middleware for your broker and that's it!
@@ -1537,7 +1554,7 @@ To connect to Kafka using the FastStream KafkaBroker module, follow these steps:
 
 2. Create your processing logic: Write a function that will consume the incoming messages in the defined format and produce a response to the defined topic
 
-3. Decorate your processing function: To connect your processing function to the desired Kafka topics you need to decorate it with `@broker.subscriber(...)` and `@broker.publisher(...)` decorators. Now, after you start your application, your processing function will be called whenever a new message in the subscribed topic is available and produce the function return value to the topic defined in the publisher decorator.
+3. Decorate your processing function: To connect your processing function to the desired Kafka topics you need to decorate it with `#!python @broker.subscriber(...)` and `#!python @broker.publisher(...)` decorators. Now, after you start your application, your processing function will be called whenever a new message in the subscribed topic is available and produce the function return value to the topic defined in the publisher decorator.
 
 Here's a simplified code example demonstrating how to establish a connection to Kafka using FastStream's KafkaBroker module:
 

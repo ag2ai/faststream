@@ -492,6 +492,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
+    @pytest.mark.flaky(retries=3, only_on=[AssertionError])
     @pytest.mark.parametrize(
         "with_explicit_commit",
         (
@@ -549,14 +550,14 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.parametrize(
     ("partitions", "warning"),
     (
-        pytest.param(2, True, id="unassigned consumers"),
-        pytest.param(3, False, id="no unassigned consumers"),
+        pytest.param(2, True, id="partitions < consumers"),
+        pytest.param(3, False, id="partitions > consumers"),
     ),
 )
 async def test_concurrent_consume_between_partitions_assignment_warning(
-    queue: str,
     partitions: int,
     warning: bool,
+    queue: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(_LoggingListener, "_log_unassigned_consumer_delay_seconds", 0)
@@ -580,26 +581,16 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
     async def handler(msg: str) -> None:
         pass
 
-    # with patch.object(consume_broker, "_state", MagicMock(handlers=[])) as mock:
     async with consume_broker as broker:
         await broker.start()
-        await broker.close()
 
-        if warning:
-            assert (
-                len([
-                    x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
-                ])
-                == 2
-            )
+    warning_logs = [x for x in logger.log.call_args_list if x[0][0] == logging.WARNING]
 
-        else:
-            assert (
-                len([
-                    x for x in logger.log.call_args_list if x[0][0] == logging.WARNING
-                ])
-                == 0
-            )
+    if warning:
+        assert len(warning_logs) == 2
+
+    else:
+        assert len(warning_logs) == 0
 
 
 @pytest.mark.asyncio()

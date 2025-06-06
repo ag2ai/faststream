@@ -1,10 +1,8 @@
 import logging
 from collections.abc import Iterable, Sequence
-from functools import partial
 from typing import (
     TYPE_CHECKING,
     Annotated,
-    Any,
     Callable,
     Literal,
     Optional,
@@ -14,21 +12,22 @@ from typing import (
 
 import anyio
 import confluent_kafka
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import Doc, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.di import FastDependsConfig
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers import (
-    AdminService,
     AsyncConfluentConsumer,
-    AsyncConfluentProducer,
     ConfluentFastConfig,
 )
-from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
+from faststream.confluent.publisher.producer import AsyncConfluentFastProducerImpl
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
+from faststream.specification.schema import BrokerSpec
 
 from .logging import make_kafka_logger_state
 from .registrator import KafkaRegistrator
@@ -42,8 +41,6 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import (
-        AnyDict,
-        Decorator,
         LoggerProto,
         SendableMessage,
     )
@@ -71,7 +68,6 @@ class KafkaBroker(  # type: ignore[misc]
     ],
 ):
     url: list[str]
-    _producer: AsyncConfluentFastProducer
 
     def __init__(
         self,
@@ -317,25 +313,12 @@ class KafkaBroker(  # type: ignore[misc]
             int,
             Doc("Service messages log level."),
         ] = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
-            Doc("Default logger log format."),
-        ] = None,
         # FastDepends args
         apply_types: Annotated[
             bool,
             Doc("Whether to use FastDepends or not."),
         ] = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        _get_dependant: Annotated[
-            Optional[Callable[..., Any]],
-            Doc("Custom library dependant generator callback."),
-        ] = None,
-        _call_decorators: Annotated[
-            Iterable["Decorator"],
-            Doc("Any custom decorator to apply to wrapped functions."),
-        ] = (),
     ) -> None:
         if protocol is None:
             if security is not None and security.use_ssl:
@@ -357,7 +340,7 @@ class KafkaBroker(  # type: ignore[misc]
         else:
             specification_url = servers
 
-        self.config = ConfluentFastConfig(
+        connection_config = ConfluentFastConfig(
             config=config,
             security=security,
             bootstrap_servers=servers,
@@ -378,59 +361,48 @@ class KafkaBroker(  # type: ignore[misc]
             transaction_timeout_ms=transaction_timeout_ms,
         )
 
-        self.admin_service = AdminService(self.config)
-
         super().__init__(
-            # Basic args
-            graceful_timeout=graceful_timeout,
-            dependencies=dependencies,
-            decoder=decoder,
-            parser=parser,
-            middlewares=middlewares,
             routers=routers,
-            # AsyncAPI args
-            description=description,
-            specification_url=specification_url,
-            protocol=protocol,
-            protocol_version=protocol_version,
-            security=security,
-            tags=tags,
-            # Logging args
-            logger_state=make_kafka_logger_state(
-                logger=logger,
-                log_level=log_level,
-                log_fmt=log_fmt,
+            config=KafkaBrokerConfig(
+                connection_config=connection_config,
+                client_id=client_id,
+                producer=AsyncConfluentFastProducerImpl(
+                    parser=parser,
+                    decoder=decoder,
+                ),
+                # both args,
+                broker_decoder=decoder,
+                broker_parser=parser,
+                broker_middlewares=middlewares,
+                logger=make_kafka_logger_state(
+                    logger=logger,
+                    log_level=log_level,
+                ),
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
+                # subscriber args
+                graceful_timeout=graceful_timeout,
+                broker_dependencies=dependencies,
+                extra_context={
+                    "broker": self,
+                },
             ),
-            # FastDepends args
-            _get_dependant=_get_dependant,
-            _call_decorators=_call_decorators,
-            apply_types=apply_types,
-            serializer=serializer,
-        )
-        self.client_id = client_id
-
-        self._state.patch_value(
-            producer=AsyncConfluentFastProducer(
-                parser=self._parser,
-                decoder=self._decoder,
-            )
+            specification=BrokerSpec(
+                description=description,
+                url=specification_url,
+                protocol=protocol,
+                protocol_version=protocol_version,
+                security=security,
+                tags=tags,
+            ),
         )
 
     @override
     async def _connect(self) -> Callable[..., AsyncConfluentConsumer]:
-        native_producer = AsyncConfluentProducer(
-            config=self.config,
-            logger=self._state.get().logger_state,
-        )
-
-        self._producer.connect(native_producer)
-
-        return partial(
-            AsyncConfluentConsumer,
-            config=self.config,
-            admin_service=self.admin_service,
-            logger=self._state.get().logger_state,
-        )
+        await self.config.connect()
+        return self.config.builder
 
     async def close(
         self,
@@ -439,25 +411,12 @@ class KafkaBroker(  # type: ignore[misc]
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         await super().close(exc_type, exc_val, exc_tb)
-
-        await self._producer.disconnect()
-        await self.admin_service.close()
-
+        await self.config.disconnect()
         self._connection = None
 
     async def start(self) -> None:
         await self.connect()
-        self._setup()
-        await self.admin_service.start()
         await super().start()
-
-    @property
-    def _subscriber_setup_extra(self) -> "AnyDict":
-        return {
-            **super()._subscriber_setup_extra,
-            "client_id": self.client_id,
-            "builder": self._connection,
-        }
 
     @override
     async def publish(  # type: ignore[override]
@@ -513,7 +472,7 @@ class KafkaBroker(  # type: ignore[misc]
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
         )
-        return await super()._basic_publish(cmd, producer=self._producer)
+        return await super()._basic_publish(cmd, producer=self.config.producer)
 
     @override
     async def request(  # type: ignore[override]
@@ -540,7 +499,9 @@ class KafkaBroker(  # type: ignore[misc]
             _publish_type=PublishType.REQUEST,
         )
 
-        msg: KafkaMessage = await super()._basic_request(cmd, producer=self._producer)
+        msg: KafkaMessage = await super()._basic_request(
+            cmd, producer=self.config.producer
+        )
         return msg
 
     async def publish_batch(
@@ -566,21 +527,21 @@ class KafkaBroker(  # type: ignore[misc]
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(cmd, producer=self._producer)
+        return await self._basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def ping(self, timeout: Optional[float]) -> bool:
         sleep_time = (timeout or 10) / 10
 
         with anyio.move_on_after(timeout) as cancel_scope:
-            if not self._producer:
+            if not self.config.producer:
                 return False
 
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                if await self._producer.ping(timeout=timeout):
+                if await self.config.producer.ping(timeout=timeout):
                     return True
 
                 await anyio.sleep(sleep_time)

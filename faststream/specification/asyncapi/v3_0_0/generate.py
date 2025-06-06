@@ -23,7 +23,7 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
     from faststream.specification.schema.extra import (
         Contact as SpecContact,
@@ -52,8 +52,6 @@ def get_app_schema(
     external_docs: Optional[Union["SpecDocs", "ExternalDocsDict", "AnyDict"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
-    broker._setup()
-
     servers = get_broker_server(broker)
     channels, operations = get_broker_channels(broker)
 
@@ -101,8 +99,8 @@ def get_app_schema(
             messages=messages,
             schemas=payloads,
             securitySchemes=None
-            if broker.security is None
-            else broker.security.get_schema(),
+            if broker.specification.security is None
+            else broker.specification.security.get_schema(),
         ),
     )
 
@@ -111,32 +109,33 @@ def get_broker_server(
     broker: "BrokerUsecase[MsgType, ConnectionType]",
 ) -> dict[str, Server]:
     """Get the broker server for an application."""
+    specification = broker.specification
+
     servers = {}
 
     tags: Optional[list[Union[Tag, AnyDict]]] = None
-    if broker.tags:
-        tags = [Tag.from_spec(tag) for tag in broker.tags]
+    if specification.tags:
+        tags = [Tag.from_spec(tag) for tag in specification.tags]
 
     broker_meta: AnyDict = {
-        "protocol": broker.protocol,
-        "protocolVersion": broker.protocol_version,
-        "description": broker.description,
+        "protocol": specification.protocol,
+        "protocolVersion": specification.protocol_version,
+        "description": specification.description,
         "tags": tags,
         # TODO
         # "variables": "",
         # "bindings": "",
     }
 
-    if broker.security is not None:
-        broker_meta["security"] = broker.security.get_requirement()
+    if specification.security is not None:
+        broker_meta["security"] = specification.security.get_requirement()
 
-    urls = broker.url if isinstance(broker.url, list) else [broker.url]
-
-    for i, broker_url in enumerate(urls, 1):
+    single_server = len(specification.url) == 1
+    for i, broker_url in enumerate(specification.url, 1):
         server_url = broker_url if "://" in broker_url else f"//{broker_url}"
 
         parsed_url = urlparse(server_url)
-        server_name = "development" if len(urls) == 1 else f"Server{i}"
+        server_name = "development" if single_server else f"Server{i}"
         servers[server_name] = Server(
             host=parsed_url.netloc,
             pathname=parsed_url.path,
@@ -153,7 +152,7 @@ def get_broker_channels(
     channels = {}
     operations = {}
 
-    for sub in broker._subscribers:
+    for sub in broker.subscribers:
         for sub_key, sub_channel in sub.schema().items():
             channel_obj = Channel.from_sub(sub_key, sub_channel)
 
@@ -178,7 +177,7 @@ def get_broker_channels(
                 operation=sub_channel.operation,
             )
 
-    for pub in broker._publishers:
+    for pub in broker.publishers:
         for pub_key, pub_channel in pub.schema().items():
             channel_obj = Channel.from_pub(pub_key, pub_channel)
 

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
+    from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.confluent.publisher.specified import (
         SpecificationBatchPublisher,
@@ -52,6 +53,7 @@ class KafkaRegistrator(
 ):
     """Includable to KafkaBroker router."""
 
+    config: "KafkaBrokerConfig"
     _subscribers: list[  # type: ignore[assignment]
         Union[
             "SpecificationBatchSubscriber",
@@ -1240,12 +1242,11 @@ class KafkaRegistrator(
             ack_policy=ack_policy,
             no_ack=no_ack,
             no_reply=no_reply,
-            broker_middlewares=self.middlewares,
-            broker_dependencies=self._dependencies,
+            config=self.config,
             # Specification
             title_=title,
             description_=description,
-            include_in_schema=self._solve_include_in_schema(include_in_schema),
+            include_in_schema=include_in_schema,
         )
 
         if batch:
@@ -1615,13 +1616,13 @@ class KafkaRegistrator(
             headers=headers,
             reply_to=reply_to,
             # publisher-specific
-            broker_middlewares=self.middlewares,
+            config=self.config,
             middlewares=middlewares,
             # Specification
             title_=title,
             description_=description,
             schema_=schema,
-            include_in_schema=self._solve_include_in_schema(include_in_schema),
+            include_in_schema=include_in_schema,
             autoflush=autoflush,
         )
 

@@ -18,7 +18,9 @@ from faststream._internal.broker.router import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.nats.broker.registrator import NatsRegistrator
+from faststream.nats.configs import NatsBrokerConfig
+
+from .registrator import NatsRegistrator
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -380,12 +382,13 @@ class NatsRouter(
     ) -> None:
         super().__init__(
             handlers=handlers,
-            # basic args
-            prefix=prefix,
-            dependencies=dependencies,
-            middlewares=middlewares,
+            config=NatsBrokerConfig(
+                broker_middlewares=middlewares,
+                broker_dependencies=dependencies,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                include_in_schema=include_in_schema,
+                prefix=prefix,
+            ),
             routers=routers,
-            parser=parser,
-            decoder=decoder,
-            include_in_schema=include_in_schema,
         )

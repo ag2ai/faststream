@@ -62,7 +62,7 @@ class PullStreamSubscriber(
         if self.subscription:
             return
 
-        self.subscription = await self._connection_state.js.pull_subscribe(
+        self.subscription = await self.jetstream.pull_subscribe(
             subject=self.clear_subject,
             config=self.config,
             **self.extra_options,
@@ -99,7 +99,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
 
         self.start_consume_task()
 
-        self.subscription = await self._connection_state.js.pull_subscribe(
+        self.subscription = await self.jetstream.pull_subscribe(
             subject=self.clear_subject,
             config=self.config,
             **self.extra_options,
@@ -118,14 +118,14 @@ class BatchPullStreamSubscriber(
 
     def __init__(
         self,
-        config,
+        config: "NatsSubscriberConfig",
         *,
         stream: "JStream",
         pull_sub: "PullSub",
     ) -> None:
         parser = BatchParser(pattern=config.subject)
-        config.default_decoder = parser.decode_batch
-        config.default_parser = parser.parse_batch
+        config.decoder = parser.decode_batch
+        config.parser = parser.parse_batch
         super().__init__(config)
 
         self.stream = stream
@@ -142,9 +142,7 @@ class BatchPullStreamSubscriber(
         ), "You can't use `get_one` method if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            fetch_sub = (
-                self._fetch_sub
-            ) = await self._connection_state.js.pull_subscribe(
+            fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.clear_subject,
                 config=self.config,
                 **self.extra_options,
@@ -160,7 +158,7 @@ class BatchPullStreamSubscriber(
         except TimeoutError:
             return None
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         return cast(
             "NatsMessage",
@@ -181,9 +179,7 @@ class BatchPullStreamSubscriber(
         ), "You can't use iterator if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            fetch_sub = (
-                self._fetch_sub
-            ) = await self._connection_state.js.pull_subscribe(
+            fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.clear_subject,
                 config=self.config,
                 **self.extra_options,
@@ -194,7 +190,7 @@ class BatchPullStreamSubscriber(
         while True:
             raw_message = await fetch_sub.fetch(batch=1)
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             yield cast(
                 "NatsMessage",
@@ -215,7 +211,7 @@ class BatchPullStreamSubscriber(
         if self.subscription:
             return
 
-        self.subscription = await self._connection_state.js.pull_subscribe(
+        self.subscription = await self.jetstream.pull_subscribe(
             subject=self.clear_subject,
             config=self.config,
             **self.extra_options,

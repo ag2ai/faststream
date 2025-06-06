@@ -15,7 +15,8 @@ def test_base_security_schema() -> None:
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
     assert (
-        broker.url == "amqps://guest:guest@localhost:5672/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["amqps://guest:guest@localhost:5672/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
@@ -50,8 +51,8 @@ def test_plaintext_security_schema() -> None:
     broker = RabbitBroker("amqp://guest:guest@localhost/", security=security)
 
     assert (
-        broker.url
-        == "amqps://admin:password@localhost:5671/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["amqps://admin:password@localhost:5671/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
@@ -89,8 +90,8 @@ def test_plaintext_security_schema_without_ssl() -> None:
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
     assert (
-        broker.url
-        == "amqp://admin:password@localhost:5672/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["amqp://admin:password@localhost:5672/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
     schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()

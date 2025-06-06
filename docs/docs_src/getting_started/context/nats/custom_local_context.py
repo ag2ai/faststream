@@ -19,6 +19,6 @@ async def handle(
 @apply_types(context__=app.context)
 def call(
     message: NatsMessage,
-    correlation_id=Context(),
+    correlation_id: str = Context(),
 ):
     assert correlation_id == message.correlation_id

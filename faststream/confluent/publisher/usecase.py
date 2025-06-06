@@ -7,7 +7,6 @@ from typing_extensions import override
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.types import MsgType
 from faststream.confluent.response import KafkaPublishCommand
-from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
 
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.confluent.configs import KafkaSubscriberConfig
+    from faststream.confluent.configs import KafkaPublisherConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
     from faststream.response.response import PublishCommand
@@ -27,16 +26,17 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
     _producer: "AsyncConfluentFastProducer"
 
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
         super().__init__(config)
 
-        self.topic = config.topic
+        self._topic = config.topic
         self.partition = config.partition
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
 
-    def add_prefix(self, prefix: str) -> None:
-        self.topic = f"{prefix}{self.topic}"
+    @property
+    def topic(self) -> str:
+        return f"{self._outer_config.prefix}{self._topic}"
 
     @override
     async def request(
@@ -67,12 +67,11 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         return msg
 
     async def flush(self) -> None:
-        assert self._producer, NOT_CONNECTED_YET  # nosec B101
         await self._producer.flush()
 
 
 class DefaultPublisher(LogicPublisher[Message]):
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
         super().__init__(config)
 
         self.key = config.key

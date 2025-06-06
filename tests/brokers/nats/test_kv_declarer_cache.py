@@ -19,5 +19,5 @@ async def test_kv_storage_cache() -> None:
     ) as m:
         await broker.key_value("test")
         await broker.key_value("test")
-        assert broker._kv_declarer.buckets["test"]
+        assert broker.config.kv_declarer.buckets["test"]
         m.mock.assert_called_once()

@@ -131,6 +131,10 @@ Also, synchronous functions are supported as well:
         ...
     ```
 
+!!! note "Technical details"
+
+    Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
+
 ## Message Body Serialization
 
 Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
@@ -210,7 +214,7 @@ This way **FastStream** still consumes `#!python json.loads` result, but without
 
 ## Multiple Subscriptions
 
-You can also subscribe to multiple event streams at the same time with one function. Just wrap it with multiple `#!python @broker.subscriber(...)` decorators (they have no effect on each other).
+You can also subscribe to multiple event streams at the same time with one function. Just wrap it with multiple `#!python @broker.subscriber(...)` decorators.
 
 ```python hl_lines="1-2"
 @broker.subscriber("first_sub")

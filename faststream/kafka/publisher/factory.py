@@ -14,9 +14,8 @@ from faststream.kafka.configs import KafkaPublisherConfigFacade
 from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
 
 if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord
-
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.kafka.configs import KafkaBrokerConfig
 
 
 def create_publisher(
@@ -29,9 +28,7 @@ def create_publisher(
     headers: Optional[dict[str, str]],
     reply_to: str,
     # Publisher args
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[tuple[ConsumerRecord, ...], ConsumerRecord]]"
-    ],
+    config: "KafkaBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Optional[Any],
@@ -48,7 +45,7 @@ def create_publisher(
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        broker_middlewares=broker_middlewares,
+        config=config,
         middlewares=middlewares,
         # specification
         schema_=schema_,

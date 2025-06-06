@@ -127,7 +127,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y curl
 
 WORKDIR /app
-RUN pip install faststream[rabbit] uvicorn redis asyncpg
+RUN pip install 'faststream[rabbit]' uvicorn redis asyncpg
 COPY main.py /app
 ```
 

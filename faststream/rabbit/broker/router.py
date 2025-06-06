@@ -10,7 +10,9 @@ from faststream._internal.broker.router import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.rabbit.broker.registrator import RabbitRegistrator
+from faststream.rabbit.configs import RabbitBrokerConfig
+
+from .registrator import RabbitRegistrator
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
@@ -199,7 +201,7 @@ class RabbitRoute(SubscriberRoute):
             Union[str, "RabbitQueue"],
             Doc(
                 "RabbitMQ queue to listen. "
-                "**FastStream** declares and binds queue object to `exchange` automatically if it is not passive (by default).",
+                "**FastStream** declares and binds queue object to `exchange` automatically by default.",
             ),
         ],
         exchange: Annotated[
@@ -207,7 +209,7 @@ class RabbitRoute(SubscriberRoute):
             Doc(
                 "RabbitMQ exchange to bind queue to. "
                 "Uses default exchange if not present. "
-                "**FastStream** declares exchange object automatically if it is not passive (by default)."
+                "**FastStream** declares exchange object automatically by default."
             ),
         ] = None,
         *,
@@ -334,12 +336,13 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
     ) -> None:
         super().__init__(
             handlers=handlers,
-            # basic args
-            prefix=prefix,
-            dependencies=dependencies,
-            middlewares=middlewares,
+            config=RabbitBrokerConfig(
+                broker_middlewares=middlewares,
+                broker_dependencies=dependencies,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                include_in_schema=include_in_schema,
+                prefix=prefix,
+            ),
             routers=routers,
-            parser=parser,
-            decoder=decoder,
-            include_in_schema=include_in_schema,
         )

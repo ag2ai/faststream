@@ -85,7 +85,7 @@ def set_log_level(level: int, app: "Application") -> None:
         app.logger.setLevel(level)  # type: ignore[attr-defined]
 
     for broker in app.brokers:
-        broker._state.get().logger_state.set_level(level)
+        broker.config.logger.set_level(level)
 
 
 def _get_json_config(file: Path) -> Union[dict[str, Any], Any]:

@@ -10,7 +10,7 @@ from typing_extensions import Literal
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream.specification.asyncapi import AsyncAPI
 from tests.marks import pydantic_v2
 
@@ -566,9 +566,9 @@ class FastAPICompatible:
                 | expected_schema
             )
 
-        assert (
-            schema["components"]["messages"][key]["payload"] == expected_schema
-        ), schema["components"]
+        assert schema["components"]["messages"][key]["payload"] == expected_schema, (
+            schema["components"]
+        )
 
         assert schema["components"]["schemas"] == IsPartialDict({
             "Sub": {

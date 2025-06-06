@@ -10,19 +10,10 @@ from typing import (
     TypeVar,
 )
 
-from fast_depends import Provider
 from typing_extensions import ParamSpec
 
-from faststream._internal.constants import EMPTY
-from faststream._internal.context import ContextRepo
-from faststream._internal.log import logger
-from faststream._internal.state import DIState
-from faststream._internal.state.application import (
-    ApplicationState,
-    BasicApplicationState,
-    RunningApplicationState,
-)
-from faststream._internal.state.broker import OuterBrokerState
+from faststream._internal.di import FastDependsConfig
+from faststream._internal.logger import logger
 from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import (
     drop_response_type,
@@ -32,8 +23,6 @@ from faststream._internal.utils.functions import (
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
-    from fast_depends.library.serializer import SerializerProto
-
     from faststream._internal.basic_types import (
         AnyCallable,
         AsyncFunc,
@@ -41,7 +30,8 @@ if TYPE_CHECKING:
         LoggerProto,
         SettingField,
     )
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.context import ContextRepo
 
 
 try:
@@ -81,52 +71,34 @@ class StartAbleApplication:
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
-        provider: Optional["Provider"] = None,
-        serializer: Optional["SerializerProto"] = EMPTY,
+        config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self._init_setupable_(
             broker,
-            provider=provider,
-            serializer=serializer,
+            config=config,
         )
+
+    @property
+    def context(self) -> "ContextRepo":
+        return self.config.context
 
     def _init_setupable_(  # noqa: PLW3201
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
-        provider: Optional["Provider"] = None,
-        serializer: Optional["SerializerProto"] = EMPTY,
+        config: Optional["FastDependsConfig"] = None,
     ) -> None:
-        self.context = ContextRepo()
-        self.provider = provider or Provider()
-
-        if serializer is EMPTY:
-            from fast_depends.pydantic.serializer import PydanticSerializer
-
-            serializer = PydanticSerializer()
-
-        self._state: ApplicationState = BasicApplicationState(
-            di_state=DIState(
-                use_fastdepends=True,
-                get_dependent=None,
-                call_decorators=(),
-                serializer=serializer,
-                provider=self.provider,
-                context=self.context,
-            )
-        )
+        self.config = config or FastDependsConfig()
 
         self.brokers = [broker] if broker else []
 
-        self._setup()
-
-    def _setup(self) -> None:
-        for broker in self.brokers:
-            broker._setup(OuterBrokerState(di_state=self._state.di_state))
+        for b in self.brokers:
+            b._update_fd_config(self.config)
 
     async def _start_broker(self) -> None:
-        assert self.broker, "You should setup a broker"
-        await self.broker.start()
+        assert self.brokers, "You should setup a broker"
+        for b in self.brokers:
+            await b.start()
 
     @property
     def broker(self) -> Optional["BrokerUsecase[Any, Any]"]:
@@ -142,7 +114,6 @@ class StartAbleApplication:
             raise SetupError(msg)
 
         self.brokers.append(broker)
-        self._setup()
 
 
 class Application(StartAbleApplication):
@@ -150,20 +121,15 @@ class Application(StartAbleApplication):
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
+        config: Optional["FastDependsConfig"] = None,
         logger: Optional["LoggerProto"] = logger,
-        provider: Optional["Provider"] = None,
-        serializer: Optional["SerializerProto"] = EMPTY,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
     ) -> None:
-        super().__init__(
-            broker,
-            provider=provider,
-            serializer=serializer,
-        )
+        super().__init__(broker, config=config)
 
         self.context.set_global("app", self)
 
@@ -191,10 +157,6 @@ class Application(StartAbleApplication):
         else:
             self.lifespan_context = fake_context
 
-    @property
-    def running(self) -> bool:
-        return self._state.running
-
     @abstractmethod
     def exit(self) -> None:
         """Stop application manually."""
@@ -218,7 +180,7 @@ class Application(StartAbleApplication):
         async with self._startup_logging(log_level=log_level):
             await self.start(**(run_extra_options or {}))
 
-        self._state = RunningApplicationState(di_state=self._state.di_state)
+        self.running = True
 
     async def start(
         self,
@@ -267,7 +229,7 @@ class Application(StartAbleApplication):
         async with self._shutdown_logging(log_level=log_level):
             await self.stop()
 
-        self._state = BasicApplicationState(di_state=self._state.di_state)
+        self.running = False
 
     async def stop(self) -> None:
         """Executes shutdown hooks and stop broker."""
@@ -291,17 +253,11 @@ class Application(StartAbleApplication):
         log_level: int = logging.INFO,
     ) -> AsyncIterator[None]:
         """Separated startup logging."""
-        self._log(
-            log_level,
-            "FastStream app shutting down...",
-        )
+        self._log(log_level, "FastStream app shutting down...")
 
         yield
 
-        self._log(
-            log_level,
-            "FastStream app shut down gracefully.",
-        )
+        self._log(log_level, "FastStream app shut down gracefully.")
 
     # Service methods
 

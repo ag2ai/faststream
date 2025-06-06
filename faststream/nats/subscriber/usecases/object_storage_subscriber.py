@@ -44,11 +44,15 @@ class ObjStoreWatchSubscriber(
     _fetch_sub: Optional[UnsubscribeAdapter["ObjectStore.ObjectWatcher"]]
 
     def __init__(
-        self, config: "NatsSubscriberConfig", /, *, obj_watch: "ObjWatch",
+        self,
+        config: "NatsSubscriberConfig",
+        /,
+        *,
+        obj_watch: "ObjWatch",
     ) -> None:
         parser = ObjParser(pattern="")
-        config.default_parser = parser.parse_message
-        config.default_decoder = parser.decode_message
+        config.parser = parser.parse_message
+        config.decoder = parser.decode_message
         super().__init__(config)
 
         self.obj_watch = obj_watch
@@ -65,7 +69,7 @@ class ObjStoreWatchSubscriber(
         ), "You can't use `get_one` method if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            self.bucket = await self._connection_state.os_declarer.create_object_store(
+            self.bucket = await self._outer_config.os_declarer.create_object_store(
                 bucket=self.subject,
                 declare=self.obj_watch.declare,
             )
@@ -90,7 +94,7 @@ class ObjStoreWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: NatsObjMessage = await process_msg(
             msg=raw_message,
@@ -109,7 +113,7 @@ class ObjStoreWatchSubscriber(
         ), "You can't use iterator if subscriber has registered handlers."
 
         if not self._fetch_sub:
-            self.bucket = await self._connection_state.os_declarer.create_object_store(
+            self.bucket = await self._outer_config.os_declarer.create_object_store(
                 bucket=self.subject,
                 declare=self.obj_watch.declare,
             )
@@ -139,7 +143,7 @@ class ObjStoreWatchSubscriber(
             if raw_message is None:
                 continue
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: NatsObjMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
@@ -156,7 +160,7 @@ class ObjStoreWatchSubscriber(
         if self.subscription:
             return
 
-        self.bucket = await self._connection_state.os_declarer.create_object_store(
+        self.bucket = await self._outer_config.os_declarer.create_object_store(
             bucket=self.subject,
             declare=self.obj_watch.declare,
         )
@@ -175,7 +179,7 @@ class ObjStoreWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["ObjectStore.ObjectWatcher"](obj_watch)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         while self.running:
             with suppress(TimeoutError):

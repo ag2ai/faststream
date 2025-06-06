@@ -140,11 +140,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             int,
             Doc("Service messages log level."),
         ] = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
-            Doc("Default logger log format."),
-        ] = None,
         # StreamRouter options
         setup_state: Annotated[
             bool,
@@ -403,7 +398,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             # logger options
             logger=logger,
             log_level=log_level,
-            log_fmt=log_fmt,
             # AsyncAPI options
             security=security,
             protocol=protocol,

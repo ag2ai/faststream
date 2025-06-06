@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -21,8 +22,8 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
     async def test_router_path(
         self,
-        event,
-        mock,
+        event: asyncio.Event,
+        mock: MagicMock,
         router: NatsRouter,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
@@ -46,13 +47,12 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
     async def test_path_as_first_with_prefix(
         self,
-        event,
-        mock,
-        router: NatsRouter,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        router.prefix = "root."
+        router = self.get_router(prefix="root.")
 
         @router.subscriber("{name}.nested")
         async def h(name: str = Path()) -> None:
@@ -70,13 +70,12 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
     async def test_router_path_with_prefix(
         self,
-        event,
-        mock,
-        router: NatsRouter,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        router.prefix = "test."
+        router = self.get_router(prefix="test.")
 
         @router.subscriber("in.{name}.{id}")
         async def h(
@@ -97,8 +96,8 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
     async def test_router_delay_handler_path(
         self,
-        event,
-        mock,
+        event: asyncio.Event,
+        mock: MagicMock,
         router: NatsRouter,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)

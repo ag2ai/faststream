@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional
 
 from faststream.nats.configs import NatsPublisherConfigFacade
@@ -6,9 +6,8 @@ from faststream.nats.configs import NatsPublisherConfigFacade
 from .specified import SpecificationPublisher
 
 if TYPE_CHECKING:
-    from nats.aio.msg import Msg
-
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.schemas.js_stream import JStream
 
 
@@ -20,7 +19,7 @@ def create_publisher(
     stream: Optional["JStream"],
     timeout: Optional[float],
     # Publisher args
-    broker_middlewares: Iterable["BrokerMiddleware[Msg]"],
+    broker_config: "NatsBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
     schema_: Optional[Any],
@@ -34,7 +33,7 @@ def create_publisher(
         reply_to=reply_to,
         headers=headers,
         timeout=timeout,
-        broker_middlewares=broker_middlewares,
+        config=broker_config,
         middlewares=middlewares,
         # specification
         schema_=schema_,

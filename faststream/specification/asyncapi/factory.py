@@ -5,7 +5,7 @@ from faststream.specification.base.specification import Specification
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, AnyHttpUrl
-    from faststream._internal.broker.broker import BrokerUsecase
+    from faststream._internal.broker import BrokerUsecase
     from faststream.specification.schema import (
         Contact,
         ExternalDocs,

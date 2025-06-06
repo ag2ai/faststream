@@ -40,8 +40,10 @@ def test_kwargs() -> None:
     )
 
     assert (
-        broker.url
-        == "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300"  # pragma: allowlist secret
+        broker.specification.url
+        == [
+            "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300"
+        ]  # pragma: allowlist secret
     )
 
 

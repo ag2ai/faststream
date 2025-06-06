@@ -8,7 +8,7 @@ app = FastStream(broker)
 @broker.subscriber("test-topic")
 async def handle(
     msg: str,
-    secret_str: str=Context(),
+    secret_str: str = Context(),
 ):
     assert secret_str == "my-perfect-secret" # pragma: allowlist secret
 

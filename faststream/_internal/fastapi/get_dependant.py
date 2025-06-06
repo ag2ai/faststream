@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Iterable
-from typing import Annotated, Any, Callable, cast
+from typing import TYPE_CHECKING, Annotated, Any, Callable, cast
 
 from fast_depends.library.serializer import OptionItem
 from fast_depends.utils import get_typed_annotation
@@ -13,6 +13,9 @@ from fastapi.dependencies.utils import (
 from typing_extensions import get_args, get_origin
 
 from faststream._internal._compat import PYDANTIC_V2
+
+if TYPE_CHECKING:
+    from fastapi.dependencies import models
 
 
 def get_fastapi_dependant(
@@ -47,7 +50,7 @@ def get_fastapi_native_dependant(
     return dependent
 
 
-def _patch_fastapi_dependent(dependant: "params.Depends") -> "params.Depends":
+def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant":
     """Patch FastAPI by adding fields for AsyncAPI schema generation."""
     from pydantic import Field, create_model  # FastAPI always has pydantic
 

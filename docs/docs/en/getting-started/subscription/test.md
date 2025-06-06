@@ -117,7 +117,7 @@ This way you can catch any exceptions that occur inside your handler:
 
 ### Validates Input
 
-Also, your handler has a mock object to validate your input or call counts.
+Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.MagicMock){.external-link target="_blank"} object to validate passed arguments and call counts.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="6"
@@ -145,11 +145,11 @@ Also, your handler has a mock object to validate your input or call counts.
     ```
 
 !!! note
-    The Handler mock has a not-serialized **JSON** message body. This way you can validate the incoming message view, not python arguments.
+    The *handle* mock has a raw **JSON** message body. This way you can validate the incoming message itself and not a parsed python arguments.
 
     Thus our example checks not `#!python mock.assert_called_with(name="John", user_id=1)`, but `#!python mock.assert_called_with({ "name": "John", "user_id": 1 })`.
 
-You should be careful with this feature: all mock objects will be cleared when the context manager exits.
+Scoping rule: all handles' mock objects will be cleared when the context manager exits.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="6 8"

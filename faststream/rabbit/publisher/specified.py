@@ -28,7 +28,7 @@ class SpecificationPublisher(
     def get_default_name(self) -> str:
         routing = (
             self.routing_key
-            or (self.queue.routing if is_routing_exchange(self.exchange) else None)
+            or (self.queue.routing() if is_routing_exchange(self.exchange) else None)
             or "_"
         )
 
@@ -46,7 +46,7 @@ class SpecificationPublisher(
                 operation=Operation(
                     bindings=OperationBinding(
                         amqp=amqp.OperationBinding(
-                            routing_key=self.routing or None,
+                            routing_key=self.routing() or None,
                             queue=queue_binding,
                             exchange=exchange_binding,
                             ack=True,

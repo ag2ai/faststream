@@ -8,20 +8,13 @@ from typing import (
 )
 
 from faststream._internal.endpoint.usecase import Endpoint
-from faststream._internal.types import (
-    MsgType,
-)
-from faststream.response.response import PublishCommand
+from faststream._internal.types import MsgType
 
 if TYPE_CHECKING:
+
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.producer import ProducerProto
-    from faststream._internal.state import BrokerState, Pointer
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        PublisherMiddleware,
-    )
-    from faststream.response.response import PublishCommand
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.response import PublishCommand
 
 
 class BasePublisherProto(Protocol):
@@ -66,22 +59,9 @@ class BasePublisherProto(Protocol):
 
 class PublisherProto(
     Endpoint[MsgType],
-    BasePublisherProto,
+    BasePublisherProto
 ):
-    _broker_middlewares: Sequence["BrokerMiddleware[MsgType]"]
     _middlewares: Sequence["PublisherMiddleware"]
 
-    @property
     @abstractmethod
-    def _producer(self) -> "ProducerProto": ...
-
-    @abstractmethod
-    def add_middleware(self, middleware: "BrokerMiddleware[MsgType]") -> None: ...
-
-    @abstractmethod
-    def _setup(
-        self,
-        *,
-        state: "Pointer[BrokerState]",
-        producer: "ProducerProto",
-    ) -> None: ...
+    async def start(self) -> None: ...

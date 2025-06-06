@@ -1,6 +1,5 @@
 import warnings
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from nats.aio.subscription import (
     DEFAULT_SUB_PENDING_BYTES_LIMIT,
@@ -29,11 +28,10 @@ from faststream.nats.subscriber.specified import (
 )
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from nats.js import api
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import BrokerMiddleware
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 
 
@@ -66,8 +64,7 @@ def create_subscriber(
     ack_policy: "AckPolicy",
     no_ack: bool,
     no_reply: bool,
-    broker_dependencies: Iterable["Dependant"],
-    broker_middlewares: Sequence["BrokerMiddleware[Any]"],
+    broker_config: "NatsBrokerConfig",
     # Specification information
     title_: Optional[str],
     description_: Optional[str],
@@ -159,15 +156,12 @@ def create_subscriber(
             "max_msgs": max_msgs,
         }
 
-    config = NatsSubscriberConfigFacade(
+    subscriber_config = NatsSubscriberConfigFacade(
         subject=subject,
-        config=config,
+        sub_config=config,
         extra_options=extra_options,
         no_reply=no_reply,
-        broker_dependencies=broker_dependencies,
-        broker_middlewares=broker_middlewares,
-        default_decoder=EMPTY,
-        default_parser=EMPTY,
+        config=broker_config,
         _ack_first=ack_first,
         _ack_policy=ack_policy,
         _no_ack=no_ack,
@@ -179,60 +173,60 @@ def create_subscriber(
 
     if obj_watch is not None:
         return SpecificationObjStoreWatchSubscriber(
-            config,
+            subscriber_config,
             obj_watch=obj_watch,
         )
 
     if kv_watch is not None:
         return SpecificationKeyValueWatchSubscriber(
-            config,
+            subscriber_config,
             kv_watch=kv_watch,
         )
 
     if stream is None:
         if max_workers > 1:
             return SpecificationConcurrentCoreSubscriber(
-                config,
+                subscriber_config,
                 max_workers=max_workers,
                 queue=queue,
             )
 
         return SpecificationCoreSubscriber(
-            config,
+            subscriber_config,
             queue=queue,
         )
 
     if max_workers > 1:
         if pull_sub is not None:
             return SpecificationConcurrentPullStreamSubscriber(
-                config,
+                subscriber_config,
                 queue=queue,
                 max_workers=max_workers,
                 pull_sub=pull_sub,
             )
 
         return SpecificationConcurrentPushStreamSubscriber(
-            config,
+            subscriber_config,
             max_workers=max_workers,
         )
 
     if pull_sub is not None:
         if pull_sub.batch:
             return SpecificationBatchPullStreamSubscriber(
-                config,
+                subscriber_config,
                 pull_sub=pull_sub,
                 stream=stream,
             )
 
         return SpecificationPullStreamSubscriber(
-            config,
+            subscriber_config,
             queue=queue,
             pull_sub=pull_sub,
             stream=stream,
         )
 
     return SpecificationPushStreamSubscriber(
-        config,
+        subscriber_config,
         queue=queue,
         stream=stream,
     )

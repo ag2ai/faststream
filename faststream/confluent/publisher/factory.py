@@ -6,7 +6,6 @@ from typing import (
     Callable,
     Optional,
     Union,
-    cast,
 )
 
 from faststream.confluent.configs import KafkaPublisherConfigFacade
@@ -15,9 +14,8 @@ from faststream.exceptions import SetupError
 from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
 
 if TYPE_CHECKING:
-    from confluent_kafka import Message as ConfluentMsg
-
-    from faststream._internal.types import BrokerMiddleware, PublisherMiddleware
+    from faststream._internal.types import PublisherMiddleware
+    from faststream.confluent.configs import KafkaBrokerConfig
 
 
 def create_publisher(
@@ -30,10 +28,7 @@ def create_publisher(
     headers: Optional[dict[str, str]],
     reply_to: str,
     # Publisher args
-    broker_middlewares: Union[
-        Sequence["BrokerMiddleware[ConfluentMsg]"],
-        Sequence["BrokerMiddleware[tuple[ConfluentMsg, ...]]"],
-    ],
+    config: "KafkaBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Optional[Any],
@@ -50,10 +45,7 @@ def create_publisher(
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        broker_middlewares=cast(
-            "Sequence[BrokerMiddleware[tuple[ConfluentMsg, ...]]]",
-            broker_middlewares,
-        ),
+        config=config,
         middlewares=middlewares,
         # specification
         schema_=schema_,

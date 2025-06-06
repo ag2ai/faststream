@@ -5,7 +5,7 @@ from dirty_equals import IsStr
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi.router import StreamRouter
 from faststream._internal.types import MsgType
 from faststream.specification.asyncapi import AsyncAPI

@@ -12,7 +12,7 @@ def patch_aio_consumer_and_producer() -> tuple[MagicMock, MagicMock]:
         producer = MagicMock(return_value=AsyncMock())
 
         with patch(
-            "faststream.confluent.broker.broker.AsyncConfluentProducer",
+            "faststream.confluent.helpers.client.AsyncConfluentProducer",
             new=producer,
         ):
             yield producer

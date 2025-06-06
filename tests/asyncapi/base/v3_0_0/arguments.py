@@ -11,7 +11,7 @@ from typing_extensions import Literal
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi import StreamRouter
 from faststream.specification.asyncapi import AsyncAPI
 from tests.marks import pydantic_v2

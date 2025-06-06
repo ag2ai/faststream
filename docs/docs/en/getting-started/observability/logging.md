@@ -160,15 +160,6 @@ Faststream supported few file formats to logging configure. See examples below:
         handlers: ["app"]
     ```
 
-## Formatting Logs
-
-If you are not satisfied with the current format of your application logs, you can change it directly in your broker's constructor.
-
-```python
-from faststream.rabbit import RabbitBroker
-broker = RabbitBroker(log_fmt="%(asctime)s %(levelname)s - %(message)s")
-```
-
 ## Using Your Own Loggers
 
 Since **FastStream** works with the standard `logging.Logger` object, you can initiate an application and a broker

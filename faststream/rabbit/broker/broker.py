@@ -2,9 +2,6 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
-    Any,
-    Callable,
     Optional,
     Union,
     cast,
@@ -13,15 +10,20 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker.broker import ABCBroker, BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.publisher import PublisherProto
+from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
-from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
-from faststream.rabbit.publisher.producer import AioPikaFastProducer
+from faststream.rabbit.configs import RabbitBrokerConfig
+from faststream.rabbit.helpers.channel_manager import ChannelManagerImpl
+from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
+from faststream.rabbit.publisher.producer import (
+    AioPikaFastProducer,
+    AioPikaFastProducerImpl,
+)
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import (
     RABBIT_REPLY,
@@ -32,6 +34,7 @@ from faststream.rabbit.schemas import (
 from faststream.rabbit.security import parse_security
 from faststream.rabbit.utils import build_url
 from faststream.response.publish_type import PublishType
+from faststream.specification.schema import BrokerSpec
 
 from .logging import make_rabbit_logger_state
 from .registrator import RabbitRegistrator
@@ -50,7 +53,8 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
     from yarl import URL
 
-    from faststream._internal.basic_types import AnyDict, Decorator, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.broker.abc_broker import ABCBroker
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -72,8 +76,6 @@ class RabbitBroker(
 
     _producer: "AioPikaFastProducer"
     _channel: Optional["RobustChannel"]
-
-    declarer: RabbitDeclarer
 
     def __init__(
         self,
@@ -97,10 +99,7 @@ class RabbitBroker(
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
-        routers: Annotated[
-            Sequence["ABCBroker[IncomingMessage]"],
-            Doc("Routers to apply to broker."),
-        ] = (),
+        routers: Sequence["ABCBroker[IncomingMessage]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: Optional[str] = None,
@@ -111,15 +110,9 @@ class RabbitBroker(
         # logging args
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated("Use `logger` instead. Will be removed in the 0.7.0 release."),
-        ] = None,
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        _get_dependant: Optional[Callable[..., Any]] = None,
-        _call_decorators: Iterable["Decorator"] = (),
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -149,7 +142,6 @@ class RabbitBroker(
             tags: AsyncAPI server tags.
             logger: User-specified logger to pass into Context and log service messages.
             log_level: Service messages log level.
-            log_fmt: Default logger log format.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
             _get_dependant: Custom library dependant generator callback.
@@ -174,82 +166,63 @@ class RabbitBroker(
 
         # respect ascynapi_url argument scheme
         built_asyncapi_url = urlparse(specification_url)
-        self.virtual_host = built_asyncapi_url.path
         if protocol is None:
             protocol = built_asyncapi_url.scheme
 
+        cm = ChannelManagerImpl(default_channel)
+        declarer = RabbitDeclarerImpl(cm)
+
+        producer = AioPikaFastProducerImpl(
+            declarer=declarer,
+            decoder=decoder,
+            parser=parser,
+        )
+
         super().__init__(
+            # connection args
             url=str(amqp_url),
             ssl_context=security_args.get("ssl_context"),
             timeout=timeout,
             fail_fast=fail_fast,
             reconnect_interval=reconnect_interval,
             # Basic args
-            graceful_timeout=graceful_timeout,
-            dependencies=dependencies,
-            decoder=decoder,
-            parser=parser,
-            middlewares=middlewares,
             routers=routers,
-            # AsyncAPI args
-            description=description,
-            specification_url=specification_url,
-            protocol=protocol or built_asyncapi_url.scheme,
-            protocol_version=protocol_version,
-            security=security,
-            tags=tags,
-            # Logging args
-            logger_state=make_rabbit_logger_state(
-                logger=logger,
-                log_level=log_level,
-                log_fmt=log_fmt,
+            config=RabbitBrokerConfig(
+                channel_manager=cm,
+                producer=producer,
+                declarer=declarer,
+                app_id=app_id,
+                virtual_host=built_asyncapi_url.path,
+                # both args
+                broker_middlewares=middlewares,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                logger=make_rabbit_logger_state(
+                    logger=logger,
+                    log_level=log_level,
+                ),
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
+                # subscriber args
+                broker_dependencies=dependencies,
+                graceful_timeout=graceful_timeout,
+                extra_context={
+                    "broker": self,
+                },
             ),
-            # FastDepends args
-            apply_types=apply_types,
-            serializer=serializer,
-            _get_dependant=_get_dependant,
-            _call_decorators=_call_decorators,
+            specification=BrokerSpec(
+                description=description,
+                url=[specification_url],
+                protocol=protocol or built_asyncapi_url.scheme,
+                protocol_version=protocol_version,
+                security=security,
+                tags=tags,
+            ),
         )
-
-        self.app_id = app_id
 
         self._channel = None
-
-        cm = self._channel_manager = ChannelManager(default_channel)
-        declarer = self.declarer = RabbitDeclarer(cm)
-
-        self._state.patch_value(
-            producer=AioPikaFastProducer(
-                declarer=declarer,
-                decoder=self._decoder,
-                parser=self._parser,
-            )
-        )
-
-    @property
-    def _subscriber_setup_extra(self) -> "AnyDict":
-        return {
-            **super()._subscriber_setup_extra,
-            "app_id": self.app_id,
-            "virtual_host": self.virtual_host,
-            "declarer": self.declarer,
-        }
-
-    def setup_publisher(
-        self,
-        publisher: PublisherProto[IncomingMessage],
-        **kwargs: Any,
-    ) -> None:
-        return super().setup_publisher(
-            publisher,
-            **(
-                {
-                    "app_id": self.app_id,
-                    "virtual_host": self.virtual_host,
-                }
-                | kwargs
-            ),
-        )
 
     @override
     async def _connect(self) -> "RobustConnection":
@@ -259,11 +232,8 @@ class RabbitBroker(
         )
 
         if self._channel is None:
-            self._channel_manager.connect(connection)
-            self._channel = await self._channel_manager.get_channel()
-
-            await self.declarer.declare_queue(RABBIT_REPLY)
-            self._producer.connect()
+            self.config.connect(connection)
+            self._channel = await self.config.channel_manager.get_channel()
 
         return connection
 
@@ -285,19 +255,12 @@ class RabbitBroker(
             await self._connection.close()
             self._connection = None
 
-        self._channel_manager.disconnect()
-        self.declarer.disconnect()
-        self._producer.disconnect()
+        self.config.disconnect()
 
     async def start(self) -> None:
         """Connect broker to RabbitMQ and startup all subscribers."""
         await self.connect()
-        self._setup()
-
-        for publisher in self._publishers:
-            if publisher.exchange is not None:
-                await self.declare_exchange(publisher.exchange)
-
+        await self.declare_queue(RABBIT_REPLY)
         await super().start()
 
     @override
@@ -378,10 +341,10 @@ class RabbitBroker(
         """
         cmd = RabbitPublishCommand(
             message,
-            routing_key=routing_key or RabbitQueue.validate(queue).routing,
+            routing_key=routing_key or RabbitQueue.validate(queue).routing(),
             exchange=RabbitExchange.validate(exchange),
             correlation_id=correlation_id or gen_cor_id(),
-            app_id=self.app_id,
+            app_id=self.config.app_id,
             mandatory=mandatory,
             immediate=immediate,
             persist=persist,
@@ -455,10 +418,10 @@ class RabbitBroker(
         """
         cmd = RabbitPublishCommand(
             message,
-            routing_key=routing_key or RabbitQueue.validate(queue).routing,
+            routing_key=routing_key or RabbitQueue.validate(queue).routing(),
             exchange=RabbitExchange.validate(exchange),
             correlation_id=correlation_id or gen_cor_id(),
-            app_id=self.app_id,
+            app_id=self.config.app_id,
             mandatory=mandatory,
             immediate=immediate,
             persist=persist,
@@ -478,25 +441,13 @@ class RabbitBroker(
         msg: RabbitMessage = await super()._basic_request(cmd, producer=self._producer)
         return msg
 
-    async def declare_queue(
-        self,
-        queue: Annotated[
-            "RabbitQueue",
-            Doc("Queue object to create."),
-        ],
-    ) -> "RobustQueue":
+    async def declare_queue(self, queue: "RabbitQueue") -> "RobustQueue":
         """Declares queue object in **RabbitMQ**."""
-        return await self.declarer.declare_queue(queue)
+        return await self.config.declarer.declare_queue(queue)
 
-    async def declare_exchange(
-        self,
-        exchange: Annotated[
-            "RabbitExchange",
-            Doc("Exchange object to create."),
-        ],
-    ) -> "RobustExchange":
+    async def declare_exchange(self, exchange: "RabbitExchange") -> "RobustExchange":
         """Declares exchange object in **RabbitMQ**."""
-        return await self.declarer.declare_exchange(exchange)
+        return await self.config.declarer.declare_exchange(exchange)
 
     @override
     async def ping(self, timeout: Optional[float]) -> bool:

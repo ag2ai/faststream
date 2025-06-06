@@ -30,6 +30,30 @@ if TYPE_CHECKING:
 
 
 class NatsFastProducer(ProducerProto):
+    def connect(self, connection: "Client") -> None: ...
+
+    def disconnect(self) -> None: ...
+
+    @override
+    async def publish(  # type: ignore[override]
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> None: ...
+
+    @override
+    async def request(  # type: ignore[override]
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> "Msg": ...
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> None: ...
+
+
+class NatsFastProducerImpl(NatsFastProducer):
     """A class to represent a NATS producer."""
 
     _decoder: "AsyncCallable"
@@ -99,7 +123,7 @@ class NatsFastProducer(ProducerProto):
         raise FeatureNotSupportedException(msg)
 
 
-class NatsJSFastProducer(ProducerProto):
+class NatsJSFastProducer(NatsFastProducer):
     """A class to represent a NATS JetStream producer."""
 
     _decoder: "AsyncCallable"
@@ -111,15 +135,13 @@ class NatsJSFastProducer(ProducerProto):
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:
-        default = NatsParser(
-            pattern="", is_ack_disabled=True
-        )  # core parser to serializer responses
+        default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
         self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 
-    def connect(self, connection: "Client") -> None:
+    def connect(self, connection: "JetStreamContext") -> None:
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -194,3 +216,32 @@ class NatsJSFastProducer(ProducerProto):
     ) -> None:
         msg = "NATS doesn't support publishing in batches."
         raise FeatureNotSupportedException(msg)
+
+
+class FakeNatsFastProducer(ProducerProto):
+    def connect(self, connection: "Client") -> None:
+        raise NotImplementedError
+
+    def disconnect(self) -> None:
+        raise NotImplementedError
+
+    @override
+    async def publish(  # type: ignore[override]
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> None:
+        raise NotImplementedError
+
+    @override
+    async def request(  # type: ignore[override]
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> "Msg":
+        raise NotImplementedError
+
+    @override
+    async def publish_batch(
+        self,
+        cmd: "NatsPublishCommand",
+    ) -> None:
+        raise NotImplementedError

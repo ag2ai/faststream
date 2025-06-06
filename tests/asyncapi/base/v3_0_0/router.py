@@ -1,6 +1,6 @@
 from dirty_equals import IsStr
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.broker.router import (
     ArgsContainer,
     BrokerRouter,

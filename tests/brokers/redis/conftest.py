@@ -7,9 +7,9 @@ from faststream.redis import RedisRouter
 
 @dataclass
 class Settings:
-    url = "redis://localhost:6379"  # pragma: allowlist secret
-    host = "localhost"
-    port = 6379
+    url: str = "redis://localhost:6379"  # pragma: allowlist secret
+    host: str = "localhost"
+    port: int = 6379
 
 
 @pytest.fixture(scope="session")

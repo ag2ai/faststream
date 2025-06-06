@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from typing_extensions import NotRequired, TypedDict
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.state.logger import LoggerState
+    from faststream._internal.logger import LoggerState
 
     from .admin import AdminService
 
@@ -169,9 +169,10 @@ class AsyncConfluentConsumer:
     def __init__(
         self,
         *topics: str,
-        logger: "LoggerState",
         config: config_module.ConfluentFastConfig,
+        logger: "LoggerState",
         admin_service: "AdminService",
+        # kwargs options
         partitions: Sequence["TopicPartition"],
         bootstrap_servers: Union[str, list[str]] = "localhost",
         # consumer options

@@ -4,9 +4,8 @@ try:
     from aiokafka import TopicPartition
 
     from .annotations import KafkaMessage
-    from .broker import KafkaBroker
+    from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
     from .response import KafkaResponse
-    from .router import KafkaPublisher, KafkaRoute, KafkaRouter
     from .testing import TestKafkaBroker
 
 except ImportError as e:

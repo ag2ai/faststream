@@ -13,7 +13,7 @@ from faststream import (
     Depends as FSDepends,
     Response,
 )
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream._internal.broker.router import BrokerRouter
 from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
@@ -104,7 +104,6 @@ class FastAPITestcase(BaseTestcaseConfig):
             finally:
                 event.set()
 
-        router._setup()
         async with router.broker:
             await router.broker.start()
             await asyncio.wait(
@@ -122,7 +121,7 @@ class FastAPITestcase(BaseTestcaseConfig):
 
     async def test_context_annotated(
         self, mock: Mock, queue: str, event: asyncio.Event
-    ):
+    ) -> None:
         event = asyncio.Event()
 
         router = self.router_class()
@@ -139,7 +138,6 @@ class FastAPITestcase(BaseTestcaseConfig):
             finally:
                 event.set()
 
-        router._setup()
         async with router.broker:
             await router.broker.start()
             await asyncio.wait(
@@ -155,13 +153,13 @@ class FastAPITestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.assert_called_with(True)
 
-    async def test_faststream_context(self, queue: str) -> None:
+    def test_faststream_context(self, queue: str) -> None:
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def hello(msg=FSContext()):
+        async def hello(msg: Any = FSContext()) -> None:
             pass
 
         app = FastAPI()
@@ -170,13 +168,13 @@ class FastAPITestcase(BaseTestcaseConfig):
         with pytest.raises(SetupError), TestClient(app):
             ...
 
-    async def test_faststream_context_annotated(self, queue: str) -> None:
+    def test_faststream_context_annotated(self, queue: str) -> None:
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def hello(msg: Annotated[Any, FSContext()]):
+        async def hello(msg: Annotated[Any, FSContext()]) -> None:
             pass
 
         app = FastAPI()
@@ -197,7 +195,6 @@ class FastAPITestcase(BaseTestcaseConfig):
             if len(data) == 2:
                 event.set()
 
-        router._setup()
         async with router.broker:
             await router.broker.start()
             await asyncio.wait(

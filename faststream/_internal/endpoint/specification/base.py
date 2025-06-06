@@ -24,7 +24,7 @@ class SpecificationEndpoint(EndpointWrapper[MsgType], Generic[MsgType, T]):
     ) -> None:
         self.title_ = config.title_
         self.description_ = config.description_
-        self.include_in_schema = config.include_in_schema
+        self.include_in_schema_ = config.include_in_schema
 
         # Call next base class parent init
         super().__init__(config, **kwargs)

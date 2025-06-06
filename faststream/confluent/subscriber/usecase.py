@@ -1,9 +1,9 @@
+import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
 )
 
@@ -20,11 +20,8 @@ from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import TopicPartition
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream._internal.state import BrokerState
-    from faststream._internal.types import CustomCallable
-    from faststream.confluent.configs import KafkaSubscriberConfig
+    from faststream.confluent.configs import KafkaBrokerConfig, KafkaSubscriberConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.message import StreamMessage
 
@@ -32,14 +29,12 @@ if TYPE_CHECKING:
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
-    topics: Sequence[str]
+    _outer_config: "KafkaBrokerConfig"
+
     group_id: Optional[str]
 
-    builder: Optional[Callable[..., "AsyncConfluentConsumer"]]
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
-
-    client_id: Optional[str]
 
     def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
         super().__init__(config)
@@ -47,46 +42,31 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.__connection_data = config.connection_data
 
         self.group_id = config.group_id
-        self.topics = config.topics
-        self.partitions = config.partitions
+
+        self._topics = config.topics
+        self._partitions = config.partitions
 
         self.consumer = None
         self.polling_interval = config.polling_interval
 
-        # Setup it later
-        self.client_id = ""
-        self.builder = None
+    @property
+    def client_id(self) -> Optional[str]:
+        return self._outer_config.client_id
 
-    @override
-    def _setup(  # type: ignore[override]
-        self,
-        *,
-        client_id: Optional[str],
-        builder: Callable[..., "AsyncConfluentConsumer"],
-        # basic args,
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        state: "BrokerState",
-    ) -> None:
-        self.client_id = client_id
-        self.builder = builder
+    @property
+    def topics(self) -> list[str]:
+        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
 
-        super()._setup(
-            extra_context=extra_context,
-            broker_parser=broker_parser,
-            broker_decoder=broker_decoder,
-            state=state,
-        )
+    @property
+    def partitions(self) -> list[TopicPartition]:
+        return [p.add_prefix(self._outer_config.prefix) for p in self._partitions]
 
     @override
     async def start(self) -> None:
         """Start the consumer."""
-        assert self.builder, "You should setup subscriber at first."  # nosec B101
+        await super().start()
 
-        self.consumer = consumer = self.builder(
+        self.consumer = consumer = self._outer_config.builder(
             *self.topics,
             partitions=self.partitions,
             group_id=self.group_id,
@@ -96,7 +76,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.parser._setup(consumer)
         await consumer.start()
 
-        await super().start()
+        self._post_start()
 
         if self.calls:
             self.add_task(self._consume())
@@ -121,7 +101,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         return await process_msg(
             msg=raw_message,  # type: ignore[arg-type]
@@ -146,7 +126,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             if raw_message is None:
                 continue
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             yield await process_msg(
                 msg=raw_message,  # type: ignore[arg-type]
@@ -163,7 +143,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     ) -> Sequence["BasePublisherProto"]:
         return (
             KafkaFakePublisher(
-                self._state.get().producer,
+                self._outer_config.producer,
                 topic=message.reply_to,
             ),
         )
@@ -182,9 +162,17 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         while self.running:
             try:
                 msg = await self.get_msg()
-            except KafkaException:  # pragma: no cover  # noqa: PERF203
+
+            except KafkaException as e:  # pragma: no cover  # noqa: PERF203
+                self._log(
+                    logging.ERROR,
+                    message="Message fetch error",
+                    exc_info=e,
+                )
+
                 if connected:
                     connected = False
+
                 await anyio.sleep(5)
 
             else:
@@ -212,26 +200,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "message_id": getattr(message, "message_id", ""),
         }
 
-    def add_prefix(self, prefix: str) -> None:
-        self.topics = tuple(f"{prefix}{t}" for t in self.topics)
-
-        self.partitions = [
-            TopicPartition(
-                topic=f"{prefix}{p.topic}",
-                partition=p.partition,
-                offset=p.offset,
-                metadata=p.metadata,
-                leader_epoch=p.leader_epoch,
-            )
-            for p in self.partitions
-        ]
-
 
 class DefaultSubscriber(LogicSubscriber[Message]):
     def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.default_decoder = self.parser.decode_message
-        config.default_parser = self.parser.parse_message
+        config.decoder = self.parser.decode_message
+        config.parser = self.parser.parse_message
         super().__init__(config)
 
     async def get_msg(self) -> Optional["Message"]:
@@ -273,8 +247,8 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         self.max_records = max_records
 
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.default_decoder = self.parser.decode_message_batch
-        config.default_parser = self.parser.parse_message_batch
+        config.decoder = self.parser.decode_message_batch
+        config.parser = self.parser.parse_message_batch
         super().__init__(config)
 
     async def get_msg(self) -> Optional[tuple["Message", ...]]:

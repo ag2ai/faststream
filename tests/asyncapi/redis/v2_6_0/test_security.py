@@ -15,7 +15,8 @@ def test_base_security_schema() -> None:
     broker = RedisBroker("rediss://localhost:6379/", security=security)
 
     assert (
-        broker.url == "rediss://localhost:6379/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["rediss://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
     schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
@@ -49,7 +50,8 @@ def test_plaintext_security_schema() -> None:
     broker = RedisBroker("redis://localhost:6379/", security=security)
 
     assert (
-        broker.url == "redis://localhost:6379/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["redis://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
     schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
@@ -84,7 +86,8 @@ def test_plaintext_security_schema_without_ssl() -> None:
     broker = RedisBroker("redis://localhost:6379/", security=security)
 
     assert (
-        broker.url == "redis://localhost:6379/"  # pragma: allowlist secret
+        broker.specification.url
+        == ["redis://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
     schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()

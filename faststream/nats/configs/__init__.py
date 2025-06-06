@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from .broker import NatsBrokerConfig
 from .specification import (
     NatsPublisherSpecificationConfig,
     NatsSubscriberSpecificationConfig,
@@ -8,7 +9,9 @@ from .usecase import NatsPublisherConfig, NatsSubscriberConfig
 
 
 @dataclass(kw_only=True)
-class NatsSubscriberConfigFacade(NatsSubscriberSpecificationConfig, NatsSubscriberConfig):
+class NatsSubscriberConfigFacade(
+    NatsSubscriberSpecificationConfig, NatsSubscriberConfig
+):
     pass
 
 
@@ -18,6 +21,7 @@ class NatsPublisherConfigFacade(NatsPublisherSpecificationConfig, NatsPublisherC
 
 
 __all__ = (
+    "NatsBrokerConfig",
     "NatsPublisherConfig",
     "NatsPublisherConfigFacade",
     "NatsPublisherSpecificationConfig",

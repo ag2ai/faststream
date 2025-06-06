@@ -33,9 +33,9 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         stream: "JStream",
         queue: str,
     ) -> None:
-        parser_ = JsParser(pattern=config.subject)
-        config.default_decoder = parser_.decode_message
-        config.default_parser = parser_.parse_message
+        parser = JsParser(pattern=config.subject)
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(config)
 
         self.queue = queue
@@ -76,7 +76,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             if inbox_prefix := self.extra_options.get("inbox_prefix"):
                 extra_options["inbox_prefix"] = inbox_prefix
 
-            self._fetch_sub = await self._connection_state.js.pull_subscribe(
+            self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.clear_subject,
                 config=self.config,
                 **extra_options,
@@ -92,7 +92,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         except (TimeoutError, ConnectionClosedError):
             return None
 
-        context = self._state.get().di_state.context
+        context = self._outer_config.fd_config.context
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
@@ -120,7 +120,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             if inbox_prefix := self.extra_options.get("inbox_prefix"):
                 extra_options["inbox_prefix"] = inbox_prefix
 
-            self._fetch_sub = await self._connection_state.js.pull_subscribe(
+            self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.clear_subject,
                 config=self.config,
                 **extra_options,
@@ -134,7 +134,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 )
             )[0]
 
-            context = self._state.get().di_state.context
+            context = self._outer_config.fd_config.context
 
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,

@@ -6,39 +6,21 @@ from typing import (
     Optional,
 )
 
-from typing_extensions import override
-
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import compile_nats_wildcard
 from faststream.nats.subscriber.adapters import (
     Unsubscriptable,
 )
-from faststream.nats.subscriber.state import (
-    ConnectedSubscriberState,
-    EmptySubscriberState,
-    SubscriberState,
-)
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import (
-        AnyDict,
-    )
+    from nats.aio.client import Client
+    from nats.js import JetStreamContext
+
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream._internal.producer import ProducerProto
-    from faststream._internal.state import (
-        BrokerState as BasicState,
-        Pointer,
-    )
-    from faststream._internal.types import (
-        CustomCallable,
-    )
     from faststream.message import StreamMessage
-    from faststream.nats.broker.state import BrokerState
-    from faststream.nats.configs import NatsSubscriberConfig
-    from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
+    from faststream.nats.configs import NatsBrokerConfig, NatsSubscriberConfig
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
@@ -46,7 +28,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
     subscription: Optional[Unsubscriptable]
     _fetch_sub: Optional[Unsubscriptable]
-    producer: Optional["ProducerProto"]
+    _outer_config: "NatsBrokerConfig"
 
     def __init__(
         self,
@@ -55,44 +37,22 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     ) -> None:
         super().__init__(config)
 
-        self.subject = config.subject
-        self.config = config.config
+        self._subject = config.subject
+        self.config = config.sub_config
 
         self.extra_options = config.extra_options or {}
 
         self._fetch_sub = None
         self.subscription = None
-        self.producer = None
 
-        self._connection_state: SubscriberState = EmptySubscriberState()
+    @property
+    def subject(self) -> str:
+        return f"{self._outer_config.prefix}{self._subject}"
 
-    @override
-    def _setup(  # type: ignore[override]
-        self,
-        *,
-        connection_state: "BrokerState",
-        os_declarer: "OSBucketDeclarer",
-        kv_declarer: "KVBucketDeclarer",
-        # basic args
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        state: "Pointer[BasicState]",
-    ) -> None:
-        self._connection_state = ConnectedSubscriberState(
-            parent_state=connection_state,
-            os_declarer=os_declarer,
-            kv_declarer=kv_declarer,
-        )
-
-        super()._setup(
-            extra_context=extra_context,
-            broker_parser=broker_parser,
-            broker_decoder=broker_decoder,
-            state=state,
-        )
+    @property
+    def filter_subjects(self) -> list[str]:
+        prefix = self._outer_config.prefix
+        return [f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())]
 
     @property
     def clear_subject(self) -> str:
@@ -100,12 +60,22 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         _, path = compile_nats_wildcard(self.subject)
         return path
 
+    @property
+    def connection(self) -> "Client":
+        return self._outer_config.connection_state.connection
+
+    @property
+    def jetstream(self) -> "JetStreamContext":
+        return self._outer_config.connection_state.stream
+
     async def start(self) -> None:
         """Create NATS subscription and start consume tasks."""
         await super().start()
 
         if self.calls:
             await self._create_subscription()
+
+        self._post_start()
 
     async def close(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -140,18 +110,9 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
             "message_id": getattr(message, "message_id", ""),
         }
 
-    def add_prefix(self, prefix: str) -> None:
-        """Include Subscriber in router."""
-        if self.subject:
-            self.subject = f"{prefix}{self.subject}"
-        else:
-            self.config.filter_subjects = [
-                f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())
-            ]
-
     @property
     def _resolved_subject_string(self) -> str:
-        return self.subject or ", ".join(self.config.filter_subjects or ())
+        return self.subject or ", ".join(self.filter_subjects or ())
 
 
 class DefaultSubscriber(LogicSubscriber[MsgType]):
@@ -164,7 +125,7 @@ class DefaultSubscriber(LogicSubscriber[MsgType]):
         """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
         return (
             NatsFakePublisher(
-                producer=self._state.get().producer,
+                producer=self._outer_config.producer,
                 subject=message.reply_to,
             ),
         )

@@ -2,13 +2,12 @@ import pytest
 
 from faststream import AckPolicy
 from faststream.confluent import KafkaBroker, TopicPartition
-from faststream.confluent.router import KafkaRouter
+from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.subscriber.specified import (
     SpecificationConcurrentDefaultSubscriber,
 )
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
-from faststream.redis import RedisRouter
 
 
 def test_max_workers_with_manual(queue: str) -> None:
@@ -94,7 +93,7 @@ def test_use_only_confluent_router() -> None:
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [KafkaRouter(), NatsRouter(), RedisRouter()]
+    routers = [KafkaRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)

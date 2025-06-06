@@ -4,7 +4,7 @@ from multiprocessing.context import SpawnProcess
 from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.cli.supervisors.utils import get_subprocess, set_exit
-from faststream._internal.log import logger
+from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import DecoratedCallable

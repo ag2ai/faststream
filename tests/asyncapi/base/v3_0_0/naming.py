@@ -3,7 +3,7 @@ from typing import Any
 from dirty_equals import Contains, IsStr
 from pydantic import create_model
 
-from faststream._internal.broker.broker import BrokerUsecase
+from faststream._internal.broker import BrokerUsecase
 from faststream.specification.asyncapi import AsyncAPI
 
 
