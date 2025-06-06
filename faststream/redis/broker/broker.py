@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import anyio
 from anyio import move_on_after
-from redis.asyncio.client import Pipeline, Redis
+from redis.asyncio.client import Redis, Pipeline
 from redis.asyncio.connection import (
     Connection,
     ConnectionPool,
@@ -525,6 +525,13 @@ class RedisBroker(
                 "**correlation_id** is a useful option to trace messages."
             ),
         ] = None,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
     ) -> None:
         """Publish multiple messages to Redis List by one request."""
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
@@ -540,6 +547,7 @@ class RedisBroker(
             *msgs,
             list=list,
             correlation_id=correlation_id,
+            pipeline=pipeline,
         )
 
     @override

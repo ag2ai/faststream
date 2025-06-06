@@ -532,6 +532,13 @@ class ListBatchPublisher(ListPublisher):
             Iterable["PublisherMiddleware"],
             Doc("Extra middlewares to wrap publishing process."),
         ] = (),
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
         **kwargs: Any,  # option to suppress maxlen
     ) -> None:
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
@@ -555,6 +562,7 @@ class ListBatchPublisher(ListPublisher):
             list=list_sub.name,
             correlation_id=correlation_id,
             headers=headers or self.headers,
+            pipeline=pipeline,
         )
 
 

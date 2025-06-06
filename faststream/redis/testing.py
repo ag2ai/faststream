@@ -203,6 +203,7 @@ class FakeProducer(RedisFastProducer):
         list: str,
         headers: Optional["AnyDict"] = None,
         correlation_id: Optional[str] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> None:
         data_to_send = [
             build_message(
