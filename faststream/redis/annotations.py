@@ -33,9 +33,9 @@ RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
 
 
-async def get_pipeline(redis: Redis) -> AsyncIterator[RedisPipeline]:
+async def get_pipe(redis: Redis) -> AsyncIterator[RedisPipeline]:
     async with redis.pipeline() as pipe:
         yield pipe
 
 
-Pipeline = Annotated[RedisPipeline, Depends(get_pipeline)]
+Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
