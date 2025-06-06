@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import anyio
 from anyio import move_on_after
-from redis.asyncio.client import Redis, Pipeline
+from redis.asyncio.client import Pipeline, Redis
 from redis.asyncio.connection import (
     Connection,
     ConnectionPool,

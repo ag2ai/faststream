@@ -6,7 +6,6 @@ import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
-from faststream.exceptions import SetupError
 from faststream.redis import ListSub, RedisBroker, RedisResponse, StreamSub
 from faststream.redis.annotations import Pipeline
 from tests.brokers.base.publish import BrokerPublishTestcase
