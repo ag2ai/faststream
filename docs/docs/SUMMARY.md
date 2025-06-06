@@ -1023,7 +1023,7 @@ search:
                 - [TestApp](api/faststream/redis/TestApp.md)
                 - [TestRedisBroker](api/faststream/redis/TestRedisBroker.md)
                 - annotations
-                    - [get_pipeline](api/faststream/redis/annotations/get_pipeline.md)
+                    - [get_pipe](api/faststream/redis/annotations/get_pipe.md)
                 - broker
                     - broker
                         - [RedisBroker](api/faststream/redis/broker/broker/RedisBroker.md)

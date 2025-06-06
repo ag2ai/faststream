@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.redis.annotations.get_pipeline
+::: faststream.redis.annotations.get_pipe
