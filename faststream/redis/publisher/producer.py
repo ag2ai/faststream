@@ -13,7 +13,7 @@ from faststream.utils.functions import timeout_scope
 from faststream.utils.nuid import NUID
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import PubSub, Redis
+    from redis.asyncio.client import Pipeline, PubSub, Redis
 
     from faststream.broker.types import (
         AsyncCallable,
@@ -62,9 +62,16 @@ class RedisFastProducer(ProducerProto):
         rpc: bool = False,
         rpc_timeout: Optional[float] = 30.0,
         raise_timeout: bool = False,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> Optional[Any]:
         if not any((channel, list, stream)):
             raise SetupError(INCORRECT_SETUP_MSG)
+
+        if pipeline is not None and rpc is True:
+            raise RuntimeError(
+                "You cannot use both rpc and pipeline arguments at the same time: "
+                "select only one delivery mechanism."
+            )
 
         psub: Optional[PubSub] = None
         if rpc:
@@ -83,12 +90,13 @@ class RedisFastProducer(ProducerProto):
             correlation_id=correlation_id,
         )
 
+        conn = pipeline or self._connection
         if channel is not None:
-            await self._connection.publish(channel, msg)
+            await conn.publish(channel, msg)
         elif list is not None:
-            await self._connection.rpush(list, msg)
+            await conn.rpush(list, msg)
         elif stream is not None:
-            await self._connection.xadd(
+            await conn.xadd(
                 name=stream,
                 fields={DATA_KEY: msg},
                 maxlen=maxlen,
@@ -193,6 +201,7 @@ class RedisFastProducer(ProducerProto):
         list: str,
         correlation_id: str,
         headers: Optional["AnyDict"] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> None:
         batch = (
             RawMessage.encode(
@@ -203,4 +212,5 @@ class RedisFastProducer(ProducerProto):
             )
             for msg in msgs
         )
-        await self._connection.rpush(list, *batch)
+        conn = pipeline or self._connection
+        await conn.rpush(list, *batch)

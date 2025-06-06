@@ -1,11 +1,13 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+import itertools
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
 from faststream.redis import ListSub, RedisBroker, RedisResponse, StreamSub
+from faststream.redis.annotations import Pipeline
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
@@ -205,3 +207,104 @@ class TestPublish(BrokerPublishTestcase):
             )
 
             assert response == "Hi!", response
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("type_queue", ["channel", "list", "stream"])
+    async def test_pipeline(self, type_queue: str, queue: str, mock: MagicMock) -> None:
+        event = asyncio.Event()
+        pub_broker = self.get_broker(apply_types=True)
+        publisher = pub_broker.publisher(**{type_queue: queue + "resp"})
+        total_calls = 0
+
+        @pub_broker.subscriber(**{type_queue: queue})
+        async def m(msg: str, pipe: Pipeline) -> None:
+            nonlocal total_calls
+
+            cnt = itertools.count(0)
+            for _ in range(5):
+                await publisher.publish(f"hello {cnt.__next__()}", pipeline=pipe)
+                await pub_broker.publish(
+                    f"hello {cnt.__next__()}",
+                    **{type_queue: queue + "resp"},
+                    pipeline=pipe,
+                )
+
+            res = await pipe.execute()
+            total_calls = len(res)
+
+        @pub_broker.subscriber(**{type_queue: queue + "resp"})
+        async def resp(msg: str) -> None:
+            mock(msg)
+            if msg == "hello 9":
+                event.set()
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", **{type_queue: queue})),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert event.is_set()
+        assert total_calls == mock.call_count == 10
+        mock.assert_has_calls([call(f"hello {i}") for i in range(10)])
+
+    @pytest.mark.asyncio
+    async def test_pipebatch(self, queue: str, mock: MagicMock) -> None:
+        event = asyncio.Event()
+        pub_broker = self.get_broker(apply_types=True)
+        total_calls = 0
+
+        @pub_broker.subscriber(channel=queue)
+        async def m(msg: str, pipe: Pipeline) -> None:
+            nonlocal total_calls
+
+            cnt = itertools.count(0)
+            for _ in range(5):
+                msgs = (f"hello {cnt.__next__()}" for _ in "12")
+                await pub_broker.publish_batch(
+                    *msgs, list=queue + "resp", pipeline=pipe
+                )
+
+            res = await pipe.execute()
+            total_calls = len(res)
+
+        @pub_broker.subscriber(list=ListSub(queue + "resp", batch=True))
+        async def resp(msg: list[str]) -> None:
+            mock(msg)
+            if msg[-1] == "hello 9":
+                event.set()
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", channel=queue)),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert event.is_set()
+        assert total_calls == 5
+        assert mock.call_count == 1
+        mock.assert_called_once_with([f"hello {i}" for i in range(10)])
+
+    @pytest.mark.asyncio
+    async def test_pipeline_both_delivery(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.connect()
+
+            async with br._connection.pipeline() as pipe:
+                pubs = (
+                    br.publish("", queue, pipeline=pipe, rpc=True),
+                    br.publisher(queue).publish("", pipeline=pipe, rpc=True),
+                )
+                for pub in pubs:
+                    with pytest.raises(
+                        (RuntimeError, TimeoutError), match=r"^You cannot use both"
+                    ):
+                        await asyncio.wait_for(pub, timeout=0.15)
