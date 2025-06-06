@@ -264,7 +264,7 @@ class TestPublish(BrokerPublishTestcase):
             nonlocal total_calls
 
             cnt = itertools.count(0)
-            for i in range(5):
+            for _ in range(5):
                 msgs = (f"hello {cnt.__next__()}" for _ in "12")
                 await pub_broker.publish_batch(
                     *msgs, list=queue + "resp", pipeline=pipe
