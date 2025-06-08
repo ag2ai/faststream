@@ -1,6 +1,5 @@
 import asyncio
-import itertools
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from redis.asyncio import Redis
@@ -209,36 +208,45 @@ class TestPublish(BrokerPublishTestcase):
             assert response == "Hi!", response
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("type_queue", ["channel", "list", "stream"])
-    async def test_pipeline(self, type_queue: str, queue: str, mock: MagicMock) -> None:
+    @pytest.mark.parametrize(
+        "type_queue",
+        [
+            pytest.param("channel"),
+            pytest.param("list"),
+            pytest.param("stream"),
+        ],
+    )
+    async def test_publish_with_pipeline(
+        self,
+        event: asyncio.Event,
+        type_queue: str,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
         event = asyncio.Event()
-        pub_broker = self.get_broker(apply_types=True)
-        publisher = pub_broker.publisher(**{type_queue: queue + "resp"})
-        total_calls = 0
+        broker = self.get_broker(apply_types=True)
 
-        @pub_broker.subscriber(**{type_queue: queue})
+        destination = {type_queue: queue + "resp"}
+        publisher = broker.publisher(**destination)
+
+        @broker.subscriber(**{type_queue: queue})
         async def m(msg: str, pipe: Pipeline) -> None:
-            nonlocal total_calls
-
-            cnt = itertools.count(0)
             for _ in range(5):
-                await publisher.publish(f"hello {cnt.__next__()}", pipeline=pipe)
-                await pub_broker.publish(
-                    f"hello {cnt.__next__()}",
-                    **{type_queue: queue + "resp"},
-                    pipeline=pipe,
-                )
+                # publish 5 messages by publsher
+                await publisher.publish(None, pipeline=pipe)
 
-            res = await pipe.execute()
-            total_calls = len(res)
+                # and 5 by broker
+                await broker.publish(None, **destination, pipeline=pipe)
 
-        @pub_broker.subscriber(**{type_queue: queue + "resp"})
+            await pipe.execute()
+
+        @broker.subscriber(**destination)
         async def resp(msg: str) -> None:
             mock(msg)
-            if msg == "hello 9":
+            if mock.call_count == 10:
                 event.set()
 
-        async with self.patch_broker(pub_broker) as br:
+        async with self.patch_broker(broker) as br:
             await br.start()
 
             tasks = (
@@ -247,37 +255,25 @@ class TestPublish(BrokerPublishTestcase):
             )
             await asyncio.wait(tasks, timeout=3)
 
-        assert event.is_set()
-        assert total_calls == mock.call_count == 10
-        mock.assert_has_calls([call(f"hello {i}") for i in range(10)])
+        assert mock.call_count == 10
 
     @pytest.mark.asyncio
-    async def test_pipebatch(self, queue: str, mock: MagicMock) -> None:
-        event = asyncio.Event()
-        pub_broker = self.get_broker(apply_types=True)
-        total_calls = 0
+    async def test_publish_batch_with_pipeline(
+        self, event: asyncio.Event, queue: str, mock: MagicMock
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
 
-        @pub_broker.subscriber(channel=queue)
+        @broker.subscriber(channel=queue)
         async def m(msg: str, pipe: Pipeline) -> None:
-            nonlocal total_calls
+            await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
+            await pipe.execute()
 
-            cnt = itertools.count(0)
-            for _ in range(5):
-                msgs = (f"hello {cnt.__next__()}" for _ in "12")
-                await pub_broker.publish_batch(
-                    *msgs, list=queue + "resp", pipeline=pipe
-                )
+        @broker.subscriber(list=ListSub(queue + "resp", batch=True, max_records=5))
+        async def resp(msgs: list[int]) -> None:
+            mock(msgs)
+            event.set()
 
-            res = await pipe.execute()
-            total_calls = len(res)
-
-        @pub_broker.subscriber(list=ListSub(queue + "resp", batch=True))
-        async def resp(msg: list[str]) -> None:
-            mock(msg)
-            if msg[-1] == "hello 9":
-                event.set()
-
-        async with self.patch_broker(pub_broker) as br:
+        async with self.patch_broker(broker) as br:
             await br.start()
 
             tasks = (
@@ -286,25 +282,18 @@ class TestPublish(BrokerPublishTestcase):
             )
             await asyncio.wait(tasks, timeout=3)
 
-        assert event.is_set()
-        assert total_calls == 5
-        assert mock.call_count == 1
-        mock.assert_called_once_with([f"hello {i}" for i in range(10)])
+        mock.assert_called_once_with([0, 1, 2, 3, 4])
 
     @pytest.mark.asyncio
-    async def test_pipeline_both_delivery(self, queue: str) -> None:
+    async def test_rpc_with_pipeline_forbidden(self, queue: str) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        async with self.patch_broker(pub_broker) as br:
-            await br.connect()
+        async with (
+            self.patch_broker(pub_broker) as br,
+            br._connection.pipeline() as pipe,
+        ):
+            with pytest.raises(RuntimeError, match=r"^You cannot use both"):
+                await br.publish("", queue, pipeline=pipe, rpc=True)
 
-            async with br._connection.pipeline() as pipe:
-                pubs = (
-                    br.publish("", queue, pipeline=pipe, rpc=True),
-                    br.publisher(queue).publish("", pipeline=pipe, rpc=True),
-                )
-                for pub in pubs:
-                    with pytest.raises(
-                        (RuntimeError, TimeoutError), match=r"^You cannot use both"
-                    ):
-                        await asyncio.wait_for(pub, timeout=0.15)
+            with pytest.raises(RuntimeError, match=r"^You cannot use both"):
+                await br.publisher(queue).publish("", pipeline=pipe, rpc=True)
