@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from typer.testing import CliRunner
+from typer.testing import CliRunner, ClickCliRunner
 
 from faststream.__about__ import __version__
 from faststream.utils import context as global_context
@@ -32,6 +32,11 @@ def event():
 @pytest.fixture(scope="session")
 def runner() -> CliRunner:
     return CliRunner()
+
+
+@pytest.fixture(scope="session")
+def click_runner() -> ClickCliRunner:
+    return ClickCliRunner()
 
 
 @pytest.fixture

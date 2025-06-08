@@ -147,6 +147,7 @@ testing = [
     "httpx==0.28.1",
     "PyYAML==6.0.2",
     "email-validator==2.2.0",
+    "uvicorn==0.34.3",
 ]
 
 dev = [

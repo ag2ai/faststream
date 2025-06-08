@@ -1,8 +1,10 @@
 import logging
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 import pytest
-from typer.testing import CliRunner
+from typer.testing import CliRunner, ClickCliRunner
+from uvicorn import Server
+from uvicorn import main as uvicorn_app
 
 from faststream._internal.application import Application
 from faststream.app import FastStream
@@ -148,6 +150,32 @@ def test_run_as_asgi_mp_with_log_level(
             workers=3,
         )
         asgi_runner().run.assert_called_once()
+
+
+@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
+def test_run_uvicorn(
+    click_runner: ClickCliRunner,
+    app: Application,
+):
+    uvicorn_import_from_string = "uvicorn.importer.import_from_string"
+    with patch(
+        uvicorn_import_from_string,
+        return_value=app,
+    ), patch.object(
+        Server, "should_exit", new_callable=PropertyMock, create=True
+    ) as should_exit:
+        should_exit.return_value = True
+        result = click_runner.invoke(
+            uvicorn_app,
+            [
+                "faststream:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+            ],
+        )
+        assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
