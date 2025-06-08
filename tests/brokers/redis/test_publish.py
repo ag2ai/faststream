@@ -232,7 +232,7 @@ class TestPublish(BrokerPublishTestcase):
         @broker.subscriber(**{type_queue: queue})
         async def m(msg: str, pipe: Pipeline) -> None:
             for _ in range(5):
-                # publish 5 messages by publsher
+                # publish 5 messages by publisher
                 await publisher.publish(None, pipeline=pipe)
 
                 # and 5 by broker
@@ -288,12 +288,10 @@ class TestPublish(BrokerPublishTestcase):
     async def test_rpc_with_pipeline_forbidden(self, queue: str) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        async with (
-            self.patch_broker(pub_broker) as br,
-            br._connection.pipeline() as pipe,
-        ):
-            with pytest.raises(RuntimeError, match=r"^You cannot use both"):
-                await br.publish("", queue, pipeline=pipe, rpc=True)
+        async with self.patch_broker(pub_broker) as br:  # noqa: SIM117
+            async with br._connection.pipeline() as pipe:
+                with pytest.raises(RuntimeError, match=r"^You cannot use both"):
+                    await br.publish("", queue, pipeline=pipe, rpc=True)
 
-            with pytest.raises(RuntimeError, match=r"^You cannot use both"):
-                await br.publisher(queue).publish("", pipeline=pipe, rpc=True)
+                with pytest.raises(RuntimeError, match=r"^You cannot use both"):
+                    await br.publisher(queue).publish("", pipeline=pipe, rpc=True)
