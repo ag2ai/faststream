@@ -137,13 +137,13 @@ When running `FastStream` with multiple worker processes, you need to configure 
     ```python linenums="1" hl_lines="8 10"
     from prometheus_client import CollectorRegistry, multiprocess
     import os
-    
+
     multiprocess_dir = os.getenv("PROMETHEUS_MULTIPROC_DIR")
-    
+
     registry = CollectorRegistry()
     if multiprocess_dir:
         multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)
-    
+
     broker = KafkaBroker(
         "...",
         middlewares=[
