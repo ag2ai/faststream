@@ -45,7 +45,7 @@ class ProducerUnset(ProducerProto):
         raise IncorrectState(self.msg)
 
     @_parser.setter
-    def _set_parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    def _parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
     @property
@@ -53,7 +53,7 @@ class ProducerUnset(ProducerProto):
         raise IncorrectState(self.msg)
 
     @_decoder.setter
-    def _set_decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    def _decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
     async def publish(self, cmd: "PublishCommand") -> Optional[Any]:

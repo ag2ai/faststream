@@ -2,11 +2,15 @@ import warnings
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
-from faststream.rabbit.configs import (
-    RabbitSubscriberConfigFacade,
+
+from .config import (
+    RabbitSubscriberConfig,
+    RabbitSubscriberSpecificationConfig,
 )
-from faststream.rabbit.subscriber.specified import SpecificationSubscriber
+from .specification import RabbitSubscriberSpecification
+from .usecase import RabbitSubscriber
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
@@ -35,27 +39,40 @@ def create_subscriber(
     title_: Optional[str],
     description_: Optional[str],
     include_in_schema: bool,
-) -> SpecificationSubscriber:
+) -> RabbitSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
 
-    config = RabbitSubscriberConfigFacade(
+    subscriber_config = RabbitSubscriberConfig(
         no_reply=no_reply,
         consume_args=consume_args,
         channel=channel,
-        _ack_policy=ack_policy,
-        _no_ack=no_ack,
-        # rmq
         queue=queue,
         exchange=exchange,
-        # specification
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
+        _ack_policy=ack_policy,
+        _no_ack=no_ack,
         # broker
-        config=config,
+        _outer_config=config,
     )
 
-    return SpecificationSubscriber(config)
+    calls = CallsCollection()
+
+    specification = RabbitSubscriberSpecification(
+        _outer_config=config,
+        specification_config=RabbitSubscriberSpecificationConfig(
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+            queue=queue,
+            exchange=exchange,
+        ),
+        calls=calls,
+    )
+
+    return RabbitSubscriber(
+        config=subscriber_config,
+        specification=specification,
+        calls=calls,
+    )
 
 
 def _validate_input_for_misconfigure(

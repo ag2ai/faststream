@@ -54,7 +54,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.broker.abc_broker import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -280,7 +280,7 @@ class KafkaBroker(
         middlewares: Sequence[
             "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
         ] = (),
-        routers: Sequence["ABCBroker[ConsumerRecord]"] = (),
+        routers: Sequence["Registrator[ConsumerRecord]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: Union[str, Iterable[str], None] = None,
@@ -380,7 +380,7 @@ class KafkaBroker(
                 Dependencies to apply to all broker subscribers.
             middlewares (Sequence[BrokerMiddleware]):
                 Middlewares to apply to all broker publishers/subscribers.
-            routers (Sequence[ABCBroker]):
+            routers (Sequence[Registrator]):
                 Routers to apply to broker.
             security (Optional[BaseSecurity]):
                 Security options to connect broker and generate AsyncAPI server security information.

@@ -6,11 +6,8 @@ from typing import (
     Union,
 )
 
+from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.publisher import PublisherUsecaseConfig
-from faststream._internal.endpoint.subscriber import (
-    SubscriberUsecaseConfig,
-)
 from faststream.middlewares.acknowledgement.conf import AckPolicy
 
 from .broker import KafkaBrokerConfig

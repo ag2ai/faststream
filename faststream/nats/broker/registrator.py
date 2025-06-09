@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 from nats.js import api
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from faststream.nats.publisher.specified import SpecificationPublisher
 
 
-class NatsRegistrator(ABCBroker["Msg"]):
+class NatsRegistrator(Registrator["Msg"]):
     """Includable to NatsBroker router."""
 
     config: "NatsBrokerConfig"

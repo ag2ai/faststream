@@ -14,11 +14,6 @@ from typing import (
 
 from typing_extensions import Self, deprecated, overload, override
 
-from faststream._internal.endpoint.subscriber.call_item import HandlerItem
-from faststream._internal.endpoint.subscriber.utils import (
-    MultiLock,
-    default_filter,
-)
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.types import (
     MsgType,
@@ -31,12 +26,18 @@ from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
+from .call_item import (
+    CallsCollection,
+    HandlerItem,
+)
 from .proto import SubscriberProto
+from .utils import MultiLock, default_filter
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
+    from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import BasePublisherProto
     from faststream._internal.types import (
@@ -49,8 +50,9 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
     from faststream.response import Response
+    from faststream.specification.schema import SubscriberSpec
 
-    from .config import SubscriberUsecaseConfig
+    from .specification import SubscriberSpecification
 
 
 class _CallOptions(NamedTuple):
@@ -69,9 +71,15 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
 
     _call_options: Optional["_CallOptions"]
 
-    def __init__(self, config: "SubscriberUsecaseConfig", /) -> None:
+    def __init__(
+        self,
+        config: "SubscriberUsecaseConfig",
+        specification: "SubscriberSpecification",
+        calls: "CallsCollection",
+    ) -> None:
         """Initialize a new instance of the class."""
-        self.calls = []
+        self.calls = calls
+        self.specification = specification
 
         self._no_reply = config.no_reply
         self._parser = config.parser
@@ -85,13 +93,9 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         self.lock = FakeContext()
 
         # Setup in registration
-        self._outer_config = config.config
+        self._outer_config = config._outer_config
 
         self.extra_watcher_options = {}
-
-    @property
-    def include_in_schema(self) -> bool:
-        return self._outer_config.include_in_schema and self.include_in_schema_
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -104,7 +108,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         self._build_fastdepends_model()
 
         self._outer_config.logger.log(
-            f"`{self.call_name}` waiting for messages",
+            f"`{self.specification.call_name}` waiting for messages",
             extra=self.get_log_context(None),
         )
 
@@ -246,7 +250,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         ) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]":
             handler = super(SubscriberUsecase, self).__call__(func)
 
-            self.calls.append(
+            self.calls.add_call(
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
@@ -421,3 +425,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
             extra=extra,
             exc_info=exc_info,
         )
+
+    def schema(self) -> dict[str, "SubscriberSpec"]:
+        self._build_fastdepends_model()
+        return self.specification.get_schema()

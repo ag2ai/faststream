@@ -1,14 +1,11 @@
-from .specification import SpecificationSubscriber, SubscriberSpecificationConfig
+from .specification import SubscriberSpecification
 from .usecase import (
     SubscriberProto,
     SubscriberUsecase,
-    SubscriberUsecaseConfig,
 )
 
 __all__ = (
-    "SpecificationSubscriber",
     "SubscriberProto",
-    "SubscriberSpecificationConfig",
+    "SubscriberSpecification",
     "SubscriberUsecase",
-    "SubscriberUsecaseConfig",
 )

@@ -16,28 +16,27 @@ from faststream._internal.types import (
     MsgType,
 )
 
-from .abc_broker import ABCBroker
+from .abc_broker import Registrator
 from .pub_base import BrokerPublishMixin
 
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from faststream._internal.configs import BrokerConfig
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
-    from .config import BrokerConfig
-
 
 class BrokerUsecase(
-    ABCBroker[MsgType],
+    Registrator[MsgType],
     BrokerPublishMixin[MsgType],
     Generic[MsgType, ConnectionType],
 ):
     """Basic class for brokers-only.
 
-    Extends `ABCBroker` by connection, publish and AsyncAPI behavior.
+    Extends `Registrator` by connection, publish and AsyncAPI behavior.
     """
 
     _connection: Optional[ConnectionType]
@@ -47,7 +46,7 @@ class BrokerUsecase(
         *,
         config: "BrokerConfig",
         specification: "BrokerSpec",
-        routers: Sequence["ABCBroker[MsgType]"],
+        routers: Sequence["Registrator[MsgType]"],
         **connection_kwargs: Any,
     ) -> None:
         super().__init__(

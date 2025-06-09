@@ -3,6 +3,7 @@ import sys
 import warnings
 from contextlib import suppress
 from pathlib import Path
+from pprint import pformat
 from typing import TYPE_CHECKING, Optional
 
 import typer
@@ -103,8 +104,15 @@ def gen(
     ),
     out: Optional[str] = typer.Option(
         None,
+        "-o", "--out",
         help="Output filename.",
         show_default="asyncapi.json/.yaml",
+    ),
+    debug: bool = typer.Option(
+        False,
+        "-d", "--debug",
+        is_flag=True,
+        help="Do not save generated schema to file. Print it instead.",
     ),
     app_dir: str = APP_DIR_OPTION,
     is_factory: bool = FACTORY_OPTION,
@@ -126,19 +134,27 @@ def gen(
             typer.echo(INSTALL_YAML, err=True)
             raise typer.Exit(1) from e
 
-        name = out or "asyncapi.yaml"
+        filename = out or "asyncapi.yaml"
 
-        with Path(name).open("w", encoding="utf-8") as f:
-            f.write(schema)
-
+        if not debug:
+            Path(filename).write_text(schema, encoding="utf-8")
     else:
         schema = raw_schema.to_jsonable()
-        name = out or "asyncapi.json"
+        filename = out or "asyncapi.json"
 
-        with Path(name).open("w", encoding="utf-8") as f:
-            json.dump(schema, f, indent=2)
+        if not debug:
+            with Path(filename).open("w", encoding="utf-8") as f:
+                json.dump(schema, f, indent=2)
 
-    typer.echo(f"Your project AsyncAPI scheme was placed to `{name}`")
+        else:
+            schema = pformat(schema)
+
+    if debug:
+        typer.echo("Generated schema:\n")
+        typer.echo(schema, color=True)
+
+    else:
+        typer.echo(f"Your project AsyncAPI scheme was placed to `{filename}`")
 
 
 def _parse_and_serve(

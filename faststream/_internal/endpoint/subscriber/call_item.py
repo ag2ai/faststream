@@ -1,3 +1,4 @@
+from collections import UserList
 from collections.abc import Iterable, Reversible, Sequence
 from functools import partial
 from inspect import unwrap
@@ -12,6 +13,7 @@ from typing import (
 
 from faststream._internal.types import MsgType
 from faststream.exceptions import IgnoredException, SetupError
+from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -64,7 +66,7 @@ class HandlerItem(Generic[MsgType]):
     def __repr__(self) -> str:
         filter_call = unwrap(self.filter)
         filter_name = getattr(filter_call, "__name__", str(filter_call))
-        return f"<'{self.call_name}': filter='{filter_name}'>"
+        return f"<'{self.name}': filter='{filter_name}'>"
 
     def _setup(
         self,
@@ -97,7 +99,7 @@ class HandlerItem(Generic[MsgType]):
                 )
 
     @property
-    def call_name(self) -> str:
+    def name(self) -> str:
         """Returns the name of the original call."""
         if self.handler is None:
             return ""
@@ -165,3 +167,31 @@ class HandlerItem(Generic[MsgType]):
         else:
             self.handler.trigger(result=result)
             return result
+
+
+class CallsCollection(UserList[HandlerItem[MsgType]]):
+    def add_call(self, call: "HandlerItem[MsgType]") -> None:
+        self.data.append(call)
+
+    @property
+    def name(self) -> Optional[str]:
+        """Returns the name of the handler call."""
+        if not self.data:
+            return None
+
+        if len(self.data) == 1:
+            return to_camelcase(self.data[0].name)
+
+        return f"[{','.join(to_camelcase(c.name) for c in self.data)}]"
+
+    @property
+    def description(self) -> Optional[str]:
+        if not self.data:
+            return None
+
+        if len(self.data) == 1:
+            return self.data[0].description
+
+        return "\n".join(
+            f"{to_camelcase(h.name)}: {h.description or ''}" for h in self.data
+        )

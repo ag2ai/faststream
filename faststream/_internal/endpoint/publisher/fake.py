@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from faststream._internal.basic_types import SendableMessage
 from faststream.response.publish_type import PublishType
 
-from .usecase import BasePublisherProto
+from .proto import BasePublisherProto
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AsyncFunc

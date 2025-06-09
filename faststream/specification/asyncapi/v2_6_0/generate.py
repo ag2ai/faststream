@@ -150,8 +150,8 @@ def get_broker_channels(
     """Get the broker channels for an application."""
     channels = {}
 
-    for h in broker.subscribers:
-        for key, sub in h.schema().items():
+    for s in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
+        for key, sub in s.schema().items():
             if key in channels:
                 warnings.warn(
                     f"Overwrite channel handler, channels have the same names: `{key}`",
@@ -161,7 +161,7 @@ def get_broker_channels(
 
             channels[key] = Channel.from_sub(sub)
 
-    for p in broker.publishers:
+    for p in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for key, pub in p.schema().items():
             if key in channels:
                 warnings.warn(

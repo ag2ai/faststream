@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.broker.abc_broker import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -318,7 +318,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["ABCBroker[IncomingMessage]"],
+            Sequence["Registrator[IncomingMessage]"],
             Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[

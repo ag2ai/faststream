@@ -26,20 +26,28 @@ from faststream.message.source_type import SourceType
 from .proto import PublisherProto
 
 if TYPE_CHECKING:
+    from faststream._internal.configs import PublisherUsecaseConfig
     from faststream._internal.producer import ProducerProto
     from faststream._internal.types import (
         PublisherMiddleware,
     )
     from faststream.response.response import PublishCommand
+    from faststream.specification.schema import PublisherSpec
 
-    from .config import PublisherUsecaseConfig
+    from .specification import PublisherSpecification
 
 
 class PublisherUsecase(PublisherProto[MsgType]):
     """A base class for publishers in an asynchronous API."""
 
-    def __init__(self, config: "PublisherUsecaseConfig", /) -> None:
-        broker_config = config.config
+    def __init__(
+        self,
+        config: "PublisherUsecaseConfig",
+        specification: "PublisherSpecification",
+    ) -> None:
+        self.specification = specification
+
+        broker_config = config._outer_config
         self._outer_config = broker_config
 
         self.middlewares = config.middlewares
@@ -84,6 +92,9 @@ class PublisherUsecase(PublisherProto[MsgType]):
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
+
+        self.specification.add_call(handler._original_call)
+
         return handler
 
     async def _basic_publish(
@@ -150,3 +161,6 @@ class PublisherUsecase(PublisherProto[MsgType]):
                 )
             ),
         )
+
+    def schema(self) -> dict[str, "PublisherSpec"]:
+        return self.specification.get_schema()

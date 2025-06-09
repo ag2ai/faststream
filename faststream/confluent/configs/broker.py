@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream.confluent.helpers import (
     AdminService,
     AsyncConfluentConsumer,

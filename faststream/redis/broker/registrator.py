@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
-class RedisRegistrator(ABCBroker[UnifyRedisDict]):
+class RedisRegistrator(Registrator[UnifyRedisDict]):
     """Includable to RedisBroker router."""
 
     config: "RedisBrokerConfig"

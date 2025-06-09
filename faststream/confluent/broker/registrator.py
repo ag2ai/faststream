@@ -12,7 +12,7 @@ from typing import (
 
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.confluent.publisher.factory import create_publisher
 from faststream.confluent.subscriber.factory import create_subscriber
@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 
 class KafkaRegistrator(
-    ABCBroker[
+    Registrator[
         Union[
             "Message",
             tuple["Message", ...],

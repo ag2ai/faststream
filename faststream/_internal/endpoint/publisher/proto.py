@@ -11,7 +11,6 @@ from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.types import MsgType
 
 if TYPE_CHECKING:
-
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.response import PublishCommand

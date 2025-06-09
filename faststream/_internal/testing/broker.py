@@ -22,7 +22,7 @@ from faststream._internal.utils.functions import FakeContext
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.broker import BrokerConfig
+    from faststream._internal.configs import BrokerConfig
     from faststream._internal.endpoint.subscriber import SubscriberProto
     from faststream._internal.producer import ProducerProto
 

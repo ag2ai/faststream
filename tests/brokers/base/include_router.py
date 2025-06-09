@@ -85,7 +85,7 @@ class IncludeTestcase(BaseTestcaseConfig):
         obj = self.get_object(router)
         broker.include_router(router, include_in_schema=include)
 
-        assert obj.include_in_schema is result
+        assert obj.specification.include_in_schema is result
 
 
 class IncludeSubscriberTestcase(IncludeTestcase):

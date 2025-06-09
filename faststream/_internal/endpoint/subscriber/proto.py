@@ -11,14 +11,14 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream._internal.endpoint.subscriber.call_item import HandlerItem
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream._internal.types import CustomCallable, SubscriberMiddleware
     from faststream.message import StreamMessage
     from faststream.response import Response
 
 
 class SubscriberProto(Endpoint[MsgType]):
-    calls: list["HandlerItem[MsgType]"]
+    calls: "CallsCollection[MsgType]"
     running: bool
 
     async def start(self) -> None: ...

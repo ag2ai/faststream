@@ -26,7 +26,6 @@ from faststream.rabbit.schemas import (
     RabbitExchange,
     RabbitQueue,
 )
-from faststream.rabbit.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -48,8 +47,9 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.schemas import Channel
+    from faststream.rabbit.subscriber import RabbitSubscriber
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -638,9 +638,9 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
                 """,
             ),
         ] = False,
-    ) -> SpecificationSubscriber:
+    ) -> "RabbitSubscriber":
         return cast(
-            "SpecificationSubscriber",
+            "RabbitSubscriber",
             super().subscriber(
                 queue=queue,
                 exchange=exchange,
@@ -779,7 +779,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Optional[str],
             Doc("Publisher connection User ID, validated if set."),
         ] = None,
-    ) -> "SpecificationPublisher":
+    ) -> "RabbitPublisher":
         return self.broker.publisher(
             queue=queue,
             exchange=exchange,

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer

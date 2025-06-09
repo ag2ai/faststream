@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 
 @dataclass(kw_only=True)
@@ -8,3 +8,8 @@ class SpecificationConfig:
     description_: Optional[str]
 
     include_in_schema: bool = True
+
+
+@dataclass(kw_only=True)
+class PublisherSpecificationConfig(SpecificationConfig):
+    schema_: Optional[Any]

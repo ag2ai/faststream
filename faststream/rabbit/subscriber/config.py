@@ -1,28 +1,25 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
+from faststream._internal.configs import (
+    SubscriberSpecificationConfig,
+    SubscriberUsecaseConfig,
+)
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.publisher import PublisherUsecaseConfig
-from faststream._internal.endpoint.subscriber import SubscriberUsecaseConfig
 from faststream.middlewares import AckPolicy
+from faststream.rabbit.configs.base import RabbitConfig, RabbitEndpointConfig
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
-    from faststream.rabbit.publisher.usecase import PublishKwargs
-    from faststream.rabbit.schemas import (
-        Channel,
-        RabbitExchange,
-        RabbitQueue,
-    )
-
-    from .broker import RabbitBrokerConfig
+    from faststream.rabbit.schemas import Channel
 
 
 @dataclass(kw_only=True)
-class RabbitEndpointConfig:
-    config: "RabbitBrokerConfig"
-    queue: "RabbitQueue"
-    exchange: "RabbitExchange"
+class RabbitSubscriberSpecificationConfig(
+    RabbitConfig,
+    SubscriberSpecificationConfig,
+):
+    pass
 
 
 @dataclass(kw_only=True)
@@ -52,9 +49,3 @@ class RabbitSubscriberConfig(RabbitEndpointConfig, SubscriberUsecaseConfig):
             return AckPolicy.REJECT_ON_ERROR
 
         return self._ack_policy
-
-
-@dataclass(kw_only=True)
-class RabbitPublisherConfig(RabbitEndpointConfig, PublisherUsecaseConfig):
-    routing_key: str
-    message_kwargs: "PublishKwargs"

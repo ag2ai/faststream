@@ -26,3 +26,13 @@ class MessageOptions(TypedDict, total=False):
     user_id: Optional[str]
     app_id: Optional[str]
     correlation_id: Optional[str]
+
+
+class RequestPublishKwargs(MessageOptions, PublishOptions, total=False):
+    """Typed dict to annotate RabbitMQ requesters."""
+
+
+class PublishKwargs(MessageOptions, PublishOptions, total=False):
+    """Typed dict to annotate RabbitMQ publishers."""
+
+    reply_to: Optional[str]

@@ -15,13 +15,19 @@ if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.rabbit.configs import RabbitBrokerConfig, RabbitSubscriberConfig
+    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
+    from .config import (
+        RabbitSubscriberConfig,
+        RabbitSubscriberSpecificationConfig,
+    )
 
-class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
+
+class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     app_id: Optional[str]
@@ -30,11 +36,15 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
     _consumer_tag: Optional[str]
     _queue_obj: Optional["RobustQueue"]
 
-    def __init__(self, config: "RabbitSubscriberConfig", /) -> None:
+    def __init__(self, config: "RabbitSubscriberConfig", specification: "RabbitSubscriberSpecificationConfig", calls: "CallsCollection") -> None:
         parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(
+            config,
+            specification=specification,
+            calls=calls,
+        )
 
         self.queue = config.queue
         self.exchange = config.exchange

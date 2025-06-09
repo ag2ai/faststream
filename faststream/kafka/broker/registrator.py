@@ -15,7 +15,7 @@ from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.kafka.publisher.factory import create_publisher
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 
 
 class KafkaRegistrator(
-    ABCBroker[
+    Registrator[
         Union[
             ConsumerRecord,
             tuple[ConsumerRecord, ...],

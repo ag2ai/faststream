@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
-    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.broker.abc_broker import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -99,7 +99,7 @@ class RabbitBroker(
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
-        routers: Sequence["ABCBroker[IncomingMessage]"] = (),
+        routers: Sequence["Registrator[IncomingMessage]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: Optional[str] = None,

@@ -27,9 +27,9 @@ from faststream.rabbit.schemas import (
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
 
-    from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
-    from faststream.rabbit.subscriber.usecase import LogicSubscriber
+    from faststream.rabbit.subscriber import RabbitSubscriber
     from faststream.rabbit.types import AioPikaSendableMessage
 
 
@@ -73,9 +73,9 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: "RabbitBroker",
-        publisher: "SpecificationPublisher",
-    ) -> tuple["LogicSubscriber", bool]:
-        sub: Optional[LogicSubscriber] = None
+        publisher: "RabbitPublisher",
+    ) -> tuple["RabbitSubscriber", bool]:
+        sub: Optional[RabbitSubscriber] = None
         for handler in broker.subscribers:
             if _is_handler_matches(
                 handler,
@@ -263,7 +263,7 @@ class FakeProducer(AioPikaFastProducer):
     async def _execute_handler(
         self,
         msg: PatchedMessage,
-        handler: "LogicSubscriber",
+        handler: "RabbitSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
 
@@ -276,7 +276,7 @@ class FakeProducer(AioPikaFastProducer):
 
 
 def _is_handler_matches(
-    handler: "LogicSubscriber",
+    handler: "RabbitSubscriber",
     routing_key: str,
     headers: Optional["Mapping[Any, Any]"] = None,
     exchange: Optional["RabbitExchange"] = None,

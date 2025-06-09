@@ -6,7 +6,7 @@ import aiokafka
 import aiokafka.admin
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
 from faststream.kafka.publisher.producer import (

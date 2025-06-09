@@ -152,7 +152,7 @@ def get_broker_channels(
     channels = {}
     operations = {}
 
-    for sub in broker.subscribers:
+    for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
             channel_obj = Channel.from_sub(sub_key, sub_channel)
 
@@ -177,7 +177,7 @@ def get_broker_channels(
                 operation=sub_channel.operation,
             )
 
-    for pub in broker.publishers:
+    for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
             channel_obj = Channel.from_pub(pub_key, pub_channel)
 
