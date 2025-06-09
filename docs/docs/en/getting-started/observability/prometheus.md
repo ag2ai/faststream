@@ -129,7 +129,7 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 
 ## Prometheus Metrics in Multi-Process Mode
 
-When running FastStream with multiple worker processes, you need to configure Prometheus metrics collection specially:
+When running `FastStream` with multiple worker processes, you need to configure Prometheus metrics collection specially:
 
 1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory
 2. Initialize your collector registry with multiprocess support:
