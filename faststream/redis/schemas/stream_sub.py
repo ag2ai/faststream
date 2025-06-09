@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Optional
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
@@ -23,14 +22,14 @@ class StreamSub(NameRequired):
     def __init__(
         self,
         stream: str,
-        polling_interval: Optional[int] = 100,
-        group: Optional[str] = None,
-        consumer: Optional[str] = None,
+        polling_interval: int | None = 100,
+        group: str | None = None,
+        consumer: str | None = None,
         batch: bool = False,
         no_ack: bool = False,
-        last_id: Optional[str] = None,
-        maxlen: Optional[int] = None,
-        max_records: Optional[int] = None,
+        last_id: str | None = None,
+        maxlen: int | None = None,
+        max_records: int | None = None,
     ) -> None:
         if (group and not consumer) or (not group and consumer):
             msg = "You should specify `group` and `consumer` both"

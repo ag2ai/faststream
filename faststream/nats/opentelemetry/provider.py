@@ -95,19 +95,12 @@ def telemetry_attributes_provider_factory(
 @overload
 def telemetry_attributes_provider_factory(
     msg: Union["Msg", Sequence["Msg"], None],
-) -> Union[
-    NatsTelemetrySettingsProvider,
-    NatsBatchTelemetrySettingsProvider,
-]: ...
+) -> NatsTelemetrySettingsProvider | NatsBatchTelemetrySettingsProvider: ...
 
 
 def telemetry_attributes_provider_factory(
     msg: Union["Msg", Sequence["Msg"], None],
-) -> Union[
-    NatsTelemetrySettingsProvider,
-    NatsBatchTelemetrySettingsProvider,
-    None,
-]:
+) -> NatsTelemetrySettingsProvider | NatsBatchTelemetrySettingsProvider | None:
     if isinstance(msg, Sequence):
         return NatsBatchTelemetrySettingsProvider()
     if isinstance(msg, Msg) or msg is None:

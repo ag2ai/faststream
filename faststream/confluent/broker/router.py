@@ -1,9 +1,8 @@
-from collections.abc import Awaitable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Literal,
     Optional,
     Union,
@@ -52,7 +51,7 @@ class KafkaPublisher(ArgsContainer):
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -66,7 +65,7 @@ class KafkaPublisher(ArgsContainer):
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -75,7 +74,7 @@ class KafkaPublisher(ArgsContainer):
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -101,15 +100,15 @@ class KafkaPublisher(ArgsContainer):
         ] = (),
         # AsyncAPI args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -143,10 +142,7 @@ class KafkaRoute(SubscriberRoute):
     def __init__(
         self,
         call: Annotated[
-            Union[
-                Callable[..., "SendableMessage"],
-                Callable[..., Awaitable["SendableMessage"]],
-            ],
+            Callable[..., "SendableMessage"] | Callable[..., Awaitable["SendableMessage"]],
             Doc("Message handler function."),
         ],
         *topics: Annotated[
@@ -160,7 +156,7 @@ class KafkaRoute(SubscriberRoute):
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -171,7 +167,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = None,
         group_instance_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             A unique string that identifies the consumer instance.
@@ -375,7 +371,7 @@ class KafkaRoute(SubscriberRoute):
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         # broker args
@@ -416,11 +412,11 @@ class KafkaRoute(SubscriberRoute):
         ] = False,
         # AsyncAPI args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -524,7 +520,7 @@ class KafkaRouter(
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         include_in_schema: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = None,
     ) -> None:

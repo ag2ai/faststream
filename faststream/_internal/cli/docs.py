@@ -4,7 +4,7 @@ import warnings
 from contextlib import suppress
 from pathlib import Path
 from pprint import pformat
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import typer
 from pydantic import ValidationError
@@ -102,7 +102,7 @@ def gen(
         is_flag=True,
         help="Generate `asyncapi.yaml` schema.",
     ),
-    out: Optional[str] = typer.Option(
+    out: str | None = typer.Option(
         None,
         "-o", "--out",
         help="Output filename.",

@@ -1,8 +1,7 @@
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Optional,
     cast,
 )

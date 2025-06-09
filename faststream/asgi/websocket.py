@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from faststream.asgi.types import Receive, Scope, Send
@@ -8,7 +8,7 @@ class WebSocketClose:
     def __init__(
         self,
         code: int,
-        reason: Optional[str],
+        reason: str | None,
     ) -> None:
         self.code = code
         self.reason = reason or ""

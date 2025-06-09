@@ -1,12 +1,11 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     NamedTuple,
     Optional,
     Union,
@@ -67,7 +66,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
 
     lock: "AbstractContextManager[Any]"
     extra_watcher_options: "AnyDict"
-    graceful_timeout: Optional[float]
+    graceful_timeout: float | None
 
     _call_options: Optional["_CallOptions"]
 
@@ -312,7 +311,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
                 await middleware.__aenter__()
 
             cache: dict[Any, Any] = {}
-            parsing_error: Optional[Exception] = None
+            parsing_error: Exception | None = None
             for h in self.calls:
                 try:
                     message = await h.is_suitable(msg, cache)
@@ -417,7 +416,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         log_level: int,
         message: str,
         extra: Optional["AnyDict"] = None,
-        exc_info: Optional[Exception] = None,
+        exc_info: Exception | None = None,
     ) -> None:
         self._outer_config.logger.log(
             log_level,

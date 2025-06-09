@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from itertools import chain
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from faststream._internal.configs import (
     SpecificationSubscriber as SpecificationSubscriberMixin,
@@ -24,7 +24,7 @@ class SpecificationSubscriber(SpecificationSubscriberMixin):
 
     topics: Iterable[str]
     partitions: Iterable["TopicPartition"]
-    _pattern: Optional[str]  # TODO: support pattern schema
+    _pattern: str | None  # TODO: support pattern schema
 
     def get_default_name(self) -> str:
         return f"{','.join(self.topics)}:{self.call_name}"

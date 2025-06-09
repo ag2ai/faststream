@@ -13,7 +13,7 @@ class Response:
         body: Any,
         *,
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
     ) -> None:
         """Initialize a handler."""
         self.body = body
@@ -38,7 +38,7 @@ class PublishCommand(Response):
         _publish_type: PublishType,
         reply_to: str = "",
         destination: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
     ) -> None:
         super().__init__(
@@ -86,7 +86,7 @@ class BatchPublishCommand(PublishCommand):
         _publish_type: PublishType,
         reply_to: str = "",
         destination: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
     ) -> None:
         super().__init__(

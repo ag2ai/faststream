@@ -97,11 +97,11 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -115,7 +115,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> Union[SpecificationSubscriber, SpecificationConcurrentSubscriber]:
+    ) -> SpecificationSubscriber | SpecificationConcurrentSubscriber:
         subscriber = create_subscriber(
             channel=channel,
             list=list,
@@ -183,15 +183,15 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -238,7 +238,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RedisRegistrator):
             msg = (

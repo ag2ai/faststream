@@ -75,7 +75,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
         broker: "RabbitBroker",
         publisher: "RabbitPublisher",
     ) -> tuple["RabbitSubscriber", bool]:
-        sub: Optional[RabbitSubscriber] = None
+        sub: RabbitSubscriber | None = None
         for handler in broker.subscribers:
             if _is_handler_matches(
                 handler,
@@ -123,18 +123,18 @@ def build_message(
     *,
     routing_key: str = "",
     persist: bool = False,
-    reply_to: Optional[str] = None,
+    reply_to: str | None = None,
     headers: Optional["HeadersType"] = None,
-    content_type: Optional[str] = None,
-    content_encoding: Optional[str] = None,
-    priority: Optional[int] = None,
-    correlation_id: Optional[str] = None,
+    content_type: str | None = None,
+    content_encoding: str | None = None,
+    priority: int | None = None,
+    correlation_id: str | None = None,
     expiration: Optional["DateType"] = None,
-    message_id: Optional[str] = None,
+    message_id: str | None = None,
     timestamp: Optional["DateType"] = None,
-    message_type: Optional[str] = None,
-    user_id: Optional[str] = None,
-    app_id: Optional[str] = None,
+    message_type: str | None = None,
+    user_id: str | None = None,
+    app_id: str | None = None,
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)

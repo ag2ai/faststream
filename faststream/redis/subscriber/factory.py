@@ -1,7 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Optional, Union
-
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, Union
 
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
@@ -23,16 +21,7 @@ from faststream.redis.subscriber.specified import (
 if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
-SubsciberType: TypeAlias = Union[
-    SpecificationChannelSubscriber,
-    SpecificationStreamBatchSubscriber,
-    SpecificationStreamSubscriber,
-    SpecificationListBatchSubscriber,
-    SpecificationListSubscriber,
-    SpecificationChannelConcurrentSubscriber,
-    SpecificationListConcurrentSubscriber,
-    SpecificationStreamConcurrentSubscriber,
-]
+SubsciberType: TypeAlias = SpecificationChannelSubscriber | SpecificationStreamBatchSubscriber | SpecificationStreamSubscriber | SpecificationListBatchSubscriber | SpecificationListSubscriber | SpecificationChannelConcurrentSubscriber | SpecificationListConcurrentSubscriber | SpecificationStreamConcurrentSubscriber
 
 
 def create_subscriber(
@@ -46,8 +35,8 @@ def create_subscriber(
     config: "RedisBrokerConfig",
     no_reply: bool = False,
     # AsyncAPI args
-    title_: Optional[str] = None,
-    description_: Optional[str] = None,
+    title_: str | None = None,
+    description_: str | None = None,
     include_in_schema: bool = True,
     max_workers: int = 1,
 ) -> SubsciberType:

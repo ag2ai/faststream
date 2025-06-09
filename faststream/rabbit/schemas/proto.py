@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from faststream.rabbit.configs.specification import RabbitSpecificationConfig
@@ -26,5 +26,5 @@ class BaseRMQInformation:
         return self._outer_config.virtual_host
 
     @property
-    def app_id(self) -> Optional[str]:
+    def app_id(self) -> str | None:
         return self._outer_config.app_id

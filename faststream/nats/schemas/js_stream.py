@@ -36,11 +36,11 @@ class JStream(NameRequired):
             Doc("Stream name to work with."),
         ],
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Stream description if needed."),
         ] = None,
         subjects: Annotated[
-            Optional[list[str]],
+            list[str] | None,
             Doc(
                 "Subjects, used by stream to grab messages from them. Any message sent by NATS Core will be consumed "
                 "by stream. Also, stream acknowledge message publisher with message, sent on reply subject of "
@@ -64,18 +64,18 @@ class JStream(NameRequired):
             ),
         ] = None,
         max_consumers: Annotated[
-            Optional[int],
+            int | None,
             Doc("Max number of consumers to be bound with this stream."),
         ] = None,
         max_msgs: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Max number of messages to be stored in the stream. Stream can automatically delete old messages or "
                 "stop receiving new messages, look for 'DiscardPolicy'",
             ),
         ] = None,
         max_bytes: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Max bytes of all messages to be stored in the stream. Stream can automatically delete old messages or "
                 "stop receiving new messages, look for 'DiscardPolicy'",
@@ -86,7 +86,7 @@ class JStream(NameRequired):
             Doc("Determines stream behavior on messages in case of retention exceeds."),
         ] = DiscardPolicy.OLD,
         max_age: Annotated[
-            Optional[float],
+            float | None,
             Doc(
                 "TTL in seconds for messages. Since message arrive, TTL begun. As soon as TTL exceeds, message will be "
                 "deleted.",
@@ -99,7 +99,7 @@ class JStream(NameRequired):
             ),
         ] = -1,
         max_msg_size: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit message size to be received. Note: the whole message can't be larger than NATS Core message "
                 "limit.",
@@ -113,7 +113,7 @@ class JStream(NameRequired):
             ),
         ] = None,
         num_replicas: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Replicas of stream to be used. All replicas create RAFT group with leader. In case of losing lesser "
                 "than half, cluster will be available to reads and writes. In case of losing slightly more than half, "
@@ -127,7 +127,7 @@ class JStream(NameRequired):
                 "received by stream or not."
             ),
         ] = False,
-        template_owner: Optional[str] = None,
+        template_owner: str | None = None,
         duplicate_window: Annotated[
             float,
             Doc(
@@ -149,7 +149,7 @@ class JStream(NameRequired):
             ),
         ] = None,
         sources: Annotated[
-            Optional[list["StreamSource"]],
+            list["StreamSource"] | None,
             Doc(
                 "Should stream mux multiple streams into single one, if so, values is names of those streams.",
             ),
@@ -175,11 +175,11 @@ class JStream(NameRequired):
             Doc("Should be messages, received by stream, send to additional subject."),
         ] = None,
         allow_direct: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Should direct requests be allowed. Note: you can get stale data."),
         ] = None,
         mirror_direct: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Should direct mirror requests be allowed"),
         ] = None,
         # custom

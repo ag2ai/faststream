@@ -50,7 +50,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[NatsMessage]":
+    ) -> "NatsMessage | None":
         assert (  # nosec B101
             not self.calls
         ), "You can't use `get_one` method if subscriber has registered handlers."

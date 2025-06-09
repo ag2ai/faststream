@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from faststream.security import (
     BaseSecurity,
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
 
 
-def parse_security(security: Optional[BaseSecurity]) -> "AnyDict":
+def parse_security(security: BaseSecurity | None) -> "AnyDict":
     """Convert security object to connection arguments."""
     if security is None:
         return {}

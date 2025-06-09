@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from prometheus_client import CollectorRegistry
@@ -25,7 +25,7 @@ class TestCaseMetrics:
     def create_metrics_manager(
         app_name: str,
         metrics_prefix: str,
-        received_messages_size_buckets: Optional[list[float]] = None,
+        received_messages_size_buckets: list[float] | None = None,
     ) -> MetricsManager:
         registry = CollectorRegistry()
         container = MetricsContainer(

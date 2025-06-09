@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 class LogicSubscriber(SubscriberUsecase[MsgType]):
     """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream)."""
 
-    subscription: Optional[Unsubscriptable]
-    _fetch_sub: Optional[Unsubscriptable]
+    subscription: Unsubscriptable | None
+    _fetch_sub: Unsubscriptable | None
     _outer_config: "NatsBrokerConfig"
 
     def __init__(

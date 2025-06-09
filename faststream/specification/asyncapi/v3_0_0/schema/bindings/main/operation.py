@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -25,11 +24,11 @@ class OperationBinding(BaseModel):
         redis : Redis operation binding (optional)
     """
 
-    amqp: Optional[amqp_bindings.OperationBinding] = None
-    kafka: Optional[kafka_bindings.OperationBinding] = None
-    sqs: Optional[sqs_bindings.OperationBinding] = None
-    nats: Optional[nats_bindings.OperationBinding] = None
-    redis: Optional[redis_bindings.OperationBinding] = None
+    amqp: amqp_bindings.OperationBinding | None = None
+    kafka: kafka_bindings.OperationBinding | None = None
+    sqs: sqs_bindings.OperationBinding | None = None
+    nats: nats_bindings.OperationBinding | None = None
+    redis: redis_bindings.OperationBinding | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -40,7 +39,7 @@ class OperationBinding(BaseModel):
             extra = "allow"
 
     @classmethod
-    def from_sub(cls, binding: Optional[SpecBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: SpecBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -70,7 +69,7 @@ class OperationBinding(BaseModel):
         return None
 
     @classmethod
-    def from_pub(cls, binding: Optional[SpecBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: SpecBinding | None) -> Self | None:
         if binding is None:
             return None
 

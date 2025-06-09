@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class FastAPIConfig:
-    dependency_overrides_provider: Optional[Any]
+    dependency_overrides_provider: Any | None
     application: Optional["FastAPI"] = None
 
     def set_application(self, app: "FastAPI") -> None:

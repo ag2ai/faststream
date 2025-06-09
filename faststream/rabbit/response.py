@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from typing_extensions import Unpack, override
 
@@ -67,7 +67,7 @@ class RabbitPublishCommand(PublishCommand):
         *,
         _publish_type: PublishType,
         routing_key: str = "",
-        exchange: Optional[RabbitExchange] = None,
+        exchange: RabbitExchange | None = None,
         # publish kwargs
         mandatory: bool = True,
         immediate: bool = False,

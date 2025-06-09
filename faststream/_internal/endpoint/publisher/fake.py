@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Iterable
 from functools import partial
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.basic_types import SendableMessage
 from faststream.response.publish_type import PublishType
@@ -51,8 +51,8 @@ class FakePublisher(BasePublisherProto):
         message: SendableMessage,
         /,
         *,
-        correlation_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        correlation_id: str | None = None,
+    ) -> Any | None:
         msg = (
             f"`{self.__class__.__name__}` can be used only to publish "
             "a response for `reply-to` or `RPC` messages."
@@ -64,7 +64,7 @@ class FakePublisher(BasePublisherProto):
         message: "SendableMessage",
         /,
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
     ) -> Any:
         msg = (
             f"`{self.__class__.__name__}` can be used only to publish "

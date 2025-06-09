@@ -71,7 +71,7 @@ class FastStream(Application):
     async def run(
         self,
         log_level: int = logging.INFO,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
         sleep_time: float = 0.1,
     ) -> None:
         """Run FastStream Application."""

@@ -1,14 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class Channel:
     """Channel class that represents a RabbitMQ channel."""
 
-    prefetch_count: Optional[int] = None
+    prefetch_count: int | None = None
 
-    channel_number: Optional[int] = None
+    channel_number: int | None = None
     """Specify the channel number explicit."""
 
     publisher_confirms: bool = True

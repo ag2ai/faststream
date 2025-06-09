@@ -1,14 +1,14 @@
 import math
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
+    TypeAlias,
 )
 
 from redis.exceptions import ResponseError
-from typing_extensions import TypeAlias, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
@@ -169,7 +169,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[RedisStreamMessage]":
+    ) -> "RedisStreamMessage | None":
         assert self._client, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls

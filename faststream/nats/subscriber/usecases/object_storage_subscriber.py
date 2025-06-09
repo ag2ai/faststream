@@ -41,7 +41,7 @@ class ObjStoreWatchSubscriber(
     LogicSubscriber[ObjectInfo],
 ):
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
-    _fetch_sub: Optional[UnsubscribeAdapter["ObjectStore.ObjectWatcher"]]
+    _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
     def __init__(
         self,
@@ -184,7 +184,7 @@ class ObjStoreWatchSubscriber(
         while self.running:
             with suppress(TimeoutError):
                 message = cast(
-                    "Optional[ObjectInfo]",
+                    "ObjectInfo | None",
                     await obj_watch.updates(self.obj_watch.timeout),  # type: ignore[no-untyped-call]
                 )
 

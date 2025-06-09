@@ -33,7 +33,7 @@ class KeyValueWatchSubscriber(
     LogicSubscriber["KeyValue.Entry"],
 ):
     subscription: Optional["UnsubscribeAdapter[KeyValue.KeyWatcher]"]
-    _fetch_sub: Optional[UnsubscribeAdapter["KeyValue.KeyWatcher"]]
+    _fetch_sub: UnsubscribeAdapter["KeyValue.KeyWatcher"] | None
 
     def __init__(
         self,
@@ -179,7 +179,7 @@ class KeyValueWatchSubscriber(
         while self.running:
             with suppress(ConnectionClosedError, TimeoutError):
                 message = cast(
-                    "Optional[KeyValue.Entry]",
+                    "KeyValue.Entry | None",
                     # type: ignore[no-untyped-call]
                     await key_watcher.updates(self.kv_watch.timeout),
                 )

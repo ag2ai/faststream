@@ -1,10 +1,8 @@
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
     Union,
 )
 
@@ -22,18 +20,18 @@ def create_publisher(
     *,
     autoflush: bool,
     batch: bool,
-    key: Optional[bytes],
+    key: bytes | None,
     topic: str,
-    partition: Optional[int],
-    headers: Optional[dict[str, str]],
+    partition: int | None,
+    headers: dict[str, str] | None,
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
+    schema_: Any | None,
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
     "SpecificationBatchPublisher",
@@ -59,10 +57,7 @@ def create_publisher(
             msg = "You can't setup `key` with batch publisher"
             raise SetupError(msg)
 
-        publisher: Union[
-            SpecificationBatchPublisher,
-            SpecificationDefaultPublisher,
-        ] = SpecificationBatchPublisher(config)
+        publisher: SpecificationBatchPublisher | SpecificationDefaultPublisher = SpecificationBatchPublisher(config)
         publish_method = "_basic_publish_batch"
 
     else:
@@ -70,12 +65,12 @@ def create_publisher(
         publish_method = "_basic_publish"
 
     if autoflush:
-        default_publish: Callable[..., Awaitable[Optional[Any]]] = getattr(
+        default_publish: Callable[..., Awaitable[Any | None]] = getattr(
             publisher, publish_method
         )
 
         @wraps(default_publish)
-        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Any | None:
             result = await default_publish(*args, **kwargs)
             await publisher.flush()
             return result

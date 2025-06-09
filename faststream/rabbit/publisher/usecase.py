@@ -87,7 +87,7 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         *,
         routing_key: str = "",
         # message args
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         # publisher specific
         **publish_kwargs: "Unpack[PublishKwargs]",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
@@ -102,7 +102,7 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
             **(self.publish_options | self.message_options | publish_kwargs),
         )
 
-        frame: Optional[aiormq.abc.ConfirmationFrameType] = await self._basic_publish(
+        frame: aiormq.abc.ConfirmationFrameType | None = await self._basic_publish(
             cmd,
             _extra_middlewares=(),
         )
@@ -137,7 +137,7 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         exchange: Union["RabbitExchange", str, None] = None,
         *,
         routing_key: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         **publish_kwargs: "Unpack[RequestPublishKwargs]",
     ) -> "RabbitMessage":
         headers = self.headers | publish_kwargs.pop("headers", {})

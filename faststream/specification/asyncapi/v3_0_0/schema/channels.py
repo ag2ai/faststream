@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -27,10 +26,10 @@ class Channel(BaseModel):
     """
 
     address: str
-    description: Optional[str] = None
-    servers: Optional[list[dict[str, str]]] = None
-    messages: dict[str, Union[Message, Reference]]
-    bindings: Optional[ChannelBinding] = None
+    description: str | None = None
+    servers: list[dict[str, str]] | None = None
+    messages: dict[str, Message | Reference]
+    bindings: ChannelBinding | None = None
 
     # TODO:
     # parameters: Optional[Parameter] = None

@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Callable, Protocol, Union
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Protocol
 
 from faststream._internal.types import (
     BrokerMiddleware,
@@ -28,10 +28,7 @@ class Endpoint(Protocol[MsgType]):
 
     def __call__(
         self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-        ],
+        func: Callable[P_HandlerParams, T_HandlerReturn] | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
     ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
         handler: HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn] = (
             ensure_call_wrapper(func)

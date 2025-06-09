@@ -1,18 +1,16 @@
-from collections.abc import Awaitable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from decimal import Decimal
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Optional,
     Protocol,
+    TypeAlias,
     TypeVar,
-    Union,
 )
 
-from typing_extensions import ParamSpec, TypeAlias
+from typing_extensions import ParamSpec
 
 AnyDict: TypeAlias = dict[str, Any]
 AnyHttpUrl: TypeAlias = str
@@ -34,21 +32,9 @@ JsonArray: TypeAlias = Sequence["DecodedMessage"]
 
 JsonTable: TypeAlias = dict[str, "DecodedMessage"]
 
-JsonDecodable: TypeAlias = Union[
-    bool,
-    bytes,
-    bytearray,
-    float,
-    int,
-    str,
-    None,
-]
+JsonDecodable: TypeAlias = bool | bytes | bytearray | float | int | str | None
 
-DecodedMessage: TypeAlias = Union[
-    JsonDecodable,
-    JsonArray,
-    JsonTable,
-]
+DecodedMessage: TypeAlias = JsonDecodable | JsonArray | JsonTable
 
 SendableArray: TypeAlias = Sequence["BaseSendableMessage"]
 
@@ -61,34 +47,17 @@ class StandardDataclass(Protocol):
     __dataclass_fields__: ClassVar[AnyDict]
 
 
-BaseSendableMessage: TypeAlias = Union[
-    JsonDecodable,
-    Decimal,
-    datetime,
-    StandardDataclass,
-    SendableTable,
-    SendableArray,
-    None,
-]
+BaseSendableMessage: TypeAlias = JsonDecodable | Decimal | datetime | StandardDataclass | SendableTable | SendableArray | None
 
 try:
     from faststream._internal._compat import BaseModel
 
-    SendableMessage: TypeAlias = Union[
-        BaseModel,
-        BaseSendableMessage,
-    ]
+    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage
 
 except ImportError:
     SendableMessage: TypeAlias = BaseSendableMessage  # type: ignore[no-redef,misc]
 
-SettingField: TypeAlias = Union[
-    bool,
-    str,
-    list[Union[bool, str]],
-    list[str],
-    list[bool],
-]
+SettingField: TypeAlias = bool | str | list[bool | str] | list[str] | list[bool]
 
 Lifespan: TypeAlias = Callable[..., AbstractAsyncContextManager[None]]
 
@@ -101,5 +70,5 @@ class LoggerProto(Protocol):
         /,
         *,
         exc_info: Any = None,
-        extra: Optional[Mapping[str, Any]] = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None: ...

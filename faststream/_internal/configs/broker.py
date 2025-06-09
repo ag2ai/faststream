@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 @dataclass(kw_only=True)
 class BrokerConfig:
     prefix: str = ""
-    include_in_schema: Optional[bool] = True
+    include_in_schema: bool | None = True
 
     broker_middlewares: Iterable["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["AsyncCallable"] = None
@@ -28,7 +28,7 @@ class BrokerConfig:
 
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
-    graceful_timeout: Optional[float] = None
+    graceful_timeout: float | None = None
     extra_context: "AnyDict" = field(default_factory=dict)
 
     def __repr__(self) -> str:
@@ -75,7 +75,7 @@ class ConfigComposition:
         return self.broker_config.fd_config
 
     @property
-    def graceful_timeout(self) -> Optional[float]:
+    def graceful_timeout(self) -> float | None:
         return self.broker_config.graceful_timeout
 
     def __getattr__(self, name: str) -> Any:

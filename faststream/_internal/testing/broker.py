@@ -49,7 +49,7 @@ class TestBroker(Generic[Broker]):
         self,
         broker: Broker,
         with_real: bool = False,
-        connect_only: Optional[bool] = None,
+        connect_only: bool | None = None,
     ) -> None:
         self.with_real = with_real
         self.broker = broker
@@ -81,8 +81,8 @@ class TestBroker(Generic[Broker]):
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         await self._ctx.__aexit__(exc_type, exc_val, exc_tb)
@@ -195,8 +195,8 @@ class TestBroker(Generic[Broker]):
     def _fake_close(
         self,
         broker: Broker,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         for p in broker.publishers:

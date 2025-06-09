@@ -15,16 +15,16 @@ def create_publisher(
     *,
     subject: str,
     reply_to: str,
-    headers: Optional[dict[str, str]],
+    headers: dict[str, str] | None,
     stream: Optional["JStream"],
-    timeout: Optional[float],
+    timeout: float | None,
     # Publisher args
     broker_config: "NatsBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
+    schema_: Any | None,
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> SpecificationPublisher:
     config = NatsPublisherConfigFacade(

@@ -36,8 +36,8 @@ def create_subscriber(
     # Broker args
     config: "RabbitBrokerConfig",
     # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> RabbitSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)

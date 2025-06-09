@@ -1,6 +1,3 @@
-from typing import (
-    Optional,
-)
 
 from pydantic import BaseModel
 
@@ -38,9 +35,9 @@ class Components(BaseModel):
         - messageBindings
     """
 
-    messages: Optional[dict[str, Message]] = None
-    schemas: Optional[dict[str, AnyDict]] = None
-    securitySchemes: Optional[dict[str, AnyDict]] = None
+    messages: dict[str, Message] | None = None
+    schemas: dict[str, AnyDict] | None = None
+    securitySchemes: dict[str, AnyDict] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

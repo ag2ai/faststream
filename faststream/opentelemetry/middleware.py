@@ -1,7 +1,8 @@
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from copy import copy
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, cast
+from typing import TYPE_CHECKING, Any, Generic, Optional, cast
 
 from opentelemetry import baggage, context, metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
@@ -68,7 +69,7 @@ class TelemetryMiddleware(Generic[PublishCommandType]):
 
     def __call__(
         self,
-        msg: Optional[Any],
+        msg: Any | None,
         /,
         *,
         context: "ContextRepo",
@@ -157,7 +158,7 @@ class _MetricsContainer:
 class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
     def __init__(
         self,
-        msg: Optional[Any],
+        msg: Any | None,
         /,
         *,
         tracer: "Tracer",
@@ -172,8 +173,8 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
 
         self._tracer = tracer
         self._metrics = metrics_container
-        self._current_span: Optional[Span] = None
-        self._origin_context: Optional[Context] = None
+        self._current_span: Span | None = None
+        self._origin_context: Context | None = None
         self._scope_tokens: list[tuple[str, Token[Any]]] = []
         self.__settings_provider = settings_provider_factory(msg)
 
@@ -189,7 +190,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         current_context = context.get_current()
         destination_name = provider.get_publish_destination_name(msg)
 
-        current_baggage: Optional[Baggage] = self.context.get_local("baggage")
+        current_baggage: Baggage | None = self.context.get_local("baggage")
         if current_baggage:
             headers.update(current_baggage.to_headers())
 
@@ -335,10 +336,10 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
 
     async def after_processed(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if self._current_span and self._current_span.is_recording():
             self._current_span.end()
         return False
@@ -406,13 +407,13 @@ def _get_msg_links(msg: "StreamMessage[Any]") -> list[Link]:
     return list(links.values())
 
 
-def _get_span_from_headers(headers: "AnyDict") -> Optional[Span]:
+def _get_span_from_headers(headers: "AnyDict") -> Span | None:
     trace_context = _TRACE_PROPAGATOR.extract(headers)
     if not len(trace_context):
         return None
 
     return cast(
-        "Optional[Span]",
+        "Span | None",
         next(iter(trace_context.values())),
     )
 

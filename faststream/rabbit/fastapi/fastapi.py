@@ -1,10 +1,9 @@
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Optional,
     Union,
     cast,
@@ -69,15 +68,15 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         *,
         # connection args
         host: Annotated[
-            Optional[str],
+            str | None,
             Doc("Destination host. This option overrides `url` option host."),
         ] = None,
         port: Annotated[
-            Optional[int],
+            int | None,
             Doc("Destination port. This option overrides `url` option port."),
         ] = None,
         virtualhost: Annotated[
-            Optional[str],
+            str | None,
             Doc("RabbitMQ virtual host to use in the current broker connection."),
         ] = None,
         ssl_options: Annotated[
@@ -105,12 +104,12 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         # channel args
         default_channel: Optional["Channel"] = None,
         app_id: Annotated[
-            Optional[str],
+            str | None,
             Doc("Application name to mark outgoing messages by."),
         ] = SERVICE_NAME,
         # broker base args
         graceful_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc(
                 "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
             ),
@@ -135,19 +134,19 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         specification_url: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
         ] = None,
         protocol: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol."),
         ] = None,
         protocol_version: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol version."),
         ] = "0.9.1",
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server description."),
         ] = None,
         specification_tags: Annotated[
@@ -172,7 +171,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = True,
         schema_url: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
             ),
@@ -183,7 +182,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("An optional path prefix for the router."),
         ] = "",
         tags: Annotated[
-            Optional[list[Union[str, "Enum"]]],
+            list[Union[str, "Enum"]] | None,
             Doc(
                 """
                 A list of tags to be applied to all the *path operations* in this
@@ -197,7 +196,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         dependencies: Annotated[
-            Optional[Sequence["params.Depends"]],
+            Sequence["params.Depends"] | None,
             Doc(
                 """
                 A list of dependencies (using `Depends()`) to be applied to all the
@@ -220,7 +219,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            Optional[dict[Union[int, str], "AnyDict"]],
+            dict[int | str, "AnyDict"] | None,
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.
@@ -236,7 +235,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         callbacks: Annotated[
-            Optional[list[BaseRoute]],
+            list[BaseRoute] | None,
             Doc(
                 """
                 OpenAPI callbacks that should apply to all *path operations* in this
@@ -250,7 +249,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         routes: Annotated[
-            Optional[list[BaseRoute]],
+            list[BaseRoute] | None,
             Doc(
                 """
                 **Note**: you probably shouldn't use this parameter, it is inherited
@@ -290,7 +289,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         dependency_overrides_provider: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 """
                 Only used internally by FastAPI to handle dependency overrides.
@@ -312,7 +311,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = APIRoute,
         on_startup: Annotated[
-            Optional[Sequence[Callable[[], Any]]],
+            Sequence[Callable[[], Any]] | None,
             Doc(
                 """
                 A list of startup event handler functions.
@@ -324,7 +323,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         on_shutdown: Annotated[
-            Optional[Sequence[Callable[[], Any]]],
+            Sequence[Callable[[], Any]] | None,
             Doc(
                 """
                 A list of shutdown event handler functions.
@@ -349,7 +348,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         deprecated: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 """
                 Mark all *path operations* in this router as deprecated.
@@ -441,14 +440,14 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
     def subscriber(  # type: ignore[override]
         self,
         queue: Annotated[
-            Union[str, RabbitQueue],
+            str | RabbitQueue,
             Doc(
                 "RabbitMQ queue to listen. "
                 "**FastStream** declares and binds queue object to `exchange` automatically by default.",
             ),
         ],
         exchange: Annotated[
-            Union[str, RabbitExchange, None],
+            str | RabbitExchange | None,
             Doc(
                 "RabbitMQ exchange to bind queue to. "
                 "Uses default exchange if not present. "
@@ -501,11 +500,11 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -671,11 +670,11 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
     def publisher(
         self,
         queue: Annotated[
-            Union[RabbitQueue, str],
+            RabbitQueue | str,
             Doc("Default message routing key to publish with."),
         ] = "",
         exchange: Annotated[
-            Union[RabbitExchange, str, None],
+            RabbitExchange | str | None,
             Doc("Target exchange to publish message to."),
         ] = None,
         *,
@@ -709,13 +708,13 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Restore the message on RabbitMQ reboot."),
         ] = False,
         reply_to: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Reply message routing key to send with (always sending to default exchange).",
             ),
         ] = None,
         priority: Annotated[
-            Optional[int],
+            int | None,
             Doc("The message priority (0 by default)."),
         ] = None,
         # specific
@@ -729,15 +728,15 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -756,7 +755,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         content_type: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Message **content-type** header. "
                 "Used by application, not core RabbitMQ. "
@@ -764,7 +763,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             ),
         ] = None,
         content_encoding: Annotated[
-            Optional[str],
+            str | None,
             Doc("Message body content encoding, e.g. **gzip**."),
         ] = None,
         expiration: Annotated[
@@ -772,11 +771,11 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
         ] = None,
         message_type: Annotated[
-            Optional[str],
+            str | None,
             Doc("Application-specific message type, e.g. **orders.created**."),
         ] = None,
         user_id: Annotated[
-            Optional[str],
+            str | None,
             Doc("Publisher connection User ID, validated if set."),
         ] = None,
     ) -> "RabbitPublisher":

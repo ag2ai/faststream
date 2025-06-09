@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Callable, Optional, Union, overload
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 from faststream.asgi.response import AsgiResponse
 
@@ -13,8 +13,8 @@ class HttpHandler:
         func: "UserApp",
         *,
         include_in_schema: bool = True,
-        description: Optional[str] = None,
-        methods: Optional[Sequence[str]] = None,
+        description: str | None = None,
+        methods: Sequence[str] | None = None,
     ) -> None:
         self.func = func
         self.methods = methods or ()
@@ -40,7 +40,7 @@ class GetHandler(HttpHandler):
         func: "UserApp",
         *,
         include_in_schema: bool = True,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> None:
         super().__init__(
             func,
@@ -55,7 +55,7 @@ def get(
     func: "UserApp",
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> "ASGIApp": ...
 
 
@@ -64,7 +64,7 @@ def get(
     func: None = None,
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
@@ -72,7 +72,7 @@ def get(
     func: Optional["UserApp"] = None,
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(

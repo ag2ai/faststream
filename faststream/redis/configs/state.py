@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from redis.asyncio.client import Redis
 from redis.asyncio.connection import ConnectionPool
@@ -8,11 +8,11 @@ from faststream.exceptions import IncorrectState
 
 
 class ConnectionState:
-    def __init__(self, options: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, options: dict[str, Any] | None = None) -> None:
         self._options = options or {}
 
         self._connected = False
-        self._client: Optional[Redis[bytes]] = None
+        self._client: Redis[bytes] | None = None
 
     @property
     def client(self) -> "Redis[bytes]":

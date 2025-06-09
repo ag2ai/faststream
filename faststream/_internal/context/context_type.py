@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from fast_depends.library import CustomField
 
@@ -26,7 +27,7 @@ class Context(CustomField):
         real_name: str = "",
         *,
         default: Any = EMPTY,
-        initial: Optional[Callable[..., Any]] = None,
+        initial: Callable[..., Any] | None = None,
         cast: bool = False,
         prefix: str = "",
     ) -> None:

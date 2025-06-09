@@ -1,7 +1,3 @@
-from typing import (
-    Optional,
-    Union,
-)
 
 from pydantic import AnyHttpUrl
 
@@ -23,6 +19,6 @@ class ApplicationInfo(BaseApplicationInfo):
         license : license information for the information
     """
 
-    termsOfService: Optional[AnyHttpUrl] = None
-    contact: Optional[Union[Contact, AnyDict]] = None
-    license: Optional[Union[License, AnyDict]] = None
+    termsOfService: AnyHttpUrl | None = None
+    contact: Contact | AnyDict | None = None
+    license: License | AnyDict | None = None

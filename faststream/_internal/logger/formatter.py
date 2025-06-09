@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Literal, Optional
+from typing import Literal
 
 COLORED_LEVELS = {
     logging.DEBUG: "\033[36mDEBUG\033[0m",
@@ -21,10 +21,10 @@ class ColourizedFormatter(logging.Formatter):
 
     def __init__(
         self,
-        fmt: Optional[str] = None,
-        datefmt: Optional[str] = None,
+        fmt: str | None = None,
+        datefmt: str | None = None,
         style: Literal["%", "{", "$"] = "%",
-        use_colors: Optional[bool] = None,
+        use_colors: bool | None = None,
     ) -> None:
         """Initialize the formatter with specified format strings.
 

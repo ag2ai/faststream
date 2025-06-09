@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
 from .specification import RabbitPublisherSpecification
@@ -24,9 +24,9 @@ def create_publisher(
     # Publisher args
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
+    schema_: Any | None,
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> RabbitPublisher:
     publisher_config = RabbitPublisherConfig(

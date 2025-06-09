@@ -1,4 +1,4 @@
-from typing import Any, Generic, Optional, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 
 
 class Unsubscriptable(Protocol):
@@ -8,7 +8,7 @@ class Unsubscriptable(Protocol):
 class Watchable(Protocol):
     async def stop(self) -> None: ...
 
-    async def updates(self, timeout: float) -> Optional[Any]: ...
+    async def updates(self, timeout: float) -> Any | None: ...
 
 
 WatchableT = TypeVar("WatchableT", bound=Watchable)

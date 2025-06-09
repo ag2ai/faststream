@@ -56,7 +56,7 @@ class NatsRegistrator(Registrator["Msg"]):
             ),
         ] = "",
         pending_msgs_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit of messages, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
@@ -66,7 +66,7 @@ class NatsRegistrator(Registrator["Msg"]):
             ),
         ] = None,
         pending_bytes_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "The number of bytes, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
@@ -82,7 +82,7 @@ class NatsRegistrator(Registrator["Msg"]):
         ] = 0,
         # JS arguments
         durable: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Name of the durable consumer to which the the subscription should be bound.",
             ),
@@ -96,11 +96,11 @@ class NatsRegistrator(Registrator["Msg"]):
             Doc("Enable ordered consumer mode."),
         ] = False,
         idle_heartbeat: Annotated[
-            Optional[float],
+            float | None,
             Doc("Enable Heartbeats for a consumer to detect failures."),
         ] = None,
         flow_control: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Enable Flow Control for a consumer."),
         ] = None,
         deliver_policy: Annotated[
@@ -108,7 +108,7 @@ class NatsRegistrator(Registrator["Msg"]):
             Doc("Deliver Policy to be used for subscription."),
         ] = None,
         headers_only: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 "Should be message delivered without payload, only headers and metadata.",
             ),
@@ -192,11 +192,11 @@ class NatsRegistrator(Registrator["Msg"]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -269,7 +269,7 @@ class NatsRegistrator(Registrator["Msg"]):
         ],
         *,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -289,7 +289,7 @@ class NatsRegistrator(Registrator["Msg"]):
             ),
         ] = None,
         timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Timeout to send message to NATS."),
         ] = None,
         # basic args
@@ -303,15 +303,15 @@ class NatsRegistrator(Registrator["Msg"]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -367,7 +367,7 @@ class NatsRegistrator(Registrator["Msg"]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Msg]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, NatsRegistrator):
             msg = (

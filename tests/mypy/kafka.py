@@ -1,5 +1,4 @@
-from collections.abc import Awaitable
-from typing import Callable
+from collections.abc import Awaitable, Callable
 
 import prometheus_client
 from aiokafka import ConsumerRecord

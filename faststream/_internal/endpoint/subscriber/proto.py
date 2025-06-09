@@ -50,7 +50,7 @@ class SubscriberProto(Endpoint[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[StreamMessage[MsgType]]": ...
+    ) -> "StreamMessage[MsgType] | None": ...
 
     @abstractmethod
     def add_call(

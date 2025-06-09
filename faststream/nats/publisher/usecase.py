@@ -43,11 +43,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         stream: None = None,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None: ...
 
     @overload
@@ -55,11 +55,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> "PubAck": ...
 
     @override
@@ -67,11 +67,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -142,8 +142,8 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.

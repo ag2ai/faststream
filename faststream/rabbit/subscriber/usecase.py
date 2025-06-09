@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
-    app_id: Optional[str]
+    app_id: str | None
     _outer_config: "RabbitBrokerConfig"
 
-    _consumer_tag: Optional[str]
+    _consumer_tag: str | None
     _queue_obj: Optional["RobustQueue"]
 
     def __init__(self, config: "RabbitSubscriberConfig", specification: "RabbitSubscriberSpecificationConfig", calls: "CallsCollection") -> None:
@@ -123,7 +123,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         *,
         timeout: float = 5.0,
         no_ack: bool = True,
-    ) -> "Optional[RabbitMessage]":
+    ) -> "RabbitMessage | None":
         assert self._queue_obj, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -131,7 +131,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         sleep_interval = timeout / 10
 
-        raw_message: Optional[IncomingMessage] = None
+        raw_message: IncomingMessage | None = None
         with (
             contextlib.suppress(asyncio.exceptions.CancelledError),
             anyio.move_on_after(timeout),
@@ -147,7 +147,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         context = self._outer_config.fd_config.context
 
-        msg: Optional[RabbitMessage] = await process_msg(  # type: ignore[assignment]
+        msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares

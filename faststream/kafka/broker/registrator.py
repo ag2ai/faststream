@@ -1,9 +1,8 @@
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Literal,
     Optional,
     Union,
@@ -84,7 +83,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -95,14 +94,14 @@ class KafkaRegistrator(
             ),
         ] = None,
         key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "key and returns a deserialized one.",
             ),
         ] = None,
         value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "value and returns a deserialized value.",
@@ -235,7 +234,7 @@ class KafkaRegistrator(
             ),
         ] = 5 * 60 * 1000,
         rebalance_timeout_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum time server will wait for this
@@ -290,7 +289,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_poll_records: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum number of records returned in a
@@ -351,7 +350,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         listener: Annotated[
@@ -383,7 +382,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         pattern: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Pattern to match available topics. You must provide either topics or pattern, but not both.
@@ -437,11 +436,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -465,7 +464,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ],
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -476,14 +475,14 @@ class KafkaRegistrator(
             ),
         ] = None,
         key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "key and returns a deserialized one.",
             ),
         ] = None,
         value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "value and returns a deserialized value.",
@@ -616,7 +615,7 @@ class KafkaRegistrator(
             ),
         ] = 5 * 60 * 1000,
         rebalance_timeout_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum time server will wait for this
@@ -671,7 +670,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_poll_records: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum number of records returned in a
@@ -732,7 +731,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         listener: Annotated[
@@ -764,7 +763,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         pattern: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Pattern to match available topics. You must provide either topics or pattern, but not both.
@@ -818,11 +817,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -846,7 +845,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -857,14 +856,14 @@ class KafkaRegistrator(
             ),
         ] = None,
         key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "key and returns a deserialized one.",
             ),
         ] = None,
         value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "value and returns a deserialized value.",
@@ -997,7 +996,7 @@ class KafkaRegistrator(
             ),
         ] = 5 * 60 * 1000,
         rebalance_timeout_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum time server will wait for this
@@ -1052,7 +1051,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_poll_records: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum number of records returned in a
@@ -1113,7 +1112,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         listener: Annotated[
@@ -1145,7 +1144,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         pattern: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Pattern to match available topics. You must provide either topics or pattern, but not both.
@@ -1199,11 +1198,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -1230,7 +1229,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -1241,14 +1240,14 @@ class KafkaRegistrator(
             ),
         ] = None,
         key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "key and returns a deserialized one.",
             ),
         ] = None,
         value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "value and returns a deserialized value.",
@@ -1381,7 +1380,7 @@ class KafkaRegistrator(
             ),
         ] = 5 * 60 * 1000,
         rebalance_timeout_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum time server will wait for this
@@ -1436,7 +1435,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_poll_records: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum number of records returned in a
@@ -1497,7 +1496,7 @@ class KafkaRegistrator(
             ),
         ] = 200,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         listener: Annotated[
@@ -1529,7 +1528,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         pattern: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Pattern to match available topics. You must provide either topics or pattern, but not both.
@@ -1594,11 +1593,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -1690,7 +1689,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1704,7 +1703,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1713,7 +1712,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1739,15 +1738,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1772,7 +1771,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1786,7 +1785,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1795,7 +1794,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1821,15 +1820,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1854,7 +1853,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1868,7 +1867,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1877,7 +1876,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1903,15 +1902,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1939,7 +1938,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1953,7 +1952,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1962,7 +1961,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1988,15 +1987,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -2056,9 +2055,9 @@ class KafkaRegistrator(
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable[
-            "BrokerMiddleware[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]"
+            "BrokerMiddleware[ConsumerRecord | tuple[ConsumerRecord, ...]]"
         ] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):
             msg = (

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 from faststream.message import decode_message
 
@@ -94,6 +94,6 @@ class AsyncConfluentParser:
 
 
 def _parse_msg_headers(
-    headers: Sequence[tuple[str, Union[bytes, str]]],
+    headers: Sequence[tuple[str, bytes | str]],
 ) -> dict[str, str]:
     return {i: j if isinstance(j, str) else j.decode() for i, j in headers}

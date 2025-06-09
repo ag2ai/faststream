@@ -83,18 +83,18 @@ class RabbitBroker(
             str, "URL", None
         ] = "amqp://guest:guest@localhost:5672/",  # pragma: allowlist secret
         *,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        virtualhost: Optional[str] = None,
+        host: str | None = None,
+        port: int | None = None,
+        virtualhost: str | None = None,
         ssl_options: Optional["SSLOptions"] = None,
         client_properties: Optional["RabbitClientProperties"] = None,
         timeout: "TimeoutType" = None,
         fail_fast: bool = True,
         reconnect_interval: "TimeoutType" = 5.0,
         default_channel: Optional["Channel"] = None,
-        app_id: Optional[str] = SERVICE_NAME,
+        app_id: str | None = SERVICE_NAME,
         # broker base args
-        graceful_timeout: Optional[float] = None,
+        graceful_timeout: float | None = None,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
@@ -102,10 +102,10 @@ class RabbitBroker(
         routers: Sequence["Registrator[IncomingMessage]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
-        specification_url: Optional[str] = None,
-        protocol: Optional[str] = None,
-        protocol_version: Optional[str] = "0.9.1",
-        description: Optional[str] = None,
+        specification_url: str | None = None,
+        protocol: str | None = None,
+        protocol_version: str | None = "0.9.1",
+        description: str | None = None,
         tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
         logger: Optional["LoggerProto"] = EMPTY,
@@ -239,8 +239,8 @@ class RabbitBroker(
 
     async def close(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         await super().close(exc_type, exc_val, exc_tb)
@@ -276,18 +276,18 @@ class RabbitBroker(
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: Optional[str] = None,
-        correlation_id: Optional[str] = None,
+        reply_to: str | None = None,
+        correlation_id: str | None = None,
         # message options
         headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
         expiration: Optional["DateType"] = None,
-        message_id: Optional[str] = None,
+        message_id: str | None = None,
         timestamp: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-        priority: Optional[int] = None,
+        message_type: str | None = None,
+        user_id: str | None = None,
+        priority: int | None = None,
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         """Publish message directly.
 
@@ -377,16 +377,16 @@ class RabbitBroker(
         timeout: "TimeoutType" = None,
         persist: bool = False,
         # message args
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
         expiration: Optional["DateType"] = None,
-        message_id: Optional[str] = None,
+        message_id: str | None = None,
         timestamp: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-        priority: Optional[int] = None,
+        message_type: str | None = None,
+        user_id: str | None = None,
+        priority: int | None = None,
     ) -> "RabbitMessage":
         """Make a synchronous request to RabbitMQ.
 
@@ -450,7 +450,7 @@ class RabbitBroker(
         return await self.config.declarer.declare_exchange(exchange)
 
     @override
-    async def ping(self, timeout: Optional[float]) -> bool:
+    async def ping(self, timeout: float | None) -> bool:
         sleep_time = (timeout or 10) / 10
 
         with anyio.move_on_after(timeout) as cancel_scope:

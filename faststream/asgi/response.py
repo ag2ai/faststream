@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from faststream.asgi.types import Receive, Scope, Send
@@ -10,7 +10,7 @@ class AsgiResponse:
         self,
         body: bytes,
         status_code: int,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         self.status_code = status_code
         self.body = body
@@ -35,7 +35,7 @@ class AsgiResponse:
 
 def _get_response_headers(
     body: bytes,
-    headers: Optional[Mapping[str, str]],
+    headers: Mapping[str, str] | None,
     status_code: int,
 ) -> list[tuple[bytes, bytes]]:
     if headers is None:

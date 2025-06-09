@@ -64,10 +64,10 @@ class ChannelPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        channel: Optional[str] = None,
+        channel: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -100,11 +100,11 @@ class ChannelPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        channel: Optional[str] = None,
+        channel: str | None = None,
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,
@@ -147,10 +147,10 @@ class ListPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        list: Optional[str] = None,
+        list: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -184,11 +184,11 @@ class ListPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        list: Optional[str] = None,
+        list: str | None = None,
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,
@@ -209,7 +209,7 @@ class ListBatchPublisher(ListPublisher):
         self,
         *messages: "SendableMessage",
         list: str,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
     ) -> int:
@@ -269,12 +269,12 @@ class StreamPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        stream: Optional[str] = None,
+        stream: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         *,
-        maxlen: Optional[int] = None,
+        maxlen: int | None = None,
     ) -> bytes:
         cmd = RedisPublishCommand(
             message,
@@ -310,12 +310,12 @@ class StreamPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        stream: Optional[str] = None,
+        stream: str | None = None,
         *,
-        maxlen: Optional[int] = None,
-        correlation_id: Optional[str] = None,
+        maxlen: int | None = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,

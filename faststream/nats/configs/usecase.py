@@ -47,6 +47,6 @@ class NatsPublisherConfig(PublisherUsecaseConfig):
 
     subject: str
     reply_to: str
-    headers: Optional[dict[str, str]]
+    headers: dict[str, str] | None
     stream: Optional["JStream"]
-    timeout: Optional[float]
+    timeout: float | None

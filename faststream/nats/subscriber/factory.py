@@ -39,18 +39,18 @@ def create_subscriber(
     *,
     subject: str,
     queue: str,
-    pending_msgs_limit: Optional[int],
-    pending_bytes_limit: Optional[int],
+    pending_msgs_limit: int | None,
+    pending_bytes_limit: int | None,
     # Core args
     max_msgs: int,
     # JS args
-    durable: Optional[str],
+    durable: str | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,
-    idle_heartbeat: Optional[float],
-    flow_control: Optional[bool],
+    idle_heartbeat: float | None,
+    flow_control: bool | None,
     deliver_policy: Optional["api.DeliverPolicy"],
-    headers_only: Optional[bool],
+    headers_only: bool | None,
     # pull args
     pull_sub: Optional["PullSub"],
     kv_watch: Optional["KvWatch"],
@@ -66,8 +66,8 @@ def create_subscriber(
     no_reply: bool,
     broker_config: "NatsBrokerConfig",
     # Specification information
-    title_: Optional[str],
-    description_: Optional[str],
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
     "SpecificationCoreSubscriber",
@@ -235,16 +235,16 @@ def create_subscriber(
 def _validate_input_for_misconfigure(  # noqa: PLR0915
     subject: str,
     queue: str,  # default ""
-    pending_msgs_limit: Optional[int],
-    pending_bytes_limit: Optional[int],
+    pending_msgs_limit: int | None,
+    pending_bytes_limit: int | None,
     max_msgs: int,  # default 0
-    durable: Optional[str],
+    durable: str | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,  # default False
-    idle_heartbeat: Optional[float],
-    flow_control: Optional[bool],
+    idle_heartbeat: float | None,
+    flow_control: bool | None,
     deliver_policy: Optional["api.DeliverPolicy"],
-    headers_only: Optional[bool],
+    headers_only: bool | None,
     pull_sub: Optional["PullSub"],
     kv_watch: Optional["KvWatch"],
     obj_watch: Optional["ObjWatch"],

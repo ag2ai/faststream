@@ -1,9 +1,8 @@
-from collections.abc import Awaitable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Optional,
     Union,
 )
@@ -52,7 +51,7 @@ class NatsPublisher(ArgsContainer):
         ],
         *,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -72,7 +71,7 @@ class NatsPublisher(ArgsContainer):
             ),
         ] = None,
         timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Timeout to send message to NATS."),
         ] = None,
         # basic args
@@ -86,15 +85,15 @@ class NatsPublisher(ArgsContainer):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -125,10 +124,7 @@ class NatsRoute(SubscriberRoute):
     def __init__(
         self,
         call: Annotated[
-            Union[
-                Callable[..., "SendableMessage"],
-                Callable[..., Awaitable["SendableMessage"]],
-            ],
+            Callable[..., "SendableMessage"] | Callable[..., Awaitable["SendableMessage"]],
             Doc(
                 "Message handler function "
                 "to wrap the same with `@broker.subscriber(...)` way.",
@@ -150,7 +146,7 @@ class NatsRoute(SubscriberRoute):
             ),
         ] = "",
         pending_msgs_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit of messages, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
@@ -160,7 +156,7 @@ class NatsRoute(SubscriberRoute):
             ),
         ] = None,
         pending_bytes_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "The number of bytes, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
@@ -176,7 +172,7 @@ class NatsRoute(SubscriberRoute):
         ] = 0,
         # JS arguments
         durable: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Name of the durable consumer to which the the subscription should be bound.",
             ),
@@ -190,11 +186,11 @@ class NatsRoute(SubscriberRoute):
             Doc("Enable ordered consumer mode."),
         ] = False,
         idle_heartbeat: Annotated[
-            Optional[float],
+            float | None,
             Doc("Enable Heartbeats for a consumer to detect failures."),
         ] = None,
         flow_control: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Enable Flow Control for a consumer."),
         ] = None,
         deliver_policy: Annotated[
@@ -202,7 +198,7 @@ class NatsRoute(SubscriberRoute):
             Doc("Deliver Policy to be used for subscription."),
         ] = None,
         headers_only: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 "Should be message delivered without payload, only headers and metadata.",
             ),
@@ -286,11 +282,11 @@ class NatsRoute(SubscriberRoute):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -376,7 +372,7 @@ class NatsRouter(
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         include_in_schema: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = None,
     ) -> None:

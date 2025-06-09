@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.channels import Channel
@@ -27,11 +27,11 @@ class ApplicationSchema(BaseApplicationSchema):
 
     info: ApplicationInfo
 
-    asyncapi: Union[Literal["2.6.0"], str]
-    id: Optional[str] = None
-    defaultContentType: Optional[str] = None
-    servers: Optional[dict[str, Server]] = None
+    asyncapi: Literal["2.6.0"] | str
+    id: str | None = None
+    defaultContentType: str | None = None
+    servers: dict[str, Server] | None = None
     channels: dict[str, Channel]
-    components: Optional[Components] = None
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
-    externalDocs: Optional[Union[ExternalDocs, AnyDict]] = None
+    components: Components | None = None
+    tags: list[Tag | AnyDict] | None = None
+    externalDocs: ExternalDocs | AnyDict | None = None

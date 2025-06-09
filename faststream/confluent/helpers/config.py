@@ -1,8 +1,8 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -141,17 +141,17 @@ _AdminConfig = _SharedConfig | {
 ConfluentConfig = TypedDict(
     "ConfluentConfig",
     {
-        "compression.codec": Union[CompressionCodec, str],
-        "compression.type": Union[CompressionType, str],
-        "client.dns.lookup": Union[ClientDNSLookup, str],
-        "offset.store.method": Union[OffsetStoreMethod, str],
-        "isolation.level": Union[IsolationLevel, str],
-        "sasl.oauthbearer.method": Union[SASLOAUTHBearerMethod, str],
-        "security.protocol": Union[SecurityProtocol, str],
-        "broker.address.family": Union[BrokerAddressFamily, str],
-        "builtin.features": Union[BuiltinFeatures, str],
-        "debug": Union[Debug, str],
-        "group.protocol": Union[GroupProtocol, str],
+        "compression.codec": CompressionCodec | str,
+        "compression.type": CompressionType | str,
+        "client.dns.lookup": ClientDNSLookup | str,
+        "offset.store.method": OffsetStoreMethod | str,
+        "isolation.level": IsolationLevel | str,
+        "sasl.oauthbearer.method": SASLOAUTHBearerMethod | str,
+        "security.protocol": SecurityProtocol | str,
+        "broker.address.family": BrokerAddressFamily | str,
+        "builtin.features": BuiltinFeatures | str,
+        "debug": Debug | str,
+        "group.protocol": GroupProtocol | str,
         "client.id": str,
         "metadata.broker.list": str,
         "bootstrap.servers": str,
@@ -305,29 +305,23 @@ class ConfluentFastConfig:
         self,
         *,
         security: Optional["BaseSecurity"] = None,
-        config: Optional[ConfluentConfig] = None,
+        config: ConfluentConfig | None = None,
         # shared
-        bootstrap_servers: Union[str, Iterable[str]] = "localhost",
+        bootstrap_servers: str | Iterable[str] = "localhost",
         retry_backoff_ms: int = 100,
-        client_id: Optional[str] = SERVICE_NAME,
+        client_id: str | None = SERVICE_NAME,
         allow_auto_create_topics: bool = True,
         connections_max_idle_ms: int = 9 * 60 * 1000,
         metadata_max_age_ms: int = 5 * 60 * 1000,
         # producer
         request_timeout_ms: int = 40 * 1000,
         acks: Literal[0, 1, -1, "all"] = EMPTY,
-        compression_type: Optional[Literal["gzip", "snappy", "lz4", "zstd"]] = None,
-        partitioner: Union[
-            str,
-            Callable[
-                [bytes, list[Any], list[Any]],
-                Any,
-            ],
-        ] = "consistent_random",
+        compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
+        partitioner: str | Callable[[bytes, list[Any], list[Any]], Any] = "consistent_random",
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
-        transactional_id: Optional[str] = None,
+        transactional_id: str | None = None,
         transaction_timeout_ms: int = 60 * 1000,
     ) -> None:
         self.config = parse_security(security) | (config or {})

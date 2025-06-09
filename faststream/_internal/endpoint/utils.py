@@ -1,13 +1,11 @@
 import inspect
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
 from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
-    Union,
     cast,
 )
 
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
 
 
 async def process_msg(
-    msg: Optional[MsgType],
+    msg: MsgType | None,
     *,
     middlewares: Iterable["BaseMiddleware"],
     parser: Callable[[MsgType], Awaitable["StreamMessage[MsgType]"]],
@@ -66,7 +64,7 @@ def resolve_custom_func(
     original_params = inspect.signature(custom_func).parameters
 
     if len(original_params) == 1:
-        return to_async(cast("Union[SyncCallable, AsyncCallable]", custom_func))
+        return to_async(cast("SyncCallable | AsyncCallable", custom_func))
 
     name = tuple(original_params.items())[1][0]
     return partial(to_async(custom_func), **{name: default_func})

@@ -58,8 +58,8 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
         middlewares: Sequence["SubscriberMiddleware[RabbitMessage]"] = (),
         no_reply: bool = False,
         # AsyncAPI information
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        title: str | None = None,
+        description: str | None = None,
         include_in_schema: bool = True,
     ) -> "RabbitSubscriber":
         """Subscribe a handler to a RabbitMQ queue.
@@ -122,22 +122,22 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: Optional[str] = None,
-        priority: Optional[int] = None,
+        reply_to: str | None = None,
+        priority: int | None = None,
         # specific
         middlewares: Sequence["PublisherMiddleware"] = (),
         # AsyncAPI information
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        schema: Optional[Any] = None,
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
         include_in_schema: bool = True,
         # message args
         headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
         expiration: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
+        message_type: str | None = None,
+        user_id: str | None = None,
     ) -> "RabbitPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
@@ -217,7 +217,7 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RabbitRegistrator):
             msg = (

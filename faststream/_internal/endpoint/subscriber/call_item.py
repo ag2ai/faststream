@@ -43,7 +43,7 @@ class HandlerItem(Generic[MsgType]):
         "item_parser",
     )
 
-    dependant: Optional[Any]
+    dependant: Any | None
 
     def __init__(
         self,
@@ -108,7 +108,7 @@ class HandlerItem(Generic[MsgType]):
         return getattr(caller, "__name__", str(caller))
 
     @property
-    def description(self) -> Optional[str]:
+    def description(self) -> str | None:
         """Returns the description of original call."""
         if self.handler is None:
             return None
@@ -122,8 +122,8 @@ class HandlerItem(Generic[MsgType]):
         cache: dict[Any, Any],
     ) -> Optional["StreamMessage[MsgType]"]:
         """Check is message suite for current filter."""
-        if not (parser := cast("Optional[AsyncCallable]", self.item_parser)) or not (
-            decoder := cast("Optional[AsyncCallable]", self.item_decoder)
+        if not (parser := cast("AsyncCallable | None", self.item_parser)) or not (
+            decoder := cast("AsyncCallable | None", self.item_decoder)
         ):
             error_msg = "You should setup `HandlerItem` at first."
             raise SetupError(error_msg)
@@ -174,7 +174,7 @@ class CallsCollection(UserList[HandlerItem[MsgType]]):
         self.data.append(call)
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Returns the name of the handler call."""
         if not self.data:
             return None
@@ -185,7 +185,7 @@ class CallsCollection(UserList[HandlerItem[MsgType]]):
         return f"[{','.join(to_camelcase(c.name) for c in self.data)}]"
 
     @property
-    def description(self) -> Optional[str]:
+    def description(self) -> str | None:
         if not self.data:
             return None
 

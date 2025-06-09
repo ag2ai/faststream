@@ -43,11 +43,11 @@ def get_app_schema(
     schema_version: str,
     description: str,
     terms_of_service: Optional["AnyHttpUrl"],
-    contact: Optional[Union["SpecContact", "ContactDict", "AnyDict"]],
-    license: Optional[Union["SpecLicense", "LicenseDict", "AnyDict"]],
-    identifier: Optional[str],
+    contact: Union["SpecContact", "ContactDict", "AnyDict"] | None,
+    license: Union["SpecLicense", "LicenseDict", "AnyDict"] | None,
+    identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]],
-    external_docs: Optional[Union["SpecDocs", "ExternalDocsDict", "AnyDict"]],
+    external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)

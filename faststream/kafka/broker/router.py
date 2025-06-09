@@ -1,9 +1,8 @@
-from collections.abc import Awaitable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Literal,
     Optional,
     Union,
@@ -53,7 +52,7 @@ class KafkaPublisher(ArgsContainer):
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -67,7 +66,7 @@ class KafkaPublisher(ArgsContainer):
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -76,7 +75,7 @@ class KafkaPublisher(ArgsContainer):
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -102,15 +101,15 @@ class KafkaPublisher(ArgsContainer):
         ] = (),
         # AsyncAPI args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -144,10 +143,7 @@ class KafkaRoute(SubscriberRoute):
     def __init__(
         self,
         call: Annotated[
-            Union[
-                Callable[..., "SendableMessage"],
-                Callable[..., Awaitable["SendableMessage"]],
-            ],
+            Callable[..., "SendableMessage"] | Callable[..., Awaitable["SendableMessage"]],
             Doc(
                 "Message handler function "
                 "to wrap the same with `@broker.subscriber(...)` way.",
@@ -166,7 +162,7 @@ class KafkaRoute(SubscriberRoute):
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -177,14 +173,14 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = None,
         key_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "key and returns a deserialized one.",
             ),
         ] = None,
         value_deserializer: Annotated[
-            Optional[Callable[[bytes], Any]],
+            Callable[[bytes], Any] | None,
             Doc(
                 "Any callable that takes a raw message `bytes` "
                 "value and returns a deserialized value.",
@@ -317,7 +313,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = 5 * 60 * 1000,
         rebalance_timeout_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum time server will wait for this
@@ -372,7 +368,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = 200,
         max_poll_records: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             The maximum number of records returned in a
@@ -433,7 +429,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = 200,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         listener: Annotated[
@@ -465,7 +461,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = None,
         pattern: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Pattern to match available topics. You must provide either topics or pattern, but not both.
@@ -473,7 +469,7 @@ class KafkaRoute(SubscriberRoute):
             ),
         ] = None,
         partitions: Annotated[
-            Optional[Iterable["TopicPartition"]],
+            Iterable["TopicPartition"] | None,
             Doc(
                 """
             A topic and partition tuple. You can't use 'topics' and 'partitions' in the same time.
@@ -518,11 +514,11 @@ class KafkaRoute(SubscriberRoute):
         ] = False,
         # AsyncAPI args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -633,7 +629,7 @@ class KafkaRouter(
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         include_in_schema: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = None,
     ) -> None:

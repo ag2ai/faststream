@@ -3,7 +3,6 @@ from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Generic,
-    Optional,
 )
 
 from faststream._internal.configs import BrokerConfig, ConfigComposition
@@ -92,7 +91,7 @@ class Registrator(Generic[MsgType]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[MsgType]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         """Includes a router in the current object."""
         if options_config := BrokerConfig(

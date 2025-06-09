@@ -4,7 +4,7 @@ References: https://github.com/asyncapi/bindings/tree/master/sqs
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -29,5 +29,5 @@ class OperationBinding:
         bindingVersion : version of the binding, default is "custom"
     """
 
-    replyTo: Optional[dict[str, Any]] = None
+    replyTo: dict[str, Any] | None = None
     bindingVersion: str = "custom"

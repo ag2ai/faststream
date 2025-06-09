@@ -1,16 +1,14 @@
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
+    Literal,
     NoReturn,
     Optional,
-    Union,
+    TypeAlias,
     cast,
     overload,
 )
-
-from typing_extensions import Literal, TypeAlias
 
 from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
@@ -26,10 +24,7 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
 
-GeneralExceptionHandler: TypeAlias = Union[
-    Callable[..., None],
-    Callable[..., Awaitable[None]],
-]
+GeneralExceptionHandler: TypeAlias = Callable[..., None] | Callable[..., Awaitable[None]]
 PublishingExceptionHandler: TypeAlias = Callable[..., Any]
 
 CastedGeneralExceptionHandler: TypeAlias = Callable[..., Awaitable[None]]
@@ -56,18 +51,8 @@ class ExceptionMiddleware:
 
     def __init__(
         self,
-        handlers: Optional[
-            dict[
-                type[Exception],
-                GeneralExceptionHandler,
-            ]
-        ] = None,
-        publish_handlers: Optional[
-            dict[
-                type[Exception],
-                PublishingExceptionHandler,
-            ]
-        ] = None,
+        handlers: dict[type[Exception], GeneralExceptionHandler] | None = None,
+        publish_handlers: dict[type[Exception], PublishingExceptionHandler] | None = None,
     ) -> None:
         self._handlers: CastedHandlers = [
             (IgnoredException, ignore_handler),
@@ -108,10 +93,7 @@ class ExceptionMiddleware:
         self,
         exc: type[Exception],
         publish: bool = False,
-    ) -> Union[
-        Callable[[GeneralExceptionHandler], GeneralExceptionHandler],
-        Callable[[PublishingExceptionHandler], PublishingExceptionHandler],
-    ]:
+    ) -> Callable[[GeneralExceptionHandler], GeneralExceptionHandler] | Callable[[PublishingExceptionHandler], PublishingExceptionHandler]:
         if publish:
 
             def pub_wrapper(
@@ -142,7 +124,7 @@ class ExceptionMiddleware:
 
     def __call__(
         self,
-        msg: Optional[Any],
+        msg: Any | None,
         /,
         *,
         context: "ContextRepo",
@@ -163,7 +145,7 @@ class _BaseExceptionMiddleware(BaseMiddleware):
         handlers: CastedHandlers,
         publish_handlers: CastedPublishingHandlers,
         context: "ContextRepo",
-        msg: Optional[Any],
+        msg: Any | None,
     ) -> None:
         super().__init__(msg, context=context)
         self._handlers = handlers
@@ -188,10 +170,10 @@ class _BaseExceptionMiddleware(BaseMiddleware):
 
     async def after_processed(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if exc_type:
             for handler_type, handler in self._handlers:
                 if issubclass(exc_type, handler_type):

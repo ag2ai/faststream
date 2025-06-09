@@ -1,8 +1,8 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Callable, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
@@ -53,7 +53,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.consumer = None
 
     @property
-    def pattern(self) -> Optional[str]:
+    def pattern(self) -> str | None:
         if not self._pattern:
             return self._pattern
         return f"{self._outer_config.prefix}{self._pattern}"
@@ -77,7 +77,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.builder
 
     @property
-    def client_id(self) -> Optional[str]:
+    def client_id(self) -> str | None:
         return self._outer_config.client_id
 
     async def start(self) -> None:
@@ -126,7 +126,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[StreamMessage[MsgType]]":
+    ) -> "StreamMessage[MsgType] | None":
         assert (  # nosec B101
             not self.calls
         ), "You can't use `get_one` method if subscriber has registered handlers."
@@ -233,7 +233,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         topic: str,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
     ) -> dict[str, str]:
         return {
             "topic": topic,
@@ -290,7 +290,7 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         /,
         *,
         batch_timeout_ms: int,
-        max_records: Optional[int],
+        max_records: int | None,
     ) -> None:
         if config.pattern:
             reg, pattern = compile_path(

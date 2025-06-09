@@ -4,7 +4,7 @@ References: https://github.com/asyncapi/bindings/tree/master/nats
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -17,7 +17,7 @@ class ChannelBinding:
     """
 
     subject: str
-    queue: Optional[str]
+    queue: str | None
 
 
 @dataclass
@@ -28,4 +28,4 @@ class OperationBinding:
         reply_to : optional dictionary containing reply information
     """
 
-    reply_to: Optional[dict[str, Any]]
+    reply_to: dict[str, Any] | None

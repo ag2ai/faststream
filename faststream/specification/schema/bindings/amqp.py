@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
@@ -35,9 +35,9 @@ class Exchange:
         "x-modulus-hash",
     ]
 
-    name: Optional[str] = None
-    durable: Optional[bool] = None
-    auto_delete: Optional[bool] = None
+    name: str | None = None
+    durable: bool | None = None
+    auto_delete: bool | None = None
 
     @classmethod
     def from_exchange(cls, exchange: "RabbitExchange") -> "Exchange":
@@ -69,11 +69,11 @@ class ChannelBinding:
 
 @dataclass
 class OperationBinding:
-    routing_key: Optional[str]
+    routing_key: str | None
     queue: Queue
     exchange: Exchange
     ack: bool
-    reply_to: Optional[str]
-    persist: Optional[bool]
-    mandatory: Optional[bool]
-    priority: Optional[int]
+    reply_to: str | None
+    persist: bool | None
+    mandatory: bool | None
+    priority: int | None

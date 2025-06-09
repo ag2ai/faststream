@@ -1,5 +1,5 @@
-from collections.abc import Awaitable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Union
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
 
 from typing_extensions import Doc, deprecated
 
@@ -72,15 +72,15 @@ class RedisPublisher(ArgsContainer):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -111,10 +111,7 @@ class RedisRoute(SubscriberRoute):
     def __init__(
         self,
         call: Annotated[
-            Union[
-                Callable[..., "SendableMessage"],
-                Callable[..., Awaitable["SendableMessage"]],
-            ],
+            Callable[..., "SendableMessage"] | Callable[..., Awaitable["SendableMessage"]],
             Doc(
                 "Message handler function "
                 "to wrap the same with `@broker.subscriber(...)` way.",
@@ -177,11 +174,11 @@ class RedisRoute(SubscriberRoute):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -253,7 +250,7 @@ class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         include_in_schema: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = None,
     ) -> None:

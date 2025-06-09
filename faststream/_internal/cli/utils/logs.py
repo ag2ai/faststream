@@ -4,7 +4,7 @@ import logging.config
 from collections import defaultdict
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import typer
 
@@ -57,7 +57,7 @@ class LogFiles(str, Enum):
     toml = ".toml"
 
 
-def get_log_level(level: Union[LogLevels, str, int]) -> int:
+def get_log_level(level: LogLevels | str | int) -> int:
     """Get the log level.
 
     Args:
@@ -88,13 +88,13 @@ def set_log_level(level: int, app: "Application") -> None:
         broker.config.logger.set_level(level)
 
 
-def _get_json_config(file: Path) -> Union[dict[str, Any], Any]:
+def _get_json_config(file: Path) -> dict[str, Any] | Any:
     """Parse json config file to dict."""
     with file.open("r") as config_file:
         return json.load(config_file)
 
 
-def _get_yaml_config(file: Path) -> Union[dict[str, Any], Any]:
+def _get_yaml_config(file: Path) -> dict[str, Any] | Any:
     """Parse yaml config file to dict."""
     try:
         import yaml
@@ -106,7 +106,7 @@ def _get_yaml_config(file: Path) -> Union[dict[str, Any], Any]:
         return yaml.safe_load(config_file)
 
 
-def _get_toml_config(file: Path) -> Union[dict[str, Any], Any]:
+def _get_toml_config(file: Path) -> dict[str, Any] | Any:
     """Parse toml config file to dict."""
     try:
         import tomllib
@@ -121,7 +121,7 @@ def _get_toml_config(file: Path) -> Union[dict[str, Any], Any]:
         return tomllib.load(config_file)
 
 
-def _get_log_config(file: Path) -> Union[dict[str, Any], Any]:
+def _get_log_config(file: Path) -> dict[str, Any] | Any:
     """Read dict config from file."""
     if not file.exists():
         msg = f"File {file} specified to --log-config not found"

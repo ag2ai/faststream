@@ -3,7 +3,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Optional,
 )
 
 from typing_extensions import (
@@ -45,7 +44,7 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
         return self._outer_config.include_in_schema and self.config.include_in_schema
 
     @property
-    def description(self) -> Optional[str]:
+    def description(self) -> str | None:
         return self.config.description_ or self.calls.description
 
     @property

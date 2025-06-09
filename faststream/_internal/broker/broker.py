@@ -39,7 +39,7 @@ class BrokerUsecase(
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
     """
 
-    _connection: Optional[ConnectionType]
+    _connection: ConnectionType | None
 
     def __init__(
         self,
@@ -82,8 +82,8 @@ class BrokerUsecase(
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
         exc_tb: Optional["TracebackType"],
     ) -> None:
         await self.close(exc_type, exc_val, exc_tb)
@@ -126,8 +126,8 @@ class BrokerUsecase(
 
     async def close(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
@@ -137,6 +137,6 @@ class BrokerUsecase(
         self.running = False
 
     @abstractmethod
-    async def ping(self, timeout: Optional[float]) -> bool:
+    async def ping(self, timeout: float | None) -> bool:
         """Check connection alive."""
         raise NotImplementedError

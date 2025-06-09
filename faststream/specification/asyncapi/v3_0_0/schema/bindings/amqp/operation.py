@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/amqp
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, PositiveInt
 from typing_extensions import Self
@@ -12,17 +11,17 @@ from faststream.specification.schema.bindings import amqp
 
 
 class OperationBinding(BaseModel):
-    cc: Optional[list[str]] = None
+    cc: list[str] | None = None
     ack: bool
-    replyTo: Optional[str] = None
-    deliveryMode: Optional[int] = None
-    mandatory: Optional[bool] = None
-    priority: Optional[PositiveInt] = None
+    replyTo: str | None = None
+    deliveryMode: int | None = None
+    mandatory: bool | None = None
+    priority: PositiveInt | None = None
 
     bindingVersion: str = "0.3.0"
 
     @classmethod
-    def from_sub(cls, binding: Optional[amqp.OperationBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: amqp.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 
@@ -38,7 +37,7 @@ class OperationBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[amqp.OperationBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: amqp.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
@@ -43,7 +43,7 @@ class RedisFastProducer(ProducerProto):
     async def publish(  # type: ignore[override]
         self,
         cmd: "RedisPublishCommand",
-    ) -> Union[int, bytes]:
+    ) -> int | bytes:
         msg = RawMessage.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -111,7 +111,7 @@ class RedisFastProducer(ProducerProto):
 
     async def __publish(
         self, msg: bytes, cmd: "RedisPublishCommand"
-    ) -> Union[int, bytes]:
+    ) -> int | bytes:
         if cmd.destination_type is DestinationType.Channel:
             return await self._connection.client.publish(cmd.destination, msg)
 

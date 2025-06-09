@@ -1,7 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
-
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, Union
 
 from faststream.exceptions import SetupError
 from faststream.redis.configs import RedisPublisherConfigFacade
@@ -21,12 +19,7 @@ if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
 
-PublisherType: TypeAlias = Union[
-    SpecificationChannelPublisher,
-    SpecificationStreamPublisher,
-    SpecificationListPublisher,
-    SpecificationListBatchPublisher,
-]
+PublisherType: TypeAlias = SpecificationChannelPublisher | SpecificationStreamPublisher | SpecificationListPublisher | SpecificationListBatchPublisher
 
 
 def create_publisher(
@@ -39,9 +32,9 @@ def create_publisher(
     config: "RedisBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
-    title_: Optional[str],
-    description_: Optional[str],
-    schema_: Optional[Any],
+    title_: str | None,
+    description_: str | None,
+    schema_: Any | None,
     include_in_schema: bool,
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)

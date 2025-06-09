@@ -3,7 +3,6 @@ from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Protocol,
 )
 
@@ -23,8 +22,8 @@ class BasePublisherProto(Protocol):
         message: "SendableMessage",
         /,
         *,
-        correlation_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        correlation_id: str | None = None,
+    ) -> Any | None:
         """Public method to publish a message.
 
         Should be called by user only `broker.publisher(...).publish(...)`.
@@ -50,8 +49,8 @@ class BasePublisherProto(Protocol):
         message: "SendableMessage",
         /,
         *,
-        correlation_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        correlation_id: str | None = None,
+    ) -> Any | None:
         """Publishes a message synchronously."""
         ...
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from faststream._internal.basic_types import AnyDict
 
@@ -8,4 +7,4 @@ from faststream._internal.basic_types import AnyDict
 class Message:
     payload: AnyDict  # JSON Schema
 
-    title: Optional[str]
+    title: str | None

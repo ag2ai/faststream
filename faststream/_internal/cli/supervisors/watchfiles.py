@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import watchfiles
 
@@ -17,7 +17,7 @@ class ExtendedFilter(watchfiles.PythonFilter):
     def __init__(
         self,
         *,
-        ignore_paths: Optional[Sequence[Union[str, Path]]] = None,
+        ignore_paths: Sequence[str | Path] | None = None,
         extra_extensions: Sequence[str] = (),
     ) -> None:
         super().__init__(ignore_paths=ignore_paths, extra_extensions=extra_extensions)
@@ -40,7 +40,7 @@ class WatchReloader(BaseReload):
         self,
         target: "DecoratedCallable",
         args: tuple[Any, ...],
-        reload_dirs: Sequence[Union[Path, str]],
+        reload_dirs: Sequence[Path | str],
         reload_delay: float = 0.3,
         extra_extensions: Sequence[str] = (),
     ) -> None:

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -36,7 +36,7 @@ class TestTelemetry(LocalTelemetryTestcase):
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: Optional[str] = None,
+        parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system

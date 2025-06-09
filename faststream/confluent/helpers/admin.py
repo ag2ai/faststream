@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from confluent_kafka.admin import AdminClient, NewTopic
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 @dataclass
 class CreateResult:
     topic: str
-    error: Optional[Exception]
+    error: Exception | None
 
 
 class AdminService:

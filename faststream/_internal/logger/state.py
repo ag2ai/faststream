@@ -56,9 +56,9 @@ class LoggerState:
     def log(
         self,
         message: str,
-        log_level: Optional[int] = None,
+        log_level: int | None = None,
         extra: Optional["AnyDict"] = None,
-        exc_info: Optional[BaseException] = None,
+        exc_info: BaseException | None = None,
     ) -> None:
         self.logger.log(
             (log_level or self.log_level),

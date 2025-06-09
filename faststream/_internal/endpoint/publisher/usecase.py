@@ -1,12 +1,9 @@
-from collections.abc import Awaitable, Generator, Iterable
+from collections.abc import Awaitable, Callable, Generator, Iterable
 from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
-    Union,
 )
 from unittest.mock import MagicMock
 
@@ -53,7 +50,7 @@ class PublisherUsecase(PublisherProto[MsgType]):
         self.middlewares = config.middlewares
 
         self._fake_handler = False
-        self.mock: Optional[MagicMock] = None
+        self.mock: MagicMock | None = None
 
     @property
     def include_in_schema(self) -> bool:
@@ -84,10 +81,7 @@ class PublisherUsecase(PublisherProto[MsgType]):
 
     def __call__(
         self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-        ],
+        func: Callable[P_HandlerParams, T_HandlerReturn] | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
     ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
@@ -124,7 +118,7 @@ class PublisherUsecase(PublisherProto[MsgType]):
     async def _basic_request(
         self,
         cmd: "PublishCommand",
-    ) -> Optional[Any]:
+    ) -> Any | None:
         request = self._producer.request
         for pub_m in self._build_middlewares_stack():
             request = partial(pub_m, request)

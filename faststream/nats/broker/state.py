@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from faststream.exceptions import IncorrectState
 
@@ -14,8 +14,8 @@ class BrokerState:
     def __init__(self) -> None:
         self._connected = False
 
-        self._stream: Optional[JetStreamContext] = None
-        self._connection: Optional[Client] = None
+        self._stream: JetStreamContext | None = None
+        self._connection: Client | None = None
 
     @property
     def connection(self) -> "Client":
