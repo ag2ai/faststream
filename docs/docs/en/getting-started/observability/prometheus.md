@@ -134,7 +134,7 @@ When running `FastStream` with multiple worker processes, you need to configure 
 1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory
 2. Initialize your collector registry with multiprocess support:
 
-    ```python linenums="1" hl_lines="8 10"
+    ```python linenums="1" hl_lines="8"
     from prometheus_client import CollectorRegistry, multiprocess
     import os
 
@@ -145,7 +145,6 @@ When running `FastStream` with multiple worker processes, you need to configure 
         multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)
 
     broker = KafkaBroker(
-        "...",
         middlewares=[
             KafkaPrometheusMiddleware(
                 registry=registry,
