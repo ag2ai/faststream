@@ -127,6 +127,39 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | destination                       | Where the message is sent                                       |                                                   |
 | exception_type (while publishing) | Exception type when publishing message                          |                                                   |
 
+## Prometheus Metrics in Multi-Process Mode
+
+When running FastStream with multiple worker processes, you need to configure Prometheus metrics collection specially:
+
+1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory
+2. Initialize your collector registry with multiprocess support:
+
+    ```python linenums="1" hl_lines="8 10"
+    from prometheus_client import CollectorRegistry, multiprocess
+    import os
+    
+    multiprocess_dir = os.getenv("PROMETHEUS_MULTIPROC_DIR")
+    
+    registry = CollectorRegistry()
+    if multiprocess_dir:
+        multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)
+    
+    broker = KafkaBroker(
+        "...",
+        middlewares=[
+            KafkaPrometheusMiddleware(
+                registry=registry,
+                app_name="your-app-name"
+            )
+        ]
+    )
+    ```
+
+The metrics directory must:
+* Exist before application start
+* Be writable by all worker processes
+* Be on a filesystem accessible to all workers
+
 ### Grafana dashboard
 
 You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboards/22130-faststream-metrics/){.external-link target="_blank"} to visualize the metrics collected by middleware.
