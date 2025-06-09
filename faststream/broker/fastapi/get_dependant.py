@@ -1,5 +1,5 @@
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Iterable, cast
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Set, Tuple, cast
 
 from fast_depends.utils import get_typed_annotation
 from fastapi import params
@@ -141,8 +141,8 @@ def _patch_fastapi_dependent(dependant: "Dependant") -> "Dependant":
 
 def has_forbidden_types(
     orig_call: Callable[..., Any],
-    forbidden_types: tuple[Any, ...],
-) -> set[Any]:
+    forbidden_types: Tuple[Any, ...],
+) -> Set[Any]:
     """Check if faststream.Depends is used in the handler."""
     endpoint_signature = get_typed_signature(orig_call)
     signature_params = endpoint_signature.parameters
