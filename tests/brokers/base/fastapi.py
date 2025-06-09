@@ -200,6 +200,37 @@ class FastAPITestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.assert_called_with(True)
 
+    async def test_nested_combined_context_annotated(
+        self, mock: Mock, queue: str, event: asyncio.Event
+    ):
+        router = self.router_class()
+
+        context_key = "message.headers"
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(
+            msg: Annotated[
+                Annotated[Any, FSContext(context_key)], Context(context_key)
+            ],
+        ):
+            event.set()
+            return mock(msg == context.resolve(context_key))
+
+        async with router.broker:
+            await router.broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(router.broker.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_with(True)
+
     async def test_initial_context(self, queue: str, event: asyncio.Event):
         router = self.router_class()
 
