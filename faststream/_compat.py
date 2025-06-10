@@ -166,3 +166,19 @@ else:
         )
     else:
         ExceptionGroup = ExceptionGroup
+
+
+uvicorn: Any
+UvicornMultiprocess: Any
+
+try:
+    import uvicorn
+    from uvicorn.supervisors.multiprocess import (
+        Multiprocess as UvicornMultiprocess,
+    )
+except ImportError:
+    uvicorn = None
+    UvicornMultiprocess = None
+    HAS_UVICORN = False
+else:
+    HAS_UVICORN = True
