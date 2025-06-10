@@ -6,10 +6,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    TypeAlias,
 )
 
 import anyio
-from typing_extensions import TypeAlias, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase

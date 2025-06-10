@@ -3,7 +3,7 @@
 References: https://github.com/asyncapi/bindings/tree/master/amqp
 """
 
-from typing import Literal, Optional, overload
+from typing import Literal, overload
 
 from pydantic import BaseModel, Field
 from typing_extensions import Self
@@ -37,7 +37,7 @@ class Queue(BaseModel):
     def from_spec(cls, binding: amqp.Queue, vhost: str) -> Self: ...
 
     @classmethod
-    def from_spec(cls, binding: Optional[amqp.Queue], vhost: str) -> Optional[Self]:
+    def from_spec(cls, binding: amqp.Queue | None, vhost: str) -> Self | None:
         if binding is None:
             return None
 
@@ -61,7 +61,7 @@ class Exchange(BaseModel):
         vhost : virtual host of the exchange, default is "/"
     """
 
-    name: Optional[str] = None
+    name: str | None = None
     type: Literal[
         "default",
         "direct",
@@ -72,8 +72,8 @@ class Exchange(BaseModel):
         "x-consistent-hash",
         "x-modulus-hash",
     ]
-    durable: Optional[bool] = None
-    autoDelete: Optional[bool] = None
+    durable: bool | None = None
+    autoDelete: bool | None = None
     vhost: str = "/"
 
     @overload
@@ -85,7 +85,7 @@ class Exchange(BaseModel):
     def from_spec(cls, binding: amqp.Exchange, vhost: str) -> Self: ...
 
     @classmethod
-    def from_spec(cls, binding: Optional[amqp.Exchange], vhost: str) -> Optional[Self]:
+    def from_spec(cls, binding: amqp.Exchange | None, vhost: str) -> Self | None:
         if binding is None:
             return None
 
@@ -110,11 +110,11 @@ class ChannelBinding(BaseModel):
 
     is_: Literal["queue", "routingKey"] = Field(..., alias="is")
     bindingVersion: str = "0.2.0"
-    queue: Optional[Queue] = None
-    exchange: Optional[Exchange] = None
+    queue: Queue | None = None
+    exchange: Exchange | None = None
 
     @classmethod
-    def from_sub(cls, binding: Optional[amqp.ChannelBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: amqp.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -129,7 +129,7 @@ class ChannelBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[amqp.ChannelBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: amqp.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 

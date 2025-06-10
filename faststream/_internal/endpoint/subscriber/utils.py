@@ -38,8 +38,8 @@ class MultiLock:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
         exc_tb: Optional["TracebackType"],
     ) -> None:
         """Exit the context."""
@@ -65,7 +65,7 @@ class MultiLock:
         """Return whether the queue is empty."""
         return self.queue.empty()
 
-    async def wait_release(self, timeout: Optional[float] = None) -> None:
+    async def wait_release(self, timeout: float | None = None) -> None:
         """Wait for the queue to be released.
 
         Using for graceful shutdown.

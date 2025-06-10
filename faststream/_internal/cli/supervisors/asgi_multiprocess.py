@@ -1,6 +1,5 @@
 import inspect
 from pathlib import Path
-from typing import Optional
 
 from faststream.asgi.app import cast_uvicorn_params
 
@@ -9,7 +8,7 @@ class ASGIMultiprocess:
     def __init__(
         self,
         target: str,
-        args: tuple[str, dict[str, str], bool, Optional[Path], int],
+        args: tuple[str, dict[str, str], bool, Path | None, int],
         workers: int,
     ) -> None:
         _, uvicorn_kwargs, is_factory, _, log_level = args

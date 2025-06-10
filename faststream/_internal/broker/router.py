@@ -1,18 +1,16 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 from faststream._internal.types import MsgType
 
-from .abc_broker import ABCBroker
+from .abc_broker import Registrator
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
-
-    from .config import BrokerConfig
+    from faststream._internal.configs import BrokerConfig
 
 
 class ArgsContainer:
@@ -54,7 +52,7 @@ class SubscriberRoute(ArgsContainer):
         super().__init__(*args, **kwargs)
 
 
-class BrokerRouter(ABCBroker[MsgType]):
+class BrokerRouter(Registrator[MsgType]):
     """A generic class representing a broker router."""
 
     def __init__(
@@ -62,7 +60,7 @@ class BrokerRouter(ABCBroker[MsgType]):
         *,
         config: "BrokerConfig",
         handlers: Iterable[SubscriberRoute],
-        routers: Sequence["ABCBroker[MsgType]"],
+        routers: Sequence["Registrator[MsgType]"],
     ) -> None:
         super().__init__(
             config=config,

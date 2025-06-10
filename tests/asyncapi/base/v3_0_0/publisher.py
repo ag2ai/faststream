@@ -1,4 +1,3 @@
-from typing import Union
 
 import pydantic
 
@@ -8,7 +7,7 @@ from faststream.specification.asyncapi import AsyncAPI
 
 
 class PublisherTestcase:
-    broker_factory: Union[BrokerUsecase, StreamRouter]
+    broker_factory: BrokerUsecase | StreamRouter
 
     def build_app(self, broker):
         """Patch it to test FastAPI scheme generation too."""

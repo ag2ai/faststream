@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from redis.asyncio.connection import Connection
 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
 
 
-def parse_security(security: Optional[BaseSecurity]) -> "AnyDict":
+def parse_security(security: BaseSecurity | None) -> "AnyDict":
     if security is None:
         return {}
 

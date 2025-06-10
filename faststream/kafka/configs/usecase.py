@@ -3,14 +3,10 @@ from dataclasses import dataclass, field
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Union,
 )
 
+from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.publisher import PublisherUsecaseConfig
-from faststream._internal.endpoint.subscriber import (
-    SubscriberUsecaseConfig,
-)
 from faststream.middlewares.acknowledgement.conf import AckPolicy
 
 from .broker import KafkaBrokerConfig
@@ -26,11 +22,11 @@ if TYPE_CHECKING:
 class KafkaPublisherConfig(PublisherUsecaseConfig):
     config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
 
-    key: Union[bytes, str, None]
+    key: bytes | str | None
     topic: str
-    partition: Optional[int]
-    headers: Optional[dict[str, str]]
-    reply_to: Optional[str]
+    partition: int | None
+    headers: dict[str, str] | None
+    reply_to: str | None
 
 
 @dataclass(kw_only=True)
@@ -38,10 +34,10 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
 
     topics: Sequence[str] = field(default_factory=list)
-    group_id: Optional[str] = None
+    group_id: str | None = None
     connection_args: "AnyDict" = field(default_factory=dict)
     listener: Optional["ConsumerRebalanceListener"] = None
-    pattern: Optional[str] = None
+    pattern: str | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
     _auto_commit: bool = field(default_factory=lambda: EMPTY, repr=False)

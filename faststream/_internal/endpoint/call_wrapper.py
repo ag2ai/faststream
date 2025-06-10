@@ -1,9 +1,8 @@
 import asyncio
-from collections.abc import Awaitable, Mapping, Reversible, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Reversible, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Optional,
     Union,
@@ -46,11 +45,11 @@ def ensure_call_wrapper(
 class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
-    mock: Optional[MagicMock]
+    mock: MagicMock | None
     future: Optional["asyncio.Future[Any]"]
     is_test: bool
 
-    _wrapped_call: Optional[Callable[..., Awaitable[Any]]]
+    _wrapped_call: Callable[..., Awaitable[Any]] | None
     _original_call: Callable[P_HandlerParams, T_HandlerReturn]
     _publishers: list["PublisherProto[MsgType]"]
 
@@ -95,7 +94,7 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
             self.mock(await message.decode())
         return await self._wrapped_call(message)
 
-    async def wait_call(self, timeout: Optional[float] = None) -> None:
+    async def wait_call(self, timeout: float | None = None) -> None:
         """Waits for a call with an optional timeout."""
         assert (  # nosec B101
             self.future is not None
@@ -117,7 +116,7 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
     def trigger(
         self,
         result: Any = None,
-        error: Optional[BaseException] = None,
+        error: BaseException | None = None,
     ) -> None:
         if not self.is_test:
             return
@@ -155,7 +154,7 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
 
         f: Callable[..., Awaitable[Any]] = to_async(call)
 
-        dependent: Optional[CallModel] = None
+        dependent: CallModel | None = None
         if config.get_dependent is None:
             assert config.provider
 

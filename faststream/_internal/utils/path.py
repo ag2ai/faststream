@@ -1,6 +1,6 @@
 import re
+from collections.abc import Callable
 from re import Pattern
-from typing import Callable, Optional
 
 from faststream.exceptions import SetupError
 
@@ -11,7 +11,7 @@ def compile_path(
     path: str,
     replace_symbol: str,
     patch_regex: Callable[[str], str] = lambda x: x,
-) -> tuple[Optional[Pattern[str]], str]:
+) -> tuple[Pattern[str] | None, str]:
     path_regex = "^.*?"
     original_path = ""
 

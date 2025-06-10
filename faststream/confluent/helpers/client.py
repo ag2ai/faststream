@@ -1,15 +1,12 @@
 import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
-    Union,
 )
 
 import anyio
@@ -30,9 +27,9 @@ if TYPE_CHECKING:
     from .admin import AdminService
 
     class _SendKwargs(TypedDict):
-        value: Optional[Union[str, bytes]]
-        key: Optional[Union[str, bytes]]
-        headers: Optional[list[tuple[str, Union[str, bytes]]]]
+        value: str | bytes | None
+        key: str | bytes | None
+        headers: list[tuple[str, str | bytes]] | None
         partition: NotRequired[int]
         timestamp: NotRequired[int]
         on_delivery: NotRequired[Callable[..., None]]
@@ -77,13 +74,13 @@ class AsyncConfluentProducer:
     async def send(
         self,
         topic: str,
-        value: Optional[Union[str, bytes]] = None,
-        key: Optional[Union[str, bytes]] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[list[tuple[str, Union[str, bytes]]]] = None,
+        value: str | bytes | None = None,
+        key: str | bytes | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: list[tuple[str, str | bytes]] | None = None,
         no_confirm: bool = False,
-    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
+    ) -> "asyncio.Future[Message | None] | Message | None":
         """Sends a single message to a Kafka topic."""
         kwargs: _SendKwargs = {
             "value": value,
@@ -98,9 +95,9 @@ class AsyncConfluentProducer:
             kwargs["timestamp"] = timestamp_ms
 
         loop = asyncio.get_running_loop()
-        result_future: asyncio.Future[Optional[Message]] = loop.create_future()
+        result_future: asyncio.Future[Message | None] = loop.create_future()
 
-        def ack_callback(err: Any, msg: Optional[Message]) -> None:
+        def ack_callback(err: Any, msg: Message | None) -> None:
             if err or (msg is not None and (err := msg.error())):
                 loop.call_soon_threadsafe(
                     result_future.set_exception, KafkaException(err)
@@ -126,7 +123,7 @@ class AsyncConfluentProducer:
         batch: "BatchBuilder",
         topic: str,
         *,
-        partition: Optional[int],
+        partition: int | None,
         no_confirm: bool = False,
     ) -> None:
         """Sends a batch of messages to a Kafka topic."""
@@ -145,7 +142,7 @@ class AsyncConfluentProducer:
 
     async def ping(
         self,
-        timeout: Optional[float] = 5.0,
+        timeout: float | None = 5.0,
     ) -> bool:
         """Implement ping using `list_topics` information request."""
         if timeout is None:
@@ -174,11 +171,11 @@ class AsyncConfluentConsumer:
         admin_service: "AdminService",
         # kwargs options
         partitions: Sequence["TopicPartition"],
-        bootstrap_servers: Union[str, list[str]] = "localhost",
+        bootstrap_servers: str | list[str] = "localhost",
         # consumer options
-        client_id: Optional[str] = "confluent-kafka-consumer",
-        group_id: Optional[str] = None,
-        group_instance_id: Optional[str] = None,
+        client_id: str | None = "confluent-kafka-consumer",
+        group_id: str | None = None,
+        group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 52428800,
         fetch_min_bytes: int = 1,
@@ -189,7 +186,7 @@ class AsyncConfluentConsumer:
         auto_commit_interval_ms: int = 5000,
         check_crcs: bool = True,
         metadata_max_age_ms: int = 5 * 60 * 1000,
-        partition_assignment_strategy: Union[str, list[Any]] = "roundrobin",
+        partition_assignment_strategy: str | list[Any] = "roundrobin",
         max_poll_interval_ms: int = 300000,
         session_timeout_ms: int = 10000,
         heartbeat_interval_ms: int = 3000,
@@ -323,7 +320,7 @@ class AsyncConfluentConsumer:
 
         self._thread_pool.shutdown(wait=False)
 
-    async def getone(self, timeout: float = 0.1) -> Optional[Message]:
+    async def getone(self, timeout: float = 0.1) -> Message | None:
         """Consumes a single message from Kafka."""
         msg = await run_in_executor(self._thread_pool, self.consumer.poll, timeout)
         return check_msg_error(msg)
@@ -331,10 +328,10 @@ class AsyncConfluentConsumer:
     async def getmany(
         self,
         timeout: float = 0.1,
-        max_records: Optional[int] = 10,
+        max_records: int | None = 10,
     ) -> tuple[Message, ...]:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
-        raw_messages: list[Optional[Message]] = await run_in_executor(
+        raw_messages: list[Message | None] = await run_in_executor(
             self._thread_pool,
             self.consumer.consume,  # type: ignore[arg-type]
             num_messages=max_records or 10,
@@ -354,7 +351,7 @@ class AsyncConfluentConsumer:
         )
 
 
-def check_msg_error(msg: Optional[Message]) -> Optional[Message]:
+def check_msg_error(msg: Message | None) -> Message | None:
     """Checks for errors in the consumed message."""
     if msg is None or msg.error():
         return None
@@ -372,10 +369,10 @@ class BatchBuilder:
     def append(
         self,
         *,
-        timestamp: Optional[int] = None,
-        key: Optional[Union[str, bytes]] = None,
-        value: Optional[Union[str, bytes]] = None,
-        headers: Optional[list[tuple[str, bytes]]] = None,
+        timestamp: int | None = None,
+        key: str | bytes | None = None,
+        value: str | bytes | None = None,
+        headers: list[tuple[str, bytes]] | None = None,
     ) -> None:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""
         if key is None and value is None:

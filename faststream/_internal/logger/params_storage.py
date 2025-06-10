@@ -65,7 +65,7 @@ class DefaultLoggerStorage(LoggerParamsStorage):
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         raise NotImplementedError
 
-    def _get_logger_ref(self) -> Optional[logging.Logger]:
+    def _get_logger_ref(self) -> logging.Logger | None:
         if self._logger_ref:
             return next(iter(self._logger_ref))
 

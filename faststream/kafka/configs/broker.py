@@ -1,12 +1,13 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import aiokafka
 import aiokafka.admin
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
 from faststream.kafka.publisher.producer import (
@@ -24,7 +25,7 @@ class KafkaBrokerConfig(BrokerConfig):
     producer: "AioKafkaFastProducer" = field(default_factory=FakeAioKafkaFastProducer)
     builder: Callable[..., aiokafka.AIOKafkaConsumer] = lambda: None
 
-    client_id: Optional[str] = SERVICE_NAME
+    client_id: str | None = SERVICE_NAME
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 

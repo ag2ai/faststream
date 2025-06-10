@@ -1,4 +1,3 @@
-from typing import Optional
 
 from typing_extensions import Self
 
@@ -16,7 +15,7 @@ class ChannelBinding(V2Binding):
     bindingVersion: str = "0.3.0"
 
     @classmethod
-    def from_sub(cls, binding: Optional[amqp.ChannelBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: amqp.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -28,7 +27,7 @@ class ChannelBinding(V2Binding):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[amqp.ChannelBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: amqp.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 

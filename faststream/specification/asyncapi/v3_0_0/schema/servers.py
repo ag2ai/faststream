@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -41,11 +40,11 @@ class Server(BaseModel):
     host: str
     pathname: str
     protocol: str
-    description: Optional[str] = None
-    protocolVersion: Optional[str] = None
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
-    security: Optional[SecurityRequirement] = None
-    variables: Optional[dict[str, Union[ServerVariable, Reference]]] = None
+    description: str | None = None
+    protocolVersion: str | None = None
+    tags: list[Tag | AnyDict] | None = None
+    security: SecurityRequirement | None = None
+    variables: dict[str, ServerVariable | Reference] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

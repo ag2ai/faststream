@@ -1,11 +1,10 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
     TypeVar,
 )
@@ -166,7 +165,7 @@ class Application(StartAbleApplication):
     async def run(
         self,
         log_level: int,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> None: ...
 
     # Startup
@@ -174,7 +173,7 @@ class Application(StartAbleApplication):
     async def _startup(
         self,
         log_level: int = logging.INFO,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> None:
         """Private method calls `start` with logging."""
         async with self._startup_logging(log_level=log_level):

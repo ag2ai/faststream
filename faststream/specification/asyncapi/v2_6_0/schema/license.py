@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast, overload
+from typing import cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
@@ -25,7 +25,7 @@ class License(BaseModel):
 
     name: str
     # Use default values to be able build from dict
-    url: Optional[AnyHttpUrl] = None
+    url: AnyHttpUrl | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -53,8 +53,8 @@ class License(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, license: Union[SpecLicense, LicenseDict, AnyDict, None]
-    ) -> Union[Self, AnyDict, None]:
+        cls, license: SpecLicense | LicenseDict | AnyDict | None
+    ) -> Self | AnyDict | None:
         if license is None:
             return None
 

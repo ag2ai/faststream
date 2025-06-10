@@ -17,10 +17,14 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsSubscriberConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream
+    from faststream.nats.subscriber.config import (
+        NatsSubscriberConfig,
+        NatsSubscriberSpecificationConfig,
+    )
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
@@ -29,6 +33,8 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
     def __init__(
         self,
         config: "NatsSubscriberConfig",
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         stream: "JStream",
         queue: str,
@@ -36,7 +42,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         parser = JsParser(pattern=config.subject)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.queue = queue
         self.stream = stream

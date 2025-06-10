@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
-class RedisRegistrator(ABCBroker[UnifyRedisDict]):
+class RedisRegistrator(Registrator[UnifyRedisDict]):
     """Includable to RedisBroker router."""
 
     config: "RedisBrokerConfig"
@@ -97,11 +97,11 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -115,7 +115,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> Union[SpecificationSubscriber, SpecificationConcurrentSubscriber]:
+    ) -> SpecificationSubscriber | SpecificationConcurrentSubscriber:
         subscriber = create_subscriber(
             channel=channel,
             list=list,
@@ -183,15 +183,15 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -238,7 +238,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RedisRegistrator):
             msg = (

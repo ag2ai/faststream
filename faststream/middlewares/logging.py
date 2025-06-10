@@ -20,7 +20,7 @@ class CriticalLogMiddleware:
 
     def __call__(
         self,
-        msg: Optional[Any],
+        msg: Any | None,
         /,
         *,
         context: "ContextRepo",
@@ -40,7 +40,7 @@ class _LoggingMiddleware(BaseMiddleware):
         *,
         logger: "LoggerState",
         context: "ContextRepo",
-        msg: Optional[Any],
+        msg: Any | None,
     ) -> None:
         super().__init__(msg, context=context)
         self.logger = logger
@@ -63,8 +63,8 @@ class _LoggingMiddleware(BaseMiddleware):
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> bool:
         """Asynchronously called after processing."""

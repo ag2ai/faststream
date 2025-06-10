@@ -1,6 +1,6 @@
 import time
-from collections.abc import Awaitable, Sequence
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional
+from collections.abc import Awaitable, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Generic
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.middlewares import BaseMiddleware
@@ -32,13 +32,13 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
         self,
         *,
         settings_provider_factory: Callable[
-            [Optional[AnyMsg]],
-            Optional[MetricsSettingsProvider[AnyMsg, PublishCommandType]],
+            [AnyMsg | None],
+            MetricsSettingsProvider[AnyMsg, PublishCommandType] | None,
         ],
         registry: "CollectorRegistry",
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         if app_name is EMPTY:
             app_name = metrics_prefix
@@ -56,7 +56,7 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     def __call__(
         self,
-        msg: Optional[AnyMsg],
+        msg: AnyMsg | None,
         /,
         *,
         context: "ContextRepo",
@@ -75,12 +75,12 @@ class BasePrometheusMiddleware(
 ):
     def __init__(
         self,
-        msg: Optional[AnyMsg],
+        msg: AnyMsg | None,
         /,
         *,
         settings_provider_factory: Callable[
-            [Optional[AnyMsg]],
-            Optional[MetricsSettingsProvider[AnyMsg, PublishCommandType]],
+            [AnyMsg | None],
+            MetricsSettingsProvider[AnyMsg, PublishCommandType] | None,
         ],
         metrics_manager: MetricsManager,
         context: "ContextRepo",
@@ -119,7 +119,7 @@ class BasePrometheusMiddleware(
             handler=destination_name,
         )
 
-        err: Optional[Exception] = None
+        err: Exception | None = None
         start_time = time.perf_counter()
 
         try:
@@ -181,7 +181,7 @@ class BasePrometheusMiddleware(
         )
         messaging_system = self._settings_provider.messaging_system
 
-        err: Optional[Exception] = None
+        err: Exception | None = None
         start_time = time.perf_counter()
 
         try:

@@ -55,10 +55,7 @@ class BatchConfluentMetricsSettingsProvider(
 
 def settings_provider_factory(
     msg: Union["Message", Sequence["Message"], None],
-) -> Union[
-    ConfluentMetricsSettingsProvider,
-    BatchConfluentMetricsSettingsProvider,
-]:
+) -> ConfluentMetricsSettingsProvider | BatchConfluentMetricsSettingsProvider:
     if isinstance(msg, Sequence):
         return BatchConfluentMetricsSettingsProvider()
     return ConfluentMetricsSettingsProvider()

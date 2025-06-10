@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -26,20 +25,20 @@ class Operation(BaseModel):
         tags : tags associated with the operation
     """
 
-    operationId: Optional[str] = None
-    summary: Optional[str] = None
-    description: Optional[str] = None
+    operationId: str | None = None
+    summary: str | None = None
+    description: str | None = None
 
-    bindings: Optional[OperationBinding] = None
+    bindings: OperationBinding | None = None
 
-    message: Union[Message, Reference]
+    message: Message | Reference
 
-    security: Optional[dict[str, list[str]]] = None
+    security: dict[str, list[str]] | None = None
 
     # TODO
     # traits
 
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
+    tags: list[Tag | AnyDict] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

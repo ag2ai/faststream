@@ -1,6 +1,5 @@
 from copy import deepcopy
 from functools import cached_property
-from typing import Optional
 
 from faststream._internal.proto import NameRequired
 
@@ -29,7 +28,7 @@ class ListSub(NameRequired):
         self.polling_interval = polling_interval
 
     @cached_property
-    def records(self) -> Optional[int]:
+    def records(self) -> int | None:
         return self.max_records if self.batch else None
 
     def add_prefix(self, prefix: str) -> "ListSub":

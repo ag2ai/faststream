@@ -1,8 +1,9 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream.confluent.helpers import (
     AdminService,
     AsyncConfluentConsumer,
@@ -41,7 +42,7 @@ class KafkaBrokerConfig(BrokerConfig):
     )
 
     admin: "AdminService" = field(default_factory=AdminService)
-    client_id: Optional[str] = SERVICE_NAME
+    client_id: str | None = SERVICE_NAME
 
     builder: Callable[..., AsyncConfluentConsumer] = field(init=False)
     producer: "AsyncConfluentFastProducer" = field(

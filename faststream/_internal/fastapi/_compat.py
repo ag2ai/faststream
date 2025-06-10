@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from fastapi import __version__ as FASTAPI_VERSION  # noqa: N812
 from fastapi.dependencies.utils import solve_dependencies
@@ -48,7 +48,7 @@ __all__ = (
 class SolvedDependency:
     values: AnyDict
     errors: list[Any]
-    background_tasks: Optional[BackgroundTasks]
+    background_tasks: BackgroundTasks | None
 
 
 if FASTAPI_V2:
@@ -80,7 +80,7 @@ if FASTAPI_v102_3:
     async def solve_faststream_dependency(
         request: "Request",
         dependant: "Dependant",
-        dependency_overrides_provider: Optional[Any],
+        dependency_overrides_provider: Any | None,
         **kwargs: Any,
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(
@@ -111,7 +111,7 @@ else:
     async def solve_faststream_dependency(
         request: "Request",
         dependant: "Dependant",
-        dependency_overrides_provider: Optional[Any],
+        dependency_overrides_provider: Any | None,
         **kwargs: Any,
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(

@@ -43,7 +43,7 @@ class MetricsContainer:
         registry: "CollectorRegistry",
         *,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         self._registry = registry
         self._metrics_prefix = metrics_prefix

@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast, overload
+from typing import cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
@@ -23,8 +23,8 @@ class Contact(BaseModel):
 
     name: str
     # Use default values to be able build from dict
-    url: Optional[AnyHttpUrl] = None
-    email: Optional[EmailStr] = None
+    url: AnyHttpUrl | None = None
+    email: EmailStr | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -52,8 +52,8 @@ class Contact(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, contact: Union[SpecContact, ContactDict, AnyDict, None]
-    ) -> Union[Self, AnyDict, None]:
+        cls, contact: SpecContact | ContactDict | AnyDict | None
+    ) -> Self | AnyDict | None:
         if contact is None:
             return None
 

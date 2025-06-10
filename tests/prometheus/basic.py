@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import pytest
 from dirty_equals import IsList, IsPositiveFloat, IsStr
@@ -79,7 +79,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         self,
         queue: str,
         status: AckStatus,
-        exception_class: Optional[type[Exception]],
+        exception_class: type[Exception] | None,
     ) -> None:
         event = asyncio.Event()
         registry = CollectorRegistry()
@@ -128,7 +128,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         *,
         registry: CollectorRegistry,
         message: Any,
-        exception_class: Optional[type[Exception]],
+        exception_class: type[Exception] | None,
     ) -> None:
         settings_provider = self.get_settings_provider()
         consume_attrs = settings_provider.get_consume_attrs_from_message(message)
@@ -201,7 +201,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             status=status,
         )
 
-        exception_type: Optional[str] = None
+        exception_type: str | None = None
 
         if exception_class and not issubclass(exception_class, IgnoredException):
             exception_type = exception_class.__name__

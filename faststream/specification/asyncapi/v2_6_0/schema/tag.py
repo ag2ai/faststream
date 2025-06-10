@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast, overload
+from typing import cast, overload
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -24,8 +24,8 @@ class Tag(BaseModel):
 
     name: str
     # Use default values to be able build from dict
-    description: Optional[str] = None
-    externalDocs: Optional[ExternalDocs] = None
+    description: str | None = None
+    externalDocs: ExternalDocs | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -48,7 +48,7 @@ class Tag(BaseModel):
     def from_spec(cls, tag: AnyDict) -> AnyDict: ...
 
     @classmethod
-    def from_spec(cls, tag: Union[SpecTag, TagDict, AnyDict]) -> Union[Self, AnyDict]:
+    def from_spec(cls, tag: SpecTag | TagDict | AnyDict) -> Self | AnyDict:
         if isinstance(tag, SpecTag):
             return cls(
                 name=tag.name,

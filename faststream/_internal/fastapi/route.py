@@ -1,13 +1,12 @@
 import asyncio
 import inspect
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
 from functools import wraps
 from itertools import dropwhile
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
     Union,
 )
@@ -170,7 +169,7 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
-        fastapi_body: Union[AnyDict, list[Any]]
+        fastapi_body: AnyDict | list[Any]
         if first_arg is not None:
             if isinstance(body, dict):
                 path = fastapi_body = body or {}

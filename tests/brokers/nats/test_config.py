@@ -1,6 +1,6 @@
 from faststream import AckPolicy
 from faststream.nats import ConsumerConfig
-from faststream.nats.configs import NatsSubscriberConfig
+from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
 def test_default() -> None:

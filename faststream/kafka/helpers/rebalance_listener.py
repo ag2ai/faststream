@@ -81,7 +81,7 @@ class _LoggingListener(ConsumerRebalanceListener):
                 extra=self.log_extra,
             )
 
-            self._log_unassigned_consumer_task: Optional[asyncio.Task[None]] = (
+            self._log_unassigned_consumer_task: asyncio.Task[None] | None = (
                 asyncio.create_task(self.log_unassigned_consumer())
             )
 

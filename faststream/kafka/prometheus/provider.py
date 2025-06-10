@@ -53,10 +53,7 @@ class BatchKafkaMetricsSettingsProvider(
 
 def settings_provider_factory(
     msg: Union["ConsumerRecord", Sequence["ConsumerRecord"], None],
-) -> Union[
-    KafkaMetricsSettingsProvider,
-    BatchKafkaMetricsSettingsProvider,
-]:
+) -> KafkaMetricsSettingsProvider | BatchKafkaMetricsSettingsProvider:
     if isinstance(msg, Sequence):
         return BatchKafkaMetricsSettingsProvider()
     return KafkaMetricsSettingsProvider()

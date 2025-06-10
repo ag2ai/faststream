@@ -1,5 +1,5 @@
-from faststream._internal.endpoint.subscriber.specification.specified import (
-    SpecificationSubscriber as SpecificationSubscriberMixin,
+from faststream._internal.endpoint.subscriber import (
+    SubscriberSpecification as SpecificationSubscriberMixin,
 )
 from faststream.redis.schemas import ListSub, StreamSub
 from faststream.redis.schemas.proto import RedisSpecificationProtocol

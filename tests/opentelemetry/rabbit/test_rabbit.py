@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from dirty_equals import IsInt, IsUUID
@@ -38,7 +38,7 @@ class TestTelemetry(LocalTelemetryTestcase):
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: Optional[str] = None,
+        parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system

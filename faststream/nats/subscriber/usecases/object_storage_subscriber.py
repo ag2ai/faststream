@@ -27,11 +27,14 @@ if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsSubscriberConfig
     from faststream.nats.message import NatsObjMessage
     from faststream.nats.schemas import ObjWatch
-
+    from faststream.nats.subscriber.config import (
+        NatsSubscriberConfig,
+        NatsSubscriberSpecificationConfig,
+    )
 
 OBJECT_STORAGE_CONTEXT_KEY = "__object_storage"
 
@@ -41,19 +44,20 @@ class ObjStoreWatchSubscriber(
     LogicSubscriber[ObjectInfo],
 ):
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
-    _fetch_sub: Optional[UnsubscribeAdapter["ObjectStore.ObjectWatcher"]]
+    _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         obj_watch: "ObjWatch",
     ) -> None:
         parser = ObjParser(pattern="")
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.obj_watch = obj_watch
         self.obj_watch_conn = None
@@ -184,7 +188,7 @@ class ObjStoreWatchSubscriber(
         while self.running:
             with suppress(TimeoutError):
                 message = cast(
-                    "Optional[ObjectInfo]",
+                    "ObjectInfo | None",
                     await obj_watch.updates(self.obj_watch.timeout),  # type: ignore[no-untyped-call]
                 )
 

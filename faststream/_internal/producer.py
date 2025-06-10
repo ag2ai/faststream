@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from faststream.exceptions import IncorrectState
 
@@ -13,7 +13,7 @@ class ProducerProto(Protocol):
     _decoder: "AsyncCallable"
 
     @abstractmethod
-    async def publish(self, cmd: "PublishCommand") -> Optional[Any]:
+    async def publish(self, cmd: "PublishCommand") -> Any | None:
         """Publishes a message asynchronously."""
         ...
 
@@ -45,7 +45,7 @@ class ProducerUnset(ProducerProto):
         raise IncorrectState(self.msg)
 
     @_parser.setter
-    def _set_parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    def _parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
     @property
@@ -53,10 +53,10 @@ class ProducerUnset(ProducerProto):
         raise IncorrectState(self.msg)
 
     @_decoder.setter
-    def _set_decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    def _decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
-    async def publish(self, cmd: "PublishCommand") -> Optional[Any]:
+    async def publish(self, cmd: "PublishCommand") -> Any | None:
         raise IncorrectState(self.msg)
 
     async def request(self, cmd: "PublishCommand") -> Any:

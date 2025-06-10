@@ -14,15 +14,25 @@ class PublishOptions(TypedDict, total=False):
 
 class MessageOptions(TypedDict, total=False):
     persist: bool
-    reply_to: Optional[str]
+    reply_to: str | None
     headers: Optional["HeadersType"]
-    content_type: Optional[str]
-    content_encoding: Optional[str]
-    priority: Optional[int]
+    content_type: str | None
+    content_encoding: str | None
+    priority: int | None
     expiration: "DateType"
-    message_id: Optional[str]
+    message_id: str | None
     timestamp: "DateType"
-    message_type: Optional[str]
-    user_id: Optional[str]
-    app_id: Optional[str]
-    correlation_id: Optional[str]
+    message_type: str | None
+    user_id: str | None
+    app_id: str | None
+    correlation_id: str | None
+
+
+class RequestPublishKwargs(MessageOptions, PublishOptions, total=False):
+    """Typed dict to annotate RabbitMQ requesters."""
+
+
+class PublishKwargs(MessageOptions, PublishOptions, total=False):
+    """Typed dict to annotate RabbitMQ publishers."""
+
+    reply_to: str | None

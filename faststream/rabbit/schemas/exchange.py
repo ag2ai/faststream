@@ -86,7 +86,7 @@ class RabbitExchange(NameRequired):
             ),
         ] = True,
         arguments: Annotated[
-            Optional[AnyDict],
+            AnyDict | None,
             Doc(
                 "Exchange declarationg arguments. "
                 "You can find usage example in the official RabbitMQ documentation: "
@@ -110,7 +110,7 @@ class RabbitExchange(NameRequired):
             ),
         ] = None,
         bind_arguments: Annotated[
-            Optional[AnyDict],
+            AnyDict | None,
             Doc("Exchange-exchange binding options."),
         ] = None,
         routing_key: Annotated[

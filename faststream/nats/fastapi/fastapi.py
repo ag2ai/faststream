@@ -1,10 +1,9 @@
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Optional,
     Union,
     cast,
@@ -59,9 +58,9 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.nats.message import NatsMessage
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
-    from faststream.nats.subscriber.specified import SpecificationSubscriber
+    from faststream.nats.subscriber.specification import SpecificationSubscriber
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -75,7 +74,7 @@ class NatsRouter(StreamRouter["Msg"]):
     def __init__(
         self,
         servers: Annotated[
-            Union[str, Iterable[str]],
+            str | Iterable[str],
             Doc("NATS cluster addresses to connect."),
         ] = ("nats://localhost:4222",),
         *,
@@ -101,7 +100,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Callback to report success reconnection."),
         ] = None,
         name: Annotated[
-            Optional[str],
+            str | None,
             Doc("Label the connection with name (shown in NATS monitoring)."),
         ] = SERVICE_NAME,
         pedantic: Annotated[
@@ -154,11 +153,11 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Boolean indicating should commands be echoed."),
         ] = False,
         tls_hostname: Annotated[
-            Optional[str],
+            str | None,
             Doc("Hostname for TLS."),
         ] = None,
         token: Annotated[
-            Optional[str],
+            str | None,
             Doc("Auth token for NATS auth."),
         ] = None,
         drain_timeout: Annotated[
@@ -185,15 +184,15 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("A user credentials file or tuple of files."),
         ] = None,
         nkeys_seed: Annotated[
-            Optional[str],
+            str | None,
             Doc("Nkeys seed to be used."),
         ] = None,
         nkeys_seed_str: Annotated[
-            Optional[str],
+            str | None,
             Doc("Raw nkeys seed to be used."),
         ] = None,
         inbox_prefix: Annotated[
-            Union[str, bytes],
+            str | bytes,
             Doc(
                 "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
             ),
@@ -203,12 +202,12 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Max size of the pending buffer for publishing commands."),
         ] = DEFAULT_PENDING_SIZE,
         flush_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Max duration to wait for a forced flush to occur."),
         ] = None,
         # broker args
         graceful_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc(
                 "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
             ),
@@ -233,19 +232,19 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         specification_url: Annotated[
-            Union[str, Iterable[str], None],
+            str | Iterable[str] | None,
             Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
         ] = None,
         protocol: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol."),
         ] = "nats",
         protocol_version: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol version."),
         ] = "custom",
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server description."),
         ] = None,
         specification_tags: Annotated[
@@ -270,7 +269,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = True,
         schema_url: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
             ),
@@ -281,7 +280,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("An optional path prefix for the router."),
         ] = "",
         tags: Annotated[
-            Optional[list[Union[str, "Enum"]]],
+            list[Union[str, "Enum"]] | None,
             Doc(
                 """
                 A list of tags to be applied to all the *path operations* in this
@@ -295,7 +294,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         dependencies: Annotated[
-            Optional[Sequence["params.Depends"]],
+            Sequence["params.Depends"] | None,
             Doc(
                 """
                 A list of dependencies (using `Depends()`) to be applied to all the
@@ -318,7 +317,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            Optional[dict[Union[int, str], "AnyDict"]],
+            dict[int | str, "AnyDict"] | None,
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.
@@ -334,7 +333,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         callbacks: Annotated[
-            Optional[list[BaseRoute]],
+            list[BaseRoute] | None,
             Doc(
                 """
                 OpenAPI callbacks that should apply to all *path operations* in this
@@ -348,7 +347,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         routes: Annotated[
-            Optional[list[BaseRoute]],
+            list[BaseRoute] | None,
             Doc(
                 """
                 **Note**: you probably shouldn't use this parameter, it is inherited
@@ -388,7 +387,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         dependency_overrides_provider: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 """
                 Only used internally by FastAPI to handle dependency overrides.
@@ -410,7 +409,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = APIRoute,
         on_startup: Annotated[
-            Optional[Sequence[Callable[[], Any]]],
+            Sequence[Callable[[], Any]] | None,
             Doc(
                 """
                 A list of startup event handler functions.
@@ -422,7 +421,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         on_shutdown: Annotated[
-            Optional[Sequence[Callable[[], Any]]],
+            Sequence[Callable[[], Any]] | None,
             Doc(
                 """
                 A list of shutdown event handler functions.
@@ -447,7 +446,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         deprecated: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 """
                 Mark all *path operations* in this router as deprecated.
@@ -568,7 +567,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = "",
         pending_msgs_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit of messages, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
@@ -578,7 +577,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         pending_bytes_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "The number of bytes, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
@@ -594,7 +593,7 @@ class NatsRouter(StreamRouter["Msg"]):
         ] = 0,
         # JS arguments
         durable: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Name of the durable consumer to which the the subscription should be bound.",
             ),
@@ -608,11 +607,11 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Enable ordered consumer mode."),
         ] = False,
         idle_heartbeat: Annotated[
-            Optional[float],
+            float | None,
             Doc("Enable Heartbeats for a consumer to detect failures."),
         ] = None,
         flow_control: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Enable Flow Control for a consumer."),
         ] = None,
         deliver_policy: Annotated[
@@ -620,7 +619,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Deliver Policy to be used for subscription."),
         ] = None,
         headers_only: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 "Should be message delivered without payload, only headers and metadata.",
             ),
@@ -704,11 +703,11 @@ class NatsRouter(StreamRouter["Msg"]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -893,7 +892,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("NATS subject to send message."),
         ],
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -913,7 +912,7 @@ class NatsRouter(StreamRouter["Msg"]):
             ),
         ] = None,
         timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Timeout to send message to NATS."),
         ] = None,
         # specific
@@ -927,15 +926,15 @@ class NatsRouter(StreamRouter["Msg"]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -945,7 +944,7 @@ class NatsRouter(StreamRouter["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "LogicPublisher":
         return self.broker.publisher(
             subject,
             headers=headers,

@@ -1,7 +1,7 @@
 import os
 import threading
 from multiprocessing.context import SpawnProcess
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.cli.supervisors.utils import get_subprocess, set_exit
 from faststream._internal.logger import logger
@@ -17,7 +17,7 @@ class BaseReload:
     _target: "DecoratedCallable"
     _args: tuple[Any, ...]
 
-    reload_delay: Optional[float]
+    reload_delay: float | None
     should_exit: threading.Event
     pid: int
     reloader_name: str = ""
@@ -26,7 +26,7 @@ class BaseReload:
         self,
         target: "DecoratedCallable",
         args: tuple[Any, ...],
-        reload_delay: Optional[float] = 0.5,
+        reload_delay: float | None = 0.5,
     ) -> None:
         self._target = target
         self._args = args

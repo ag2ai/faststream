@@ -53,11 +53,7 @@ class BatchNatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider[list["Msg
 
 def settings_provider_factory(
     msg: Union["Msg", Sequence["Msg"], None],
-) -> Union[
-    NatsMetricsSettingsProvider,
-    BatchNatsMetricsSettingsProvider,
-    None,
-]:
+) -> NatsMetricsSettingsProvider | BatchNatsMetricsSettingsProvider | None:
     if isinstance(msg, Sequence):
         return BatchNatsMetricsSettingsProvider()
     if isinstance(msg, Msg) or msg is None:

@@ -20,7 +20,7 @@ class PullSub:
     def __init__(
         self,
         batch_size: int = 1,
-        timeout: Optional[float] = 5.0,
+        timeout: float | None = 5.0,
         batch: bool = False,
     ) -> None:
         self.batch_size = batch_size

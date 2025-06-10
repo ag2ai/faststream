@@ -2,7 +2,6 @@ import warnings
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Optional,
     Union,
 )
 
@@ -27,9 +26,9 @@ def create_subscriber(
     partitions: Sequence["TopicPartition"],
     polling_interval: float,
     batch: bool,
-    max_records: Optional[int],
+    max_records: int | None,
     # Kafka information
-    group_id: Optional[str],
+    group_id: str | None,
     connection_data: "AnyDict",
     auto_commit: bool,
     # Subscriber args
@@ -39,8 +38,8 @@ def create_subscriber(
     no_reply: bool,
     config: "KafkaBrokerConfig",
     # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
     "SpecificationDefaultSubscriber",
@@ -90,7 +89,7 @@ def _validate_input_for_misconfigure(
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
-    group_id: Optional[str],
+    group_id: str | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:

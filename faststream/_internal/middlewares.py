@@ -1,5 +1,5 @@
-from collections.abc import Awaitable
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Generic, Optional
 
 from typing_extensions import Self
 
@@ -18,7 +18,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     def __init__(
         self,
-        msg: Optional[AnyMsg],
+        msg: AnyMsg | None,
         /,
         *,
         context: "ContextRepo",
@@ -31,10 +31,10 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     async def after_processed(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         """Asynchronously called after processing."""
         return False
 
@@ -44,10 +44,10 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         """Exit the asynchronous context manager."""
         return await self.after_processed(exc_type, exc_val, exc_tb)
 
@@ -58,7 +58,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         """This option was deprecated and will be removed in 0.7.0. Please, use `consume_scope` instead."""
         return msg
 
-    async def after_consume(self, err: Optional[Exception]) -> None:
+    async def after_consume(self, err: Exception | None) -> None:
         """This option was deprecated and will be removed in 0.7.0. Please, use `consume_scope` instead."""
         if err is not None:
             raise err
@@ -69,7 +69,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         msg: "StreamMessage[AnyMsg]",
     ) -> Any:
         """Asynchronously consumes a message and returns an asynchronous iterator of decoded messages."""
-        err: Optional[Exception] = None
+        err: Exception | None = None
         try:
             result = await call_next(await self.on_consume(msg))
 
@@ -91,7 +91,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     async def after_publish(
         self,
-        err: Optional[Exception],
+        err: Exception | None,
     ) -> None:
         """This option was deprecated and will be removed in 0.7.0. Please, use `publish_scope` instead."""
         if err is not None:
@@ -103,7 +103,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         cmd: PublishCommandType,
     ) -> Any:
         """Publish a message and return an async iterator."""
-        err: Optional[Exception] = None
+        err: Exception | None = None
         try:
             result = await call_next(await self.on_publish(cmd))
 

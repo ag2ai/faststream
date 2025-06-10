@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast, overload
+from typing import cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
@@ -22,7 +22,7 @@ class ExternalDocs(BaseModel):
 
     url: AnyHttpUrl
     # Use default values to be able build from dict
-    description: Optional[str] = None
+    description: str | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -50,8 +50,8 @@ class ExternalDocs(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, docs: Union[SpecDocs, ExternalDocsDict, AnyDict, None]
-    ) -> Union[Self, AnyDict, None]:
+        cls, docs: SpecDocs | ExternalDocsDict | AnyDict | None
+    ) -> Self | AnyDict | None:
         if docs is None:
             return None
 

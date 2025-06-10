@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from faststream._internal.basic_types import AnyDict
 from faststream._internal.constants import EMPTY
@@ -18,7 +18,7 @@ class RedisPrometheusMiddleware(PrometheusMiddleware[RedisPublishCommand, AnyDic
         registry: "CollectorRegistry",
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=settings_provider_factory,
