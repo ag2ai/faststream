@@ -70,7 +70,7 @@ To begin with, we are using a `#!python @app.on_startup` decorator
 
 to declare a function that runs when our application starts.
 
-The next step is to declare our function parameters that we expect to recieve:
+The next step is to declare our function parameters that we expect to receive:
 
 ```python linenums="14" hl_lines="2"
 {! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18]!}
