@@ -12,11 +12,13 @@ from faststream.response.publish_type import PublishType
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.nats.configs import NatsBrokerConfig, NatsPublisherConfig
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.producer import NatsFastProducer, NatsJSFastProducer
     from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
+
+    from .config import NatsPublisherConfig
 
 
 class LogicPublisher(PublisherUsecase[Msg]):
@@ -24,9 +26,9 @@ class LogicPublisher(PublisherUsecase[Msg]):
 
     _outer_config: "NatsBrokerConfig"
 
-    def __init__(self, config: "NatsPublisherConfig", /) -> None:
+    def __init__(self, config: "NatsPublisherConfig", specification: "PublisherSpecification") -> None:
         """Initialize NATS publisher object."""
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._subject = config.subject
         self.stream = config.stream

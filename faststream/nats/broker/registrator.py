@@ -12,7 +12,6 @@ from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.factory import create_publisher
 from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 from faststream.nats.subscriber.factory import create_subscriber
-from faststream.nats.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -26,15 +25,13 @@ if TYPE_CHECKING:
     )
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.usecase import LogicPublisher
 
 
 class NatsRegistrator(Registrator["Msg"]):
     """Includable to NatsBroker router."""
 
     config: "NatsBrokerConfig"
-    _subscribers: list["SpecificationSubscriber"]
-    _publishers: list["SpecificationPublisher"]
 
     def __init__(self, **kwargs: Any) -> None:
         self._stream_builder = StreamBuilder()
@@ -206,16 +203,14 @@ class NatsRegistrator(Registrator["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> SpecificationSubscriber:
+    ):
         """Creates NATS subscriber object.
 
         You can use it as a handler decorator `@broker.subscriber(...)`.
         """
         stream = self._stream_builder.create(stream)
 
-        subscriber = cast(
-            "SpecificationSubscriber",
-            super().subscriber(
+        subscriber = super().subscriber(
                 create_subscriber(
                     subject=subject,
                     queue=queue,
@@ -247,8 +242,7 @@ class NatsRegistrator(Registrator["Msg"]):
                     description_=description,
                     include_in_schema=include_in_schema,
                 ),
-            ),
-        )
+            )
 
         if stream and subscriber.subject:
             stream.add_subject(subscriber.subject)
@@ -321,7 +315,7 @@ class NatsRegistrator(Registrator["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "LogicPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -332,7 +326,7 @@ class NatsRegistrator(Registrator["Msg"]):
         stream = self._stream_builder.create(stream)
 
         publisher = cast(
-            "SpecificationPublisher",
+            "LogicPublisher",
             super().publisher(
                 publisher=create_publisher(
                     subject=subject,

@@ -58,9 +58,9 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.nats.message import NatsMessage
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
-    from faststream.nats.subscriber.specified import SpecificationSubscriber
+    from faststream.nats.subscriber.specification import SpecificationSubscriber
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -944,7 +944,7 @@ class NatsRouter(StreamRouter["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "LogicPublisher":
         return self.broker.publisher(
             subject,
             headers=headers,

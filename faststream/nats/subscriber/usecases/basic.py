@@ -19,8 +19,11 @@ if TYPE_CHECKING:
     from nats.js import JetStreamContext
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsBrokerConfig, NatsSubscriberConfig
+    from faststream.nats.configs import NatsBrokerConfig
+    from faststream.nats.subscriber.config import NatsSubscriberConfig
+    from faststream.nats.subscriber.specification import NatsSubscriberSpecification
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
@@ -33,9 +36,10 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecification",
+        calls: "CallsCollection",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self._subject = config.subject
         self.config = config.sub_config

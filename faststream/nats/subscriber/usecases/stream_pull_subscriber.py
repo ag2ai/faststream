@@ -23,12 +23,14 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.basic_types import (
-        SendableMessage,
-    )
-    from faststream.nats.configs import NatsSubscriberConfig
+    from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream, PullSub
+    from faststream.nats.subscriber.config import (
+        NatsSubscriberConfig,
+        NatsSubscriberSpecificationConfig,
+    )
 
 
 class PullStreamSubscriber(
@@ -40,14 +42,15 @@ class PullStreamSubscriber(
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         queue: str,
         pull_sub: "PullSub",
         stream: "JStream",
     ) -> None:
         super().__init__(
-            config,
+            config, specification, calls,
             # basic args
             queue=queue,
             stream=stream,
@@ -118,6 +121,8 @@ class BatchPullStreamSubscriber(
     def __init__(
         self,
         config: "NatsSubscriberConfig",
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         stream: "JStream",
         pull_sub: "PullSub",
@@ -125,7 +130,7 @@ class BatchPullStreamSubscriber(
         parser = BatchParser(pattern=config.subject)
         config.decoder = parser.decode_batch
         config.parser = parser.parse_batch
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.stream = stream
         self.pull_sub = pull_sub

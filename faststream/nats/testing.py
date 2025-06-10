@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.producer import ProducerProto
     from faststream.nats.configs import NatsBrokerConfig
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.specification import SpecificationPublisher
     from faststream.nats.response import NatsPublishCommand
     from faststream.nats.subscriber.usecases.basic import LogicSubscriber
 

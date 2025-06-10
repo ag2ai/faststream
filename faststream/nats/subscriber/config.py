@@ -1,24 +1,29 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
-from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
+from faststream._internal.configs import (
+    SubscriberSpecificationConfig,
+    SubscriberUsecaseConfig,
+)
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-
-from .broker import NatsBrokerConfig
+from faststream.nats.configs import NatsBrokerConfig
 
 if TYPE_CHECKING:
     from nats.js.api import ConsumerConfig
 
-    from faststream._internal.basic_types import (
-        AnyDict,
-    )
-    from faststream.nats.schemas import JStream
+    from faststream._internal.basic_types import AnyDict
+
+
+@dataclass(kw_only=True)
+class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
+    subject: str
+    queue: str | None
 
 
 @dataclass(kw_only=True)
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
-    config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
+    _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
     subject: str
     sub_config: "ConsumerConfig"
@@ -39,14 +44,3 @@ class NatsSubscriberConfig(SubscriberUsecaseConfig):
             return AckPolicy.REJECT_ON_ERROR
 
         return self._ack_policy
-
-
-@dataclass(kw_only=True)
-class NatsPublisherConfig(PublisherUsecaseConfig):
-    config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
-
-    subject: str
-    reply_to: str
-    headers: dict[str, str] | None
-    stream: Optional["JStream"]
-    timeout: float | None
