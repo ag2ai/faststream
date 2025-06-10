@@ -6,14 +6,14 @@ from faststream.rabbit import RabbitBroker
 broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 
 
-def fake_ml_model_answer(x: float):
+def fake_ml_model_answer(x: float) -> float:
     return x * 42
 
 
 @asynccontextmanager
 async def lifespan(context: ContextRepo):
     # load fake ML model
-    ml_models = { "answer_to_everything": fake_ml_model_answer }
+    ml_models = {"answer_to_everything": fake_ml_model_answer}
     context.set_global("model", ml_models)
 
     yield
@@ -23,7 +23,7 @@ async def lifespan(context: ContextRepo):
 
 
 @broker.subscriber("test")
-async def predict(x: float, model=Context()):
+async def predict(x: float, model: dict = Context()):
     result = model["answer_to_everything"](x)
     return {"result": result}
 
