@@ -61,18 +61,22 @@ def test_run_asgi(generate_template, faststream_cli) -> None:
                 f"{extra_param}",
             ]
         ):
-            with urllib.request.urlopen(
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
                 f"http://127.0.0.1:{port}/liveness"
             ) as response:
                 assert response.read().decode() == "hello world"
                 assert response.getcode() == 200
 
-            with urllib.request.urlopen(f"http://127.0.0.1:{port}/docs") as response:
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                f"http://127.0.0.1:{port}/docs"
+            ) as response:
                 content = response.read().decode()
                 assert content.strip().startswith("<!DOCTYPE html>")
                 assert len(content) > 1200
 
-            with urllib.request.urlopen(f"http://127.0.0.1:{port}/context") as response:
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                f"http://127.0.0.1:{port}/context"
+            ) as response:
                 data = json.loads(response.read().decode())
                 assert data == {"test": extra_param, "port": port}
                 assert response.getcode() == 200
