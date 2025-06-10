@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 
 if HAS_UVICORN:
+
     class UvicornExtraConfig(uvicorn.Config):  # type: ignore[misc]
         def __init__(
             self,

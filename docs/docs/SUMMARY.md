@@ -467,6 +467,7 @@ search:
                 - supervisors
                     - asgi_multiprocess
                         - [ASGIMultiprocess](api/faststream/cli/supervisors/asgi_multiprocess/ASGIMultiprocess.md)
+                        - [UvicornExtraConfig](api/faststream/cli/supervisors/asgi_multiprocess/UvicornExtraConfig.md)
                     - basereload
                         - [BaseReload](api/faststream/cli/supervisors/basereload/BaseReload.md)
                     - multiprocess

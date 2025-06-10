@@ -1,10 +1,10 @@
 import subprocess
 import threading
 import time
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
-from typing import Generator, List, Optional, Protocol
+from typing import ContextManager, Generator, List, Optional, Protocol
 
 import pytest
 
@@ -37,7 +37,7 @@ def app(broker):
 class GenerateTemplateFactory(Protocol):
     def __call__(
         self, code: str, filename: str = "temp_app.py"
-    ) -> AbstractContextManager[Path]: ...
+    ) -> ContextManager[Path]: ...
 
 
 @pytest.fixture
@@ -67,7 +67,7 @@ def generate_template(
 class FastStreamCLIFactory(Protocol):
     def __call__(
         self, cmd: List[str], wait_time: float = 1.5
-    ) -> AbstractContextManager[None]: ...
+    ) -> ContextManager[None]: ...
 
 
 @pytest.fixture

@@ -1,10 +1,14 @@
+import json
 import random
+import urllib.request
 
 import pytest
-import requests
+
+from faststream._compat import IS_WINDOWS
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 def test_run_asgi(generate_template, faststream_cli) -> None:
     app_code = """
     import json
@@ -57,14 +61,18 @@ def test_run_asgi(generate_template, faststream_cli) -> None:
                 f"{extra_param}",
             ]
         ):
-            r = requests.get(f"http://127.0.0.1:{port}/liveness")
-            assert r.text == "hello world"
-            assert r.status_code == 200
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/liveness"
+            ) as response:
+                assert response.read().decode() == "hello world"
+                assert response.getcode() == 200
 
-            r = requests.get(f"http://127.0.0.1:{port}/docs")
-            assert r.text.strip().startswith("<!DOCTYPE html>")
-            assert len(r.text) > 1200
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/docs") as response:
+                content = response.read().decode()
+                assert content.strip().startswith("<!DOCTYPE html>")
+                assert len(content) > 1200
 
-            r = requests.get(f"http://127.0.0.1:{port}/context")
-            assert r.json() == {"test": extra_param, "port": port}
-            assert r.status_code == 200
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/context") as response:
+                data = json.loads(response.read().decode())
+                assert data == {"test": extra_param, "port": port}
+                assert response.getcode() == 200
