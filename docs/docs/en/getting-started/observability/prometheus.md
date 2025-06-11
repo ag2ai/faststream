@@ -129,35 +129,68 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 
 ## Prometheus Metrics in Multi-Process Mode
 
-When running `FastStream` with multiple worker processes, you need to configure Prometheus metrics collection specially:
+When running FastStream with multiple worker processes, follow these steps to properly configure Prometheus metrics collection:
 
-1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory
-2. Initialize your collector registry with multiprocess support:
+### Basic Configuration
+1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory:
+   ```bash
+   export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
+   ```
+   
+2. The metrics will automatically work in multiprocess mode when the environment variable is set. Here's a minimal working example:
 
-    ```python linenums="1" hl_lines="8"
-    from prometheus_client import CollectorRegistry, multiprocess
-    import os
+```python linenums="1" hl_lines="8"
+import os
 
-    multiprocess_dir = os.getenv("PROMETHEUS_MULTIPROC_DIR")
+from prometheus_client import CollectorRegistry
 
-    registry = CollectorRegistry()
-    if multiprocess_dir:
-        multiprocess.MultiProcessCollector(registry, path=multiprocess_dir)
+from faststream.kafka import KafkaBroker
+from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 
-    broker = KafkaBroker(
-        middlewares=[
-            KafkaPrometheusMiddleware(
-                registry=registry,
-                app_name="your-app-name"
-            )
-        ]
-    )
-    ```
+broker = KafkaBroker(
+    middlewares=[
+        KafkaPrometheusMiddleware(
+            registry=CollectorRegistry(), 
+            app_name="your-app-name"
+        )
+    ]
+)
+```
 
-The metrics directory must:
-* Exist before application start
-* Be writable by all worker processes
-* Be on a filesystem accessible to all workers
+### Metrics Export Endpoint
+For exporting metrics in multi-process mode, you need a special endpoint:
+
+```python linenums="1" hl_lines="8"
+import os
+
+from prometheus_client import CollectorRegistry, multiprocess, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST
+
+from faststream.asgi import AsgiResponse
+
+registry = CollectorRegistry()
+
+@get
+async def metrics(scope):
+    if path := os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+        registry_ = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry_, path=path)
+    else:
+        registry_ = registry
+
+    headers = {"Content-Type": CONTENT_TYPE_LATEST}
+    return AsgiResponse(generate_latest(registry_), status_code=200, headers=headers)
+```
+
+### Important Requirements
+1. The metrics directory must:
+   - Exist before application start
+   - Be writable by all worker processes
+   - Be on a filesystem accessible to all workers
+   - Be emptied between application runs
+2. For better performance:
+   - Consider mounting the directory on `tmpfs`
+   - Set up regular cleanup of old metric files
 
 ### Grafana dashboard
 
