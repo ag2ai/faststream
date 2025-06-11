@@ -64,10 +64,34 @@ def generate_template(
     return factory
 
 
+class CLIThread(threading.Thread):
+    def __init__(self, command: List[str]) -> None:
+        super().__init__()
+        self.command = command
+        self.process: Optional[subprocess.Popen[bytes]] = None
+        self.exit_code: int | None = None
+
+    def run(self) -> None:
+        self.process = subprocess.Popen(
+            self.command, stdout=subprocess.DEVNULL, shell=False
+        )
+        self.process.wait()
+
+    def stop(self) -> None:
+        if self.process:
+            self.process.terminate()
+            try:
+                self.exit_code = self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+            finally:
+                self.process = None
+
+
 class FastStreamCLIFactory(Protocol):
     def __call__(
         self, cmd: List[str], wait_time: float = 1.5
-    ) -> ContextManager[None]: ...
+    ) -> ContextManager[CLIThread]: ...
 
 
 @pytest.fixture
@@ -76,32 +100,12 @@ def faststream_cli(
 ) -> FastStreamCLIFactory:
     @contextmanager
     def factory(cmd: List[str], wait_time: float = 1.5) -> Generator[None, None, None]:
-        class CLIThread(threading.Thread):
-            def __init__(self, command: List[str]) -> None:
-                super().__init__()
-                self.command = command
-                self.process: Optional[subprocess.Popen[bytes]] = None
-
-            def run(self) -> None:
-                self.process = subprocess.Popen(
-                    self.command, stdout=subprocess.DEVNULL, shell=False
-                )
-                self.process.wait()
-
-            def stop(self) -> None:
-                if self.process:
-                    self.process.terminate()
-                    try:
-                        self.process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        self.process.kill()
-
         cli = CLIThread(cmd)
         cli.start()
         time.sleep(wait_time)
 
         try:
-            yield
+            yield cli
         finally:
             cli.stop()
             cli.join()
