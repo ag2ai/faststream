@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import anyio
 from anyio import move_on_after
-from redis.asyncio.client import Redis
+from redis.asyncio.client import Pipeline, Redis
 from redis.asyncio.connection import (
     Connection,
     ConnectionPool,
@@ -177,8 +177,12 @@ class RedisBroker(
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
             Doc("Default logger log format."),
-        ] = None,
+        ] = EMPTY,
         # FastDepends args
         apply_types: Annotated[
             bool,
@@ -447,6 +451,13 @@ class RedisBroker(
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = False,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
     ) -> Optional["DecodedMessage"]:
         """Publish message directly.
 
@@ -468,6 +479,7 @@ class RedisBroker(
             rpc=rpc,
             rpc_timeout=rpc_timeout,
             raise_timeout=raise_timeout,
+            pipeline=pipeline,
         )
 
     @override
@@ -513,6 +525,13 @@ class RedisBroker(
                 "**correlation_id** is a useful option to trace messages."
             ),
         ] = None,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
     ) -> None:
         """Publish multiple messages to Redis List by one request."""
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
@@ -528,6 +547,7 @@ class RedisBroker(
             *msgs,
             list=list,
             correlation_id=correlation_id,
+            pipeline=pipeline,
         )
 
     @override

@@ -16,7 +16,7 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Annotated, Doc, Self
+from typing_extensions import Annotated, Doc, Self, deprecated
 
 from faststream._compat import is_test_env
 from faststream.broker.core.logging import LoggingBroker
@@ -33,6 +33,7 @@ from faststream.broker.types import (
 )
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.log.logging import set_logger_fmt
+from faststream.types import EMPTY
 from faststream.utils.context.repository import context
 from faststream.utils.functions import return_input, to_async
 
@@ -99,8 +100,12 @@ class BrokerUsecase(
         ],
         log_fmt: Annotated[
             Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
             Doc("Default logger log format."),
-        ],
+        ] = EMPTY,
         # FastDepends args
         apply_types: Annotated[
             bool,

@@ -28,6 +28,9 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
     servers = get_broker_server(broker)
     channels = get_broker_channels(broker)
 
+    # TODO: generate HTTP channels
+    # asgi_routes = get_asgi_routes(app)
+
     messages: Dict[str, Message] = {}
     payloads: Dict[str, Dict[str, Any]] = {}
     for channel_name, ch in channels.items():
@@ -54,6 +57,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
                     payloads,
                     messages,
                 )
+
     schema = Schema(
         info=Info(
             title=app.title,
@@ -134,6 +138,29 @@ def get_broker_channels(
         channels.update(p.schema())
 
     return channels
+
+
+def get_asgi_routes(
+    app: "AsyncAPIApplication",
+) -> Any:
+    """Get the ASGI routes for an application."""
+    # We should import this here due
+    # ASGI > Application > asynciapi.proto
+    # so it looks like a circular import
+    from faststream.asgi import AsgiFastStream
+    from faststream.asgi.handlers import HttpHandler
+
+    if not isinstance(app, AsgiFastStream):
+        return None
+
+    for route in app.routes:
+        path, asgi_app = route
+
+        if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
+            # TODO: generate HTTP channel for handler
+            pass
+
+    return
 
 
 def _resolve_msg_payloads(

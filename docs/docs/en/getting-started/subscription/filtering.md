@@ -133,13 +133,13 @@ async def handler(): ...
 async def default_handler(): ...
 ```
 
-Here, `@subscriber()` is equivalent to `@subscriber(filter=lambda _: True)`, meaning it **accepts all** messages. This ensures that no message goes unprocessed, even if no specific handler is found.
+Here, `#!python @subscriber()` is equivalent to `#!python @subscriber(filter=lambda _: True)`, meaning it **accepts all** messages. This ensures that no message goes unprocessed, even if no specific handler is found.
 
 ### Summary
 
 - Handlers are checked in order, and the first matching one processes the message.
 - The default handler must be **placed last** to ensure all messages are handled.
-- `@subscriber()` without parameters acts as a universal handler, accepting everything.
+- `#!python @subscriber()` without parameters acts as a universal handler, accepting everything.
 - A trash handler must properly finalize the subscription and inform the broker about unnecessary data.
 
 Properly managing subscribers allows for precise message processing control and prevents data loss.

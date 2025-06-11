@@ -1,8 +1,4 @@
-from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Union, overload
 
 from faststream.asgi.response import AsgiResponse
 
@@ -10,31 +6,83 @@ if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
 
-def get(func: "UserApp") -> "ASGIApp":
-    methods = ("GET", "HEAD")
+class HttpHandler:
+    def __init__(
+        self,
+        func: "UserApp",
+        *,
+        include_in_schema: bool = True,
+        description: Optional[str] = None,
+        methods: Optional[Sequence[str]] = None,
+    ):
+        self.func = func
+        self.methods = methods or ()
+        self.include_in_schema = include_in_schema
+        self.description = description or func.__doc__
 
-    method_now_allowed_response = _get_method_not_allowed_response(methods)
-    error_response = AsgiResponse(body=b"Internal Server Error", status_code=500)
-
-    @wraps(func)
-    async def asgi_wrapper(
-        scope: "Scope",
-        receive: "Receive",
-        send: "Send",
-    ) -> None:
-        if scope["method"] not in methods:
-            response: ASGIApp = method_now_allowed_response
+    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
+        if scope["method"] not in self.methods:
+            response: ASGIApp = _get_method_not_allowed_response(self.methods)
 
         else:
             try:
-                response = await func(scope)
+                response = await self.func(scope)
             except Exception:
-                response = error_response
+                response = AsgiResponse(body=b"Internal Server Error", status_code=500)
 
         await response(scope, receive, send)
         return
 
-    return asgi_wrapper
+
+class GetHandler(HttpHandler):
+    def __init__(
+        self,
+        func: "UserApp",
+        *,
+        include_in_schema: bool = True,
+        description: Optional[str] = None,
+    ):
+        super().__init__(
+            func,
+            include_in_schema=include_in_schema,
+            description=description,
+            methods=("GET", "HEAD"),
+        )
+
+
+@overload
+def get(
+    func: "UserApp",
+    *,
+    include_in_schema: bool = True,
+    description: Optional[str] = None,
+) -> "ASGIApp": ...
+
+
+@overload
+def get(
+    func: None = None,
+    *,
+    include_in_schema: bool = True,
+    description: Optional[str] = None,
+) -> Callable[["UserApp"], "ASGIApp"]: ...
+
+
+def get(
+    func: Optional["UserApp"] = None,
+    *,
+    include_in_schema: bool = True,
+    description: Optional[str] = None,
+) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
+    def decorator(inner_func: "UserApp") -> "ASGIApp":
+        return GetHandler(
+            inner_func, include_in_schema=include_in_schema, description=description
+        )
+
+    if func is None:
+        return decorator
+
+    return decorator(func)
 
 
 def _get_method_not_allowed_response(methods: Sequence[str]) -> AsgiResponse:

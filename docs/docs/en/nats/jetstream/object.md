@@ -37,7 +37,7 @@ First of all, you need to create a *Object Storage* object and put some value to
 
 ---
 
-Then we are able to use returned `object_storage` object as a regular NATS one. But, if you want to watch by any new files in the bucket, **FastStream** allows you to make it via regular `@broker.subscriber` interface:
+Then we are able to use returned `object_storage` object as a regular NATS one. But, if you want to watch by any new files in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
 
 ```python linenums="1" hl_lines="1"
 @broker.subscriber("example-bucket", obj_watch=True)

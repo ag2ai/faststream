@@ -17,7 +17,7 @@ from typing import (
 )
 
 import anyio
-from typing_extensions import Annotated, Doc, override
+from typing_extensions import Annotated, Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream.broker.message import gen_cor_id
@@ -313,8 +313,12 @@ class KafkaBroker(  # type: ignore[misc]
         ] = logging.INFO,
         log_fmt: Annotated[
             Optional[str],
+            deprecated(
+                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
+                "Pass a pre-configured `logger` instead."
+            ),
             Doc("Default logger log format."),
-        ] = None,
+        ] = EMPTY,
         # FastDepends args
         apply_types: Annotated[
             bool,

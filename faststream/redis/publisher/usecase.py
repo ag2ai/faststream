@@ -15,6 +15,8 @@ from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.utils.functions import return_input
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Pipeline
+
     from faststream.broker.types import BrokerMiddleware, PublisherMiddleware
     from faststream.redis.message import RedisMessage
     from faststream.redis.publisher.producer import RedisFastProducer
@@ -163,6 +165,13 @@ class ChannelPublisher(LogicPublisher):
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = False,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
         # publisher specific
         _extra_middlewares: Annotated[
             Iterable["PublisherMiddleware"],
@@ -191,6 +200,7 @@ class ChannelPublisher(LogicPublisher):
         return await call(
             message,
             channel=channel_sub.name,
+            pipeline=pipeline,
             # basic args
             reply_to=reply_to,
             headers=headers,
@@ -377,6 +387,13 @@ class ListPublisher(LogicPublisher):
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = False,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
         # publisher specific
         _extra_middlewares: Annotated[
             Iterable["PublisherMiddleware"],
@@ -404,6 +421,7 @@ class ListPublisher(LogicPublisher):
         return await call(
             message,
             list=list_sub.name,
+            pipeline=pipeline,
             # basic args
             reply_to=reply_to,
             headers=headers or self.headers,
@@ -514,6 +532,13 @@ class ListBatchPublisher(ListPublisher):
             Iterable["PublisherMiddleware"],
             Doc("Extra middlewares to wrap publishing process."),
         ] = (),
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
         **kwargs: Any,  # option to suppress maxlen
     ) -> None:
         assert self._producer, NOT_CONNECTED_YET  # nosec B101
@@ -537,6 +562,7 @@ class ListBatchPublisher(ListPublisher):
             list=list_sub.name,
             correlation_id=correlation_id,
             headers=headers or self.headers,
+            pipeline=pipeline,
         )
 
 
@@ -650,6 +676,13 @@ class StreamPublisher(LogicPublisher):
                 "Argument will be removed in **FastStream 0.6.0**."
             ),
         ] = False,
+        pipeline: Annotated[
+            Optional["Pipeline[bytes]"],
+            Doc(
+                "Optional Redis `Pipeline` object to batch multiple commands. "
+                "Use it to group Redis operations for optimized execution and reduced latency."
+            ),
+        ] = None,
         # publisher specific
         _extra_middlewares: Annotated[
             Iterable["PublisherMiddleware"],
@@ -679,6 +712,7 @@ class StreamPublisher(LogicPublisher):
             message,
             stream=stream_sub.name,
             maxlen=maxlen,
+            pipeline=pipeline,
             # basic args
             reply_to=reply_to,
             headers=headers,

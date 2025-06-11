@@ -14,12 +14,12 @@ search:
 
 It offers several use cases for publishing messages:
 
-* Using `#!python broker.publish(...)` method
-* Using the `#!python @broker.publisher(...)` decorator
-* Using a publisher object decorator
-* Using a publisher object directly
+* Using [`#!python broker.publish(...)` method](./broker.md){.internal-link}
+* Using the [`#!python @broker.publisher(...)` decorator](./decorator.md){.internal-link}
+* Using a [publisher object decorator](./object.md){.internal-link}
+* Using a [publisher object directly](./direct.md){.internal-link}
 
-All of these variants have their own advantages and limitations, so you can choose what you want based on your requirements. Please visit the following pages for details.
+All of these variants have their own advantages and limitations, so you can choose what you want based on your requirements. This section will guide you through all the details.
 
 ## Serialization
 
@@ -39,11 +39,11 @@ By the way, you can use `application/json` for all of your messages if they are 
 
 ## Publishing
 
-**FastStream** can also be used as a Broker client to send messages in other applications. It is quite straightforward and similar to *aiohttp* or *requests*.
+**FastStream** can also be used as a Broker client to send messages in other applications.
 
 You just need to `#!python connect` your broker, and you are ready to send a message. Additionally, you can use *Broker* as an async context manager to establish a connection and disconnect when leaving the scope.
 
-To publish a message, simply set up the message content and a routing key:
+To publish a message, provide the message content and a routing key:
 
 === "AIOKafka"
     ```python

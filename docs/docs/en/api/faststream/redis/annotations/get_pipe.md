@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.broker.fastapi.get_dependant.has_signature_param
+::: faststream.redis.annotations.get_pipe

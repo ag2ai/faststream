@@ -7,7 +7,7 @@ app = FastStream(broker)
 ml_models = {}  # fake ML model
 
 
-def fake_answer_to_everything_ml_model(x: float):
+def fake_answer_to_everything_ml_model(x: float) -> float:
     return x * 42
 
 
@@ -25,6 +25,6 @@ async def shutdown_model(model: dict = Context()):
 
 
 @broker.subscriber("test")
-async def predict(x: float, model=Context()):
+async def predict(x: float, model: dict = Context()):
     result = model["answer_to_everything"](x)
     return {"result": result}

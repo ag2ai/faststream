@@ -19,7 +19,7 @@ async def handle(
 def call(
     tag,
     message: KafkaMessage,
-    correlation_id=Context(),
+    correlation_id: str = Context(),
 ):
     assert correlation_id == message.correlation_id
     context.reset_local("correlation_id", tag)

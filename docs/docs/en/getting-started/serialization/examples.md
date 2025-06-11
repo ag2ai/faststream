@@ -12,7 +12,7 @@ search:
 
 ## Protobuf
 
-In this section, we will explore an example using *Protobuf*. However, this approach is also applicable to other serialization methods.
+In this section, we will explore an example using [Protobuf](https://protobuf.dev/overview/){.external-link target="_blank"}. However, this approach is also applicable to other serialization methods.
 
 ???- note "Protobuf"
     *Protobuf* is an alternative message serialization method commonly used in *GRPC*.  Its main advantage is that it results in much smaller message sizes[^1] compared to *JSON*, but it requires a message schema (`.proto` files) on both the client and server sides.
@@ -54,7 +54,7 @@ Note that we used the `NoCast` annotation to exclude the message from the `pydan
 
 ## Msgpack
 
-*Msgpack* is another alternative binary data format. Its main advantage is that it results in smaller message sizes[^2] compared to *JSON*, although slightly larger than *Protobuf*. The key advantage is that it doesn't require a message schema, making it easy to use in most cases.
+[Msgpack](https://msgpack.org){.external-link target="_blank"} is another alternative binary data format. Its main advantage is that it results in smaller message sizes[^2] compared to *JSON*, although slightly larger than *Protobuf*. The key advantage is that it doesn't require a message schema, making it easy to use in most cases.
 
 To get started, install the necessary dependencies:
 
@@ -72,7 +72,7 @@ Using *Msgpack* is much simpler than using *Protobuf* schemas. Therefore, if you
 
 ## Avro
 
-In this section, let's explore how to use Avro encoding and decoding to encode/decode our messages as part of FastStream.
+In this section, let's explore how to use [Avro](https://avro.apache.org/docs){.external-link target="_blank"} encoding and decoding to encode/decode our messages.
 
 ???- note "Avro"
     *Apache Avro* uses JSON to define data types and protocols and serializes data in a compact binary format. Avro utilizes a schema to structure the data that is being encoded. Schemas are composed of primitive types (null, boolean, int, long, float, double, bytes, and string) and complex types (record, enum, array, map, union, and fixed).
@@ -104,7 +104,7 @@ The contents of the `person.avsc` file are:
 Finally, let's use Avro's `schemaless_reader` and `schemaless_writer` to decode and encode messages in the `FastStream` app.
 
 ```python linenums="1" hl_lines="1 3 15-18 21 30-32"
-{! docs_src/getting_started/serialization/avro.py [ln:1-10,22-45] !}
+{! docs_src/getting_started/serialization/avro.py [ln:1-10,21-45] !}
 ```
 
 ## Tips

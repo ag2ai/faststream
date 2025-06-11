@@ -20,7 +20,6 @@ person_schema = {
 
 person_schema = fastavro.schema.load_schema("person.avsc")
 
-# person_schema = ...
 schema = fastavro.schema.parse_schema(person_schema)
 
 async def decode_message(msg: KafkaMessage):

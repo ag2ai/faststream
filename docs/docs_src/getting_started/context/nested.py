@@ -1,5 +1,6 @@
-from faststream import Context, apply_types
+from logging import Logger
 
+from faststream import Context, apply_types
 from faststream.rabbit import RabbitBroker
 
 
@@ -12,5 +13,5 @@ async def handler(body):
 
 
 @apply_types
-def nested_func(body, logger=Context()):
+def nested_func(body, logger: Logger = Context()):
     logger.info(body)

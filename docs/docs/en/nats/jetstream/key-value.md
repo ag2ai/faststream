@@ -37,7 +37,7 @@ First of all, you need to create a *Key-Value* storage object and put some value
 
 ---
 
-Then we are able to use returned `key_value` object as a regular NATS one. But, if you want to watch by any changes by some key in the bucket, **FastStream** allows you to make it via regular `@broker.subscriber` interface:
+Then we are able to use returned `key_value` object as a regular NATS one. But, if you want to watch by any changes by some key in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
 
 ```python linenums="1" hl_lines="1"
 {! docs_src/nats/js/key_value.py [ln:8-10] !}

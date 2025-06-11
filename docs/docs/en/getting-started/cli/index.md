@@ -20,7 +20,7 @@ search:
 To install the **FastStream CLI**, you need to run the following command:
 
 ```shell
-pip install faststream[cli]
+pip install 'faststream[cli]'
 ```
 
 After installation, you can check which commands are available by executing:

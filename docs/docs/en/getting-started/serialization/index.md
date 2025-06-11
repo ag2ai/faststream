@@ -21,9 +21,9 @@ Before the message reaches your subscriber, **FastStream** applies two functions
 At this stage, **FastStream** serializes an incoming message from the broker's framework into a general format called - **StreamMessage**. During this stage, the message body remains in the form of raw bytes.
 
 !!! warning ""
-    This stage is closely related to the features of the broker used, and in most cases, redefining it is not necessary.
+    This stage is closely related to the features of the used broker, and in most cases, redefining it is not necessary. Redefine it, only if you know what you are doing.
 
-The parser declared at the `broker` level will be applied to all subscribers. The parser declared at the `subscriber` level is applied only to that specific subscriber and overrides the `broker' parser if specified.
+The parser declared at the `broker` level will be applied to all subscribers. The parser declared at the `subscriber` level is applied only to that specific subscriber and overrides the `broker`'s parser if specified.
 
 ### Message Decoding
 

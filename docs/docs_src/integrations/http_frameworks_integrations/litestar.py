@@ -13,6 +13,6 @@ async def index() -> str:
 
 app = Litestar(
     [index],
-    on_startup=(broker.start,),
-    on_shutdown=(broker.close,),
+    on_startup=[broker.start],
+    on_shutdown=[broker.close],
 )

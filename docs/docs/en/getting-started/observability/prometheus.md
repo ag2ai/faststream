@@ -23,7 +23,7 @@ To add a metrics to your broker, you need to:
 1. Install `FastStream` with `prometheus-client`
 
     ```shell
-    pip install faststream[prometheus]
+    pip install 'faststream[prometheus]'
     ```
 
 2. Add `PrometheusMiddleware` to your broker
