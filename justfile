@@ -6,7 +6,7 @@ default:
 # Infra
 [doc("Init infra")]
 [group("infra")]
-init python="3.8":
+init python="3.10":
   docker build . --build-arg PYTHON_VERSION={{python}}
   python -m venv venv
 
