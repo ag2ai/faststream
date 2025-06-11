@@ -3,7 +3,6 @@ services:
     image: rabbitmq:alpine
     ports:
       - "5672:5672"
-    # https://semgrep.dev/r?q=yaml.docker-compose.security.no-new-privileges.no-new-privileges
     security_opt:
       - no-new-privileges:true
 
@@ -22,7 +21,6 @@ services:
       KAFKA_BROKER_ID: "1"
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
       ALLOW_PLAINTEXT_LISTENER: "true"
-    # https://semgrep.dev/r?q=yaml.docker-compose.security.no-new-privileges.no-new-privileges
     security_opt:
       - no-new-privileges:true
 
@@ -32,7 +30,6 @@ services:
     ports:
       - 4222:4222
       - 8222:8222  # management
-    # https://semgrep.dev/r?q=yaml.docker-compose.security.no-new-privileges.no-new-privileges
     security_opt:
       - no-new-privileges:true
 
@@ -40,7 +37,6 @@ services:
     image: redis:alpine
     ports:
       - 6379:6379
-    # https://semgrep.dev/r?q=yaml.docker-compose.security.no-new-privileges.no-new-privileges
     security_opt:
       - no-new-privileges:true
 
