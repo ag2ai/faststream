@@ -136,7 +136,7 @@ When running FastStream with multiple worker processes, follow these steps to pr
    ```bash
    export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
    ```
-   
+
 2. The metrics will automatically work in multiprocess mode when the environment variable is set. Here's a minimal working example:
 
 ```python linenums="1" hl_lines="8"
@@ -150,7 +150,7 @@ from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 broker = KafkaBroker(
     middlewares=[
         KafkaPrometheusMiddleware(
-            registry=CollectorRegistry(), 
+            registry=CollectorRegistry(),
             app_name="your-app-name"
         )
     ]
