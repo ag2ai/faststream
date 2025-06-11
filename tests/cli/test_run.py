@@ -11,30 +11,27 @@ from faststream.cli.main import cli as faststream_app
 from faststream.cli.utils.logs import get_log_level
 
 
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
+@pytest.mark.slow
+def test_run(generate_template, faststream_cli) -> None:
+    app_code = """
+    from faststream import FastStream
+    from faststream.nats import NatsBroker
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory", return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
+    broker = NatsBroker()
+
+    app = FastStream(broker)
+    """
+    with generate_template(app_code) as app_path:
+        module_name = str(app_path).replace(".py", "")
+        with faststream_cli(
             [
+                "faststream",
                 "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-            ],
-        )
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
-        assert result.exit_code == 0
+                f"{module_name}:app",
+            ]
+        ) as cli_thread:
+            cli_thread.stop()
+            assert cli_thread.exit_code == 0
 
 
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
