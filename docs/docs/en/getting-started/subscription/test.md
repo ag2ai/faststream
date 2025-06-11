@@ -149,7 +149,7 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
 
     Thus our example checks not `#!python mock.assert_called_with(name="John", user_id=1)`, but `#!python mock.assert_called_with({ "name": "John", "user_id": 1 })`.
 
-Scoping rule: all handles' mock objects will be cleared when the context manager exits.
+Scoping rule: all handle's mock objects will be cleared when the context manager exits.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="6 8"
