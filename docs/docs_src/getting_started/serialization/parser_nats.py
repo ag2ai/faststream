@@ -1,7 +1,6 @@
 from typing import Awaitable, Callable
 
 from nats.aio.msg import Msg
-
 from faststream import FastStream
 from faststream.nats import NatsBroker, NatsMessage
 

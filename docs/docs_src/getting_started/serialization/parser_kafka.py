@@ -1,7 +1,6 @@
 from typing import Awaitable, Callable
 
 from aiokafka import ConsumerRecord
-
 from faststream import FastStream
 from faststream.kafka import KafkaBroker, KafkaMessage
 

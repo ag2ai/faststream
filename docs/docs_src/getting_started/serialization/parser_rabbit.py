@@ -1,7 +1,6 @@
 from typing import Awaitable, Callable
 
 from aio_pika import IncomingMessage
-
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker, RabbitMessage
 
