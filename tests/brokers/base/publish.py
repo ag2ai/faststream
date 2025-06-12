@@ -7,6 +7,8 @@ from unittest.mock import Mock
 
 import anyio
 import pytest
+from fast_depends.exceptions import ValidationError
+from fast_depends.msgspec import MsgSpecSerializer
 from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, Response
@@ -620,3 +622,49 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_with("Hello!")
+
+    async def test_msgspec_serialize(
+        self,
+        queue: str,
+        mock: Mock,
+    ) -> None:
+        event = asyncio.Event()
+        pub_broker = self.get_broker(apply_types=True, serializer=MsgSpecSerializer)
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(m: str) -> None:
+            event.set()
+            mock(m)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("Hello!", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_with("Hello!")
+
+    async def test_incorrect_msgspec_serialize(
+        self,
+        queue: str,
+        mock: Mock,
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True, serializer=MsgSpecSerializer)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(m: str) -> None:
+            mock(m)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            with pytest.raises(ValidationError):
+                await br.publish(1, queue)
