@@ -81,8 +81,8 @@ Alternatively, you can reuse the original parser function with the following sig
 
 === "Confluent"
     ```python
-    from typing import Callable, Awaitable
     from confluent_kafka import Message
+    from typing import Callable, Awaitable
     from faststream.confluent import KafkaMessage
 
     async def parser(
