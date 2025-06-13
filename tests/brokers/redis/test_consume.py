@@ -6,6 +6,7 @@ import pytest
 from redis.asyncio import Redis
 
 from faststream.redis import ListSub, PubSub, RedisBroker, RedisMessage, StreamSub
+from faststream.redis.annotations import RedisStreamMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -662,6 +663,68 @@ class TestConsumeStream:
 
                 m.mock.assert_called_once()
 
+        assert event.is_set()
+
+    async def test_consume_and_delete_acked(self, queue: str, event: asyncio.Event):
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue)
+        )
+        async def handler(msg: RedisStreamMessage):
+            event.set()
+            await msg.delete(consume_broker._connection)
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            with patch.object(Redis, "xdel", spy_decorator(Redis.xdel)) as m:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=300,
+                )
+
+                m.mock.assert_called_once()
+
+            queue_len = await br._connection.xlen(queue)
+            assert queue_len == 0, (
+                f"Redis stream must be empty here, found {queue_len} messages"
+            )
+        assert event.is_set()
+
+    async def test_consume_and_delete_nacked(self, queue: str, event: asyncio.Event):
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+            no_ack=True,
+        )
+        async def handler(msg: RedisStreamMessage):
+            event.set()
+            assert not msg.committed
+            await msg.delete(consume_broker._connection)
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            with patch.object(Redis, "xdel", spy_decorator(Redis.xdel)) as m:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=300,
+                )
+
+                m.mock.assert_called_once()
+
+            queue_len = await br._connection.xlen(queue)
+            assert queue_len == 0, (
+                f"Redis stream must be empty here, found {queue_len} messages"
+            )
         assert event.is_set()
 
     async def test_get_one(
