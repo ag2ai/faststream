@@ -70,9 +70,7 @@ Alternatively, you can reuse the original parser function with the following sig
 === "AIOKafka"
     ```python
     from typing import Callable, Awaitable
-
-    from aiokafka import ConsumerRecord
-    from faststream.kafka import KafkaMessage
+    from faststream.kafka import ConsumerRecord, KafkaMessage
 
     async def parser(
         msg: ConsumerRecord,
@@ -84,7 +82,6 @@ Alternatively, you can reuse the original parser function with the following sig
 === "Confluent"
     ```python
     from typing import Callable, Awaitable
-
     from confluent_kafka import Message
     from faststream.confluent import KafkaMessage
 
@@ -98,7 +95,6 @@ Alternatively, you can reuse the original parser function with the following sig
 === "RabbitMQ"
     ```python
     from typing import Callable, Awaitable
-
     from aio_pika import IncomingMessage
     from faststream.rabbit import RabbitMessage
 
@@ -112,7 +108,6 @@ Alternatively, you can reuse the original parser function with the following sig
 === "NATS"
     ```python
     from typing import Callable, Awaitable
-
     from nats.aio.msg import Msg
     from faststream.nats import NatsMessage
 
@@ -126,7 +121,6 @@ Alternatively, you can reuse the original parser function with the following sig
 === "Redis"
     ```python
     from typing import Callable, Awaitable
-
     from faststream.redis import RedisMessage
     from faststream.redis.message import PubSubMessage
 
