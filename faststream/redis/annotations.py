@@ -7,6 +7,7 @@ from typing_extensions import Annotated
 from faststream import Depends
 from faststream.annotations import ContextRepo, Logger, NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
+from faststream.redis.message import RedisStreamMessage as RSM
 from faststream.redis.message import UnifyRedisMessage
 from faststream.utils.context import Context
 
@@ -29,6 +30,7 @@ __all__ = (
 )
 
 RedisMessage = Annotated[UnifyRedisMessage, Context("message")]
+RedisStreamMessage = Annotated[RSM, Context("message")]
 RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
 
