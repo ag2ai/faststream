@@ -684,7 +684,7 @@ class TestConsumeStream:
                         asyncio.create_task(br.publish("hello", stream=queue)),
                         asyncio.create_task(event.wait()),
                     ),
-                    timeout=300,
+                    timeout=3,
                 )
 
                 m.mock.assert_called_once()
@@ -716,7 +716,7 @@ class TestConsumeStream:
                         asyncio.create_task(br.publish("hello", stream=queue)),
                         asyncio.create_task(event.wait()),
                     ),
-                    timeout=300,
+                    timeout=3,
                 )
 
                 m.mock.assert_called_once()
