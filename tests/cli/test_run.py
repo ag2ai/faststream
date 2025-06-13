@@ -1,6 +1,9 @@
 import logging
+import os
+import urllib.request
 from unittest.mock import AsyncMock, Mock, patch
 
+import psutil
 import pytest
 from typer.testing import CliRunner
 
@@ -14,15 +17,22 @@ from faststream.cli.utils.logs import get_log_level
 @pytest.mark.slow
 def test_run(generate_template, faststream_cli) -> None:
     app_code = """
-    from faststream import FastStream
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
     from faststream.nats import NatsBroker
 
     broker = NatsBroker()
 
-    app = FastStream(broker)
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+    app = AsgiFastStream(broker, asgi_routes=[
+        ("/liveness", liveness_ping),
+    ])
     """
     with generate_template(app_code) as app_path:
         module_name = str(app_path).replace(".py", "")
+        print(module_name)
         with faststream_cli(
             [
                 "faststream",
@@ -30,8 +40,11 @@ def test_run(generate_template, faststream_cli) -> None:
                 f"{module_name}:app",
             ]
         ) as cli_thread:
-            cli_thread.stop()
-            assert cli_thread.exit_code == 0
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                "http://127.0.0.1:8000/liveness"
+            ) as response:
+                assert response.read().decode() == "hello world"
+                assert response.getcode() == 200
 
 
 @pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
@@ -61,44 +74,46 @@ def test_run_as_asgi_with_single_worker(runner: CliRunner, app: Application):
 
 
 @pytest.mark.parametrize("workers", [3, 5, 7])
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_with_many_workers(
-    runner: CliRunner, workers: int, app: Application
+    generate_template,
+    faststream_cli,
+    workers: int,
 ):
-    asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
-    _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
+    app_code = """
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
+    from faststream.nats import NatsBroker
 
-    with patch(asgi_multiprocess) as asgi_runner, patch(
-        _import_obj_or_factory, return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
+    broker = NatsBroker()
+
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+    app = AsgiFastStream(broker, asgi_routes=[
+        ("/liveness", liveness_ping),
+    ])
+    """
+    with generate_template(app_code) as app_path:
+        with faststream_cli(
             [
+                "faststream",
                 "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
+                f"{app_path.stem}:app",
                 "--workers",
                 str(workers),
             ],
-        )
-        assert result.exit_code == 0
-
-        asgi_runner.assert_called_once()
-        asgi_runner.assert_called_once_with(
-            target="faststream:app",
-            args=(
-                "faststream:app",
-                {"host": "0.0.0.0", "port": "8000"},
-                False,
-                None,
-                0,
-            ),
-            workers=workers,
-        )
-        asgi_runner().run.assert_called_once()
+            extra_env={
+                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                "PYTHONPATH": str(app_path.parent),
+            },
+        ) as cli_thread:
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                "http://127.0.0.1:8000/liveness"
+            ) as response:
+                assert response.read().decode() == "hello world"
+                assert response.getcode() == 200
+            process = psutil.Process(pid=cli_thread.process.pid)
+            assert len(process.children()) == workers + 1
 
 
 @pytest.mark.parametrize(
@@ -109,6 +124,7 @@ def test_run_as_asgi_with_many_workers(
 def test_run_as_asgi_mp_with_log_level(
     runner: CliRunner, app: Application, log_level: str
 ):
+
     asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
     _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
 
