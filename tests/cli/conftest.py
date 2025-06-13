@@ -73,7 +73,10 @@ class CliThread(Protocol):
 
 class FastStreamCLIFactory(Protocol):
     def __call__(
-        self, cmd: List[str], wait_time: float = 1.5,
+        self,
+        cmd: List[str],
+        wait_time: float = 1.5,
+        extra_env: dict[str, str] | None = None,
     ) -> ContextManager[CliThread]: ...
 
 
@@ -81,32 +84,38 @@ class FastStreamCLIFactory(Protocol):
 def faststream_cli(
     tmp_path: Path,
 ) -> FastStreamCLIFactory:
-
-    class RealCLIThread(threading.Thread):
-        def __init__(self, command: List[str], env: dict[str, str]):
-            super().__init__()
-            self.command = command
-            self.process: Optional[subprocess.Popen[bytes]] = None
-            self.env = env
-
-        def run(self) -> None:
-            self.process = subprocess.Popen(
-                self.command, stdout=subprocess.DEVNULL, shell=False, env=self.env,
-            )
-            self.process.wait()
-
-        def stop(self) -> None:
-            if self.process:
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self.process.kill()
-                finally:
-                    self.process = None
-
     @contextmanager
-    def factory(cmd: List[str], wait_time: float = 1.5, extra_env: dict[str, str] | None = None,) -> Generator[CliThread, None, None]:
+    def factory(
+        cmd: List[str],
+        wait_time: float = 1.5,
+        extra_env: dict[str, str] | None = None,
+    ) -> Generator[CliThread, None, None]:
+        class RealCLIThread(threading.Thread):
+            def __init__(self, command: List[str], env: dict[str, str]):
+                super().__init__()
+                self.command = command
+                self.process: Optional[subprocess.Popen[bytes]] = None
+                self.env = env
+
+            def run(self) -> None:
+                self.process = subprocess.Popen(
+                    self.command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    shell=False,
+                    env=self.env,
+                )
+                self.process.wait()
+
+            def stop(self) -> None:
+                if self.process:
+                    self.process.terminate()
+                    try:
+                        self.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.process.kill()
+
         extra_env = extra_env or {}
         env = os.environ.copy()
         env.update(**extra_env)
