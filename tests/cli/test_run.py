@@ -29,20 +29,21 @@ def test_run(generate_template, faststream_cli) -> None:
         ("/liveness", liveness_ping),
     ])
     """
-    with generate_template(app_code) as app_path:
-        module_name = str(app_path).replace(".py", "")
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{module_name}:app",
-            ]
-        ):
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-                "http://127.0.0.1:8000/liveness"
-            ) as response:
-                assert response.read().decode() == "hello world"
-                assert response.getcode() == 200
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        "http://127.0.0.1:8000/liveness"
+    ) as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
 @pytest.mark.slow
@@ -65,21 +66,23 @@ def test_run_as_asgi_with_single_worker(
         ("/liveness", liveness_ping),
     ])
     """
-    with generate_template(app_code) as app_path:
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{app_path.stem}:app",
-                "--workers",
-                "1",
-            ],
-        ):
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-                "http://127.0.0.1:8000/liveness"
-            ) as response:
-                assert response.read().decode() == "hello world"
-                assert response.getcode() == 200
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            "1",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        "http://127.0.0.1:8000/liveness"
+    ) as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
 @pytest.mark.slow
@@ -98,29 +101,27 @@ def test_run_as_asgi_with_many_workers(
 
     app = AsgiFastStream(broker)
     """
-    with generate_template(app_code) as app_path:
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{app_path.stem}:app",
-                "--workers",
-                str(workers),
-            ],
-            extra_env={
-                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-                "PYTHONPATH": str(app_path.parent),
-            },
-            wait_time=0.5,
-        ) as cli_thread:
-            process = psutil.Process(pid=cli_thread.process.pid)
-            assert len(process.children()) == workers + 1
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            str(workers),
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ) as cli_thread:
+        process = psutil.Process(pid=cli_thread.process.pid)
+        assert len(process.children()) == workers + 1
 
 
 @pytest.mark.slow
 @pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 @pytest.mark.parametrize(
-    "log_level, numeric_log_level",
+    ("log_level", "numeric_log_level"),
     [
         ("critical", 50),
         ("fatal", 50),
@@ -154,26 +155,25 @@ def test_run_as_asgi_mp_with_log_level(
         logger.critical(f"Current log level is {logging.getLogger("uvicorn.asgi").level}")
     """
 
-    with generate_template(app_code) as app_path:
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{app_path.stem}:app",
-                "--workers",
-                "3",
-                "--log-level",
-                log_level,
-            ],
-            extra_env={
-                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-                "PYTHONPATH": str(app_path.parent),
-            },
-            wait_time=0.5,
-        ) as cli_thread:
-            pass
-        stderr = cli_thread.process.stderr.read()
-        assert f"Current log level is {numeric_log_level}" in stderr
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            "3",
+            "--log-level",
+            log_level,
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+        wait_time=0.5,
+    ) as cli_thread:
+        pass
+    stderr = cli_thread.process.stderr.read()
+    assert f"Current log level is {numeric_log_level}" in stderr
 
 
 @pytest.mark.slow
@@ -194,24 +194,22 @@ def test_run_as_factory(generate_template, faststream_cli):
             ("/liveness", liveness_ping),
         ])
     """
-    with generate_template(app_code) as app_path:
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{app_path.stem}:app_factory",
-                "--factory",
-            ],
-            extra_env={
-                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-                "PYTHONPATH": str(app_path.parent),
-            },
-        ):
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-                "http://127.0.0.1:8000/liveness"
-            ) as response:
-                assert response.read().decode() == "hello world"
-                assert response.getcode() == 200
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app_factory",
+            "--factory",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        "http://127.0.0.1:8000/liveness"
+    ) as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
 def test_run_app_like_factory_but_its_fake(generate_template, faststream_cli):
@@ -223,22 +221,21 @@ def test_run_app_like_factory_but_its_fake(generate_template, faststream_cli):
 
     app = FastStream(broker)
     """
-    with generate_template(app_code) as app_path:
-        with faststream_cli(
-            [
-                "faststream",
-                "run",
-                f"{app_path.stem}:app",
-                "--factory",
-            ],
-            extra_env={
-                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-                "PYTHONPATH": str(app_path.parent),
-            },
-            wait_time=0.5,
-        ) as cli_thread:
-            pass
-        assert cli_thread.process.returncode != 0
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--factory",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+        wait_time=0.5,
+    ) as cli_thread:
+        pass
+    assert cli_thread.process.returncode != 0
 
 
 @pytest.mark.parametrize(
