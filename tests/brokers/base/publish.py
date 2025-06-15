@@ -7,8 +7,6 @@ from unittest.mock import Mock
 
 import anyio
 import pytest
-from fast_depends.exceptions import ValidationError
-from fast_depends.msgspec import MsgSpecSerializer
 from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, Response
@@ -29,12 +27,7 @@ class SimpleDataclass:
 
 now = datetime.now(timezone.utc)
 
-
-class BrokerPublishTestcase(BaseTestcaseConfig):
-    @pytest.mark.asyncio()
-    @pytest.mark.parametrize(
-        ("message", "message_type", "expected_message"),
-        (
+parametrized = (
             pytest.param(
                 "hello",
                 str,
@@ -90,30 +83,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 id="datetime->datetime",
             ),
             pytest.param(
-                model_to_json(SimpleModel(r="hello!")).encode(),
-                SimpleModel,
-                SimpleModel(r="hello!"),
-                id="bytes->model",
-            ),
-            pytest.param(
-                SimpleModel(r="hello!"),
-                SimpleModel,
-                SimpleModel(r="hello!"),
-                id="model->model",
-            ),
-            pytest.param(
-                SimpleModel(r="hello!"),
-                dict,
-                {"r": "hello!"},
-                id="model->dict",
-            ),
-            pytest.param(
-                {"r": "hello!"},
-                SimpleModel,
-                SimpleModel(r="hello!"),
-                id="dict->model",
-            ),
-            pytest.param(
                 dump_json(asdict(SimpleDataclass(r="hello!"))),
                 SimpleDataclass,
                 SimpleDataclass(r="hello!"),
@@ -137,7 +106,42 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 SimpleDataclass(r="hello!"),
                 id="dict->dataclass",
             ),
-        ),
+        )
+
+extended_parametrized = (
+            *parametrized,
+            pytest.param(
+                model_to_json(SimpleModel(r="hello!")).encode(),
+                SimpleModel,
+                SimpleModel(r="hello!"),
+                id="bytes->model",
+            ),
+            pytest.param(
+                SimpleModel(r="hello!"),
+                SimpleModel,
+                SimpleModel(r="hello!"),
+                id="model->model",
+            ),
+            pytest.param(
+                SimpleModel(r="hello!"),
+                dict,
+                {"r": "hello!"},
+                id="model->dict",
+            ),
+            pytest.param(
+                {"r": "hello!"},
+                SimpleModel,
+                SimpleModel(r="hello!"),
+                id="dict->model",
+            ),
+        )
+
+
+class BrokerPublishTestcase(BaseTestcaseConfig):
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("message", "message_type", "expected_message"),
+        extended_parametrized,
     )
     async def test_serialize(
         self,
@@ -622,49 +626,3 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
 
         assert event.is_set()
         mock.assert_called_with("Hello!")
-
-    async def test_msgspec_serialize(
-        self,
-        queue: str,
-        mock: Mock,
-    ) -> None:
-        event = asyncio.Event()
-        pub_broker = self.get_broker(apply_types=True, serializer=MsgSpecSerializer)
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @pub_broker.subscriber(*args, **kwargs)
-        async def handler(m: str) -> None:
-            event.set()
-            mock(m)
-
-        async with self.patch_broker(pub_broker) as br:
-            await br.start()
-
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("Hello!", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
-
-        assert event.is_set()
-        mock.assert_called_with("Hello!")
-
-    async def test_incorrect_msgspec_serialize(
-        self,
-        queue: str,
-        mock: Mock,
-    ) -> None:
-        pub_broker = self.get_broker(apply_types=True, serializer=MsgSpecSerializer)
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @pub_broker.subscriber(*args, **kwargs)
-        async def handler(m: str) -> None:
-            mock(m)
-
-        async with self.patch_broker(pub_broker) as br:
-            await br.start()
-            with pytest.raises(ValidationError):
-                await br.publish(1, queue)
