@@ -1,3 +1,4 @@
+import contextlib
 import os
 import urllib.request
 from unittest.mock import AsyncMock, patch
@@ -29,19 +30,27 @@ def test_run(generate_template, faststream_cli) -> None:
         ("/liveness", liveness_ping),
     ])
     """
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app",
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-        "http://127.0.0.1:8000/liveness"
-    ) as response:
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app",
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+            )
+        )
+        response = exit_stack.enter_context(
+            urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen
+                "http://127.0.0.1:8000/liveness"
+            )
+        )
+
         assert response.read().decode() == "hello world"
         assert response.getcode() == 200
 
@@ -66,21 +75,29 @@ def test_run_as_asgi_with_single_worker(
         ("/liveness", liveness_ping),
     ])
     """
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app",
-            "--workers",
-            "1",
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-        "http://127.0.0.1:8000/liveness"
-    ) as response:
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app",
+                    "--workers",
+                    "1",
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+            )
+        )
+        response = exit_stack.enter_context(
+            urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen
+                "http://127.0.0.1:8000/liveness"
+            )
+        )
+
         assert response.read().decode() == "hello world"
         assert response.getcode() == 200
 
@@ -101,20 +118,25 @@ def test_run_as_asgi_with_many_workers(
 
     app = AsgiFastStream(broker)
     """
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app",
-            "--workers",
-            str(workers),
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-    ) as cli_thread:
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        cli_thread = exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app",
+                    "--workers",
+                    str(workers),
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+            )
+        )
         process = psutil.Process(pid=cli_thread.process.pid)
+
         assert len(process.children()) == workers + 1
 
 
@@ -152,27 +174,31 @@ def test_run_as_asgi_mp_with_log_level(
 
     @app.on_startup
     def print_log_level():
-        logger.critical(f"Current log level is {logging.getLogger("uvicorn.asgi").level}")
+        logger.critical(f"Current log level is {logging.getLogger('uvicorn.asgi').level}")
     """
 
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app",
-            "--workers",
-            "3",
-            "--log-level",
-            log_level,
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-        wait_time=0.5,
-    ) as cli_thread:
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        cli_thread = exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app",
+                    "--workers",
+                    "3",
+                    "--log-level",
+                    log_level,
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+            )
+        )
         pass
     stderr = cli_thread.process.stderr.read()
+
     assert f"Current log level is {numeric_log_level}" in stderr
 
 
@@ -194,20 +220,28 @@ def test_run_as_factory(generate_template, faststream_cli):
             ("/liveness", liveness_ping),
         ])
     """
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app_factory",
-            "--factory",
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-    ), urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-        "http://127.0.0.1:8000/liveness"
-    ) as response:
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app_factory",
+                    "--factory",
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+            )
+        )
+        response = exit_stack.enter_context(
+            urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.insecure-transport.urllib.insecure-urlopen.insecure-urlopen
+                "http://127.0.0.1:8000/liveness"
+            )
+        )
+
         assert response.read().decode() == "hello world"
         assert response.getcode() == 200
 
@@ -221,20 +255,24 @@ def test_run_app_like_factory_but_its_fake(generate_template, faststream_cli):
 
     app = FastStream(broker)
     """
-    with generate_template(app_code) as app_path, faststream_cli(
-        [
-            "faststream",
-            "run",
-            f"{app_path.stem}:app",
-            "--factory",
-        ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-        wait_time=0.5,
-    ) as cli_thread:
-        pass
+    with contextlib.ExitStack() as exit_stack:
+        app_path = exit_stack.enter_context(generate_template(app_code))
+        cli_thread = exit_stack.enter_context(
+            faststream_cli(
+                [
+                    "faststream",
+                    "run",
+                    f"{app_path.stem}:app",
+                    "--factory",
+                ],
+                extra_env={
+                    "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                    "PYTHONPATH": str(app_path.parent),
+                },
+                wait_time=0.5,
+            )
+        )
+
     assert cli_thread.process.returncode != 0
 
 

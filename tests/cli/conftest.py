@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import threading
 import time
 from contextlib import contextmanager
-from pathlib import Path
 from textwrap import dedent
-from typing import ContextManager, Generator, List, Optional, Protocol
+from typing import TYPE_CHECKING, ContextManager, Generator, Protocol
 
 import pytest
 
 from faststream import FastStream
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture
@@ -74,27 +78,25 @@ class CliThread(Protocol):
 class FastStreamCLIFactory(Protocol):
     def __call__(
         self,
-        cmd: List[str],
+        cmd: list[str],
         wait_time: float = 1.5,
         extra_env: dict[str, str] | None = None,
     ) -> ContextManager[CliThread]: ...
 
 
 @pytest.fixture
-def faststream_cli(
-    tmp_path: Path,
-) -> FastStreamCLIFactory:
+def faststream_cli(tmp_path: Path) -> FastStreamCLIFactory:
     @contextmanager
     def factory(
-        cmd: List[str],
+        cmd: list[str],
         wait_time: float = 1.5,
         extra_env: dict[str, str] | None = None,
     ) -> Generator[CliThread, None, None]:
         class RealCLIThread(threading.Thread):
-            def __init__(self, command: List[str], env: dict[str, str]):
+            def __init__(self, command: list[str], env: dict[str, str]):
                 super().__init__()
                 self.command = command
-                self.process: Optional[subprocess.Popen[bytes]] = None
+                self.process: subprocess.Popen[bytes] | None
                 self.env = env
 
             def run(self) -> None:
