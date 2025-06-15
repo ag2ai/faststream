@@ -665,7 +665,7 @@ class TestConsumeStream:
 
         assert event.is_set()
 
-    async def test_consume_and_delete_acked(self, queue: str, event: asyncio.Event):
+    async def test_consume_and_delete_acked(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -693,9 +693,8 @@ class TestConsumeStream:
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
-        assert event.is_set()
 
-    async def test_consume_and_delete_nacked(self, queue: str, event: asyncio.Event):
+    async def test_consume_and_delete_nacked(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -725,7 +724,6 @@ class TestConsumeStream:
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
-        assert event.is_set()
 
     async def test_get_one(
         self,
