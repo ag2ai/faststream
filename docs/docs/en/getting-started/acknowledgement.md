@@ -10,16 +10,16 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 
 `AckPolicy` is supported by the following brokers:
 
-- Kafka
-- NATS
-- Redis
-- RabbitMQ
+- [**Kafka**](../kafka/index.md){.internal-link}
+- [**RabbitMQ**](../rabbit/index.md){.internal-link}
+- [**NATS JetStream**](../nats/jetstream/index.md){.internal-link}
+- [**Redis Streams**](../redis/streams/index.md){.internal-link}
 
 ### Usage
 
 You must specify the `ack_policy` parameter when creating a subscriber:
 
-```python linenums="1" hl_lines="9" title="main.py"
+```python linenums="1" hl_lines="9"
 from faststream import FastStream, Logger, AckPolicy
 from faststream.nats import NatsBroker
 
@@ -30,7 +30,7 @@ app = FastStream(broker)
     "test",
     ack_policy=AckPolicy.REJECT_ON_ERROR,
 )
-async def handler(msg: str, logger: Logger):
+async def handler(msg: str, logger: Logger) -> None:
     logger.info(msg)
 ```
 
@@ -40,11 +40,11 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 
 | Policy                      | Description                                                                                                                             | On Success                                                                   | On Error                                              | Broker Notes                                                             |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| `AckPolicy.ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                                                                         | Message is acknowledged early; may be lost if processing fails.              | Acknowledged despite error; message not re-delivered. | Kafka commits offset; NATS, Redis, and RabbitMQ acknowledge immediately. |
-| `AckPolicy.ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack sent after successful handling.                                          | Ack sent anyway; message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
-| `AckPolicy.REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it; otherwise, ack.                                             | Reject after success.                                                        | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
-| `AckPolicy.NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis streams and RabbitMQ redelivers; Kafka commits as fallback.        |
-| `AckPolicy.DO_NOTHING`      | No automatic acknowledgement, negative acknowledgement, or rejection. The user must manually handle the completion via message methods. | No action until the user calls `msg.ack()`, `msg.nack()`, or `msg.reject()`. | No action until user calls any of these methods.      | Complete manual control over all brokers.                                |
+| `ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                                                                         | Message is acknowledged early;<br/>may be lost if processing fails.              | Acknowledged despite error;<br/>message not re-delivered. | Kafka commits offset;<br/>NATS, Redis, and RabbitMQ acknowledge immediately. |
+| `ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack after success.                                          | Ack sent anyway;<br/>message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
+| `REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it;<br/>otherwise, ack.                                             | Ack after success. | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
+| `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redelivers; Kafka commits as fallback.        |
+| `DO_NOTHING`      | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | | |
 
 ---
 
@@ -62,31 +62,22 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 
 #### Automatic Retry on Failure
 
-```python linenums="1" hl_lines="7" title="main.py"
+```python linenums="1" hl_lines="7 10"
 from faststream import FastStream, AckPolicy, Logger
-from faststream.rabbitmq import RabbitMQBroker
+from faststream.rabbitmq import RabbitBroker
 
-broker = RabbitMQBroker()
+broker = RabbitBroker()
 app = FastStream(broker)
 
-class SomeError(Exception):
-    pass
-
 @broker.subscriber("orders", ack_policy=AckPolicy.NACK_ON_ERROR)
-async def process_order(msg: str, logger: Logger):
+async def process_order(msg: str, logger: Logger) -> None:
     logger.info(f"Processing: {msg}")
-    # Processing logic ...
-    raise SomeError
-    # Message will be automatically nacked and retried
-
-@app.after_startup
-async def send_order():
-    await broker.publish("order:123", "orders")
+    raise Exception # Message will be nacked and redelivered
 ```
 
 #### Manual Acknowledgment Handling
 
-```python linenums="1" hl_lines="7 12 14" title="main.py"
+```python linenums="1" hl_lines="7 12 14"
 from faststream import FastStream, AckPolicy, Logger
 from faststream.kafka import KafkaBroker
 
@@ -94,22 +85,24 @@ broker = KafkaBroker()
 app = FastStream(broker)
 
 @broker.subscriber("events", ack_policy=AckPolicy.DO_NOTHING)
-async def handle_event(msg, logger):
+async def handle_event(msg: str) -> None:
     try:
-        logger.info("Received event")
-        # Manual acknowledgment required
-        await msg.ack()
+        # do_smth(msg)
     except Exception:
         await msg.nack()  # or msg.reject()
+    else:
+        await msg.ack()
 ```
 
-You can also manage manual acknowledgement using middleware. For more information, [error handling middleware documentation](./middlewares/exception.md).
+You can also manage manual acknowledgement using middleware. For more information, [error handling middleware documentation](./middlewares/exception.md){.internal-link}.
 
 ### Broker Behavior Summary
 
-| Broker   | `ACK_FIRST` / `ACK`     | `REJECT_ON_ERROR`                      | `NACK_ON_ERROR`                        | `DO_NOTHING`           |
-| -------- | ----------------------- | -------------------------------------- | -------------------------------------- | ---------------------- |
-| Kafka    | Commits offset          | Treated as successful — commits offset | Treated as successful — commits offset | Manual commit required |
-| RabbitMQ | Protocol ack            | Reject drops message                   | Nack requeues                          | Manual ack/nack/reject |
-| NATS     | Protocol ack            | Reject drops message                   | Nack requeues or dead-letters          | Manual ack/nack/reject |
-| Redis    | XAck/XPending semantics | Drops or moves to dead-letter          | Requeues                               | Manual ack/nack/reject |
+However, not all brokers support our semantics. Here is a brief overview of **FastStream's** ACK / NACK / REJECT command mapping to brokers' acknowledgment policies:
+
+| Broker | `ACK` | `NACK` | `REJECT` |
+| ------ | ----- | ------ | -------- |
+| [RabbitMQ](https://www.rabbitmq.com/docs/confirms#acknowledgement-modes){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol reject |
+| [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
+| [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
+| Kafka | Commits offset          | Do nothing    | Do nothing      |
