@@ -1,10 +1,10 @@
 # Acknowledgment
 
-Since unexpected errors may occur during message processing, **FastStream** provides an `ack_policy` parameter to control how messages are acknowledged. This parameter defines when and how messages should be acknowledged, negatively acknowledged (nacked), or rejected based on the outcome of the message handler.
+Due to the possibility of unexpected errors during message processing, FastStream provides an `ack_policy` parameter that allows users to control how messages are handled. This parameter determines when and how messages should be acknowledged or rejected based on the result of the message processing.
 
 ## AckPolicy
 
-`AckPolicy` is an enumeration (`Enum`) that defines the message acknowledgment strategy in FastStream. It determines how the system should respond after receiving and processing a message.
+`AckPolicy` is an enumerated type (`Enum`) in FastStream that specifies the message acknowledgment strategy. It determines how the system responds after receiving and processing a message.
 
 ### Availability
 
@@ -17,7 +17,7 @@ Since unexpected errors may occur during message processing, **FastStream** prov
 
 ### Usage
 
-You must specify the `ack_policy` parameter when initializing a subscriber:
+You must specify the `ack_policy` parameter when creating a subscriber:
 
 ```python linenums="1" hl_lines="9" title="main.py"
 from faststream import FastStream, Logger, AckPolicy
@@ -36,25 +36,25 @@ async def handler(msg: str, logger: Logger):
 
 ### Available Options
 
-Each `AckPolicy` variant below includes behavior examples for both **successful processing** and **error scenarios**. Note that broker-specific behaviors are noted.
+Each `AckPolicy` variant includes behavior examples for both successful processing and error scenarios. Note that broker-specific behaviors are also included.
 
-| Policy                      | Description                                                                             | On Success                                               | On Error                                              | Broker Notes                                                                 |
-| --------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `AckPolicy.ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                         | Message is acked early; may be lost if processing fails. | Still acked despite error; message not redelivered.   | Kafka commits offset; NATS/Redis/Rabbit confirm immediately.                 |
-| `AckPolicy.ACK`             | Acknowledge only after processing completes, regardless of success.                     | Ack sent after successful handling.                      | Ack sent anyway; message not redelivered.             | Kafka: offset commit; others: explicit ack.                                  |
-| `AckPolicy.REJECT_ON_ERROR` | Reject message if unhandled exception occurs, discarding it permanently; otherwise ack. | Ack after success.                                       | Rejected/discarded; no retry.                         | RabbitMQ/NATS drop message. Kafka: commit offset.                            |
-| `AckPolicy.NACK_ON_ERROR`   | Nack (negative ack) on error to allow redelivery; otherwise ack after success.          | Ack after success.                                       | Nack/redeliver.                                       | Redis streams and RabbitMQ will redeliver; Kafka commits offset as fallback. |
-| `AckPolicy.DO_NOTHING`      | No automatic ack/nack/reject. User must manually handle completion via message methods. | Nothing until user calls `msg.ack()`.                    | Nothing until user calls `msg.nack()`/`msg.reject()`. | Full manual control across all brokers.                                      |
+| Policy                      | Description                                                                                                                             | On Success                                                                   | On Error                                              | Broker Notes                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| `AckPolicy.ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                                                                         | Message is acknowledged early; may be lost if processing fails.              | Acknowledged despite error; message not re-delivered. | Kafka commits offset; NATS, Redis, and RabbitMQ acknowledge immediately. |
+| `AckPolicy.ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack sent after successful handling.                                          | Ack sent anyway; message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
+| `AckPolicy.REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it; otherwise, ack.                                             | Reject after success.                                                        | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
+| `AckPolicy.NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis streams and RabbitMQ redelivers; Kafka commits as fallback.        |
+| `AckPolicy.NO_ACTION`       | No automatic acknowledgement, negative acknowledgement, or rejection. The user must manually handle the completion via message methods. | No action until the user calls `msg.ack()`, `msg.nack()`, or `msg.reject()`. | No action until user calls any of these methods.      | Complete manual control over all brokers.                                |
 
 ---
 
 ### When to Use
 
-- Use `ACK_FIRST` for high-throughput scenarios where some message loss is acceptable.
-- Use `ACK` when you want the message to be acknowledged regardless of success or failure.
-- Use `REJECT_ON_ERROR` to discard messages permanently on failure.
-- Use `NACK_ON_ERROR` to retry messages on failure.
-- Use `DO_NOTHING` for full manual control of message acknowledgment (e.g. calling `message.ack()` manually).
+- Use `ACK_FIRST` for scenarios with high throughput where some message loss can be acceptable.
+- Use `ACK` if you want the message to be acknowledged, regardless of success or failure.
+- Use `REJECT_ON_ERROR` to permanently discard messages on failure.
+- Use `NACK_ON_ERROR` to retry messages in case of failure.
+- Use `DO_NOTHING` to fully manually control message acknowledgment (for example, calling `message.ack()` yourself).
 
 ---
 
