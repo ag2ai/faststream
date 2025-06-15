@@ -266,7 +266,7 @@ To test your **FastAPI StreamRouter**, you can still use it with the *TestClient
 
 Using **FastStream** as a **FastAPI** plugin you are still able to separate messages processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
 
-Fortunately, you can use regular **FastStream** routers and include them to the **FastAPI** integration one like in the regular broker object. Also, it can be helpful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
+Fortunately, you can use regular **FastStream** routers and include them to the **FastAPI** integration one like in the regular broker object. Also, it can be useful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="2-3 6 12-14 16"
