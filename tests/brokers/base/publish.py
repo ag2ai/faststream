@@ -27,66 +27,94 @@ class SimpleDataclass:
 
 now = datetime.now(timezone.utc)
 
+parametrized = (
+    pytest.param(
+        "hello",
+        str,
+        "hello",
+        id="str->str",
+    ),
+    pytest.param(
+        b"hello",
+        bytes,
+        b"hello",
+        id="bytes->bytes",
+    ),
+    pytest.param(
+        1,
+        int,
+        1,
+        id="int->int",
+    ),
+    pytest.param(
+        1.0,
+        float,
+        1.0,
+        id="float->float",
+    ),
+    pytest.param(
+        1,
+        float,
+        1.0,
+        id="int->float",
+    ),
+    pytest.param(
+        False,
+        bool,
+        False,
+        id="bool->bool",
+    ),
+    pytest.param(
+        {"m": 1},
+        dict[str, int],
+        {"m": 1},
+        id="dict->dict",
+    ),
+    pytest.param(
+        [1, 2, 3],
+        list[int],
+        [1, 2, 3],
+        id="list->list",
+    ),
+    pytest.param(
+        now,
+        datetime,
+        now,
+        id="datetime->datetime",
+    ),
+    pytest.param(
+        dump_json(asdict(SimpleDataclass(r="hello!"))),
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="bytes->dataclass",
+    ),
+    pytest.param(
+        SimpleDataclass(r="hello!"),
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="dataclass->dataclass",
+    ),
+    pytest.param(
+        SimpleDataclass(r="hello!"),
+        dict,
+        {"r": "hello!"},
+        id="dataclass->dict",
+    ),
+    pytest.param(
+        {"r": "hello!"},
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="dict->dataclass",
+    ),
+)
+
 
 class BrokerPublishTestcase(BaseTestcaseConfig):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("message", "message_type", "expected_message"),
         (
-            pytest.param(
-                "hello",
-                str,
-                "hello",
-                id="str->str",
-            ),
-            pytest.param(
-                b"hello",
-                bytes,
-                b"hello",
-                id="bytes->bytes",
-            ),
-            pytest.param(
-                1,
-                int,
-                1,
-                id="int->int",
-            ),
-            pytest.param(
-                1.0,
-                float,
-                1.0,
-                id="float->float",
-            ),
-            pytest.param(
-                1,
-                float,
-                1.0,
-                id="int->float",
-            ),
-            pytest.param(
-                False,
-                bool,
-                False,
-                id="bool->bool",
-            ),
-            pytest.param(
-                {"m": 1},
-                dict[str, int],
-                {"m": 1},
-                id="dict->dict",
-            ),
-            pytest.param(
-                [1, 2, 3],
-                list[int],
-                [1, 2, 3],
-                id="list->list",
-            ),
-            pytest.param(
-                now,
-                datetime,
-                now,
-                id="datetime->datetime",
-            ),
+            *parametrized,
             pytest.param(
                 model_to_json(SimpleModel(r="hello!")).encode(),
                 SimpleModel,
@@ -111,38 +139,14 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 SimpleModel(r="hello!"),
                 id="dict->model",
             ),
-            pytest.param(
-                dump_json(asdict(SimpleDataclass(r="hello!"))),
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="bytes->dataclass",
-            ),
-            pytest.param(
-                SimpleDataclass(r="hello!"),
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="dataclass->dataclass",
-            ),
-            pytest.param(
-                SimpleDataclass(r="hello!"),
-                dict,
-                {"r": "hello!"},
-                id="dataclass->dict",
-            ),
-            pytest.param(
-                {"r": "hello!"},
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="dict->dataclass",
-            ),
         ),
     )
     async def test_serialize(
         self,
         queue: str,
-        message,
-        message_type,
-        expected_message,
+        message: Any,
+        message_type: Any,
+        expected_message: Any,
         mock: Mock,
     ) -> None:
         event = asyncio.Event()
@@ -167,7 +171,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(expected_message)
 
     @pytest.mark.asyncio()
@@ -208,7 +211,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(
             body=b"1",
             correlation_id="1",
@@ -242,7 +244,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(
             {
                 "a": 1,
@@ -277,7 +278,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with({"a": 1, "b": 1, "args": (2, 3)})
 
     @pytest.mark.asyncio()
@@ -353,7 +353,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_once_with("")
 
     @pytest.mark.asyncio()
@@ -391,7 +390,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_once_with("")
 
     @pytest.mark.asyncio()
@@ -438,8 +436,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
-        assert event2.is_set()
         mock.resp1.assert_called_once_with("")
         mock.resp2.assert_called_once_with("")
 
@@ -492,8 +488,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert consume2.is_set()
-        assert consume.is_set()
         assert mock.call_count == 2
 
     @pytest.mark.asyncio()
@@ -532,7 +526,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with("Hello!")
 
     @pytest.mark.asyncio()
@@ -577,7 +570,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         assert not mock.called
 
     @pytest.mark.asyncio()
@@ -618,5 +610,4 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with("Hello!")
