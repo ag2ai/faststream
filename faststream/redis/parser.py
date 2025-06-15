@@ -1,3 +1,4 @@
+from struct import pack, unpack
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -98,12 +99,11 @@ class RawMessage:
             correlation_id=correlation_id,
         )
 
-        return dump_json(
-            {
-                "data": msg.data,
-                "headers": msg.headers,
-            }
-        )
+        if not msg.headers.get("content-type", None):
+            json_headers = dump_json(msg.headers)
+            binary_headers_len = pack(">I", len(json_headers))
+            return binary_headers_len + json_headers + msg.data
+        return dump_json({"data": msg.data, "headers": msg.headers})
 
     @staticmethod
     def parse(data: bytes) -> Tuple[bytes, "AnyDict"]:
@@ -114,6 +114,11 @@ class RawMessage:
             parsed_data = json_loads(data)
             data = parsed_data["data"].encode()
             headers = parsed_data["headers"]
+
+        except UnicodeDecodeError:
+            headers_len: int = unpack(">I", data[:4])[0]
+            headers = json_loads(data[4 : 4 + headers_len])
+            data = data[4 + headers_len :]
 
         except Exception:
             # Raw Redis message format
