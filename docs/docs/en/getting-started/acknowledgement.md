@@ -103,7 +103,7 @@ async def handle_event(msg, logger):
         await msg.nack()  # or msg.reject()
 ```
 
-You can also manage acknowledgment using middleware. For more information, please see our [error handling middleware documentation](./middlewares/exception.md).
+You can also manage manual acknowledgement using middleware. For more information, [error handling middleware documentation](./middlewares/exception.md).
 
 ### Broker Behavior Summary
 
