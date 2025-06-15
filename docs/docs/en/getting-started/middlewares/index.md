@@ -56,7 +56,7 @@ BrokerRouter(middlewares=[MyMiddleware])
 
 ## Subscriber Middleware
 
-Subscriber middlewares will be called at your `handler` function call. Using it, you can patch the incoming message body right before passing it to your consumer subscriber or catch any handler exception by returning a fallback value to publish (the middleware return value will be published then).
+Subscriber middlewares will be called at your `handler` function call. Using it, you can patch the incoming message body right before passing it to your consumer/subscriber or catch any handler exception by returning a fallback value to publish (the middleware return value will be published then).
 
 In this case, you need to implement the `consume_scope` middleware method:
 
