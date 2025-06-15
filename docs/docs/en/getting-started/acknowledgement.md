@@ -54,7 +54,7 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 - Use `ACK` if you want the message to be acknowledged, regardless of success or failure.
 - Use `REJECT_ON_ERROR` to permanently discard messages on failure.
 - Use `NACK_ON_ERROR` to retry messages in case of failure.
-- Use `DO_NOTHING` to fully manually control message acknowledgment (for example, calling `message.ack()` yourself).
+- Use `DO_NOTHING` to fully manually control message acknowledgment (for example, calling `#!python message.ack()` yourself).
 
 ---
 
@@ -69,21 +69,22 @@ from faststream.rabbitmq import RabbitMQBroker
 broker = RabbitMQBroker()
 app = FastStream(broker)
 
+class SomeError(Exception):
+    pass
+
 @broker.subscriber("orders", ack_policy=AckPolicy.NACK_ON_ERROR)
 async def process_order(msg: str, logger: Logger):
-    try:
-        logger.info(f"Processing: {msg}")
-        # Processing logic
-    except Exception:
-        logger.error("Failed to process", exc_info=True)
-        # Message will be automatically nacked and retried
+    logger.info(f"Processing: {msg}")
+    # Processing logic ...
+    raise SomeError
+    # Message will be automatically nacked and retried
 
 @app.after_startup
 async def send_order():
     await broker.publish("order:123", "orders")
 ```
 
-### Manual Acknowledgment Handling
+#### Manual Acknowledgment Handling
 
 ```python linenums="1" hl_lines="7 12 14" title="main.py"
 from faststream import FastStream, AckPolicy, Logger
@@ -101,6 +102,8 @@ async def handle_event(msg, logger):
     except Exception:
         await msg.nack()  # or msg.reject()
 ```
+
+You can also manage your logic using Middlewares. For more information, please see the [exception middleware documentation](./middlewares/exception.md).
 
 ### Broker Behavior Summary
 
