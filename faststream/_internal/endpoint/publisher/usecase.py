@@ -1,12 +1,9 @@
-from collections.abc import Awaitable, Generator, Iterable
+from collections.abc import Awaitable, Callable, Generator, Iterable
 from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
-    Union,
 )
 from unittest.mock import MagicMock
 
@@ -26,26 +23,34 @@ from faststream.message.source_type import SourceType
 from .proto import PublisherProto
 
 if TYPE_CHECKING:
+    from faststream._internal.configs import PublisherUsecaseConfig
     from faststream._internal.producer import ProducerProto
     from faststream._internal.types import (
         PublisherMiddleware,
     )
     from faststream.response.response import PublishCommand
+    from faststream.specification.schema import PublisherSpec
 
-    from .config import PublisherUsecaseConfig
+    from .specification import PublisherSpecification
 
 
 class PublisherUsecase(PublisherProto[MsgType]):
     """A base class for publishers in an asynchronous API."""
 
-    def __init__(self, config: "PublisherUsecaseConfig", /) -> None:
-        broker_config = config.config
+    def __init__(
+        self,
+        config: "PublisherUsecaseConfig",
+        specification: "PublisherSpecification",
+    ) -> None:
+        self.specification = specification
+
+        broker_config = config._outer_config
         self._outer_config = broker_config
 
         self.middlewares = config.middlewares
 
         self._fake_handler = False
-        self.mock: Optional[MagicMock] = None
+        self.mock: MagicMock | None = None
 
     @property
     def include_in_schema(self) -> bool:
@@ -76,14 +81,14 @@ class PublisherUsecase(PublisherProto[MsgType]):
 
     def __call__(
         self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-        ],
+        func: Callable[P_HandlerParams, T_HandlerReturn] | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
     ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
+
+        self.specification.add_call(handler._original_call)
+
         return handler
 
     async def _basic_publish(
@@ -113,7 +118,7 @@ class PublisherUsecase(PublisherProto[MsgType]):
     async def _basic_request(
         self,
         cmd: "PublishCommand",
-    ) -> Optional[Any]:
+    ) -> Any | None:
         request = self._producer.request
         for pub_m in self._build_middlewares_stack():
             request = partial(pub_m, request)
@@ -150,3 +155,6 @@ class PublisherUsecase(PublisherProto[MsgType]):
                 )
             ),
         )
+
+    def schema(self) -> dict[str, "PublisherSpec"]:
+        return self.specification.get_schema()

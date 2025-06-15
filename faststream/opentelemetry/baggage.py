@@ -17,7 +17,7 @@ class Baggage:
     def __init__(
         self,
         payload: "AnyDict",
-        batch_payload: Optional[list["AnyDict"]] = None,
+        batch_payload: list["AnyDict"] | None = None,
     ) -> None:
         self._baggage = dict(payload)
         self._batch_baggage = [dict(b) for b in batch_payload] if batch_payload else []
@@ -30,7 +30,7 @@ class Baggage:
         """Get a copy of all batch baggage if exists."""
         return self._batch_baggage.copy()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get a value from the baggage by key."""
         return self._baggage.get(key)
 

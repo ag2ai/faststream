@@ -1,6 +1,6 @@
 import inspect
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Annotated, Any, Callable, cast
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Annotated, Any, cast, get_args, get_origin
 
 from fast_depends.library.serializer import OptionItem
 from fast_depends.utils import get_typed_annotation
@@ -10,7 +10,6 @@ from fastapi.dependencies.utils import (
     get_parameterless_sub_dependant,
     get_typed_signature,
 )
-from typing_extensions import get_args, get_origin
 
 from faststream._internal._compat import PYDANTIC_V2
 

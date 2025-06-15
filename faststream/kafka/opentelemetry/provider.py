@@ -106,10 +106,7 @@ class BatchKafkaTelemetrySettingsProvider(
 
 def telemetry_attributes_provider_factory(
     msg: Union["ConsumerRecord", Sequence["ConsumerRecord"], None],
-) -> Union[
-    KafkaTelemetrySettingsProvider,
-    BatchKafkaTelemetrySettingsProvider,
-]:
+) -> KafkaTelemetrySettingsProvider | BatchKafkaTelemetrySettingsProvider:
     if isinstance(msg, Sequence):
         return BatchKafkaTelemetrySettingsProvider()
     return KafkaTelemetrySettingsProvider()

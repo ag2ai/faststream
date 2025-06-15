@@ -19,14 +19,14 @@ def AsyncAPI(  # noqa: N802
     /,
     title: str = "FastStream",
     app_version: str = "0.1.0",
-    schema_version: Union[Literal["3.0.0", "2.6.0"], str] = "3.0.0",
+    schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0",
     description: str = "",
     terms_of_service: Optional["AnyHttpUrl"] = None,
-    license: Optional[Union["License", "AnyDict"]] = None,
-    contact: Optional[Union["Contact", "AnyDict"]] = None,
+    license: Union["License", "AnyDict"] | None = None,
+    contact: Union["Contact", "AnyDict"] | None = None,
     tags: Sequence[Union["Tag", "AnyDict"]] = (),
-    external_docs: Optional[Union["ExternalDocs", "AnyDict"]] = None,
-    identifier: Optional[str] = None,
+    external_docs: Union["ExternalDocs", "AnyDict"] | None = None,
+    identifier: str | None = None,
 ) -> Specification:
     if schema_version.startswith("3.0."):
         from .v3_0_0.facade import AsyncAPI3

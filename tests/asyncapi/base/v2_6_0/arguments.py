@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Annotated, Any, Optional, Union
+from typing import Annotated, Any, Literal
 
 import pydantic
 import pytest
 from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
-from typing_extensions import Literal
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
@@ -121,7 +120,7 @@ class FastAPICompatible:
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg: Optional[int]) -> None: ...
+        async def handle(msg: int | None) -> None: ...
 
         schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
 
@@ -207,7 +206,7 @@ class FastAPICompatible:
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg: str, another: Optional[int] = None) -> None: ...
+        async def handle(msg: str, another: int | None = None) -> None: ...
 
         schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
 
@@ -533,7 +532,7 @@ class FastAPICompatible:
 
         @broker.subscriber("test")
         async def handle(
-            user: Annotated[Union[Sub2, Sub], pydantic.Field(discriminator="type")],
+            user: Annotated[Sub2 | Sub, pydantic.Field(discriminator="type")],
         ): ...
 
         schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
@@ -598,7 +597,7 @@ class FastAPICompatible:
             type: Literal["sub"]
 
         class Model(pydantic.BaseModel):
-            msg: Union[Sub2, Sub] = pydantic.Field(..., discriminator="type")
+            msg: Sub2 | Sub = pydantic.Field(..., discriminator="type")
 
         broker = self.broker_class()
 
@@ -718,7 +717,7 @@ class ArgumentsTestcase(FastAPICompatible):
 
         @broker.subscriber("test")
         async def handle(
-            id: int, user: Optional[str] = None, message=Context()
+            id: int, user: str | None = None, message=Context()
         ) -> None: ...
 
         schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()

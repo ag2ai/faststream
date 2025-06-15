@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from aiokafka import ConsumerRecord
 
@@ -24,7 +24,7 @@ class KafkaPrometheusMiddleware(
         registry: "CollectorRegistry",
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=settings_provider_factory,  # type: ignore[arg-type]

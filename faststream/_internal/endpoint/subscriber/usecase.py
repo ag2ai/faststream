@@ -1,12 +1,11 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     NamedTuple,
     Optional,
     Union,
@@ -14,11 +13,6 @@ from typing import (
 
 from typing_extensions import Self, deprecated, overload, override
 
-from faststream._internal.endpoint.subscriber.call_item import HandlerItem
-from faststream._internal.endpoint.subscriber.utils import (
-    MultiLock,
-    default_filter,
-)
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.types import (
     MsgType,
@@ -31,12 +25,18 @@ from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
+from .call_item import (
+    CallsCollection,
+    HandlerItem,
+)
 from .proto import SubscriberProto
+from .utils import MultiLock, default_filter
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
+    from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import BasePublisherProto
     from faststream._internal.types import (
@@ -49,8 +49,9 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
     from faststream.response import Response
+    from faststream.specification.schema import SubscriberSpec
 
-    from .config import SubscriberUsecaseConfig
+    from .specification import SubscriberSpecification
 
 
 class _CallOptions(NamedTuple):
@@ -65,13 +66,19 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
 
     lock: "AbstractContextManager[Any]"
     extra_watcher_options: "AnyDict"
-    graceful_timeout: Optional[float]
+    graceful_timeout: float | None
 
     _call_options: Optional["_CallOptions"]
 
-    def __init__(self, config: "SubscriberUsecaseConfig", /) -> None:
+    def __init__(
+        self,
+        config: "SubscriberUsecaseConfig",
+        specification: "SubscriberSpecification",
+        calls: "CallsCollection",
+    ) -> None:
         """Initialize a new instance of the class."""
-        self.calls = []
+        self.calls = calls
+        self.specification = specification
 
         self._no_reply = config.no_reply
         self._parser = config.parser
@@ -85,13 +92,9 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         self.lock = FakeContext()
 
         # Setup in registration
-        self._outer_config = config.config
+        self._outer_config = config._outer_config
 
         self.extra_watcher_options = {}
-
-    @property
-    def include_in_schema(self) -> bool:
-        return self._outer_config.include_in_schema and self.include_in_schema_
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -104,7 +107,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         self._build_fastdepends_model()
 
         self._outer_config.logger.log(
-            f"`{self.call_name}` waiting for messages",
+            f"`{self.specification.call_name}` waiting for messages",
             extra=self.get_log_context(None),
         )
 
@@ -246,7 +249,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         ) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]":
             handler = super(SubscriberUsecase, self).__call__(func)
 
-            self.calls.append(
+            self.calls.add_call(
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
@@ -308,7 +311,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
                 await middleware.__aenter__()
 
             cache: dict[Any, Any] = {}
-            parsing_error: Optional[Exception] = None
+            parsing_error: Exception | None = None
             for h in self.calls:
                 try:
                     message = await h.is_suitable(msg, cache)
@@ -413,7 +416,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
         log_level: int,
         message: str,
         extra: Optional["AnyDict"] = None,
-        exc_info: Optional[Exception] = None,
+        exc_info: Exception | None = None,
     ) -> None:
         self._outer_config.logger.log(
             log_level,
@@ -421,3 +424,7 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
             extra=extra,
             exc_info=exc_info,
         )
+
+    def schema(self) -> dict[str, "SubscriberSpec"]:
+        self._build_fastdepends_model()
+        return self.specification.get_schema()

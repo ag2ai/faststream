@@ -16,38 +16,37 @@ from faststream._internal.types import (
     MsgType,
 )
 
-from .abc_broker import ABCBroker
+from .abc_broker import Registrator
 from .pub_base import BrokerPublishMixin
 
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from faststream._internal.configs import BrokerConfig
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
-    from .config import BrokerConfig
-
 
 class BrokerUsecase(
-    ABCBroker[MsgType],
+    Registrator[MsgType],
     BrokerPublishMixin[MsgType],
     Generic[MsgType, ConnectionType],
 ):
     """Basic class for brokers-only.
 
-    Extends `ABCBroker` by connection, publish and AsyncAPI behavior.
+    Extends `Registrator` by connection, publish and AsyncAPI behavior.
     """
 
-    _connection: Optional[ConnectionType]
+    _connection: ConnectionType | None
 
     def __init__(
         self,
         *,
         config: "BrokerConfig",
         specification: "BrokerSpec",
-        routers: Sequence["ABCBroker[MsgType]"],
+        routers: Sequence["Registrator[MsgType]"],
         **connection_kwargs: Any,
     ) -> None:
         super().__init__(
@@ -83,8 +82,8 @@ class BrokerUsecase(
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
         exc_tb: Optional["TracebackType"],
     ) -> None:
         await self.close(exc_type, exc_val, exc_tb)
@@ -127,8 +126,8 @@ class BrokerUsecase(
 
     async def close(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
@@ -138,6 +137,6 @@ class BrokerUsecase(
         self.running = False
 
     @abstractmethod
-    async def ping(self, timeout: Optional[float]) -> bool:
+    async def ping(self, timeout: float | None) -> bool:
         """Check connection alive."""
         raise NotImplementedError

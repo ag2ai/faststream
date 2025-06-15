@@ -1,12 +1,12 @@
 from unittest.mock import MagicMock
 
 from faststream import AckPolicy
-from faststream.rabbit.configs import RabbitSubscriberConfig
+from faststream.rabbit.subscriber.config import RabbitSubscriberConfig
 
 
 def test_default() -> None:
     config = RabbitSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         queue=MagicMock(),
         exchange=MagicMock(),
     )
@@ -16,7 +16,7 @@ def test_default() -> None:
 
 def test_ack_first() -> None:
     config = RabbitSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         queue=MagicMock(),
         exchange=MagicMock(),
         _ack_policy=AckPolicy.ACK_FIRST,
@@ -28,7 +28,7 @@ def test_ack_first() -> None:
 
 def test_custom_ack() -> None:
     config = RabbitSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         queue=MagicMock(),
         exchange=MagicMock(),
         _ack_policy=AckPolicy.ACK,
@@ -39,7 +39,7 @@ def test_custom_ack() -> None:
 
 def test_no_ack() -> None:
     config = RabbitSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         queue=MagicMock(),
         exchange=MagicMock(),
         _no_ack=True,

@@ -1,7 +1,6 @@
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
 )
 
 from faststream.asgi.handlers import get
@@ -22,7 +21,7 @@ def make_ping_asgi(
     broker: "BrokerUsecase[Any, Any]",
     /,
     include_in_schema: bool = True,
-    timeout: Optional[float] = None,
+    timeout: float | None = None,
 ) -> "ASGIApp":
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)

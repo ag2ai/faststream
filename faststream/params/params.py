@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import Context as Context_
@@ -9,7 +10,7 @@ def Context(  # noqa: N802
     *,
     cast: bool = False,
     default: Any = EMPTY,
-    initial: Optional[Callable[..., Any]] = None,
+    initial: Callable[..., Any] | None = None,
 ) -> Any:
     return Context_(
         real_name=real_name,

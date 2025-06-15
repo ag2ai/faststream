@@ -1,56 +1,61 @@
 from inspect import Parameter, unwrap
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+)
 
 from fast_depends.core import build_call_model
 from fast_depends.pydantic._compat import create_model, get_config_base
+from typing_extensions import (
+    TypeVar as TypeVar313,
+)
 
-from faststream._internal.endpoint.specification.base import SpecificationEndpoint
-from faststream._internal.types import (
-    MsgType,
-    P_HandlerParams,
-    T_HandlerReturn,
+from faststream._internal.configs import (
+    BrokerConfig,
+    PublisherSpecificationConfig,
+    SubscriberSpecificationConfig,
 )
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
-from faststream.specification.schema import PublisherSpec
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyCallable, AnyDict
-    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-
-    from .config import PublisherSpecificationConfig
+    from faststream.specification.schema import PublisherSpec
 
 
-class SpecificationPublisher(SpecificationEndpoint[MsgType, PublisherSpec]):
+T_SpecificationConfig = TypeVar313(
+    "T_SpecificationConfig", bound=PublisherSpecificationConfig, default=SubscriberSpecificationConfig)
+T_BrokerConfig = TypeVar313(
+    "T_BrokerConfig", bound=BrokerConfig, default=BrokerConfig)
+
+
+class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     def __init__(
         self,
-        config: "PublisherSpecificationConfig",
-        **kwargs: Any,
+        _outer_config: "T_BrokerConfig",
+        specification_config: "T_SpecificationConfig",
     ) -> None:
-        self.calls: list[AnyCallable] = []
-        self.schema_ = config.schema_
-        super().__init__(config, **kwargs)
+        self.config = specification_config
+        self._outer_config = _outer_config
 
-    def __call__(
-        self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
-        ],
-    ) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]":
-        handler = super().__call__(func)
-        self.calls.append(handler._original_call)
-        return handler
+        self.calls: list[AnyCallable] = []
+
+    def add_call(self, call: "AnyCallable") -> None:
+        self.calls.append(call)
+
+    @property
+    def include_in_schema(self) -> bool:
+        return self._outer_config.include_in_schema and self.config.include_in_schema
 
     def get_payloads(self) -> list[tuple["AnyDict", str]]:
         payloads: list[tuple[AnyDict, str]] = []
 
-        if self.schema_:
+        if self.config.schema_:
             body = get_model_schema(
                 call=create_model(
                     "",
                     __config__=get_config_base(),
-                    response__=(self.schema_, ...),
+                    response__=(self.config.schema_, ...),
                 ),
                 prefix=f"{self.name}:Message",
             )
@@ -71,6 +76,7 @@ class SpecificationPublisher(SpecificationEndpoint[MsgType, PublisherSpec]):
                 response_type = next(
                     iter(call_model.serializer.response_option.values())
                 ).field_type
+
                 if response_type is not None and response_type is not Parameter.empty:
                     body = get_model_schema(
                         create_model(
@@ -80,7 +86,15 @@ class SpecificationPublisher(SpecificationEndpoint[MsgType, PublisherSpec]):
                         ),
                         prefix=f"{self.name}:Message",
                     )
+
                     if body:
                         payloads.append((body, to_camelcase(unwrap(call).__name__)))
 
         return payloads
+
+    @property
+    def name(self) -> str:
+        raise NotImplementedError
+
+    def get_schema(self) -> dict[str, "PublisherSpec"]:
+        raise NotImplementedError

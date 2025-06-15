@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -21,7 +20,7 @@ class CorrelationId(BaseModel):
     """
 
     location: str
-    description: Optional[str] = None
+    description: str | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -47,13 +46,13 @@ class Message(BaseModel):
         tags : list of tags associated with the message
     """
 
-    title: Optional[str] = None
-    name: Optional[str] = None
-    summary: Optional[str] = None
-    description: Optional[str] = None
-    messageId: Optional[str] = None
-    correlationId: Optional[CorrelationId] = None
-    contentType: Optional[str] = None
+    title: str | None = None
+    name: str | None = None
+    summary: str | None = None
+    description: str | None = None
+    messageId: str | None = None
+    correlationId: CorrelationId | None = None
+    contentType: str | None = None
 
     payload: AnyDict
     # TODO:
@@ -63,7 +62,7 @@ class Message(BaseModel):
     # examples
     # traits
 
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
+    tags: list[Tag | AnyDict] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

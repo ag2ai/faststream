@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from confluent_kafka import TopicPartition as ConfluentPartition
 
@@ -27,8 +27,8 @@ class TopicPartition:
         topic: str,
         partition: int = -1,
         offset: int = -1001,
-        metadata: Optional[str] = None,
-        leader_epoch: Optional[int] = None,
+        metadata: str | None = None,
+        leader_epoch: int | None = None,
     ) -> None:
         self.topic = topic
         self.partition = partition

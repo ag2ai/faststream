@@ -35,7 +35,7 @@ class NatsBaseParser:
         self,
         subject: str,
     ) -> Optional["AnyDict"]:
-        path: Optional[AnyDict] = None
+        path: AnyDict | None = None
 
         if (path_re := self.__path_re) is not None and (
             match := path_re.match(subject)
@@ -147,7 +147,7 @@ class BatchParser(JsParser):
     ) -> list["DecodedMessage"]:
         data: list[DecodedMessage] = []
 
-        path: Optional[AnyDict] = None
+        path: AnyDict | None = None
         for m in msg.raw_message:
             one_msg = await self.parse_message(m, path=path)
             path = one_msg.path

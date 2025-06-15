@@ -25,11 +25,11 @@ def create_subscriber(
     *topics: str,
     batch: bool,
     batch_timeout_ms: int,
-    max_records: Optional[int],
+    max_records: int | None,
     # Kafka information
-    group_id: Optional[str],
+    group_id: str | None,
     listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
+    pattern: str | None,
     connection_args: "AnyDict",
     partitions: Collection["TopicPartition"],
     auto_commit: bool,
@@ -40,8 +40,8 @@ def create_subscriber(
     no_reply: bool,
     config: "KafkaBrokerConfig",
     # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
     "SpecificationDefaultSubscriber",
@@ -107,7 +107,7 @@ def _validate_input_for_misconfigure(
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
-    pattern: Optional[str],
+    pattern: str | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:

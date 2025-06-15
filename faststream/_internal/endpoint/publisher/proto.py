@@ -3,7 +3,6 @@ from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Protocol,
 )
 
@@ -11,7 +10,6 @@ from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.types import MsgType
 
 if TYPE_CHECKING:
-
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.response import PublishCommand
@@ -24,8 +22,8 @@ class BasePublisherProto(Protocol):
         message: "SendableMessage",
         /,
         *,
-        correlation_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        correlation_id: str | None = None,
+    ) -> Any | None:
         """Public method to publish a message.
 
         Should be called by user only `broker.publisher(...).publish(...)`.
@@ -51,8 +49,8 @@ class BasePublisherProto(Protocol):
         message: "SendableMessage",
         /,
         *,
-        correlation_id: Optional[str] = None,
-    ) -> Optional[Any]:
+        correlation_id: str | None = None,
+    ) -> Any | None:
         """Publishes a message synchronously."""
         ...
 

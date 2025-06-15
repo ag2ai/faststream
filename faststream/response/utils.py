@@ -1,9 +1,9 @@
-from typing import Any, Union
+from typing import Any
 
 from .response import Response
 
 
-def ensure_response(response: Union[Response, Any]) -> Response:
+def ensure_response(response: Response | Any) -> Response:
     if isinstance(response, Response):
         return response
 

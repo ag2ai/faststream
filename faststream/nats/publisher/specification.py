@@ -1,19 +1,22 @@
-from faststream._internal.endpoint.publisher import (
-    SpecificationPublisher as SpecificationPublisherMixin,
-)
-from faststream.nats.publisher.usecase import LogicPublisher
+from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.nats.configs import NatsBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
 from faststream.specification.schema.bindings import ChannelBinding, nats
 
+from .config import NatsPublisherSpecificationConfig
 
-class SpecificationPublisher(
-    SpecificationPublisherMixin,
-    LogicPublisher,
-):
-    """A class to represent a NATS publisher."""
 
-    def get_default_name(self) -> str:
+class NatsPublisherSpecification(PublisherSpecification[NatsBrokerConfig, NatsPublisherSpecificationConfig]):
+    @property
+    def subject(self) -> str:
+        return f"{self._outer_config.prefix}{self.config.subject}"
+
+    @property
+    def name(self) -> str:
+        if self.config.title_:
+            return self.config.title_
+
         return f"{self.subject}:Publisher"
 
     def get_schema(self) -> dict[str, PublisherSpec]:
@@ -21,7 +24,7 @@ class SpecificationPublisher(
 
         return {
             self.name: PublisherSpec(
-                description=self.description,
+                description=self.config.description_,
                 operation=Operation(
                     message=Message(
                         title=f"{self.name}:Message",

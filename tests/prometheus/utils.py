@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Optional, cast
+from typing import cast
 
 from dirty_equals import IsFloat, IsPositiveFloat, IsStr
 from prometheus_client import Histogram, Metric
@@ -234,7 +234,7 @@ def get_received_processed_messages_exceptions_metric(
     app_name: str,
     broker: str,
     queue: str,
-    exception_type: Optional[str],
+    exception_type: str | None,
     exceptions_amount: int,
 ) -> Metric:
     metric = Metric(
@@ -384,7 +384,7 @@ def get_published_messages_exceptions_metric(
     app_name: str,
     broker: str,
     queue: str,
-    exception_type: Optional[str],
+    exception_type: str | None,
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_published_messages_exceptions",

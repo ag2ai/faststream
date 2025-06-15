@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from nats.js import JetStreamContext
 
 
-class PushStreamSubscription(StreamSubscriber):
+class PushStreamSubscriber(StreamSubscriber):
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override

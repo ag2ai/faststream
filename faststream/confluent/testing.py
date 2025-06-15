@@ -1,11 +1,9 @@
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
 )
 from unittest.mock import AsyncMock, MagicMock
 
@@ -60,7 +58,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         broker: KafkaBroker,
         publisher: "SpecificationPublisher[Any, Any]",
     ) -> tuple["LogicSubscriber[Any]", bool]:
-        sub: Optional[LogicSubscriber[Any]] = None
+        sub: LogicSubscriber[Any] | None = None
         for handler in broker.subscribers:
             if _is_handler_matches(
                 handler,
@@ -231,7 +229,7 @@ class MockConfluentMessage:
         partition: int,
         timestamp_type: int,
         timestamp_ms: int,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         self._raw_msg = raw_msg
         self._topic = topic
@@ -245,7 +243,7 @@ class MockConfluentMessage:
     def len(self) -> int:
         return len(self._raw_msg)
 
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         return self._error
 
     def headers(self) -> list[tuple[str, bytes]]:
@@ -274,11 +272,11 @@ def build_message(
     message: "SendableMessage",
     topic: str,
     *,
-    correlation_id: Optional[str] = None,
-    partition: Optional[int] = None,
-    timestamp_ms: Optional[int] = None,
-    key: Optional[bytes] = None,
-    headers: Optional[dict[str, str]] = None,
+    correlation_id: str | None = None,
+    partition: int | None = None,
+    timestamp_ms: int | None = None,
+    key: bytes | None = None,
+    headers: dict[str, str] | None = None,
     reply_to: str = "",
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
@@ -314,7 +312,7 @@ def _fake_connection(*args: Any, **kwargs: Any) -> AsyncMock:
 def _find_handler(
     subscribers: Iterable["LogicSubscriber[Any]"],
     topic: str,
-    partition: Optional[int],
+    partition: int | None,
 ) -> Generator["LogicSubscriber[Any]", None, None]:
     published_groups = set()
     for handler in subscribers:  # pragma: no branch
@@ -330,7 +328,7 @@ def _find_handler(
 def _is_handler_matches(
     handler: "LogicSubscriber[Any]",
     topic: str,
-    partition: Optional[int],
+    partition: int | None,
 ) -> bool:
     return bool(
         any(

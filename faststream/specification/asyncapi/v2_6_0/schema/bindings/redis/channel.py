@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/redis
 """
 
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -21,13 +20,13 @@ class ChannelBinding(BaseModel):
     """
 
     channel: str
-    method: Optional[str] = None
-    groupName: Optional[str] = None
-    consumerName: Optional[str] = None
+    method: str | None = None
+    groupName: str | None = None
+    consumerName: str | None = None
     bindingVersion: str = "custom"
 
     @classmethod
-    def from_sub(cls, binding: Optional[redis.ChannelBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: redis.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -39,7 +38,7 @@ class ChannelBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[redis.ChannelBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: redis.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 

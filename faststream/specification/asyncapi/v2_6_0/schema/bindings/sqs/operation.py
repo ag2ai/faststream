@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/sqs
 """
 
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -20,7 +19,7 @@ class OperationBinding(BaseModel):
         bindingVersion : version of the binding, default is "custom"
     """
 
-    replyTo: Optional[AnyDict] = None
+    replyTo: AnyDict | None = None
     bindingVersion: str = "custom"
 
     @classmethod

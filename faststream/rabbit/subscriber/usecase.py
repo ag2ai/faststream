@@ -15,26 +15,36 @@ if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.rabbit.configs import RabbitBrokerConfig, RabbitSubscriberConfig
+    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
+    from .config import (
+        RabbitSubscriberConfig,
+        RabbitSubscriberSpecificationConfig,
+    )
 
-class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
+
+class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
-    app_id: Optional[str]
+    app_id: str | None
     _outer_config: "RabbitBrokerConfig"
 
-    _consumer_tag: Optional[str]
+    _consumer_tag: str | None
     _queue_obj: Optional["RobustQueue"]
 
-    def __init__(self, config: "RabbitSubscriberConfig", /) -> None:
+    def __init__(self, config: "RabbitSubscriberConfig", specification: "RabbitSubscriberSpecificationConfig", calls: "CallsCollection") -> None:
         parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(
+            config,
+            specification=specification,
+            calls=calls,
+        )
 
         self.queue = config.queue
         self.exchange = config.exchange
@@ -113,7 +123,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
         *,
         timeout: float = 5.0,
         no_ack: bool = True,
-    ) -> "Optional[RabbitMessage]":
+    ) -> "RabbitMessage | None":
         assert self._queue_obj, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -121,7 +131,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         sleep_interval = timeout / 10
 
-        raw_message: Optional[IncomingMessage] = None
+        raw_message: IncomingMessage | None = None
         with (
             contextlib.suppress(asyncio.exceptions.CancelledError),
             anyio.move_on_after(timeout),
@@ -137,7 +147,7 @@ class LogicSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         context = self._outer_config.fd_config.context
 
-        msg: Optional[RabbitMessage] = await process_msg(  # type: ignore[assignment]
+        msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares

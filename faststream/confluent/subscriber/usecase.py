@@ -31,7 +31,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     _outer_config: "KafkaBrokerConfig"
 
-    group_id: Optional[str]
+    group_id: str | None
 
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
@@ -50,7 +50,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.polling_interval = config.polling_interval
 
     @property
-    def client_id(self) -> Optional[str]:
+    def client_id(self) -> str | None:
         return self._outer_config.client_id
 
     @property
@@ -93,7 +93,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[StreamMessage[MsgType]]":
+    ) -> "StreamMessage[MsgType] | None":
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -152,7 +152,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         await self.consume(msg)
 
     @abstractmethod
-    async def get_msg(self) -> Optional[MsgType]:
+    async def get_msg(self) -> MsgType | None:
         raise NotImplementedError
 
     async def _consume(self) -> None:
@@ -192,7 +192,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         topic: str,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
     ) -> dict[str, str]:
         return {
             "topic": topic,
@@ -242,7 +242,7 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         self,
         config: "KafkaSubscriberConfig",
         /,
-        max_records: Optional[int],
+        max_records: int | None,
     ) -> None:
         self.max_records = max_records
 
@@ -251,7 +251,7 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         config.parser = self.parser.parse_message_batch
         super().__init__(config)
 
-    async def get_msg(self) -> Optional[tuple["Message", ...]]:
+    async def get_msg(self) -> tuple["Message", ...] | None:
         assert self.consumer, "You should setup subscriber at first."  # nosec B101
         return (
             await self.consumer.getmany(

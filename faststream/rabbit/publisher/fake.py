@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from faststream._internal.endpoint.publisher.fake import FakePublisher
 from faststream.rabbit.response import RabbitPublishCommand
@@ -15,7 +15,7 @@ class RabbitFakePublisher(FakePublisher):
         self,
         producer: "ProducerProto",
         routing_key: str,
-        app_id: Optional[str],
+        app_id: str | None,
     ) -> None:
         super().__init__(producer=producer)
         self.routing_key = routing_key

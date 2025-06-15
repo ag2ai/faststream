@@ -3,8 +3,9 @@ import multiprocessing
 import os
 import signal
 import sys
+from collections.abc import Callable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from multiprocessing.context import SpawnProcess
@@ -51,7 +52,7 @@ def set_exit(
 
 def get_subprocess(target: "DecoratedCallableNone", args: Any) -> "SpawnProcess":
     """Spawn a subprocess."""
-    stdin_fileno: Optional[int]
+    stdin_fileno: int | None
     try:
         stdin_fileno = sys.stdin.fileno()
     except OSError:
@@ -67,7 +68,7 @@ def get_subprocess(target: "DecoratedCallableNone", args: Any) -> "SpawnProcess"
 def subprocess_started(
     *args: Any,
     t: "DecoratedCallableNone",
-    stdin_fileno: Optional[int],
+    stdin_fileno: int | None,
 ) -> None:
     """Start a subprocess."""
     if stdin_fileno is not None:  # pragma: no cover

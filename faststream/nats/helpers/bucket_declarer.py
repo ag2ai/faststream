@@ -28,16 +28,16 @@ class KVBucketDeclarer:
         self,
         bucket: str,
         *,
-        description: Optional[str] = None,
-        max_value_size: Optional[int] = None,
+        description: str | None = None,
+        max_value_size: int | None = None,
         history: int = 1,
-        ttl: Optional[float] = None,  # in seconds
-        max_bytes: Optional[int] = None,
+        ttl: float | None = None,  # in seconds
+        max_bytes: int | None = None,
         storage: Optional["StorageType"] = None,
         replicas: int = 1,
         placement: Optional["Placement"] = None,
         republish: Optional["RePublish"] = None,
-        direct: Optional[bool] = None,
+        direct: bool | None = None,
         # custom
         declare: bool = True,
     ) -> "KeyValue":

@@ -5,7 +5,6 @@ from typing import (
     Generic,
     Optional,
     TypeVar,
-    Union,
 )
 from uuid import uuid4
 
@@ -31,15 +30,15 @@ class StreamMessage(Generic[MsgType]):
     def __init__(
         self,
         raw_message: "MsgType",
-        body: Union[bytes, Any],
+        body: bytes | Any,
         *,
         headers: Optional["AnyDict"] = None,
         reply_to: str = "",
-        batch_headers: Optional[list["AnyDict"]] = None,
+        batch_headers: list["AnyDict"] | None = None,
         path: Optional["AnyDict"] = None,
-        content_type: Optional[str] = None,
-        correlation_id: Optional[str] = None,
-        message_id: Optional[str] = None,
+        content_type: str | None = None,
+        correlation_id: str | None = None,
+        message_id: str | None = None,
         source_type: SourceType = SourceType.CONSUME,
     ) -> None:
         self.raw_message = raw_message
@@ -54,11 +53,11 @@ class StreamMessage(Generic[MsgType]):
         self.correlation_id = correlation_id or str(uuid4())
         self.message_id = message_id or self.correlation_id
 
-        self.committed: Optional[AckStatus] = None
+        self.committed: AckStatus | None = None
         self.processed = False
 
         # Setup later
-        self.__decoder: Optional[AsyncCallable] = None
+        self.__decoder: AsyncCallable | None = None
         self.__decoded_caches: dict[
             Any, Any
         ] = {}  # Cache values between filters and tests

@@ -39,7 +39,7 @@ if TYPE_CHECKING:
         should_exit: bool
         force_exit: bool
 
-        def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None: ...
+        def handle_exit(self, sig: int, frame: FrameType | None) -> None: ...
 
 
 class ServerState(Protocol):
@@ -161,7 +161,7 @@ class AsgiFastStream(Application):
     async def run(
         self,
         log_level: int = logging.INFO,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> None:
         try:
             import uvicorn
@@ -193,7 +193,7 @@ class AsgiFastStream(Application):
     @asynccontextmanager
     async def start_lifespan_context(
         self,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> AsyncIterator[None]:
         run_extra_options = run_extra_options or self._server.extra_options
 

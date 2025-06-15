@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from faststream.rabbit.configs.specification import RabbitSpecificationConfig
@@ -13,8 +13,8 @@ class BaseRMQInformation:
     queue: "RabbitQueue"
     exchange: "RabbitExchange"
 
-    def __init__(self, config: "RabbitSpecificationConfig", /, **kwargs: Any) -> None:
-        super().__init__(config, **kwargs)
+    def __init__(self, config: "RabbitSpecificationConfig", *args: Any, **kwargs: Any) -> None:
+        super().__init__(config, *args, **kwargs)
 
         self.queue = config.queue
         self.exchange = config.exchange
@@ -26,5 +26,5 @@ class BaseRMQInformation:
         return self._outer_config.virtual_host
 
     @property
-    def app_id(self) -> Optional[str]:
+    def app_id(self) -> str | None:
         return self._outer_config.app_id

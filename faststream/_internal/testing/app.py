@@ -22,7 +22,7 @@ class TestApp:
     def __init__(
         self,
         app: "Application",
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> None:
         self.app = app
         self._extra_options = run_extra_options or {}
@@ -45,8 +45,8 @@ class TestApp:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         self.exit_stack.close()
@@ -59,8 +59,8 @@ class TestApp:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Exit the asynchronous context manager."""

@@ -1,5 +1,5 @@
-from faststream.prometheus.container import MetricsContainer
-from faststream.prometheus.types import ProcessingStatus, PublishingStatus
+from .container import MetricsContainer
+from .types import ProcessingStatus, PublishingStatus
 
 
 class MetricsManager:

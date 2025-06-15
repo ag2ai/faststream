@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Self
@@ -33,21 +32,21 @@ class Operation(BaseModel):
     """
 
     action: Action
-    channel: Union[Channel, Reference]
+    channel: Channel | Reference
 
-    summary: Optional[str] = None
-    description: Optional[str] = None
+    summary: str | None = None
+    description: str | None = None
 
-    bindings: Optional[OperationBinding] = None
+    bindings: OperationBinding | None = None
 
     messages: list[Reference] = Field(default_factory=list)
 
-    security: Optional[dict[str, list[str]]] = None
+    security: dict[str, list[str]] | None = None
 
     # TODO
     # traits
 
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
+    tags: list[Tag | AnyDict] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

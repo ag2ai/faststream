@@ -1,8 +1,7 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 from fast_depends.exceptions import ValidationError
-from typing_extensions import TypeAlias
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.endpoint.subscriber import SubscriberUsecase

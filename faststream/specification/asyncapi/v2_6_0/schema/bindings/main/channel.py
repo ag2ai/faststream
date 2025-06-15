@@ -1,4 +1,4 @@
-from typing import Optional, overload
+from typing import overload
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -25,11 +25,11 @@ class ChannelBinding(BaseModel):
         redis : Redis channel binding (optional)
     """
 
-    amqp: Optional[amqp_bindings.ChannelBinding] = None
-    kafka: Optional[kafka_bindings.ChannelBinding] = None
-    sqs: Optional[sqs_bindings.ChannelBinding] = None
-    nats: Optional[nats_bindings.ChannelBinding] = None
-    redis: Optional[redis_bindings.ChannelBinding] = None
+    amqp: amqp_bindings.ChannelBinding | None = None
+    kafka: kafka_bindings.ChannelBinding | None = None
+    sqs: sqs_bindings.ChannelBinding | None = None
+    nats: nats_bindings.ChannelBinding | None = None
+    redis: redis_bindings.ChannelBinding | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -48,7 +48,7 @@ class ChannelBinding(BaseModel):
     def from_sub(cls, binding: SpecBinding) -> Self: ...
 
     @classmethod
-    def from_sub(cls, binding: Optional[SpecBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: SpecBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -86,7 +86,7 @@ class ChannelBinding(BaseModel):
     def from_pub(cls, binding: SpecBinding) -> Self: ...
 
     @classmethod
-    def from_pub(cls, binding: Optional[SpecBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: SpecBinding | None) -> Self | None:
         if binding is None:
             return None
 

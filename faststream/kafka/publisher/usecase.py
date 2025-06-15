@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, Union, overload
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Union, overload
 
 from aiokafka import ConsumerRecord
 from typing_extensions import Doc, override
@@ -55,7 +55,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         ] = "",
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -69,7 +69,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -78,7 +78,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
             ),
         ] = None,
         timestamp_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Epoch milliseconds (from Jan 1 1970 UTC) to use as
@@ -87,11 +87,11 @@ class LogicPublisher(PublisherUsecase[MsgType]):
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc("Message headers to store metainformation."),
         ] = None,
         correlation_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Manual message **correlation_id** setter. "
                 "**correlation_id** is a useful option to trace messages.",
@@ -134,11 +134,11 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Union[bytes, Any, None] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | Any | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True],
     ) -> "asyncio.Future[RecordMetadata]": ...
@@ -149,11 +149,11 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Union[bytes, Any, None] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | Any | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
@@ -164,11 +164,11 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Union[bytes, Any, None] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | Any | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
@@ -253,7 +253,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
         ] = "",
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -267,7 +267,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -276,7 +276,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             ),
         ] = None,
         timestamp_ms: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Epoch milliseconds (from Jan 1 1970 UTC) to use as
@@ -285,11 +285,11 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc("Message headers to store metainformation."),
         ] = None,
         correlation_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Manual message **correlation_id** setter. "
                 "**correlation_id** is a useful option to trace messages.",
@@ -318,11 +318,11 @@ class BatchPublisher(LogicPublisher[tuple["ConsumerRecord", ...]]):
         self,
         *messages: "SendableMessage",
         topic: str = "",
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         no_confirm: Literal[True],
     ) -> "asyncio.Future[RecordMetadata]": ...
 
@@ -331,11 +331,11 @@ class BatchPublisher(LogicPublisher[tuple["ConsumerRecord", ...]]):
         self,
         *messages: "SendableMessage",
         topic: str = "",
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
 
@@ -344,11 +344,11 @@ class BatchPublisher(LogicPublisher[tuple["ConsumerRecord", ...]]):
         self,
         *messages: "SendableMessage",
         topic: str = "",
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         no_confirm: bool = False,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message batch as a single request to broker.

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from pydantic import AnyHttpUrl
 from typing_extensions import Required, TypedDict
@@ -16,5 +15,5 @@ class ContactDict(TypedDict, total=False):
 @dataclass
 class Contact:
     name: str
-    url: Optional[AnyHttpUrl] = None
-    email: Optional[EmailStr] = None
+    url: AnyHttpUrl | None = None
+    email: EmailStr | None = None

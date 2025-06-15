@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/kafka
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, PositiveInt
 from typing_extensions import Self
@@ -21,16 +20,16 @@ class ChannelBinding(BaseModel):
         bindingVersion : string representing the binding version
     """
 
-    topic: Optional[str] = None
-    partitions: Optional[PositiveInt] = None
-    replicas: Optional[PositiveInt] = None
+    topic: str | None = None
+    partitions: PositiveInt | None = None
+    replicas: PositiveInt | None = None
     bindingVersion: str = "0.4.0"
 
     # TODO:
     # topicConfiguration
 
     @classmethod
-    def from_sub(cls, binding: Optional[kafka.ChannelBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: kafka.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 
@@ -41,7 +40,7 @@ class ChannelBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[kafka.ChannelBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: kafka.ChannelBinding | None) -> Self | None:
         if binding is None:
             return None
 

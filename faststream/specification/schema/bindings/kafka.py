@@ -4,7 +4,7 @@ References: https://github.com/asyncapi/bindings/tree/master/kafka
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -17,9 +17,9 @@ class ChannelBinding:
         replicas : optional positive integer representing the number of replicas
     """
 
-    topic: Optional[str]
-    partitions: Optional[int]
-    replicas: Optional[int]
+    topic: str | None
+    partitions: int | None
+    replicas: int | None
 
     # TODO:
     # topicConfiguration
@@ -35,6 +35,6 @@ class OperationBinding:
         reply_to : optional dictionary representing the reply-to
     """
 
-    group_id: Optional[dict[str, Any]]
-    client_id: Optional[dict[str, Any]]
-    reply_to: Optional[dict[str, Any]]
+    group_id: dict[str, Any] | None
+    client_id: dict[str, Any] | None
+    reply_to: dict[str, Any] | None

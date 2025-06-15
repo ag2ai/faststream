@@ -1,5 +1,4 @@
 from types import SimpleNamespace
-from typing import Union
 
 import pytest
 
@@ -21,7 +20,7 @@ class TestRabbitMetricsSettingsProvider(
     )
     def test_get_consume_attrs_from_message(
         self,
-        exchange: Union[str, None],
+        exchange: str | None,
         queue: str,
     ) -> None:
         body = b"Hello"
@@ -48,7 +47,7 @@ class TestRabbitMetricsSettingsProvider(
     )
     def test_get_publish_destination_name_from_cmd(
         self,
-        exchange: Union[str, None],
+        exchange: str | None,
         queue: str,
     ) -> None:
         expected_destination_name = f"{exchange or 'default'}.{queue}"

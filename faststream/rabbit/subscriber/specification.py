@@ -1,7 +1,5 @@
-from faststream._internal.endpoint.subscriber.specification.specified import (
-    SpecificationSubscriber as SpecificationSubscriberMixin,
-)
-from faststream.rabbit.schemas import BaseRMQInformation as RMQSpecificationMixin
+from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import (
     Message,
@@ -14,29 +12,33 @@ from faststream.specification.schema.bindings import (
     amqp,
 )
 
-from .usecase import LogicSubscriber
+from .config import RabbitSubscriberSpecificationConfig
 
 
-class SpecificationSubscriber(
-    SpecificationSubscriberMixin,
-    RMQSpecificationMixin,
-    LogicSubscriber,
-):
-    """AsyncAPI-compatible Rabbit Subscriber class."""
+class RabbitSubscriberSpecification(SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig]):
+    @property
+    def name(self) -> str:
+        if self.config.title_:
+            return self.config.title_
 
-    def get_default_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.queue.name}:{getattr(self.exchange, 'name', None) or '_'}:{self.call_name}"
+        queue_name = self.config.queue.name
+
+        exchange_name = getattr(self.config.exchange, "name", None)
+
+        return f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        queue = self.queue.add_prefix(self._outer_config.prefix)
+        queue = self.config.queue.add_prefix(self._outer_config.prefix)
 
-        exchange_binding = amqp.Exchange.from_exchange(self.exchange)
+        exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
         queue_binding = amqp.Queue.from_queue(queue)
 
+        channel_name = self.name
+
         return {
-            self.name: SubscriberSpec(
+            channel_name: SubscriberSpec(
                 description=self.description,
                 operation=Operation(
                     bindings=OperationBinding(
@@ -52,13 +54,13 @@ class SpecificationSubscriber(
                         ),
                     ),
                     message=Message(
-                        title=f"{self.name}:Message",
+                        title=f"{channel_name}:Message",
                         payload=resolve_payloads(payloads),
                     ),
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
-                        virtual_host=self.virtual_host,
+                        virtual_host=self._outer_config.virtual_host,
                         queue=queue_binding,
                         exchange=exchange_binding,
                     ),

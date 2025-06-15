@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from typing_extensions import override
 
@@ -14,9 +14,9 @@ class NatsResponse(Response):
         self,
         body: "SendableMessage",
         *,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
     ) -> None:
         super().__init__(
             body=body,
@@ -44,11 +44,11 @@ class NatsPublishCommand(PublishCommand):
         message: "SendableMessage",
         *,
         subject: str = "",
-        correlation_id: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        correlation_id: str | None = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        stream: str | None = None,
+        timeout: float | None = None,
         _publish_type: PublishType,
     ) -> None:
         super().__init__(

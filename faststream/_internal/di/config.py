@@ -1,6 +1,6 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from fast_depends import Provider
 
@@ -24,7 +24,7 @@ class FastDependsConfig:
 
     # To patch injection by integrations
     call_decorators: Sequence["Decorator"] = ()
-    get_dependent: Optional[Callable[..., Any]] = None
+    get_dependent: Callable[..., Any] | None = None
 
     @property
     def _serializer(self) -> Optional["SerializerProto"]:
