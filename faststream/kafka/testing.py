@@ -20,13 +20,13 @@ from faststream.kafka.broker import KafkaBroker
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
-from faststream.kafka.publisher.specified import SpecificationBatchPublisher
+from faststream.kafka.publisher.usecase import BatchPublisher
 from faststream.kafka.subscriber.usecase import BatchSubscriber
 from faststream.message import encode_message, gen_cor_id
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
-    from faststream.kafka.publisher.specified import SpecificationPublisher
+    from faststream.kafka.publisher.usecase import LogicPublisher
     from faststream.kafka.response import KafkaPublishCommand
     from faststream.kafka.subscriber.usecase import LogicSubscriber
 
@@ -62,7 +62,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: KafkaBroker,
-        publisher: "SpecificationPublisher[Any, Any]",
+        publisher: "LogicPublisher[Any, Any]",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: LogicSubscriber[Any] | None = None
         for handler in broker.subscribers:
@@ -80,12 +80,12 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
                 )
                 sub = broker.subscriber(
                     partitions=[tp],
-                    batch=isinstance(publisher, SpecificationBatchPublisher),
+                    batch=isinstance(publisher, BatchPublisher),
                 )
             else:
                 sub = broker.subscriber(
                     publisher.topic,
-                    batch=isinstance(publisher, SpecificationBatchPublisher),
+                    batch=isinstance(publisher, BatchPublisher),
                 )
         else:
             is_real = True

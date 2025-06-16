@@ -35,11 +35,11 @@ if TYPE_CHECKING:
     )
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.kafka.message import KafkaMessage
-    from faststream.kafka.publisher.specified import (
+    from faststream.kafka.publisher.specification import (
         SpecificationBatchPublisher,
         SpecificationDefaultPublisher,
     )
-    from faststream.kafka.subscriber.specified import (
+    from faststream.kafka.subscriber.specification import (
         SpecificationBatchSubscriber,
         SpecificationConcurrentBetweenPartitionsSubscriber,
         SpecificationConcurrentDefaultSubscriber,

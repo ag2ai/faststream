@@ -1,15 +1,14 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import (
-    TYPE_CHECKING,
-    Optional,
+from typing import TYPE_CHECKING, Optional
+
+from faststream._internal.configs import (
+    SubscriberSpecificationConfig,
+    SubscriberUsecaseConfig,
 )
-
-from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from faststream._internal.constants import EMPTY
-from faststream.middlewares.acknowledgement.conf import AckPolicy
-
-from .broker import KafkaBrokerConfig
+from faststream.kafka.configs import KafkaBrokerConfig
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from aiokafka import TopicPartition
@@ -19,19 +18,14 @@ if TYPE_CHECKING:
 
 
 @dataclass(kw_only=True)
-class KafkaPublisherConfig(PublisherUsecaseConfig):
-    config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
-
-    key: bytes | str | None
-    topic: str
-    partition: int | None
-    headers: dict[str, str] | None
-    reply_to: str | None
+class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
+    topics: Sequence[str] = field(default_factory=list)
+    partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
-    config: KafkaBrokerConfig = field(default_factory=KafkaBrokerConfig)
+    _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
     topics: Sequence[str] = field(default_factory=list)
     group_id: str | None = None

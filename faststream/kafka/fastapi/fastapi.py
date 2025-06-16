@@ -48,11 +48,11 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.kafka.message import KafkaMessage
-    from faststream.kafka.publisher.specified import (
+    from faststream.kafka.publisher.specification import (
         SpecificationBatchPublisher,
         SpecificationDefaultPublisher,
     )
-    from faststream.kafka.subscriber.specified import (
+    from faststream.kafka.subscriber.specification import (
         SpecificationBatchSubscriber,
         SpecificationConcurrentBetweenPartitionsSubscriber,
         SpecificationConcurrentDefaultSubscriber,
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 Partition = TypeVar("Partition")
 
 
-class KafkaRouter(StreamRouter[Union[ConsumerRecord, tuple[ConsumerRecord, ...]]]):
+class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     """A class to represent a Kafka router."""
 
     broker_class = KB
