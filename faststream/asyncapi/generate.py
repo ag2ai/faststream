@@ -11,7 +11,6 @@ from faststream.asyncapi.schema import (
     Reference,
     Schema,
     Server,
-    Tag,
 )
 from faststream.asyncapi.schema.bindings import http as http_bindings
 from faststream.constants import ContentTypes

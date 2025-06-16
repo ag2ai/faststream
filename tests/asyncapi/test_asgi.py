@@ -19,7 +19,7 @@ def test_asgi():
                 "/test",
                 make_ping_asgi(
                     broker,
-                    description="test desctiption",
+                    description="test description",
                     tags=[{"name": "test"}],
                 ),
             ),
@@ -32,7 +32,7 @@ def test_asgi():
 
     assert schema["channels"] == {
         "/test": {
-            "description": "test desctiption",
+            "description": "test description",
             "subscribe": {
                 "bindings": {
                     "http": {"method": "GET, HEAD", "bindingVersion": "0.1.0"}
