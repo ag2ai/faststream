@@ -2,6 +2,7 @@ from faststream import FastStream
 from faststream.asyncapi.generate import get_app_schema
 from faststream.kafka import KafkaBroker
 
+
 def test_asgi():
     schema = get_app_schema(FastStream(KafkaBroker())).to_jsonable()
 

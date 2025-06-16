@@ -143,7 +143,7 @@ def get_broker_channels(
 
 def get_asgi_routes(
     app: "AsyncAPIApplication",
-    channels: Dict[str, Channel], 
+    channels: Dict[str, Channel],
 ) -> Dict[str, Channel]:
     """Get the ASGI routes for an application."""
     # We should import this here due
@@ -151,11 +151,10 @@ def get_asgi_routes(
     # so it looks like a circular import
     from faststream.asgi import AsgiFastStream
     from faststream.asgi.handlers import HttpHandler
-
+    from faststream.asyncapi.schema.bindings.main import OperationBinding
     from faststream.asyncapi.schema.channels import Channel
     from faststream.asyncapi.schema.operations import Operation
     from faststream.asyncapi.schema.utils import Tag
-    from faststream.asyncapi.schema.bindings.main import OperationBinding
 
     if not isinstance(app, AsgiFastStream):
         return channels

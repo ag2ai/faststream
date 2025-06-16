@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 from faststream.asyncapi.schema.utils import Tag
 
+
 class HttpHandler:
     def __init__(
         self,
@@ -91,7 +92,7 @@ def get(
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(
-            inner_func, 
+            inner_func,
             include_in_schema=include_in_schema,
             description=description,
             tags=tags,
