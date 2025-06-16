@@ -299,6 +299,8 @@ search:
                             - [OperationBinding](api/faststream/asyncapi/schema/bindings/amqp/OperationBinding.md)
                             - [Queue](api/faststream/asyncapi/schema/bindings/amqp/Queue.md)
                             - [ServerBinding](api/faststream/asyncapi/schema/bindings/amqp/ServerBinding.md)
+                        - http
+                            - [OperationBinding](api/faststream/asyncapi/schema/bindings/http/OperationBinding.md)
                         - kafka
                             - [ChannelBinding](api/faststream/asyncapi/schema/bindings/kafka/ChannelBinding.md)
                             - [OperationBinding](api/faststream/asyncapi/schema/bindings/kafka/OperationBinding.md)
