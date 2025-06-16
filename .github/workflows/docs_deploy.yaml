@@ -30,7 +30,7 @@ jobs:
           set -ux
           uv pip install --system -e .[dev]
           uv pip uninstall --system email-validator # This is to fix broken link in docs
-      - run: ./scripts/build-docs.sh
+      - run: cd docs && python docs.py build
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
       - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
       - name: Configure Git user
