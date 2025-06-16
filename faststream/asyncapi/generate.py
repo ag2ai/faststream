@@ -34,7 +34,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
     for ch in channels.values():
         ch.servers = list(servers.keys())
 
-    channels |= get_asgi_routes(app)
+    channels.update(get_asgi_routes(app))
 
     messages: Dict[str, Message] = {}
     payloads: Dict[str, Dict[str, Any]] = {}
