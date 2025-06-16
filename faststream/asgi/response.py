@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List, Mapping, Optional, Tuple
 
 if TYPE_CHECKING:
-    from faststream.asgi.types import Receive, Scope, Send
+    from .types import Receive, Scope, Send
 
 
 class AsgiResponse:

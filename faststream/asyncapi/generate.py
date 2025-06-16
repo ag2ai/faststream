@@ -6,10 +6,14 @@ from faststream.asyncapi.schema import (
     Components,
     Info,
     Message,
+    Operation,
+    OperationBinding,
     Reference,
     Schema,
     Server,
+    Tag,
 )
+from faststream.asyncapi.schema.bindings import http as http_bindings
 from faststream.constants import ContentTypes
 
 if TYPE_CHECKING:
@@ -26,17 +30,16 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
     broker.setup()
 
     servers = get_broker_server(broker)
-    channels = get_broker_channels(broker)
 
-    # TODO: generate HTTP channels
-    channels = get_asgi_routes(app=app, channels=channels)
-    # asgi_routes = get_asgi_routes(app)
+    channels = get_broker_channels(broker)
+    for ch in channels.values():
+        ch.servers = list(servers.keys())
+
+    channels |= get_asgi_routes(app)
 
     messages: Dict[str, Message] = {}
     payloads: Dict[str, Dict[str, Any]] = {}
     for channel_name, ch in channels.items():
-        ch.servers = list(servers.keys())
-
         if ch.subscribe is not None:
             m = ch.subscribe.message
 
@@ -141,37 +144,35 @@ def get_broker_channels(
     return channels
 
 
-def get_asgi_routes(
-    app: "AsyncAPIApplication",
-    channels: Dict[str, Channel],
-) -> Dict[str, Channel]:
+def get_asgi_routes(app: "AsyncAPIApplication") -> Dict[str, Channel]:
     """Get the ASGI routes for an application."""
     # We should import this here due
     # ASGI > Application > asynciapi.proto
     # so it looks like a circular import
     from faststream.asgi import AsgiFastStream
     from faststream.asgi.handlers import HttpHandler
-    from faststream.asyncapi.schema.bindings.main import OperationBinding
-    from faststream.asyncapi.schema.channels import Channel
-    from faststream.asyncapi.schema.operations import Operation
-    from faststream.asyncapi.schema.utils import Tag
 
     if not isinstance(app, AsgiFastStream):
-        return channels
+        return {}
 
+    channels: Dict[str, Channel] = {}
     for route in app.routes:
         path, asgi_app = route
 
         if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
-            # TODO: generate HTTP channel for handler
             channel = Channel(
                 description=asgi_app.description,
                 subscribe=Operation(
-                    tags=[Tag(name=str(tag)) for tag in asgi_app.tags],
+                    tags=asgi_app.tags,
                     operationId=asgi_app.unique_id,
-                    bindings=OperationBinding(),
+                    bindings=OperationBinding(
+                        http=http_bindings.OperationBinding(
+                            method=", ".join(asgi_app.methods)
+                        )
+                    ),
                 ),
             )
+
             channels[path] = channel
 
     return channels
