@@ -36,7 +36,7 @@ hide:
 * docs: Fix code style in `Context Fields Declaration` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2269](https://github.com/ag2ai/faststream/pull/2269){.external-link target="_blank"}
 * docs: Improve `Context` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2265](https://github.com/ag2ai/faststream/pull/2265){.external-link target="_blank"}
 * docs: Reword `publishing/decorator.md` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2260](https://github.com/ag2ai/faststream/pull/2260){.external-link target="_blank"}
-* docs: Imporve dependencies docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2263](https://github.com/ag2ai/faststream/pull/2263){.external-link target="_blank"}
+* docs: Improve dependencies docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2263](https://github.com/ag2ai/faststream/pull/2263){.external-link target="_blank"}
 * docs: Refactor `publishing/index.md` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2259](https://github.com/ag2ai/faststream/pull/2259){.external-link target="_blank"}
 * docs: Improve wordings in test docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2258](https://github.com/ag2ai/faststream/pull/2258){.external-link target="_blank"}
 * docs: Link to test.md from initial tutorial by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2257](https://github.com/ag2ai/faststream/pull/2257){.external-link target="_blank"}
