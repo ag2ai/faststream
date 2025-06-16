@@ -5,6 +5,7 @@ from faststream.asgi.response import AsgiResponse
 if TYPE_CHECKING:
     from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
 
+from faststream.asyncapi.schema.utils import Tag
 
 class HttpHandler:
     def __init__(
@@ -14,11 +15,15 @@ class HttpHandler:
         include_in_schema: bool = True,
         description: Optional[str] = None,
         methods: Optional[Sequence[str]] = None,
+        tags: list[Tag] = [],
+        unique_id: str | None = None,
     ):
         self.func = func
         self.methods = methods or ()
         self.include_in_schema = include_in_schema
         self.description = description or func.__doc__
+        self.tags: list[Tag] = tags
+        self.unique_id: str | None = unique_id
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         if scope["method"] not in self.methods:
@@ -41,12 +46,16 @@ class GetHandler(HttpHandler):
         *,
         include_in_schema: bool = True,
         description: Optional[str] = None,
+        tags: list[Tag] = [],
+        unique_id: str | None = None,
     ):
         super().__init__(
             func,
             include_in_schema=include_in_schema,
             description=description,
             methods=("GET", "HEAD"),
+            tags=tags,
+            unique_id=unique_id,
         )
 
 
@@ -56,6 +65,8 @@ def get(
     *,
     include_in_schema: bool = True,
     description: Optional[str] = None,
+    tags: list[Tag] = [],
+    unique_id: str | None = None,
 ) -> "ASGIApp": ...
 
 
@@ -65,6 +76,8 @@ def get(
     *,
     include_in_schema: bool = True,
     description: Optional[str] = None,
+    tags: list[Tag] = [],
+    unique_id: str | None = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
@@ -73,10 +86,16 @@ def get(
     *,
     include_in_schema: bool = True,
     description: Optional[str] = None,
+    tags: list[Tag] = [],
+    unique_id: str | None = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(
-            inner_func, include_in_schema=include_in_schema, description=description
+            inner_func, 
+            include_in_schema=include_in_schema,
+            description=description,
+            tags=tags,
+            unique_id=unique_id,
         )
 
     if func is None:

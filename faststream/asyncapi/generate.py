@@ -29,6 +29,7 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
     channels = get_broker_channels(broker)
 
     # TODO: generate HTTP channels
+    channels = get_asgi_routes(app=app, channels=channels)
     # asgi_routes = get_asgi_routes(app)
 
     messages: Dict[str, Message] = {}
@@ -142,7 +143,8 @@ def get_broker_channels(
 
 def get_asgi_routes(
     app: "AsyncAPIApplication",
-) -> Any:
+    channels: Dict[str, Channel], 
+) -> Dict[str, Channel]:
     """Get the ASGI routes for an application."""
     # We should import this here due
     # ASGI > Application > asynciapi.proto
@@ -150,17 +152,30 @@ def get_asgi_routes(
     from faststream.asgi import AsgiFastStream
     from faststream.asgi.handlers import HttpHandler
 
+    from faststream.asyncapi.schema.channels import Channel
+    from faststream.asyncapi.schema.operations import Operation
+    from faststream.asyncapi.schema.utils import Tag
+    from faststream.asyncapi.schema.bindings.main import OperationBinding
+
     if not isinstance(app, AsgiFastStream):
-        return None
+        return channels
 
     for route in app.routes:
         path, asgi_app = route
 
         if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
             # TODO: generate HTTP channel for handler
-            pass
+            channel = Channel(
+                description=asgi_app.description,
+                subscribe=Operation(
+                    tags=[Tag(name=str(tag)) for tag in asgi_app.tags],
+                    operationId=asgi_app.unique_id,
+                    bindings=OperationBinding(),
+                ),
+            )
+            channels[path] = channel
 
-    return
+    return channels
 
 
 def _resolve_msg_payloads(
