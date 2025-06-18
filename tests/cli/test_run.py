@@ -1,15 +1,11 @@
-import os
+import json
+import random
 import urllib.request
-from unittest.mock import AsyncMock, patch
 
 import psutil
 import pytest
-from typer.testing import CliRunner
 
 from faststream._compat import IS_WINDOWS
-from faststream._internal.application import Application
-from faststream.asgi import AsgiFastStream
-from faststream.cli.main import cli as faststream_app
 from tests.marks import python310
 
 pytestmark = [
@@ -21,18 +17,12 @@ pytestmark = [
 
 def test_run(generate_template, faststream_cli) -> None:
     app_code = """
-    from faststream.asgi import AsgiFastStream, AsgiResponse, get
+    from faststream import FastStream
     from faststream.nats import NatsBroker
 
     broker = NatsBroker()
 
-    @get
-    async def liveness_ping(scope):
-        return AsgiResponse(b"hello world", status_code=200)
-
-    app = AsgiFastStream(broker, asgi_routes=[
-        ("/liveness", liveness_ping),
-    ])
+    app = FastStream(broker)
     """
     with generate_template(app_code) as app_path, faststream_cli(
         [
@@ -40,13 +30,77 @@ def test_run(generate_template, faststream_cli) -> None:
             "run",
             f"{app_path.stem}:app",
         ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
-    ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
-        assert response.read().decode() == "hello world"
-        assert response.getcode() == 200
+    ) as cli_thread:
+        pass
+    assert cli_thread.process.returncode == 0
+
+
+def test_run_asgi(generate_template, faststream_cli) -> None:
+    app_code = """
+    import json
+
+    from faststream import FastStream
+    from faststream.nats import NatsBroker
+    from faststream.asgi import AsgiResponse, get
+
+    broker = NatsBroker()
+
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+
+    CONTEXT = {}
+
+    @get
+    async def context(scope):
+        return AsgiResponse(json.dumps(CONTEXT).encode(), status_code=200)
+
+
+    app = FastStream(broker).as_asgi(
+        asgi_routes=[
+            ("/liveness", liveness_ping),
+            ("/context", context)
+        ],
+        asyncapi_path="/docs",
+    )
+
+    @app.on_startup
+    async def start(test: int, port: int):
+        CONTEXT["test"] = test
+        CONTEXT["port"] = port
+
+    """
+    with generate_template(app_code) as app_path:
+        port = random.randrange(40000, 65535)
+        extra_param = random.randrange(1, 100)
+
+        with faststream_cli(
+            [
+                "faststream",
+                "run",
+                f"{app_path.stem}:app",
+                "--port",
+                f"{port}",
+                "--test",
+                f"{extra_param}",
+            ],
+        ):
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/liveness"
+            ) as response:
+                assert response.read().decode() == "hello world"
+                assert response.getcode() == 200
+
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/docs") as response:
+                content = response.read().decode()
+                assert content.strip().startswith("<!DOCTYPE html>")
+                assert len(content) > 1200
+
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/context") as response:
+                data = json.loads(response.read().decode())
+                assert data == {"test": extra_param, "port": port}
+                assert response.getcode() == 200
 
 
 def test_run_as_asgi_with_single_worker(
@@ -75,10 +129,6 @@ def test_run_as_asgi_with_single_worker(
             "--workers",
             "1",
         ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
     ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
         assert response.read().decode() == "hello world"
         assert response.getcode() == 200
@@ -107,10 +157,6 @@ def test_run_as_asgi_with_many_workers(
             "--workers",
             str(workers),
         ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
     ) as cli_thread:
         process = psutil.Process(pid=cli_thread.process.pid)
 
@@ -162,10 +208,6 @@ def test_run_as_asgi_mp_with_log_level(
             "--log-level",
             log_level,
         ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
     ) as cli_thread:
         pass
     stderr = cli_thread.process.stderr.read()
@@ -197,59 +239,94 @@ def test_run_as_factory(generate_template, faststream_cli):
             f"{app_path.stem}:app_factory",
             "--factory",
         ],
-        extra_env={
-            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
-            "PYTHONPATH": str(app_path.parent),
-        },
     ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
         assert response.read().decode() == "hello world"
         assert response.getcode() == 200
 
 
 @pytest.mark.parametrize(
-    "log_config",
+    ("log_config_file_name", "log_config"),
     [
-        pytest.param("config.json"),
-        pytest.param("config.toml"),
-        pytest.param("config.yaml"),
-        pytest.param("config.yml"),
+        pytest.param(
+            "config.json",
+            """
+            {
+                "version": 1,
+                "loggers": {
+                    "unique_logger_name": {
+                        "level": 42
+                    }
+                }
+            }
+            """,
+            id="json config",
+        ),
+        pytest.param(
+            "config.toml",
+            """
+            version = 1
+
+            [loggers.unique_logger_name]
+            level = 42
+            """,
+            id="toml config",
+        ),
+        pytest.param(
+            "config.yaml",
+            """
+            version: 1
+            loggers:
+                unique_logger_name:
+                    level: 42
+            """,
+            id="yaml config",
+        ),
+        pytest.param(
+            "config.yml",
+            """
+            version: 1
+            loggers:
+                unique_logger_name:
+                    level: 42
+            """,
+            id="yml config",
+        ),
     ],
 )
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_mp_with_log_config(
-    runner: CliRunner,
-    app: Application,
-    log_config: str,
+def test_run_as_asgi_with_log_config(
+    generate_template,
+    faststream_cli,
+    log_config_file_name,
+    log_config,
 ):
-    app.run = AsyncMock()
-    logging_config = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {"app": {"format": "%(message)s"}},
-        "handlers": {
-            "app": {
-                "class": "logging.StreamHandler",
-                "formatter": "app",
-                "level": "INFO",
-            }
-        },
-        "loggers": {"app": {"level": "INFO", "handlers": ["app"]}},
-    }
-    with patch(
-        "faststream.cli.utils.logs._get_log_config",
-        return_value=logging_config,
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                f"--log_config {log_config}",
-            ],
-        )
-        app.run.assert_not_called()
-        assert result.exit_code != 0
+    app_code = """
+    import logging
+
+    from faststream.asgi import AsgiFastStream
+    from faststream.log.logging import logger
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker()
+
+    app = AsgiFastStream(broker)
+
+    @app.on_startup
+    def print_log_level():
+        logger.critical(f"Current log level is {logging.getLogger('unique_logger_name').level}")
+    """
+
+    with generate_template(app_code) as app_path, generate_template(
+        log_config, filename=log_config_file_name
+    ) as log_config_file_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--log-config",
+            str(log_config_file_path),
+        ],
+    ) as cli_thread:
+        pass
+    stderr = cli_thread.process.stderr.read()
+
+    assert "Current log level is 42" in stderr
