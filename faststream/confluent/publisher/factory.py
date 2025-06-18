@@ -1,15 +1,12 @@
 from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Union,
-)
+from typing import TYPE_CHECKING, Any
 
-from faststream.confluent.configs import KafkaPublisherConfigFacade
 from faststream.exceptions import SetupError
 
-from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
+from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
+from .specification import KafkaPublisherSpecification
+from .usecase import BatchPublisher, DefaultPublisher
 
 if TYPE_CHECKING:
     from faststream._internal.types import PublisherMiddleware
@@ -33,35 +30,39 @@ def create_publisher(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> Union[
-    "SpecificationBatchPublisher",
-    "SpecificationDefaultPublisher",
-]:
-    config = KafkaPublisherConfigFacade(
+) -> BatchPublisher | DefaultPublisher:
+    publisher_config = KafkaPublisherConfig(
         key=key,
         topic=topic,
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        config=config,
+        _outer_config=config,
         middlewares=middlewares,
-        # specification
-        schema_=schema_,
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
     )
 
+    specification = KafkaPublisherSpecification(
+        _outer_config=config,
+        specification_config=KafkaPublisherSpecificationConfig(
+            topic=topic,
+            schema_=schema_,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        ),
+    )
+
+    publisher: BatchPublisher | DefaultPublisher
     if batch:
         if key:
             msg = "You can't setup `key` with batch publisher"
             raise SetupError(msg)
 
-        publisher: SpecificationBatchPublisher | SpecificationDefaultPublisher = SpecificationBatchPublisher(config)
+        publisher = BatchPublisher(publisher_config, specification)
         publish_method = "_basic_publish_batch"
 
     else:
-        publisher = SpecificationDefaultPublisher(config)
+        publisher = DefaultPublisher(publisher_config, specification)
         publish_method = "_basic_publish"
 
     if autoflush:

@@ -31,15 +31,15 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.specified import (
-        SpecificationBatchPublisher,
-        SpecificationDefaultPublisher,
+    from faststream.confluent.publisher.usecase import (
+        BatchPublisher,
+        DefaultPublisher,
     )
     from faststream.confluent.schemas import TopicPartition
-    from faststream.confluent.subscriber.specified import (
-        SpecificationBatchSubscriber,
-        SpecificationConcurrentDefaultSubscriber,
-        SpecificationDefaultSubscriber,
+    from faststream.confluent.subscriber.usecase import (
+        BatchSubscriber,
+        ConcurrentDefaultSubscriber,
+        DefaultSubscriber,
     )
 
 
@@ -55,17 +55,10 @@ class KafkaRegistrator(
 
     config: "KafkaBrokerConfig"
     _subscribers: list[  # type: ignore[assignment]
-        Union[
-            "SpecificationBatchSubscriber",
-            "SpecificationDefaultSubscriber",
-            "SpecificationConcurrentDefaultSubscriber",
-        ],
+        Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"],
     ]
     _publishers: list[  # type: ignore[assignment]
-        Union[
-            "SpecificationBatchPublisher",
-            "SpecificationDefaultPublisher",
-        ]
+        Union["BatchPublisher", "DefaultPublisher"]
     ]
 
     @overload  # type: ignore[override]
@@ -631,8 +624,8 @@ class KafkaRegistrator(
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @overload
@@ -920,9 +913,9 @@ class KafkaRegistrator(
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @override
@@ -1210,9 +1203,9 @@ class KafkaRegistrator(
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]:
         subscriber = create_subscriber(
             *topics,
@@ -1250,11 +1243,11 @@ class KafkaRegistrator(
         )
 
         if batch:
-            subscriber = cast("SpecificationBatchSubscriber", subscriber)
+            subscriber = cast("BatchSubscriber", subscriber)
         elif max_workers > 1:
-            subscriber = cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            subscriber = cast("ConcurrentDefaultSubscriber", subscriber)
         else:
-            subscriber = cast("SpecificationDefaultSubscriber", subscriber)
+            subscriber = cast("DefaultSubscriber", subscriber)
 
         subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
 
@@ -1345,7 +1338,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationDefaultPublisher": ...
+    ) -> "DefaultPublisher": ...
 
     @overload
     def publisher(
@@ -1427,7 +1420,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationBatchPublisher": ...
+    ) -> "BatchPublisher": ...
 
     @overload
     def publisher(
@@ -1510,8 +1503,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]: ...
 
     @override
@@ -1595,8 +1588,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]:
         """Creates long-living and Specification-documented publisher object.
 
@@ -1627,9 +1620,9 @@ class KafkaRegistrator(
         )
 
         if batch:
-            publisher = cast("SpecificationBatchPublisher", publisher)
+            publisher = cast("BatchPublisher", publisher)
         else:
-            publisher = cast("SpecificationDefaultPublisher", publisher)
+            publisher = cast("DefaultPublisher", publisher)
 
         return super().publisher(publisher)  # type: ignore[return-value,arg-type]
 
@@ -1640,9 +1633,7 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable[
-            "BrokerMiddleware[Message | tuple[Message, ...]]"
-        ] = (),
+        middlewares: Iterable["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):

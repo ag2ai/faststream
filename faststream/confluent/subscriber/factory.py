@@ -1,19 +1,19 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import (
-    TYPE_CHECKING,
-    Union,
-)
+from typing import TYPE_CHECKING
 
 from faststream._internal.constants import EMPTY
-from faststream.confluent.configs import KafkaSubscriberConfigFacade
-from faststream.confluent.subscriber.specified import (
-    SpecificationBatchSubscriber,
-    SpecificationConcurrentDefaultSubscriber,
-    SpecificationDefaultSubscriber,
-)
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+
+from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
+from .specification import KafkaSubscriberSpecification
+from .usecase import (
+    BatchSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
+)
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
@@ -41,11 +41,7 @@ def create_subscriber(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-]:
+) -> BatchSubscriber | ConcurrentDefaultSubscriber | DefaultSubscriber:
     _validate_input_for_misconfigure(
         *topics,
         group_id=group_id,
@@ -56,31 +52,45 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    config = KafkaSubscriberConfigFacade(
+    subscriber_config = KafkaSubscriberConfig(
         topics=topics,
         partitions=partitions,
         polling_interval=polling_interval,
         group_id=group_id,
         connection_data=connection_data,
         no_reply=no_reply,
-        config=config,
+        _outer_config=config,
         _ack_policy=ack_policy,
         # deprecated options to remove in 0.7.0
         _auto_commit=auto_commit,
         _no_ack=no_ack,
-        # specification
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
+    )
+
+    calls = CallsCollection()
+
+    specification = KafkaSubscriberSpecification(
+        _outer_config=config,
+        calls=calls,
+        specification_config=KafkaSubscriberSpecificationConfig(
+            topics=topics,
+            partitions=partitions,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        ),
     )
 
     if batch:
-        return SpecificationBatchSubscriber(config, max_records=max_records)
+        return BatchSubscriber(
+            subscriber_config, specification, calls, max_records=max_records
+        )
 
     if max_workers > 1:
-        return SpecificationConcurrentDefaultSubscriber(config, max_workers=max_workers)
+        return ConcurrentDefaultSubscriber(
+            subscriber_config, specification, calls, max_workers=max_workers
+        )
 
-    return SpecificationDefaultSubscriber(config)
+    return DefaultSubscriber(subscriber_config, specification, calls)
 
 
 def _validate_input_for_misconfigure(

@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -43,7 +43,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     _outer_config: "KafkaBrokerConfig"
 
-    def __init__(self, config: "KafkaSubscriberConfig", specification: "KafkaSubscriberSpecification", calls: "CallsCollection") -> None:
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection[MsgType]",
+    ) -> None:
         super().__init__(config, specification, calls)
 
         self._topics = config.topics
@@ -228,10 +233,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     @property
     def topic_names(self) -> list[str]:
         if self.pattern:
-            return [self.pattern]
-        if self.topics:
-            return list(self.topics)
-        return [f"{p.topic}-{p.partition}" for p in self.partitions]
+            topics: Iterable[str] = [self.pattern]
+
+        elif self.topics:
+            topics = self.topics
+
+        else:
+            topics = (f"{p.topic}-{p.partition}" for p in self.partitions)
+
+        return [f"{self._outer_config.prefix}{t}" for t in topics]
 
     @staticmethod
     def build_log_context(
@@ -247,7 +257,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
-    def __init__(self, config: "KafkaSubscriberConfig", specification: "KafkaSubscriberSpecification", calls: "CallsCollection") -> None:
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
+    ) -> None:
         if config.pattern:
             reg, pattern = compile_path(
                 config.pattern,
@@ -291,7 +306,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        specification: "KafkaSubscriberSpecification", calls: "CallsCollection",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
@@ -364,7 +380,8 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        specification: "KafkaSubscriberSpecification", calls: "CallsCollection",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
         max_workers: int,
     ) -> None:
         super().__init__(config, specification, calls)

@@ -1,34 +1,29 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import (
-    TYPE_CHECKING,
-)
+from typing import TYPE_CHECKING
 
-from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
+from faststream._internal.configs import (
+    SubscriberSpecificationConfig,
+    SubscriberUsecaseConfig,
+)
 from faststream._internal.constants import EMPTY
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.confluent.schemas import TopicPartition
 
-    from .broker import KafkaBrokerConfig
+
+@dataclass(kw_only=True)
+class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
+    topics: Sequence[str] = field(default_factory=list)
+    partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
 
-@dataclass
-class KafkaPublisherConfig(PublisherUsecaseConfig):
-    config: "KafkaBrokerConfig"
-
-    key: bytes | str | None
-    topic: str
-    partition: int | None
-    headers: dict[str, str] | None
-    reply_to: str | None
-
-
-@dataclass
+@dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
-    config: "KafkaBrokerConfig"
+    _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
     topics: Sequence[str] = field(default_factory=list)
     partitions: Sequence["TopicPartition"] = field(default_factory=list)

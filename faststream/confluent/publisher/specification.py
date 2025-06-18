@@ -1,16 +1,24 @@
-from faststream._internal.endpoint.publisher import (
-    SpecificationPublisher as SpecificationPublisherMixin,
-)
-from faststream.confluent.publisher.usecase import BatchPublisher, DefaultPublisher
+from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
 from faststream.specification.schema.bindings import ChannelBinding, kafka
 
+from .config import KafkaPublisherSpecificationConfig
 
-class SpecificationPublisher(SpecificationPublisherMixin):
-    """A class representing a publisher."""
 
-    def get_default_name(self) -> str:
+class KafkaPublisherSpecification(
+    PublisherSpecification[KafkaBrokerConfig, KafkaPublisherSpecificationConfig]
+):
+    @property
+    def topic(self) -> str:
+        return f"{self._outer_config.prefix}{self.config.topic}"
+
+    @property
+    def name(self) -> str:
+        if self.config.title_:
+            return self.config.title_
+
         return f"{self.topic}:Publisher"
 
     def get_schema(self) -> dict[str, PublisherSpec]:
@@ -18,7 +26,7 @@ class SpecificationPublisher(SpecificationPublisherMixin):
 
         return {
             self.name: PublisherSpec(
-                description=self.description,
+                description=self.config.description_,
                 operation=Operation(
                     message=Message(
                         title=f"{self.name}:Message",
@@ -28,16 +36,10 @@ class SpecificationPublisher(SpecificationPublisherMixin):
                 ),
                 bindings=ChannelBinding(
                     kafka=kafka.ChannelBinding(
-                        topic=self.topic, partitions=None, replicas=None
+                        topic=self.topic,
+                        partitions=None,
+                        replicas=None,
                     )
                 ),
             ),
         }
-
-
-class SpecificationBatchPublisher(SpecificationPublisher, BatchPublisher):
-    pass
-
-
-class SpecificationDefaultPublisher(SpecificationPublisher, DefaultPublisher):
-    pass

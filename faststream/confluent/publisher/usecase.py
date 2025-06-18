@@ -15,10 +15,12 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.confluent.configs import KafkaPublisherConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
     from faststream.response.response import PublishCommand
+
+    from .config import KafkaPublisherConfig
+    from .producer import AsyncConfluentFastProducer
+    from .specification import KafkaPublisherSpecification
 
 
 class LogicPublisher(PublisherUsecase[MsgType]):
@@ -26,8 +28,12 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
     _producer: "AsyncConfluentFastProducer"
 
-    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specifcication: "KafkaPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specifcication)
 
         self._topic = config.topic
         self.partition = config.partition
@@ -71,8 +77,12 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
 
 class DefaultPublisher(LogicPublisher[Message]):
-    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specifcication: "KafkaPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specifcication)
 
         self.key = config.key
 

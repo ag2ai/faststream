@@ -117,9 +117,7 @@ def create_subscriber(
             max_workers=max_workers,
         )
 
-    return DefaultSubscriber(subscriber_config,
-                             specification,
-                             calls)
+    return DefaultSubscriber(subscriber_config, specification, calls)
 
 
 def _validate_input_for_misconfigure(

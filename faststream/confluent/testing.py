@@ -15,7 +15,7 @@ from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
-from faststream.confluent.publisher.specified import SpecificationBatchPublisher
+from faststream.confluent.publisher.usecase import BatchPublisher
 from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
@@ -23,7 +23,7 @@ from faststream.message import encode_message, gen_cor_id
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
-    from faststream.confluent.publisher.specified import SpecificationPublisher
+    from faststream.confluent.publisher.specification import SpecificationPublisher
     from faststream.confluent.response import KafkaPublishCommand
     from faststream.confluent.subscriber.usecase import LogicSubscriber
 
@@ -78,13 +78,13 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
                 )
                 sub = broker.subscriber(
                     partitions=[tp],
-                    batch=isinstance(publisher, SpecificationBatchPublisher),
+                    batch=isinstance(publisher, BatchPublisher),
                     auto_offset_reset="earliest",
                 )
             else:
                 sub = broker.subscriber(
                     publisher.topic,
-                    batch=isinstance(publisher, SpecificationBatchPublisher),
+                    batch=isinstance(publisher, BatchPublisher),
                     auto_offset_reset="earliest",
                 )
 

@@ -1,6 +1,6 @@
 
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream.kafka.configs import KafkaBrokerConfig
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
 from faststream.specification.schema.bindings import ChannelBinding, kafka

@@ -42,15 +42,15 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.specified import (
-        SpecificationBatchPublisher,
-        SpecificationDefaultPublisher,
+    from faststream.confluent.publisher.usecase import (
+        BatchPublisher,
+        DefaultPublisher,
     )
     from faststream.confluent.schemas import TopicPartition
-    from faststream.confluent.subscriber.specified import (
-        SpecificationBatchSubscriber,
-        SpecificationConcurrentDefaultSubscriber,
-        SpecificationDefaultSubscriber,
+    from faststream.confluent.subscriber.usecase import (
+        BatchSubscriber,
+        ConcurrentDefaultSubscriber,
+        DefaultSubscriber,
     )
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
@@ -988,8 +988,8 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             ),
         ] = False,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @overload
@@ -1786,9 +1786,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             ),
         ] = False,
     ) -> Union[
-        "SpecificationBatchSubscriber",
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"
     ]: ...
 
     @override
@@ -2198,11 +2196,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> Union[
-        "SpecificationBatchSubscriber",
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
-    ]:
+    ) -> Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"]:
         subscriber = super().subscriber(
             *topics,
             polling_interval=polling_interval,
@@ -2247,10 +2241,10 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         )
 
         if batch:
-            return cast("SpecificationBatchSubscriber", subscriber)
+            return cast("BatchSubscriber", subscriber)
         if max_workers > 1:
-            return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
-        return cast("SpecificationDefaultSubscriber", subscriber)
+            return cast("ConcurrentDefaultSubscriber", subscriber)
+        return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
     def publisher(
@@ -2328,7 +2322,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationDefaultPublisher": ...
+    ) -> "DefaultPublisher": ...
 
     @overload
     def publisher(
@@ -2406,7 +2400,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationBatchPublisher": ...
+    ) -> "BatchPublisher": ...
 
     @overload
     def publisher(
@@ -2484,10 +2478,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
-    ]: ...
+    ) -> Union["BatchPublisher", "DefaultPublisher"]: ...
 
     @override
     def publisher(
@@ -2565,10 +2556,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
-    ]:
+    ) -> Union["BatchPublisher", "DefaultPublisher"]:
         return self.broker.publisher(
             topic=topic,
             key=key,

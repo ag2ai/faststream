@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock
 
 from faststream import AckPolicy
-from faststream.confluent.configs import KafkaSubscriberConfig
+from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 
 
 def test_default() -> None:
-    config = KafkaSubscriberConfig(config=MagicMock())
+    config = KafkaSubscriberConfig(_outer_config=MagicMock())
 
     assert config.ack_policy is AckPolicy.DO_NOTHING
     assert config.ack_first
@@ -13,7 +13,9 @@ def test_default() -> None:
 
 
 def test_ack_first() -> None:
-    config = KafkaSubscriberConfig(config=MagicMock(), _ack_policy=AckPolicy.ACK_FIRST)
+    config = KafkaSubscriberConfig(
+        _outer_config=MagicMock(), _ack_policy=AckPolicy.ACK_FIRST
+    )
 
     assert config.ack_policy is AckPolicy.DO_NOTHING
     assert config.ack_first
@@ -22,7 +24,7 @@ def test_ack_first() -> None:
 
 def test_custom_ack() -> None:
     config = KafkaSubscriberConfig(
-        config=MagicMock(), _ack_policy=AckPolicy.REJECT_ON_ERROR
+        _outer_config=MagicMock(), _ack_policy=AckPolicy.REJECT_ON_ERROR
     )
 
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
@@ -31,7 +33,7 @@ def test_custom_ack() -> None:
 
 def test_no_ack() -> None:
     config = KafkaSubscriberConfig(
-        config=MagicMock(), _no_ack=True, _ack_policy=AckPolicy.ACK_FIRST
+        _outer_config=MagicMock(), _no_ack=True, _ack_policy=AckPolicy.ACK_FIRST
     )
 
     assert config.ack_policy is AckPolicy.DO_NOTHING
@@ -40,7 +42,7 @@ def test_no_ack() -> None:
 
 def test_auto_commit() -> None:
     config = KafkaSubscriberConfig(
-        config=MagicMock(), _auto_commit=True, _ack_policy=AckPolicy.ACK_FIRST
+        _outer_config=MagicMock(), _auto_commit=True, _ack_policy=AckPolicy.ACK_FIRST
     )
 
     assert config.ack_policy is AckPolicy.DO_NOTHING
