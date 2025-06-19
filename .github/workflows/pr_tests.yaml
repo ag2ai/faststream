@@ -145,7 +145,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group kafka --group test-core --group cli .
+          uv pip install --system --group test-core ".[cli,kafka]
       - name: Test
         run: >
           bash scripts/test.sh
@@ -218,7 +218,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group confluent --group test-core --group cli .
+          uv pip install --system --group test-core ".[cli,confluent]"
       - name: Test
         run: >
           bash scripts/test.sh
@@ -291,7 +291,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group rabbit --group test-core --group cli .
+          uv pip install --system --group test-core ".[cli,rabbit]"
       - name: Test
         run: >
           bash scripts/test.sh
@@ -353,7 +353,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group nats --group test-core --group cli .
+          uv pip install --system --group test-core ".[cli,nats]"
       - name: Test
         run: >
           bash scripts/test.sh
@@ -415,7 +415,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group redis --group test-core --group cli .
+          uv pip install --system --group test-core ".[cli,redis]"
       - name: Test
         run: >
           bash scripts/test.sh
