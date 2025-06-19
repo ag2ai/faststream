@@ -76,7 +76,7 @@ type ParsedMessage struct {
 
 func ParseMessage(data []byte) (*ParsedMessage, error) {
 	r := bytes.NewReader(data)
-	
+
 	// 1. Verify identity header
 	identity := make([]byte, 8)
 	if _, err := r.Read(identity); err != nil {
@@ -85,19 +85,19 @@ func ParseMessage(data []byte) (*ParsedMessage, error) {
 	if !bytes.Equal(identity, magicHeader) {
 		return nil, errors.New("invalid magic header")
 	}
-	
+
 	// 2. Read format version
 	var version uint16
 	if err := binary.Read(r, binary.BigEndian, &version); err != nil {
 		return nil, err
 	}
-	
+
 	// 3. Read number of headers
 	var headerCount uint16
 	if err := binary.Read(r, binary.BigEndian, &headerCount); err != nil {
 		return nil, err
 	}
-	
+
 	// 4. Parse headers
 	headers := make(map[string]string)
 	for i := 0; i < int(headerCount); i++ {
@@ -106,32 +106,32 @@ func ParseMessage(data []byte) (*ParsedMessage, error) {
 		if err := binary.Read(r, binary.BigEndian, &keyLen); err != nil {
 			return nil, err
 		}
-		
+
 		keyBytes := make([]byte, keyLen)
 		if _, err := r.Read(keyBytes); err != nil {
 			return nil, err
 		}
-		
+
 		// Value
 		var valueLen uint16
 		if err := binary.Read(r, binary.BigEndian, &valueLen); err != nil {
 			return nil, err
 		}
-		
+
 		valueBytes := make([]byte, valueLen)
 		if _, err := r.Read(valueBytes); err != nil {
 			return nil, err
 		}
-		
+
 		headers[string(keyBytes)] = string(valueBytes)
 	}
-	
+
 	// 5. Read remaining data
 	messageData := make([]byte, r.Len())
 	if _, err := r.Read(messageData); err != nil {
 		return nil, err
 	}
-	
+
 	return &ParsedMessage{
 		Version: version,
 		Headers: headers,
@@ -149,7 +149,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	fmt.Printf("Version: %d\n", parsed.Version)
 	fmt.Printf("Headers: %v\n", parsed.Headers)
 	fmt.Printf("Data length: %d\n", len(parsed.Data))
@@ -169,12 +169,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BinaryFormatParser {
-    
+
     // Expected magic header
     private static final byte[] MAGIC_HEADER = new byte[] {
         (byte) 0x89, 0x42, 0x49, 0x4E, 0x0D, 0x0A, 0x1A, 0x0A
     };
-    
+
     public static class ParsedMessage {
         public int version;
         public Map<String, String> headers;
@@ -183,20 +183,20 @@ public class BinaryFormatParser {
 
     public static ParsedMessage parse(byte[] message) throws Exception {
         ByteBuffer buffer = ByteBuffer.wrap(message);
-        
+
         // 1. Verify magic header
         byte[] magic = new byte[8];
         buffer.get(magic);
         if (!Arrays.equals(magic, MAGIC_HEADER)) {
             throw new IllegalArgumentException("Invalid magic header");
         }
-        
+
         // 2. Read format version (unsigned short)
         int version = Short.toUnsignedInt(buffer.getShort());
-        
+
         // 3. Read number of headers (unsigned short)
         int headerCount = Short.toUnsignedInt(buffer.getShort());
-        
+
         // 4. Parse headers
         Map<String, String> headers = new HashMap<>();
         for (int i = 0; i < headerCount; i++) {
@@ -205,20 +205,20 @@ public class BinaryFormatParser {
             byte[] keyBytes = new byte[keyLength];
             buffer.get(keyBytes);
             String key = new String(keyBytes, StandardCharsets.UTF_8);
-            
+
             // Value
             int valueLength = Short.toUnsignedInt(buffer.getShort());
             byte[] valueBytes = new byte[valueLength];
             buffer.get(valueBytes);
             String value = new String(valueBytes, StandardCharsets.UTF_8);
-            
+
             headers.put(key, value);
         }
-        
+
         // 5. Read remaining data
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
-        
+
         // Return parsed result
         ParsedMessage result = new ParsedMessage();
         result.version = version;
@@ -231,11 +231,10 @@ public class BinaryFormatParser {
         // Example usage
         byte[] testMessage = getMessage();
         ParsedMessage parsed = parse(testMessage);
-        
+
         System.out.println("Version: " + parsed.version);
         System.out.println("Headers: " + parsed.headers);
         System.out.println("Data length: " + parsed.data.length);
         System.out.println("Data: " + parsed.data);
     }
 ```
-
