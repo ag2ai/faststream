@@ -145,7 +145,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,kafka]
+          uv pip install --system --group test-core ".[cli,kafka]"
       - name: Test
         run: >
           bash scripts/test.sh
