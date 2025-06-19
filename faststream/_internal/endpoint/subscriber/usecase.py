@@ -413,14 +413,14 @@ class SubscriberUsecase(SubscriberProto[MsgType]):
 
     def _log(
         self,
-        log_level: int,
+        log_level: int | None,
         message: str,
         extra: Optional["AnyDict"] = None,
         exc_info: Exception | None = None,
     ) -> None:
         self._outer_config.logger.log(
-            log_level,
             message,
+            log_level,
             extra=extra,
             exc_info=exc_info,
         )

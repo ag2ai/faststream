@@ -10,10 +10,6 @@ from faststream.middlewares import AckPolicy
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.factory import create_publisher
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
-from faststream.redis.subscriber.specified import (
-    SpecificationConcurrentSubscriber,
-    SpecificationSubscriber,
-)
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -27,7 +23,7 @@ if TYPE_CHECKING:
     )
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.message import UnifyRedisMessage
-    from faststream.redis.publisher.specified import (
+    from faststream.redis.publisher.specification import (
         PublisherType,
         SpecificationPublisher,
     )
@@ -115,7 +111,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> SpecificationSubscriber | SpecificationConcurrentSubscriber:
+    ):
         subscriber = create_subscriber(
             channel=channel,
             list=list,
@@ -131,11 +127,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             description_=description,
             include_in_schema=include_in_schema,
         )
-
-        if max_workers > 1:
-            subscriber = cast("SpecificationConcurrentSubscriber", subscriber)
-        else:
-            subscriber = cast("SpecificationSubscriber", subscriber)
 
         subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
 

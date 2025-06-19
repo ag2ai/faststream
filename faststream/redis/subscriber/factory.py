@@ -2,26 +2,45 @@ import warnings
 from typing import TYPE_CHECKING, TypeAlias, Union
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber.call_item import (
+    CallsCollection,
+)
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
-from faststream.redis.configs import RedisSubscriberConfigFacade
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
-from faststream.redis.subscriber.specified import (
-    SpecificationChannelConcurrentSubscriber,
-    SpecificationChannelSubscriber,
-    SpecificationListBatchSubscriber,
-    SpecificationListConcurrentSubscriber,
-    SpecificationListSubscriber,
-    SpecificationStreamBatchSubscriber,
-    SpecificationStreamConcurrentSubscriber,
-    SpecificationStreamSubscriber,
+
+from .config import RedisSubscriberConfig, RedisSubscriberSpecificationConfig
+from .specification import (
+    ChannelSubscriberSpecification,
+    ListSubscriberSpecification,
+    RedisSubscriberSpecification,
+    StreamSubscriberSpecification,
+)
+from .usecases import (
+    ChannelConcurrentSubscriber,
+    ChannelSubscriber,
+    ListBatchSubscriber,
+    ListConcurrentSubscriber,
+    ListSubscriber,
+    StreamBatchSubscriber,
+    StreamConcurrentSubscriber,
+    StreamSubscriber,
 )
 
 if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
-SubsciberType: TypeAlias = SpecificationChannelSubscriber | SpecificationStreamBatchSubscriber | SpecificationStreamSubscriber | SpecificationListBatchSubscriber | SpecificationListSubscriber | SpecificationChannelConcurrentSubscriber | SpecificationListConcurrentSubscriber | SpecificationStreamConcurrentSubscriber
+SubsciberType: TypeAlias = (
+    ChannelSubscriber
+    | StreamBatchSubscriber
+    | StreamSubscriber
+    | ListBatchSubscriber
+    | ListSubscriber
+    | ChannelConcurrentSubscriber
+    | ListConcurrentSubscriber
+    | StreamConcurrentSubscriber
+)
 
 
 def create_subscriber(
@@ -49,54 +68,78 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    config = RedisSubscriberConfigFacade(
+    subscriber_config = RedisSubscriberConfig(
         channel_sub=PubSub.validate(channel),
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
-        config=config,
+        _outer_config=config,
         _ack_policy=ack_policy,
-        _no_ack=no_ack,
-        # specification
+    )
+
+    specification_config = RedisSubscriberSpecificationConfig(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
     )
 
-    if config.channel_sub:
-        config._ack_policy = AckPolicy.DO_NOTHING
+    calls = CallsCollection()
+
+    specification: RedisSubscriberSpecification
+    if subscriber_config.channel_sub:
+        specification = ChannelSubscriberSpecification(
+            config, specification_config, calls, channel=subscriber_config.channel_sub,
+        )
+
+        subscriber_config._ack_policy = AckPolicy.DO_NOTHING
 
         if max_workers > 1:
-            return SpecificationChannelConcurrentSubscriber(
-                config,
+            return ChannelConcurrentSubscriber(
+                subscriber_config,
+                specification, calls,
                 max_workers=max_workers,
             )
 
-        return SpecificationChannelSubscriber(config)
+        return ChannelSubscriber(subscriber_config,
+                specification, calls)
 
-    if config.stream_sub:
-        if config.stream_sub.batch:
-            return SpecificationStreamBatchSubscriber(config)
+    if subscriber_config.stream_sub:
+        specification = StreamSubscriberSpecification(
+            config, specification_config, calls, stream_sub=subscriber_config.stream_sub
+        )
+
+        if subscriber_config.stream_sub.batch:
+            return StreamBatchSubscriber(subscriber_config,
+                specification, calls)
 
         if max_workers > 1:
-            return SpecificationStreamConcurrentSubscriber(
-                config,
+            return StreamConcurrentSubscriber(
+                subscriber_config,
+                specification, calls,
                 max_workers=max_workers,
             )
 
-        return SpecificationStreamSubscriber(config)
+        return StreamSubscriber(subscriber_config,
+                specification, calls)
 
-    if config.list_sub:
-        if config.list_sub.batch:
-            return SpecificationListBatchSubscriber(config)
+    if subscriber_config.list_sub:
+        specification = ListSubscriberSpecification(
+            config, specification_config, calls, list_sub=subscriber_config.list_sub
+        )
+
+        if subscriber_config.list_sub.batch:
+            return ListBatchSubscriber(subscriber_config,
+                specification, calls)
 
         if max_workers > 1:
-            return SpecificationListConcurrentSubscriber(
-                config,
+            return ListConcurrentSubscriber(
+                subscriber_config,
+                specification, calls,
                 max_workers=max_workers,
             )
 
-        return SpecificationListSubscriber(config)
+        return ListSubscriber(subscriber_config,
+                specification, calls)
 
     raise SetupError(INCORRECT_SETUP_MSG)
 

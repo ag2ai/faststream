@@ -545,6 +545,8 @@ class NatsBroker(
                 )
 
             except BadRequestError as e:  # noqa: PERF203
+                self._setup_logger()
+
                 log_context = LogicSubscriber.build_log_context(
                     message=None,
                     subject="",
@@ -552,7 +554,7 @@ class NatsBroker(
                     stream=stream.name,
                 )
 
-                logger_state = self._outer_config.logger
+                logger_state = self.config.logger
 
                 if (
                     e.description

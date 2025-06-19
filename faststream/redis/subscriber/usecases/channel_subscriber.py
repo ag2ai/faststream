@@ -25,9 +25,13 @@ from faststream.redis.parser import (
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from faststream._internal.endpoint.subscriber.call_item import (
+        CallsCollection,
+    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.configs import RedisSubscriberConfig
     from faststream.redis.schemas import PubSub
+    from faststream.redis.subscriber.config import RedisSubscriberConfig
+    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -37,12 +41,12 @@ Offset: TypeAlias = bytes
 class ChannelSubscriber(LogicSubscriber):
     subscription: RPubSub | None
 
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
+    def __init__(self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]") -> None:
         assert config.channel_sub  # nosec B101
         parser = RedisPubSubParser(pattern=config.channel_sub.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self._channel = config.channel_sub
         self.subscription = None
@@ -77,12 +81,12 @@ class ChannelSubscriber(LogicSubscriber):
         await super().start(psub)
 
     async def close(self) -> None:
+        await super().close()
+
         if self.subscription is not None:
             await self.subscription.unsubscribe()
             await self.subscription.aclose()  # type: ignore[attr-defined]
             self.subscription = None
-
-        await super().close()
 
     @override
     async def get_one(
@@ -116,7 +120,8 @@ class ChannelSubscriber(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
+    # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:
         assert self.subscription, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -170,7 +175,7 @@ class ChannelSubscriber(LogicSubscriber):
             await self.consume_one(msg)
 
 
-class ConcurrentChannelSubscriber(
+class ChannelConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage"],
     ChannelSubscriber,
 ):

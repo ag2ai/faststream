@@ -26,18 +26,21 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
+    from faststream._internal.endpoint.subscriber.call_item import (
+        CallsCollection,
+    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.configs import RedisSubscriberConfig
     from faststream.redis.schemas import ListSub
-
+    from faststream.redis.subscriber.config import RedisSubscriberConfig
+    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
-        super().__init__(config)
+    def __init__(self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]") -> None:
+        super().__init__(config, specification, calls)
         assert config.list_sub  # nosec B101
         self._list_sub = config.list_sub
 
@@ -157,11 +160,11 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
+    def __init__(self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]") -> None:
         parser = RedisListParser()
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         raw_msg = await client.blpop(
@@ -181,12 +184,12 @@ class ListSubscriber(_ListHandlerMixin):
             await self.consume_one(msg)
 
 
-class BatchListSubscriber(_ListHandlerMixin):
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
+class ListBatchSubscriber(_ListHandlerMixin):
+    def __init__(self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]") -> None:
         parser = RedisBatchListParser()
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         raw_msgs = await client.lpop(
@@ -207,7 +210,7 @@ class BatchListSubscriber(_ListHandlerMixin):
             await anyio.sleep(self.list_sub.polling_interval)
 
 
-class ConcurrentListSubscriber(ConcurrentMixin["BrokerStreamMessage"], ListSubscriber):
+class ListConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], ListSubscriber):
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

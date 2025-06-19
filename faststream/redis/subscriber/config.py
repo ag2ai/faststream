@@ -1,32 +1,26 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
 
-from faststream._internal.configs import PublisherUsecaseConfig, SubscriberUsecaseConfig
+from faststream._internal.configs import (
+    SubscriberSpecificationConfig,
+    SubscriberUsecaseConfig,
+)
 from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.conf import AckPolicy
-
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
-
-    from .broker import RedisBrokerConfig
+from faststream.redis.configs import RedisBrokerConfig
+from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
-@dataclass
-class RedisPublisherConfig(PublisherUsecaseConfig):
-    config: "RedisBrokerConfig"
-
-    reply_to: str
-    headers: Optional["AnyDict"]
+class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
+    pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
-    config: "RedisBrokerConfig"
+    _outer_config: RedisBrokerConfig
 
-    list_sub: Optional["ListSub"] = field(default=None, repr=False)
-    channel_sub: Optional["PubSub"] = field(default=None, repr=False)
-    stream_sub: Optional["StreamSub"] = field(default=None, repr=False)
+    list_sub: ListSub | None = field(default=None, repr=False)
+    channel_sub: PubSub | None = field(default=None, repr=False)
+    stream_sub: StreamSub | None = field(default=None, repr=False)
 
     _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
 

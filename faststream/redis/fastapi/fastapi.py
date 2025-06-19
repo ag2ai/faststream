@@ -6,7 +6,6 @@ from typing import (
     Any,
     Optional,
     Union,
-    cast,
 )
 
 from fastapi.datastructures import Default
@@ -28,10 +27,6 @@ from faststream.middlewares import AckPolicy
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
-from faststream.redis.subscriber.specified import (
-    SpecificationConcurrentSubscriber,
-    SpecificationSubscriber,
-)
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -50,7 +45,7 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
-    from faststream.redis.publisher.specified import SpecificationPublisher
+    from faststream.redis.publisher.specification import SpecificationPublisher
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -621,8 +616,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> SpecificationSubscriber | SpecificationConcurrentSubscriber:
-        subscriber = super().subscriber(
+    ):
+        return super().subscriber(
             channel=channel,
             max_workers=max_workers,
             list=list,
@@ -646,10 +641,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             response_model_exclude_defaults=response_model_exclude_defaults,
             response_model_exclude_none=response_model_exclude_none,
         )
-
-        if max_workers > 1:
-            return cast("SpecificationConcurrentSubscriber", subscriber)
-        return cast("SpecificationSubscriber", subscriber)
 
     @override
     def publisher(

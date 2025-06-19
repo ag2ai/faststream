@@ -2,15 +2,21 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias, Union
 
 from faststream.exceptions import SetupError
-from faststream.redis.configs import RedisPublisherConfigFacade
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
-from .specified import (
-    SpecificationChannelPublisher,
-    SpecificationListBatchPublisher,
-    SpecificationListPublisher,
-    SpecificationStreamPublisher,
+from .config import RedisPublisherConfig, RedisPublisherSpecificationConfig
+from .specification import (
+    ChannelPublisherSpecification,
+    ListPublisherSpecification,
+    RedisPublisherSpecification,
+    StreamPublisherSpecification,
+)
+from .usecase import (
+    ChannelPublisher,
+    ListBatchPublisher,
+    ListPublisher,
+    StreamPublisher,
 )
 
 if TYPE_CHECKING:
@@ -19,7 +25,9 @@ if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
 
-PublisherType: TypeAlias = SpecificationChannelPublisher | SpecificationStreamPublisher | SpecificationListPublisher | SpecificationListBatchPublisher
+PublisherType: TypeAlias = (
+    ChannelPublisher | StreamPublisher | ListPublisher | ListBatchPublisher
+)
 
 
 def create_publisher(
@@ -39,28 +47,41 @@ def create_publisher(
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)
 
-    config = RedisPublisherConfigFacade(
+    publisher_config = RedisPublisherConfig(
         reply_to=reply_to,
         headers=headers,
-        config=config,
         middlewares=middlewares,
-        # specification
+        _outer_config=config,
+    )
+
+    specification_config = RedisPublisherSpecificationConfig(
         schema_=schema_,
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
     )
 
+    specification: RedisPublisherSpecification
     if (channel := PubSub.validate(channel)) is not None:
-        return SpecificationChannelPublisher(config, channel=channel)
+        specification = ChannelPublisherSpecification(
+            config, specification_config, channel
+        )
+
+        return ChannelPublisher(publisher_config, specification, channel=channel)
 
     if (stream := StreamSub.validate(stream)) is not None:
-        return SpecificationStreamPublisher(config, stream=stream)
+        specification = StreamPublisherSpecification(
+            config, specification_config, stream
+        )
+
+        return StreamPublisher(publisher_config, specification, stream=stream)
 
     if (list := ListSub.validate(list)) is not None:
-        if list.batch:
-            return SpecificationListBatchPublisher(config, list=list)
+        specification = ListPublisherSpecification(config, specification_config, list)
 
-        return SpecificationListPublisher(config, list=list)
+        if list.batch:
+            return ListBatchPublisher(publisher_config, specification, list=list)
+
+        return ListPublisher(publisher_config, specification, list=list)
 
     raise SetupError(INCORRECT_SETUP_MSG)

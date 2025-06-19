@@ -37,7 +37,7 @@ from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandle
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SendableMessage
-    from faststream.redis.publisher.specified import SpecificationPublisher
+    from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
 __all__ = ("TestRedisBroker",)
@@ -59,7 +59,7 @@ class TestRedisBroker(TestBroker[RedisBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: RedisBroker,
-        publisher: "SpecificationPublisher",
+        publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber", bool]:
         sub: LogicSubscriber | None = None
 

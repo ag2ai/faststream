@@ -13,11 +13,18 @@ from faststream.response.publish_type import PublishType
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.redis.configs import RedisPublisherConfig
     from faststream.redis.message import RedisMessage
-    from faststream.redis.publisher.producer import RedisFastProducer
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
-    from faststream.response.response import PublishCommand
+    from faststream.response import PublishCommand
+
+    from .config import RedisPublisherConfig
+    from .producer import RedisFastProducer
+    from .specification import (
+        ChannelPublisherSpecification,
+        ListPublisherSpecification,
+        RedisPublisherSpecification,
+        StreamPublisherSpecification,
+    )
 
 
 class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
@@ -25,8 +32,12 @@ class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
 
     _producer: "RedisFastProducer"
 
-    def __init__(self, config: "RedisPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "RedisPublisherConfig",
+        specification: "RedisPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specification)
 
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
@@ -40,11 +51,11 @@ class ChannelPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "ChannelPublisherSpecification",
         *,
         channel: "PubSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._channel = channel
 
@@ -123,11 +134,11 @@ class ListPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "ListPublisherSpecification",
         *,
         list: "ListSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._list = list
 
@@ -246,11 +257,11 @@ class StreamPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "StreamPublisherSpecification",
         *,
         stream: "StreamSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
         self._stream = stream
 
     @property

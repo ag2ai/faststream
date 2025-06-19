@@ -2,31 +2,33 @@ from unittest.mock import MagicMock
 
 from faststream import AckPolicy
 from faststream.redis import ListSub, PubSub, StreamSub
-from faststream.redis.configs import RedisSubscriberConfig
+from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
 def test_channel_sub() -> None:
     config = RedisSubscriberConfig(
-        config=MagicMock(), channel_sub=PubSub("test_channel")
+        _outer_config=MagicMock(), channel_sub=PubSub("test_channel")
     )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
 def test_list_sub() -> None:
-    config = RedisSubscriberConfig(config=MagicMock(), list_sub=ListSub("test_list"))
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(), list_sub=ListSub("test_list")
+    )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
 def test_stream_sub() -> None:
     config = RedisSubscriberConfig(
-        config=MagicMock(), stream_sub=StreamSub("test_stream")
+        _outer_config=MagicMock(), stream_sub=StreamSub("test_stream")
     )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
 def test_stream_with_group() -> None:
     config = RedisSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -38,7 +40,7 @@ def test_stream_with_group() -> None:
 
 def test_custom_ack() -> None:
     config = RedisSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -51,7 +53,7 @@ def test_custom_ack() -> None:
 
 def test_stream_sub_with_no_ack_group() -> None:
     config = RedisSubscriberConfig(
-        config=MagicMock(),
+        _outer_config=MagicMock(),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -63,5 +65,5 @@ def test_stream_sub_with_no_ack_group() -> None:
 
 
 def test_no_ack() -> None:
-    config = RedisSubscriberConfig(config=MagicMock(), _no_ack=True)
+    config = RedisSubscriberConfig(_outer_config=MagicMock(), _no_ack=True)
     assert config.ack_policy is AckPolicy.DO_NOTHING
