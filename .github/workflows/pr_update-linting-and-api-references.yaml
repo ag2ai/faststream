@@ -38,7 +38,7 @@ jobs:
         # should install with `-e`
         run: |
           set -ux
-          uv pip install --system -e .[dev]
+          uv pip install --system --group dev -e .
 
       - uses: pre-commit/action@v3.0.1
         continue-on-error: true

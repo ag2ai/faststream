@@ -41,7 +41,7 @@ python -m pip install --upgrade pip
 After activating the virtual environment as described above, run:
 
 ```bash
-pip install -e ".[dev]"
+pip install --group dev -e .
 ```
 
 This will install all the dependencies and your local **FastStream** in your virtual environment.

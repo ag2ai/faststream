@@ -65,7 +65,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Install Pydantic v1
         if: matrix.pydantic-version == 'pydantic-v1'
         run: uv pip install --system "pydantic>=1.10.0,<2.0.0"
@@ -103,7 +103,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -124,7 +124,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -145,7 +145,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[kafka,test-core,cli]
+          uv pip install --system --group kafka --group test-core --group cli .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -186,7 +186,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
@@ -218,7 +218,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[confluent,test-core,cli]
+          uv pip install --system --group confluent --group test-core --group cli .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -259,7 +259,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
@@ -291,7 +291,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[rabbit,test-core,cli]
+          uv pip install --system --group rabbit --group test-core --group cli .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -321,7 +321,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
@@ -353,7 +353,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[nats,test-core,cli]
+          uv pip install --system --group nats --group test-core --group cli .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -383,7 +383,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
@@ -415,7 +415,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[redis,test-core,cli]
+          uv pip install --system --group redis --group test-core --group cli .
       - name: Test
         run: >
           bash scripts/test.sh
@@ -445,7 +445,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
