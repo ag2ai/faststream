@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from faststream import BaseMiddleware

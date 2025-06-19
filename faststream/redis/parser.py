@@ -80,7 +80,7 @@ class BinaryReader:
     def read_int(self) -> int:
         data = unpack(">H", self.data[self.offset : self.offset + 2])[0]
         self.offset += 2
-        return data
+        return int(data)
 
     def read_string(self) -> str:
         str_len = self.read_int()
@@ -100,7 +100,9 @@ class RawMessage:
         "headers",
     )
 
-    IDENTITY_HEADER = b"\x89BIN\x0d\x0a\x1a\x0a" # to avoid confusion with other formats
+    IDENTITY_HEADER = (
+        b"\x89BIN\x0d\x0a\x1a\x0a"  # to avoid confusion with other formats
+    )
 
     def __init__(
         self,
@@ -202,19 +204,19 @@ class RawMessage:
 
                 data = reader.read_bytes()
             else:
-                    # JSON message format
-                    parsed_data = json_loads(data)
-                    data = parsed_data["data"].decode()
-                    headers = parsed_data["headers"]
-                    warnings.warn(
-                        "JSON decoding deprecated in **FastStream 0.6.0**. "
-                        "Please don't use it unless it's necessary"
-                        "Format will be removed in **FastStream 0.7.0**.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
+                # JSON message format
+                parsed_data = json_loads(data)
+                data = parsed_data["data"].decode()
+                headers = parsed_data["headers"]
+                warnings.warn(
+                    "JSON decoding deprecated in **FastStream 0.6.0**. "
+                    "Please don't use it unless it's necessary"
+                    "Format will be removed in **FastStream 0.7.0**.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
         except Exception:
-        # Raw Redis message format
+            # Raw Redis message format
             data = data
             headers = {}
 

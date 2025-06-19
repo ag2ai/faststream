@@ -13,38 +13,6 @@ class TestCustomParser(CustomParserTestcase):
 
 @pytest.mark.redis
 class TestRedisRawMessage:
-#     @pytest.mark.parametrize(
-#         ("input", "should_be"),
-#         [
-#             (b"", b'\x00\x00\x00\x18{"correlation_id": "id"}'),
-#             (
-#                 "plain text",
-#                 b'{"data": "plain text", "headers": {"correlation_id": "id", "content-type": "text/plain"}}',
-#             ),
-#             (
-#                 {"data": "data"},
-#                 b'{"data": "{\\"data\\": \\"data\\"}", "headers": {"correlation_id": "id", "content-type": "application/json"}}',
-#             ),
-#         ],
-#     )
-#     def test_raw_message_encode(self, input, should_be):
-#         encoded = RawMessage.encode(
-#             message=input, reply_to=None, headers=None, correlation_id="id"
-#         )
-#         assert encoded == should_be
-#
-#     @pytest.mark.parametrize(
-#         ("input", "should_be"),
-#         [
-#             (b"", b""),
-#             (b"plain text", b"plain text"),
-#             (b"\x00\x00\x00\x02{}message", b"message"),
-#         ],
-#     )
-#     def test_raw_message_parse(self, input, should_be):
-#         parsed, _ = RawMessage.parse(input)
-#         assert parsed == should_be
-#
     @pytest.mark.parametrize(
         ("input", "should_be"),
         [
@@ -61,7 +29,7 @@ class TestRedisRawMessage:
             ),
         ],
     )
-    def test_raw_message_encode_parse(self, input, should_be):
+    def test_raw_message_encode_parse(self, input, should_be) -> None:
         raw_message = RawMessage.encode(
             message=input, reply_to=None, headers=None, correlation_id="id"
         )
