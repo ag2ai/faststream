@@ -122,6 +122,7 @@ search:
     - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
+	- [Message Format](redis/message_format.md)
 - [Reference - Code API](api/index.md)
     - Public API
         - faststream
@@ -1059,6 +1060,9 @@ search:
                     - provider
                         - [RedisTelemetrySettingsProvider](api/faststream/redis/opentelemetry/provider/RedisTelemetrySettingsProvider.md)
                 - parser
+                    - [BinaryReader](api/faststream/redis/parser/BinaryReader.md)
+                    - [BinaryWriter](api/faststream/redis/parser/BinaryWriter.md)
+                    - [FastStreamMessageVersion](api/faststream/redis/parser/FastStreamMessageVersion.md)
                     - [RawMessage](api/faststream/redis/parser/RawMessage.md)
                     - [RedisBatchListParser](api/faststream/redis/parser/RedisBatchListParser.md)
                     - [RedisBatchStreamParser](api/faststream/redis/parser/RedisBatchStreamParser.md)

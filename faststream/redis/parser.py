@@ -1,3 +1,5 @@
+import enum
+import warnings
 from struct import pack, unpack
 from typing import (
     TYPE_CHECKING,
@@ -38,6 +40,58 @@ if TYPE_CHECKING:
 MsgType = TypeVar("MsgType", bound=Mapping[str, Any])
 
 
+class FastStreamMessageVersion(int, enum.Enum):
+    v1 = 1
+
+
+class BinaryWriter:
+    def __init__(self) -> None:
+        self.data = bytearray()
+
+    def write(self, data: bytes) -> None:
+        self.data.extend(data)
+
+    def write_int(self, number: int) -> None:
+        int_bytes = pack(">H", number)
+        self.write(int_bytes)
+
+    def write_string(self, data: Union[str, bytes]) -> None:
+        str_len = len(data)
+        self.write_int(str_len)
+        if isinstance(data, bytes):
+            self.write(data)
+        else:
+            self.write(data.encode())
+
+    def get_bytes(self) -> bytes:
+        return bytes(self.data)
+
+
+class BinaryReader:
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+        self.offset = 0
+
+    def read_until(self, offset: int) -> bytes:
+        data = self.data[self.offset : self.offset + offset]
+        self.offset += offset
+        return data
+
+    def read_int(self) -> int:
+        data = unpack(">H", self.data[self.offset : self.offset + 2])[0]
+        self.offset += 2
+        return data
+
+    def read_string(self) -> str:
+        str_len = self.read_int()
+        data = self.data[self.offset : self.offset + str_len]
+        self.offset += str_len
+        return data.decode()
+
+    def read_bytes(self) -> bytes:
+        return self.data[self.offset :]
+
+
 class RawMessage:
     """A class to represent a raw Redis message."""
 
@@ -45,6 +99,8 @@ class RawMessage:
         "data",
         "headers",
     )
+
+    IDENTITY_HEADER = b"\x89BIN\x0d\x0a\x1a\x0a" # to avoid confusion with other formats
 
     def __init__(
         self,
@@ -91,6 +147,7 @@ class RawMessage:
         reply_to: Optional[str],
         headers: Optional["AnyDict"],
         correlation_id: str,
+        to_json: bool = False,
     ) -> bytes:
         msg = cls.build(
             message=message,
@@ -98,30 +155,66 @@ class RawMessage:
             headers=headers,
             correlation_id=correlation_id,
         )
+        if to_json:
+            warnings.warn(
+                "JSON encoding deprecated in **FastStream 0.6.0**. "
+                "Please don't use it unless it's necessary"
+                "Format will be removed in **FastStream 0.7.0**.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return dump_json(
+                {
+                    "data": msg.data,
+                    "headers": msg.headers,
+                }
+            )
 
-        if not msg.headers.get("content-type", None):
-            json_headers = dump_json(msg.headers)
-            binary_headers_len = pack(">I", len(json_headers))
-            return binary_headers_len + json_headers + msg.data
-        return dump_json({"data": msg.data, "headers": msg.headers})
+        writer = BinaryWriter()
+        writer.write(cls.IDENTITY_HEADER)
+        writer.write_int(FastStreamMessageVersion.v1.value)
+        writer.write_int(len(msg.headers.items()))
+        for key, value in msg.headers.items():
+            writer.write_string(key)
+            writer.write_string(value)
+        writer.write(msg.data)
+        return writer.get_bytes()
 
-    @staticmethod
-    def parse(data: bytes) -> Tuple[bytes, "AnyDict"]:
+    @classmethod
+    def parse(cls, data: bytes) -> Tuple[bytes, "AnyDict"]:
         headers: AnyDict
 
+        # FastStream message format
         try:
-            # FastStream message format
-            parsed_data = json_loads(data)
-            data = parsed_data["data"].encode()
-            headers = parsed_data["headers"]
+            reader = BinaryReader(data)
+            magic_header = reader.read_until(len(cls.IDENTITY_HEADER))
+            message_version = reader.read_int()
+            if (
+                magic_header == cls.IDENTITY_HEADER
+                and message_version == FastStreamMessageVersion.v1.value
+            ):
+                header_count = reader.read_int()
+                headers = {}
+                for _ in range(header_count):
+                    key = reader.read_string()
+                    value = reader.read_string()
+                    headers[key] = value
 
-        except UnicodeDecodeError:
-            headers_len: int = unpack(">I", data[:4])[0]
-            headers = json_loads(data[4 : 4 + headers_len])
-            data = data[4 + headers_len :]
-
+                data = reader.read_bytes()
+            else:
+                    # JSON message format
+                    parsed_data = json_loads(data)
+                    data = parsed_data["data"].decode()
+                    headers = parsed_data["headers"]
+                    warnings.warn(
+                        "JSON decoding deprecated in **FastStream 0.6.0**. "
+                        "Please don't use it unless it's necessary"
+                        "Format will be removed in **FastStream 0.7.0**.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
         except Exception:
-            # Raw Redis message format
+        # Raw Redis message format
             data = data
             headers = {}
 

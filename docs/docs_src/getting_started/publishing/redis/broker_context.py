@@ -7,6 +7,7 @@ app = FastStream(broker)
 
 @broker.subscriber("test-channel")
 async def handle(msg: str):
+    print(msg)
     assert msg == "Hi!"
 
 
