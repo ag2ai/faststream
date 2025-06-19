@@ -42,6 +42,7 @@ search:
         - [FastAPI Plugin](getting-started/integrations/fastapi/index.md)
         - [Django](getting-started/integrations/django/index.md)
     - [CLI](getting-started/cli/index.md)
+    - [Acknowledgement](getting-started/acknowledgement.md)
     - [ASGI](getting-started/asgi.md)
     - Observability
         - [Healthcheks](getting-started/observability/healthcheks.md)

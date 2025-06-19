@@ -232,12 +232,17 @@ def _load_submodules(
     """
     submodules = _import_submodules(module_name)
     members = itertools.chain(*map(_import_functions_and_classes, submodules))
-    names = [
-        y
-        for _, y in members
-        if (isinstance(y, str) and y in members_with_submodules)
-        or (f"{y.__module__}.{y.__name__}" in members_with_submodules)
-    ]
+
+    names: list[Union[FunctionType, Type[Any]]] = []
+    for _, y in members:
+        if isinstance(y, str):
+            name = y
+        else:
+            name = f"{y.__module__}.{y.__name__}"
+
+        if name in members_with_submodules:
+            names.append(y)
+
     return names
 
 
