@@ -303,14 +303,6 @@ def _generate_api_docs_for_module() -> Tuple[str, str]:
 
     _update_api_docs(symbols, API_DIR, MODULE)
 
-    # todo: fix the problem and remove this
-    src = """                    - [ContactDict](api/faststream/asyncapi/schema/info/ContactDict.md)
-"""
-    dst = """                    - [ContactDict](api/faststream/asyncapi/schema/info/ContactDict.md)
-                        - [EmailStr](api/faststream/asyncapi/schema/info/EmailStr.md)
-"""
-    api_summary = api_summary.replace(src, dst)
-
     return "    - All API\n" + api_summary, "    - Public API\n" + public_api_summary
 
 
