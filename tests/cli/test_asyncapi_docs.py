@@ -13,6 +13,113 @@ pytestmark = [
     pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows"),
 ]
 
+json_asyncapi_doc = """
+{
+  "asyncapi": "2.6.0",
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "url": "localhost:9092",
+      "protocol": "kafka",
+      "protocolVersion": "auto"
+    }
+  },
+  "channels": {
+    "input_data:OnInputData": {
+      "servers": [
+        "development"
+      ],
+      "bindings": {
+        "kafka": {
+          "topic": "input_data",
+          "bindingVersion": "0.4.0"
+        }
+      },
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/input_data:OnInputData:Message"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "input_data:OnInputData:Message": {
+        "title": "input_data:OnInputData:Message",
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/DataBasic"
+        }
+      }
+    },
+    "schemas": {
+      "DataBasic": {
+        "properties": {
+          "data": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "DataBasic",
+        "type": "object"
+      }
+    }
+  }
+}
+"""
+
+yaml_asyncapi_doc = """
+asyncapi: 2.6.0
+defaultContentType: application/json
+info:
+  title: FastStream
+  version: 0.1.0
+  description: ''
+servers:
+  development:
+    url: 'localhost:9092'
+    protocol: kafka
+    protocolVersion: auto
+channels:
+  'input_data:OnInputData':
+    servers:
+      - development
+    bindings: null
+    kafka:
+      topic: input_data
+      bindingVersion: 0.4.0
+    subscribe: null
+    message:
+      $ref: '#/components/messages/input_data:OnInputData:Message'
+components:
+  messages:
+    'input_data:OnInputData:Message':
+      title: 'input_data:OnInputData:Message'
+      correlationId:
+        location: '$message.header#/correlation_id'
+      payload:
+        $ref: '#/components/schemas/DataBasic'
+  schemas:
+    DataBasic:
+      properties:
+        data: null
+        title: Data
+        type: number
+      required:
+        - data
+      title: DataBasic
+      type: object
+"""
+
+
 app_code = """
 from pydantic import BaseModel, Field, NonNegativeFloat
 
@@ -37,120 +144,6 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
     return DataBasic(data=msg.data + 1.0)
 
 """
-
-json_asyncapi_doc = pytest.param(
-    "asyncapi.json",
-    """
-    {
-    "asyncapi": "2.6.0",
-    "defaultContentType": "application/json",
-    "info": {
-        "title": "FastStream",
-        "version": "0.1.0"
-    },
-    "servers": {
-        "development": {
-        "url": "localhost:9092",
-        "protocol": "kafka",
-        "protocolVersion": "auto"
-        }
-    },
-    "channels": {
-        "input_data:OnInputData": {
-        "servers": [
-            "development"
-        ],
-        "bindings": {
-            "kafka": {
-            "topic": "input_data",
-            "bindingVersion": "0.4.0"
-            }
-        },
-        "subscribe": {
-            "message": {
-            "$ref": "#/components/messages/input_data:OnInputData:Message"
-            }
-        }
-        }
-    },
-    "components": {
-        "messages": {
-        "input_data:OnInputData:Message": {
-            "title": "input_data:OnInputData:Message",
-            "correlationId": {
-            "location": "$message.header#/correlation_id"
-            },
-            "payload": {
-            "$ref": "#/components/schemas/DataBasic"
-            }
-        }
-        },
-        "schemas": {
-        "DataBasic": {
-            "properties": {
-            "data": {
-                "type": "number"
-            }
-            },
-            "required": [
-            "data"
-            ],
-            "title": "DataBasic",
-            "type": "object"
-        }
-        }
-    }
-    }
-    """,
-    id="json_schema",
-)
-
-yaml_asyncapi_doc = pytest.param(
-    "asyncapi.yaml",
-    """
-    asyncapi: 2.6.0
-    defaultContentType: application/json
-    info:
-        title: FastStream
-        version: 0.1.0
-        description: ''
-    servers:
-        development:
-            url: localhost:9092
-            protocol: kafka
-            protocolVersion: auto
-    channels:
-        input_data:OnInputData:
-            servers:
-            - development
-            bindings:
-            kafka:
-                topic: input_data
-                bindingVersion: 0.4.0
-            subscribe:
-            message:
-                $ref: '#/components/messages/input_data:OnInputData:Message'
-    components:
-        messages:
-            input_data:OnInputData:Message:
-                title: input_data:OnInputData:Message
-                correlationId:
-                    location: $message.header#/correlation_id
-                payload:
-                    $ref: '#/components/schemas/DataBasic'
-        schemas:
-            DataBasic:
-                properties:
-                    data:
-                    title: Data
-                    type: number
-                required:
-                - data
-                title: DataBasic
-                type: object
-    """,
-    id="yaml_schema",
-)
 
 
 @require_aiokafka
@@ -225,7 +218,10 @@ def test_serve_asyncapi_docs_from_app(
 
 @pytest.mark.parametrize(
     ("doc_filename", "doc"),
-    [json_asyncapi_doc, yaml_asyncapi_doc],
+    [
+        pytest.param("asyncapi.json", json_asyncapi_doc, id="json_schema"),
+        pytest.param("asyncapi.yaml", yaml_asyncapi_doc, id="yaml_schema"),
+    ],
 )
 @require_aiokafka
 def test_serve_asyncapi_docs_from_file(
