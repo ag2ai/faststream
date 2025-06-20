@@ -183,15 +183,13 @@ def test_gen_asyncapi_for_kafka_app(
     schema_path.unlink()
 
 
-def test_gen_wrong_path(faststream_cli):
+def test_gen_wrong_path(faststream_cli) -> None:
     with faststream_cli(
         [
             "faststream",
             "docs",
             "gen",
             "non_existent:app",
-            "--out",
-            "schema.json",
         ],
     ) as cli_thread:
         pass
