@@ -1,17 +1,13 @@
 import json
 import urllib.request
+from typing import Any, Callable, List, TextIO
 
 import pytest
 import yaml
 
 from faststream._compat import IS_WINDOWS
-from tests.marks import python310, require_aiokafka
-
-pytestmark = [
-    pytest.mark.slow,
-    python310,
-    pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows"),
-]
+from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
+from tests.marks import require_aiokafka
 
 json_asyncapi_doc = """
 {
@@ -146,6 +142,7 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
 """
 
 
+@pytest.mark.slow
 @require_aiokafka
 @pytest.mark.parametrize(
     ("doc_flag", "load_schema"),
@@ -157,8 +154,11 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
     ],
 )
 def test_gen_asyncapi_for_kafka_app(
-    generate_template, faststream_cli, doc_flag, load_schema
-):
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
+    doc_flag: List[str],
+    load_schema: Callable[[TextIO], Any],
+) -> None:
     with generate_template(app_code) as app_path, faststream_cli(
         [
             "faststream",
@@ -170,7 +170,8 @@ def test_gen_asyncapi_for_kafka_app(
             str(app_path.parent / "schema.json"),
         ],
     ) as cli_thread:
-        pass
+        assert cli_thread.process
+
     assert cli_thread.process.returncode == 0
 
     schema_path = app_path.parent / "schema.json"
@@ -183,7 +184,8 @@ def test_gen_asyncapi_for_kafka_app(
     schema_path.unlink()
 
 
-def test_gen_wrong_path(faststream_cli) -> None:
+@pytest.mark.slow
+def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
     with faststream_cli(
         [
             "faststream",
@@ -192,16 +194,20 @@ def test_gen_wrong_path(faststream_cli) -> None:
             "non_existent:app",
         ],
     ) as cli_thread:
-        pass
+        assert cli_thread.process
+        assert cli_thread.process
     assert cli_thread.process.returncode == 2
+    assert cli_thread.process.stderr
     assert "No such file or directory" in cli_thread.process.stderr.read()
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 @require_aiokafka
 def test_serve_asyncapi_docs_from_app(
-    generate_template,
-    faststream_cli,
-):
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
+) -> None:
     with generate_template(app_code) as app_path, faststream_cli(
         [
             "faststream",
@@ -214,6 +220,9 @@ def test_serve_asyncapi_docs_from_app(
         assert response.getcode() == 200
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@require_aiokafka
 @pytest.mark.parametrize(
     ("doc_filename", "doc"),
     [
@@ -221,13 +230,12 @@ def test_serve_asyncapi_docs_from_app(
         pytest.param("asyncapi.yaml", yaml_asyncapi_doc, id="yaml_schema"),
     ],
 )
-@require_aiokafka
 def test_serve_asyncapi_docs_from_file(
-    doc_filename,
-    doc,
-    generate_template,
-    faststream_cli,
-):
+    doc_filename: str,
+    doc: str,
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
+) -> None:
     with generate_template(doc, filename=doc_filename) as doc_path, faststream_cli(
         [
             "faststream",

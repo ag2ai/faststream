@@ -6,16 +6,14 @@ import psutil
 import pytest
 
 from faststream._compat import IS_WINDOWS
-from tests.marks import python310
-
-pytestmark = [
-    pytest.mark.slow,
-    python310,
-    pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows"),
-]
+from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
 
 
-def test_run(generate_template, faststream_cli) -> None:
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+def test_run(
+    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+) -> None:
     app_code = """
     from faststream import FastStream
     from faststream.nats import NatsBroker
@@ -32,10 +30,16 @@ def test_run(generate_template, faststream_cli) -> None:
         ],
     ) as cli_thread:
         pass
+    assert cli_thread.process
+
     assert cli_thread.process.returncode == 0
 
 
-def test_run_asgi(generate_template, faststream_cli) -> None:
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+def test_run_asgi(
+    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+) -> None:
     app_code = """
     import json
 
@@ -103,10 +107,11 @@ def test_run_asgi(generate_template, faststream_cli) -> None:
                 assert response.getcode() == 200
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 def test_run_as_asgi_with_single_worker(
-    generate_template,
-    faststream_cli,
-):
+    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse, get
     from faststream.nats import NatsBroker
@@ -134,12 +139,14 @@ def test_run_as_asgi_with_single_worker(
         assert response.getcode() == 200
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 @pytest.mark.parametrize("workers", [3, 5, 7])
 def test_run_as_asgi_with_many_workers(
-    generate_template,
-    faststream_cli,
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
     workers: int,
-):
+) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream
     from faststream.nats import NatsBroker
@@ -158,11 +165,14 @@ def test_run_as_asgi_with_many_workers(
             str(workers),
         ],
     ) as cli_thread:
+        assert cli_thread.process
         process = psutil.Process(pid=cli_thread.process.pid)
 
         assert len(process.children()) == workers + 1
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 @pytest.mark.parametrize(
     ("log_level", "numeric_log_level"),
     [
@@ -177,11 +187,11 @@ def test_run_as_asgi_with_many_workers(
     ],
 )
 def test_run_as_asgi_mp_with_log_level(
-    generate_template,
-    faststream_cli,
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
     log_level: str,
     numeric_log_level: int,
-):
+) -> None:
     app_code = """
     import logging
 
@@ -210,12 +220,18 @@ def test_run_as_asgi_mp_with_log_level(
         ],
     ) as cli_thread:
         pass
+    assert cli_thread.process
+    assert cli_thread.process.stderr
     stderr = cli_thread.process.stderr.read()
 
     assert f"Current log level is {numeric_log_level}" in stderr
 
 
-def test_run_as_factory(generate_template, faststream_cli):
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+def test_run_as_factory(
+    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse, get
     from faststream.nats import NatsBroker
@@ -244,6 +260,8 @@ def test_run_as_factory(generate_template, faststream_cli):
         assert response.getcode() == 200
 
 
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 @pytest.mark.parametrize(
     ("log_config_file_name", "log_config"),
     [
@@ -294,11 +312,11 @@ def test_run_as_factory(generate_template, faststream_cli):
     ],
 )
 def test_run_as_asgi_with_log_config(
-    generate_template,
-    faststream_cli,
-    log_config_file_name,
-    log_config,
-):
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
+    log_config_file_name: str,
+    log_config: str,
+) -> None:
     app_code = """
     import logging
 
@@ -327,6 +345,8 @@ def test_run_as_asgi_with_log_config(
         ],
     ) as cli_thread:
         pass
+    assert cli_thread.process
+    assert cli_thread.process.stderr
     stderr = cli_thread.process.stderr.read()
 
     assert "Current log level is 42" in stderr
