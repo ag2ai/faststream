@@ -26,12 +26,12 @@ from faststream.rabbit.schemas import (
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
+    from fast_depends.library.serializer import SerializerProto
 
     from faststream.rabbit.publisher.specified import SpecificationPublisher
     from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber.usecase import LogicSubscriber
     from faststream.rabbit.types import AioPikaSendableMessage
-
 
 __all__ = ("TestRabbitBroker",)
 
@@ -135,6 +135,7 @@ def build_message(
     message_type: Optional[str] = None,
     user_id: Optional[str] = None,
     app_id: Optional[str] = None,
+    serializer: Optional["SerializerProto"] = None
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)
@@ -158,6 +159,7 @@ def build_message(
         message_type=message_type,
         user_id=user_id,
         app_id=app_id,
+        serializer=serializer
     )
 
     return PatchedMessage(
@@ -216,6 +218,7 @@ class FakeProducer(AioPikaFastProducer):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
+            serializer=self.broker.config.fd_config._serializer,
             **cmd.message_options,
         )
 
@@ -266,7 +269,6 @@ class FakeProducer(AioPikaFastProducer):
         handler: "LogicSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
-
         return build_message(
             routing_key=msg.routing_key,
             message=result.body,

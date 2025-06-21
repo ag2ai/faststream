@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
     from aio_pika.abc import AbstractIncomingMessage, TimeoutType
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
+    from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import (
         AsyncCallable,
@@ -121,11 +122,12 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         declarer: "RabbitDeclarer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        serializer: Optional["SerializerProto"] = None,
     ) -> None:
         self.declarer = declarer
 
         self.__lock: LockState = LockUnset()
-
+        self.serializer = serializer
         default_parser = AioPikaParser()
         self._parser = resolve_custom_func(parser, default_parser.parse_message)
         self._decoder = resolve_custom_func(decoder, default_parser.decode_message)
@@ -189,7 +191,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        message = AioPikaParser.encode_message(message=message, **message_options)
+        message = AioPikaParser.encode_message(message=message, serializer=self.serializer, **message_options)
 
         exchange_obj = await self.declarer.declare_exchange(
             exchange=exchange,

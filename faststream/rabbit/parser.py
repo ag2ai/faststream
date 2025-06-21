@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType
+    from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import DecodedMessage
     from faststream.rabbit.types import AioPikaSendableMessage
@@ -75,12 +76,12 @@ class AioPikaParser:
         message_type: Optional[str] = None,
         user_id: Optional[str] = None,
         app_id: Optional[str] = None,
+        serializer: Optional["SerializerProto"] = None,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):
             return message
-
-        message_body, generated_content_type = encode_message(message)
+        message_body, generated_content_type = encode_message(message, serializer)
 
         delivery_mode = (
             DeliveryMode.PERSISTENT if persist else DeliveryMode.NOT_PERSISTENT

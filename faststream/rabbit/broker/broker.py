@@ -172,10 +172,15 @@ class RabbitBroker(
         cm = ChannelManagerImpl(default_channel)
         declarer = RabbitDeclarerImpl(cm)
 
+        fd_config = FastDependsConfig(
+            use_fastdepends=apply_types,
+            serializer=serializer,
+        )
         producer = AioPikaFastProducerImpl(
             declarer=declarer,
             decoder=decoder,
             parser=parser,
+            serializer=fd_config._serializer
         )
 
         super().__init__(
@@ -201,10 +206,7 @@ class RabbitBroker(
                     logger=logger,
                     log_level=log_level,
                 ),
-                fd_config=FastDependsConfig(
-                    use_fastdepends=apply_types,
-                    serializer=serializer,
-                ),
+                fd_config=fd_config,
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
