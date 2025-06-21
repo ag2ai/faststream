@@ -36,7 +36,6 @@ class RabbitSubscriberSpecification(SubscriberSpecification[RabbitBrokerConfig, 
         queue_binding = amqp.Queue.from_queue(queue)
 
         channel_name = self.name
-
         return {
             channel_name: SubscriberSpec(
                 description=self.description,
@@ -57,6 +56,7 @@ class RabbitSubscriberSpecification(SubscriberSpecification[RabbitBrokerConfig, 
                         title=f"{channel_name}:Message",
                         payload=resolve_payloads(payloads),
                     ),
+                    operationId=self.config.operation_id_,
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(

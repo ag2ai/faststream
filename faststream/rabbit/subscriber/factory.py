@@ -37,6 +37,7 @@ def create_subscriber(
     config: "RabbitBrokerConfig",
     # Specification args
     title_: str | None,
+    operation_id_: str,
     description_: str | None,
     include_in_schema: bool,
 ) -> RabbitSubscriber:
@@ -60,6 +61,7 @@ def create_subscriber(
         _outer_config=config,
         specification_config=RabbitSubscriberSpecificationConfig(
             title_=title_,
+            operation_id_=operation_id_,
             description_=description_,
             include_in_schema=include_in_schema,
             queue=queue,
