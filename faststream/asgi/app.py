@@ -17,14 +17,14 @@ import anyio
 
 from faststream._compat import HAS_UVICORN, uvicorn
 from faststream._internal.application import Application
-from faststream.asgi.factories import make_asyncapi_asgi
-from faststream.asgi.response import AsgiResponse
-from faststream.asgi.websocket import WebSocketClose
 from faststream.exceptions import INSTALL_UVICORN
 from faststream.log.logging import logger
 
+from .factories import make_asyncapi_asgi
+from .response import AsgiResponse
+from .websocket import WebSocketClose
+
 if TYPE_CHECKING:
-    from faststream.asgi.types import ASGIApp, Receive, Scope, Send
     from faststream.asyncapi.schema import (
         Contact,
         ContactDict,
@@ -44,6 +44,8 @@ if TYPE_CHECKING:
         LoggerProto,
         SettingField,
     )
+
+    from .types import ASGIApp, Receive, Scope, Send
 
 
 def cast_uvicorn_params(params: Dict[str, Any]) -> Dict[str, Any]:

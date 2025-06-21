@@ -1,210 +1,209 @@
-import logging
-from unittest.mock import AsyncMock, Mock, patch
+import os
+import urllib.request
+from unittest.mock import AsyncMock, patch
 
+import psutil
 import pytest
 from typer.testing import CliRunner
 
+from faststream._compat import IS_WINDOWS
 from faststream._internal.application import Application
-from faststream.app import FastStream
 from faststream.asgi import AsgiFastStream
 from faststream.cli.main import cli as faststream_app
-from faststream.cli.utils.logs import get_log_level
+from tests.marks import python310
+
+pytestmark = [
+    pytest.mark.slow,
+    python310,
+    pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows"),
+]
 
 
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
+def test_run(generate_template, faststream_cli) -> None:
+    app_code = """
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
+    from faststream.nats import NatsBroker
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory", return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-            ],
-        )
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
-        assert result.exit_code == 0
+    broker = NatsBroker()
+
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+    app = AsgiFastStream(broker, asgi_routes=[
+        ("/liveness", liveness_ping),
+    ])
+    """
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
-def test_run_as_asgi_with_single_worker(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
+def test_run_as_asgi_with_single_worker(
+    generate_template,
+    faststream_cli,
+):
+    app_code = """
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
+    from faststream.nats import NatsBroker
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory", return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
-                "1",
-            ],
-        )
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
-        assert result.exit_code == 0
+    broker = NatsBroker()
+
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+    app = AsgiFastStream(broker, asgi_routes=[
+        ("/liveness", liveness_ping),
+    ])
+    """
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            "1",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
 @pytest.mark.parametrize("workers", [3, 5, 7])
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_with_many_workers(
-    runner: CliRunner, workers: int, app: Application
+    generate_template,
+    faststream_cli,
+    workers: int,
 ):
-    asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
-    _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
+    app_code = """
+    from faststream.asgi import AsgiFastStream
+    from faststream.nats import NatsBroker
 
-    with patch(asgi_multiprocess) as asgi_runner, patch(
-        _import_obj_or_factory, return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
-                str(workers),
-            ],
-        )
-        assert result.exit_code == 0
+    broker = NatsBroker()
 
-        asgi_runner.assert_called_once()
-        asgi_runner.assert_called_once_with(
-            target="faststream:app",
-            args=(
-                "faststream:app",
-                {"host": "0.0.0.0", "port": "8000"},
-                False,
-                None,
-                0,
-            ),
-            workers=workers,
-        )
-        asgi_runner().run.assert_called_once()
+    app = AsgiFastStream(broker)
+    """
+
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            str(workers),
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ) as cli_thread:
+        process = psutil.Process(pid=cli_thread.process.pid)
+
+        assert len(process.children()) == workers + 1
 
 
 @pytest.mark.parametrize(
-    "log_level",
-    ["critical", "fatal", "error", "warning", "warn", "info", "debug", "notset"],
+    ("log_level", "numeric_log_level"),
+    [
+        ("critical", 50),
+        ("fatal", 50),
+        ("error", 40),
+        ("warning", 30),
+        ("warn", 30),
+        ("info", 20),
+        ("debug", 10),
+        ("notset", 0),
+    ],
 )
-@pytest.mark.parametrize("app", [pytest.param(AsgiFastStream())])
 def test_run_as_asgi_mp_with_log_level(
-    runner: CliRunner, app: Application, log_level: str
+    generate_template,
+    faststream_cli,
+    log_level: str,
+    numeric_log_level: int,
 ):
-    asgi_multiprocess = "faststream.cli.supervisors.asgi_multiprocess.ASGIMultiprocess"
-    _import_obj_or_factory = "faststream.cli.utils.imports._import_obj_or_factory"
+    app_code = """
+    import logging
 
-    with patch(asgi_multiprocess) as asgi_runner, patch(
-        _import_obj_or_factory, return_value=(None, app)
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--workers",
-                "3",
-                "--log-level",
-                log_level,
-            ],
-        )
-        assert result.exit_code == 0
+    from faststream.asgi import AsgiFastStream
+    from faststream.log.logging import logger
+    from faststream.nats import NatsBroker
 
-        asgi_runner.assert_called_once()
-        asgi_runner.assert_called_once_with(
-            target="faststream:app",
-            args=(
-                "faststream:app",
-                {"host": "0.0.0.0", "port": "8000"},
-                False,
-                None,
-                get_log_level(log_level),
-            ),
-            workers=3,
-        )
-        asgi_runner().run.assert_called_once()
+    broker = NatsBroker()
 
+    app = AsgiFastStream(broker)
 
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run_as_factory(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
+    @app.on_startup
+    def print_log_level():
+        logger.critical(f"Current log level is {logging.getLogger('uvicorn.asgi').level}")
+    """
 
-    app_factory = Mock(return_value=app)
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            "3",
+            "--log-level",
+            log_level,
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ) as cli_thread:
+        pass
+    stderr = cli_thread.process.stderr.read()
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory",
-        return_value=(None, app_factory),
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--factory",
-            ],
-        )
-        app_factory.assert_called()
-        app.run.assert_awaited_once_with(
-            logging.INFO, {"host": "0.0.0.0", "port": "8000"}
-        )
-        assert result.exit_code == 0
+    assert f"Current log level is {numeric_log_level}" in stderr
 
 
-@pytest.mark.parametrize(
-    "app", [pytest.param(FastStream()), pytest.param(AsgiFastStream())]
-)
-def test_run_app_like_factory_but_its_fake(runner: CliRunner, app: Application):
-    app.run = AsyncMock()
+def test_run_as_factory(generate_template, faststream_cli):
+    app_code = """
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
+    from faststream.nats import NatsBroker
 
-    with patch(
-        "faststream.cli.utils.imports._import_obj_or_factory",
-        return_value=(None, app),
-    ):
-        result = runner.invoke(
-            faststream_app,
-            [
-                "run",
-                "faststream:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8000",
-                "--factory",
-            ],
-        )
-        app.run.assert_not_called()
-        assert result.exit_code != 0
+    broker = NatsBroker()
+
+    @get
+    async def liveness_ping(scope):
+        return AsgiResponse(b"hello world", status_code=200)
+
+    def app_factory():
+        return AsgiFastStream(broker, asgi_routes=[
+            ("/liveness", liveness_ping),
+        ])
+    """
+
+    with generate_template(app_code) as app_path, faststream_cli(
+        [
+            "faststream",
+            "run",
+            f"{app_path.stem}:app_factory",
+            "--factory",
+        ],
+        extra_env={
+            "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+            "PYTHONPATH": str(app_path.parent),
+        },
+    ), urllib.request.urlopen("http://127.0.0.1:8000/liveness") as response:
+        assert response.read().decode() == "hello world"
+        assert response.getcode() == 200
 
 
 @pytest.mark.parametrize(
@@ -236,7 +235,6 @@ def test_run_as_asgi_mp_with_log_config(
         },
         "loggers": {"app": {"level": "INFO", "handlers": ["app"]}},
     }
-
     with patch(
         "faststream.cli.utils.logs._get_log_config",
         return_value=logging_config,

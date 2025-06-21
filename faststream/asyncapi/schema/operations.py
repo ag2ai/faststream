@@ -35,7 +35,7 @@ class Operation(BaseModel):
 
     bindings: Optional[OperationBinding] = None
 
-    message: Union[Message, Reference]
+    message: Union[Message, Reference, None] = None
 
     security: Optional[Dict[str, List[str]]] = None
 

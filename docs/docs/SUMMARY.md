@@ -300,6 +300,8 @@ search:
                             - [OperationBinding](api/faststream/asyncapi/schema/bindings/amqp/OperationBinding.md)
                             - [Queue](api/faststream/asyncapi/schema/bindings/amqp/Queue.md)
                             - [ServerBinding](api/faststream/asyncapi/schema/bindings/amqp/ServerBinding.md)
+                        - http
+                            - [OperationBinding](api/faststream/asyncapi/schema/bindings/http/OperationBinding.md)
                         - kafka
                             - [ChannelBinding](api/faststream/asyncapi/schema/bindings/kafka/ChannelBinding.md)
                             - [OperationBinding](api/faststream/asyncapi/schema/bindings/kafka/OperationBinding.md)
@@ -325,7 +327,6 @@ search:
                     - info
                         - [Contact](api/faststream/asyncapi/schema/info/Contact.md)
                         - [ContactDict](api/faststream/asyncapi/schema/info/ContactDict.md)
-                        - [EmailStr](api/faststream/asyncapi/schema/info/EmailStr.md)
                         - [Info](api/faststream/asyncapi/schema/info/Info.md)
                         - [License](api/faststream/asyncapi/schema/info/License.md)
                         - [LicenseDict](api/faststream/asyncapi/schema/info/LicenseDict.md)

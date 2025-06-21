@@ -78,7 +78,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        bash docker run -d --rm -p 4222:4222 --name test-mq nats -js
+        docker run -d --rm -p 4222:4222 --name test-mq nats -js
         ```
 
 === "Redis"
@@ -89,7 +89,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        bash docker run -d --rm -p 6379:6379 --name test-mq redis
+        docker run -d --rm -p 6379:6379 --name test-mq redis
         ```
 
 ## Basic Usage

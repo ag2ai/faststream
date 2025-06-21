@@ -1,14 +1,25 @@
+import os
 import subprocess
 import threading
 import time
 from contextlib import contextmanager
-from pathlib import Path
 from textwrap import dedent
-from typing import ContextManager, Generator, List, Optional, Protocol
+from typing import (
+    TYPE_CHECKING,
+    ContextManager,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Protocol,
+)
 
 import pytest
 
 from faststream import FastStream
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture
@@ -37,17 +48,17 @@ def app(broker):
 class GenerateTemplateFactory(Protocol):
     def __call__(
         self, code: str, filename: str = "temp_app.py"
-    ) -> ContextManager[Path]: ...
+    ) -> ContextManager["Path"]: ...
 
 
 @pytest.fixture
 def generate_template(
-    tmp_path: Path,
+    tmp_path: "Path",
 ) -> GenerateTemplateFactory:
     @contextmanager
     def factory(
         code: str, filename: str = "temp_app.py"
-    ) -> Generator[Path, None, None]:
+    ) -> Generator["Path", None, None]:
         temp_dir = tmp_path / "faststream_templates"
         temp_dir.mkdir(exist_ok=True)
 
@@ -64,27 +75,44 @@ def generate_template(
     return factory
 
 
+class CliThread(Protocol):
+    process: Optional[subprocess.Popen]
+
+    def stop(self) -> None: ...
+
+
 class FastStreamCLIFactory(Protocol):
     def __call__(
-        self, cmd: List[str], wait_time: float = 1.5
-    ) -> ContextManager[None]: ...
+        self,
+        cmd: List[str],
+        wait_time: float = 1.5,
+        extra_env: Optional[Dict[str, str]] = None,
+    ) -> ContextManager[CliThread]: ...
 
 
 @pytest.fixture
-def faststream_cli(
-    tmp_path: Path,
-) -> FastStreamCLIFactory:
+def faststream_cli(tmp_path: "Path") -> FastStreamCLIFactory:
     @contextmanager
-    def factory(cmd: List[str], wait_time: float = 1.5) -> Generator[None, None, None]:
-        class CLIThread(threading.Thread):
-            def __init__(self, command: List[str]) -> None:
+    def factory(
+        cmd: List[str],
+        wait_time: float = 1.5,
+        extra_env: Optional[Dict[str, str]] = None,
+    ) -> Generator[CliThread, None, None]:
+        class RealCLIThread(threading.Thread):
+            def __init__(self, command: List[str], env: Dict[str, str]):
                 super().__init__()
                 self.command = command
-                self.process: Optional[subprocess.Popen[bytes]] = None
+                self.process: Optional[subprocess.Popen] = None
+                self.env = env
 
             def run(self) -> None:
                 self.process = subprocess.Popen(
-                    self.command, stdout=subprocess.DEVNULL, shell=False
+                    self.command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    shell=False,
+                    env=self.env,
                 )
                 self.process.wait()
 
@@ -96,12 +124,15 @@ def faststream_cli(
                     except subprocess.TimeoutExpired:
                         self.process.kill()
 
-        cli = CLIThread(cmd)
+        extra_env = extra_env or {}
+        env = os.environ.copy()
+        env.update(**extra_env)
+        cli = RealCLIThread(cmd, extra_env)
         cli.start()
         time.sleep(wait_time)
 
         try:
-            yield
+            yield cli
         finally:
             cli.stop()
             cli.join()

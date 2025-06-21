@@ -6,10 +6,13 @@ from faststream.asyncapi.schema import (
     Components,
     Info,
     Message,
+    Operation,
+    OperationBinding,
     Reference,
     Schema,
     Server,
 )
+from faststream.asyncapi.schema.bindings import http as http_bindings
 from faststream.constants import ContentTypes
 
 if TYPE_CHECKING:
@@ -26,16 +29,16 @@ def get_app_schema(app: "AsyncAPIApplication") -> Schema:
     broker.setup()
 
     servers = get_broker_server(broker)
-    channels = get_broker_channels(broker)
 
-    # TODO: generate HTTP channels
-    # asgi_routes = get_asgi_routes(app)
+    channels = get_broker_channels(broker)
+    for ch in channels.values():
+        ch.servers = list(servers.keys())
+
+    channels.update(get_asgi_routes(app))
 
     messages: Dict[str, Message] = {}
     payloads: Dict[str, Dict[str, Any]] = {}
     for channel_name, ch in channels.items():
-        ch.servers = list(servers.keys())
-
         if ch.subscribe is not None:
             m = ch.subscribe.message
 
@@ -140,9 +143,7 @@ def get_broker_channels(
     return channels
 
 
-def get_asgi_routes(
-    app: "AsyncAPIApplication",
-) -> Any:
+def get_asgi_routes(app: "AsyncAPIApplication") -> Dict[str, Channel]:
     """Get the ASGI routes for an application."""
     # We should import this here due
     # ASGI > Application > asynciapi.proto
@@ -151,16 +152,29 @@ def get_asgi_routes(
     from faststream.asgi.handlers import HttpHandler
 
     if not isinstance(app, AsgiFastStream):
-        return None
+        return {}
 
+    channels: Dict[str, Channel] = {}
     for route in app.routes:
         path, asgi_app = route
 
         if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
-            # TODO: generate HTTP channel for handler
-            pass
+            channel = Channel(
+                description=asgi_app.description,
+                subscribe=Operation(
+                    tags=asgi_app.tags,
+                    operationId=asgi_app.unique_id,
+                    bindings=OperationBinding(
+                        http=http_bindings.OperationBinding(
+                            method=", ".join(asgi_app.methods)
+                        )
+                    ),
+                ),
+            )
 
-    return
+            channels[path] = channel
+
+    return channels
 
 
 def _resolve_msg_payloads(

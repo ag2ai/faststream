@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from faststream._compat import PYDANTIC_V2
 from faststream.asyncapi.schema.bindings import amqp as amqp_bindings
+from faststream.asyncapi.schema.bindings import http as http_bindings
 from faststream.asyncapi.schema.bindings import kafka as kafka_bindings
 from faststream.asyncapi.schema.bindings import nats as nats_bindings
 from faststream.asyncapi.schema.bindings import redis as redis_bindings
@@ -81,6 +82,7 @@ class OperationBinding(BaseModel):
     sqs: Optional[sqs_bindings.OperationBinding] = None
     nats: Optional[nats_bindings.OperationBinding] = None
     redis: Optional[redis_bindings.OperationBinding] = None
+    http: Optional[http_bindings.OperationBinding] = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

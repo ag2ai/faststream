@@ -14,7 +14,7 @@ You can also store your own objects in the `Context`.
 
 ## Global
 
-To declare an application-level context field, you need to call the `context.set_global` method with with a key to indicate where the object will be placed in the context.
+To declare an application-level context field, you need to call the `context.set_global` method with a key to indicate where the object will be placed in the context.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="8-9"

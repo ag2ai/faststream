@@ -311,10 +311,13 @@ class SubscriberUsecase(
 
         except SystemExit:
             # Stop handler at `exit()` call
-            await self.close()
-
-            if app := context.get("app"):
-                app.exit()
+            try:
+                await self.close()
+            finally:
+                # Ensure that app.exit() is called on a shutdown request
+                # even if the consumer close operation threw an error.
+                if app := context.get("app"):
+                    app.exit()
 
         except Exception:  # nosec B110
             # All other exceptions were logged by CriticalLogMiddleware

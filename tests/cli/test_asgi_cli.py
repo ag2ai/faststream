@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import urllib.request
 
@@ -46,7 +47,6 @@ def test_run_asgi(generate_template, faststream_cli) -> None:
 
     """
     with generate_template(app_code) as app_path:
-        module_name = str(app_path).replace(".py", "")
         port = random.randrange(40000, 65535)
         extra_param = random.randrange(1, 100)
 
@@ -54,29 +54,29 @@ def test_run_asgi(generate_template, faststream_cli) -> None:
             [
                 "faststream",
                 "run",
-                f"{module_name}:app",
+                f"{app_path.stem}:app",
                 "--port",
                 f"{port}",
                 "--test",
                 f"{extra_param}",
-            ]
+            ],
+            extra_env={
+                "PATH": f"{app_path.parent}:{os.environ['PATH']}",
+                "PYTHONPATH": str(app_path.parent),
+            },
         ):
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            with urllib.request.urlopen(
                 f"http://127.0.0.1:{port}/liveness"
             ) as response:
                 assert response.read().decode() == "hello world"
                 assert response.getcode() == 200
 
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-                f"http://127.0.0.1:{port}/docs"
-            ) as response:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/docs") as response:
                 content = response.read().decode()
                 assert content.strip().startswith("<!DOCTYPE html>")
                 assert len(content) > 1200
 
-            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-                f"http://127.0.0.1:{port}/context"
-            ) as response:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/context") as response:
                 data = json.loads(response.read().decode())
                 assert data == {"test": extra_param, "port": port}
                 assert response.getcode() == 200
