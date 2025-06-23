@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 from typing_extensions import Annotated, Doc, deprecated, override
 
@@ -6,6 +16,7 @@ from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
 from faststream.exceptions import SetupError
 from faststream.redis.message import UnifyRedisDict
+from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
 from faststream.redis.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
@@ -97,6 +108,10 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                 "Whether to disable **FastStream** RPC and Reply To auto responses or not."
             ),
         ] = False,
+        message_format: Annotated[
+            Type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = JSONMessageFormat,
         # AsyncAPI information
         title: Annotated[
             Optional[str],
@@ -122,6 +137,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     list=list,
                     stream=stream,
                     # subscriber args
+                    message_format=message_format,
                     no_ack=no_ack,
                     no_reply=no_reply,
                     retry=retry,

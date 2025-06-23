@@ -27,7 +27,7 @@ from faststream.redis.message import (
     PubSubMessage,
     bDATA_KEY,
 )
-from faststream.redis.parser import RawMessage, RedisPubSubParser
+from faststream.redis.parser import JSONMessageFormat, RedisPubSubParser
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.redis.subscriber.usecase import (
@@ -250,7 +250,7 @@ def build_message(
     reply_to: str = "",
     headers: Optional["AnyDict"] = None,
 ) -> bytes:
-    data = RawMessage.encode(
+    data = JSONMessageFormat.encode(
         message=message,
         reply_to=reply_to,
         headers=headers,

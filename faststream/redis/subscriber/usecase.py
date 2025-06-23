@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     cast,
 )
 
@@ -38,6 +39,7 @@ from faststream.redis.message import (
     UnifyRedisDict,
 )
 from faststream.redis.parser import (
+    MessageFormat,
     RedisBatchListParser,
     RedisBatchStreamParser,
     RedisListParser,
@@ -231,12 +233,15 @@ class ChannelSubscriber(LogicSubscriber):
         retry: bool,
         broker_dependencies: Iterable["Depends"],
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
-        parser = RedisPubSubParser(pattern=channel.path_regex)
+        parser = RedisPubSubParser(
+            pattern=channel.path_regex, message_format=message_format
+        )
         super().__init__(
             default_parser=parser.parse_message,
             default_decoder=parser.decode_message,
@@ -463,12 +468,13 @@ class ListSubscriber(_ListHandlerMixin):
         retry: bool,
         broker_dependencies: Iterable["Depends"],
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
-        parser = RedisListParser()
+        parser = RedisListParser(message_format=message_format)
         super().__init__(
             list=list,
             default_parser=parser.parse_message,
@@ -512,12 +518,13 @@ class BatchListSubscriber(_ListHandlerMixin):
         retry: bool,
         broker_dependencies: Iterable["Depends"],
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
-        parser = RedisBatchListParser()
+        parser = RedisBatchListParser(message_format=message_format)
         super().__init__(
             list=list,
             default_parser=parser.parse_message,
@@ -762,12 +769,13 @@ class StreamSubscriber(_StreamHandlerMixin):
         retry: bool,
         broker_dependencies: Iterable["Depends"],
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
-        parser = RedisStreamParser()
+        parser = RedisStreamParser(message_format=message_format)
         super().__init__(
             stream=stream,
             default_parser=parser.parse_message,
@@ -831,12 +839,13 @@ class BatchStreamSubscriber(_StreamHandlerMixin):
         retry: bool,
         broker_dependencies: Iterable["Depends"],
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
-        parser = RedisBatchStreamParser()
+        parser = RedisBatchStreamParser(message_format=message_format)
         super().__init__(
             stream=stream,
             default_parser=parser.parse_message,

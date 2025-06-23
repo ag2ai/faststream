@@ -1,8 +1,16 @@
+import asyncio
+from typing import Type
+from unittest.mock import MagicMock
+
 import pytest
 
 from faststream._compat import json_dumps
 from faststream.redis import RedisBroker
-from faststream.redis.parser import RawMessage
+from faststream.redis.parser import (
+    BinaryMessageFormatV1,
+    JSONMessageFormat,
+    MessageFormat,
+)
 from tests.brokers.base.parser import CustomParserTestcase
 
 
@@ -11,27 +19,129 @@ class TestCustomParser(CustomParserTestcase):
     broker_class = RedisBroker
 
 
+@pytest.mark.parametrize(
+    ("input", "should_be"),
+    [
+        ("", b""),
+        ("plain text", b"plain text"),
+        (
+            {"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"},
+            json_dumps({"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"}),
+        ),
+        (
+            # UTF-8 incompitable bytes
+            b"\x82\xa2id\xd9",
+            b"\x82\xa2id\xd9",
+        ),
+    ],
+)
+def test_binary_message_encode_parse(input, should_be) -> None:
+    raw_message = BinaryMessageFormatV1.encode(
+        message=input, reply_to=None, headers=None, correlation_id="id"
+    )
+    parsed, _ = BinaryMessageFormatV1.parse(raw_message)
+    assert parsed == should_be
+
+
+@pytest.mark.parametrize(
+    ("input", "should_be"),
+    [
+        ("", b""),
+        ("plain text", b"plain text"),
+        (
+            {"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"},
+            json_dumps({"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"}),
+        ),
+    ],
+)
+def test_json_message_encode_parse(input, should_be) -> None:
+    raw_message = JSONMessageFormat.encode(
+        message=input, reply_to=None, headers=None, correlation_id="id"
+    )
+    parsed, _ = JSONMessageFormat.parse(raw_message)
+    assert parsed == should_be
+
+
 @pytest.mark.redis
-class TestRedisRawMessage:
+@pytest.mark.asyncio
+class TestFormats:
+    def get_broker(
+        self, apply_types: bool = False, format: Type[MessageFormat] = JSONMessageFormat
+    ):
+        return RedisBroker(apply_types=apply_types, message_format=format)
+
+    def patch_broker(self, broker):
+        return broker
+
     @pytest.mark.parametrize(
-        ("input", "should_be"),
+        ("message_format", "message"),
         [
-            ("", b""),
-            ("plain text", b"plain text"),
-            (
-                {"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"},
-                json_dumps({"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"}),
-            ),
-            (
-                # UTF-8 incompitable bytes
-                b"\x82\xa2id\xd9",
-                b"\x82\xa2id\xd9",
-            ),
+            (JSONMessageFormat, b'{"data":"hello"}'),
+            (BinaryMessageFormatV1, b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\x00hello"),
         ],
     )
-    def test_raw_message_encode_parse(self, input, should_be) -> None:
-        raw_message = RawMessage.encode(
-            message=input, reply_to=None, headers=None, correlation_id="id"
-        )
-        parsed, _ = RawMessage.parse(raw_message)
-        assert parsed == should_be
+    async def test_consume_in_different_formats(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+        message_format: Type[MessageFormat],
+        message: bytes,
+    ):
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(channel=queue, message_format=message_format)
+        async def handler(msg):
+            event.set()
+            mock(msg)
+
+        async with self.patch_broker(consume_broker) as br:
+            await consume_broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br._connection.publish(queue, message)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+        mock.assert_called_once_with(b"hello")
+
+    @pytest.mark.parametrize(
+        ("message_format", "message"),
+        [
+            (JSONMessageFormat, b'{"data":"hello"}'),
+            (BinaryMessageFormatV1, b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\x00hello"),
+        ],
+    )
+    async def test_publish_in_different_formats(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+        message_format: Type[MessageFormat],
+        message: bytes,
+    ):
+        pub_broker = self.get_broker(apply_types=True, format=message_format)
+
+        @pub_broker.subscriber(channel=queue, message_format=message_format)
+        @pub_broker.publisher(channel=queue + "resp")
+        async def resp(msg):
+            return msg
+
+        @pub_broker.subscriber(channel=queue + "resp", message_format=message_format)
+        async def handler(msg):
+            event.set()
+            mock(msg)
+
+        async with self.patch_broker(pub_broker) as br:
+            await pub_broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br._connection.publish(queue, message)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+        mock.assert_called_once_with(b"hello")

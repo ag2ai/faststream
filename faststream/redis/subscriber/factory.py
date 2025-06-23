@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Type, Union
 
 from typing_extensions import TypeAlias
 
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from faststream.broker.types import BrokerMiddleware
     from faststream.redis.message import UnifyRedisDict
+    from faststream.redis.parser import MessageFormat
 
 SubsciberType: TypeAlias = Union[
     "AsyncAPIChannelSubscriber",
@@ -34,6 +35,7 @@ def create_subscriber(
     list: Union["ListSub", str, None],
     stream: Union["StreamSub", str, None],
     # Subscriber args
+    message_format: Type["MessageFormat"],
     no_ack: bool = False,
     no_reply: bool = False,
     retry: bool = False,
@@ -50,6 +52,7 @@ def create_subscriber(
         return AsyncAPIChannelSubscriber(
             channel=channel_sub,
             # basic args
+            message_format=message_format,
             no_ack=no_ack,
             no_reply=no_reply,
             retry=retry,
@@ -66,6 +69,7 @@ def create_subscriber(
             return AsyncAPIStreamBatchSubscriber(
                 stream=stream_sub,
                 # basic args
+                message_format=message_format,
                 no_ack=no_ack,
                 no_reply=no_reply,
                 retry=retry,
@@ -80,6 +84,7 @@ def create_subscriber(
             return AsyncAPIStreamSubscriber(
                 stream=stream_sub,
                 # basic args
+                message_format=message_format,
                 no_ack=no_ack,
                 no_reply=no_reply,
                 retry=retry,
@@ -96,6 +101,7 @@ def create_subscriber(
             return AsyncAPIListBatchSubscriber(
                 list=list_sub,
                 # basic args
+                message_format=message_format,
                 no_ack=no_ack,
                 no_reply=no_reply,
                 retry=retry,
@@ -110,6 +116,7 @@ def create_subscriber(
             return AsyncAPIListSubscriber(
                 list=list_sub,
                 # basic args
+                message_format=message_format,
                 no_ack=no_ack,
                 no_reply=no_reply,
                 retry=retry,

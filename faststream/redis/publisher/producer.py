@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Type
 
 import anyio
 from typing_extensions import override
@@ -7,7 +7,7 @@ from faststream.broker.publisher.proto import ProducerProto
 from faststream.broker.utils import resolve_custom_func
 from faststream.exceptions import WRONG_PUBLISH_ARGS, SetupError
 from faststream.redis.message import DATA_KEY
-from faststream.redis.parser import RawMessage, RedisPubSubParser
+from faststream.redis.parser import JSONMessageFormat, MessageFormat, RedisPubSubParser
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.utils.functions import timeout_scope
 from faststream.utils.nuid import NUID
@@ -34,10 +34,12 @@ class RedisFastProducer(ProducerProto):
         connection: "Redis[bytes]",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        message_format: Type["MessageFormat"] = JSONMessageFormat,
     ) -> None:
         self._connection = connection
+        self.message_format = message_format
 
-        default = RedisPubSubParser()
+        default = RedisPubSubParser(message_format=message_format)
         self._parser = resolve_custom_func(
             parser,
             default.parse_message,
@@ -83,7 +85,7 @@ class RedisFastProducer(ProducerProto):
             psub = self._connection.pubsub()
             await psub.subscribe(reply_to)
 
-        msg = RawMessage.encode(
+        msg = self.message_format.encode(
             message=message,
             reply_to=reply_to,
             headers=headers,
@@ -154,7 +156,7 @@ class RedisFastProducer(ProducerProto):
         psub = self._connection.pubsub()
         await psub.subscribe(reply_to)
 
-        msg = RawMessage.encode(
+        msg = self.message_format.encode(
             message=message,
             reply_to=reply_to,
             headers=headers,
@@ -204,7 +206,7 @@ class RedisFastProducer(ProducerProto):
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> None:
         batch = (
-            RawMessage.encode(
+            self.message_format.encode(
                 message=msg,
                 correlation_id=correlation_id,
                 reply_to=None,

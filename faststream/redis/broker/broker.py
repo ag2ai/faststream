@@ -32,6 +32,7 @@ from faststream.broker.message import gen_cor_id
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.redis.broker.logging import RedisLoggingBroker
 from faststream.redis.broker.registrator import RedisRegistrator
+from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.security import parse_security
 from faststream.types import EMPTY
@@ -139,6 +140,10 @@ class RedisBroker(
             Sequence["BrokerMiddleware[BaseMessage]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
+        message_format: Annotated[
+            Type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = JSONMessageFormat,
         # AsyncAPI args
         security: Annotated[
             Optional["BaseSecurity"],
@@ -202,6 +207,7 @@ class RedisBroker(
         ] = (),
     ) -> None:
         self._producer = None
+        self.message_format = message_format
 
         if asyncapi_url is None:
             asyncapi_url = url
@@ -348,6 +354,7 @@ class RedisBroker(
             connection=client,
             parser=self._parser,
             decoder=self._decoder,
+            message_format=self.message_format,
         )
         return client
 
