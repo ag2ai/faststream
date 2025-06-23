@@ -1061,10 +1061,12 @@ search:
                     - provider
                         - [RedisTelemetrySettingsProvider](api/faststream/redis/opentelemetry/provider/RedisTelemetrySettingsProvider.md)
                 - parser
+                    - [BinaryMessageFormatV1](api/faststream/redis/parser/BinaryMessageFormatV1.md)
                     - [BinaryReader](api/faststream/redis/parser/BinaryReader.md)
                     - [BinaryWriter](api/faststream/redis/parser/BinaryWriter.md)
                     - [FastStreamMessageVersion](api/faststream/redis/parser/FastStreamMessageVersion.md)
-                    - [RawMessage](api/faststream/redis/parser/RawMessage.md)
+                    - [JSONMessageFormat](api/faststream/redis/parser/JSONMessageFormat.md)
+                    - [MessageFormat](api/faststream/redis/parser/MessageFormat.md)
                     - [RedisBatchListParser](api/faststream/redis/parser/RedisBatchListParser.md)
                     - [RedisBatchStreamParser](api/faststream/redis/parser/RedisBatchStreamParser.md)
                     - [RedisListParser](api/faststream/redis/parser/RedisListParser.md)

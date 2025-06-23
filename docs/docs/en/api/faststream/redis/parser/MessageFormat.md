@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.redis.parser.RawMessage
+::: faststream.redis.parser.MessageFormat
