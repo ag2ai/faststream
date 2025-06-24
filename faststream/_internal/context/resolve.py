@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.constants import EMPTY
 
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 def resolve_context_by_name(
     name: str,
     default: Any,
-    initial: Optional[Callable[..., Any]],
+    initial: Callable[..., Any] | None,
     context: "ContextRepo",
 ) -> Any:
     value: Any = EMPTY

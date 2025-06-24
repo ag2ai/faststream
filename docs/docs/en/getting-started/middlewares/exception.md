@@ -101,6 +101,6 @@ def base_exc_handler(
     exc: Exception,
     message = Context(),
 ) -> str:
-    print(exc, msg)
+    print(exc, message)
     return "default"
 ```

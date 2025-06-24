@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar, Union, overload
+from typing import Any, TypeVar, overload
 
 from typing_extensions import Self
 
@@ -25,7 +25,7 @@ class NameRequired:
     @classmethod
     def validate(
         cls: type[NameRequiredCls],
-        value: Union[str, NameRequiredCls],
+        value: str | NameRequiredCls,
         **kwargs: Any,
     ) -> NameRequiredCls: ...
 
@@ -40,9 +40,9 @@ class NameRequired:
     @classmethod
     def validate(
         cls,
-        value: Union[str, Self, None],
+        value: str | Self | None,
         **kwargs: Any,
-    ) -> Optional[Self]:
+    ) -> Self | None:
         """Factory to create object."""
         if value is not None and isinstance(value, str):
             value = cls(value, **kwargs)

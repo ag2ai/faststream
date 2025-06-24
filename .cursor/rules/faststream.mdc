@@ -1,0 +1,105 @@
+---
+description: 
+globs: *.py
+alwaysApply: false
+---
+---
+description: FastStream python framework usage rules
+---
+
+- Always pass broker to `FastStream` object as a positional argument
+- You can't use `app.broker` / `FastStream.broker` / `AsgiFastStream.broker` attribute in your code
+- `app.run` / `FastStream.run` / `AsgiFastStream.run` is an async function, so it should be called by `asyncio.run`
+- To log something always use `faststream.Logger` passing as a Context- Don't use `print(...)` to log anything in your code. Use `faststream.Logger` instead
+- Always use type annotations in `@broker.subscriber` or `@router.subscriber` decorated functions. Result annotation should be `None` by default
+- Never add to `@broker.subscriber` or `@router.subscriber` decorated functions useless in code options.
+
+## JSON Serialization
+
+To serialize incoming messages with complex JSON structure use `Pydantic` models in annotations
+
+```python
+from pydantic import BaseModel
+
+class IncomingMessage(BaseModel):
+    field: str
+    another_field: str
+
+@broker.subscriber("in")
+async def handler(body: IncomingMessage) -> None:
+    ...
+```
+
+## Path feature
+
+To consume information from incoming subject, use `faststream.Path`
+
+```python
+from typing import Annotated
+from faststream import Path
+
+@broker.subscriber("logs.{log_level}")
+async def handle_logs(log_level: Annotated[str, Path()]) -> None:
+    ...
+```
+
+You have to import `faststream.Path` to use this feature
+
+## Context
+
+FastStreams has its own Dependency Injection container - Context, used to store application runtime objects and variables.
+
+```python
+from typing import Annotated
+from faststream import Context, FastStream
+from faststream.kafka import KafkaBroker, KafkaMessage
+
+broker = KafkaBroker()
+app = FastStream(broker)
+
+@broker.subscriber("test")
+async def base_handler(body: str, message: Annotated[KafkaMessage, Context()]) -> None:
+    ...
+```
+
+Context already contains some global objects that you can always access:
+
+* broker - the current broker
+* context - the context itself, in which you can write your own fields
+* logger - the logger used for your broker (tags messages with message_id)
+* message - the raw message (if you need access to it)
+
+To use them, simply import and use them as subscriber argument annotations.
+
+Shared aliases
+
+```python
+from faststream import Logger, ContextRepo, NoCast
+```
+
+And per-broker
+
+```python
+from faststream.[broker] import [Broker]Message
+```
+
+```python
+from faststream import FastStream, Context, Logger, ContextRepo
+from faststream.kafka import KafkaBroker, KafkaMessage
+from faststream.kafka.annotations import KafkaBroker as BrokerAnnotation
+
+broker_object = KafkaBroker("localhost:9092")
+app = FastStream(broker_object)
+
+@broker_object.subscriber("response-topic")
+async def handle_response(
+    logger: Logger,
+    message: KafkaMessage,
+    context: ContextRepo,
+    broker: BrokerAnnotation,
+) -> None:
+    logger.info(message)
+    await broker.publish("test", "response")
+```
+
+Don't add useless Context options to function signature. Use only required ones.Don't import useless annotations as well.

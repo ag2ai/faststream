@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/kafka
 """
 
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -22,13 +21,13 @@ class OperationBinding(BaseModel):
         bindingVersion : version of the binding (default: "0.4.0")
     """
 
-    groupId: Optional[AnyDict] = None
-    clientId: Optional[AnyDict] = None
-    replyTo: Optional[AnyDict] = None
+    groupId: AnyDict | None = None
+    clientId: AnyDict | None = None
+    replyTo: AnyDict | None = None
     bindingVersion: str = "0.4.0"
 
     @classmethod
-    def from_sub(cls, binding: Optional[kafka.OperationBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: kafka.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 
@@ -39,7 +38,7 @@ class OperationBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[kafka.OperationBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: kafka.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 

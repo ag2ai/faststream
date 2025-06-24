@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 from nats.js import api
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -12,7 +12,6 @@ from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.factory import create_publisher
 from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 from faststream.nats.subscriber.factory import create_subscriber
-from faststream.nats.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -26,15 +25,13 @@ if TYPE_CHECKING:
     )
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.usecase import LogicPublisher
 
 
-class NatsRegistrator(ABCBroker["Msg"]):
+class NatsRegistrator(Registrator["Msg"]):
     """Includable to NatsBroker router."""
 
     config: "NatsBrokerConfig"
-    _subscribers: list["SpecificationSubscriber"]
-    _publishers: list["SpecificationPublisher"]
 
     def __init__(self, **kwargs: Any) -> None:
         self._stream_builder = StreamBuilder()
@@ -56,7 +53,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
             ),
         ] = "",
         pending_msgs_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit of messages, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
@@ -66,7 +63,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
             ),
         ] = None,
         pending_bytes_limit: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "The number of bytes, considered by NATS server as possible to be delivered to the client without "
                 "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
@@ -82,7 +79,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         ] = 0,
         # JS arguments
         durable: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Name of the durable consumer to which the the subscription should be bound.",
             ),
@@ -96,11 +93,11 @@ class NatsRegistrator(ABCBroker["Msg"]):
             Doc("Enable ordered consumer mode."),
         ] = False,
         idle_heartbeat: Annotated[
-            Optional[float],
+            float | None,
             Doc("Enable Heartbeats for a consumer to detect failures."),
         ] = None,
         flow_control: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Enable Flow Control for a consumer."),
         ] = None,
         deliver_policy: Annotated[
@@ -108,7 +105,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
             Doc("Deliver Policy to be used for subscription."),
         ] = None,
         headers_only: Annotated[
-            Optional[bool],
+            bool | None,
             Doc(
                 "Should be message delivered without payload, only headers and metadata.",
             ),
@@ -192,11 +189,11 @@ class NatsRegistrator(ABCBroker["Msg"]):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -206,16 +203,14 @@ class NatsRegistrator(ABCBroker["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> SpecificationSubscriber:
+    ):
         """Creates NATS subscriber object.
 
         You can use it as a handler decorator `@broker.subscriber(...)`.
         """
         stream = self._stream_builder.create(stream)
 
-        subscriber = cast(
-            "SpecificationSubscriber",
-            super().subscriber(
+        subscriber = super().subscriber(
                 create_subscriber(
                     subject=subject,
                     queue=queue,
@@ -247,8 +242,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
                     description_=description,
                     include_in_schema=include_in_schema,
                 ),
-            ),
-        )
+            )
 
         if stream and subscriber.subject:
             stream.add_subject(subscriber.subject)
@@ -269,7 +263,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         ],
         *,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -289,7 +283,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
             ),
         ] = None,
         timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Timeout to send message to NATS."),
         ] = None,
         # basic args
@@ -303,15 +297,15 @@ class NatsRegistrator(ABCBroker["Msg"]):
         ] = (),
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -321,7 +315,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "LogicPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -332,7 +326,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         stream = self._stream_builder.create(stream)
 
         publisher = cast(
-            "SpecificationPublisher",
+            "LogicPublisher",
             super().publisher(
                 publisher=create_publisher(
                     subject=subject,
@@ -367,7 +361,7 @@ class NatsRegistrator(ABCBroker["Msg"]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Msg]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, NatsRegistrator):
             msg = (

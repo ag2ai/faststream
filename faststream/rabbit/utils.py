@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def build_virtual_host(
-    url: Union[str, "URL", None], virtualhost: Optional[str], path: str
+    url: Union[str, "URL", None], virtualhost: str | None, path: str
 ) -> str:
     if (not url and not virtualhost) or virtualhost == "/":
         return ""
@@ -24,12 +24,12 @@ def build_virtual_host(
 def build_url(
     url: Union[str, "URL", None] = None,
     *,
-    host: Optional[str] = None,
-    port: Optional[int] = None,
-    login: Optional[str] = None,
-    password: Optional[str] = None,
-    virtualhost: Optional[str] = None,
-    ssl: Optional[bool] = None,
+    host: str | None = None,
+    port: int | None = None,
+    login: str | None = None,
+    password: str | None = None,
+    virtualhost: str | None = None,
+    ssl: bool | None = None,
     ssl_options: Optional["SSLOptions"] = None,
     client_properties: Optional["RabbitClientProperties"] = None,
     **kwargs: Any,

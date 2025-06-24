@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -25,11 +24,11 @@ class Channel(BaseModel):
         Config : configuration for the class (only applicable for Pydantic version 1)
     """
 
-    description: Optional[str] = None
-    servers: Optional[list[str]] = None
-    bindings: Optional[ChannelBinding] = None
-    subscribe: Optional[Operation] = None
-    publish: Optional[Operation] = None
+    description: str | None = None
+    servers: list[str] | None = None
+    bindings: ChannelBinding | None = None
+    subscribe: Operation | None = None
+    publish: Operation | None = None
 
     # TODO:
     # parameters: Optional[Parameter] = None

@@ -1,14 +1,12 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 from fast_depends.exceptions import ValidationError
-from typing_extensions import TypeAlias
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.testing.broker import TestBroker
 from tests.marks import (
-    python39,
     require_aiokafka,
     require_aiopika,
     require_confluent,
@@ -24,7 +22,6 @@ Setup: TypeAlias = tuple[
 
 
 @pytest.mark.asyncio()
-@python39
 class BaseCase:
     async def test_handle(self, setup: Setup) -> None:
         broker, handle, test_class = setup

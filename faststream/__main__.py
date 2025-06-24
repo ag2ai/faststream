@@ -1,7 +1,5 @@
 """CLI entry point to FastStream framework."""
 
-import warnings
-
 from faststream._internal._compat import HAS_TYPER
 
 if not HAS_TYPER:
@@ -11,13 +9,13 @@ if not HAS_TYPER:
         "\nPlease install them using the following command: "
         '\npip install "faststream[cli]"'
     )
-    raise ImportError(
-        msg,
-    )
+    raise ImportError(msg)
 
-from faststream._internal.cli.main import cli
+import warnings
 
 warnings.filterwarnings("default", category=ImportWarning, module="faststream")
+
+from faststream._internal.cli.main import cli
 
 if __name__ == "__main__":
     cli(prog_name="faststream")

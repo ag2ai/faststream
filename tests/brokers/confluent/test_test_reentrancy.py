@@ -49,7 +49,7 @@ async def test_with_fake_broker() -> None:
 
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
-@pytest.mark.flaky(retries=3, only_on=[AssertionError])
+@pytest.mark.flaky(retries=3, only_on=[AssertionError], retry_delay=1)
 async def test_with_real_broker() -> None:
     await _test_with_broker(True)
     await _test_with_broker(True)

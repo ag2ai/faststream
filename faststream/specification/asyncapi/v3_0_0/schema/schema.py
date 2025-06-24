@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from pydantic import Field
 
@@ -25,10 +25,10 @@ class ApplicationSchema(BaseApplicationSchema):
 
     info: ApplicationInfo
 
-    asyncapi: Union[Literal["3.0.0"], str] = "3.0.0"
-    id: Optional[str] = None
-    defaultContentType: Optional[str] = None
-    servers: Optional[dict[str, Server]] = None
+    asyncapi: Literal["3.0.0"] | str = "3.0.0"
+    id: str | None = None
+    defaultContentType: str | None = None
+    servers: dict[str, Server] | None = None
     channels: dict[str, Channel] = Field(default_factory=dict)
     operations: dict[str, Operation] = Field(default_factory=dict)
-    components: Optional[Components] = None
+    components: Components | None = None

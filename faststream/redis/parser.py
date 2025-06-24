@@ -55,7 +55,7 @@ class RawMessage:
         cls,
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: Optional[str],
+        reply_to: str | None,
         headers: Optional["AnyDict"],
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None
@@ -85,7 +85,7 @@ class RawMessage:
         cls,
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: Optional[str],
+        reply_to: str | None,
         headers: Optional["AnyDict"],
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None

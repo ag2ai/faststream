@@ -4,7 +4,7 @@ References: https://github.com/asyncapi/bindings/tree/master/redis
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -17,9 +17,9 @@ class ChannelBinding:
     """
 
     channel: str
-    method: Optional[str] = None
-    group_name: Optional[str] = None
-    consumer_name: Optional[str] = None
+    method: str | None = None
+    group_name: str | None = None
+    consumer_name: str | None = None
 
 
 @dataclass
@@ -30,4 +30,4 @@ class OperationBinding:
         reply_to : optional dictionary containing reply information
     """
 
-    reply_to: Optional[dict[str, Any]] = None
+    reply_to: dict[str, Any] | None = None

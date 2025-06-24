@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from confluent_kafka import Message
 from typing_extensions import override
@@ -15,10 +15,12 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.confluent.configs import KafkaPublisherConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
     from faststream.response.response import PublishCommand
+
+    from .config import KafkaPublisherConfig
+    from .producer import AsyncConfluentFastProducer
+    from .specification import KafkaPublisherSpecification
 
 
 class LogicPublisher(PublisherUsecase[MsgType]):
@@ -26,8 +28,12 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
     _producer: "AsyncConfluentFastProducer"
 
-    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specifcication: "KafkaPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specifcication)
 
         self._topic = config.topic
         self.partition = config.partition
@@ -44,11 +50,11 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Optional[bytes] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
         cmd = KafkaPublishCommand(
@@ -71,8 +77,12 @@ class LogicPublisher(PublisherUsecase[MsgType]):
 
 
 class DefaultPublisher(LogicPublisher[Message]):
-    def __init__(self, config: "KafkaPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specifcication: "KafkaPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specifcication)
 
         self.key = config.key
 
@@ -82,11 +92,11 @@ class DefaultPublisher(LogicPublisher[Message]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Optional[bytes] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
     ) -> "asyncio.Future":
@@ -129,11 +139,11 @@ class DefaultPublisher(LogicPublisher[Message]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: Optional[bytes] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        key: bytes | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
         return await super().request(
@@ -154,10 +164,10 @@ class BatchPublisher(LogicPublisher[tuple[Message, ...]]):
         self,
         *messages: "SendableMessage",
         topic: str = "",
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
     ) -> None:

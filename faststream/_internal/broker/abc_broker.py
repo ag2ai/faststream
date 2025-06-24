@@ -3,25 +3,20 @@ from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Generic,
-    Optional,
 )
 
+from faststream._internal.configs import BrokerConfig, ConfigComposition
 from faststream._internal.endpoint.publisher import PublisherProto
-from faststream._internal.endpoint.specification.base import SpecificationEndpoint
 from faststream._internal.endpoint.subscriber import (
     SubscriberProto,
 )
 from faststream._internal.types import BrokerMiddleware, MsgType
-from faststream.specification.schema import PublisherSpec, SubscriberSpec
-
-from .config import BrokerConfig, ConfigComposition
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
 
 class FinalSubscriber(
-    SpecificationEndpoint[MsgType, SubscriberSpec],
     SubscriberProto[MsgType],
 ):
     @property
@@ -31,13 +26,12 @@ class FinalSubscriber(
 
 
 class FinalPublisher(
-    SpecificationEndpoint[MsgType, PublisherSpec],
     PublisherProto[MsgType],
 ):
     pass
 
 
-class ABCBroker(Generic[MsgType]):
+class Registrator(Generic[MsgType]):
     """Basic class for brokers and routers.
 
     Contains subscribers & publishers registration logic only.
@@ -47,7 +41,7 @@ class ABCBroker(Generic[MsgType]):
         self,
         *,
         config: "BrokerConfig",
-        routers: Sequence["ABCBroker[MsgType]"],
+        routers: Sequence["Registrator[MsgType]"],
     ) -> None:
         self.config = ConfigComposition(config)
         self._parser = self.config.broker_parser
@@ -55,7 +49,7 @@ class ABCBroker(Generic[MsgType]):
 
         self._subscribers: list[FinalSubscriber[MsgType]] = []
         self._publishers: list[FinalPublisher[MsgType]] = []
-        self.routers: list[ABCBroker] = []
+        self.routers: list[Registrator] = []
 
         self.include_routers(*routers)
 
@@ -92,12 +86,12 @@ class ABCBroker(Generic[MsgType]):
 
     def include_router(
         self,
-        router: "ABCBroker[MsgType]",
+        router: "Registrator[MsgType]",
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[MsgType]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         """Includes a router in the current object."""
         if options_config := BrokerConfig(
@@ -113,7 +107,7 @@ class ABCBroker(Generic[MsgType]):
 
     def include_routers(
         self,
-        *routers: "ABCBroker[MsgType]",
+        *routers: "Registrator[MsgType]",
     ) -> None:
         """Includes routers in the object."""
         for r in routers:

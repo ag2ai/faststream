@@ -1,13 +1,19 @@
 import json
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Awaitable, Iterable, Mapping, Sequence
+from collections.abc import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 from contextlib import asynccontextmanager
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Optional,
     Union,
@@ -61,13 +67,13 @@ if TYPE_CHECKING:
 class _BackgroundMiddleware(BaseMiddleware):
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if not exc_type and (
             background := cast(
-                "Optional[BackgroundTasks]",
+                "BackgroundTasks | None",
                 getattr(self.context.get_local("message"), "background", None),
             )
         ):
@@ -85,8 +91,8 @@ class StreamRouter(
 
     broker_class: type["BrokerUsecase[MsgType, Any]"]
     broker: "BrokerUsecase[MsgType, Any]"
-    docs_router: Optional[APIRouter]
-    _after_startup_hooks: list[Callable[[Any], Awaitable[Optional[Mapping[str, Any]]]]]
+    docs_router: APIRouter | None
+    _after_startup_hooks: list[Callable[[Any], Awaitable[Mapping[str, Any] | None]]]
     _on_shutdown_hooks: list[Callable[[Any], Awaitable[None]]]
     schema: Optional["Specification"]
 
@@ -101,19 +107,19 @@ class StreamRouter(
         *connection_args: Any,
         middlewares: Sequence["BrokerMiddleware[MsgType]"] = (),
         prefix: str = "",
-        tags: Optional[list[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence["params.Depends"]] = None,
+        tags: list[str | Enum] | None = None,
+        dependencies: Sequence["params.Depends"] | None = None,
         default_response_class: type["Response"] = Default(JSONResponse),
-        responses: Optional[dict[Union[int, str], "AnyDict"]] = None,
-        callbacks: Optional[list["routing.BaseRoute"]] = None,
-        routes: Optional[list["routing.BaseRoute"]] = None,
+        responses: dict[int | str, "AnyDict"] | None = None,
+        callbacks: list["routing.BaseRoute"] | None = None,
+        routes: list["routing.BaseRoute"] | None = None,
         redirect_slashes: bool = True,
         default: Optional["ASGIApp"] = None,
-        dependency_overrides_provider: Optional[Any] = None,
+        dependency_overrides_provider: Any | None = None,
         route_class: type["APIRoute"] = APIRoute,
-        on_startup: Optional[Sequence[Callable[[], Any]]] = None,
-        on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
-        deprecated: Optional[bool] = None,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
+        deprecated: bool | None = None,
         include_in_schema: bool = True,
         setup_state: bool = True,
         lifespan: Optional["Lifespan[Any]"] = None,
@@ -122,7 +128,7 @@ class StreamRouter(
         ),
         # Specification information
         specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
-        schema_url: Optional[str] = "/asyncapi",
+        schema_url: str | None = "/asyncapi",
         **connection_kwars: Any,
     ) -> None:
         assert (  # nosec B101
@@ -282,7 +288,7 @@ class StreamRouter(
         @asynccontextmanager
         async def start_broker_lifespan(
             app: "FastAPI",
-        ) -> AsyncIterator[Optional[Mapping[str, Any]]]:
+        ) -> AsyncIterator[Mapping[str, Any] | None]:
             """Starts the lifespan of a broker."""
             self.fastapi_config.set_application(app)
 
@@ -363,18 +369,8 @@ class StreamRouter(
 
     def after_startup(
         self,
-        func: Union[
-            Callable[["AppType"], Mapping[str, Any]],
-            Callable[["AppType"], Awaitable[Mapping[str, Any]]],
-            Callable[["AppType"], None],
-            Callable[["AppType"], Awaitable[None]],
-        ],
-    ) -> Union[
-        Callable[["AppType"], Mapping[str, Any]],
-        Callable[["AppType"], Awaitable[Mapping[str, Any]]],
-        Callable[["AppType"], None],
-        Callable[["AppType"], Awaitable[None]],
-    ]:
+        func: Callable[["AppType"], Mapping[str, Any]] | Callable[["AppType"], Awaitable[Mapping[str, Any]]] | Callable[["AppType"], None] | Callable[["AppType"], Awaitable[None]],
+    ) -> Callable[["AppType"], Mapping[str, Any]] | Callable[["AppType"], Awaitable[Mapping[str, Any]]] | Callable[["AppType"], None] | Callable[["AppType"], Awaitable[None]]:
         """Register a function to be executed after startup."""
         self._after_startup_hooks.append(to_async(func))
         return func
@@ -393,14 +389,8 @@ class StreamRouter(
 
     def on_broker_shutdown(
         self,
-        func: Union[
-            Callable[["AppType"], None],
-            Callable[["AppType"], Awaitable[None]],
-        ],
-    ) -> Union[
-        Callable[["AppType"], None],
-        Callable[["AppType"], Awaitable[None]],
-    ]:
+        func: Callable[["AppType"], None] | Callable[["AppType"], Awaitable[None]],
+    ) -> Callable[["AppType"], None] | Callable[["AppType"], Awaitable[None]]:
         """Register a function to be executed before broker stop."""
         self._on_shutdown_hooks.append(to_async(func))
         return func
@@ -410,7 +400,7 @@ class StreamRouter(
         """Create Publisher object."""
         raise NotImplementedError
 
-    def _asyncapi_router(self, schema_url: Optional[str]) -> Optional[APIRouter]:
+    def _asyncapi_router(self, schema_url: str | None) -> APIRouter | None:
         """Creates an API router for serving AsyncAPI documentation."""
         if not self.include_in_schema or not schema_url:
             return None
@@ -454,7 +444,7 @@ class StreamRouter(
 
             return HTMLResponse(
                 content=get_asyncapi_html(
-                    self.schema,
+                    self.schema.schema,
                     sidebar=sidebar,
                     info=info,
                     servers=servers,
@@ -483,12 +473,12 @@ class StreamRouter(
         router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType]"],
         *,
         prefix: str = "",
-        tags: Optional[list[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence["params.Depends"]] = None,
+        tags: list[str | Enum] | None = None,
+        dependencies: Sequence["params.Depends"] | None = None,
         default_response_class: type[Response] = Default(JSONResponse),
-        responses: Optional[dict[Union[int, str], "AnyDict"]] = None,
-        callbacks: Optional[list["BaseRoute"]] = None,
-        deprecated: Optional[bool] = None,
+        responses: dict[int | str, "AnyDict"] | None = None,
+        callbacks: list["BaseRoute"] | None = None,
+        deprecated: bool | None = None,
         include_in_schema: bool = True,
         generate_unique_id_function: Callable[["APIRoute"], str] = Default(
             generate_unique_id,

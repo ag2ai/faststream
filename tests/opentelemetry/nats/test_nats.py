@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from opentelemetry.sdk.metrics import MeterProvider
@@ -33,7 +33,7 @@ class TestTelemetry(LocalTelemetryTestcase):
     async def test_batch(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         stream: JStream,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,

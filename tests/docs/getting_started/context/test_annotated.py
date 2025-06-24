@@ -1,7 +1,6 @@
 import pytest
 
 from tests.marks import (
-    python39,
     require_aiokafka,
     require_aiopika,
     require_confluent,
@@ -10,7 +9,6 @@ from tests.marks import (
 )
 
 
-@python39
 @pytest.mark.asyncio()
 @require_aiokafka
 async def test_annotated_kafka() -> None:
@@ -26,7 +24,6 @@ async def test_annotated_kafka() -> None:
         base_handler.mock.assert_called_once_with("Hi!")
 
 
-@python39
 @pytest.mark.asyncio()
 @require_confluent
 async def test_annotated_confluent() -> None:
@@ -42,7 +39,6 @@ async def test_annotated_confluent() -> None:
         base_handler.mock.assert_called_once_with("Hi!")
 
 
-@python39
 @pytest.mark.asyncio()
 @require_aiopika
 async def test_annotated_rabbit() -> None:
@@ -58,7 +54,6 @@ async def test_annotated_rabbit() -> None:
         base_handler.mock.assert_called_once_with("Hi!")
 
 
-@python39
 @pytest.mark.asyncio()
 @require_nats
 async def test_annotated_nats() -> None:
@@ -74,7 +69,6 @@ async def test_annotated_nats() -> None:
         base_handler.mock.assert_called_once_with("Hi!")
 
 
-@python39
 @pytest.mark.asyncio()
 @require_redis
 async def test_annotated_redis() -> None:

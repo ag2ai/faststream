@@ -2,15 +2,12 @@ import json
 import sys
 import warnings
 from collections import UserString
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from importlib.metadata import version as get_version
 from importlib.util import find_spec
 from typing import (
     Any,
-    Callable,
-    Optional,
     TypeVar,
-    Union,
 )
 
 from pydantic import BaseModel
@@ -119,7 +116,7 @@ if PYDANTIC_V2:
 
     def model_parse(
         model: type[ModelVar],
-        data: Union[str, bytes],
+        data: str | bytes,
         **kwargs: Any,
     ) -> ModelVar:
         return model.model_validate_json(data, **kwargs)
@@ -149,7 +146,7 @@ else:
 
     def model_parse(
         model: type[ModelVar],
-        data: Union[str, bytes],
+        data: str | bytes,
         **kwargs: Any,
     ) -> ModelVar:
         return model.parse_raw(data, **kwargs)
@@ -167,7 +164,7 @@ else:
     def with_info_plain_validator_function(  # type: ignore[misc]
         function: Callable[..., Any],
         *,
-        ref: Optional[str] = None,
+        ref: str | None = None,
         metadata: Any = None,
         serialization: Any = None,
     ) -> JsonSchemaValue:
@@ -255,3 +252,18 @@ except ImportError:  # pragma: no cover
                 handler : the handler
             """
             return with_info_plain_validator_function(cls._validate)
+
+
+uvicorn: Any
+UvicornMultiprocess: Any
+
+try:
+    import uvicorn
+    from uvicorn.supervisors.multiprocess import Multiprocess as UvicornMultiprocess
+
+    HAS_UVICORN = True
+
+except ImportError:
+    uvicorn = None
+    UvicornMultiprocess = None
+    HAS_UVICORN = False

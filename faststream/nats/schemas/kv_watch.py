@@ -1,4 +1,3 @@
-from typing import Optional
 
 from faststream._internal.proto import NameRequired
 
@@ -35,8 +34,8 @@ class KvWatch(NameRequired):
         include_history: bool = False,
         ignore_deletes: bool = False,
         meta_only: bool = False,
-        inactive_threshold: Optional[float] = None,
-        timeout: Optional[float] = 5.0,
+        inactive_threshold: float | None = None,
+        timeout: float | None = 5.0,
         # custom
         declare: bool = True,
     ) -> None:

@@ -3,7 +3,8 @@ import sys
 import warnings
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from pprint import pformat
+from typing import TYPE_CHECKING
 
 import typer
 from pydantic import ValidationError
@@ -101,10 +102,19 @@ def gen(
         is_flag=True,
         help="Generate `asyncapi.yaml` schema.",
     ),
-    out: Optional[str] = typer.Option(
+    out: str | None = typer.Option(
         None,
+        "-o",
+        "--out",
         help="Output filename.",
         show_default="asyncapi.json/.yaml",
+    ),
+    debug: bool = typer.Option(
+        False,
+        "-d",
+        "--debug",
+        is_flag=True,
+        help="Do not save generated schema to file. Print it instead.",
     ),
     app_dir: str = APP_DIR_OPTION,
     is_factory: bool = FACTORY_OPTION,
@@ -126,19 +136,27 @@ def gen(
             typer.echo(INSTALL_YAML, err=True)
             raise typer.Exit(1) from e
 
-        name = out or "asyncapi.yaml"
+        filename = out or "asyncapi.yaml"
 
-        with Path(name).open("w", encoding="utf-8") as f:
-            f.write(schema)
-
+        if not debug:
+            Path(filename).write_text(schema, encoding="utf-8")
     else:
         schema = raw_schema.to_jsonable()
-        name = out or "asyncapi.json"
+        filename = out or "asyncapi.json"
 
-        with Path(name).open("w", encoding="utf-8") as f:
-            json.dump(schema, f, indent=2)
+        if not debug:
+            with Path(filename).open("w", encoding="utf-8") as f:
+                json.dump(schema, f, indent=2)
 
-    typer.echo(f"Your project AsyncAPI scheme was placed to `{name}`")
+        else:
+            schema = pformat(schema)
+
+    if debug:
+        typer.echo("Generated schema:\n")
+        typer.echo(schema, color=True)
+
+    else:
+        typer.echo(f"Your project AsyncAPI scheme was placed to `{filename}`")
 
 
 def _parse_and_serve(
@@ -152,7 +170,7 @@ def _parse_and_serve(
 
         assert isinstance(docs_obj, Specification)  # nosec B101
 
-        raw_schema = docs_obj
+        raw_schema = docs_obj.schema
 
     else:
         schema_filepath = Path.cwd() / docs
@@ -174,9 +192,7 @@ def _parse_and_serve(
 
         else:
             msg = f"Unknown extension given - {docs}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
-            raise ValueError(
-                msg,
-            )
+            raise ValueError(msg)
 
         for schema in (SchemaV3, SchemaV2_6):
             with suppress(ValidationError):

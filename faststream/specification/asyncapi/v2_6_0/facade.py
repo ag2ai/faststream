@@ -31,13 +31,11 @@ class AsyncAPI2(Specification):
         schema_version: str = "3.0.0",
         description: str = "",
         terms_of_service: Optional["AnyHttpUrl"] = None,
-        contact: Optional[Union["Contact", "ContactDict", "AnyDict"]] = None,
-        license: Optional[Union["License", "LicenseDict", "AnyDict"]] = None,
-        identifier: Optional[str] = None,
+        contact: Union["Contact", "ContactDict", "AnyDict"] | None = None,
+        license: Union["License", "LicenseDict", "AnyDict"] | None = None,
+        identifier: str | None = None,
         tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] = (),
-        external_docs: Optional[
-            Union["ExternalDocs", "ExternalDocsDict", "AnyDict"]
-        ] = None,
+        external_docs: Union["ExternalDocs", "ExternalDocsDict", "AnyDict"] | None = None,
     ) -> None:
         self.broker = broker
         self.title = title

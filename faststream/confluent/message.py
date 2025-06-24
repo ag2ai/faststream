@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Protocol, Union
+from typing import TYPE_CHECKING, Any, Protocol, Union
 
 from faststream.message import AckStatus, StreamMessage
 
@@ -13,9 +13,9 @@ class ConsumerProtocol(Protocol):
 
     async def seek(
         self,
-        topic: Optional[str],
-        partition: Optional[int],
-        offset: Optional[int],
+        topic: str | None,
+        partition: int | None,
+        offset: int | None,
     ) -> None: ...
 
 
@@ -27,9 +27,9 @@ class FakeConsumer:
 
     async def seek(
         self,
-        topic: Optional[str],
-        partition: Optional[int],
-        offset: Optional[int],
+        topic: str | None,
+        partition: int | None,
+        offset: int | None,
     ) -> None:
         pass
 

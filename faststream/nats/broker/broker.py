@@ -66,7 +66,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.broker.abc_broker import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -80,27 +80,27 @@ if TYPE_CHECKING:
         """NatsBroker.connect() method type hints."""
 
         error_cb: Annotated[
-            Optional["ErrorCallback"],
+            "ErrorCallback" | None,
             Doc("Callback to report errors."),
         ]
         disconnected_cb: Annotated[
-            Optional["Callback"],
+            "Callback" | None,
             Doc("Callback to report disconnection from NATS."),
         ]
         closed_cb: Annotated[
-            Optional["Callback"],
+            "Callback" | None,
             Doc("Callback to report when client stops reconnection to NATS."),
         ]
         discovered_server_cb: Annotated[
-            Optional["Callback"],
+            "Callback" | None,
             Doc("Callback to report when a new server joins the cluster."),
         ]
         reconnected_cb: Annotated[
-            Optional["Callback"],
+            "Callback" | None,
             Doc("Callback to report success reconnection."),
         ]
         name: Annotated[
-            Optional[str],
+            str | None,
             Doc("Label the connection with name (shown in NATS monitoring)."),
         ]
         pedantic: Annotated[
@@ -153,11 +153,11 @@ if TYPE_CHECKING:
             Doc("Boolean indicating should commands be echoed."),
         ]
         tls_hostname: Annotated[
-            Optional[str],
+            str | None,
             Doc("Hostname for TLS."),
         ]
         token: Annotated[
-            Optional[str],
+            str | None,
             Doc("Auth token for NATS auth."),
         ]
         drain_timeout: Annotated[
@@ -165,7 +165,7 @@ if TYPE_CHECKING:
             Doc("Timeout in seconds to drain subscriptions."),
         ]
         signature_cb: Annotated[
-            Optional["SignatureCallback"],
+            "SignatureCallback" | None,
             Doc(
                 "A callback used to sign a nonce from the server while "
                 "authenticating with nkeys. The user should sign the nonce and "
@@ -173,26 +173,26 @@ if TYPE_CHECKING:
             ),
         ]
         user_jwt_cb: Annotated[
-            Optional["JWTCallback"],
+            "JWTCallback" | None,
             Doc(
                 "A callback used to fetch and return the account "
                 "signed JWT for this user.",
             ),
         ]
         user_credentials: Annotated[
-            Optional["Credentials"],
+            "Credentials" | None,
             Doc("A user credentials file or tuple of files."),
         ]
         nkeys_seed: Annotated[
-            Optional[str],
+            str | None,
             Doc("Path-like object containing nkeys seed that will be used."),
         ]
         nkeys_seed_str: Annotated[
-            Optional[str],
+            str | None,
             Doc("Nkeys seed to be used."),
         ]
         inbox_prefix: Annotated[
-            Union[str, bytes],
+            str | bytes,
             Doc(
                 "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
             ),
@@ -202,7 +202,7 @@ if TYPE_CHECKING:
             Doc("Max size of the pending buffer for publishing commands."),
         ]
         flush_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Max duration to wait for a forced flush to occur."),
         ]
 
@@ -218,7 +218,7 @@ class NatsBroker(
     def __init__(
         self,
         servers: Annotated[
-            Union[str, Iterable[str]],
+            str | Iterable[str],
             Doc("NATS cluster addresses to connect."),
         ] = ("nats://localhost:4222",),
         *,
@@ -243,7 +243,7 @@ class NatsBroker(
             Doc("Callback to report success reconnection."),
         ] = None,
         name: Annotated[
-            Optional[str],
+            str | None,
             Doc("Label the connection with name (shown in NATS monitoring)."),
         ] = SERVICE_NAME,
         pedantic: Annotated[
@@ -296,11 +296,11 @@ class NatsBroker(
             Doc("Boolean indicating should commands be echoed."),
         ] = False,
         tls_hostname: Annotated[
-            Optional[str],
+            str | None,
             Doc("Hostname for TLS."),
         ] = None,
         token: Annotated[
-            Optional[str],
+            str | None,
             Doc("Auth token for NATS auth."),
         ] = None,
         drain_timeout: Annotated[
@@ -327,15 +327,15 @@ class NatsBroker(
             Doc("A user credentials file or tuple of files."),
         ] = None,
         nkeys_seed: Annotated[
-            Optional[str],
+            str | None,
             Doc("Path-like object containing nkeys seed that will be used."),
         ] = None,
         nkeys_seed_str: Annotated[
-            Optional[str],
+            str | None,
             Doc("Raw nkeys seed to be used."),
         ] = None,
         inbox_prefix: Annotated[
-            Union[str, bytes],
+            str | bytes,
             Doc(
                 "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
             ),
@@ -345,12 +345,12 @@ class NatsBroker(
             Doc("Max size of the pending buffer for publishing commands."),
         ] = DEFAULT_PENDING_SIZE,
         flush_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc("Max duration to wait for a forced flush to occur."),
         ] = None,
         # broker args
         graceful_timeout: Annotated[
-            Optional[float],
+            float | None,
             Doc(
                 "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
             ),
@@ -372,7 +372,7 @@ class NatsBroker(
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["ABCBroker[Msg]"],
+            Sequence["Registrator[Msg]"],
             Doc("Routers to apply to broker."),
         ] = (),
         # AsyncAPI args
@@ -383,19 +383,19 @@ class NatsBroker(
             ),
         ] = None,
         specification_url: Annotated[
-            Union[str, Iterable[str], None],
+            str | Iterable[str] | None,
             Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
         ] = None,
         protocol: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol."),
         ] = "nats",
         protocol_version: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server protocol version."),
         ] = "custom",
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI server description."),
         ] = None,
         tags: Annotated[
@@ -520,8 +520,8 @@ class NatsBroker(
 
     async def close(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         await super().close(exc_type, exc_val, exc_tb)
@@ -549,6 +549,8 @@ class NatsBroker(
                 )
 
             except BadRequestError as e:  # noqa: PERF203
+                self._setup_logger()
+
                 log_context = LogicSubscriber.build_log_context(
                     message=None,
                     subject="",
@@ -556,7 +558,7 @@ class NatsBroker(
                     stream=stream.name,
                 )
 
-                logger_state = self._outer_config.logger
+                logger_state = self.config.logger
 
                 if (
                     e.description
@@ -590,11 +592,11 @@ class NatsBroker(
         self,
         message: "SendableMessage",
         subject: str,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         stream: None = None,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None: ...
 
     @overload
@@ -602,11 +604,11 @@ class NatsBroker(
         self,
         message: "SendableMessage",
         subject: str,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> "PubAck": ...
 
     @override
@@ -614,11 +616,11 @@ class NatsBroker(
         self,
         message: "SendableMessage",
         subject: str,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -673,9 +675,9 @@ class NatsBroker(
         self,
         message: "SendableMessage",
         subject: str,
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
         timeout: float = 0.5,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
@@ -726,16 +728,16 @@ class NatsBroker(
         self,
         bucket: str,
         *,
-        description: Optional[str] = None,
-        max_value_size: Optional[int] = None,
+        description: str | None = None,
+        max_value_size: int | None = None,
         history: int = 1,
-        ttl: Optional[float] = None,  # in seconds
-        max_bytes: Optional[int] = None,
+        ttl: float | None = None,  # in seconds
+        max_bytes: int | None = None,
         storage: Optional["StorageType"] = None,
         replicas: int = 1,
         placement: Optional["Placement"] = None,
         republish: Optional["RePublish"] = None,
-        direct: Optional[bool] = None,
+        direct: bool | None = None,
         # custom
         declare: bool = True,
     ) -> "KeyValue":
@@ -758,9 +760,9 @@ class NatsBroker(
         self,
         bucket: str,
         *,
-        description: Optional[str] = None,
-        ttl: Optional[float] = None,
-        max_bytes: Optional[int] = None,
+        description: str | None = None,
+        ttl: float | None = None,
+        max_bytes: int | None = None,
         storage: Optional["StorageType"] = None,
         replicas: int = 1,
         placement: Optional["Placement"] = None,
@@ -827,7 +829,7 @@ class NatsBroker(
         return self._connection.new_inbox()
 
     @override
-    async def ping(self, timeout: Optional[float]) -> bool:
+    async def ping(self, timeout: float | None) -> bool:
         sleep_time = (timeout or 10) / 10
 
         with anyio.move_on_after(timeout) as cancel_scope:

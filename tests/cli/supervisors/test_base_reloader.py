@@ -1,4 +1,5 @@
 import signal
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ class PatchedBaseReload(BaseReload):
         return True
 
 
-def empty(*args, **kwargs) -> None:
+def empty(*args: Any, **kwargs: Any) -> None:
     pass
 
 

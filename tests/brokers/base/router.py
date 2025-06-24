@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -273,7 +273,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_delayed_publishers(self, queue: str, mock: Mock) -> None:
+    async def test_delayed_publishers(self, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
 
         pub_broker = self.get_broker()
@@ -322,7 +322,7 @@ class RouterTestcase(
     async def test_nested_routers_sub(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -401,7 +401,7 @@ class RouterTestcase(
     async def test_router_parser(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -439,7 +439,7 @@ class RouterTestcase(
             mock.parser.assert_called_once()
             mock.decoder.assert_called_once()
 
-    async def test_router_parser_override(self, queue: str, mock: Mock) -> None:
+    async def test_router_parser_override(self, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
 
         pub_broker = self.get_broker()

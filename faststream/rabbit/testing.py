@@ -28,9 +28,9 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
-    from faststream.rabbit.subscriber.usecase import LogicSubscriber
+    from faststream.rabbit.subscriber import RabbitSubscriber
     from faststream.rabbit.types import AioPikaSendableMessage
 
 __all__ = ("TestRabbitBroker",)
@@ -73,9 +73,9 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: "RabbitBroker",
-        publisher: "SpecificationPublisher",
-    ) -> tuple["LogicSubscriber", bool]:
-        sub: Optional[LogicSubscriber] = None
+        publisher: "RabbitPublisher",
+    ) -> tuple["RabbitSubscriber", bool]:
+        sub: RabbitSubscriber | None = None
         for handler in broker.subscribers:
             if _is_handler_matches(
                 handler,
@@ -123,18 +123,18 @@ def build_message(
     *,
     routing_key: str = "",
     persist: bool = False,
-    reply_to: Optional[str] = None,
+    reply_to: str | None = None,
     headers: Optional["HeadersType"] = None,
-    content_type: Optional[str] = None,
-    content_encoding: Optional[str] = None,
-    priority: Optional[int] = None,
-    correlation_id: Optional[str] = None,
+    content_type: str | None = None,
+    content_encoding: str | None = None,
+    priority: int | None = None,
+    correlation_id: str | None = None,
     expiration: Optional["DateType"] = None,
-    message_id: Optional[str] = None,
+    message_id: str | None = None,
     timestamp: Optional["DateType"] = None,
-    message_type: Optional[str] = None,
-    user_id: Optional[str] = None,
-    app_id: Optional[str] = None,
+    message_type: str | None = None,
+    user_id: str | None = None,
+    app_id: str | None = None,
     serializer: Optional["SerializerProto"] = None
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
@@ -266,7 +266,7 @@ class FakeProducer(AioPikaFastProducer):
     async def _execute_handler(
         self,
         msg: PatchedMessage,
-        handler: "LogicSubscriber",
+        handler: "RabbitSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
         return build_message(
@@ -278,7 +278,7 @@ class FakeProducer(AioPikaFastProducer):
 
 
 def _is_handler_matches(
-    handler: "LogicSubscriber",
+    handler: "RabbitSubscriber",
     routing_key: str,
     headers: Optional["Mapping[Any, Any]"] = None,
     exchange: Optional["RabbitExchange"] = None,

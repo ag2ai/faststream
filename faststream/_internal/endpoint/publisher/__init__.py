@@ -1,16 +1,10 @@
-from .specification import PublisherSpecificationConfig, SpecificationPublisher
-from .usecase import (
-    BasePublisherProto,
-    PublisherProto,
-    PublisherUsecase,
-    PublisherUsecaseConfig,
-)
+from .proto import BasePublisherProto, PublisherProto
+from .specification import PublisherSpecification
+from .usecase import PublisherUsecase
 
 __all__ = (
     "BasePublisherProto",
     "PublisherProto",
-    "PublisherSpecificationConfig",
+    "PublisherSpecification",
     "PublisherUsecase",
-    "PublisherUsecaseConfig",
-    "SpecificationPublisher",
 )

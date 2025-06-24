@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, NoReturn, Optional, Union
+from typing import TYPE_CHECKING, NoReturn, Optional
 
 from typing_extensions import override
 
@@ -38,7 +38,7 @@ class AsyncConfluentFastProducer(ProducerProto):
     async def publish(
         self,
         cmd: "KafkaPublishCommand",
-    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]": ...
+    ) -> "asyncio.Future[Message | None] | Message | None": ...
 
     @override
     async def publish_batch(
@@ -73,7 +73,7 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
     async def publish(
         self,
         cmd: "KafkaPublishCommand",
-    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
+    ) -> "asyncio.Future[Message | None] | Message | None":
         raise NotImplementedError
 
     @override
@@ -129,7 +129,7 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
     async def publish(
         self,
         cmd: "KafkaPublishCommand",
-    ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
+    ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body, serializer=self.serializer)
 

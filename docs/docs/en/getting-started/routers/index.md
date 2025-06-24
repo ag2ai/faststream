@@ -14,7 +14,7 @@ Sometimes you want to:
 
 * split an application into includable modules
 * separate business logic from your handler registration
-* apply some [decoder](../serialization/index.md)/[middleware](../middlewares/index.md)/[dependencies](../dependencies/global.md) to a subscribers group
+* apply some [decoder](../serialization/index.md) / [middleware](../middlewares/index.md) / [dependencies](../dependencies/index.md) to a subscribers group
 
 For these reasons, **FastStream** has a special *Broker Router*.
 
@@ -23,7 +23,7 @@ For these reasons, **FastStream** has a special *Broker Router*.
 First, you need to import the *Broker Router* from the same module from where you imported the broker.
 
 !!! note ""
-    When creating a *Broker Router*, you can specify a prefix that will be automatically applied to all subscribers and publishers of this router.
+    When creating the *Broker Router*, you can specify a prefix that will be automatically applied to all subscribers and publishers of this router.
 
 === "AIOKafka"
     ```python hl_lines="2 6 9-10 17 22"
@@ -112,7 +112,7 @@ Please note that when publishing a message, you now need to specify the same pre
     ```
 
 !!! tip
-    Also, when creating a *Broker Router*, you can specify [middleware](../middlewares/index.md), [dependencies](../dependencies/index.md#top-level-dependencies), [parser](../serialization/parser.md) and [decoder](../serialization/decoder.md) to apply them to all subscribers declared via this router.
+    Also, when creating the *Broker Router*, you can specify [middleware](../middlewares/index.md), [dependencies](../dependencies/index.md#top-level-dependencies), [parser](../serialization/parser.md) and [decoder](../serialization/decoder.md) to apply them to all subscribers declared via this router.
 
 ## Delay Handler Registration
 

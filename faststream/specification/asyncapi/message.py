@@ -47,7 +47,7 @@ def get_response_schema(call: "CallModel", prefix: str = "") -> AnyDict: ...
 def get_response_schema(
     call: Optional["CallModel"],
     prefix: str = "",
-) -> Optional[AnyDict]:
+) -> AnyDict | None:
     """Get the response schema for a given call."""
     return get_model_schema(
         getattr(
@@ -76,10 +76,10 @@ def get_model_schema(
 
 
 def get_model_schema(
-    call: Optional[type[BaseModel]],
+    call: type[BaseModel] | None,
     prefix: str = "",
     exclude: Sequence[str] = (),
-) -> Optional[AnyDict]:
+) -> AnyDict | None:
     """Get the schema of a model."""
     if call is None:
         return None

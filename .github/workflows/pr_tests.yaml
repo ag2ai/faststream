@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         pydantic-version: ["pydantic-v1", "pydantic-v2"]
       fail-fast: false
 
@@ -65,7 +65,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Install Pydantic v1
         if: matrix.pydantic-version == 'pydantic-v1'
         run: uv pip install --system "pydantic>=1.10.0,<2.0.0"
@@ -75,8 +75,8 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh -vv
-          -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          bash scripts/test.sh
+          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
         env:
           COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
           CONTEXT: ${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
@@ -103,11 +103,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
 
   test-windows-latest:
     if: github.event.pull_request.draft == false
@@ -124,11 +124,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
 
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
@@ -145,11 +145,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[kafka,test-core,cli]
+          uv pip install --system --group test-core ".[cli,kafka]"
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "not kafka"
+          -vv -m "not kafka"
           tests/brokers/kafka/test_test_client.py
 
   test-kafka-real:
@@ -186,12 +186,12 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and kafka) or kafka"
+          -vv -m "(slow and kafka) or kafka"
         env:
           COVERAGE_FILE: coverage/.coverage.kafka-py
           CONTEXT: kafka-py
@@ -218,11 +218,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[confluent,test-core,cli]
+          uv pip install --system --group test-core ".[cli,confluent]"
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "not confluent"
+          -vv -m "not confluent"
           tests/brokers/confluent/test_test_client.py
 
   test-confluent-real:
@@ -259,12 +259,12 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
-          bash scripts/test.sh -vv
-          -m "(slow and confluent) or confluent"
+          bash scripts/test.sh
+          -vv -m "(slow and confluent) or confluent"
         env:
           COVERAGE_FILE: coverage/.coverage.confluent-py
           CONTEXT: confluent-py
@@ -291,11 +291,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[rabbit,test-core,cli]
+          uv pip install --system --group test-core ".[cli,rabbit]"
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "not rabbit"
+          -vv -m "not rabbit"
           tests/brokers/rabbit/test_test_client.py
 
   test-rabbit-real:
@@ -321,12 +321,12 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and rabbit) or rabbit"
+          -vv -m "(slow and rabbit) or rabbit"
         env:
           COVERAGE_FILE: coverage/.coverage.rabbit-py
           CONTEXT: rabbit-py
@@ -353,11 +353,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[nats,test-core,cli]
+          uv pip install --system --group test-core ".[cli,nats]"
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "not nats"
+          -vv -m "not nats"
           tests/brokers/nats/test_test_client.py
 
   test-nats-real:
@@ -383,12 +383,12 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and nats) or nats"
+          -vv -m "(slow and nats) or nats"
         env:
           COVERAGE_FILE: coverage/.coverage.nats-py
           CONTEXT: nats-py
@@ -415,11 +415,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[redis,test-core,cli]
+          uv pip install --system --group test-core ".[cli,redis]"
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "not redis"
+          -vv -m "not redis"
           tests/brokers/redis/test_test_client.py
 
   test-redis-real:
@@ -445,12 +445,12 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system .[optionals,testing]
+          uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
       - name: Test
         run: >
           bash scripts/test.sh
-          -m "(slow and redis) or redis"
+          -vv -m "(slow and redis) or redis"
         env:
           COVERAGE_FILE: coverage/.coverage.redis-py
           CONTEXT: redis-py

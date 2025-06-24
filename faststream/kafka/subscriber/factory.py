@@ -3,15 +3,18 @@ from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Optional, Union
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
-from faststream.kafka.configs import KafkaSubscriberConfigFacade
-from faststream.kafka.subscriber.specified import (
-    SpecificationBatchSubscriber,
-    SpecificationConcurrentBetweenPartitionsSubscriber,
-    SpecificationConcurrentDefaultSubscriber,
-    SpecificationDefaultSubscriber,
-)
 from faststream.middlewares import AckPolicy
+
+from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
+from .specification import KafkaSubscriberSpecification
+from .usecase import (
+    BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
+)
 
 if TYPE_CHECKING:
     from aiokafka import TopicPartition
@@ -25,11 +28,11 @@ def create_subscriber(
     *topics: str,
     batch: bool,
     batch_timeout_ms: int,
-    max_records: Optional[int],
+    max_records: int | None,
     # Kafka information
-    group_id: Optional[str],
+    group_id: str | None,
     listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
+    pattern: str | None,
     connection_args: "AnyDict",
     partitions: Collection["TopicPartition"],
     auto_commit: bool,
@@ -40,14 +43,14 @@ def create_subscriber(
     no_reply: bool,
     config: "KafkaBrokerConfig",
     # Specification args
-    title_: Optional[str],
-    description_: Optional[str],
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
-    "SpecificationDefaultSubscriber",
-    "SpecificationBatchSubscriber",
-    "SpecificationConcurrentDefaultSubscriber",
-    "SpecificationConcurrentBetweenPartitionsSubscriber",
+    "DefaultSubscriber",
+    "BatchSubscriber",
+    "ConcurrentDefaultSubscriber",
+    "ConcurrentBetweenPartitionsSubscriber",
 ]:
     _validate_input_for_misconfigure(
         *topics,
@@ -59,7 +62,7 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    config = KafkaSubscriberConfigFacade(
+    subscriber_config = KafkaSubscriberConfig(
         topics=topics,
         partitions=partitions,
         connection_args=connection_args,
@@ -67,38 +70,54 @@ def create_subscriber(
         listener=listener,
         pattern=pattern,
         no_reply=no_reply,
-        config=config,
+        _outer_config=config,
         _ack_policy=ack_policy,
         # deprecated options to remove in 0.7.0
         _auto_commit=auto_commit,
         _no_ack=no_ack,
-        # specification
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
+    )
+
+    calls = CallsCollection()
+
+    specification = KafkaSubscriberSpecification(
+        _outer_config=config,
+        calls=calls,
+        specification_config=KafkaSubscriberSpecificationConfig(
+            topics=topics,
+            partitions=partitions,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        ),
     )
 
     if batch:
-        return SpecificationBatchSubscriber(
-            config,
+        return BatchSubscriber(
+            subscriber_config,
+            specification,
+            calls,
             batch_timeout_ms=batch_timeout_ms,
             max_records=max_records,
         )
 
     if max_workers > 1:
-        if config.ack_first:
-            return SpecificationConcurrentDefaultSubscriber(
-                config,
+        if subscriber_config.ack_first:
+            return ConcurrentDefaultSubscriber(
+                subscriber_config,
+                specification,
+                calls,
                 max_workers=max_workers,
             )
 
-        config.topics = (topics[0],)
-        return SpecificationConcurrentBetweenPartitionsSubscriber(
-            config,
+        subscriber_config.topics = (topics[0],)
+        return ConcurrentBetweenPartitionsSubscriber(
+            subscriber_config,
+            specification,
+            calls,
             max_workers=max_workers,
         )
 
-    return SpecificationDefaultSubscriber(config)
+    return DefaultSubscriber(subscriber_config, specification, calls)
 
 
 def _validate_input_for_misconfigure(
@@ -107,7 +126,7 @@ def _validate_input_for_misconfigure(
     auto_commit: bool,
     no_ack: bool,
     max_workers: int,
-    pattern: Optional[str],
+    pattern: str | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
     if auto_commit is not EMPTY:

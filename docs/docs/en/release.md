@@ -12,6 +12,52 @@ hide:
 ---
 
 # Release Notes
+## 0.5.43
+
+### What's Changed
+
+* feat (#2291): add global_qos option to Channel by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2297](https://github.com/ag2ai/faststream/pull/2297){.external-link target="_blank"}
+* feat: added delete method to redis message by @ilya-4real in [#2294](https://github.com/ag2ai/faststream/pull/2294){.external-link target="_blank"}
+* feat: add CLI extra options by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2231](https://github.com/ag2ai/faststream/pull/2231){.external-link target="_blank"}
+* feat: redis pipeline by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2270](https://github.com/ag2ai/faststream/pull/2270){.external-link target="_blank"}
+* fix: replace passive with declare by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2236](https://github.com/ag2ai/faststream/pull/2236){.external-link target="_blank"}
+* fix: deprecate log fmt by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2240](https://github.com/ag2ai/faststream/pull/2240){.external-link target="_blank"}
+* fix (#2252): remove useless code snippet by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2256](https://github.com/ag2ai/faststream/pull/2256){.external-link target="_blank"}
+* fix (depends): removed SetupError if correct fastapi.Depends is included to annotation by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2280](https://github.com/ag2ai/faststream/pull/2280){.external-link target="_blank"}
+* Improve license badge by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2241](https://github.com/ag2ai/faststream/pull/2241){.external-link target="_blank"}
+* chore: use stricter mypy settings by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2243](https://github.com/ag2ai/faststream/pull/2243){.external-link target="_blank"}
+* docs: alwayse use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
+* docs: better highlight first example by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2245](https://github.com/ag2ai/faststream/pull/2245){.external-link target="_blank"}
+* docs: add more links to readme by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2246](https://github.com/ag2ai/faststream/pull/2246){.external-link target="_blank"}
+* docs: Improve README code examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2247](https://github.com/ag2ai/faststream/pull/2247){.external-link target="_blank"}
+* docs: reword `Multiple Subscriptions` section by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2250](https://github.com/ag2ai/faststream/pull/2250){.external-link target="_blank"}
+* docs: Improve README code examples by [@mxnoob](https://github.com/mxnoob){.external-link target="_blank"} in [#2253](https://github.com/ag2ai/faststream/pull/2253){.external-link target="_blank"}
+* docs: highlight more code by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2255](https://github.com/ag2ai/faststream/pull/2255){.external-link target="_blank"}
+* docs: Fix code style in `Context Fields Declaration` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2269](https://github.com/ag2ai/faststream/pull/2269){.external-link target="_blank"}
+* docs: Improve `Context` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2265](https://github.com/ag2ai/faststream/pull/2265){.external-link target="_blank"}
+* docs: Reword `publishing/decorator.md` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2260](https://github.com/ag2ai/faststream/pull/2260){.external-link target="_blank"}
+* docs: Improve dependencies docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2263](https://github.com/ag2ai/faststream/pull/2263){.external-link target="_blank"}
+* docs: Refactor `publishing/index.md` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2259](https://github.com/ag2ai/faststream/pull/2259){.external-link target="_blank"}
+* docs: Improve wordings in test docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2258](https://github.com/ag2ai/faststream/pull/2258){.external-link target="_blank"}
+* docs: Link to test.md from initial tutorial by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2257](https://github.com/ag2ai/faststream/pull/2257){.external-link target="_blank"}
+* docs: Improve the documentation page with `Response` class  by [@anywindblows](https://github.com/anywindblows){.external-link target="_blank"} in [#2238](https://github.com/ag2ai/faststream/pull/2238){.external-link target="_blank"}
+* docs: fix broken links by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2271](https://github.com/ag2ai/faststream/pull/2271){.external-link target="_blank"}
+* docs: Fix `serialization/index.md` wording and syntax by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2277](https://github.com/ag2ai/faststream/pull/2277){.external-link target="_blank"}
+* docs: import types from correct place by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2278](https://github.com/ag2ai/faststream/pull/2278){.external-link target="_blank"}
+* docs: Improve serialization examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2282](https://github.com/ag2ai/faststream/pull/2282){.external-link target="_blank"}
+* docs: improve `Lifespan: Hooks` page by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2284](https://github.com/ag2ai/faststream/pull/2284){.external-link target="_blank"}
+* docs: -1/+1 fix mistake by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2286](https://github.com/ag2ai/faststream/pull/2286){.external-link target="_blank"}
+* docs: doc fix by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2288](https://github.com/ag2ai/faststream/pull/2288){.external-link target="_blank"}
+* docs: remove deprecated syntax from examples by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2234](https://github.com/ag2ai/faststream/pull/2234){.external-link target="_blank"}
+* docs: Improve grammar in `Lifespan: testing` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2298](https://github.com/ag2ai/faststream/pull/2298){.external-link target="_blank"}
+
+### New Contributors
+* [@mxnoob](https://github.com/mxnoob){.external-link target="_blank"} made their first contribution in [#2253](https://github.com/ag2ai/faststream/pull/2253){.external-link target="_blank"}
+* [@anywindblows](https://github.com/anywindblows){.external-link target="_blank"} made their first contribution in [#2238](https://github.com/ag2ai/faststream/pull/2238){.external-link target="_blank"}
+* @ilya-4real made their first contribution in [#2294](https://github.com/ag2ai/faststream/pull/2294){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.42...0.5.43](https://github.com/ag2ai/faststream/compare/0.5.42...0.5.43){.external-link target="_blank"}
+
 ## 0.5.42
 
 ### What's Changed

@@ -19,23 +19,27 @@ if TYPE_CHECKING:
     from nats.js import JetStreamContext
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsBrokerConfig, NatsSubscriberConfig
+    from faststream.nats.configs import NatsBrokerConfig
+    from faststream.nats.subscriber.config import NatsSubscriberConfig
+    from faststream.nats.subscriber.specification import NatsSubscriberSpecification
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
     """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream)."""
 
-    subscription: Optional[Unsubscriptable]
-    _fetch_sub: Optional[Unsubscriptable]
+    subscription: Unsubscriptable | None
+    _fetch_sub: Unsubscriptable | None
     _outer_config: "NatsBrokerConfig"
 
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecification",
+        calls: "CallsCollection",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self._subject = config.subject
         self.config = config.sub_config

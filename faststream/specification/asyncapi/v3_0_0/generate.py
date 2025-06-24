@@ -45,11 +45,11 @@ def get_app_schema(
     schema_version: str,
     description: str,
     terms_of_service: Optional["AnyHttpUrl"],
-    contact: Optional[Union["SpecContact", "ContactDict", "AnyDict"]],
-    license: Optional[Union["SpecLicense", "LicenseDict", "AnyDict"]],
-    identifier: Optional[str],
-    tags: Optional[Sequence[Union["SpecTag", "TagDict", "AnyDict"]]],
-    external_docs: Optional[Union["SpecDocs", "ExternalDocsDict", "AnyDict"]],
+    contact: Union["SpecContact", "ContactDict", "AnyDict"] | None,
+    license: Union["SpecLicense", "LicenseDict", "AnyDict"] | None,
+    identifier: str | None,
+    tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]] | None,
+    external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -64,7 +64,7 @@ def get_app_schema(
         ]
 
     for channel_name, channel in channels.items():
-        msgs: dict[str, Union[Message, Reference]] = {}
+        msgs: dict[str, Message | Reference] = {}
         for message_name, message in channel.messages.items():
             assert isinstance(message, Message)
 
@@ -113,7 +113,7 @@ def get_broker_server(
 
     servers = {}
 
-    tags: Optional[list[Union[Tag, AnyDict]]] = None
+    tags: list[Tag | AnyDict] | None = None
     if specification.tags:
         tags = [Tag.from_spec(tag) for tag in specification.tags]
 
@@ -152,7 +152,7 @@ def get_broker_channels(
     channels = {}
     operations = {}
 
-    for sub in broker.subscribers:
+    for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
             channel_obj = Channel.from_sub(sub_key, sub_channel)
 
@@ -177,7 +177,7 @@ def get_broker_channels(
                 operation=sub_channel.operation,
             )
 
-    for pub in broker.publishers:
+    for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
             channel_obj = Channel.from_pub(pub_key, pub_channel)
 

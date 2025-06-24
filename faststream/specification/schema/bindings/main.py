@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from faststream.specification.schema.bindings import (
     amqp as amqp_bindings,
+    http as http_bindings,
     kafka as kafka_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
@@ -22,11 +22,11 @@ class ChannelBinding:
         redis : Redis channel binding (optional)
     """
 
-    amqp: Optional[amqp_bindings.ChannelBinding] = None
-    kafka: Optional[kafka_bindings.ChannelBinding] = None
-    sqs: Optional[sqs_bindings.ChannelBinding] = None
-    nats: Optional[nats_bindings.ChannelBinding] = None
-    redis: Optional[redis_bindings.ChannelBinding] = None
+    amqp: amqp_bindings.ChannelBinding | None = None
+    kafka: kafka_bindings.ChannelBinding | None = None
+    sqs: sqs_bindings.ChannelBinding | None = None
+    nats: nats_bindings.ChannelBinding | None = None
+    redis: redis_bindings.ChannelBinding | None = None
 
 
 @dataclass
@@ -39,10 +39,12 @@ class OperationBinding:
         sqs : SQS operation binding (optional)
         nats : NATS operation binding (optional)
         redis : Redis operation binding (optional)
+        http: HTTP operation binding (optional)
     """
 
-    amqp: Optional[amqp_bindings.OperationBinding] = None
-    kafka: Optional[kafka_bindings.OperationBinding] = None
-    sqs: Optional[sqs_bindings.OperationBinding] = None
-    nats: Optional[nats_bindings.OperationBinding] = None
-    redis: Optional[redis_bindings.OperationBinding] = None
+    amqp: amqp_bindings.OperationBinding | None = None
+    kafka: kafka_bindings.OperationBinding | None = None
+    sqs: sqs_bindings.OperationBinding | None = None
+    nats: nats_bindings.OperationBinding | None = None
+    redis: redis_bindings.OperationBinding | None = None
+    http: http_bindings.OperationBinding | None = None

@@ -14,7 +14,7 @@ class BaseApplicationInfo(BaseModel):
 
     title: str
     version: str
-    description: str
+    description: str | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

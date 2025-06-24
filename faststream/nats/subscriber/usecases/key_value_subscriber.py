@@ -22,10 +22,14 @@ if TYPE_CHECKING:
     from nats.js.kv import KeyValue
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsSubscriberConfig
     from faststream.nats.message import NatsKvMessage
     from faststream.nats.schemas import KvWatch
+    from faststream.nats.subscriber.config import (
+        NatsSubscriberConfig,
+        NatsSubscriberSpecificationConfig,
+    )
 
 
 class KeyValueWatchSubscriber(
@@ -33,19 +37,20 @@ class KeyValueWatchSubscriber(
     LogicSubscriber["KeyValue.Entry"],
 ):
     subscription: Optional["UnsubscribeAdapter[KeyValue.KeyWatcher]"]
-    _fetch_sub: Optional[UnsubscribeAdapter["KeyValue.KeyWatcher"]]
+    _fetch_sub: UnsubscribeAdapter["KeyValue.KeyWatcher"] | None
 
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         kv_watch: "KvWatch",
     ) -> None:
         parser = KvParser(pattern=config.subject)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.kv_watch = kv_watch
 
@@ -179,7 +184,7 @@ class KeyValueWatchSubscriber(
         while self.running:
             with suppress(ConnectionClosedError, TimeoutError):
                 message = cast(
-                    "Optional[KeyValue.Entry]",
+                    "KeyValue.Entry | None",
                     # type: ignore[no-untyped-call]
                     await key_watcher.updates(self.kv_watch.timeout),
                 )

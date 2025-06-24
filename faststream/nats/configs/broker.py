@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream.nats.broker.state import BrokerState
 from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.producer import (

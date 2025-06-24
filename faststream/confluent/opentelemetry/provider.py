@@ -105,10 +105,7 @@ class BatchConfluentTelemetrySettingsProvider(
 
 def telemetry_attributes_provider_factory(
     msg: Union["Message", Sequence["Message"], None],
-) -> Union[
-    ConfluentTelemetrySettingsProvider,
-    BatchConfluentTelemetrySettingsProvider,
-]:
+) -> ConfluentTelemetrySettingsProvider | BatchConfluentTelemetrySettingsProvider:
     if isinstance(msg, Sequence):
         return BatchConfluentTelemetrySettingsProvider()
     return ConfluentTelemetrySettingsProvider()

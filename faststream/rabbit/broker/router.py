@@ -1,5 +1,5 @@
-from collections.abc import Awaitable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Union
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
 
 from typing_extensions import Doc, deprecated
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.broker.abc_broker import ABCBroker
+    from faststream._internal.broker.abc_broker import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -82,13 +82,13 @@ class RabbitPublisher(ArgsContainer):
             Doc("Restore the message on RabbitMQ reboot."),
         ] = False,
         reply_to: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Reply message routing key to send with (always sending to default exchange).",
             ),
         ] = None,
         priority: Annotated[
-            Optional[int],
+            int | None,
             Doc("The message priority (0 by default)."),
         ] = None,
         # basic args
@@ -102,15 +102,15 @@ class RabbitPublisher(ArgsContainer):
         ] = (),
         # AsyncAPI args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "AsyncAPI publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -129,7 +129,7 @@ class RabbitPublisher(ArgsContainer):
             ),
         ] = None,
         content_type: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Message **content-type** header. "
                 "Used by application, not core RabbitMQ. "
@@ -137,7 +137,7 @@ class RabbitPublisher(ArgsContainer):
             ),
         ] = None,
         content_encoding: Annotated[
-            Optional[str],
+            str | None,
             Doc("Message body content encoding, e.g. **gzip**."),
         ] = None,
         expiration: Annotated[
@@ -145,11 +145,11 @@ class RabbitPublisher(ArgsContainer):
             Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
         ] = None,
         message_type: Annotated[
-            Optional[str],
+            str | None,
             Doc("Application-specific message type, e.g. **orders.created**."),
         ] = None,
         user_id: Annotated[
-            Optional[str],
+            str | None,
             Doc("Publisher connection User ID, validated if set."),
         ] = None,
     ) -> None:
@@ -188,10 +188,7 @@ class RabbitRoute(SubscriberRoute):
     def __init__(
         self,
         call: Annotated[
-            Union[
-                Callable[..., "AioPikaSendableMessage"],
-                Callable[..., Awaitable["AioPikaSendableMessage"]],
-            ],
+            Callable[..., "AioPikaSendableMessage"] | Callable[..., Awaitable["AioPikaSendableMessage"]],
             Doc(
                 "Message handler function "
                 "to wrap the same with `@broker.subscriber(...)` way.",
@@ -259,11 +256,11 @@ class RabbitRoute(SubscriberRoute):
         ] = False,
         # AsyncAPI information
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("AsyncAPI subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "AsyncAPI subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -318,7 +315,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["ABCBroker[IncomingMessage]"],
+            Sequence["Registrator[IncomingMessage]"],
             Doc("Routers to apply to broker."),
         ] = (),
         parser: Annotated[
@@ -330,7 +327,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         include_in_schema: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = None,
     ) -> None:

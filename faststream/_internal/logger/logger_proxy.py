@@ -35,7 +35,7 @@ class NotSetLoggerObject(LoggerObject):
         /,
         *,
         exc_info: Any = None,
-        extra: Optional[Mapping[str, Any]] = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None:
         err_msg = "Logger object not set. Please, call `_setup_logger_state` of parent broker state."
         raise IncorrectState(err_msg)
@@ -63,7 +63,7 @@ class EmptyLoggerObject(LoggerObject):
         /,
         *,
         exc_info: Any = None,
-        extra: Optional[Mapping[str, Any]] = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None:
         pass
 
@@ -93,7 +93,7 @@ class RealLoggerObject(LoggerObject):
         /,
         *,
         exc_info: Any = None,
-        extra: Optional[Mapping[str, Any]] = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None:
         self.logger.log(
             level,

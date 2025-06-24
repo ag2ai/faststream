@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from faststream._internal.broker import BrokerConfig
+from faststream._internal.configs import BrokerConfig
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
@@ -20,7 +20,7 @@ class RabbitBrokerConfig(BrokerConfig):
     producer: "AioPikaFastProducer" = field(default_factory=FakeAioPikaFastProducer)
 
     virtual_host: str = ""
-    app_id: Optional[str] = None
+    app_id: str | None = None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

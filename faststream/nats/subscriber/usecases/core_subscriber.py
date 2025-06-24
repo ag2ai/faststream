@@ -19,9 +19,13 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.aio.subscription import Subscription
 
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.nats.configs import NatsSubscriberConfig
     from faststream.nats.message import NatsMessage
+    from faststream.nats.subscriber.config import (
+        NatsSubscriberConfig,
+        NatsSubscriberSpecificationConfig,
+    )
 
 
 class CoreSubscriber(DefaultSubscriber["Msg"]):
@@ -31,7 +35,8 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        /,
+        specification: "NatsSubscriberSpecificationConfig",
+        calls: "CallsCollection",
         *,
         queue: str,
     ) -> None:
@@ -41,7 +46,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         )
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.queue = queue
 
@@ -50,7 +55,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[NatsMessage]":
+    ) -> "NatsMessage | None":
         assert (  # nosec B101
             not self.calls
         ), "You can't use `get_one` method if subscriber has registered handlers."

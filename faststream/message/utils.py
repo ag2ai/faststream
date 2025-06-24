@@ -4,9 +4,9 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Union,
     cast,
+    Optional
 )
 from uuid import uuid4
 
@@ -50,7 +50,7 @@ def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
 def encode_message(
     msg: Union[Sequence["SendableMessage"], "SendableMessage"],
     serializer: Optional["SerializerProto"],
-) -> tuple[bytes, Optional[str]]:
+) -> tuple[bytes, str | None]:
     """Encodes a message."""
     if msg is None:
         return (

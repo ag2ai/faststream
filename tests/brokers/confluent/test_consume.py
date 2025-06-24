@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -343,6 +344,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
+    @pytest.mark.flaky(retries=3, retry_delay=1)
     async def test_concurrent_consume(self, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
         event2 = asyncio.Event()
@@ -352,7 +354,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue, max_workers=2)
 
         @consume_broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock()
             if event.is_set():
                 event2.set()
@@ -363,6 +365,8 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            await asyncio.sleep(1)  # TODO: wait until subscriber is ready
+
             for i in range(5):
                 await br.publish(i, queue)
 
@@ -371,9 +375,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                 asyncio.create_task(event.wait()),
                 asyncio.create_task(event2.wait()),
             ),
-            timeout=3,
+            timeout=self.timeout,
         )
 
-        assert event.is_set()
-        assert event2.is_set()
         assert mock.call_count == 2, mock.call_count

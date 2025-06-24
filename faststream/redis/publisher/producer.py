@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
@@ -45,7 +45,7 @@ class RedisFastProducer(ProducerProto):
     async def publish(  # type: ignore[override]
         self,
         cmd: "RedisPublishCommand",
-    ) -> Union[int, bytes]:
+    ) -> int | bytes:
         msg = RawMessage.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -112,21 +112,27 @@ class RedisFastProducer(ProducerProto):
             )
             for msg in cmd.batch_bodies
         ]
-        return await self._connection.client.rpush(cmd.destination, *batch)
+
+        connection = cmd.pipeline or self._connection.client
+        return await connection.rpush(cmd.destination, *batch)
 
     async def __publish(
-        self, msg: bytes, cmd: "RedisPublishCommand"
-    ) -> Union[int, bytes]:
+        self,
+        msg: bytes,
+        cmd: "RedisPublishCommand",
+    ) -> int | bytes:
+        connection = cmd.pipeline or self._connection.client
+
         if cmd.destination_type is DestinationType.Channel:
-            return await self._connection.client.publish(cmd.destination, msg)
+            return await connection.publish(cmd.destination, msg)
 
         if cmd.destination_type is DestinationType.List:
-            return await self._connection.client.rpush(cmd.destination, msg)
+            return await connection.rpush(cmd.destination, msg)
 
         if cmd.destination_type is DestinationType.Stream:
             return cast(
                 "bytes",
-                await self._connection.client.xadd(
+                await connection.xadd(
                     name=cmd.destination,
                     fields={DATA_KEY: msg},
                     maxlen=cmd.maxlen,

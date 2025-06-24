@@ -3,8 +3,6 @@ from contextlib import ExitStack, contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
 )
 from unittest.mock import AsyncMock
 
@@ -27,7 +25,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.producer import ProducerProto
     from faststream.nats.configs import NatsBrokerConfig
-    from faststream.nats.publisher.specified import SpecificationPublisher
+    from faststream.nats.publisher.specification import SpecificationPublisher
     from faststream.nats.response import NatsPublishCommand
     from faststream.nats.subscriber.usecases.basic import LogicSubscriber
 
@@ -53,7 +51,7 @@ class TestNatsBroker(TestBroker[NatsBroker]):
         broker: NatsBroker,
         publisher: "SpecificationPublisher",
     ) -> tuple["LogicSubscriber[Any, Any]", bool]:
-        sub: Optional[LogicSubscriber[Any, Any]] = None
+        sub: LogicSubscriber[Any, Any] | None = None
         publisher_stream = publisher.stream.name if publisher.stream else None
         for handler in broker.subscribers:
             if _is_handler_matches(handler, publisher.subject, publisher_stream):
@@ -118,7 +116,7 @@ class FakeProducer(NatsFastProducer):
             cmd.destination,
             cmd.stream,
         ):
-            msg: Union[list[PatchedMessage], PatchedMessage]
+            msg: list[PatchedMessage] | PatchedMessage
 
             if (pull := getattr(handler, "pull_sub", None)) and pull.batch:
                 msg = [incoming]
@@ -145,7 +143,7 @@ class FakeProducer(NatsFastProducer):
             cmd.destination,
             cmd.stream,
         ):
-            msg: Union[list[PatchedMessage], PatchedMessage]
+            msg: list[PatchedMessage] | PatchedMessage
 
             if (pull := getattr(handler, "pull_sub", None)) and pull.batch:
                 msg = [incoming]
@@ -177,7 +175,7 @@ class FakeProducer(NatsFastProducer):
 def _find_handler(
     subscribers: Iterable["LogicSubscriber[Any, Any]"],
     subject: str,
-    stream: Optional[str] = None,
+    stream: str | None = None,
 ) -> Generator["LogicSubscriber[Any, Any]", None, None]:
     published_queues = set()
     for handler in subscribers:  # pragma: no branch
@@ -193,7 +191,7 @@ def _find_handler(
 def _is_handler_matches(
     handler: "LogicSubscriber[Any, Any]",
     subject: str,
-    stream: Optional[str] = None,
+    stream: str | None = None,
 ) -> bool:
     if stream:
         if not (handler_stream := getattr(handler, "stream", None)):
@@ -217,8 +215,8 @@ def build_message(
     subject: str,
     *,
     reply_to: str = "",
-    correlation_id: Optional[str] = None,
-    headers: Optional[dict[str, str]] = None,
+    correlation_id: str | None = None,
+    headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
 ) -> "PatchedMessage":
     msg, content_type = encode_message(message, serializer=serializer)
@@ -245,7 +243,7 @@ class PatchedMessage(Msg):
     ) -> "PatchedMessage":  # pragma: no cover
         return self
 
-    async def nak(self, delay: Optional[float] = None) -> None:
+    async def nak(self, delay: float | None = None) -> None:
         pass
 
     async def term(self) -> None:

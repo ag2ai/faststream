@@ -1,17 +1,12 @@
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any
 
-from faststream.confluent.configs import KafkaPublisherConfigFacade
 from faststream.exceptions import SetupError
 
-from .specified import SpecificationBatchPublisher, SpecificationDefaultPublisher
+from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
+from .specification import KafkaPublisherSpecification
+from .usecase import BatchPublisher, DefaultPublisher
 
 if TYPE_CHECKING:
     from faststream._internal.types import PublisherMiddleware
@@ -22,60 +17,61 @@ def create_publisher(
     *,
     autoflush: bool,
     batch: bool,
-    key: Optional[bytes],
+    key: bytes | None,
     topic: str,
-    partition: Optional[int],
-    headers: Optional[dict[str, str]],
+    partition: int | None,
+    headers: dict[str, str] | None,
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
+    schema_: Any | None,
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
-) -> Union[
-    "SpecificationBatchPublisher",
-    "SpecificationDefaultPublisher",
-]:
-    config = KafkaPublisherConfigFacade(
+) -> BatchPublisher | DefaultPublisher:
+    publisher_config = KafkaPublisherConfig(
         key=key,
         topic=topic,
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        config=config,
+        _outer_config=config,
         middlewares=middlewares,
-        # specification
-        schema_=schema_,
-        title_=title_,
-        description_=description_,
-        include_in_schema=include_in_schema,
     )
 
+    specification = KafkaPublisherSpecification(
+        _outer_config=config,
+        specification_config=KafkaPublisherSpecificationConfig(
+            topic=topic,
+            schema_=schema_,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        ),
+    )
+
+    publisher: BatchPublisher | DefaultPublisher
     if batch:
         if key:
             msg = "You can't setup `key` with batch publisher"
             raise SetupError(msg)
 
-        publisher: Union[
-            SpecificationBatchPublisher,
-            SpecificationDefaultPublisher,
-        ] = SpecificationBatchPublisher(config)
+        publisher = BatchPublisher(publisher_config, specification)
         publish_method = "_basic_publish_batch"
 
     else:
-        publisher = SpecificationDefaultPublisher(config)
+        publisher = DefaultPublisher(publisher_config, specification)
         publish_method = "_basic_publish"
 
     if autoflush:
-        default_publish: Callable[..., Awaitable[Optional[Any]]] = getattr(
+        default_publish: Callable[..., Awaitable[Any | None]] = getattr(
             publisher, publish_method
         )
 
         @wraps(default_publish)
-        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Any | None:
             result = await default_publish(*args, **kwargs)
             await publisher.flush()
             return result

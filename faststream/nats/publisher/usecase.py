@@ -12,11 +12,13 @@ from faststream.response.publish_type import PublishType
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.nats.configs import NatsBrokerConfig, NatsPublisherConfig
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.producer import NatsFastProducer, NatsJSFastProducer
     from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
+
+    from .config import NatsPublisherConfig
 
 
 class LogicPublisher(PublisherUsecase[Msg]):
@@ -24,9 +26,9 @@ class LogicPublisher(PublisherUsecase[Msg]):
 
     _outer_config: "NatsBrokerConfig"
 
-    def __init__(self, config: "NatsPublisherConfig", /) -> None:
+    def __init__(self, config: "NatsPublisherConfig", specification: "PublisherSpecification") -> None:
         """Initialize NATS publisher object."""
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._subject = config.subject
         self.stream = config.stream
@@ -43,11 +45,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         stream: None = None,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None: ...
 
     @overload
@@ -55,11 +57,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> "PubAck": ...
 
     @override
@@ -67,11 +69,11 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         reply_to: str = "",
-        correlation_id: Optional[str] = None,
-        stream: Optional[str] = None,
-        timeout: Optional[float] = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -142,8 +144,8 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self,
         message: "SendableMessage",
         subject: str = "",
-        headers: Optional[dict[str, str]] = None,
-        correlation_id: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.

@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -20,10 +19,10 @@ class ServerVariable(BaseModel):
         examples : list of example values for the server variable (optional)
     """
 
-    enum: Optional[list[str]] = None
-    default: Optional[str] = None
-    description: Optional[str] = None
-    examples: Optional[list[str]] = None
+    enum: list[str] | None = None
+    default: str | None = None
+    description: str | None = None
+    examples: list[str] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -53,12 +52,12 @@ class Server(BaseModel):
 
     url: str
     protocol: str
-    protocolVersion: Optional[str]
-    description: Optional[str]
-    tags: Optional[list[Union[Tag, AnyDict]]]
-    security: Optional[SecurityRequirement]
+    protocolVersion: str | None
+    description: str | None = None
+    tags: list[Tag | AnyDict] | None = None
+    security: SecurityRequirement | None = None
 
-    variables: Optional[dict[str, Union[ServerVariable, Reference]]] = None
+    variables: dict[str, ServerVariable | Reference] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

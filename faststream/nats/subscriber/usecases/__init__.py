@@ -9,7 +9,7 @@ from .stream_pull_subscriber import (
 )
 from .stream_push_subscriber import (
     ConcurrentPushStreamSubscriber,
-    PushStreamSubscription,
+    PushStreamSubscriber,
 )
 
 __all__ = (
@@ -22,5 +22,5 @@ __all__ = (
     "LogicSubscriber",
     "ObjStoreWatchSubscriber",
     "PullStreamSubscriber",
-    "PushStreamSubscription",
+    "PushStreamSubscriber",
 )

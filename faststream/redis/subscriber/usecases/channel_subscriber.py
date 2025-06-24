@@ -3,13 +3,14 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    TypeAlias,
 )
 
 import anyio
 from redis.asyncio.client import (
     PubSub as RPubSub,
 )
-from typing_extensions import TypeAlias, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
@@ -24,9 +25,13 @@ from faststream.redis.parser import (
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from faststream._internal.endpoint.subscriber.call_item import (
+        CallsCollection,
+    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.configs import RedisSubscriberConfig
     from faststream.redis.schemas import PubSub
+    from faststream.redis.subscriber.config import RedisSubscriberConfig
+    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -34,14 +39,14 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
-    subscription: Optional[RPubSub]
+    subscription: RPubSub | None
 
-    def __init__(self, config: "RedisSubscriberConfig", /) -> None:
+    def __init__(self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]") -> None:
         assert config.channel_sub  # nosec B101
         parser = RedisPubSubParser(pattern=config.channel_sub.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self._channel = config.channel_sub
         self.subscription = None
@@ -76,19 +81,19 @@ class ChannelSubscriber(LogicSubscriber):
         await super().start(psub)
 
     async def close(self) -> None:
+        await super().close()
+
         if self.subscription is not None:
             await self.subscription.unsubscribe()
             await self.subscription.aclose()  # type: ignore[attr-defined]
             self.subscription = None
-
-        await super().close()
 
     @override
     async def get_one(
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[RedisMessage]":
+    ) -> "RedisMessage | None":
         assert self.subscription, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -96,7 +101,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         sleep_interval = timeout / 10
 
-        raw_message: Optional[PubSubMessage] = None
+        raw_message: PubSubMessage | None = None
 
         with anyio.move_on_after(timeout):
             while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
@@ -104,7 +109,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         context = self._outer_config.fd_config.context
 
-        msg: Optional[RedisMessage] = await process_msg(  # type: ignore[assignment]
+        msg: RedisMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
@@ -115,7 +120,8 @@ class ChannelSubscriber(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
+    # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:
         assert self.subscription, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -124,7 +130,7 @@ class ChannelSubscriber(LogicSubscriber):
         timeout = 5
         sleep_interval = timeout / 10
 
-        raw_message: Optional[PubSubMessage] = None
+        raw_message: PubSubMessage | None = None
 
         while True:
             with anyio.move_on_after(timeout):
@@ -148,7 +154,7 @@ class ChannelSubscriber(LogicSubscriber):
             )
             yield msg
 
-    async def _get_message(self, psub: RPubSub) -> Optional[PubSubMessage]:
+    async def _get_message(self, psub: RPubSub) -> PubSubMessage | None:
         raw_msg = await psub.get_message(
             ignore_subscribe_messages=True,
             timeout=self.channel.polling_interval,
@@ -169,7 +175,7 @@ class ChannelSubscriber(LogicSubscriber):
             await self.consume_one(msg)
 
 
-class ConcurrentChannelSubscriber(
+class ChannelConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage"],
     ChannelSubscriber,
 ):

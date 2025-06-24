@@ -3,7 +3,7 @@ import sys
 import warnings
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import anyio
 import typer
@@ -56,7 +56,7 @@ def version_callback(version: bool) -> None:
 
 @cli.callback()
 def main(
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         False,
         "-v",
         "--version",
@@ -95,7 +95,7 @@ def run(
         envvar="FASTSTREAM_LOG_LEVEL",
         show_default=False,
     ),
-    log_config: Optional[Path] = typer.Option(
+    log_config: Path | None = typer.Option(
         None,
         "--log-config",
         help=(
@@ -188,7 +188,7 @@ def _run(
     app: str,
     extra_options: dict[str, "SettingField"],
     is_factory: bool,
-    log_config: Optional[Path],
+    log_config: Path | None,
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:
@@ -207,7 +207,7 @@ def _run(
 def _run_imported_app(
     app_obj: "Application",
     extra_options: dict[str, "SettingField"],
-    log_config: Optional[Path],
+    log_config: Path | None,
     log_level: int = logging.NOTSET,
     app_level: int = logging.INFO,  # option for reloader only
 ) -> None:

@@ -5,9 +5,9 @@ import pytest
 from faststream import AckPolicy
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
-from faststream.kafka.subscriber.specified import (
-    SpecificationConcurrentBetweenPartitionsSubscriber,
-    SpecificationConcurrentDefaultSubscriber,
+from faststream.kafka.subscriber.usecase import (
+    ConcurrentBetweenPartitionsSubscriber,
+    ConcurrentDefaultSubscriber,
 )
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
@@ -99,10 +99,10 @@ def test_max_workers_configuration(queue: str) -> None:
     broker = KafkaBroker()
 
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.ACK_FIRST)
-    assert isinstance(sub, SpecificationConcurrentDefaultSubscriber)
+    assert isinstance(sub, ConcurrentDefaultSubscriber)
 
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR)
-    assert isinstance(sub, SpecificationConcurrentBetweenPartitionsSubscriber)
+    assert isinstance(sub, ConcurrentBetweenPartitionsSubscriber)
     with pytest.raises(SetupError):
         broker.subscriber(
             partitions=[TopicPartition(topic="topic", partition=1)],

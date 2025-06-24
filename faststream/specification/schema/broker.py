@@ -10,8 +10,8 @@ if TYPE_CHECKING:
 @dataclass
 class BrokerSpec:
     url: list[str]
-    protocol: Optional[str]
-    protocol_version: Optional[str]
-    description: Optional[str]
+    protocol: str | None
+    protocol_version: str | None
+    description: str | None
     tags: Iterable[Union["Tag", "TagDict"]]
     security: Optional["BaseSecurity"]

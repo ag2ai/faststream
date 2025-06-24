@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
 
-from faststream._internal._compat import HAS_TYPER, ExceptionGroup
+from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
-from faststream.exceptions import StartupValidationError
+from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
 from .response import AsgiResponse
 from .websocket import WebSocketClose
@@ -33,13 +33,14 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
-    from faststream.asgi.types import ASGIApp, Receive, Scope, Send
 
     class UvicornServerProtocol(Protocol):
         should_exit: bool
         force_exit: bool
 
-        def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None: ...
+        def handle_exit(self, sig: int, frame: FrameType | None) -> None: ...
+
+    from .types import ASGIApp, Receive, Scope, Send
 
 
 class ServerState(Protocol):
@@ -116,6 +117,9 @@ class AsgiFastStream(Application):
 
         self._server = OuterRunState()
 
+        self._log_level: int = logging.INFO
+        self._run_extra_options: dict[str, SettingField] = {}
+
     @classmethod
     def from_app(
         cls,
@@ -161,25 +165,21 @@ class AsgiFastStream(Application):
     async def run(
         self,
         log_level: int = logging.INFO,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> None:
-        try:
-            import uvicorn
-        except ImportError as e:
-            error_msg = "You need uvicorn to run FastStream ASGI App via CLI.\npip install uvicorn"
-            raise ImportError(error_msg) from e
+        if not HAS_UVICORN:
+            raise ImportError(INSTALL_UVICORN)
 
-        run_extra_options = cast_uvicorn_params(run_extra_options or {})
-
-        uvicorn_config_params = set(inspect.signature(uvicorn.Config).parameters.keys())
+        self._log_level = log_level
+        self._run_extra_options = cast_uvicorn_params(run_extra_options or {})
 
         config = uvicorn.Config(
             app=self,
-            log_level=log_level,
-            **{  # type: ignore[arg-type]
+            log_level=self._log_level,
+            **{
                 key: v
-                for key, v in run_extra_options.items()
-                if key in uvicorn_config_params
+                for key, v in self._run_extra_options.items()
+                if key in set(inspect.signature(uvicorn.Config).parameters.keys())
             },
         )
 
@@ -193,9 +193,9 @@ class AsgiFastStream(Application):
     @asynccontextmanager
     async def start_lifespan_context(
         self,
-        run_extra_options: Optional[dict[str, "SettingField"]] = None,
+        run_extra_options: dict[str, "SettingField"] | None = None,
     ) -> AsyncIterator[None]:
-        run_extra_options = run_extra_options or self._server.extra_options
+        run_extra_options = run_extra_options or self._run_extra_options
 
         async with self.lifespan_context(**run_extra_options):
             try:

@@ -1,18 +1,17 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Annotated, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from aio_pika import IncomingMessage
-from typing_extensions import Doc, Unpack, override
+from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
 from faststream.message import gen_cor_id
-from faststream.rabbit.configs import RabbitPublisherConfig
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
 
-from .options import MessageOptions, PublishOptions
+from .options import MessageOptions, PublishKwargs, PublishOptions, RequestPublishKwargs
 
 if TYPE_CHECKING:
     import aiormq
@@ -23,30 +22,17 @@ if TYPE_CHECKING:
     from faststream.rabbit.types import AioPikaSendableMessage
     from faststream.response.response import PublishCommand
 
-
-# should be public to use in imports
-class RequestPublishKwargs(MessageOptions, PublishOptions, total=False):
-    """Typed dict to annotate RabbitMQ requesters."""
+    from .config import RabbitPublisherConfig
+    from .specification import RabbitPublisherSpecification
 
 
-class PublishKwargs(MessageOptions, PublishOptions, total=False):
-    """Typed dict to annotate RabbitMQ publishers."""
-
-    reply_to: Annotated[
-        Optional[str],
-        Doc(
-            "Reply message routing key to send with (always sending to default exchange).",
-        ),
-    ]
-
-
-class LogicPublisher(PublisherUsecase[IncomingMessage]):
+class RabbitPublisher(PublisherUsecase[IncomingMessage]):
     """A class to represent a RabbitMQ publisher."""
 
     _outer_config: "RabbitBrokerConfig"
 
-    def __init__(self, config: RabbitPublisherConfig, /) -> None:
-        super().__init__(config)
+    def __init__(self, config: "RabbitPublisherConfig", specification: "RabbitPublisherSpecification") -> None:
+        super().__init__(config, specification)
 
         self.queue = config.queue
         self.routing_key = config.routing_key
@@ -54,7 +40,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
         self.exchange = config.exchange
 
         self.headers = config.message_kwargs.pop("headers") or {}
-        self.reply_to: str = config.message_kwargs.pop("reply_to", None) or ""
+        self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
         self.timeout = config.message_kwargs.pop("timeout", None)
 
         message_options, _ = filter_by_dict(MessageOptions, dict(config.message_kwargs))
@@ -82,9 +68,8 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
             else:
-                routing_key = self.routing_key or self.queue.routing()
-
-            routing_key = f"{self._outer_config.prefix}{routing_key}"
+                r = self.routing_key or self.queue.routing()
+                routing_key = f"{self._outer_config.prefix}{r}"
 
         return routing_key
 
@@ -102,7 +87,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
         *,
         routing_key: str = "",
         # message args
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         # publisher specific
         **publish_kwargs: "Unpack[PublishKwargs]",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
@@ -117,7 +102,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
             **(self.publish_options | self.message_options | publish_kwargs),
         )
 
-        frame: Optional[aiormq.abc.ConfirmationFrameType] = await self._basic_publish(
+        frame: aiormq.abc.ConfirmationFrameType | None = await self._basic_publish(
             cmd,
             _extra_middlewares=(),
         )
@@ -129,7 +114,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
         cmd: Union["RabbitPublishCommand", "PublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
-    ) -> None:
+    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         """This method should be called in subscriber flow only."""
         cmd = RabbitPublishCommand.from_cmd(cmd)
 
@@ -142,7 +127,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
         cmd.message_options = {**self.message_options, **cmd.message_options}
         cmd.publish_options = {**self.publish_options, **cmd.publish_options}
 
-        await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        return await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
 
     @override
     async def request(
@@ -152,7 +137,7 @@ class LogicPublisher(PublisherUsecase[IncomingMessage]):
         exchange: Union["RabbitExchange", str, None] = None,
         *,
         routing_key: str = "",
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         **publish_kwargs: "Unpack[RequestPublishKwargs]",
     ) -> "RabbitMessage":
         headers = self.headers | publish_kwargs.pop("headers", {})

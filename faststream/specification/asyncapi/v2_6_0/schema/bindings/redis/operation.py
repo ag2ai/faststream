@@ -3,7 +3,6 @@
 References: https://github.com/asyncapi/bindings/tree/master/redis
 """
 
-from typing import Optional
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -20,11 +19,11 @@ class OperationBinding(BaseModel):
         bindingVersion : version of the binding (default is "custom")
     """
 
-    replyTo: Optional[AnyDict] = None
+    replyTo: AnyDict | None = None
     bindingVersion: str = "custom"
 
     @classmethod
-    def from_sub(cls, binding: Optional[redis.OperationBinding]) -> Optional[Self]:
+    def from_sub(cls, binding: redis.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 
@@ -33,7 +32,7 @@ class OperationBinding(BaseModel):
         )
 
     @classmethod
-    def from_pub(cls, binding: Optional[redis.OperationBinding]) -> Optional[Self]:
+    def from_pub(cls, binding: redis.OperationBinding | None) -> Self | None:
         if not binding:
             return None
 

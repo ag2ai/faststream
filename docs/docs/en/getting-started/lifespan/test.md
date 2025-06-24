@@ -41,11 +41,11 @@ For this reason, **FastStream** has a special **TestApp** patcher working as a r
 
 ## Using with **TestBroker**
 
-If you want to use In-Memory patched broker in your tests, it's advisable to patch the broker first (before applying the application patch).
+If you want to use In-Memory patched broker in your tests, it's advised to patch the broker first (before applying the application patch).
 
-Also, **TestApp** and **TestBroker** are calling `broker.start()` both. According to the original logic, broker should be started in the `FastStream` application, but **TestBroker** applied first breaks this behavior. This reason **TestApp** prevents **TestBroker** `broker.start()` call if it placed inside **TestBroker** context.
+Also, **TestApp** and **TestBroker** are both calling `#!python broker.start()`. According to the original logic, broker should be started in the `FastStream` application, but if **TestBroker** is applied first – it breaks this behavior. For this reason, **TestApp** prevents **TestBroker** `#!python broker.start()` call if it is placed inside the **TestBroker** context.
 
-This behavior is ruled by `connect_only` **TestBroker** argument. By default it has `None` value, but **TestApp** can set it to `True/False` by inner logic. To prevent this "magic", just setup `connect_only` argument manually.
+This behavior is controlled by `connect_only` argument to **TestBroker**. While `None` is the default value, **TestApp** can set it to `True` or `False` during the code execution. If `connect_only` argument is provided manually, it would not be changed.
 
 !!! warning
-    With `#!python connect_only=False`, all `FastStream` hooks will be called after **broker was started**, what can breaks some `#!python @app.on_startup` logic.
+    With `#!python connect_only=False`, all `FastStream` hooks will be called after the **broker start**, which can break some `#!python @app.on_startup` logic.

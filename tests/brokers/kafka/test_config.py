@@ -1,5 +1,5 @@
 from faststream import AckPolicy
-from faststream.kafka.configs import KafkaSubscriberConfig
+from faststream.kafka.subscriber.config import KafkaSubscriberConfig
 
 
 def test_default() -> None:

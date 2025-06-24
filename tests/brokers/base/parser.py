@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -10,7 +10,7 @@ from .basic import BaseTestcaseConfig
 class LocalCustomParserTestcase(BaseTestcaseConfig):
     async def test_local_parser(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -44,7 +44,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
     async def test_local_sync_decoder(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -77,7 +77,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
     async def test_global_sync_decoder(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -110,7 +110,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
     async def test_local_parser_no_share_between_subscribers(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -153,7 +153,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
     async def test_local_parser_no_share_between_handlers(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -199,7 +199,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 class CustomParserTestcase(LocalCustomParserTestcase):
     async def test_global_parser(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()

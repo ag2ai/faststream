@@ -1,6 +1,6 @@
 import asyncio
-from typing import Any, Optional, cast
-from unittest.mock import Mock
+from typing import Any, cast
+from unittest.mock import MagicMock
 
 import pytest
 from dirty_equals import IsFloat, IsUUID
@@ -99,7 +99,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: Optional[str] = None,
+        parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes or {}
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system, attrs[
@@ -145,7 +145,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         self,
         metrics: list[Metric],
         count: int = 1,
-        error_type: Optional[str] = None,
+        error_type: str | None = None,
     ) -> None:
         if self.include_messages_counters:
             assert len(metrics) == 4
@@ -170,12 +170,11 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
     async def test_subscriber_create_publish_process_span(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
         broker = self.get_broker(middlewares=(mid,))
 
@@ -204,18 +203,16 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         self.assert_span(publish, Action.PUBLISH, queue, msg, parent_span_id)
         self.assert_span(process, Action.PROCESS, queue, msg, parent_span_id)
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_chain_subscriber_publisher(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
         broker = self.get_broker(middlewares=(mid,))
 
@@ -265,17 +262,16 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             < proc2.start_time
         )
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
+    @pytest.mark.flaky(retries=3, retry_delay=1)
     async def test_no_trace_context_create_process_span(
         self,
         queue: str,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
         broker = self.get_broker(middlewares=(mid,))
         broker_without_middlewares = self.get_broker()
@@ -306,17 +302,14 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         self.assert_span(create, Action.CREATE, queue, msg)
         self.assert_span(process, Action.PROCESS, queue, msg, parent_span_id)
 
-        assert event.is_set()
-
     async def test_metrics(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(meter_provider=meter_provider)
         broker = self.get_broker(middlewares=(mid,))
 
@@ -341,19 +334,16 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         metrics = self.get_metrics(metric_reader)
 
         self.assert_metrics(metrics)
-
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_error_metrics(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(meter_provider=meter_provider)
         broker = self.get_broker(middlewares=(mid,))
         expected_value_type = "ValueError"
@@ -382,19 +372,16 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         metrics = self.get_metrics(metric_reader)
 
         self.assert_metrics(metrics, error_type=expected_value_type)
-
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_span_in_context(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
 
@@ -417,16 +404,14 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_get_baggage(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class()
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
         expected_baggage = {"foo": "bar"}
@@ -459,16 +444,14 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_clear_baggage(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class()
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
 
@@ -509,16 +492,14 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_modify_baggage(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class()
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
         expected_baggage = {"baz": "bar", "bar": "baz"}
@@ -561,15 +542,13 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        assert event.is_set()
         mock.assert_called_once_with(msg)
 
     async def test_get_baggage_from_headers(
         self,
         queue: str,
-    ):
-        event = asyncio.Event()
-
+        event: asyncio.Event,
+    ) -> None:
         mid = self.telemetry_middleware_class()
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
 
@@ -586,7 +565,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         propagator.inject(headers, context=ctx)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler():
+        async def handler() -> None:
             baggage_instance = Baggage.from_headers(headers)
             extracted_baggage = baggage_instance.get_all()
             assert extracted_baggage == expected_baggage

@@ -31,7 +31,7 @@ class AcknowledgementMiddleware:
         self.logger = logger
 
     def __call__(
-        self, msg: Optional[Any], context: "ContextRepo"
+        self, msg: Any | None, context: "ContextRepo"
     ) -> "_AcknowledgementMiddleware":
         return _AcknowledgementMiddleware(
             msg,
@@ -45,7 +45,7 @@ class AcknowledgementMiddleware:
 class _AcknowledgementMiddleware(BaseMiddleware):
     def __init__(
         self,
-        msg: Optional[Any],
+        msg: Any | None,
         /,
         *,
         logger: "LoggerState",
@@ -60,7 +60,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         self.extra_options = extra_options
         self.logger = logger
 
-        self.message: Optional[StreamMessage[Any]] = None
+        self.message: StreamMessage[Any] | None = None
 
     async def consume_scope(
         self,
@@ -75,10 +75,10 @@ class _AcknowledgementMiddleware(BaseMiddleware):
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if self.ack_policy is AckPolicy.ACK_FIRST:
             return False
 

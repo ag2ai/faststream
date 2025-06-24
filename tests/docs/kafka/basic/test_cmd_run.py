@@ -1,6 +1,6 @@
 import traceback
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from typer.testing import CliRunner
@@ -12,7 +12,7 @@ from faststream.app import FastStream
 @pytest.mark.kafka()
 def test_run_cmd(
     runner: CliRunner,
-    mock: Mock,
+    mock: MagicMock,
     monkeypatch: pytest.MonkeyPatch,
     kafka_basic_project: str,
 ) -> None:

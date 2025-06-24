@@ -245,8 +245,8 @@ class _RPCCallback:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         self.lock.release()

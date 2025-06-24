@@ -37,38 +37,38 @@ faststream run serve:app --env .env.test
 
 ### Details
 
-Now let's look into a little more detail
+Now let's look into a little more detail.
 
-To begin with, we used a decorator
+To begin with, we are using a `#!python @app.on_startup` decorator
 
 ```python linenums="12" hl_lines="14-15" hl_lines="1"
 {! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
 ```
 
-to declare a function that should run when our application starts
+to declare a function that runs when our application starts.
 
-The next step is to declare the arguments that our function will receive
+The next step is to declare our function parameters that we expect to receive:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="2"
 {! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
 ```
 
-In this case, the `env` field will be passed to the `setup` function from the arguments with the command line
+The `env` argument will be passed to the `setup` function from the user-provided command line arguments.
 
 !!! tip
-    The default lifecycle functions are used with the decorator `#!python @apply_types`,
+    All lifecycle functions always apply `#!python @apply_types` decorator,
     therefore, all [context fields](../context/index.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
 
-Then, we initialized the settings of our application using the file passed to us from the command line
+Then, we initialize the settings of our application using the file passed to us from the command line:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="3"
 {! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
 ```
 
-And put these settings in a global context
+And put these settings in a global context:
 
-```python linenums="12" hl_lines="14-15" hl_lines="4"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+```python linenums="14" hl_lines="4"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
 ```
 
 ??? note
@@ -76,9 +76,16 @@ And put these settings in a global context
 
     ```python
     from faststream import Context, apply_types
+
     @apply_types
     async def func(settings = Context()): ...
     ```
+
+As the last step we initialize our broker: now, when the application starts, it will be ready to receive messages:
+
+```python linenums="14" hl_lines="5"
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+```
 
 ## Another example
 
@@ -87,11 +94,11 @@ Now let's imagine that we have a machine learning model that needs to process me
 Initialization of such models usually takes a long time. It would be wise to do this at the start of the application, and not when processing each message.
 
 You can initialize your model somewhere at the top of your module/file. However, in this case, this code will be run even just in case of importing
-this module, for example, during testing. It is unlikely that you want to run your model on every test run...
+this module, for example, during testing.
 
 Therefore, it is worth initializing the model in the `#!python @app.on_startup` hook.
 
-Also, we don't want the model to finish its work incorrectly when the application is stopped. To avoid this, we need the hook `#!python @app.on_shutdown`
+Also, we don't want the model to finish its work incorrectly when the application is stopped. To avoid this, we need to also define the `#!python @app.on_shutdown` hook:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="14 21"

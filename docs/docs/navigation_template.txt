@@ -42,6 +42,7 @@ search:
         - [FastAPI Plugin](getting-started/integrations/fastapi/index.md)
         - [Django](getting-started/integrations/django/index.md)
     - [CLI](getting-started/cli/index.md)
+    - [Acknowledgement](getting-started/acknowledgement.md)
     - [ASGI](getting-started/asgi.md)
     - Observability
         - [Healthcheks](getting-started/observability/healthcheks.md)
@@ -119,6 +120,7 @@ search:
         - [Batching](redis/streams/batch.md)
         - [Acknowledgement](redis/streams/ack.md)
     - [RPC](redis/rpc.md)
+    - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
 - [Reference - Code API](api/index.md)

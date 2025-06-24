@@ -1,6 +1,7 @@
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Protocol, TypeVar
+from typing import Protocol, TypeVar
 from unittest.mock import MagicMock
 
 from typing_extensions import ParamSpec

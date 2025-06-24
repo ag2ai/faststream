@@ -28,7 +28,7 @@ jobs:
           path: .cache
       - run: |
           set -ux
-          uv pip install --system -e .[dev]
+          uv pip install --system --group dev -e .
           uv pip uninstall --system email-validator # This is to fix broken link in docs
       - run: ./scripts/build-docs.sh
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV

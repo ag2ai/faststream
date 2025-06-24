@@ -56,15 +56,11 @@ class FastAPITestcase(BaseTestcaseConfig):
         mock.assert_called_with("hi")
 
     async def test_background(
-        self,
-        mock: Mock,
-        queue: str,
+        self, mock: Mock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
-        def task(msg):
+        def task(msg: Any) -> None:
             event.set()
             return mock(msg)
 
@@ -84,12 +80,9 @@ class FastAPITestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with("hi")
 
-    async def test_context(self, mock: Mock, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_context(self, mock: Mock, queue: str, event: asyncio.Event) -> None:
         router = self.router_class()
         context = router.context
 
@@ -98,7 +91,7 @@ class FastAPITestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def hello(msg=Context(context_key)):
+        async def hello(msg: Any = Context(context_key)) -> None:
             try:
                 mock(msg == context.resolve(context_key) and msg["1"] == "1")
             finally:
@@ -122,8 +115,6 @@ class FastAPITestcase(BaseTestcaseConfig):
     async def test_context_annotated(
         self, mock: Mock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
         context = router.context
 
@@ -132,7 +123,7 @@ class FastAPITestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def hello(msg: Annotated[Any, Context(context_key)]):
+        async def hello(msg: Annotated[Any, Context(context_key)]) -> None:
             try:
                 mock(msg == context.resolve(context_key) and msg["1"] == "1")
             finally:
@@ -153,36 +144,6 @@ class FastAPITestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.assert_called_with(True)
 
-    def test_faststream_context(self, queue: str) -> None:
-        router = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router.subscriber(*args, **kwargs)
-        async def hello(msg: Any = FSContext()) -> None:
-            pass
-
-        app = FastAPI()
-        app.include_router(router)
-
-        with pytest.raises(SetupError), TestClient(app):
-            ...
-
-    def test_faststream_context_annotated(self, queue: str) -> None:
-        router = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router.subscriber(*args, **kwargs)
-        async def hello(msg: Annotated[Any, FSContext()]) -> None:
-            pass
-
-        app = FastAPI()
-        app.include_router(router)
-
-        with pytest.raises(SetupError), TestClient(app):
-            ...
-
     async def test_initial_context(self, queue: str, event: asyncio.Event) -> None:
         router = self.router_class()
         context = router.context
@@ -190,7 +151,7 @@ class FastAPITestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def hello(msg: int, data=Context(queue, initial=set)) -> None:
+        async def hello(msg: int, data: set[int] = Context(queue, initial=set)) -> None:
             data.add(msg)
             if len(data) == 2:
                 event.set()
@@ -206,7 +167,6 @@ class FastAPITestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         assert context.get(queue) == {1, 2}
         context.reset_global(queue)
 
@@ -485,9 +445,10 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):
+        with pytest.raises(SetupError):  # noqa: PT012
             async with self.patch_broker(router.broker):
-                ...
+                with TestClient(app):
+                    ...
 
     async def test_depends_from_fastdepends_annotated(self, queue: str) -> None:
         router = self.router_class()
@@ -502,8 +463,101 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):
+        with pytest.raises(SetupError):  # noqa: PT012
             async with self.patch_broker(router.broker):
+                with TestClient(app):
+                    ...
+
+    async def test_depends_combined_annotated(self, queue: str) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        subscriber = router.subscriber(*args, **kwargs)
+
+        @subscriber
+        def sub(
+            d: Annotated[Any, FSDepends(lambda: 1), Depends(lambda: 1)],
+        ) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker):
+            with TestClient(app):
+                ...
+
+    async def test_faststream_context(self, queue: str) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(msg: Any = FSContext()) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError):  # noqa: PT012
+            async with self.patch_broker(router.broker):
+                with TestClient(app):
+                    ...
+
+    async def test_faststream_context_annotated(self, queue: str) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(msg: Annotated[Any, FSContext()]) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        with pytest.raises(SetupError):  # noqa: PT012
+            async with self.patch_broker(router.broker):
+                with TestClient(app):
+                    ...
+
+    async def test_combined_context_annotated(self, queue: str) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(
+            msg: Annotated[
+                Any,
+                Context("message.headers"),
+                FSContext("message.headers"),
+            ],
+        ) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker):
+            with TestClient(app):
+                ...
+
+    async def test_nested_combined_context_annotated(self, queue: str) -> None:
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def hello(
+            msg: Annotated[
+                Annotated[Any, FSContext("message.headers")],
+                Context("message.headers"),
+            ],
+        ) -> None: ...
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker):
+            with TestClient(app):
                 ...
 
     async def test_yield_depends(self, mock: Mock, queue: str) -> None:

@@ -12,7 +12,7 @@ from typing import (
 
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.confluent.publisher.factory import create_publisher
 from faststream.confluent.subscriber.factory import create_subscriber
@@ -31,20 +31,20 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.publisher.specified import (
-        SpecificationBatchPublisher,
-        SpecificationDefaultPublisher,
+    from faststream.confluent.publisher.usecase import (
+        BatchPublisher,
+        DefaultPublisher,
     )
     from faststream.confluent.schemas import TopicPartition
-    from faststream.confluent.subscriber.specified import (
-        SpecificationBatchSubscriber,
-        SpecificationConcurrentDefaultSubscriber,
-        SpecificationDefaultSubscriber,
+    from faststream.confluent.subscriber.usecase import (
+        BatchSubscriber,
+        ConcurrentDefaultSubscriber,
+        DefaultSubscriber,
     )
 
 
 class KafkaRegistrator(
-    ABCBroker[
+    Registrator[
         Union[
             "Message",
             tuple["Message", ...],
@@ -55,17 +55,10 @@ class KafkaRegistrator(
 
     config: "KafkaBrokerConfig"
     _subscribers: list[  # type: ignore[assignment]
-        Union[
-            "SpecificationBatchSubscriber",
-            "SpecificationDefaultSubscriber",
-            "SpecificationConcurrentDefaultSubscriber",
-        ],
+        Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"],
     ]
     _publishers: list[  # type: ignore[assignment]
-        Union[
-            "SpecificationBatchPublisher",
-            "SpecificationDefaultPublisher",
-        ]
+        Union["BatchPublisher", "DefaultPublisher"]
     ]
 
     @overload  # type: ignore[override]
@@ -78,7 +71,7 @@ class KafkaRegistrator(
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -89,7 +82,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         group_instance_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             A unique string that identifies the consumer instance.
@@ -293,7 +286,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ],
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         # broker args
@@ -334,11 +327,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -360,7 +353,7 @@ class KafkaRegistrator(
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -371,7 +364,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         group_instance_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             A unique string that identifies the consumer instance.
@@ -575,7 +568,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         # broker args
@@ -616,11 +609,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -631,8 +624,8 @@ class KafkaRegistrator(
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @overload
@@ -645,7 +638,7 @@ class KafkaRegistrator(
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -656,7 +649,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         group_instance_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             A unique string that identifies the consumer instance.
@@ -860,7 +853,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         # broker args
@@ -901,11 +894,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -920,9 +913,9 @@ class KafkaRegistrator(
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @override
@@ -935,7 +928,7 @@ class KafkaRegistrator(
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             Name of the consumer group to join for dynamic
@@ -946,7 +939,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         group_instance_id: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 """
             A unique string that identifies the consumer instance.
@@ -1150,7 +1143,7 @@ class KafkaRegistrator(
             Doc("Whether to consume messages in batches or not."),
         ] = False,
         max_records: Annotated[
-            Optional[int],
+            int | None,
             Doc("Number of messages to consume as one batch."),
         ] = None,
         # broker args
@@ -1191,11 +1184,11 @@ class KafkaRegistrator(
         ] = False,
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification subscriber object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc(
                 "Specification subscriber object description. "
                 "Uses decorated docstring as default.",
@@ -1210,9 +1203,9 @@ class KafkaRegistrator(
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]:
         subscriber = create_subscriber(
             *topics,
@@ -1250,11 +1243,11 @@ class KafkaRegistrator(
         )
 
         if batch:
-            subscriber = cast("SpecificationBatchSubscriber", subscriber)
+            subscriber = cast("BatchSubscriber", subscriber)
         elif max_workers > 1:
-            subscriber = cast("SpecificationConcurrentDefaultSubscriber", subscriber)
+            subscriber = cast("ConcurrentDefaultSubscriber", subscriber)
         else:
-            subscriber = cast("SpecificationDefaultSubscriber", subscriber)
+            subscriber = cast("DefaultSubscriber", subscriber)
 
         subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
 
@@ -1274,7 +1267,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1288,7 +1281,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1297,7 +1290,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1323,15 +1316,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1345,7 +1338,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationDefaultPublisher": ...
+    ) -> "DefaultPublisher": ...
 
     @overload
     def publisher(
@@ -1356,7 +1349,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1370,7 +1363,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1379,7 +1372,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1405,15 +1398,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1427,7 +1420,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationBatchPublisher": ...
+    ) -> "BatchPublisher": ...
 
     @overload
     def publisher(
@@ -1438,7 +1431,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1452,7 +1445,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1461,7 +1454,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1487,15 +1480,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1510,8 +1503,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]: ...
 
     @override
@@ -1523,7 +1516,7 @@ class KafkaRegistrator(
         ],
         *,
         key: Annotated[
-            Union[bytes, Any, None],
+            bytes | Any | None,
             Doc(
                 """
             A key to associate with the message. Can be used to
@@ -1537,7 +1530,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         partition: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 """
             Specify a partition. If not set, the partition will be
@@ -1546,7 +1539,7 @@ class KafkaRegistrator(
             ),
         ] = None,
         headers: Annotated[
-            Optional[dict[str, str]],
+            dict[str, str] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "**content-type** and **correlation_id** will be set automatically by framework anyway. "
@@ -1572,15 +1565,15 @@ class KafkaRegistrator(
         ] = (),
         # Specification args
         title: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object title."),
         ] = None,
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Specification publisher object description."),
         ] = None,
         schema: Annotated[
-            Optional[Any],
+            Any | None,
             Doc(
                 "Specification publishing message type. "
                 "Should be any python-native object annotation or `pydantic.BaseModel`.",
@@ -1595,8 +1588,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]:
         """Creates long-living and Specification-documented publisher object.
 
@@ -1627,9 +1620,9 @@ class KafkaRegistrator(
         )
 
         if batch:
-            publisher = cast("SpecificationBatchPublisher", publisher)
+            publisher = cast("BatchPublisher", publisher)
         else:
-            publisher = cast("SpecificationDefaultPublisher", publisher)
+            publisher = cast("DefaultPublisher", publisher)
 
         return super().publisher(publisher)  # type: ignore[return-value,arg-type]
 
@@ -1640,10 +1633,8 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable[
-            "BrokerMiddleware[Union[Message, tuple[Message, ...]]]"
-        ] = (),
-        include_in_schema: Optional[bool] = None,
+        middlewares: Iterable["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):
             msg = (

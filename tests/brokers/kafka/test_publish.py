@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from aiokafka.structs import RecordMetadata
@@ -101,7 +101,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     async def test_response(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -141,7 +141,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     async def test_return_future(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker()
 
@@ -161,7 +161,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_raise_buffer_overflow_exception(
-        self, queue: str, mock: Mock
+        self, queue: str, mock: MagicMock
     ) -> None:
         pub_broker = self.get_broker(max_batch_size=16)
 

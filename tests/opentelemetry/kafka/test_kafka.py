@@ -1,6 +1,6 @@
 import asyncio
-from typing import Any, Optional
-from unittest.mock import Mock
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from dirty_equals import IsStr, IsUUID
@@ -36,7 +36,7 @@ class TestTelemetry(LocalTelemetryTestcase):
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: Optional[str] = None,
+        parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system
@@ -66,7 +66,7 @@ class TestTelemetry(LocalTelemetryTestcase):
     async def test_batch(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
@@ -201,7 +201,7 @@ class TestTelemetry(LocalTelemetryTestcase):
     async def test_single_publish_with_batch_consume(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,

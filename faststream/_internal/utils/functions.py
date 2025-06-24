@@ -1,15 +1,13 @@
 import asyncio
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from concurrent.futures import Executor
 from contextlib import asynccontextmanager
 from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Optional,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -51,10 +49,7 @@ def to_async(
 
 
 def to_async(
-    func: Union[
-        Callable[F_Spec, F_Return],
-        Callable[F_Spec, Awaitable[F_Return]],
-    ],
+    func: Callable[F_Spec, F_Return] | Callable[F_Spec, Awaitable[F_Return]],
 ) -> Callable[F_Spec, Awaitable[F_Return]]:
     """Converts a synchronous function to an asynchronous function."""
     if is_coroutine_callable(func):
@@ -84,8 +79,8 @@ class FakeContext:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         if exc_val:
@@ -96,8 +91,8 @@ class FakeContext:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         if exc_val:
@@ -114,7 +109,7 @@ async def return_input(x: Any) -> Any:
 
 
 async def run_in_executor(
-    executor: Optional[Executor],
+    executor: Executor | None,
     func: Callable[P, T],
     *args: P.args,
     **kwargs: P.kwargs,

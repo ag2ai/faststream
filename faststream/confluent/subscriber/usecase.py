@@ -21,9 +21,13 @@ from faststream.confluent.schemas import TopicPartition
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream.confluent.configs import KafkaBrokerConfig, KafkaSubscriberConfig
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.message import StreamMessage
+
+    from .config import KafkaSubscriberConfig
+    from .specification import KafkaSubscriberSpecification
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -31,13 +35,18 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     _outer_config: "KafkaBrokerConfig"
 
-    group_id: Optional[str]
+    group_id: str | None
 
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
 
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection[MsgType]",
+    ) -> None:
+        super().__init__(config, specification, calls)
 
         self.__connection_data = config.connection_data
 
@@ -50,7 +59,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.polling_interval = config.polling_interval
 
     @property
-    def client_id(self) -> Optional[str]:
+    def client_id(self) -> str | None:
         return self._outer_config.client_id
 
     @property
@@ -93,7 +102,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[StreamMessage[MsgType]]":
+    ) -> "StreamMessage[MsgType] | None":
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -152,7 +161,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         await self.consume(msg)
 
     @abstractmethod
-    async def get_msg(self) -> Optional[MsgType]:
+    async def get_msg(self) -> MsgType | None:
         raise NotImplementedError
 
     async def _consume(self) -> None:
@@ -184,15 +193,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        if self.topics:
-            return list(self.topics)
-        return [f"{p.topic}-{p.partition}" for p in self.partitions]
+        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
+        return [f"{self._outer_config.prefix}{t}" for t in topics]
 
     @staticmethod
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         topic: str,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
     ) -> dict[str, str]:
         return {
             "topic": topic,
@@ -202,11 +210,16 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber[Message]):
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection[Message]",
+    ) -> None:
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
         config.decoder = self.parser.decode_message
         config.parser = self.parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
     async def get_msg(self) -> Optional["Message"]:
         assert self.consumer, "You should setup subscriber at first."  # nosec B101
@@ -241,17 +254,18 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        /,
-        max_records: Optional[int],
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection[tuple[Message, ...]]",
+        max_records: int | None,
     ) -> None:
-        self.max_records = max_records
-
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
         config.decoder = self.parser.decode_message_batch
         config.parser = self.parser.parse_message_batch
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
-    async def get_msg(self) -> Optional[tuple["Message", ...]]:
+        self.max_records = max_records
+
+    async def get_msg(self) -> tuple["Message", ...] | None:
         assert self.consumer, "You should setup subscriber at first."  # nosec B101
         return (
             await self.consumer.getmany(

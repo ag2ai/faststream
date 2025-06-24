@@ -1,8 +1,8 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Callable, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
@@ -25,8 +25,12 @@ if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
-    from faststream.kafka.configs import KafkaBrokerConfig, KafkaSubscriberConfig
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.message import StreamMessage
+
+    from .config import KafkaSubscriberConfig
+    from .specification import KafkaSubscriberSpecification
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -39,8 +43,13 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     _outer_config: "KafkaBrokerConfig"
 
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection[MsgType]",
+    ) -> None:
+        super().__init__(config, specification, calls)
 
         self._topics = config.topics
         self._partitions = config.partitions
@@ -53,7 +62,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.consumer = None
 
     @property
-    def pattern(self) -> Optional[str]:
+    def pattern(self) -> str | None:
         if not self._pattern:
             return self._pattern
         return f"{self._outer_config.prefix}{self._pattern}"
@@ -77,7 +86,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.builder
 
     @property
-    def client_id(self) -> Optional[str]:
+    def client_id(self) -> str | None:
         return self._outer_config.client_id
 
     async def start(self) -> None:
@@ -126,7 +135,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "Optional[StreamMessage[MsgType]]":
+    ) -> "StreamMessage[MsgType] | None":
         assert (  # nosec B101
             not self.calls
         ), "You can't use `get_one` method if subscriber has registered handlers."
@@ -224,16 +233,21 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     @property
     def topic_names(self) -> list[str]:
         if self.pattern:
-            return [self.pattern]
-        if self.topics:
-            return list(self.topics)
-        return [f"{p.topic}-{p.partition}" for p in self.partitions]
+            topics: Iterable[str] = [self.pattern]
+
+        elif self.topics:
+            topics = self.topics
+
+        else:
+            topics = (f"{p.topic}-{p.partition}" for p in self.partitions)
+
+        return [f"{self._outer_config.prefix}{t}" for t in topics]
 
     @staticmethod
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         topic: str,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
     ) -> dict[str, str]:
         return {
             "topic": topic,
@@ -243,7 +257,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
-    def __init__(self, config: "KafkaSubscriberConfig", /) -> None:
+    def __init__(
+        self,
+        config: "KafkaSubscriberConfig",
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
+    ) -> None:
         if config.pattern:
             reg, pattern = compile_path(
                 config.pattern,
@@ -261,7 +280,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         )
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."  # nosec B101
@@ -287,10 +306,10 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        /,
-        *,
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
         batch_timeout_ms: int,
-        max_records: Optional[int],
+        max_records: int | None,
     ) -> None:
         if config.pattern:
             reg, pattern = compile_path(
@@ -309,7 +328,7 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         )
         config.decoder = self.parser.decode_message
         config.parser = self.parser.parse_message
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.batch_timeout_ms = batch_timeout_ms
         self.max_records = max_records
@@ -361,11 +380,11 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        /,
-        *,
+        specification: "KafkaSubscriberSpecification",
+        calls: "CallsCollection",
         max_workers: int,
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification, calls)
 
         self.max_workers = max_workers
         self.consumer_subgroup = []

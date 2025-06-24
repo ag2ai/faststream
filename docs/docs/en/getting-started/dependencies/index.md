@@ -238,7 +238,7 @@ You can use the decorator `#!python @apply_types` not only with `#!python @broke
 ## Casting Dependency Types
 
 **FastDepends**, used by **FastStream**, also gives the type `return`. This means that the value returned by the dependency will be
-be cast to the type twice: as `return` for dependencies and as the input argument of the main function. This does not incur additional costs if
+cast to the type twice: as `return` for dependencies and as the input argument of the main function. This does not incur additional costs if
 these types have the same annotation. Just keep it in mind. Or not... Anyway, I've warned you.
 
 ```python linenums="1"

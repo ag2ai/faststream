@@ -11,13 +11,22 @@ from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Pipeline
+
     from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.redis.configs import RedisPublisherConfig
     from faststream.redis.message import RedisMessage
-    from faststream.redis.publisher.producer import RedisFastProducer
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
-    from faststream.response.response import PublishCommand
+    from faststream.response import PublishCommand
+
+    from .config import RedisPublisherConfig
+    from .producer import RedisFastProducer
+    from .specification import (
+        ChannelPublisherSpecification,
+        ListPublisherSpecification,
+        RedisPublisherSpecification,
+        StreamPublisherSpecification,
+    )
 
 
 class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
@@ -25,8 +34,12 @@ class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
 
     _producer: "RedisFastProducer"
 
-    def __init__(self, config: "RedisPublisherConfig", /) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: "RedisPublisherConfig",
+        specification: "RedisPublisherSpecification",
+    ) -> None:
+        super().__init__(config, specification)
 
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
@@ -40,11 +53,11 @@ class ChannelPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "ChannelPublisherSpecification",
         *,
         channel: "PubSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._channel = channel
 
@@ -64,10 +77,12 @@ class ChannelPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        channel: Optional[str] = None,
+        channel: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -76,6 +91,7 @@ class ChannelPublisher(LogicPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
         return await self._basic_publish(cmd, _extra_middlewares=())
 
@@ -100,11 +116,11 @@ class ChannelPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        channel: Optional[str] = None,
+        channel: str | None = None,
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,
@@ -123,11 +139,11 @@ class ListPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "ListPublisherSpecification",
         *,
         list: "ListSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
 
         self._list = list
 
@@ -147,10 +163,12 @@ class ListPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        list: Optional[str] = None,
+        list: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -159,6 +177,7 @@ class ListPublisher(LogicPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish(cmd, _extra_middlewares=())
@@ -184,11 +203,11 @@ class ListPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        list: Optional[str] = None,
+        list: str | None = None,
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,
@@ -209,9 +228,10 @@ class ListBatchPublisher(ListPublisher):
         self,
         *messages: "SendableMessage",
         list: str,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             *messages,
@@ -220,6 +240,7 @@ class ListBatchPublisher(ListPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish_batch(cmd, _extra_middlewares=())
@@ -246,11 +267,11 @@ class StreamPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        /,
+        specification: "StreamPublisherSpecification",
         *,
         stream: "StreamSub",
     ) -> None:
-        super().__init__(config)
+        super().__init__(config, specification)
         self._stream = stream
 
     @property
@@ -269,12 +290,13 @@ class StreamPublisher(LogicPublisher):
     async def publish(
         self,
         message: "SendableMessage" = None,
-        stream: Optional[str] = None,
+        stream: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
         *,
-        maxlen: Optional[int] = None,
+        maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes:
         cmd = RedisPublishCommand(
             message,
@@ -284,6 +306,7 @@ class StreamPublisher(LogicPublisher):
             correlation_id=correlation_id or gen_cor_id(),
             maxlen=maxlen or self.stream.maxlen,
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish(cmd, _extra_middlewares=())
@@ -310,12 +333,12 @@ class StreamPublisher(LogicPublisher):
     async def request(
         self,
         message: "SendableMessage" = None,
-        stream: Optional[str] = None,
+        stream: str | None = None,
         *,
-        maxlen: Optional[int] = None,
-        correlation_id: Optional[str] = None,
+        maxlen: int | None = None,
+        correlation_id: str | None = None,
         headers: Optional["AnyDict"] = None,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
             message,

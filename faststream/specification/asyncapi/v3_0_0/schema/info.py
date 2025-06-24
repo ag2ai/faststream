@@ -1,5 +1,4 @@
 from typing import (
-    Optional,
     Union,
 )
 
@@ -28,8 +27,8 @@ class ApplicationInfo(BaseApplicationInfo):
         externalDocs : optional external documentation
     """
 
-    termsOfService: Optional[AnyHttpUrl] = None
-    contact: Optional[Union[Contact, AnyDict]] = None
-    license: Optional[Union[License, AnyDict]] = None
-    tags: Optional[list[Union["Tag", "AnyDict"]]] = None
-    externalDocs: Optional[Union["ExternalDocs", "AnyDict"]] = None
+    termsOfService: AnyHttpUrl | None = None
+    contact: Contact | AnyDict | None = None
+    license: License | AnyDict | None = None
+    tags: list[Union["Tag", "AnyDict"]] | None = None
+    externalDocs: Union["ExternalDocs", "AnyDict"] | None = None

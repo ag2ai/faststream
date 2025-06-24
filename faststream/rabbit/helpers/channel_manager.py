@@ -73,6 +73,9 @@ class ChannelManagerImpl(ChannelManager):
             )
 
             if channel.prefetch_count:
-                await ch.set_qos(prefetch_count=channel.prefetch_count)
+                await ch.set_qos(
+                    prefetch_count=channel.prefetch_count,
+                    global_=channel.global_qos,
+                )
 
         return ch

@@ -1,5 +1,6 @@
 import logging
-from typing import Annotated, Any, Callable, Optional
+from collections.abc import Callable
+from typing import Annotated, Any
 
 from fastapi import params
 
@@ -12,7 +13,7 @@ def Context(  # noqa: N802
     name: str,
     *,
     default: Any = EMPTY,
-    initial: Optional[Callable[..., Any]] = None,
+    initial: Callable[..., Any] | None = None,
 ) -> Any:
     """Get access to objects of the Context."""
 

@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any
 
 import pytest
 
@@ -9,7 +9,7 @@ from .basic import BaseTestcaseConfig
 
 class IncludeTestcase(BaseTestcaseConfig):
     def get_object(
-        self, router: Union[BrokerRouter[Any], BrokerUsecase[Any, Any]]
+        self, router: BrokerRouter[Any] | BrokerUsecase[Any, Any]
     ) -> Any:
         raise NotImplementedError
 
@@ -77,7 +77,7 @@ class IncludeTestcase(BaseTestcaseConfig):
         ),
     )
     def test_router_include_in_schema(
-        self, include_router: Optional[bool], include: bool, result: bool
+        self, include_router: bool | None, include: bool, result: bool
     ) -> None:
         broker = self.get_broker()
         router = self.get_router(include_in_schema=include_router)
@@ -85,12 +85,12 @@ class IncludeTestcase(BaseTestcaseConfig):
         obj = self.get_object(router)
         broker.include_router(router, include_in_schema=include)
 
-        assert obj.include_in_schema is result
+        assert obj.specification.include_in_schema is result
 
 
 class IncludeSubscriberTestcase(IncludeTestcase):
     def get_object(
-        self, router: Union[BrokerRouter[Any], BrokerUsecase[Any, Any]]
+        self, router: BrokerRouter[Any] | BrokerUsecase[Any, Any]
     ) -> Any:
         return router.subscriber("test")
 
@@ -149,6 +149,6 @@ class IncludeSubscriberTestcase(IncludeTestcase):
 
 class IncludePublisherTestcase(IncludeTestcase):
     def get_object(
-        self, router: Union[BrokerRouter[Any], BrokerUsecase[Any, Any]]
+        self, router: BrokerRouter[Any] | BrokerUsecase[Any, Any]
     ) -> Any:
         return router.publisher("test")

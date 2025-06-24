@@ -1,4 +1,3 @@
-from typing import Optional
 
 from nats.aio.msg import Msg
 from nats.js.api import ObjectInfo
@@ -24,7 +23,7 @@ class NatsMessage(StreamMessage[Msg]):
 
     async def nack(
         self,
-        delay: Optional[float] = None,
+        delay: float | None = None,
     ) -> None:
         if not self.raw_message._ackd:
             await self.raw_message.nak(delay=delay)
@@ -54,7 +53,7 @@ class NatsBatchMessage(StreamMessage[list[Msg]]):
 
     async def nack(
         self,
-        delay: Optional[float] = None,
+        delay: float | None = None,
     ) -> None:
         for m in filter(
             lambda m: not m._ackd,

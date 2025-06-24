@@ -2,11 +2,12 @@ from typing import (
     TYPE_CHECKING,
     Literal,
     Optional,
+    TypeAlias,
     TypeVar,
     Union,
 )
 
-from typing_extensions import NotRequired, TypeAlias, TypedDict, override
+from typing_extensions import NotRequired, TypedDict, override
 
 from faststream.message import StreamMessage as BrokerStreamMessage
 
@@ -35,13 +36,8 @@ class UnifyRedisDict(TypedDict):
         "bstream",
     ]
     channel: str
-    data: Union[
-        bytes,
-        list[bytes],
-        dict[bytes, bytes],
-        list[dict[bytes, bytes]],
-    ]
-    pattern: NotRequired[Optional[bytes]]
+    data: bytes | list[bytes] | dict[bytes, bytes] | list[dict[bytes, bytes]]
+    pattern: NotRequired[bytes | None]
 
 
 class UnifyRedisMessage(BrokerStreamMessage[UnifyRedisDict]):
@@ -54,7 +50,7 @@ class PubSubMessage(TypedDict):
     type: Literal["pmessage", "message"]
     channel: str
     data: bytes
-    pattern: Optional[bytes]
+    pattern: bytes | None
 
 
 class RedisMessage(BrokerStreamMessage[PubSubMessage]):
@@ -118,7 +114,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     async def ack(
         self,
         redis: Optional["Redis[bytes]"] = None,
-        group: Optional[str] = None,
+        group: str | None = None,
     ) -> None:
         if not self.committed and group is not None and redis is not None:
             ids = self.raw_message["message_ids"]
@@ -130,7 +126,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     async def nack(
         self,
         redis: Optional["Redis[bytes]"] = None,
-        group: Optional[str] = None,
+        group: str | None = None,
     ) -> None:
         await super().nack()
 
@@ -138,9 +134,15 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     async def reject(
         self,
         redis: Optional["Redis[bytes]"] = None,
-        group: Optional[str] = None,
+        group: str | None = None,
     ) -> None:
         await super().reject()
+
+    async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
+        if redis is not None:
+            ids = self.raw_message["message_ids"]
+            channel = self.raw_message["channel"]
+            await redis.xdel(channel, *ids)
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):

@@ -3,19 +3,18 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import override
 
-from faststream._internal.broker.abc_broker import ABCBroker
+from faststream._internal.broker.abc_broker import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.publisher.factory import create_publisher
-from faststream.rabbit.publisher.usecase import PublishKwargs
+from faststream.rabbit.publisher.options import PublishKwargs
 from faststream.rabbit.schemas import (
     Channel,
     RabbitExchange,
     RabbitQueue,
 )
 from faststream.rabbit.subscriber.factory import create_subscriber
-from faststream.rabbit.subscriber.specified import SpecificationSubscriber
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage
@@ -31,15 +30,16 @@ if TYPE_CHECKING:
     )
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.publisher.specified import SpecificationPublisher
+    from faststream.rabbit.publisher import RabbitPublisher
+    from faststream.rabbit.subscriber import RabbitSubscriber
 
 
-class RabbitRegistrator(ABCBroker["IncomingMessage"]):
+class RabbitRegistrator(Registrator["IncomingMessage"]):
     """Includable to RabbitBroker router."""
 
     config: "RabbitBrokerConfig"
-    _subscribers: list["SpecificationSubscriber"]
-    _publishers: list["SpecificationPublisher"]
+    _subscribers: list["RabbitSubscriber"]
+    _publishers: list["RabbitPublisher"]
 
     @override
     def subscriber(  # type: ignore[override]
@@ -58,10 +58,10 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         middlewares: Sequence["SubscriberMiddleware[RabbitMessage]"] = (),
         no_reply: bool = False,
         # AsyncAPI information
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        title: str | None = None,
+        description: str | None = None,
         include_in_schema: bool = True,
-    ) -> SpecificationSubscriber:
+    ) -> "RabbitSubscriber":
         """Subscribe a handler to a RabbitMQ queue.
 
         Args:
@@ -81,7 +81,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             include_in_schema (bool, optional): Whether to include operation in AsyncAPI schema or not.
 
         Returns:
-            SpecificationSubscriber: The subscriber specification object.
+            RabbitSubscriber: The subscriber specification object.
         """
         subscriber = create_subscriber(
             queue=RabbitQueue.validate(queue),
@@ -102,7 +102,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
 
         subscriber = super().subscriber(subscriber)
 
-        subscriber = cast("SpecificationSubscriber", subscriber)
+        subscriber = cast("RabbitSubscriber", subscriber)
 
         return subscriber.add_call(
             parser_=parser,
@@ -122,23 +122,23 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: Optional[str] = None,
-        priority: Optional[int] = None,
+        reply_to: str | None = None,
+        priority: int | None = None,
         # specific
         middlewares: Sequence["PublisherMiddleware"] = (),
         # AsyncAPI information
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        schema: Optional[Any] = None,
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
         include_in_schema: bool = True,
         # message args
         headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
         expiration: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-    ) -> "SpecificationPublisher":
+        message_type: str | None = None,
+        user_id: str | None = None,
+    ) -> "RabbitPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -207,7 +207,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
 
         publisher = super().publisher(publisher)
 
-        return cast("SpecificationPublisher", publisher)
+        return cast("RabbitPublisher", publisher)
 
     @override
     def include_router(
@@ -217,7 +217,7 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
         middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
-        include_in_schema: Optional[bool] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RabbitRegistrator):
             msg = (

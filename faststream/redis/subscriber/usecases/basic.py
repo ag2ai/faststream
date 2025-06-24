@@ -6,10 +6,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    TypeAlias,
 )
 
 import anyio
-from typing_extensions import TypeAlias, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
@@ -22,8 +23,13 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
     from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import (
+        CallsCollection,
+    )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.configs import RedisBrokerConfig, RedisSubscriberConfig
+    from faststream.redis.configs import RedisBrokerConfig
+    from faststream.redis.subscriber.config import RedisSubscriberConfig
+    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -82,7 +88,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
             except Exception as e:  # noqa: PERF203
                 self._log(
-                    logging.ERROR,
+                    log_level=logging.ERROR,
                     message="Message fetch error",
                     exc_info=e,
                 )
@@ -121,13 +127,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
 class ConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], LogicSubscriber):
     def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        /,
-        *,
+        self, config: "RedisSubscriberConfig", specification: "RedisSubscriberSpecification", calls: "CallsCollection[Any]",
         max_workers: int,
     ) -> None:
-        super().__init__(config, max_workers=max_workers)
+        super().__init__(config, specification, calls, max_workers=max_workers)
 
         self._client = None
 

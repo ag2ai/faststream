@@ -38,7 +38,7 @@ jobs:
         # should install with `-e`
         run: |
           set -ux
-          uv pip install --system -e .[dev]
+          uv pip install --system --group dev -e .
 
       - uses: pre-commit/action@v3.0.1
         continue-on-error: true
@@ -49,6 +49,6 @@ jobs:
         run: bash scripts/build-docs.sh
 
       - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "docs: generate API References"
