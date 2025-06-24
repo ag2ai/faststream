@@ -6,7 +6,6 @@ import httpx
 import pytest
 import yaml
 
-from faststream._internal._compat import IS_WINDOWS
 from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
 from tests.marks import require_aiokafka, skip_windows
 
