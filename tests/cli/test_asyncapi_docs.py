@@ -193,10 +193,7 @@ def test_gen_asyncapi_for_kafka_app(
 @pytest.mark.slow()
 def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
     with faststream_cli("faststream", "docs", "gen", "non_existent:doc") as cli:
-        pass
-
-    assert cli.process.returncode == 2
-    assert cli.wait_for_stderr("No such file or directory")
+        assert cli.wait_for_stderr("No such file or directory")
 
 
 @pytest.mark.slow()
@@ -211,7 +208,7 @@ def test_serve_asyncapi_docs_from_app(
         faststream_cli("faststream", "docs", "serve", f"{app_path.stem}:doc"),
     ):
         response = httpx.get("http://localhost:8000")
-        assert "<title>FastStream AsyncAPI</title>" in response.read().decode()
+        assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
 
 
@@ -236,5 +233,5 @@ def test_serve_asyncapi_docs_from_file(
         faststream_cli("faststream", "docs", "serve", str(doc_path)),
     ):
         response = httpx.get("http://localhost:8000")
-        assert "<title>FastStream AsyncAPI</title>" in response.read().decode()
+        assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200

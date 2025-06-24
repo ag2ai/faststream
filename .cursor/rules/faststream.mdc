@@ -1,10 +1,7 @@
 ---
-description:
+description: FastStream python framework usage rules
 globs: *.py
 alwaysApply: false
----
----
-description: FastStream python framework usage rules
 ---
 
 - Always pass broker to `FastStream` object as a positional argument

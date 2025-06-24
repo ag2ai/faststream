@@ -7,6 +7,8 @@ from collections.abc import Callable
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal._compat import IS_WINDOWS
+
 if TYPE_CHECKING:
     from multiprocessing.context import SpawnProcess
     from types import FrameType
@@ -21,7 +23,7 @@ HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
-if sys.platform == "win32":  # pragma: py-not-win32
+if IS_WINDOWS:  # pragma: py-not-win32
     HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
 
 

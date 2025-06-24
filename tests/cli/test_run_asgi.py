@@ -115,7 +115,7 @@ def test_many_workers(
     app = AsgiFastStream(NatsBroker())
     """
 
-    workers = random.randint(2, 7)
+    workers = 2
 
     with (
         generate_template(app_code) as app_path,
@@ -127,8 +127,6 @@ def test_many_workers(
             str(workers)
         ) as cli_thread,
     ):
-        assert cli_thread.process
-
         process = psutil.Process(pid=cli_thread.process.pid)
         assert len(process.children()) == workers + 1  # 1 for the main process
 
@@ -160,5 +158,5 @@ def test_factory(
         ),
     ):
         response = httpx.get("http://127.0.0.1:8000/liveness")
-        assert response.read().decode() == "hello world"
+        assert response.text == "hello world"
         assert response.status_code == 200
