@@ -1,6 +1,7 @@
 # Dealing with message encoded by FastStream
 
-To provide such great features as observability and many others **FastStream** needs to add extra data to your message, but suddenly **Redis** doesn't have any option to send it except the message itself. Since that, **FastStream** uses it's own binary format for messages that supports any type of data that you are going to use.
+To provide such great features as observability and many others **FastStream** needs to add extra data to your message. **Redis** in turn provides ability to send any type of data inside the message. Since that, **FastStream** uses it's own binary format for messages that supports any type of data that you are going to use and add any additional information.
+
 
 ### Message structure
 
@@ -12,10 +13,10 @@ The message compiled by **FastStream** has the following structure:
 [Format version: 16 bit big-endian int]
 [Number of headers: 16 bit big-endian int]
 # headers
-[Header key length: 16 bit big-endian int]
-[Header key: UTF-8 string]
-[Header value length: 16 big-endian bit int]
-[Header value: UTF-8 string]
+[Length of key: 16 bit big-endian int]
+[Key: UTF-8 string]
+[Length of value: 16 bit big-endian int]
+[Value: UTF-8 string]
 # and so on until headers length is reached ...
 
 # The data
@@ -26,20 +27,57 @@ The message compiled by **FastStream** has the following structure:
 !!! note
     The [...] blocks go one after another without any symbol or data between them
 
+### Switching between formats
+
+#### On Publisher's side
+
+```python
+from faststream import FastStream
+from faststream.redis import RedisBroker
+from faststream.redis.parser import BinaryMessageFormatV1
+
+# JSONMessageFormat can be used instead, but it will be deprecated in future updates
+broker = RedisBroker(message_format=BinaryMessageFormatV1)
+
+app =  FastStream(broker)
+
+@broker.publisher("queue")
+async def message_publisher():
+    return "message"
+```
+
+#### On Subscriber's side
+
+
+```python
+from faststream import FastStream
+from faststream.redis import RedisBroker
+from faststream.redis.parser import BinaryMessageFormatV1
+
+broker = RedisBroker()
+
+app =  FastStream(broker)
+
+# JSONMessageFormat can be used instead, but it will be deprecated in future updates
+@broker.subscriber("queue", message_format=BinaryMessageFormatV1)
+async def message_handler(msg):
+    print(msg)
+```
+
 ### Parsing in FastStream application
 
 Basically this message format is internal, but in some cases you will need to parse it correctly. For example in **on_receive** middleware's method:
 
 ```python
 from faststream import BaseMiddleware
-from faststream.redis.parser import RawMessage
+from faststream.redis.parser import BinaryMessageFormatV1
 
 
 class MyMiddleware(BaseMiddleware):
     async def on_receive(self) -> None:
-        data, headers = RawMessage.parse(self.msg["data"])
+        data, headers = BinaryMessageFormatV1.parse(self.msg["data"])
         data *= 2
-        self.msg["data"] = RawMessage.encode(
+        self.msg["data"] = BinaryMessageFormatV1.encode(
             message=data,
             reply_to=None,
             correlation_id=headers["correlation_id"],

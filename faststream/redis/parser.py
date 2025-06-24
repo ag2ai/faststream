@@ -156,6 +156,8 @@ class MessageFormat(ABC):
 
 
 class JSONMessageFormat(MessageFormat):
+    """Message format to encode into JSON and parse it."""
+
     @classmethod
     def encode(
         cls,
@@ -193,6 +195,8 @@ class JSONMessageFormat(MessageFormat):
 
 
 class BinaryMessageFormatV1(MessageFormat):
+    """Message format to encode into binary and parse it."""
+
     IDENTITY_HEADER = (
         b"\x89BIN\x0d\x0a\x1a\x0a"  # to avoid confusion with other formats
     )
