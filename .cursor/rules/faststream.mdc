@@ -27,7 +27,7 @@ async def handler(body: IncomingMessage) -> None:
     ...
 ```
 
-## Path feature 
+## Path feature
 
 To consume information from incoming subject, use `faststream.Path`
 
