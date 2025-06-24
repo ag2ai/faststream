@@ -13,7 +13,6 @@ class SimpleModel(msgspec.Struct):
     r: str
 
 
-@pytest.mark.kafka()
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("message", "message_type", "expected_message"),
