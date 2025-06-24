@@ -20,7 +20,7 @@ def test_run(
         generate_template(app_code) as app_path,
         faststream_cli("faststream", "run", f"{app_path.stem}:app") as cli,
     ):
-        cli.process.send_signal(signal.SIGINT)
-        cli.process.wait(3.0)
+        cli.signint()
+        cli.wait(3.0)
 
     assert cli.process.returncode == 0

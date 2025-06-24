@@ -1,5 +1,6 @@
 import os
 import select
+import signal
 import subprocess
 import threading
 import time
@@ -115,13 +116,27 @@ class CLIThread:
                 break
 
     def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
+        assert self.process.stderr
+
         expiration_time = time.time() + timeout
 
         while time.time() < expiration_time:
             if message in self.stderr:
                 return True
 
+        if self.process.returncode is not None:
+            return message in self.process.stderr.read()
+
         return False
+
+    def wait(self, timeout: float) -> None:
+        self.process.wait(timeout)
+
+    def signint(self) -> None:
+        if IS_WINDOWS:
+            self.process.send_signal(signal.SIGBREAK)
+        else:
+            self.process.send_signal(signal.SIGINT)
 
     def stop(self) -> None:
         self.process.terminate()
@@ -131,7 +146,7 @@ class CLIThread:
             self.__std_poll_thread.join()
 
         try:
-            self.process.wait(timeout=5)
+            self.wait(5)
 
         except subprocess.TimeoutExpired:
             self.process.kill()
@@ -155,11 +170,11 @@ def faststream_cli(faststream_tmp_path: Path) -> FastStreamCLIFactory:
         extra_env: dict[str, str] | None = None,
     ) -> Generator[CLIThread, None, None]:
         env = (
-            {
+            os.environ.copy()
+            | {
                 "PATH": f"{faststream_tmp_path}:{os.environ['PATH']}",
                 "PYTHONPATH": str(faststream_tmp_path),
             }
-            | os.environ.copy()
             | (extra_env or {})
         )
 
