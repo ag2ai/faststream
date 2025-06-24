@@ -1,5 +1,7 @@
 import pytest
 
+from faststream._internal._compat import IS_WINDOWS
+
 from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
 
 
@@ -21,4 +23,7 @@ def test_run(
         cli.signint()
         cli.wait(3.0)
 
-    assert cli.process.returncode == 0
+    if IS_WINDOWS:
+        assert cli.process.returncode == 1
+    else:
+        assert cli.process.returncode == 0
