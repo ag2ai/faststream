@@ -56,7 +56,7 @@ dynamic = ["version"]
 
 dependencies = [
     "anyio>=3.7.1,<5",
-    "fast-depends[pydantic]>=3.0.0a5,<4.0.0",
+    "fast-depends[pydantic]>=3.0.0a7,<4.0.0",
     "typing-extensions>=4.8.0",
 ]
 
