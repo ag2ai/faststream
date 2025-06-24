@@ -24,6 +24,8 @@ from faststream.exceptions import SubscriberNotFound
 from faststream.message import encode_message, gen_cor_id
 
 if TYPE_CHECKING:
+    from fast_depends.library.serializer import SerializerProto
+
     from faststream._internal.basic_types import SendableMessage
     from faststream.confluent.publisher.specified import SpecificationPublisher
     from faststream.confluent.response import KafkaPublishCommand
@@ -130,6 +132,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
+            serializer=self.broker.config.fd_config._serializer
         )
 
         for handler in _find_handler(
@@ -162,6 +165,7 @@ class FakeProducer(AsyncConfluentFastProducer):
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
+                    serializer=self.broker.config.fd_config._serializer
                 )
                 for message in cmd.batch_bodies
             )
@@ -186,6 +190,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             timestamp_ms=cmd.timestamp_ms,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
+            serializer=self.broker.config.fd_config._serializer
         )
 
         for handler in _find_handler(
@@ -217,6 +222,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id or gen_cor_id(),
+            serializer=self.broker.config.fd_config._serializer
         )
 
 
@@ -280,9 +286,10 @@ def build_message(
     key: Optional[bytes] = None,
     headers: Optional[dict[str, str]] = None,
     reply_to: str = "",
+    serializer: Optional["SerializerProto"] = None
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    msg, content_type = encode_message(message)
+    msg, content_type = encode_message(message, serializer)
     k = key or b""
     headers = {
         "content-type": content_type or "",

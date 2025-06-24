@@ -53,7 +53,7 @@ class RealLock(LockState):
 
 
 class AioPikaFastProducer(ProducerProto):
-    def connect(self) -> None: ...
+    def connect(self, serializer: Optional["SerializerProto"] = None) -> None: ...
 
     def disconnect(self) -> None: ...
 
@@ -82,7 +82,7 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
     def __bool__(self) -> bool:
         return False
 
-    def connect(self) -> None:
+    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:
@@ -132,11 +132,12 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self._parser = resolve_custom_func(parser, default_parser.parse_message)
         self._decoder = resolve_custom_func(decoder, default_parser.decode_message)
 
-    def connect(self) -> None:
+    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
         """Lock initialization.
 
         Should be called in async context due `anyio.Lock` object can't be created outside event loop.
         """
+        self.serializer = serializer
         self.__lock = RealLock()
 
     def disconnect(self) -> None:

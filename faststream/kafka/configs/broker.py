@@ -38,7 +38,7 @@ class KafkaBrokerConfig(BrokerConfig):
 
     async def connect(self, **connection_kwargs: Any) -> "None":
         producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
-        await self.producer.connect(producer)
+        await self.producer.connect(producer, serializer=self.fd_config._serializer)
 
         admin_options, _ = filter_by_dict(
             AdminClientConnectionParams, connection_kwargs

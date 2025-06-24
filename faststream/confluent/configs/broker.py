@@ -60,7 +60,7 @@ class KafkaBrokerConfig(BrokerConfig):
             config=self.connection_config,
             logger=self.logger,
         )
-        self.producer.connect(native_producer)
+        self.producer.connect(native_producer, serializer=self.fd_config._serializer)
         await self.admin.connect(self.connection_config)
 
     async def disconnect(self) -> "None":

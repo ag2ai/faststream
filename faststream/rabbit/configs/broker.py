@@ -27,7 +27,7 @@ class RabbitBrokerConfig(BrokerConfig):
 
     def connect(self, connection: "RobustConnection") -> None:
         self.channel_manager.connect(connection)
-        self.producer.connect()
+        self.producer.connect(serializer=self.fd_config._serializer)
 
     def disconnect(self) -> None:
         self.channel_manager.disconnect()

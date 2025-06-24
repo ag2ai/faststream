@@ -218,6 +218,11 @@ class RedisBroker(
 
         connection_state = ConnectionState(connection_options)
 
+        fd_config = FastDependsConfig(
+            use_fastdepends=apply_types,
+            serializer=serializer,
+        )
+
         super().__init__(
             **connection_options,
             routers=routers,
@@ -227,6 +232,7 @@ class RedisBroker(
                     connection=connection_state,
                     parser=parser,
                     decoder=decoder,
+                    serializer=fd_config._serializer
                 ),
                 # both args
                 broker_middlewares=middlewares,
@@ -236,10 +242,7 @@ class RedisBroker(
                     logger=logger,
                     log_level=log_level,
                 ),
-                fd_config=FastDependsConfig(
-                    use_fastdepends=apply_types,
-                    serializer=serializer,
-                ),
+                fd_config=fd_config,
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,

@@ -7,7 +7,7 @@ from typing import (
     Union,
 )
 
-from faststream._internal._compat import dump_json, json_loads
+from faststream._internal._compat import dump_json, json_dumps, json_loads
 from faststream._internal.basic_types import AnyDict, DecodedMessage, SendableMessage
 from faststream._internal.constants import ContentTypes
 from faststream.message import (
@@ -27,6 +27,7 @@ from faststream.redis.message import (
 if TYPE_CHECKING:
     from re import Pattern
 
+    from fast_depends.library.serializer import SerializerProto
     from faststream.message import StreamMessage
 
 
@@ -57,8 +58,9 @@ class RawMessage:
         reply_to: Optional[str],
         headers: Optional["AnyDict"],
         correlation_id: str,
+        serializer: Optional["SerializerProto"] = None
     ) -> "RawMessage":
-        payload, content_type = encode_message(message)
+        payload, content_type = encode_message(message, serializer=serializer)
 
         headers_to_send = {
             "correlation_id": correlation_id,
@@ -86,20 +88,26 @@ class RawMessage:
         reply_to: Optional[str],
         headers: Optional["AnyDict"],
         correlation_id: str,
+        serializer: Optional["SerializerProto"] = None
     ) -> bytes:
         msg = cls.build(
             message=message,
             reply_to=reply_to,
             headers=headers,
             correlation_id=correlation_id,
+            serializer=serializer
         )
 
-        return dump_json(
-            {
+        if serializer is not None:
+            return serializer.encode({
                 "data": msg.data,
                 "headers": msg.headers,
-            },
-        )
+            })
+
+        return json_dumps({
+            "data": msg.data.decode(),
+            "headers": msg.headers,
+        })
 
     @staticmethod
     def parse(data: bytes) -> tuple[bytes, "AnyDict"]:

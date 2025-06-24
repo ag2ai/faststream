@@ -25,9 +25,9 @@ class NatsBrokerConfig(BrokerConfig):
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream()
 
-        self.producer.connect(connection)
+        self.producer.connect(connection, serializer=self.fd_config._serializer)
 
-        self.js_producer.connect(stream)
+        self.js_producer.connect(stream, serializer=self.fd_config._serializer)
         self.kv_declarer.connect(stream)
         self.os_declarer.connect(stream)
 

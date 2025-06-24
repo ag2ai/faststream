@@ -16,6 +16,7 @@ class RedisBrokerConfig(BrokerConfig):
     connection: "ConnectionState"
 
     async def connect(self) -> None:
+        self.producer.connect(self.fd_config._serializer)
         await self.connection.connect()
 
     async def disconnect(self) -> None:

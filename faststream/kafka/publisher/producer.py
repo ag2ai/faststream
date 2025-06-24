@@ -17,13 +17,14 @@ if TYPE_CHECKING:
 
     from aiokafka import AIOKafkaProducer
     from aiokafka.structs import RecordMetadata
+    from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import CustomCallable
     from faststream.kafka.response import KafkaPublishCommand
 
 
 class AioKafkaFastProducer(ProducerProto):
-    async def connect(self, producer: "AIOKafkaProducer") -> None: ...
+    async def connect(self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]) -> None: ...
 
     async def disconnect(self) -> None: ...
 
@@ -54,15 +55,18 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        serializer: Optional["SerializerProto"]
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
+        self.serializer = serializer
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
-    async def connect(self, producer: "AIOKafkaProducer") -> None:
+    async def connect(self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]) -> None:
+        self.serializer = serializer
         await producer.start()
         self._producer = RealProducer(producer)
 
@@ -86,7 +90,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body)
+        message, content_type = encode_message(cmd.body, serializer=self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -117,7 +121,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         for message_position, body in enumerate(cmd.batch_bodies):
-            message, content_type = encode_message(body)
+            message, content_type = encode_message(body, serializer=self.serializer)
 
             if content_type:
                 final_headers = {

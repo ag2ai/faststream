@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     import asyncio
 
     from confluent_kafka import Message
+    from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import CustomCallable
     from faststream.confluent.helpers.client import AsyncConfluentProducer
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 class AsyncConfluentFastProducer(ProducerProto):
     """A class to represent Kafka producer."""
 
-    def connect(self, producer: "AsyncConfluentProducer") -> None: ...
+    def connect(self, producer: "AsyncConfluentProducer", serializer: Optional["SerializerProto"]) -> None: ...
 
     async def disconnect(self) -> None: ...
 
@@ -53,7 +54,7 @@ class AsyncConfluentFastProducer(ProducerProto):
 
 
 class FakeConfluentFastProducer(AsyncConfluentFastProducer):
-    def connect(self, producer: "AsyncConfluentProducer") -> None:
+    def connect(self, producer: "AsyncConfluentProducer", serializer: Optional["SerializerProto"]) -> None:
         raise NotImplementedError
 
     async def disconnect(self) -> None:
@@ -97,16 +98,19 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        serializer: Optional["SerializerProto"]
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
+        self.serializer = serializer
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
-    def connect(self, producer: "AsyncConfluentProducer") -> None:
+    def connect(self, producer: "AsyncConfluentProducer", serializer: Optional["SerializerProto"]) -> None:
         self._producer = RealProducer(producer)
+        self.serializer = serializer
 
     async def disconnect(self) -> None:
         await self._producer.stop()
@@ -127,7 +131,7 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
         cmd: "KafkaPublishCommand",
     ) -> "Union[asyncio.Future[Optional[Message]], Optional[Message]]":
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body)
+        message, content_type = encode_message(cmd.body, serializer=self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -155,7 +159,7 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
         headers_to_send = cmd.headers_to_publish()
 
         for msg in cmd.batch_bodies:
-            message, content_type = encode_message(msg)
+            message, content_type = encode_message(msg, serializer=self.serializer)
 
             if content_type:
                 final_headers = {

@@ -11,6 +11,7 @@ from faststream.redis.parser import RawMessage, RedisPubSubParser
 from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
+    from fast_depends.library.serializer import SerializerProto
     from faststream._internal.types import AsyncCallable, CustomCallable
     from faststream.redis.configs import ConnectionState
 
@@ -26,9 +27,10 @@ class RedisFastProducer(ProducerProto):
         connection: "ConnectionState",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        serializer: Optional["SerializerProto"] = None
     ) -> None:
         self._connection = connection
-
+        self.serializer = serializer
         default = RedisPubSubParser()
         self._parser = resolve_custom_func(
             parser,
@@ -49,6 +51,7 @@ class RedisFastProducer(ProducerProto):
             reply_to=cmd.reply_to,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id or "",
+            serializer=self.serializer
         )
 
         return await self.__publish(msg, cmd)
@@ -68,6 +71,7 @@ class RedisFastProducer(ProducerProto):
             reply_to=reply_to,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id or "",
+            serializer=self.serializer
         )
 
         await self.__publish(msg, cmd)
@@ -104,6 +108,7 @@ class RedisFastProducer(ProducerProto):
                 correlation_id=cmd.correlation_id or "",
                 reply_to=cmd.reply_to,
                 headers=cmd.headers,
+                serializer=self.serializer
             )
             for msg in cmd.batch_bodies
         ]
@@ -130,3 +135,6 @@ class RedisFastProducer(ProducerProto):
 
         error_msg = "unreachable"
         raise AssertionError(error_msg)
+
+    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
+        self.serializer = serializer
