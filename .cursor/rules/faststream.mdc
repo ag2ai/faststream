@@ -1,10 +1,7 @@
 ---
-description: 
+description: FastStream python framework usage rules
 globs: *.py
 alwaysApply: false
----
----
-description: FastStream python framework usage rules
 ---
 
 - Always pass broker to `FastStream` object as a positional argument
@@ -30,7 +27,7 @@ async def handler(body: IncomingMessage) -> None:
     ...
 ```
 
-## Path feature
+## Path feature 
 
 To consume information from incoming subject, use `faststream.Path`
 
