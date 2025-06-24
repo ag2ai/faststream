@@ -4,7 +4,7 @@ import subprocess
 import threading
 import time
 from collections.abc import Generator
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager, contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
 from typing import Protocol
@@ -118,22 +118,19 @@ class CLIThread:
 
     def stop(self) -> None:
         self.running = False
-        self.__std_poll_thread.join()
+
+        with suppress(Exception):
+            self.__std_poll_thread.join()
 
         try:
             self.process.wait(1.0)
         except subprocess.TimeoutExpired:
-            self.process.send_signal(signal.SIGINT)
+            self.process.terminate()
 
             try:
-                self.process.wait(1.0)
+                self.process.wait(2.0)
             except subprocess.TimeoutExpired:
-                self.process.terminate()
-
-                try:
-                    self.process.wait(1.0)
-                except subprocess.TimeoutExpired:
-                    self.process.kill()
+                self.process.kill()
 
 
 class FastStreamCLIFactory(Protocol):
