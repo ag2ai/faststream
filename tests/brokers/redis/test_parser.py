@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream._compat import json_dumps
-from faststream.redis import RedisBroker
+from faststream.redis import RedisBroker, TestRedisBroker
 from faststream.redis.parser import (
     BinaryMessageFormatV1,
     JSONMessageFormat,
@@ -67,7 +67,7 @@ def test_json_message_encode_parse(input, should_be) -> None:
 class TestFormats:
     def get_broker(
         self, apply_types: bool = False, format: Type[MessageFormat] = JSONMessageFormat
-    ):
+    ) -> RedisBroker:
         return RedisBroker(apply_types=apply_types, message_format=format)
 
     def patch_broker(self, broker):
@@ -87,7 +87,7 @@ class TestFormats:
         mock: MagicMock,
         message_format: Type[MessageFormat],
         message: bytes,
-    ):
+    ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(channel=queue, message_format=message_format)
@@ -121,7 +121,7 @@ class TestFormats:
         mock: MagicMock,
         message_format: Type[MessageFormat],
         message: bytes,
-    ):
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True, format=message_format)
 
         @pub_broker.subscriber(channel=queue, message_format=message_format)
@@ -145,3 +145,27 @@ class TestFormats:
                 timeout=3,
             )
         mock.assert_called_once_with(b"hello")
+
+
+@pytest.mark.asyncio
+class TestTestBrokerFormats:
+    def patch_broker(self, broker: RedisBroker) -> TestRedisBroker:
+        return TestRedisBroker(broker)
+
+    def get_broker(
+        self, apply_types: bool = False, format: Type[MessageFormat] = JSONMessageFormat
+    ):
+        return RedisBroker(apply_types=apply_types, message_format=format)
+
+    @pytest.mark.parametrize(("msg_format"), [JSONMessageFormat, BinaryMessageFormatV1])
+    async def test_formats(self, queue: str, msg_format: Type["MessageFormat"]) -> None:
+        message = "hello"
+        broker = self.get_broker(apply_types=True, format=msg_format)
+        test_broker = self.patch_broker(broker)
+
+        @broker.subscriber(channel=queue, message_format=msg_format)
+        async def handler(msg): ...
+
+        async with test_broker as br:
+            await br.publish(message=message, channel=queue)
+            handler.mock.assert_called_once_with(message)
