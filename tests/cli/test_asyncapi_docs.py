@@ -6,6 +6,7 @@ import httpx
 import pytest
 import yaml
 
+from faststream._internal._compat import IS_WINDOWS
 from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
 from tests.marks import require_aiokafka, skip_windows
 
@@ -208,7 +209,7 @@ def test_serve_asyncapi_docs_from_app(
         faststream_cli("faststream", "docs", "serve", f"{app_path.stem}:doc"),
     ):
         response = httpx.get("http://localhost:8000")
-        assert "<title>FastStream AsyncAPI</title>" in response.read().decode()
+        assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
 
 
@@ -233,5 +234,5 @@ def test_serve_asyncapi_docs_from_file(
         faststream_cli("faststream", "docs", "serve", str(doc_path)),
     ):
         response = httpx.get("http://localhost:8000")
-        assert "<title>FastStream AsyncAPI</title>" in response.read().decode()
+        assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200

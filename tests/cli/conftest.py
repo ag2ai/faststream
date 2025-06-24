@@ -4,7 +4,7 @@ import subprocess
 import threading
 import time
 from collections.abc import Generator
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager, contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
 from typing import Protocol
@@ -12,6 +12,7 @@ from typing import Protocol
 import pytest
 
 from faststream import FastStream
+from faststream._internal._compat import IS_WINDOWS
 
 
 @pytest.fixture()
@@ -95,6 +96,9 @@ class CLIThread:
     def _poll_std(self) -> None:
         assert self.process.stderr
 
+        if IS_WINDOWS:
+            return
+
         while self.running:
             rlist, _, _ = select.select([self.process.stderr], [], [], 1.0)
 
@@ -123,7 +127,8 @@ class CLIThread:
         self.process.terminate()
 
         self.running = False
-        self.__std_poll_thread.join()
+        with suppress(Exception):
+            self.__std_poll_thread.join()
 
         try:
             self.process.wait(timeout=5)

@@ -1,3 +1,5 @@
+import signal
+
 import pytest
 
 from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
@@ -16,8 +18,9 @@ def test_run(
     """
     with (
         generate_template(app_code) as app_path,
-        faststream_cli("faststream", "run", f"{app_path.stem}:app") as cli_thread,
+        faststream_cli("faststream", "run", f"{app_path.stem}:app") as cli,
     ):
-        pass
+        cli.process.send_signal(signal.SIGINT)
+        cli.process.wait(3.0)
 
-    assert cli_thread.process.returncode == 0
+    assert cli.process.returncode == 0

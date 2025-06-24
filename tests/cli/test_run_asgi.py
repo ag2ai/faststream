@@ -160,5 +160,5 @@ def test_factory(
         ),
     ):
         response = httpx.get("http://127.0.0.1:8000/liveness")
-        assert response.read().decode() == "hello world"
+        assert response.text == "hello world"
         assert response.status_code == 200
