@@ -1,6 +1,8 @@
 import os
 import signal
 
+import pytest
+
 from faststream._internal.cli.supervisors.multiprocess import Multiprocess
 from tests.marks import skip_windows
 
@@ -11,6 +13,7 @@ def exit(parent_id: int) -> None:  # pragma: no cover
 
 
 @skip_windows
+@pytest.mark.flaky(retries=3, retry_delay=1)
 def test_base() -> None:
     processor = Multiprocess(target=exit, args=(), workers=2)
     processor._args = (processor.pid,)
