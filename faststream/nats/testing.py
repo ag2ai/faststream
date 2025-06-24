@@ -1,10 +1,6 @@
 from collections.abc import Generator, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional
-)
+from typing import TYPE_CHECKING, Any, Optional
 from unittest.mock import AsyncMock
 
 import anyio

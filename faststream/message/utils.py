@@ -1,13 +1,7 @@
 import json
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Union,
-    cast,
-    Optional
-)
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from uuid import uuid4
 
 from faststream._internal._compat import json_dumps, json_loads
@@ -15,6 +9,7 @@ from faststream._internal.constants import ContentTypes
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
+
     from faststream._internal.basic_types import DecodedMessage, SendableMessage
 
     from .message import StreamMessage

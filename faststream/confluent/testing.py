@@ -1,11 +1,7 @@
 from collections.abc import Callable, Generator, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional
-)
+from typing import TYPE_CHECKING, Any, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio

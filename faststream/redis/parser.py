@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from re import Pattern
 
     from fast_depends.library.serializer import SerializerProto
+
     from faststream.message import StreamMessage
 
 

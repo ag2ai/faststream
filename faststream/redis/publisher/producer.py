@@ -12,6 +12,7 @@ from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
+
     from faststream._internal.types import AsyncCallable, CustomCallable
     from faststream.redis.configs import ConnectionState
 
