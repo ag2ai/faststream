@@ -1,4 +1,5 @@
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -116,16 +117,23 @@ class CLIThread:
         return False
 
     def stop(self) -> None:
-        self.process.terminate()
-
         self.running = False
         self.__std_poll_thread.join()
 
         try:
-            self.process.wait(timeout=5)
-
+            self.process.wait(1.0)
         except subprocess.TimeoutExpired:
-            self.process.kill()
+            self.process.send_signal(signal.SIGINT)
+
+            try:
+                self.process.wait(1.0)
+            except subprocess.TimeoutExpired:
+                self.process.terminate()
+
+                try:
+                    self.process.wait(1.0)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
 
 
 class FastStreamCLIFactory(Protocol):
@@ -160,6 +168,7 @@ def faststream_cli(faststream_tmp_path: Path) -> FastStreamCLIFactory:
 
         try:
             yield cli
+
         finally:
             cli.stop()
 

@@ -18,6 +18,6 @@ def test_run(
         generate_template(app_code) as app_path,
         faststream_cli("faststream", "run", f"{app_path.stem}:app") as cli_thread,
     ):
-        assert cli_thread.process
+        pass
 
     assert cli_thread.process.returncode == 0
