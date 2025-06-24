@@ -1,5 +1,4 @@
 import random
-import time
 
 import httpx
 import psutil
