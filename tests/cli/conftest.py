@@ -1,5 +1,4 @@
 import os
-import select
 import subprocess
 import threading
 import time
@@ -96,19 +95,16 @@ class CLIThread:
         assert self.process.stderr
 
         while self.running:
-            rlist, _, _ = select.select([self.process.stderr], [], [], 1.0)
-
-            if rlist:
-                self.started = True
-
-                if line := self.process.stderr.readline():
-                    self.stderr += line.strip()
-
-                else:
-                    break
-
-            elif self.process.poll() is not None:
+            if self.process.poll() is not None:
                 break
+
+            line = self.process.stderr.readline()
+            if line:
+                self.started = True
+                self.stderr += line.strip()
+
+            else:
+                time.sleep(0.05)
 
     def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
         expiration_time = time.time() + timeout
