@@ -1,9 +1,10 @@
 import os
+import select
 import subprocess
 import threading
 import time
 from collections.abc import Generator
-from contextlib import AbstractContextManager, contextmanager, suppress
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from textwrap import dedent
 from typing import Protocol
@@ -95,16 +96,19 @@ class CLIThread:
         assert self.process.stderr
 
         while self.running:
-            if self.process.poll() is not None:
-                break
+            rlist, _, _ = select.select([self.process.stderr], [], [], 1.0)
 
-            line = self.process.stderr.readline()
-            if line:
+            if rlist:
                 self.started = True
-                self.stderr += line.strip()
 
-            else:
-                time.sleep(0.05)
+                if line := self.process.stderr.readline():
+                    self.stderr += line.strip()
+
+                else:
+                    break
+
+            elif self.process.poll() is not None:
+                break
 
     def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
         expiration_time = time.time() + timeout
@@ -116,20 +120,16 @@ class CLIThread:
         return False
 
     def stop(self) -> None:
-        self.running = False
+        self.process.terminate()
 
-        with suppress(Exception):
-            self.__std_poll_thread.join()
+        self.running = False
+        self.__std_poll_thread.join()
 
         try:
-            self.process.wait(1.0)
-        except subprocess.TimeoutExpired:
-            self.process.terminate()
+            self.process.wait(timeout=5)
 
-            try:
-                self.process.wait(2.0)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
+        except subprocess.TimeoutExpired:
+            self.process.kill()
 
 
 class FastStreamCLIFactory(Protocol):
@@ -164,7 +164,6 @@ def faststream_cli(faststream_tmp_path: Path) -> FastStreamCLIFactory:
 
         try:
             yield cli
-
         finally:
             cli.stop()
 
