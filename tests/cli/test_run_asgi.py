@@ -1,4 +1,5 @@
 import random
+import time
 
 import httpx
 import psutil
@@ -127,8 +128,6 @@ def test_many_workers(
             str(workers)
         ) as cli_thread,
     ):
-        assert cli_thread.process
-
         process = psutil.Process(pid=cli_thread.process.pid)
         assert len(process.children()) == workers + 1  # 1 for the main process
 

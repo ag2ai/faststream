@@ -134,7 +134,7 @@ class CLIThread:
 
     def signint(self) -> None:
         if IS_WINDOWS:
-            self.process.send_signal(signal.CTRL_C_EVENT)
+            self.process.terminate()
         else:
             self.process.send_signal(signal.SIGINT)
 
