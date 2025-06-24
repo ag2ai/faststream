@@ -31,7 +31,9 @@ if TYPE_CHECKING:
 
 
 class NatsFastProducer(ProducerProto):
-    def connect(self, connection: "Client", serializer: Optional["SerializerProto"]) -> None: ...
+    def connect(
+        self, connection: "Client", serializer: Optional["SerializerProto"]
+    ) -> None: ...
 
     def disconnect(self) -> None: ...
 
@@ -64,16 +66,18 @@ class NatsFastProducerImpl(NatsFastProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"]
     ) -> None:
+        self.serializer: SerializerProto | None = None
+
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self.serializer = serializer
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
         self.__state: ConnectionState[Client] = EmptyConnectionState()
 
-    def connect(self, connection: "Client", serializer: Optional["SerializerProto"]) -> None:
+    def connect(
+        self, connection: "Client", serializer: Optional["SerializerProto"]
+    ) -> None:
         self.serializer = serializer
         self.__state = ConnectedState(connection)
 
@@ -138,16 +142,18 @@ class NatsJSFastProducer(NatsFastProducer):
         *,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"]
     ) -> None:
+        self.serializer: SerializerProto | None = None
+
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self.serializer = serializer
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
         self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 
-    def connect(self, connection: "JetStreamContext", serializer: Optional["SerializerProto"]) -> None:
+    def connect(
+        self, connection: "JetStreamContext", serializer: Optional["SerializerProto"]
+    ) -> None:
         self.serializer = serializer
         self.__state = ConnectedState(connection)
 

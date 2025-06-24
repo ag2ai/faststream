@@ -98,10 +98,9 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"]
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
-        self.serializer = serializer
+        self.serializer: SerializerProto | None = None
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()

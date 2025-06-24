@@ -122,12 +122,12 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         declarer: "RabbitDeclarer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"] = None,
     ) -> None:
         self.declarer = declarer
 
         self.__lock: LockState = LockUnset()
-        self.serializer = serializer
+        self.serializer: SerializerProto | None = None
+
         default_parser = AioPikaParser()
         self._parser = resolve_custom_func(parser, default_parser.parse_message)
         self._decoder = resolve_custom_func(decoder, default_parser.decode_message)

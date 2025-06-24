@@ -24,7 +24,9 @@ if TYPE_CHECKING:
 
 
 class AioKafkaFastProducer(ProducerProto):
-    async def connect(self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]) -> None: ...
+    async def connect(
+        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+    ) -> None: ...
 
     async def disconnect(self) -> None: ...
 
@@ -55,17 +57,18 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"]
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
-        self.serializer = serializer
+        self.serializer: SerializerProto | None = None
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
-    async def connect(self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]) -> None:
+    async def connect(
+        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+    ) -> None:
         self.serializer = serializer
         await producer.start()
         self._producer = RealProducer(producer)

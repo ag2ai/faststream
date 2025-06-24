@@ -458,10 +458,6 @@ class KafkaBroker(
             ConsumerConnectionParams, connection_params
         )
         builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
-        fd_config = FastDependsConfig(
-            use_fastdepends=apply_types,
-            serializer=serializer,
-        )
 
         super().__init__(
             **connection_params,
@@ -472,7 +468,6 @@ class KafkaBroker(
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
                     decoder=decoder,
-                    serializer=fd_config._serializer
                 ),
                 # both args,
                 broker_decoder=decoder,
@@ -482,7 +477,10 @@ class KafkaBroker(
                     logger=logger,
                     log_level=log_level,
                 ),
-                fd_config=fd_config,
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
                 broker_dependencies=dependencies,

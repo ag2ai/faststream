@@ -354,11 +354,6 @@ class KafkaBroker(  # type: ignore[misc]
             transaction_timeout_ms=transaction_timeout_ms,
         )
 
-        fd_config = FastDependsConfig(
-            use_fastdepends=apply_types,
-            serializer=serializer,
-        )
-
         super().__init__(
             routers=routers,
             config=KafkaBrokerConfig(
@@ -367,7 +362,6 @@ class KafkaBroker(  # type: ignore[misc]
                 producer=AsyncConfluentFastProducerImpl(
                     parser=parser,
                     decoder=decoder,
-                    serializer=fd_config._serializer
                 ),
                 # both args,
                 broker_decoder=decoder,
@@ -377,7 +371,10 @@ class KafkaBroker(  # type: ignore[misc]
                     logger=logger,
                     log_level=log_level,
                 ),
-                fd_config=fd_config,
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
                 broker_dependencies=dependencies,

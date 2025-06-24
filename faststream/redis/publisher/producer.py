@@ -28,10 +28,10 @@ class RedisFastProducer(ProducerProto):
         connection: "ConnectionState",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        serializer: Optional["SerializerProto"] = None
     ) -> None:
         self._connection = connection
-        self.serializer = serializer
+        self.serializer: SerializerProto | None = None
+
         default = RedisPubSubParser()
         self._parser = resolve_custom_func(
             parser,

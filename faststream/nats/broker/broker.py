@@ -431,21 +431,14 @@ class NatsBroker(
         else:
             specification_url = servers
 
-        fd_config = FastDependsConfig(
-            use_fastdepends=apply_types,
-            serializer=serializer,
-        )
-
         js_producer = NatsJSFastProducer(
             parser=parser,
             decoder=decoder,
-            serializer=fd_config._serializer
         )
 
         producer = NatsFastProducerImpl(
             parser=parser,
             decoder=decoder,
-            serializer=fd_config._serializer
         )
 
         super().__init__(
@@ -495,7 +488,10 @@ class NatsBroker(
                     logger=logger,
                     log_level=log_level,
                 ),
-                fd_config=fd_config,
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                ),
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
