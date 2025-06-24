@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
     Any,
+    Optional
 )
 from unittest.mock import AsyncMock, MagicMock
 
