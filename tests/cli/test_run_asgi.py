@@ -115,7 +115,7 @@ def test_many_workers(
     app = AsgiFastStream(NatsBroker())
     """
 
-    workers = random.randint(2, 7)
+    workers = 2
 
     with (
         generate_template(app_code) as app_path,

@@ -1,5 +1,3 @@
-import signal
-
 import pytest
 
 from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
