@@ -238,7 +238,7 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
                 self._log(logging.ERROR, "There is no suitable compression library available. Please refer to the Kafka"
                                          " documentation for more information - "
                                          "https://aiokafka.readthedocs.io/en/stable/#installation")
-            except KafkaError as e:  # noqa: PERF203
+            except KafkaError as e:
                 self._log(logging.ERROR, "Kafka error occurred", exc_info=e)
                 if connected:
                     connected = False
