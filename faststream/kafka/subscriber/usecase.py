@@ -12,9 +12,7 @@ from typing_extensions import override
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import (
-    MsgType,
-)
+from faststream._internal.types import MsgType
 from faststream._internal.utils.path import compile_path
 from faststream.kafka.listener import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
