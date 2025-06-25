@@ -45,8 +45,10 @@ from faststream.redis.parser import (
     RedisListParser,
     RedisPubSubParser,
     RedisStreamParser,
+    SimpleParser,
 )
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
+from faststream.types import EMPTY
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
@@ -54,7 +56,6 @@ if TYPE_CHECKING:
     from faststream.broker.message import StreamMessage as BrokerStreamMessage
     from faststream.broker.publisher.proto import ProducerProto
     from faststream.broker.types import (
-        AsyncCallable,
         BrokerMiddleware,
         CustomCallable,
     )
@@ -73,8 +74,7 @@ class LogicSubscriber(SubscriberUsecase[UnifyRedisDict]):
     def __init__(
         self,
         *,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
+        parser: SimpleParser,
         # Subscriber args
         no_ack: bool,
         no_reply: bool,
@@ -86,9 +86,11 @@ class LogicSubscriber(SubscriberUsecase[UnifyRedisDict]):
         description_: Optional[str],
         include_in_schema: bool,
     ) -> None:
+        self.__parser = parser
+
         super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
+            default_parser=parser.parse_message,
+            default_decoder=parser.decode_message,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -109,6 +111,7 @@ class LogicSubscriber(SubscriberUsecase[UnifyRedisDict]):
         self,
         *,
         connection: Optional["Redis[bytes]"],
+        message_format: Type["MessageFormat"],
         # basic args
         logger: Optional["LoggerProto"],
         producer: Optional["ProducerProto"],
@@ -124,6 +127,9 @@ class LogicSubscriber(SubscriberUsecase[UnifyRedisDict]):
         _call_decorators: Iterable["Decorator"],
     ) -> None:
         self._client = connection
+
+        if self.__parser.message_format is EMPTY:
+            self.__parser.message_format = message_format
 
         super().setup(
             logger=logger,
@@ -243,8 +249,7 @@ class ChannelSubscriber(LogicSubscriber):
             pattern=channel.path_regex, message_format=message_format
         )
         super().__init__(
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -354,8 +359,7 @@ class _ListHandlerMixin(LogicSubscriber):
         self,
         *,
         list: ListSub,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
+        parser: SimpleParser,
         # Subscriber args
         no_ack: bool,
         no_reply: bool,
@@ -368,8 +372,7 @@ class _ListHandlerMixin(LogicSubscriber):
         include_in_schema: bool,
     ) -> None:
         super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -475,10 +478,10 @@ class ListSubscriber(_ListHandlerMixin):
         include_in_schema: bool,
     ) -> None:
         parser = RedisListParser(message_format=message_format)
+
         super().__init__(
             list=list,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -527,8 +530,7 @@ class BatchListSubscriber(_ListHandlerMixin):
         parser = RedisBatchListParser(message_format=message_format)
         super().__init__(
             list=list,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -565,8 +567,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         self,
         *,
         stream: StreamSub,
-        default_parser: "AsyncCallable",
-        default_decoder: "AsyncCallable",
+        parser: SimpleParser,
         # Subscriber args
         no_ack: bool,
         no_reply: bool,
@@ -579,8 +580,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         include_in_schema: bool,
     ) -> None:
         super().__init__(
-            default_parser=default_parser,
-            default_decoder=default_decoder,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -778,8 +778,7 @@ class StreamSubscriber(_StreamHandlerMixin):
         parser = RedisStreamParser(message_format=message_format)
         super().__init__(
             stream=stream,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,
@@ -848,8 +847,7 @@ class BatchStreamSubscriber(_StreamHandlerMixin):
         parser = RedisBatchStreamParser(message_format=message_format)
         super().__init__(
             stream=stream,
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
+            parser=parser,
             # Propagated options
             no_ack=no_ack,
             no_reply=no_reply,

@@ -384,6 +384,7 @@ class RedisBroker(
         return {
             **super()._subscriber_setup_extra,
             "connection": self._connection,
+            "message_format": self.message_format,
         }
 
     @override

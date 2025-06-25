@@ -29,7 +29,7 @@ from faststream.redis.message import (
     RedisStreamMessage,
     bDATA_KEY,
 )
-from faststream.types import AnyDict, DecodedMessage, SendableMessage
+from faststream.types import EMPTY, AnyDict, DecodedMessage, SendableMessage
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -257,7 +257,7 @@ class SimpleParser:
 
     def __init__(
         self,
-        message_format: Type["MessageFormat"] = JSONMessageFormat,
+        message_format: Type["MessageFormat"] = EMPTY,
         pattern: Optional["Pattern[str]"] = None,
     ) -> None:
         self.pattern = pattern

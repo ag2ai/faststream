@@ -16,10 +16,10 @@ from faststream.broker.core.abc import ABCBroker
 from faststream.broker.utils import default_filter
 from faststream.exceptions import SetupError
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
 from faststream.redis.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
+from faststream.types import EMPTY
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.asyncapi import PublisherType
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.types import AnyDict
@@ -111,7 +112,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
         message_format: Annotated[
             Type["MessageFormat"],
             Doc("What format to use when parsing messages"),
-        ] = JSONMessageFormat,
+        ] = EMPTY,
         # AsyncAPI information
         title: Annotated[
             Optional[str],
