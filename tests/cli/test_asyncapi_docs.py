@@ -69,6 +69,7 @@ def test_gen_wrong_path(runner: CliRunner) -> None:
     else:
         assert "No such file or directory" in r.stderr
 
+
 @require_aiokafka
 def test_serve_asyncapi_docs(
     runner: CliRunner,
