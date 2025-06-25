@@ -233,10 +233,14 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            except UnsupportedCodecError as e:
-                self._log(logging.ERROR, "There is no suitable compression library available. Please refer to the Kafka "
-                                         "documentation for more information - "
-                                         "https://aiokafka.readthedocs.io/en/stable/#installation", exc_info=e)
+            except UnsupportedCodecError as e:  # noqa: PERF203
+                self._log(
+                    logging.ERROR,
+                    "There is no suitable compression library available. Please refer to the Kafka "
+                    "documentation for more information - "
+                    "https://aiokafka.readthedocs.io/en/stable/#installation",
+                    exc_info=e,
+                )
                 await anyio.sleep(15)
 
             except KafkaError as e:
