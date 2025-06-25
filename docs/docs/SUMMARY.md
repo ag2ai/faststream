@@ -206,6 +206,8 @@ search:
                 - [TestApp](public_api/faststream/rabbit/TestApp.md)
                 - [TestRabbitBroker](public_api/faststream/rabbit/TestRabbitBroker.md)
             - redis
+                - [BinaryMessageFormatV1](public_api/faststream/redis/BinaryMessageFormatV1.md)
+                - [JSONMessageFormat](public_api/faststream/redis/JSONMessageFormat.md)
                 - [ListSub](public_api/faststream/redis/ListSub.md)
                 - [PubSub](public_api/faststream/redis/PubSub.md)
                 - [RedisBroker](public_api/faststream/redis/RedisBroker.md)
@@ -1015,6 +1017,8 @@ search:
                     - [build_virtual_host](api/faststream/rabbit/utils/build_virtual_host.md)
                     - [is_routing_exchange](api/faststream/rabbit/utils/is_routing_exchange.md)
             - redis
+                - [BinaryMessageFormatV1](api/faststream/redis/BinaryMessageFormatV1.md)
+                - [JSONMessageFormat](api/faststream/redis/JSONMessageFormat.md)
                 - [ListSub](api/faststream/redis/ListSub.md)
                 - [PubSub](api/faststream/redis/PubSub.md)
                 - [RedisBroker](api/faststream/redis/RedisBroker.md)
