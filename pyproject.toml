@@ -61,7 +61,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# public distributions
 rabbit = ["aio-pika>=9,<10"]
 
 kafka = ["aiokafka>=0.9,<0.13"]
@@ -103,8 +102,11 @@ docs = [
     "httpx==0.28.1",                                    # using in CI
 ]
 
-types = [
-    {include-group = "optionals"},
+lint = [
+    "ruff==0.11.13",
+    "bandit==1.8.3",
+    "semgrep==1.125.0",
+    "codespell==2.4.1",
     "mypy==1.16.0",
     # mypy extensions
     "types-Deprecated",
@@ -116,14 +118,6 @@ types = [
     "types-docutils",
     "types-aiofiles",
     "confluent-kafka-stubs; python_version >= '3.11'",
-]
-
-lint = [
-    {include-group = "types"},
-    "ruff==0.11.13",
-    "bandit==1.8.3",
-    "semgrep==1.125.0",
-    "codespell==2.4.1",
 ]
 
 test-core = [

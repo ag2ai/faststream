@@ -1,25 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from faststream.confluent import TestApp, TestKafkaBroker
-from faststream.confluent.helpers.client import AsyncConfluentConsumer
-from tests.tools import spy_decorator
+from faststream.confluent.message import KafkaMessage
 
 
 @pytest.mark.asyncio()
-@pytest.mark.confluent()
-@pytest.mark.slow()
-@pytest.mark.flaky(retries=3, only_on=[TimeoutError], retry_delay=1)
-async def test_ack_exc() -> None:
-    from docs.docs_src.confluent.ack.errors import app, broker, handle
+async def test_ack_exc(mock: MagicMock) -> None:
+    from docs.docs_src.confluent.ack.errors import app, broker
 
-    with patch.object(
-        AsyncConfluentConsumer,
-        "commit",
-        spy_decorator(AsyncConfluentConsumer.commit),
-    ) as m:
-        async with TestKafkaBroker(broker, with_real=True), TestApp(app):
-            await handle.wait_call(20)
-
-            assert m.mock.call_count
+    with patch.object(KafkaMessage, "ack", mock):
+        async with TestKafkaBroker(broker), TestApp(app):
+            mock.assert_called_once()

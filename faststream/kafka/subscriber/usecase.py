@@ -1,20 +1,18 @@
 import logging
-from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
+from abc import ABC, abstractmethod
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
-from aiokafka.errors import ConsumerStoppedError, KafkaError
+from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import (
-    MsgType,
-)
+from faststream._internal.types import MsgType
 from faststream._internal.utils.path import compile_path
 from faststream.kafka.listener import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
@@ -205,12 +203,18 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            except KafkaError as e:  # noqa: PERF203
+            except UnsupportedCodecError as e:  # noqa: PERF203
                 self._log(
                     logging.ERROR,
-                    message="Message fetch error",
+                    "There is no suitable compression library available. Please refer to the Kafka "
+                    "documentation for more information - "
+                    "https://aiokafka.readthedocs.io/en/stable/#installation",
                     exc_info=e,
                 )
+                await anyio.sleep(15)
+
+            except KafkaError as e:
+                self._log(logging.ERROR, "Kafka error occurred", exc_info=e)
 
                 if connected:
                     connected = False

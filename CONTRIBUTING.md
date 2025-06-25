@@ -4,75 +4,92 @@
 
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
-## Virtual Environment with `venv`
+## Install Justfile Utility
 
-Create a virtual environment in a directory using Python's `venv` module:
+Install justfile on your system:
 
 ```bash
-python -m venv venv
+brew install justfile
 ```
 
-That will create a `./venv/` directory with Python binaries, allowing you to install packages in an isolated environment.
-
-## Activate the Environment
-
-Activate the new environment with:
+View all available commands:
 
 ```bash
-source ./venv/bin/activate
+just
 ```
 
-Ensure you have the latest pip version in your virtual environment:
+## Init development environment
+
+Build faststream image:
 
 ```bash
-python -m pip install --upgrade pip
+just init
 ```
 
-## Installing Dependencies
-
-After activating the virtual environment as described above, run:
+By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
 
 ```bash
-pip install --group dev -e .
+just init 3.11.5
 ```
 
-or
+To check available Python versions, refer to the pyproject.toml file in the project root.
+
+## Run all Dependencies
+
+Start all dependencies as docker containers:
 
 ```bash
-uv sync --group dev
+just up
 ```
 
-This will install all the dependencies and your local **FastStream** in your virtual environment.
-
-### Using Your local **FastStream**
-
-If you create a Python file that imports and uses **FastStream**, and run it with the Python from your local environment, it will use your local **FastStream** source code.
-
-Whenever you update your local **FastStream** source code, it will automatically use the latest version when you run your Python file again. This is because it is installed with `-e`.
-
-This way, you don't have to "install" your local version to be able to test every change.
-
-To use your local **FastStream CLI**, type:
+Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
 
 ```bash
-python -m faststream ...
+just stop
+# or
+just down
 ```
 
 ## Running Tests
 
-### Pytest
-
-To run tests with your current **FastStream** application and Python environment, use:
+To run fast tests, use:
 
 ```bash
-pytest tests
-# or
-./scripts/test.sh
-# with coverage output
-./scripts/test-cov.sh
+just test
 ```
 
-In your project, you'll find some *pytest marks*:
+To run all tests with brokers connections, use:
+
+```bash
+just test-all
+```
+
+To run tests with coverage:
+
+```bash
+just coverage-test
+```
+If you need test only specific folder or broker:
+
+```bash
+just test tests/brokers/kafka
+# or
+just test-all tests/brokers/kafka
+# or
+just coverage-test tests/brokers/kafka
+```
+
+If you need some pytest arguments:
+
+```bash
+just test -vv
+# or
+just test tests/brokers/kafka -vv
+# or
+just test "-vv -s"
+```
+
+In your project, some tests are grouped under specific pytest marks:
 
 * **slow**
 * **rabbit**
@@ -81,34 +98,64 @@ In your project, you'll find some *pytest marks*:
 * **redis**
 * **all**
 
-By default, running *pytest* will execute "not slow" tests.
-
-To run all tests use:
-
-```bash
-pytest -m 'all'
-```
-
-If you don't have a local broker instance running, you can run tests without those dependencies:
+By default, "just test" will execute "not slow and not kafka and not confluent and not redis and not rabbit and not nats" tests.
+"just test-all" will execute tests with mark "all".
+You can specify marks to include or exclude tests:
 
 ```bash
-pytest -m 'not rabbit and not kafka and not nats and not redis and not confluent'
+just test tests/ -vv "not kafka and not rabbit"
+# or
+just test . -vv "not kafka and not rabbit"
+# or if you no need pytest arguments
+just test . "" "not kafka and not rabbit"
 ```
 
-To run tests based on RabbitMQ, Kafka, or other dependencies, the following dependencies are needed to be started as docker containers:
+## Linter
 
-```yaml
-{! includes/docker-compose.yaml !}
-```
-
-You can start the dependencies easily using provided script by running:
+Run all linters:
 
 ```bash
-./scripts/start_test_env.sh
+just linter
+```
+This command run ruff check, ruff format and codespell.
+
+To use specific command
+```bash
+just ruff-check
+# or
+just ruff-format
+# or
+just codespell
 ```
 
-Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
+## Static analysis
+
+Run static analysis all tools:
 
 ```bash
-./scripts/stop_test_env.sh
+just static-analysis
+```
+This command run mypy, bandit and semgrep.
+
+To use specific command
+```bash
+just mypy
+# or
+just bandit
+# or
+just semgrep
+```
+
+## Docs
+
+Build docs:
+
+```bash
+just docs-build
+```
+
+Run docs:
+
+```bash
+just docs-serve
 ```
