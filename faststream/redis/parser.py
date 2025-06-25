@@ -99,12 +99,6 @@ class RawMessage:
             serializer=serializer
         )
 
-        if serializer is not None:
-            return serializer.encode({
-                "data": msg.data,
-                "headers": msg.headers,
-            })
-
         return json_dumps({
             "data": msg.data.decode(),
             "headers": msg.headers,
