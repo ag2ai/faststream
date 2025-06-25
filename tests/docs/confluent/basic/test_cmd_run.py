@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from typer.testing import CliRunner
@@ -15,9 +15,9 @@ def confluent_basic_project() -> str:
 @pytest.mark.confluent()
 def test_run_cmd(
     runner: CliRunner,
-    mock: Mock,
+    mock: MagicMock,
     monkeypatch: pytest.MonkeyPatch,
-    confluent_basic_project,
+    confluent_basic_project: str,
 ) -> None:
     async def patched_run(self: FastStream, *args, **kwargs) -> None:
         await self.start()

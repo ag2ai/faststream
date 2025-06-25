@@ -2,14 +2,14 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from faststream.asgi.types import Receive, Scope, Send
+    from .types import Receive, Scope, Send
 
 
 class AsgiResponse:
     def __init__(
         self,
-        body: bytes,
-        status_code: int,
+        body: bytes = b"",
+        status_code: int = 200,
         headers: Mapping[str, str] | None = None,
     ) -> None:
         self.status_code = status_code

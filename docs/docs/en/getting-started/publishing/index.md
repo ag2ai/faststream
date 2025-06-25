@@ -14,10 +14,10 @@ search:
 
 It offers several use cases for publishing messages:
 
-* Using [`#!python broker.publish(...)` method](./publishing/broker.md){.internal-link}
-* Using the [`#!python @broker.publisher(...)` decorator](./publishing/decorator.md){.internal-link}
-* Using a [publisher object decorator](./publishing/object.md){.internal-link}
-* Using a [publisher object directly](./publishing/direct.md){.internal-link}
+* Using [`#!python broker.publish(...)` method](./broker.md){.internal-link}
+* Using the [`#!python @broker.publisher(...)` decorator](./decorator.md){.internal-link}
+* Using a [publisher object decorator](./object.md){.internal-link}
+* Using a [publisher object directly](./direct.md){.internal-link}
 
 All of these variants have their own advantages and limitations, so you can choose what you want based on your requirements. This section will guide you through all the details.
 

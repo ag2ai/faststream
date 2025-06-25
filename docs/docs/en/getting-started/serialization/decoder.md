@@ -66,7 +66,7 @@ Alternatively, you can reuse the original decoder function with the following si
 
 === "AIOKafka"
     ```python
-    from types import Callable, Awaitable
+    from typing import Callable, Awaitable
     from faststream.types import DecodedMessage
     from faststream.kafka import KafkaMessage
 
@@ -79,7 +79,7 @@ Alternatively, you can reuse the original decoder function with the following si
 
 === "Confluent"
     ```python
-    from types import Callable, Awaitable
+    from typing import Callable, Awaitable
     from faststream.types import DecodedMessage
     from faststream.confluent import KafkaMessage
 
@@ -92,7 +92,7 @@ Alternatively, you can reuse the original decoder function with the following si
 
 === "RabbitMQ"
     ```python
-    from types import Callable, Awaitable
+    from typing import Callable, Awaitable
     from faststream.types import DecodedMessage
     from faststream.rabbit import RabbitMessage
 
@@ -105,7 +105,7 @@ Alternatively, you can reuse the original decoder function with the following si
 
 === "NATS"
     ```python
-    from types import Callable, Awaitable
+    from typing import Callable, Awaitable
     from faststream.types import DecodedMessage
     from faststream.nats import NatsMessage
 
@@ -118,7 +118,7 @@ Alternatively, you can reuse the original decoder function with the following si
 
 === "Redis"
     ```python
-    from types import Callable, Awaitable
+    from typing import Callable, Awaitable
     from faststream.types import DecodedMessage
     from faststream.redis import RedisMessage
 

@@ -1,10 +1,13 @@
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Optional, Union, overload
 
-from faststream.asgi.response import AsgiResponse
+from .response import AsgiResponse
 
 if TYPE_CHECKING:
-    from faststream.asgi.types import ASGIApp, Receive, Scope, Send, UserApp
+    from faststream._internal.basic_types import AnyDict
+    from faststream.specification.schema import Tag, TagDict
+
+    from .types import ASGIApp, Receive, Scope, Send, UserApp
 
 
 class HttpHandler:
@@ -15,11 +18,15 @@ class HttpHandler:
         include_in_schema: bool = True,
         description: str | None = None,
         methods: Sequence[str] | None = None,
+        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        unique_id: str | None = None,
     ) -> None:
         self.func = func
         self.methods = methods or ()
         self.include_in_schema = include_in_schema
         self.description = description or func.__doc__
+        self.tags = tags
+        self.unique_id = unique_id
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         if scope["method"] not in self.methods:
@@ -41,12 +48,16 @@ class GetHandler(HttpHandler):
         *,
         include_in_schema: bool = True,
         description: str | None = None,
+        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        unique_id: str | None = None,
     ) -> None:
         super().__init__(
             func,
             include_in_schema=include_in_schema,
             description=description,
             methods=("GET", "HEAD"),
+            tags=tags,
+            unique_id=unique_id,
         )
 
 
@@ -56,6 +67,8 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> "ASGIApp": ...
 
 
@@ -65,6 +78,8 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
@@ -73,10 +88,16 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(
-            inner_func, include_in_schema=include_in_schema, description=description
+            inner_func,
+            include_in_schema=include_in_schema,
+            description=description,
+            tags=tags,
+            unique_id=unique_id,
         )
 
     if func is None:

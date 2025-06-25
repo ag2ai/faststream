@@ -10,7 +10,7 @@ from tests.tools import spy_decorator
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @pytest.mark.slow()
-@pytest.mark.flaky(retries=3, only_on=[TimeoutError])
+@pytest.mark.flaky(retries=3, only_on=[TimeoutError], retry_delay=1)
 async def test_ack_exc() -> None:
     from docs.docs_src.confluent.ack.errors import app, broker, handle
 

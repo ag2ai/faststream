@@ -104,13 +104,15 @@ def gen(
     ),
     out: str | None = typer.Option(
         None,
-        "-o", "--out",
+        "-o",
+        "--out",
         help="Output filename.",
         show_default="asyncapi.json/.yaml",
     ),
     debug: bool = typer.Option(
         False,
-        "-d", "--debug",
+        "-d",
+        "--debug",
         is_flag=True,
         help="Do not save generated schema to file. Print it instead.",
     ),
@@ -168,7 +170,7 @@ def _parse_and_serve(
 
         assert isinstance(docs_obj, Specification)  # nosec B101
 
-        raw_schema = docs_obj
+        raw_schema = docs_obj.schema
 
     else:
         schema_filepath = Path.cwd() / docs
@@ -190,9 +192,7 @@ def _parse_and_serve(
 
         else:
             msg = f"Unknown extension given - {docs}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
-            raise ValueError(
-                msg,
-            )
+            raise ValueError(msg)
 
         for schema in (SchemaV3, SchemaV2_6):
             with suppress(ValidationError):

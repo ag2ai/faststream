@@ -1,32 +1,42 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Union
 
-from faststream.asgi.handlers import get
-from faststream.asgi.response import AsgiResponse
 from faststream.specification.asyncapi.site import (
     ASYNCAPI_CSS_DEFAULT_URL,
     ASYNCAPI_JS_DEFAULT_URL,
     get_asyncapi_html,
 )
 
+from .handlers import get
+from .response import AsgiResponse
+
 if TYPE_CHECKING:
+    from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker import BrokerUsecase
-    from faststream.asgi.types import ASGIApp, Scope
-    from faststream.specification.base.specification import Specification
+    from faststream.specification import Specification
+    from faststream.specification.schema import Tag, TagDict
+
+    from .types import ASGIApp, Scope
 
 
 def make_ping_asgi(
     broker: "BrokerUsecase[Any, Any]",
     /,
-    include_in_schema: bool = True,
     timeout: float | None = None,
+    include_in_schema: bool = True,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> "ASGIApp":
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)
 
-    @get(include_in_schema=include_in_schema)
+    @get(
+        include_in_schema=include_in_schema,
+        description=description,
+        tags=tags,
+        unique_id=unique_id,
+    )
     async def ping(scope: "Scope") -> AsgiResponse:
         if await broker.ping(timeout):
             return healthy_response
@@ -48,15 +58,23 @@ def make_asyncapi_asgi(
     expand_message_examples: bool = True,
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> "ASGIApp":
     cached_docs = None
 
-    @get(include_in_schema=include_in_schema)
+    @get(
+        include_in_schema=include_in_schema,
+        description=description,
+        tags=tags,
+        unique_id=unique_id,
+    )
     async def docs(scope: "Scope") -> AsgiResponse:
         nonlocal cached_docs
         if not cached_docs:
             cached_docs = get_asyncapi_html(
-                schema,
+                schema.schema,
                 sidebar=sidebar,
                 info=info,
                 servers=servers,

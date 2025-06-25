@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-import requests
+import httpx
 
 
 def find_metablock(lines: List[str]) -> Tuple[List[str], List[str]]:
@@ -27,7 +27,7 @@ def find_header(lines: List[str]) -> Tuple[str, List[str]]:
 
 def get_github_releases() -> Sequence[Tuple[str, str]]:
     # Get the latest version from GitHub releases
-    response = requests.get("https://api.github.com/repos/ag2ai/FastStream/releases")
+    response = httpx.get("https://api.github.com/repos/ag2ai/FastStream/releases")
     return ((x["tag_name"], x["body"]) for x in reversed(response.json()))
 
 

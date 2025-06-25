@@ -213,7 +213,7 @@ If you want to test your application in a real environment, you shouldn't have t
 
 ### A Little Tip
 
-It can be very helpful to set the `with_real` flag using an environment variable. This way, you will be able to choose the testing mode right from the command line:
+It can be very useful to set the `with_real` flag using an environment variable. This way, you will be able to choose the testing mode right from the command line:
 
 ```bash
 WITH_REAL=True/False pytest ...

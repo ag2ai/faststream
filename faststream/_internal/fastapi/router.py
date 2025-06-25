@@ -444,7 +444,7 @@ class StreamRouter(
 
             return HTMLResponse(
                 content=get_asyncapi_html(
-                    self.schema,
+                    self.schema.schema,
                     sidebar=sidebar,
                     info=info,
                     servers=servers,

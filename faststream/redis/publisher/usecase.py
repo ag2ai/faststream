@@ -11,6 +11,8 @@ from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Pipeline
+
     from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisMessage
@@ -79,6 +81,8 @@ class ChannelPublisher(LogicPublisher):
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
         correlation_id: str | None = None,
+        *,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -87,6 +91,7 @@ class ChannelPublisher(LogicPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
         return await self._basic_publish(cmd, _extra_middlewares=())
 
@@ -162,6 +167,8 @@ class ListPublisher(LogicPublisher):
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
         correlation_id: str | None = None,
+        *,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -170,6 +177,7 @@ class ListPublisher(LogicPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish(cmd, _extra_middlewares=())
@@ -223,6 +231,7 @@ class ListBatchPublisher(ListPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: Optional["AnyDict"] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             *messages,
@@ -231,6 +240,7 @@ class ListBatchPublisher(ListPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish_batch(cmd, _extra_middlewares=())
@@ -286,6 +296,7 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes:
         cmd = RedisPublishCommand(
             message,
@@ -295,6 +306,7 @@ class StreamPublisher(LogicPublisher):
             correlation_id=correlation_id or gen_cor_id(),
             maxlen=maxlen or self.stream.maxlen,
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish(cmd, _extra_middlewares=())

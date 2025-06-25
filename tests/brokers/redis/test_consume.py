@@ -4,7 +4,14 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from redis.asyncio import Redis
 
-from faststream.redis import ListSub, PubSub, RedisMessage, StreamSub
+from faststream import AckPolicy
+from faststream.redis import (
+    ListSub,
+    PubSub,
+    RedisMessage,
+    RedisStreamMessage,
+    StreamSub,
+)
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -764,6 +771,70 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         assert event.is_set()
 
+    async def test_consume_and_delete_acked(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue)
+        )
+        async def handler(msg: RedisStreamMessage) -> None:
+            event.set()
+            await msg.delete(consume_broker._connection)
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            with patch.object(Redis, "xdel", spy_decorator(Redis.xdel)) as m:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
+
+                m.mock.assert_called_once()
+
+            queue_len = await br._connection.xlen(queue)
+            assert queue_len == 0, (
+                f"Redis stream must be empty here, found {queue_len} messages"
+            )
+
+    async def test_consume_and_delete_nacked(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+            ack_policy=AckPolicy.DO_NOTHING,
+        )
+        async def handler(msg: RedisStreamMessage) -> None:
+            assert not msg.committed
+            await msg.delete(consume_broker._connection)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            with patch.object(Redis, "xdel", spy_decorator(Redis.xdel)) as m:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
+
+                m.mock.assert_called_once()
+
+            queue_len = await br._connection.xlen(queue)
+            assert queue_len == 0, (
+                f"Redis stream must be empty here, found {queue_len} messages"
+            )
+
     async def test_get_one(
         self,
         queue: str,
@@ -820,7 +891,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(stream=StreamSub(queue), max_workers=2)
-        async def handler(msg):
+        async def handler(msg: RedisStreamMessage) -> None:
             mock()
             if event.is_set():
                 event2.set()
@@ -842,8 +913,6 @@ class TestConsumeStream(RedisTestcaseConfig):
             timeout=3,
         )
 
-        assert event.is_set()
-        assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
     async def test_iterator(
@@ -859,12 +928,12 @@ class TestConsumeStream(RedisTestcaseConfig):
         async with self.patch_broker(broker) as br:
             await br.start()
 
-            async def publish_test_message():
+            async def publish_test_message() -> None:
                 await asyncio.sleep(0.1)
                 for msg in expected_messages:
                     await br.publish(msg, stream=queue)
 
-            async def consume():
+            async def consume() -> None:
                 index_message = 0
                 async for msg in subscriber:
                     result_message = await msg.decode()

@@ -16,12 +16,7 @@ from .basic import BatchConfluentPrometheusSettings, ConfluentPrometheusSettings
 
 @pytest.mark.confluent()
 class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
-        self,
-        queue: str,
-    ):
-        event = asyncio.Event()
-
+    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -31,7 +26,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
         message = None
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")):
+        async def handler(m=Context("message")) -> None:
             event.set()
 
             nonlocal message

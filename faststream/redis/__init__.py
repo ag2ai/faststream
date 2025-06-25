@@ -1,7 +1,7 @@
 from faststream._internal.testing.app import TestApp
 
 try:
-    from .annotations import Redis, RedisMessage
+    from .annotations import Pipeline, Redis, RedisMessage, RedisStreamMessage
     from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
     from .response import RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
@@ -17,6 +17,7 @@ except ImportError as e:
 
 __all__ = (
     "ListSub",
+    "Pipeline",
     "PubSub",
     "Redis",
     "RedisBroker",
@@ -25,6 +26,7 @@ __all__ = (
     "RedisResponse",
     "RedisRoute",
     "RedisRouter",
+    "RedisStreamMessage",
     "StreamSub",
     "TestApp",
     "TestRedisBroker",

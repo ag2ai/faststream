@@ -3,15 +3,16 @@ import os
 import signal
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import anyio
 import pytest
 
 from faststream import FastStream, TestApp
-from faststream._internal._compat import IS_WINDOWS
 from faststream._internal.logger import logger
+from faststream.asgi import AsgiResponse
 from faststream.rabbit import RabbitBroker, TestRabbitBroker
+from tests.marks import skip_windows
 
 
 def test_init(app: FastStream, broker: RabbitBroker) -> None:
@@ -60,7 +61,7 @@ def test_log(app: FastStream, app_without_logger: FastStream) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_on_startup_calls(async_mock: AsyncMock, mock: Mock) -> None:
+async def test_on_startup_calls(async_mock: AsyncMock, mock: MagicMock) -> None:
     def call1() -> None:
         mock.call_start1()
         assert not async_mock.call_start2.called
@@ -79,7 +80,7 @@ async def test_on_startup_calls(async_mock: AsyncMock, mock: Mock) -> None:
 
 @pytest.mark.asyncio()
 async def test_startup_calls_lifespans(
-    mock: Mock,
+    mock: MagicMock,
     app: FastStream,
     async_mock: AsyncMock,
 ) -> None:
@@ -102,7 +103,7 @@ async def test_startup_calls_lifespans(
 
 
 @pytest.mark.asyncio()
-async def test_on_shutdown_calls(async_mock: AsyncMock, mock: Mock) -> None:
+async def test_on_shutdown_calls(async_mock: AsyncMock, mock: MagicMock) -> None:
     def call1() -> None:
         mock.call_stop1()
         assert not async_mock.call_stop2.called
@@ -120,7 +121,7 @@ async def test_on_shutdown_calls(async_mock: AsyncMock, mock: Mock) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_shutdown_calls_lifespans(mock: Mock) -> None:
+async def test_shutdown_calls_lifespans(mock: MagicMock) -> None:
     app = FastStream(AsyncMock())
 
     def call1() -> None:
@@ -143,7 +144,7 @@ async def test_shutdown_calls_lifespans(mock: Mock) -> None:
 @pytest.mark.asyncio()
 async def test_after_startup_calls(
     async_mock: AsyncMock,
-    mock: Mock,
+    mock: MagicMock,
     broker: RabbitBroker,
 ) -> None:
     def call1() -> None:
@@ -197,7 +198,7 @@ async def test_startup_lifespan_before_broker_started(
 @pytest.mark.asyncio()
 async def test_after_shutdown_calls(
     async_mock: AsyncMock,
-    mock: Mock,
+    mock: MagicMock,
     broker: RabbitBroker,
 ) -> None:
     def call1() -> None:
@@ -276,7 +277,7 @@ async def test_exception_group(async_mock: AsyncMock, app: FastStream) -> None:
 @pytest.mark.asyncio()
 async def test_running_lifespan_contextmanager(
     async_mock: AsyncMock,
-    mock: Mock,
+    mock: MagicMock,
     app: FastStream,
 ) -> None:
     @asynccontextmanager
@@ -298,7 +299,7 @@ async def test_running_lifespan_contextmanager(
 
 
 @pytest.mark.asyncio()
-async def test_test_app(mock: Mock) -> None:
+async def test_test_app(mock: MagicMock) -> None:
     app = FastStream(AsyncMock())
 
     app.on_startup(mock.on)
@@ -312,7 +313,7 @@ async def test_test_app(mock: Mock) -> None:
 
 
 @pytest.mark.asyncio()
-async def test_test_app_with_excp(mock: Mock) -> None:
+async def test_test_app_with_excp(mock: MagicMock) -> None:
     app = FastStream(AsyncMock())
 
     app.on_startup(mock.on)
@@ -326,7 +327,7 @@ async def test_test_app_with_excp(mock: Mock) -> None:
     mock.off.assert_called_once()
 
 
-def test_sync_test_app(mock: Mock) -> None:
+def test_sync_test_app(mock: MagicMock) -> None:
     app = FastStream(AsyncMock())
 
     app.on_startup(mock.on)
@@ -339,7 +340,7 @@ def test_sync_test_app(mock: Mock) -> None:
     mock.off.assert_called_once()
 
 
-def test_sync_test_app_with_excp(mock: Mock) -> None:
+def test_sync_test_app_with_excp(mock: MagicMock) -> None:
     app = FastStream(AsyncMock())
 
     app.on_startup(mock.on)
@@ -405,7 +406,7 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) ->
 
 
 @pytest.mark.asyncio()
-@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@skip_windows
 async def test_stop_with_sigint(async_mock: AsyncMock, app: FastStream) -> None:
     with (
         patch.object(app.broker, "start", async_mock.broker_run_sigint),
@@ -420,7 +421,7 @@ async def test_stop_with_sigint(async_mock: AsyncMock, app: FastStream) -> None:
 
 
 @pytest.mark.asyncio()
-@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@skip_windows
 async def test_stop_with_sigterm(async_mock: AsyncMock, app: FastStream) -> None:
     with (
         patch.object(app.broker, "start", async_mock.broker_run_sigterm),
@@ -435,9 +436,9 @@ async def test_stop_with_sigterm(async_mock: AsyncMock, app: FastStream) -> None
 
 
 @pytest.mark.asyncio()
-@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@skip_windows
 async def test_run_asgi(async_mock: AsyncMock, app: FastStream) -> None:
-    asgi_routes = [("/", lambda scope, receive, send: None)]
+    asgi_routes = [("/", AsgiResponse())]
     asgi_app = app.as_asgi(asgi_routes=asgi_routes)
     assert asgi_app.broker is app.broker
     assert asgi_app.logger is app.logger

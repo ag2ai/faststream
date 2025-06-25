@@ -14,7 +14,7 @@ In this guide, we will explore how to customize **AsyncAPI** documentation for y
 
 ## Prerequisites
 
-Before we dive into customization, ensure you have a instance **AsyncAPI** specififcation. If you haven't done that yet, let's create a simple instance right now.
+Before we dive into customization, ensure you have a instance **AsyncAPI** specification. If you haven't done that yet, let's create a simple instance right now.
 
 Copy the following code in your basic.py file:
 

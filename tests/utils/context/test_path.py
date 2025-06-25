@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -70,7 +70,7 @@ async def test_nats_path() -> None:
 @require_nats
 async def test_nats_kv_path(
     queue: str,
-    mock: Mock,
+    mock: MagicMock,
 ) -> None:
     event = asyncio.Event()
 

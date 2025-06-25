@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
 from typer.testing import CliRunner
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from faststream.redis.response import RedisPublishCommand
 
 
-def get_mock_app(broker_type, producer_type) -> tuple[FastStream, AsyncMock]:
+def get_mock_app(broker_type: Any, producer_type: Any) -> tuple[FastStream, AsyncMock]:
     broker = broker_type()
     broker.connect = AsyncMock()
     mock_producer = AsyncMock(spec=producer_type)
@@ -36,7 +36,7 @@ def get_mock_app(broker_type, producer_type) -> tuple[FastStream, AsyncMock]:
 
 
 @require_redis
-def test_publish_command_with_redis_options(runner) -> None:
+def test_publish_command_with_redis_options(runner: CliRunner) -> None:
     from faststream.redis import RedisBroker
     from faststream.redis.publisher.producer import RedisFastProducer
 
@@ -71,7 +71,7 @@ def test_publish_command_with_redis_options(runner) -> None:
 
 
 @require_confluent
-def test_publish_command_with_confluent_options(runner) -> None:
+def test_publish_command_with_confluent_options(runner: CliRunner) -> None:
     from faststream.confluent import KafkaBroker as ConfluentBroker
     from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
 
@@ -103,7 +103,7 @@ def test_publish_command_with_confluent_options(runner) -> None:
 
 
 @require_aiokafka
-def test_publish_command_with_kafka_options(runner) -> None:
+def test_publish_command_with_kafka_options(runner: CliRunner) -> None:
     from faststream.kafka import KafkaBroker
     from faststream.kafka.publisher.producer import AioKafkaFastProducer
 
@@ -135,7 +135,7 @@ def test_publish_command_with_kafka_options(runner) -> None:
 
 
 @require_nats
-def test_publish_command_with_nats_options(runner) -> None:
+def test_publish_command_with_nats_options(runner: CliRunner) -> None:
     from faststream.nats import NatsBroker
     from faststream.nats.publisher.producer import NatsFastProducer
 
@@ -170,7 +170,7 @@ def test_publish_command_with_nats_options(runner) -> None:
 
 
 @require_aiopika
-def test_publish_command_with_rabbit_options(runner) -> None:
+def test_publish_command_with_rabbit_options(runner: CliRunner) -> None:
     from faststream.rabbit import RabbitBroker
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
 

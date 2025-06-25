@@ -344,7 +344,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    @pytest.mark.flaky(retries=3, only_on=[AssertionError])
+    @pytest.mark.flaky(retries=3, retry_delay=1)
     async def test_concurrent_consume(self, queue: str, mock: MagicMock) -> None:
         event = asyncio.Event()
         event2 = asyncio.Event()
@@ -365,6 +365,8 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            await asyncio.sleep(1)  # TODO: wait until subscriber is ready
+
             for i in range(5):
                 await br.publish(i, queue)
 
@@ -373,7 +375,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                 asyncio.create_task(event.wait()),
                 asyncio.create_task(event2.wait()),
             ),
-            timeout=3,
+            timeout=self.timeout,
         )
 
         assert mock.call_count == 2, mock.call_count

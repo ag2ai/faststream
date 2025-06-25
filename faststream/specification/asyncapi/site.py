@@ -7,8 +7,7 @@ from faststream._internal._compat import json_dumps
 from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
-    from faststream.specification.base.specification import Specification
-
+    from faststream.specification.base.schema import BaseApplicationSchema
 
 ASYNCAPI_JS_DEFAULT_URL = "https://unpkg.com/@asyncapi/react-component@1.0.0-next.54/browser/standalone/index.js"
 
@@ -18,7 +17,7 @@ ASYNCAPI_CSS_DEFAULT_URL = (
 
 
 def get_asyncapi_html(
-    schema: "Specification",
+    schema: "BaseApplicationSchema",
     sidebar: bool = True,
     info: bool = True,
     servers: bool = True,
@@ -62,7 +61,7 @@ def get_asyncapi_html(
         <head>
     """
         f"""
-        <title>{schema.schema.info.title} AsyncAPI</title>
+        <title>{schema.info.title} AsyncAPI</title>
     """
         """
         <link rel="icon" href="https://www.asyncapi.com/favicon.ico">
@@ -102,7 +101,7 @@ def get_asyncapi_html(
 
 
 def serve_app(
-    schema: "Specification",
+    schema: "BaseApplicationSchema",
     host: str,
     port: int,
 ) -> None:
@@ -120,7 +119,7 @@ class _Handler(server.BaseHTTPRequestHandler):
     def __init__(
         self,
         *args: Any,
-        schema: "Specification",
+        schema: "BaseApplicationSchema",
         **kwargs: Any,
     ) -> None:
         self.schema = schema

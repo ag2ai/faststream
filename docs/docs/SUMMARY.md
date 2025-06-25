@@ -120,6 +120,7 @@ search:
         - [Batching](redis/streams/batch.md)
         - [Acknowledgement](redis/streams/ack.md)
     - [RPC](redis/rpc.md)
+    - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
 - [Reference - Code API](api/index.md)
@@ -937,6 +938,8 @@ search:
                 - [StreamSub](api/faststream/redis/StreamSub.md)
                 - [TestApp](api/faststream/redis/TestApp.md)
                 - [TestRedisBroker](api/faststream/redis/TestRedisBroker.md)
+                - annotations
+                    - [get_pipe](api/faststream/redis/annotations/get_pipe.md)
                 - broker
                     - [RedisBroker](api/faststream/redis/broker/RedisBroker.md)
                     - [RedisPublisher](api/faststream/redis/broker/RedisPublisher.md)
@@ -1109,6 +1112,7 @@ search:
                 - [Contact](api/faststream/specification/Contact.md)
                 - [ExternalDocs](api/faststream/specification/ExternalDocs.md)
                 - [License](api/faststream/specification/License.md)
+                - [Specification](api/faststream/specification/Specification.md)
                 - [Tag](api/faststream/specification/Tag.md)
                 - asyncapi
                     - [AsyncAPI](api/faststream/specification/asyncapi/AsyncAPI.md)
@@ -1338,6 +1342,8 @@ search:
                             - [Exchange](api/faststream/specification/schema/bindings/amqp/Exchange.md)
                             - [OperationBinding](api/faststream/specification/schema/bindings/amqp/OperationBinding.md)
                             - [Queue](api/faststream/specification/schema/bindings/amqp/Queue.md)
+                        - http
+                            - [OperationBinding](api/faststream/specification/schema/bindings/http/OperationBinding.md)
                         - kafka
                             - [ChannelBinding](api/faststream/specification/schema/bindings/kafka/ChannelBinding.md)
                             - [OperationBinding](api/faststream/specification/schema/bindings/kafka/OperationBinding.md)

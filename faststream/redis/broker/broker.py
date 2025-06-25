@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
-    from redis.asyncio.client import Redis
+    from redis.asyncio.client import Pipeline, Redis
     from redis.asyncio.connection import BaseParser
     from typing_extensions import TypedDict
 
@@ -75,7 +75,6 @@ if TYPE_CHECKING:
         retry_on_timeout: bool | None
         encoding: str | None
         encoding_errors: str | None
-        decode_responses: bool | None
         parser_class: type["BaseParser"] | None
         connection_class: type["Connection"] | None
         encoder_class: type["Encoder"] | None
@@ -113,7 +112,6 @@ class RedisBroker(
         retry_on_timeout: bool = False,
         encoding: str = "utf-8",
         encoding_errors: str = "strict",
-        decode_responses: bool = False,
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
         # broker args
@@ -211,7 +209,6 @@ class RedisBroker(
             retry_on_timeout=retry_on_timeout,
             encoding=encoding,
             encoding_errors=encoding_errors,
-            decode_responses=decode_responses,
             parser_class=parser_class,
             connection_class=connection_class,
             encoder_class=encoder_class,
@@ -317,6 +314,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int | bytes:
         """Publish message directly.
 
@@ -340,6 +338,8 @@ class RedisBroker(
                 Redis Stream object name to send message.
             maxlen:
                 Redis Stream maxlen publish option. Remove eldest message if maxlen exceeded.
+            pipeline:
+                Redis pipeline to use for publishing messages.
 
         Returns:
             int: The result of the publish operation, typically the number of messages published.
@@ -354,7 +354,9 @@ class RedisBroker(
             reply_to=reply_to,
             headers=headers,
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
+
         return await super()._basic_publish(cmd, producer=self.config.producer)
 
     @override
@@ -388,31 +390,26 @@ class RedisBroker(
 
     async def publish_batch(
         self,
-        *messages: Annotated[
-            "SendableMessage",
-            Doc("Messages bodies to send."),
-        ],
-        list: Annotated[
-            str,
-            Doc("Redis List object name to send messages."),
-        ],
-        correlation_id: Annotated[
-            str | None,
-            Doc(
-                "Manual message **correlation_id** setter. "
-                "**correlation_id** is a useful option to trace messages.",
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message destination PubSub object name."),
-        ] = "",
-        headers: Annotated[
-            Optional["AnyDict"],
-            Doc("Message headers to store metainformation."),
-        ] = None,
+        *messages: "SendableMessage",
+        list: str,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: Optional["AnyDict"] = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
-        """Publish multiple messages to Redis List by one request."""
+        """Publish multiple messages to Redis List by one request.
+
+        Args:
+            *messages: Messages bodies to send.
+            list: Redis List object name to send messages.
+            correlation_id: Manual message **correlation_id** setter. **correlation_id** is a useful option to trace messages.
+            reply_to: Reply message destination PubSub object name.
+            headers: Message headers to store metainformation.
+            pipeline: Redis pipeline to use for publishing messages.
+
+        Returns:
+            int: The result of the batch publish operation.
+        """
         cmd = RedisPublishCommand(
             *messages,
             list=list,
@@ -420,6 +417,7 @@ class RedisBroker(
             headers=headers,
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
+            pipeline=pipeline,
         )
 
         return await self._basic_publish_batch(cmd, producer=self.config.producer)

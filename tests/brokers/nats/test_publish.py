@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -18,7 +18,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
     async def test_response(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 

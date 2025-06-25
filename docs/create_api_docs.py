@@ -159,7 +159,7 @@ def _add_all_submodules(members: List[str]) -> List[str]:
         xs = x.split(".")
         return [".".join(xs[:i]) + "." for i in range(1, len(xs))]
 
-    def _get_sorting_key(item):
+    def _get_sorting_key(item: str) -> str:
         y = item.split(".")
         z = [f"~{a}" for a in y[:-1]] + [y[-1]]
         return ".".join(z)

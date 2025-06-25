@@ -138,6 +138,12 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     ) -> None:
         await super().reject()
 
+    async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
+        if redis is not None:
+            ids = self.raw_message["message_ids"]
+            channel = self.raw_message["channel"]
+            await redis.xdel(channel, *ids)
+
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
     pass

@@ -1,17 +1,11 @@
-import sys
 
 import pytest
 
-from faststream._internal._compat import PYDANTIC_V2
+from faststream._internal._compat import IS_WINDOWS, PYDANTIC_V2
 
-python39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="requires python3.9+",
-)
-
-python310 = pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="requires python3.10+",
+skip_windows = pytest.mark.skipif(
+    IS_WINDOWS,
+    reason="does not run on windows",
 )
 
 pydantic_v1 = pytest.mark.skipif(

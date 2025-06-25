@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from opentelemetry.sdk.metrics import MeterProvider
@@ -33,7 +33,7 @@ class TestTelemetry(LocalTelemetryTestcase):
     async def test_batch(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
@@ -153,7 +153,7 @@ class TestTelemetry(LocalTelemetryTestcase):
     async def test_single_publish_with_batch_consume(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,

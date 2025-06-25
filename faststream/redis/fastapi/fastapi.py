@@ -76,7 +76,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         retry_on_timeout: bool = False,
         encoding: str = "utf-8",
         encoding_errors: str = "strict",
-        decode_responses: bool = False,
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
         # broker base args
@@ -377,7 +376,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             retry_on_timeout=retry_on_timeout,
             encoding=encoding,
             encoding_errors=encoding_errors,
-            decode_responses=decode_responses,
             parser_class=parser_class,
             connection_class=connection_class,
             encoder_class=encoder_class,

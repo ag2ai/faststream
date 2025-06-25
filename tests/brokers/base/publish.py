@@ -3,7 +3,7 @@ from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import anyio
 import pytest
@@ -143,7 +143,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         message,
         message_type,
         expected_message,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -174,7 +174,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_response(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -219,7 +219,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_unwrap_dict(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -253,7 +253,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     @pytest.mark.asyncio()
     async def test_unwrap_list(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -284,7 +284,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_base_publisher(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -321,7 +321,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_publisher_object(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -360,7 +360,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_publish_manual(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -398,7 +398,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_multiple_publishers(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
@@ -447,7 +447,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_reusable_publishers(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
@@ -500,7 +500,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_reply_to(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -539,7 +539,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_no_reply(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -592,7 +592,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
     async def test_publisher_after_start(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 

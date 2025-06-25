@@ -252,3 +252,18 @@ except ImportError:  # pragma: no cover
                 handler : the handler
             """
             return with_info_plain_validator_function(cls._validate)
+
+
+uvicorn: Any
+UvicornMultiprocess: Any
+
+try:
+    import uvicorn
+    from uvicorn.supervisors.multiprocess import Multiprocess as UvicornMultiprocess
+
+    HAS_UVICORN = True
+
+except ImportError:
+    uvicorn = None
+    UvicornMultiprocess = None
+    HAS_UVICORN = False

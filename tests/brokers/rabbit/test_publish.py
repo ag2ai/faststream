@@ -1,7 +1,7 @@
 import asyncio
 import datetime as dt
 from typing import TYPE_CHECKING
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from dirty_equals import IsNow
@@ -24,7 +24,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
     async def test_reply_config(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -70,7 +70,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
     async def test_response(
         self,
         queue: str,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         event = asyncio.Event()
 
@@ -135,7 +135,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
         self,
         queue: str,
         event: asyncio.Event,
-        mock: Mock,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 

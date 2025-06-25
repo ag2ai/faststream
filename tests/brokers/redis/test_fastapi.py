@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,11 +15,7 @@ class TestRouter(FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = RedisRouter
 
-    async def test_path(
-        self,
-        queue: str,
-        mock: Mock,
-    ) -> None:
+    async def test_path(self, mock: MagicMock) -> None:
         event = asyncio.Event()
 
         router = self.router_class()
@@ -44,7 +40,7 @@ class TestRouter(FastAPITestcase):
 
     async def test_batch_real(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -72,8 +68,8 @@ class TestRouter(FastAPITestcase):
     @pytest.mark.slow()
     async def test_consume_stream(
         self,
-        mock: Mock,
-        queue,
+        mock: MagicMock,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -101,8 +97,8 @@ class TestRouter(FastAPITestcase):
     @pytest.mark.slow()
     async def test_consume_stream_batch(
         self,
-        mock: Mock,
-        queue,
+        mock: MagicMock,
+        queue: str,
     ) -> None:
         event = asyncio.Event()
 
@@ -134,7 +130,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
 
     async def test_batch_testclient(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -160,7 +156,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
 
     async def test_stream_batch_testclient(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()

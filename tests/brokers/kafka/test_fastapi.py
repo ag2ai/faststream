@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -17,7 +17,7 @@ class TestKafkaRouter(FastAPITestcase):
 
     async def test_batch_real(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()
@@ -49,7 +49,7 @@ class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
 
     async def test_batch_testclient(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
     ) -> None:
         event = asyncio.Event()

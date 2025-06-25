@@ -1,7 +1,6 @@
 import pytest
 
 from tests.marks import (
-    python39,
     require_aiokafka,
     require_aiopika,
     require_confluent,
@@ -11,7 +10,6 @@ from tests.marks import (
 
 
 @pytest.mark.asyncio()
-@python39
 @require_redis
 async def test_lifespan_redis() -> None:
     from docs.docs_src.getting_started.lifespan.redis.testing import (
@@ -22,7 +20,6 @@ async def test_lifespan_redis() -> None:
 
 
 @pytest.mark.asyncio()
-@python39
 @require_confluent
 async def test_lifespan_confluent() -> None:
     from docs.docs_src.getting_started.lifespan.confluent.testing import (
@@ -33,7 +30,6 @@ async def test_lifespan_confluent() -> None:
 
 
 @pytest.mark.asyncio()
-@python39
 @require_aiokafka
 async def test_lifespan_kafka() -> None:
     from docs.docs_src.getting_started.lifespan.kafka.testing import (
@@ -44,7 +40,6 @@ async def test_lifespan_kafka() -> None:
 
 
 @pytest.mark.asyncio()
-@python39
 @require_aiopika
 async def test_lifespan_rabbit() -> None:
     from docs.docs_src.getting_started.lifespan.rabbit.testing import (
@@ -55,7 +50,6 @@ async def test_lifespan_rabbit() -> None:
 
 
 @pytest.mark.asyncio()
-@python39
 @require_nats
 async def test_lifespan_nats() -> None:
     from docs.docs_src.getting_started.lifespan.nats.testing import (

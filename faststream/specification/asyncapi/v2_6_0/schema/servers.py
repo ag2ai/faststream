@@ -53,9 +53,9 @@ class Server(BaseModel):
     url: str
     protocol: str
     protocolVersion: str | None
-    description: str | None
-    tags: list[Tag | AnyDict] | None
-    security: SecurityRequirement | None
+    description: str | None = None
+    tags: list[Tag | AnyDict] | None = None
+    security: SecurityRequirement | None = None
 
     variables: dict[str, ServerVariable | Reference] | None = None
 
