@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from itertools import chain
 from typing import (
@@ -233,7 +234,8 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
                 msg = await self.get_msg(consumer)
 
             # pragma: no cover
-            except KafkaError:  # noqa: PERF203
+            except KafkaError as e:  # noqa: PERF203
+                self._log(logging.ERROR, "Kafka error occurred", exc_info=e)
                 if connected:
                     connected = False
                 await anyio.sleep(5)
