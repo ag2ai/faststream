@@ -36,34 +36,31 @@ repos:
     -   id: lint
         name: Linter
         stages: [pre-commit, pre-merge-commit, manual]
-        entry: just linter
+        entry: "scripts/lint-pre-commit.sh"
         language: python
         types: [python]
         require_serial: true
         verbose: true
-        pass_filenames: false
 
 -   repo: local
     hooks:
     -   id: static-analysis
         name: Static analysis
-        entry: just static-analysis
+        entry: "scripts/static-pre-commit.sh"
         language: python
         types: [python]
         require_serial: true
         verbose: true
-        pass_filenames: false
 
 -   repo: local
     hooks:
     -   id: docs
         name: Build docs
-        entry: just docs-build
+        entry: "scripts/build-docs-pre-commit.sh"
         language: python
         files: ^docs
         require_serial: true
         verbose: true
-        pass_filenames: false
 
 -   repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0

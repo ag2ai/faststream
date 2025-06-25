@@ -20,7 +20,7 @@ just
 
 ## Init development environment
 
-Build Python and create a virtual environment:
+Build faststream image:
 
 ```bash
 just init
@@ -33,28 +33,6 @@ just init 3.11.5
 ```
 
 To check available Python versions, refer to the pyproject.toml file in the project root.
-
-## Activate the Environment
-
-Activate the new environment with
-
-For Unix-based systems:
-
-```bash
-source ./venv/bin/activate
-```
-
-For Windows (PowerShell):
-
-```bash
-.\venv\Scripts\Activate.ps1
-```
-
-Install and configure pre-commit:
-
-```bash
-just pre-commit-install
-```
 
 ## Run all Dependencies
 
@@ -74,16 +52,41 @@ just down
 
 ## Running Tests
 
-To run tests, use:
+To run fast tests, use:
 
 ```bash
 just test
+```
+
+To run all tests with brokers connections, use:
+
+```bash
+just test-all
 ```
 
 To run tests with coverage:
 
 ```bash
 just coverage-test
+```
+If you need test only specific folder or broker:
+
+```bash
+just test tests/brokers/kafka
+# or
+just test-all tests/brokers/kafka
+# or
+just coverage-test tests/brokers/kafka
+```
+
+If you need some pytest arguments:
+
+```bash
+just test -vv
+# or
+just test tests/brokers/kafka -vv
+# or
+just test "-vv -s"
 ```
 
 In your project, some tests are grouped under specific pytest marks:
@@ -95,18 +98,16 @@ In your project, some tests are grouped under specific pytest marks:
 * **redis**
 * **all**
 
-By default, will execute "all" tests. You can specify marks to include or exclude tests:
+By default, "just test" will execute "not slow and not kafka and not confluent and not redis and not rabbit and not nats" tests.
+"just test-all" will execute tests with mark "all".
+You can specify marks to include or exclude tests:
 
 ```bash
-just test kafka
+just test tests/ -vv "not kafka and not rabbit"
 # or
-just test rabbit
-# or
-just test 'not confluent'
-# or
-just test 'not confluent and not nats'
-# or
-just coverage-test kafka
+just test . -vv "not kafka and not rabbit"
+# or if you no need pytest arguments
+just test . "" "not kafka and not rabbit"
 ```
 
 ## Linter
@@ -116,19 +117,45 @@ Run all linters:
 ```bash
 just linter
 ```
+This command run ruff check, ruff format and codespell.
+
+To use specific command
+```bash
+just ruff-check
+# or
+just ruff-format
+# or
+just codespell
+```
 
 ## Static analysis
 
-Run static analysis tools:
+Run static analysis all tools:
 
 ```bash
 just static-analysis
 ```
+This command run mypy, bandit and semgrep.
 
-## Pre-commit
+To use specific command
+```bash
+just mypy
+# or
+just bandit
+# or
+just semgrep
+```
 
-Run pre-commit checks:
+## Docs
+
+Build docs:
 
 ```bash
-just pre-commit
+just docs-build
+```
+
+Run docs:
+
+```bash
+just docs-serve
 ```
