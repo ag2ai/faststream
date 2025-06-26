@@ -131,7 +131,7 @@ func main() {
 	// Parse headers section
 	buf := bytes.NewBuffer(raw[headersOffset:])
 	headerCount := int(binary.BigEndian.Uint16(buf.Next(2)))
-	
+
 	headers := make(map[string]string)
 	for i := 0; i < headerCount; i++ {
 		keyLen := int(binary.BigEndian.Uint16(buf.Next(2)))
@@ -171,21 +171,21 @@ class MessageParser {
     public static void main(String[] args) throws Exception {
         // Read entire file into byte array
         byte[] fileData = getMessage();
-        
+
         // Parse using fixed offsets
         ByteBuffer buffer = ByteBuffer.wrap(fileData).order(ByteOrder.BIG_ENDIAN);
-        
+
         // Parse header
         byte[] idHeader = new byte[8];
         buffer.get(idHeader);
         int version = buffer.getShort() & 0xFFFF;
         int headersOffset = buffer.getInt();
         int dataOffset = buffer.getInt();
-        
+
         // Jump to headers section
         buffer.position(headersOffset);
         int headerCount = buffer.getShort() & 0xFFFF;
-        
+
         // Parse key-value pairs
         Map<String, String> headers = new LinkedHashMap<>();
         for (int i = 0; i < headerCount; i++) {
@@ -193,26 +193,26 @@ class MessageParser {
             String value = readString(buffer);
             headers.put(key, value);
         }
-        
+
         // Extract and convert text data
         byte[] dataBytes = new byte[fileData.length - dataOffset];
         System.arraycopy(fileData, dataOffset, dataBytes, 0, dataBytes.length);
         String data = new String(dataBytes, StandardCharsets.UTF_8);
-        
+
         // Print results
         System.out.println("ID Header: " + bytesToHex(idHeader));
         System.out.println("Version: " + version);
         System.out.println("Headers: " + headers);
         System.out.println("Data: " + data);
     }
-    
+
     private static String readString(ByteBuffer buffer) {
         int length = buffer.getShort() & 0xFFFF;
         byte[] bytes = new byte[length];
         buffer.get(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
     }
-    
+
     private static String bytesToHex(byte[] bytes) {
         StringBuilder hex = new StringBuilder();
         for (byte b : bytes) {
