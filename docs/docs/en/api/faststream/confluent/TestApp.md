@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.testing.app.TestApp
+::: faststream._internal.testing.app.TestApp

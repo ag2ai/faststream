@@ -12,25 +12,24 @@ if TYPE_CHECKING:
 
 
 def build_virtual_host(
-    url: Union[str, "URL", None], virtualhost: Optional[str], path: str
+    url: Union[str, "URL", None], virtualhost: str | None, path: str
 ) -> str:
     if (not url and not virtualhost) or virtualhost == "/":
         return ""
-    elif virtualhost:
+    if virtualhost:
         return virtualhost.replace("/", "", 1)
-    else:
-        return path.replace("/", "", 1)
+    return path.replace("/", "", 1)
 
 
 def build_url(
     url: Union[str, "URL", None] = None,
     *,
-    host: Optional[str] = None,
-    port: Optional[int] = None,
-    login: Optional[str] = None,
-    password: Optional[str] = None,
-    virtualhost: Optional[str] = None,
-    ssl: Optional[bool] = None,
+    host: str | None = None,
+    port: int | None = None,
+    login: str | None = None,
+    password: str | None = None,
+    virtualhost: str | None = None,
+    ssl: bool | None = None,
     ssl_options: Optional["SSLOptions"] = None,
     client_properties: Optional["RabbitClientProperties"] = None,
     **kwargs: Any,
@@ -59,10 +58,10 @@ def build_url(
 
 def is_routing_exchange(exchange: Optional["RabbitExchange"]) -> bool:
     """Check if an exchange requires routing_key to deliver message."""
-    return not exchange or exchange.type in (
+    return not exchange or exchange.type in {
         ExchangeType.DIRECT.value,
         ExchangeType.TOPIC.value,
-    )
+    }
 
 
 class RabbitClientProperties(TypedDict, total=False):

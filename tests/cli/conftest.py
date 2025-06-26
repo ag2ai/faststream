@@ -1,28 +1,22 @@
 import os
+import select
+import signal
 import subprocess
 import threading
 import time
-from contextlib import contextmanager
+from collections.abc import Generator
+from contextlib import AbstractContextManager, contextmanager, suppress
+from pathlib import Path
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Protocol,
-)
+from typing import Protocol
 
 import pytest
 
 from faststream import FastStream
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from faststream._internal._compat import IS_WINDOWS
 
 
-@pytest.fixture
+@pytest.fixture()
 def broker():
     # separate import from e2e tests
     from faststream.rabbit import RabbitBroker
@@ -30,22 +24,22 @@ def broker():
     return RabbitBroker()
 
 
-@pytest.fixture
-def app_without_logger(broker):
-    return FastStream(broker, None)
+@pytest.fixture()
+def app_without_logger(broker) -> FastStream:
+    return FastStream(broker, logger=None)
 
 
-@pytest.fixture
-def app_without_broker():
+@pytest.fixture()
+def app_without_broker() -> FastStream:
     return FastStream()
 
 
-@pytest.fixture
-def app(broker):
+@pytest.fixture()
+def app(broker) -> FastStream:
     return FastStream(broker)
 
 
-@pytest.fixture
+@pytest.fixture()
 def faststream_tmp_path(tmp_path: "Path"):
     faststream_tmp = tmp_path / "faststream_templates"
     faststream_tmp.mkdir(exist_ok=True)
@@ -55,10 +49,10 @@ def faststream_tmp_path(tmp_path: "Path"):
 class GenerateTemplateFactory(Protocol):
     def __call__(
         self, code: str, filename: str = "temp_app.py"
-    ) -> ContextManager["Path"]: ...
+    ) -> AbstractContextManager[Path]: ...
 
 
-@pytest.fixture
+@pytest.fixture()
 def generate_template(
     faststream_tmp_path: "Path",
 ) -> GenerateTemplateFactory:
@@ -79,73 +73,137 @@ def generate_template(
     return factory
 
 
-class CliThread(Protocol):
-    process: Optional[subprocess.Popen]
+class CLIThread:
+    def __init__(
+        self,
+        command: tuple[str, ...],
+        env: dict[str, str],
+    ) -> None:
+        self.process = subprocess.Popen(
+            command,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=False,
+            env=env,
+        )
+        self.running = True
+        self.started = False
 
-    def stop(self) -> None: ...
+        self.stderr = ""
+
+        self.__std_poll_thread = threading.Thread(target=self._poll_std)
+        self.__std_poll_thread.start()
+
+    def _poll_std(self) -> None:
+        assert self.process.stderr
+
+        if IS_WINDOWS:
+            return
+
+        while self.running:
+            rlist, _, _ = select.select([self.process.stderr], [], [], 1.0)
+
+            if rlist:
+                self.started = True
+
+                if line := self.process.stderr.readline():
+                    self.stderr += line.strip()
+
+                else:
+                    break
+
+            elif self.process.poll() is not None:
+                break
+
+    def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
+        assert self.process.stderr
+
+        expiration_time = time.time() + timeout
+
+        while time.time() < expiration_time:
+            if message in self.stderr:
+                return True
+
+        if self.process.returncode is not None:
+            return message in self.process.stderr.read()
+
+        return False
+
+    def wait(self, timeout: float) -> None:
+        self.process.wait(timeout)
+
+    def signint(self) -> None:
+        if IS_WINDOWS:
+            self.process.terminate()
+        else:
+            self.process.send_signal(signal.SIGINT)
+
+    def stop(self) -> None:
+        self.process.terminate()
+
+        self.running = False
+        with suppress(Exception):
+            self.__std_poll_thread.join()
+
+        try:
+            self.wait(5)
+
+        except subprocess.TimeoutExpired:
+            self.process.kill()
 
 
 class FastStreamCLIFactory(Protocol):
     def __call__(
         self,
-        cmd: List[str],
-        wait_time: float = 1.5,
-        extra_env: Optional[Dict[str, str]] = None,
-    ) -> ContextManager[CliThread]: ...
-
-
-@pytest.fixture
-def faststream_cli(faststream_tmp_path: "Path") -> FastStreamCLIFactory:
-    @contextmanager
-    def factory(
-        cmd: List[str],
+        *cmd: str,
         wait_time: float = 2.0,
-        extra_env: Optional[Dict[str, str]] = None,
-    ) -> Generator[CliThread, None, None]:
-        class RealCLIThread(threading.Thread):
-            def __init__(self, command: List[str], env: Dict[str, str]):
-                super().__init__()
-                self.command = command
-                self.process: Optional[subprocess.Popen] = None
-                self.env = env
+        extra_env: dict[str, str] | None = None,
+    ) -> AbstractContextManager[CLIThread]: ...
 
-            def run(self) -> None:
-                self.process = subprocess.Popen(
-                    self.command,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    shell=False,
-                    env=self.env,
-                )
-                self.process.wait()
 
-            def stop(self) -> None:
-                if self.process:
-                    self.process.terminate()
-                    try:
-                        self.process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        self.process.kill()
-
-        extra_env = extra_env or {}
-        env = os.environ.copy()
-        if extra_env:
-            env.update(**extra_env)
-        env.update(
-            **{
+@pytest.fixture()
+def faststream_cli(faststream_tmp_path: Path) -> FastStreamCLIFactory:
+    @contextmanager
+    def cli_factory(
+        *cmd: str,
+        wait_time: float = 2.0,
+        extra_env: dict[str, str] | None = None,
+    ) -> Generator[CLIThread, None, None]:
+        env = (
+            os.environ.copy()
+            | {
                 "PATH": f"{faststream_tmp_path}:{os.environ['PATH']}",
                 "PYTHONPATH": str(faststream_tmp_path),
             }
+            | (extra_env or {})
         )
-        cli = RealCLIThread(cmd, env)
-        cli.start()
-        time.sleep(wait_time)
+
+        cli = CLIThread(cmd, env)
+
+        wait_for_startup(cli, wait_time)
 
         try:
             yield cli
         finally:
             cli.stop()
-            cli.join()
 
-    return factory
+    return cli_factory
+
+
+def wait_for_startup(
+    cli: CLIThread,
+    timeout: float = 10,
+    check_interval: float = 0.1,
+) -> None:
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        if cli.started:
+            return
+
+        if cli.process.poll() is not None:
+            return
+
+        time.sleep(check_interval)
+
+    return

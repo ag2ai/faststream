@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.broker.fastapi.context.Context
+::: faststream._internal.fastapi.context.Context

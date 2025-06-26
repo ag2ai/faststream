@@ -8,8 +8,8 @@ def just_broker(request):
     return request.param
 
 
-@pytest.mark.asyncio  # run it async to create anyio.Event
-async def test_sync(just_broker: RabbitBroker):
+@pytest.mark.asyncio()  # run it async to create anyio.Event
+async def test_sync(just_broker: RabbitBroker) -> None:
     @just_broker.subscriber("test")
     def func(a: int) -> str:
         return "pong"
@@ -17,8 +17,8 @@ async def test_sync(just_broker: RabbitBroker):
     assert func(1) == "pong"
 
 
-@pytest.mark.asyncio  # run it async to create anyio.Event
-async def test_sync_publisher(just_broker: RabbitBroker):
+@pytest.mark.asyncio()  # run it async to create anyio.Event
+async def test_sync_publisher(just_broker: RabbitBroker) -> None:
     @just_broker.publisher("test")
     def func(a: int) -> str:
         return "pong"
@@ -26,8 +26,8 @@ async def test_sync_publisher(just_broker: RabbitBroker):
     assert func(1) == "pong"
 
 
-@pytest.mark.asyncio  # run it async to create anyio.Event
-async def test_sync_multi(just_broker: RabbitBroker):
+@pytest.mark.asyncio()  # run it async to create anyio.Event
+async def test_sync_multi(just_broker: RabbitBroker) -> None:
     @just_broker.publisher("test")
     @just_broker.subscriber("test")
     @just_broker.publisher("test")
@@ -37,8 +37,8 @@ async def test_sync_multi(just_broker: RabbitBroker):
     assert func(1) == "pong"
 
 
-@pytest.mark.asyncio
-async def test_async(just_broker: RabbitBroker):
+@pytest.mark.asyncio()
+async def test_async(just_broker: RabbitBroker) -> None:
     @just_broker.subscriber("test")
     async def func(a: int) -> str:
         return "pong"
@@ -46,8 +46,8 @@ async def test_async(just_broker: RabbitBroker):
     assert await func(1) == "pong"
 
 
-@pytest.mark.asyncio
-async def test_async_publisher(just_broker: RabbitBroker):
+@pytest.mark.asyncio()
+async def test_async_publisher(just_broker: RabbitBroker) -> None:
     @just_broker.publisher("test")
     async def func(a: int) -> str:
         return "pong"
@@ -55,8 +55,8 @@ async def test_async_publisher(just_broker: RabbitBroker):
     assert await func(1) == "pong"
 
 
-@pytest.mark.asyncio
-async def test_async_multi(just_broker: RabbitBroker):
+@pytest.mark.asyncio()
+async def test_async_multi(just_broker: RabbitBroker) -> None:
     @just_broker.publisher("test")
     @just_broker.subscriber("test")
     @just_broker.publisher("test")

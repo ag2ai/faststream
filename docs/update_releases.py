@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-import requests
+import httpx
 
 
 def find_metablock(lines: List[str]) -> Tuple[List[str], List[str]]:
@@ -27,7 +27,7 @@ def find_header(lines: List[str]) -> Tuple[str, List[str]]:
 
 def get_github_releases() -> Sequence[Tuple[str, str]]:
     # Get the latest version from GitHub releases
-    response = requests.get("https://api.github.com/repos/ag2ai/FastStream/releases")
+    response = httpx.get("https://api.github.com/repos/ag2ai/FastStream/releases")
     return ((x["tag_name"], x["body"]) for x in reversed(response.json()))
 
 
@@ -35,7 +35,9 @@ def convert_links_and_usernames(text):
     if "](" not in text:
         # Convert HTTP/HTTPS links
         text = re.sub(
-            r"(https?://.*\/(.*))", r'[#\2](\1){.external-link target="_blank"}', text
+            r"(https?://.*\/(.*))",
+            r'[#\2](\1){.external-link target="_blank"}',
+            text,
         )
 
         # Convert GitHub usernames to links
@@ -83,7 +85,7 @@ def update_release_notes(realease_notes_path: Path):
             + "\n"  # adding an addition newline after the header results in one empty file being added every time we run the script
             + changelog
             + "\n"
-        ).replace("\r", "")
+        ).replace("\r", ""),
     )
 
 

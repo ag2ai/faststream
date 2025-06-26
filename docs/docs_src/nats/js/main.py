@@ -1,5 +1,6 @@
 from faststream import FastStream, Logger
 from faststream.nats import JStream, NatsBroker
+from nats.js.api import DeliverPolicy
 
 broker = NatsBroker()
 app = FastStream(broker)
@@ -9,7 +10,7 @@ stream = JStream(name="stream")
 @broker.subscriber(
     "js-subject",
     stream=stream,
-    deliver_policy="new",
+    deliver_policy=DeliverPolicy.NEW,
 )
 async def handler(msg: str, logger: Logger):
     logger.info(msg)

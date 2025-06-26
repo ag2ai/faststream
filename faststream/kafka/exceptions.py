@@ -9,6 +9,6 @@ class BatchBufferOverflowException(FastStreamException):
 
     def __str__(self) -> str:
         return (
-            f"The batch buffer is full. The position of the message"
+            "The batch buffer is full. The position of the message"
             f" in the transferred collection at which the overflow occurred: {self.message_position}"
         )
