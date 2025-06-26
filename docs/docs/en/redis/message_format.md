@@ -3,6 +3,15 @@
 To provide such great features as observability and many others **FastStream** needs to add extra data to your message. **Redis** in turn provides ability to send any type of data inside the message. Since that, **FastStream** uses it's own binary format for messages that supports any type of data that you are going to use and add any additional information.
 
 
+### Migration plan
+
+Currently **FastStream** uses JSON by default to encode and parse messages internally. But in future updates it will be deprecated and removed according to the following plan:
+
+- in versions 0.5.* - JSON will stay as default message format
+- in versions 0.6.* - JSON will be deprecated and new binary format will be used as default
+- in versions 0.7.* - JSON message format will be completely removed
+
+
 ### Message structure
 
 The message compiled by **FastStream** has the following structure:
@@ -11,6 +20,8 @@ The message compiled by **FastStream** has the following structure:
 # Format metadata
 [Identification header: 8 bytes]
 [Format version: 16 bit big-endian int]
+[Headers offset (points to the number of headers): 32 bit big-endian int]
+[Data offset (indicates position at which the data starts): 32 bit big-endian int]
 [Number of headers: 16 bit big-endian int]
 # headers
 [Length of key: 16 bit big-endian int]
@@ -99,99 +110,45 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"os"
 )
 
-var magicHeader = []byte{0x89, 0x42, 0x49, 0x4E, 0x0D, 0x0A, 0x1A, 0x0A}
-
-type ParsedMessage struct {
-	Version uint16
-	Headers map[string]string
-	Data    []byte
-}
-
-func ParseMessage(data []byte) (*ParsedMessage, error) {
-	r := bytes.NewReader(data)
-
-	// 1. Verify identity header
-	identity := make([]byte, 8)
-	if _, err := r.Read(identity); err != nil {
-		return nil, err
-	}
-	if !bytes.Equal(identity, magicHeader) {
-		return nil, errors.New("invalid magic header")
-	}
-
-	// 2. Read format version
-	var version uint16
-	if err := binary.Read(r, binary.BigEndian, &version); err != nil {
-		return nil, err
-	}
-
-	// 3. Read number of headers
-	var headerCount uint16
-	if err := binary.Read(r, binary.BigEndian, &headerCount); err != nil {
-		return nil, err
-	}
-
-	// 4. Parse headers
-	headers := make(map[string]string)
-	for i := 0; i < int(headerCount); i++ {
-		// Key
-		var keyLen uint16
-		if err := binary.Read(r, binary.BigEndian, &keyLen); err != nil {
-			return nil, err
-		}
-
-		keyBytes := make([]byte, keyLen)
-		if _, err := r.Read(keyBytes); err != nil {
-			return nil, err
-		}
-
-		// Value
-		var valueLen uint16
-		if err := binary.Read(r, binary.BigEndian, &valueLen); err != nil {
-			return nil, err
-		}
-
-		valueBytes := make([]byte, valueLen)
-		if _, err := r.Read(valueBytes); err != nil {
-			return nil, err
-		}
-
-		headers[string(keyBytes)] = string(valueBytes)
-	}
-
-	// 5. Read remaining data
-	messageData := make([]byte, r.Len())
-	if _, err := r.Read(messageData); err != nil {
-		return nil, err
-	}
-
-	return &ParsedMessage{
-		Version: version,
-		Headers: headers,
-		Data:    messageData,
-	}, nil
-}
-
 func main() {
-	// Example usage
-	message, err := GetMessage()
-	if err != nil{
-		panic(err)
-	}
-	parsed, err := ParseMessage(testMessage)
+	// Read entire file
+	raw, err := GetMessage()
 	if err != nil {
-		panic(err)
+		fmt.Println("Error reading file:", err)
+		os.Exit(1)
 	}
 
-	fmt.Printf("Version: %d\n", parsed.Version)
-	fmt.Printf("Headers: %v\n", parsed.Headers)
-	fmt.Printf("Data length: %d\n", len(parsed.Data))
-	fmt.Printf("Data: %v\n", string(parsed.Data))
+	// Parse fixed metadata
+	idHeader := raw[0:8]
+	version := binary.BigEndian.Uint16(raw[8:10])
+	headersOffset := binary.BigEndian.Uint32(raw[10:14])
+	dataOffset := binary.BigEndian.Uint32(raw[14:18])
+
+	// Parse headers section
+	buf := bytes.NewBuffer(raw[headersOffset:])
+	headerCount := int(binary.BigEndian.Uint16(buf.Next(2)))
+	
+	headers := make(map[string]string)
+	for i := 0; i < headerCount; i++ {
+		keyLen := int(binary.BigEndian.Uint16(buf.Next(2)))
+		key := string(buf.Next(keyLen))
+		valLen := int(binary.BigEndian.Uint16(buf.Next(2)))
+		value := string(buf.Next(valLen))
+		headers[key] = value
+	}
+
+	// Parse data section (assumed to be UTF-8 text)
+	data := string(raw[dataOffset:])
+
+	// Print results
+	fmt.Printf("ID Header: % x\n", idHeader)
+	fmt.Printf("Version: %d\n", version)
+	fmt.Printf("Headers: %v\n", headers)
+	fmt.Printf("Data: %s\n", data)
 }
 
 ```
@@ -202,77 +159,66 @@ Java example parser:
 
 ```java
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class BinaryFormatParser {
-
-    // Expected magic header
-    private static final byte[] MAGIC_HEADER = new byte[] {
-        (byte) 0x89, 0x42, 0x49, 0x4E, 0x0D, 0x0A, 0x1A, 0x0A
-    };
-
-    public static class ParsedMessage {
-        public int version;
-        public Map<String, String> headers;
-        public byte[] data;
-    }
-
-    public static ParsedMessage parse(byte[] message) throws Exception {
-        ByteBuffer buffer = ByteBuffer.wrap(message);
-
-        // 1. Verify magic header
-        byte[] magic = new byte[8];
-        buffer.get(magic);
-        if (!Arrays.equals(magic, MAGIC_HEADER)) {
-            throw new IllegalArgumentException("Invalid magic header");
-        }
-
-        // 2. Read format version (unsigned short)
-        int version = Short.toUnsignedInt(buffer.getShort());
-
-        // 3. Read number of headers (unsigned short)
-        int headerCount = Short.toUnsignedInt(buffer.getShort());
-
-        // 4. Parse headers
-        Map<String, String> headers = new HashMap<>();
-        for (int i = 0; i < headerCount; i++) {
-            // Key
-            int keyLength = Short.toUnsignedInt(buffer.getShort());
-            byte[] keyBytes = new byte[keyLength];
-            buffer.get(keyBytes);
-            String key = new String(keyBytes, StandardCharsets.UTF_8);
-
-            // Value
-            int valueLength = Short.toUnsignedInt(buffer.getShort());
-            byte[] valueBytes = new byte[valueLength];
-            buffer.get(valueBytes);
-            String value = new String(valueBytes, StandardCharsets.UTF_8);
-
-            headers.put(key, value);
-        }
-
-        // 5. Read remaining data
-        byte[] data = new byte[buffer.remaining()];
-        buffer.get(data);
-
-        // Return parsed result
-        ParsedMessage result = new ParsedMessage();
-        result.version = version;
-        result.headers = headers;
-        result.data = data;
-        return result;
-    }
+class MessageParser {
 
     public static void main(String[] args) throws Exception {
-        // Example usage
-        byte[] testMessage = getMessage();
-        ParsedMessage parsed = parse(testMessage);
-
-        System.out.println("Version: " + parsed.version);
-        System.out.println("Headers: " + parsed.headers);
-        System.out.println("Data length: " + parsed.data.length);
-        System.out.println("Data: " + parsed.data);
+        // Read entire file into byte array
+        byte[] fileData = getMessage();
+        
+        // Parse using fixed offsets
+        ByteBuffer buffer = ByteBuffer.wrap(fileData).order(ByteOrder.BIG_ENDIAN);
+        
+        // Parse header
+        byte[] idHeader = new byte[8];
+        buffer.get(idHeader);
+        int version = buffer.getShort() & 0xFFFF;
+        int headersOffset = buffer.getInt();
+        int dataOffset = buffer.getInt();
+        
+        // Jump to headers section
+        buffer.position(headersOffset);
+        int headerCount = buffer.getShort() & 0xFFFF;
+        
+        // Parse key-value pairs
+        Map<String, String> headers = new LinkedHashMap<>();
+        for (int i = 0; i < headerCount; i++) {
+            String key = readString(buffer);
+            String value = readString(buffer);
+            headers.put(key, value);
+        }
+        
+        // Extract and convert text data
+        byte[] dataBytes = new byte[fileData.length - dataOffset];
+        System.arraycopy(fileData, dataOffset, dataBytes, 0, dataBytes.length);
+        String data = new String(dataBytes, StandardCharsets.UTF_8);
+        
+        // Print results
+        System.out.println("ID Header: " + bytesToHex(idHeader));
+        System.out.println("Version: " + version);
+        System.out.println("Headers: " + headers);
+        System.out.println("Data: " + data);
     }
+    
+    private static String readString(ByteBuffer buffer) {
+        int length = buffer.getShort() & 0xFFFF;
+        byte[] bytes = new byte[length];
+        buffer.get(bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+    
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) {
+            hex.append(String.format("%02X ", b));
+        }
+        return hex.toString().trim();
+    }
+}
 ```

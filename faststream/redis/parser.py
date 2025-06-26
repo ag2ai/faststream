@@ -51,13 +51,17 @@ class BinaryWriter:
     def write(self, data: bytes) -> None:
         self.data.extend(data)
 
-    def write_int(self, number: int) -> None:
+    def write_short(self, number: int) -> None:
         int_bytes = pack(">H", number)
+        self.write(int_bytes)
+
+    def write_int(self, number: int) -> None:
+        int_bytes = pack(">I", number)
         self.write(int_bytes)
 
     def write_string(self, data: Union[str, bytes]) -> None:
         str_len = len(data)
-        self.write_int(str_len)
+        self.write_short(str_len)
         if isinstance(data, bytes):
             self.write(data)
         else:
@@ -77,13 +81,21 @@ class BinaryReader:
         self.offset += offset
         return data
 
-    def read_int(self) -> int:
+    def shift_offset_to(self, offset: int) -> None:
+        self.offset = offset
+
+    def read_short(self) -> int:
         data = unpack(">H", self.data[self.offset : self.offset + 2])[0]
         self.offset += 2
         return int(data)
 
+    def read_int(self) -> int:
+        data = unpack(">I", self.data[self.offset : self.offset + 4])[0]
+        self.offset += 4
+        return int(data)
+
     def read_string(self) -> str:
-        str_len = self.read_int()
+        str_len = self.read_short()
         data = self.data[self.offset : self.offset + str_len]
         self.offset += str_len
         return data.decode()
@@ -216,13 +228,21 @@ class BinaryMessageFormatV1(MessageFormat):
             headers=headers,
             correlation_id=correlation_id,
         )
+        headers_writer = BinaryWriter()
+        for key, value in msg.headers.items():
+            headers_writer.write_string(key)
+            headers_writer.write_string(value)
+
+        headers_len = len(headers_writer.data)
         writer = BinaryWriter()
         writer.write(cls.IDENTITY_HEADER)
-        writer.write_int(FastStreamMessageVersion.v1.value)
-        writer.write_int(len(msg.headers.items()))
-        for key, value in msg.headers.items():
-            writer.write_string(key)
-            writer.write_string(value)
+        writer.write_short(FastStreamMessageVersion.v1.value)
+        headers_start = len(writer.data) + 8
+        data_start = 2 + headers_start + headers_len
+        writer.write_int(headers_start)
+        writer.write_int(data_start)
+        writer.write_short(len(msg.headers.items()))
+        writer.write(headers_writer.get_bytes())
         writer.write(msg.data)
         return writer.get_bytes()
 
@@ -233,18 +253,26 @@ class BinaryMessageFormatV1(MessageFormat):
             reader = BinaryReader(data)
             headers = {}
             magic_header = reader.read_until(len(cls.IDENTITY_HEADER))
-            message_version = reader.read_int()
+            message_version = reader.read_short()
             if (
                 magic_header == cls.IDENTITY_HEADER
                 and message_version == FastStreamMessageVersion.v1.value
             ):
-                header_count = reader.read_int()
+                headers_start = reader.read_int()
+                data_start = reader.read_int()
+                reader.shift_offset_to(headers_start)
+                header_count = reader.read_short()
                 for _ in range(header_count):
                     key = reader.read_string()
                     value = reader.read_string()
                     headers[key] = value
 
+                reader.shift_offset_to(data_start)
                 data = reader.read_bytes()
+            else:
+                parsed_data = json_loads(data)
+                data = parsed_data["data"].encode()
+                headers = parsed_data["headers"]
         except Exception:
             # Raw Redis message format
             data = data

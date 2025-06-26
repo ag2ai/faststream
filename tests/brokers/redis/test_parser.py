@@ -62,6 +62,19 @@ def test_json_message_encode_parse(input, should_be) -> None:
     assert parsed == should_be
 
 
+def test_parse_json_with_binary_format() -> None:
+    message = b'{"headers": {"correlation_id": 1, "reply_to": "service1", "content-type": "plain/text"}, "data": "hello"}'
+    headers_should_be = {
+        "correlation_id": 1,
+        "reply_to": "service1",
+        "content-type": "plain/text",
+    }
+    data_should_be = b"hello"
+    parsed_data, parsed_headers = BinaryMessageFormatV1.parse(message)
+    assert parsed_headers == headers_should_be
+    assert parsed_data == data_should_be
+
+
 @pytest.mark.redis
 @pytest.mark.asyncio
 class TestFormats:
@@ -77,7 +90,10 @@ class TestFormats:
         ("message_format", "message"),
         [
             (JSONMessageFormat, b'{"data":"hello"}'),
-            (BinaryMessageFormatV1, b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\x00hello"),
+            (
+                BinaryMessageFormatV1,
+                b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\00\x00\x12\x00\x00\x00\x14\x00\x00hello",
+            ),
         ],
     )
     async def test_consume_in_different_formats(
@@ -111,7 +127,10 @@ class TestFormats:
         ("message_format", "message"),
         [
             (JSONMessageFormat, b'{"data":"hello"}'),
-            (BinaryMessageFormatV1, b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\x00hello"),
+            (
+                BinaryMessageFormatV1,
+                b"\x89BIN\x0d\x0a\x1a\x0a\x00\x01\x00\00\x00\x12\x00\x00\x00\x14\x00\x00hello",
+            ),
         ],
     )
     async def test_publish_in_different_formats(
@@ -146,6 +165,27 @@ class TestFormats:
             )
         mock.assert_called_once_with(b"hello")
 
+    async def test_parse_json_with_binary_format(
+        self, queue: str, event: asyncio.Event, mock: MagicMock
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True, format=JSONMessageFormat)
+
+        @pub_broker.subscriber(channel=queue, message_format=BinaryMessageFormatV1)
+        async def resp(msg):
+            mock(msg)
+
+        async with self.patch_broker(pub_broker) as br:
+            await pub_broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br._connection.publish(queue, "hello world")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+        mock.assert_called_once_with(b"hello world")
+
 
 @pytest.mark.asyncio
 class TestTestBrokerFormats:
@@ -164,6 +204,18 @@ class TestTestBrokerFormats:
         test_broker = self.patch_broker(broker)
 
         @broker.subscriber(channel=queue, message_format=msg_format)
+        async def handler(msg): ...
+
+        async with test_broker as br:
+            await br.publish(message=message, channel=queue)
+            handler.mock.assert_called_once_with(message)
+
+    async def test_parse_json_with_binary_format(self, queue: str) -> None:
+        message = "hello"
+        broker = self.get_broker(apply_types=True, format=JSONMessageFormat)
+        test_broker = self.patch_broker(broker)
+
+        @broker.subscriber(channel=queue, message_format=BinaryMessageFormatV1)
         async def handler(msg): ...
 
         async with test_broker as br:
