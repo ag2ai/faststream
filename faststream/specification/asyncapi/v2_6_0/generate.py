@@ -149,7 +149,6 @@ def get_broker_channels(
 ) -> dict[str, Channel]:
     """Get the broker channels for an application."""
     channels = {}
-
     for s in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for key, sub in s.schema().items():
             if key in channels:
@@ -158,7 +157,6 @@ def get_broker_channels(
                     RuntimeWarning,
                     stacklevel=1,
                 )
-
             channels[key] = Channel.from_sub(sub)
 
     for p in filter(lambda p: p.specification.include_in_schema, broker.publishers):
