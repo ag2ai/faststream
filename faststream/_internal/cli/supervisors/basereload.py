@@ -45,23 +45,24 @@ class BaseReload:
         self.shutdown()
 
     def startup(self) -> None:
-        logger.info(f"Started reloader process [{self.pid}] using {self.reloader_name}")
-        self._process = self._start_process()
+        logger.info("Started reloader process [%s] using %s", self.pid, self.reloader_name)
+        self._process = self.start_process()
 
     def restart(self) -> None:
         self._stop_process()
         logger.info("Process successfully reloaded")
-        self._process = self._start_process()
+        self._process = self.start_process()
 
     def shutdown(self) -> None:
         self._stop_process()
-        logger.info(f"Stopping reloader process [{self.pid}]")
+        logger.info("Stopping reloader process [%s]", self.pid)
 
     def _stop_process(self) -> None:
         self._process.terminate()
         self._process.join()
 
-    def _start_process(self) -> SpawnProcess:
+    def start_process(self, worker_id: int | None = None) -> SpawnProcess:
+        self._args[1]["worker_id"] = worker_id
         process = get_subprocess(target=self._target, args=self._args)
         process.start()
         return process

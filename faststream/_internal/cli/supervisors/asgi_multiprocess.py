@@ -2,7 +2,7 @@ import inspect
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal._compat import HAS_UVICORN, UvicornMultiprocess, uvicorn
+from faststream._internal._compat import HAS_UVICORN, uvicorn
 from faststream.asgi.app import cast_uvicorn_params
 from faststream.exceptions import INSTALL_UVICORN
 
@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SettingField
 
 if HAS_UVICORN:
+    from uvicorn.supervisors.multiprocess import Multiprocess, Process
 
     class UvicornExtraConfig(uvicorn.Config):  # type: ignore[misc]
         def __init__(
@@ -24,6 +25,16 @@ if HAS_UVICORN:
         def load(self) -> None:
             super().load()
             self.loaded_app.app._run_extra_options = self._run_extra_options
+
+    class UvicornMultiprocess(Multiprocess):
+        config: UvicornExtraConfig
+
+        def init_processes(self) -> None:
+            for i in range(self.processes_num):
+                self.config._run_extra_options["worker_id"] = i
+                process = Process(self.config, self.target, self.sockets)
+                process.start()
+                self.processes.append(process)
 
 
 class ASGIMultiprocess:

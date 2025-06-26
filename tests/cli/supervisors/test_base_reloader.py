@@ -1,9 +1,10 @@
 import signal
+from multiprocessing.context import SpawnProcess
 from typing import Any
 
 import pytest
 
-from faststream._internal.cli.supervisors.basereload import BaseReload
+from faststream._internal.cli.supervisors.basereload import BaseReload, get_subprocess
 
 
 class PatchedBaseReload(BaseReload):
@@ -13,6 +14,11 @@ class PatchedBaseReload(BaseReload):
 
     def should_restart(self) -> bool:
         return True
+
+    def start_process(self, worker_id: int | None = None) -> SpawnProcess:
+        process = get_subprocess(target=self._target, args=self._args)
+        process.start()
+        return process
 
 
 def empty(*args: Any, **kwargs: Any) -> None:

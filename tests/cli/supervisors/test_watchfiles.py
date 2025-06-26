@@ -1,45 +1,57 @@
 import os
 import signal
 import time
+from multiprocessing.context import SpawnProcess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from faststream._internal.cli.supervisors.utils import get_subprocess
 from faststream._internal.cli.supervisors.watchfiles import WatchReloader
+from tests.cli.conftest import GenerateTemplateFactory
 from tests.marks import skip_windows
 
 DIR = Path(__file__).resolve().parent
 
 
+class PatchedWatchReloader(WatchReloader):
+    def start_process(self, worker_id: int | None = None) -> SpawnProcess:
+        process = get_subprocess(target=self._target, args=self._args)
+        process.start()
+        return process
+
+
 @pytest.mark.slow()
 @skip_windows
-def test_base() -> None:
-    processor = WatchReloader(target=exit, args=(), reload_dirs=[DIR])
+def test_base(generate_template: GenerateTemplateFactory) -> None:
+    with generate_template("") as file_path:
+        processor = PatchedWatchReloader(
+            target=exit, args=(), reload_dirs=[str(file_path.parent)]
+        )
 
-    processor._args = (processor.pid,)
-    processor.run()
+        processor._args = (processor.pid,)
+        processor.run()
 
-    code = abs(processor._process.exitcode or 0)
+        code = abs(processor._process.exitcode or 0)
+
     assert code in {signal.SIGTERM.value, 0}, code
 
 
 @pytest.mark.slow()
 @skip_windows
-def test_restart(mock: MagicMock) -> None:
-    file = DIR / "file.py"
+def test_restart(mock: MagicMock, generate_template: GenerateTemplateFactory) -> None:
+    with generate_template("") as file_path:
+        processor = PatchedWatchReloader(
+            target=touch_file, args=(file_path,), reload_dirs=[file_path.parent]
+        )
 
-    processor = WatchReloader(target=touch_file, args=(file,), reload_dirs=[DIR])
+        mock.side_effect = lambda: exit(processor.pid)
 
-    mock.side_effect = lambda: exit(processor.pid)
+        with patch.object(processor, "restart", mock):
+            processor.run()
 
-    with patch.object(processor, "restart", mock):
-        processor.run()
-
-    try:
-        mock.assert_called_once()
-    finally:
-        file.unlink()
+    mock.assert_called_once()
 
 
 def touch_file(file: Path) -> None:
