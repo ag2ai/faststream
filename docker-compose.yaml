@@ -44,5 +44,6 @@ services:
     build: .
     volumes:
       - ./:/src
+      - /src/.venv/
     network_mode: "host"
     tty: true
