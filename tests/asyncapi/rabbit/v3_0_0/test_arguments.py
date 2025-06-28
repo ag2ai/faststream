@@ -4,10 +4,10 @@ from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
 class TestArguments(ArgumentsTestcase):
-    broker_factory = RabbitBroker
+    broker_class = RabbitBroker
 
     def test_subscriber_bindings(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber(
             RabbitQueue("test", auto_delete=True),
@@ -33,7 +33,7 @@ class TestArguments(ArgumentsTestcase):
         }
 
     def test_subscriber_fanout_bindings(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber(
             RabbitQueue("test", auto_delete=True),

@@ -102,10 +102,13 @@ def _unwrap_message_to_fast_depends_decorator(
     dependent: "CallModel",
 ) -> Callable[["StreamMessage[Any]"], Awaitable[Any]]:
     dependant_params = dependent.flat_params
-    if not (is_multi_params := len(dependant_params) > 1) and (
-        option := next(iter(dependant_params), None)
-    ):
-        is_multi_params = option.kind is inspect.Parameter.VAR_POSITIONAL
+    if len(dependant_params) <= 1:
+        if option := next(iter(dependant_params), None):
+            is_multi_params = option.kind is inspect.Parameter.VAR_POSITIONAL
+        else:
+            is_multi_params = False
+    else:
+        is_multi_params = True
 
     if is_multi_params:
 

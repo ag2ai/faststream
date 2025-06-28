@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     )
     from faststream._internal.broker import BrokerUsecase
     from faststream.asgi.types import ASGIApp
+    from faststream.specification.base import SpecificationFactory
 
 P_HookParams = ParamSpec("P_HookParams")
 T_HookReturn = TypeVar("T_HookReturn")
@@ -51,6 +52,7 @@ class FastStream(Application):
         after_startup: Sequence["AnyCallable"] = (),
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
+        specification: Optional["SpecificationFactory"] = None,
     ) -> None:
         super().__init__(
             broker,
@@ -64,6 +66,7 @@ class FastStream(Application):
             after_startup=after_startup,
             on_shutdown=on_shutdown,
             after_shutdown=after_shutdown,
+            specification=specification,
         )
 
         self._should_exit = False
