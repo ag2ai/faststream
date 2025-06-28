@@ -4,10 +4,10 @@ from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 class TestArguments(PublisherTestcase):
-    broker_factory = KafkaBroker
+    broker_class = KafkaBroker
 
     def test_publisher_bindings(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.publisher("test")
         async def handle(msg) -> None: ...

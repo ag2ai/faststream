@@ -6,10 +6,11 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream.specification.asyncapi import AsyncAPI
+
+from .basic import AsyncAPI300Factory
 
 
-class RouterTestcase:
+class RouterTestcase(AsyncAPI300Factory):
     broker_class: type[BrokerUsecase]
     router_class: type[BrokerRouter]
     publisher_class: type[ArgsContainer]
@@ -26,7 +27,7 @@ class RouterTestcase:
 
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
         key = list(payload.keys())[0]  # noqa: RUF015
@@ -49,8 +50,8 @@ class RouterTestcase:
 
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
-        schemas = schema.to_jsonable()["components"]["schemas"]
+        schema = self.get_spec(broker).to_jsonable()
+        schemas = schema["components"]["schemas"]
         del schemas["Handle:Message:Payload"]
 
         for i, j in schemas.items():
@@ -69,8 +70,8 @@ class RouterTestcase:
 
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
-        assert schema.to_jsonable()["channels"] == {}, schema.to_jsonable()["channels"]
+        schema = self.get_spec(broker).to_jsonable()
+        assert schema["channels"] == {}, schema["channels"]
 
     def test_not_include_in_method(self) -> None:
         broker = self.broker_class()
@@ -82,8 +83,8 @@ class RouterTestcase:
 
         broker.include_router(router, include_in_schema=False)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
-        assert schema.to_jsonable()["channels"] == {}, schema.to_jsonable()["channels"]
+        schema = self.get_spec(broker).to_jsonable()
+        assert schema["channels"] == {}, schema["channels"]
 
     def test_respect_subrouter(self) -> None:
         broker = self.broker_class()
@@ -97,9 +98,9 @@ class RouterTestcase:
         router.include_router(router2)
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
+        schema = self.get_spec(broker).to_jsonable()
 
-        assert schema.to_jsonable()["channels"] == {}, schema.to_jsonable()["channels"]
+        assert schema["channels"] == {}, schema["channels"]
 
     def test_not_include_subrouter(self) -> None:
         broker = self.broker_class()
@@ -113,9 +114,9 @@ class RouterTestcase:
         router.include_router(router2)
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
+        schema = self.get_spec(broker).to_jsonable()
 
-        assert schema.to_jsonable()["channels"] == {}
+        assert schema["channels"] == {}
 
     def test_not_include_subrouter_by_method(self) -> None:
         broker = self.broker_class()
@@ -129,9 +130,9 @@ class RouterTestcase:
         router.include_router(router2, include_in_schema=False)
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
+        schema = self.get_spec(broker).to_jsonable()
 
-        assert schema.to_jsonable()["channels"] == {}
+        assert schema["channels"] == {}
 
     def test_all_nested_routers_by_method(self) -> None:
         broker = self.broker_class()
@@ -145,9 +146,9 @@ class RouterTestcase:
         router.include_router(router2)
         broker.include_router(router, include_in_schema=False)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
+        schema = self.get_spec(broker).to_jsonable()
 
-        assert schema.to_jsonable()["channels"] == {}
+        assert schema["channels"] == {}
 
     def test_include_subrouter(self) -> None:
         broker = self.broker_class()
@@ -161,6 +162,6 @@ class RouterTestcase:
         router.include_router(router2)
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="3.0.0")
+        schema = self.get_spec(broker).to_jsonable()
 
-        assert len(schema.to_jsonable()["channels"]) == 2
+        assert len(schema["channels"]) == 2

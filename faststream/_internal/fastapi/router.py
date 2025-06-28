@@ -60,8 +60,8 @@ if TYPE_CHECKING:
     from faststream._internal.proto import NameRequired
     from faststream._internal.types import BrokerMiddleware
     from faststream.message import StreamMessage
-    from faststream.specification.base.specification import Specification
-    from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.specification.base import SpecificationFactory
+    from faststream.specification.schema import Tag, TagDict
 
 
 class _BackgroundMiddleware(BaseMiddleware):
@@ -94,7 +94,6 @@ class StreamRouter(
     docs_router: APIRouter | None
     _after_startup_hooks: list[Callable[[Any], Awaitable[Mapping[str, Any] | None]]]
     _on_shutdown_hooks: list[Callable[[Any], Awaitable[None]]]
-    schema: Optional["Specification"]
 
     title: str
     description: str
@@ -127,6 +126,7 @@ class StreamRouter(
             generate_unique_id,
         ),
         # Specification information
+        specification: Optional["SpecificationFactory"] = None,
         specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
         schema_url: str | None = "/asyncapi",
         **connection_kwars: Any,
@@ -150,24 +150,10 @@ class StreamRouter(
         self._init_setupable_(
             broker,
             config=FastDependsConfig(get_dependent=get_fastapi_dependant),
+            specification=specification,
         )
 
         self.setup_state = setup_state
-
-        # Specification information
-        # Empty
-        self.terms_of_service = None
-        self.identifier = None
-        self.specification_tags = None
-        self.external_docs = None
-        # parse from FastAPI app on startup
-        self.title = ""
-        self.version = ""
-        self.description = ""
-        self.license = None
-        self.contact = None
-
-        self.schema = None
 
         super().__init__(
             prefix=prefix,
@@ -294,23 +280,11 @@ class StreamRouter(
             self.fastapi_config.set_application(app)
 
             if self.docs_router:
-                self.title = app.title
-                self.description = app.description
-                self.version = app.version
-                self.contact = app.contact
-                self.license = app.license_info
-
-                from faststream.specification.asyncapi import AsyncAPI
-
-                self.schema = AsyncAPI(
-                    self.broker,
-                    title=self.title,
-                    description=self.description,
-                    app_version=self.version,
-                    contact=self.contact,
-                    license=self.license,
-                )
-
+                self.schema.title = app.title
+                self.schema.description = app.description
+                self.schema.version = app.version
+                self.schema.contact = app.contact
+                self.schema.license = app.license_info
                 app.include_router(self.docs_router)
 
             async with lifespan_context(app) as maybe_context:
@@ -415,22 +389,16 @@ class StreamRouter(
             return None
 
         def download_app_json_schema() -> Response:
-            assert (  # nosec B101
-                self.schema
-            ), "You need to run application lifespan at first"
-
             return Response(
-                content=json.dumps(self.schema.to_jsonable(), indent=2),
+                content=json.dumps(
+                    self.schema.to_specification().to_jsonable(), indent=2
+                ),
                 headers={"Content-Type": "application/octet-stream"},
             )
 
         def download_app_yaml_schema() -> Response:
-            assert (  # nosec B101
-                self.schema
-            ), "You need to run application lifespan at first"
-
             return Response(
-                content=self.schema.to_yaml(),
+                content=self.schema.to_specification().to_yaml(),
                 headers={
                     "Content-Type": "application/octet-stream",
                 },
@@ -447,13 +415,9 @@ class StreamRouter(
             expandMessageExamples: bool = True,
         ) -> HTMLResponse:
             """Serve the AsyncAPI schema as an HTML response."""
-            assert (  # nosec B101
-                self.schema
-            ), "You need to run application lifespan at first"
-
             return HTMLResponse(
                 content=get_asyncapi_html(
-                    self.schema.schema,
+                    self.schema.to_specification(),
                     sidebar=sidebar,
                     info=info,
                     servers=servers,

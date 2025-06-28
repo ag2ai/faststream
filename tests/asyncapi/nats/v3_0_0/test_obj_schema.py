@@ -1,5 +1,6 @@
+from faststream import FastStream
 from faststream.nats import NatsBroker
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import AsyncAPI
 
 
 def test_obj_schema() -> None:
@@ -8,6 +9,10 @@ def test_obj_schema() -> None:
     @broker.subscriber("test", obj_watch=True)
     async def handle() -> None: ...
 
-    schema = AsyncAPI(broker, schema_version="3.0.0").to_jsonable()
+    schema = (
+        FastStream(broker, specification=AsyncAPI(schema_version="3.0.0"))
+        .schema.to_specification()
+        .to_jsonable()
+    )
 
     assert schema["channels"] == {}

@@ -1,11 +1,13 @@
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from faststream.specification.base.specification import Specification
+from faststream.specification.base import Specification, SpecificationFactory
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
+    from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema import (
         Contact,
         ExternalDocs,
@@ -14,53 +16,60 @@ if TYPE_CHECKING:
     )
 
 
-def AsyncAPI(  # noqa: N802
-    broker: "BrokerUsecase[Any, Any]",
-    /,
-    title: str = "FastStream",
-    app_version: str = "0.1.0",
-    schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0",
-    description: str = "",
-    terms_of_service: Optional["AnyHttpUrl"] = None,
-    license: Union["License", "AnyDict"] | None = None,
-    contact: Union["Contact", "AnyDict"] | None = None,
-    tags: Sequence[Union["Tag", "AnyDict"]] = (),
-    external_docs: Union["ExternalDocs", "AnyDict"] | None = None,
-    identifier: str | None = None,
-) -> Specification:
-    if schema_version.startswith("3.0."):
-        from .v3_0_0.facade import AsyncAPI3
+@dataclass
+class AsyncAPI(SpecificationFactory):
+    title: str = "FastStream"
+    version: str = "0.1.0"
+    description: str | None = None
+    terms_of_service: Optional["AnyHttpUrl"] = None
+    license: Union["License", "AnyDict"] | None = None
+    contact: Union["Contact", "AnyDict"] | None = None
+    tags: Sequence[Union["Tag", "AnyDict"]] = ()
+    external_docs: Union["ExternalDocs", "AnyDict"] | None = None
+    identifier: str | None = None
 
-        return AsyncAPI3(
-            broker,
-            title=title,
-            app_version=app_version,
-            schema_version=schema_version,
-            description=description,
-            terms_of_service=terms_of_service,
-            contact=contact,
-            license=license,
-            identifier=identifier,
-            tags=tags,
-            external_docs=external_docs,
-        )
+    schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0"
 
-    if schema_version.startswith("2.6."):
-        from .v2_6_0.facade import AsyncAPI2
+    brokers: list["BrokerUsecase[Any, Any]"] = field(default_factory=list, init=False)
+    http_handlers: list[tuple[str, "HttpHandler"]] = field(
+        default_factory=list, init=False
+    )
 
-        return AsyncAPI2(
-            broker,
-            title=title,
-            app_version=app_version,
-            schema_version=schema_version,
-            description=description,
-            terms_of_service=terms_of_service,
-            contact=contact,
-            license=license,
-            identifier=identifier,
-            tags=tags,
-            external_docs=external_docs,
-        )
+    def add_broker(
+        self, broker: "BrokerUsecase[Any, Any]", /
+    ) -> "SpecificationFactory":
+        self.brokers.append(broker)
+        return self
 
-    msg = f"Unsupported schema version: {schema_version}"
-    raise NotImplementedError(msg)
+    def add_http_route(
+        self, path: str, handler: "HttpHandler"
+    ) -> "SpecificationFactory":
+        self.http_handlers.append((path, handler))
+        return self
+
+    def to_specification(self) -> Specification:
+        options = {
+            "title": self.title,
+            "app_version": self.version,
+            "schema_version": self.schema_version,
+            "description": self.description,
+            "terms_of_service": self.terms_of_service,
+            "contact": self.contact,
+            "license": self.license,
+            "identifier": self.identifier,
+            "tags": self.tags,
+            "external_docs": self.external_docs,
+        }
+
+        if self.schema_version.startswith("3."):
+            from .v3_0_0 import get_app_schema
+
+            return get_app_schema(self.brokers[0], **options)
+
+        if self.schema_version.startswith("2.6."):
+            from .v2_6_0 import get_app_schema
+
+            return get_app_schema(self.brokers[0], **options)
+
+        msg = f"Unsupported schema version: {self.schema_version}"
+        raise NotImplementedError(msg)

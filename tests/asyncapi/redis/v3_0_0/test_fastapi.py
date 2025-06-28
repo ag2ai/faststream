@@ -6,8 +6,8 @@ from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
-    broker_factory = staticmethod(lambda: RedisRouter().broker)
-    router_factory = RedisRouter
+    broker_class = staticmethod(lambda: RedisRouter().broker)
+    router_class = RedisRouter
     broker_wrapper = staticmethod(TestRedisBroker)
 
     def build_app(self, router):
@@ -15,7 +15,7 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
 
 
 class TestRouterPublisher(PublisherTestcase):
-    broker_factory = staticmethod(lambda: RedisRouter().broker)
+    broker_class = staticmethod(lambda: RedisRouter().broker)
 
     def build_app(self, router):
         return router

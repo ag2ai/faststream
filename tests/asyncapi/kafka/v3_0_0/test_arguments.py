@@ -4,10 +4,10 @@ from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
 class TestArguments(ArgumentsTestcase):
-    broker_factory = KafkaBroker
+    broker_class = KafkaBroker
 
     def test_subscriber_bindings(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg) -> None: ...

@@ -12,39 +12,36 @@ from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi import StreamRouter
-from faststream.specification.asyncapi import AsyncAPI
 from tests.marks import pydantic_v2
 
+from .basic import AsyncAPI300Factory
 
-class FastAPICompatible:
+
+class FastAPICompatible(AsyncAPI300Factory):
     is_fastapi: bool = False
 
-    broker_factory: BrokerUsecase | StreamRouter
+    broker_class: BrokerUsecase | StreamRouter
     dependency_builder = staticmethod(APIDepends)
 
-    def build_app(self, broker):
-        """Patch it to test FastAPI scheme generation too."""
-        return broker
-
     def test_custom_naming(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name", description="test description")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "test description"
 
     def test_slash_in_title(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test", title="/")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert next(iter(schema["channels"].keys())) == "."
         assert schema["channels"]["."]["address"] == "/"
@@ -66,13 +63,13 @@ class FastAPICompatible:
         )
 
     def test_docstring_description(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name")
         async def handle(msg) -> None:
             """Test description."""
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert key == "custom_name"
@@ -81,12 +78,12 @@ class FastAPICompatible:
         ][key]["description"]
 
     def test_empty(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -98,12 +95,12 @@ class FastAPICompatible:
             }
 
     def test_no_type(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -112,12 +109,12 @@ class FastAPICompatible:
             assert v == {"title": key}
 
     def test_simple_type(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: int) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
         assert next(iter(schema["channels"].values())).get("description") is None
@@ -127,12 +124,12 @@ class FastAPICompatible:
             assert v == {"title": key, "type": "integer"}
 
     def test_simple_optional_type(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: int | None) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -151,12 +148,12 @@ class FastAPICompatible:
             ), v
 
     def test_simple_type_with_default(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: int = 1) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -169,12 +166,12 @@ class FastAPICompatible:
             }
 
     def test_multi_args_no_type(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg, another) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -191,12 +188,12 @@ class FastAPICompatible:
             }
 
     def test_multi_args_with_type(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: str, another: int) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -213,12 +210,12 @@ class FastAPICompatible:
             }
 
     def test_multi_args_with_default(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: str, another: int | None = None) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -253,12 +250,12 @@ class FastAPICompatible:
             id: int
             name: str = ""
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -279,12 +276,12 @@ class FastAPICompatible:
             name: str = ""
             id: int
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -310,12 +307,12 @@ class FastAPICompatible:
             id: int
             status: Status
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -348,12 +345,12 @@ class FastAPICompatible:
             id: int
             email: Email
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User, description: str = "") -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -404,12 +401,12 @@ class FastAPICompatible:
                 class Config:
                     schema_extra = {"examples": [{"name": "john", "id": 1}]}  # noqa: RUF012
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -431,7 +428,7 @@ class FastAPICompatible:
             name: str = ""
             id: int
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         sub = broker.subscriber("test")
 
@@ -443,7 +440,7 @@ class FastAPICompatible:
         @sub
         async def handle_default(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert (
             len(
@@ -460,7 +457,7 @@ class FastAPICompatible:
         assert "HandleDefault:Message:Payload" in list(payload.keys())
 
     def test_ignores_depends(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         def dep(name: str = ""):
             return name
@@ -474,7 +471,7 @@ class FastAPICompatible:
         @broker.subscriber("test", dependencies=dependencies)
         async def handle(id: int, message=message) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -499,14 +496,14 @@ class FastAPICompatible:
         class Sub(pydantic.BaseModel):
             type: Literal["sub"]
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(
             user: Annotated[Sub2 | Sub, pydantic.Field(discriminator="type")],
         ): ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         key = next(iter(schema["components"]["messages"].keys()))
 
@@ -573,12 +570,12 @@ class FastAPICompatible:
         class Model(pydantic.BaseModel):
             msg: Sub2 | Sub = pydantic.Field(..., discriminator="type")
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: Model) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         key = next(iter(schema["components"]["messages"].keys()))
         assert key == IsStr(regex=r"test[\w:]*:Handle:SubscribeMessage")
@@ -630,7 +627,7 @@ class ArgumentsTestcase(FastAPICompatible):
     dependency_builder = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("msg")
         async def msg(
@@ -642,7 +639,7 @@ class ArgumentsTestcase(FastAPICompatible):
             ),
         ) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -659,14 +656,14 @@ class ArgumentsTestcase(FastAPICompatible):
             }
 
     def test_ignores_custom_field(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(
             id: int, user: str | None = None, message=Context()
         ) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 
@@ -703,7 +700,7 @@ class ArgumentsTestcase(FastAPICompatible):
             id: int
             name: str = ""
 
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(user: User) -> None: ...
@@ -720,9 +717,7 @@ class ArgumentsTestcase(FastAPICompatible):
             RuntimeWarning,
             match="Overwriting the message schema, data types have the same name",
         ):
-            schema = AsyncAPI(
-                self.build_app(broker), schema_version="3.0.0"
-            ).to_jsonable()
+            schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
 

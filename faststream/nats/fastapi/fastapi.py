@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.nats.subscriber.specification import SpecificationSubscriber
     from faststream.security import BaseSecurity
+    from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
 
 
@@ -487,6 +488,7 @@ class NatsRouter(StreamRouter["Msg"]):
                 """,
             ),
         ] = Default(generate_unique_id),
+        specification: Optional["SpecificationFactory"] = None,
     ) -> None:
         super().__init__(
             servers,
@@ -518,6 +520,7 @@ class NatsRouter(StreamRouter["Msg"]):
             inbox_prefix=inbox_prefix,
             pending_size=pending_size,
             flush_timeout=flush_timeout,
+            specification=specification,
             # broker options
             graceful_timeout=graceful_timeout,
             decoder=decoder,

@@ -19,9 +19,9 @@ from faststream.specification.asyncapi.v2_6_0.schema import (
 from faststream.specification.asyncapi.v3_0_0.schema import (
     ApplicationSchema as SchemaV3,
 )
-from faststream.specification.base.specification import Specification
 
 from .options import (
+    APP_ARGUMENT,
     APP_DIR_OPTION,
     FACTORY_OPTION,
     RELOAD_EXTENSIONS_OPTION,
@@ -38,7 +38,7 @@ docs_app = typer.Typer(pretty_exceptions_short=True)
 def serve(
     docs: str = typer.Argument(
         ...,
-        help="[python_module:Specification] or [asyncapi.json/.yaml] - path to your application or documentation.",
+        help="[python_module:FastStream] or [asyncapi.json/.yaml] - path to your application or documentation.",
         show_default=False,
     ),
     host: str = typer.Option(
@@ -91,13 +91,10 @@ def serve(
 
 @docs_app.command(name="gen")
 def gen(
-    asyncapi: str = typer.Argument(
-        ...,
-        help="[python_module:Specification] - path to your AsyncAPI object.",
-        show_default=False,
-    ),
+    app: str = APP_ARGUMENT,
     yaml: bool = typer.Option(
         False,
+        "-y",
         "--yaml",
         is_flag=True,
         help="Generate `asyncapi.yaml` schema.",
@@ -123,11 +120,9 @@ def gen(
     if app_dir:  # pragma: no branch
         sys.path.insert(0, app_dir)
 
-    _, asyncapi_obj = import_from_string(asyncapi, is_factory=is_factory)
+    _, app_obj = import_from_string(app, is_factory=is_factory)
 
-    assert isinstance(asyncapi_obj, Specification)  # nosec B101
-
-    raw_schema = asyncapi_obj.schema
+    raw_schema = app_obj.schema.to_specification()
 
     if yaml:
         try:
@@ -166,11 +161,8 @@ def _parse_and_serve(
     is_factory: bool = False,
 ) -> None:
     if ":" in docs:
-        _, docs_obj = import_from_string(docs, is_factory=is_factory)
-
-        assert isinstance(docs_obj, Specification)  # nosec B101
-
-        raw_schema = docs_obj.schema
+        _, app = import_from_string(docs, is_factory=is_factory)
+        raw_schema = app.schema.to_specification()
 
     else:
         schema_filepath = Path.cwd() / docs

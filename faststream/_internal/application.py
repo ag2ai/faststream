@@ -20,6 +20,7 @@ from faststream._internal.utils.functions import (
     to_async,
 )
 from faststream.exceptions import SetupError
+from faststream.specification import AsyncAPI
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import (
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     )
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.context import ContextRepo
+    from faststream.specification.base import SpecificationFactory
 
 
 try:
@@ -70,11 +72,13 @@ class StartAbleApplication:
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
+        specification: "SpecificationFactory" = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self._init_setupable_(
             broker,
             config=config,
+            specification=specification,
         )
 
     @property
@@ -85,14 +89,18 @@ class StartAbleApplication:
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
+        specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self.config = config or FastDependsConfig()
 
         self.brokers = [broker] if broker else []
 
+        self.schema: SpecificationFactory = specification or AsyncAPI()
+
         for b in self.brokers:
             b._update_fd_config(self.config)
+            self.schema.add_broker(b)
 
     async def _start_broker(self) -> None:
         assert self.brokers, "You should setup a broker"
@@ -127,8 +135,9 @@ class Application(StartAbleApplication):
         after_startup: Sequence["AnyCallable"] = (),
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
+        specification: Optional["SpecificationFactory"] = None,
     ) -> None:
-        super().__init__(broker, config=config)
+        super().__init__(broker, config=config, specification=specification)
 
         self.context.set_global("app", self)
 
