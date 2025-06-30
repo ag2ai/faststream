@@ -1,9 +1,9 @@
-from faststream import Context, FastStream, context
+from faststream import Context, FastStream
 from faststream.nats import NatsBroker
 
 broker = NatsBroker("nats://localhost:4222")
 app = FastStream(broker)
-context.set_global("secret", "1")
+app.context.set_global("secret", "1")
 
 @broker.subscriber("test-subject")
 async def handle(

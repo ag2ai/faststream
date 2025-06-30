@@ -10,7 +10,7 @@ type: software
 authors:
   - given-names: Nikita
     family-names: Pastukhov
-    email: diementros@yandex.com
+    email: nikita@pastukhov-dev.ru
   - given-names: Davor
     family-names: Runje
     email: davor@ag2.ai

@@ -1,40 +1,88 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
-from faststream.broker.message import encode_message
-from faststream.broker.publisher.proto import ProducerProto
-from faststream.broker.utils import resolve_custom_func
-from faststream.exceptions import OperationForbiddenError
+from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.producer import ProducerProto
+from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
+from faststream.message import encode_message
+
+from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
-    from aiokafka import AIOKafkaProducer
+    import asyncio
 
-    from faststream.broker.types import CustomCallable
-    from faststream.types import SendableMessage
+    from aiokafka import AIOKafkaProducer
+    from aiokafka.structs import RecordMetadata
+    from fast_depends.library.serializer import SerializerProto
+
+    from faststream._internal.types import CustomCallable
+    from faststream.kafka.response import KafkaPublishCommand
 
 
 class AioKafkaFastProducer(ProducerProto):
+    async def connect(
+        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+    ) -> None: ...
+
+    async def disconnect(self) -> None: ...
+
+    def __bool__(self) -> bool:
+        return False
+
+    @property
+    def closed(self) -> bool: ...
+
+    async def flush(self) -> None: ...
+
+    async def publish(
+        self, cmd: "KafkaPublishCommand"
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
+
+    async def publish_batch(
+        self, cmd: "KafkaPublishCommand"
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
+
+    async def request(self, cmd: "KafkaPublishCommand") -> Any:
+        raise NotImplementedError
+
+
+class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     """A class to represent Kafka producer."""
 
     def __init__(
         self,
-        producer: "AIOKafkaProducer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:
-        self._producer = producer
+        self._producer: ProducerState = EmptyProducerState()
+        self.serializer: SerializerProto | None = None
 
         # NOTE: register default parser to be compatible with request
-        default = AioKafkaParser(
-            msg_class=KafkaMessage,
-            regex=None,
-        )
+        default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
         self._parser = resolve_custom_func(parser, default.parse_message)
         self._decoder = resolve_custom_func(decoder, default.decode_message)
+
+    async def connect(
+        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+    ) -> None:
+        self.serializer = serializer
+        await producer.start()
+        self._producer = RealProducer(producer)
+
+    async def disconnect(self) -> None:
+        await self._producer.stop()
+        self._producer = EmptyProducerState()
+
+    def __bool__(self) -> bool:
+        return bool(self._producer)
+
+    @property
+    def closed(self) -> bool:
+        return self._producer.closed
 
     async def flush(self) -> None:
         await self._producer.flush()
@@ -42,70 +90,41 @@ class AioKafkaFastProducer(ProducerProto):
     @override
     async def publish(  # type: ignore[override]
         self,
-        message: "SendableMessage",
-        topic: str,
-        *,
-        correlation_id: str,
-        key: Union[bytes, Any, None] = None,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[Dict[str, str]] = None,
-        reply_to: str = "",
-        no_confirm: bool = False,
-    ) -> None:
+        cmd: "KafkaPublishCommand",
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        message, content_type = encode_message(message)
+        message, content_type = encode_message(cmd.body, serializer=self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
-            "correlation_id": correlation_id,
-            **(headers or {}),
+            **cmd.headers_to_publish(),
         }
 
-        if reply_to:
-            headers_to_send["reply_to"] = headers_to_send.get(
-                "reply_to",
-                reply_to,
-            )
-
-        send_future = await self._producer.send(
-            topic=topic,
+        send_future = await self._producer.producer.send(
+            topic=cmd.destination,
             value=message,
-            key=key,
-            partition=partition,
-            timestamp_ms=timestamp_ms,
+            key=cmd.key,
+            partition=cmd.partition,
+            timestamp_ms=cmd.timestamp_ms,
             headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
         )
-        if not no_confirm:
-            await send_future
 
-    async def stop(self) -> None:
-        await self._producer.stop()
+        if not cmd.no_confirm:
+            return await send_future
+        return send_future
 
+    @override
     async def publish_batch(
         self,
-        *msgs: "SendableMessage",
-        correlation_id: str,
-        topic: str,
-        partition: Optional[int] = None,
-        timestamp_ms: Optional[int] = None,
-        headers: Optional[Dict[str, str]] = None,
-        reply_to: str = "",
-        no_confirm: bool = False,
-    ) -> None:
+        cmd: "KafkaPublishCommand",
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a batch of messages to a topic."""
-        batch = self._producer.create_batch()
+        batch = self._producer.producer.create_batch()
 
-        headers_to_send = {"correlation_id": correlation_id, **(headers or {})}
+        headers_to_send = cmd.headers_to_publish()
 
-        if reply_to:
-            headers_to_send["reply_to"] = headers_to_send.get(
-                "reply_to",
-                reply_to,
-            )
-
-        for message_position, msg in enumerate(msgs):
-            message, content_type = encode_message(msg)
+        for message_position, body in enumerate(cmd.batch_bodies):
+            message, content_type = encode_message(body, serializer=self.serializer)
 
             if content_type:
                 final_headers = {
@@ -118,18 +137,56 @@ class AioKafkaFastProducer(ProducerProto):
             metadata = batch.append(
                 key=None,
                 value=message,
-                timestamp=timestamp_ms,
+                timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
             )
             if metadata is None:
                 raise BatchBufferOverflowException(message_position=message_position)
 
-        send_future = await self._producer.send_batch(batch, topic, partition=partition)
-        if not no_confirm:
-            await send_future
+        send_future = await self._producer.producer.send_batch(
+            batch,
+            cmd.destination,
+            partition=cmd.partition,
+        )
+        if not cmd.no_confirm:
+            return await send_future
+        return send_future
 
     @override
-    async def request(self, *args: Any, **kwargs: Any) -> Optional[Any]:
-        raise OperationForbiddenError(
-            "Kafka doesn't support `request` method without test client."
-        )
+    async def request(
+        self,
+        cmd: "KafkaPublishCommand",
+    ) -> Any:
+        msg = "Kafka doesn't support `request` method without test client."
+        raise FeatureNotSupportedException(msg)
+
+
+class FakeAioKafkaFastProducer(AioKafkaFastProducer):
+    async def connect(self, producer: "AIOKafkaProducer") -> None:
+        raise NotImplementedError
+
+    async def disconnect(self) -> None:
+        raise NotImplementedError
+
+    def __bool__(self) -> bool:
+        return False
+
+    @property
+    def closed(self) -> bool:
+        raise NotImplementedError
+
+    async def flush(self) -> None:
+        raise NotImplementedError
+
+    async def publish(
+        self, cmd: "KafkaPublishCommand"
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+        raise NotImplementedError
+
+    async def publish_batch(
+        self, cmd: "KafkaPublishCommand"
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+        raise NotImplementedError
+
+    async def request(self, cmd: "KafkaPublishCommand") -> Any:
+        raise NotImplementedError

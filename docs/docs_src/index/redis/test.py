@@ -1,7 +1,7 @@
 from .pydantic import broker
 
 import pytest
-import pydantic
+from fast_depends.exceptions import ValidationError
 from faststream.redis import TestRedisBroker
 
 
@@ -16,5 +16,5 @@ async def test_correct():
 @pytest.mark.asyncio
 async def test_invalid():
     async with TestRedisBroker(broker) as br:
-        with pytest.raises(pydantic.ValidationError):
+        with pytest.raises(ValidationError):
             await br.publish("wrong message", "in-channel")

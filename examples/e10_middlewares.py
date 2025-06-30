@@ -25,7 +25,7 @@ async def subscriber_middleware(
     msg: RabbitMessage,
 ) -> Any:
     print(f"call handler middleware with body: {msg}")
-    msg._decoded_body = "fake message"
+    msg.body = b"fake message"
     result = await call_next(msg)
     print("handler middleware out")
     return result

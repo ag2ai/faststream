@@ -1,14 +1,13 @@
-from faststream import FastStream, Logger
+from faststream import FastStream, Logger, AckPolicy
 from faststream.kafka import KafkaBroker
 
 broker = KafkaBroker()
 app = FastStream(broker)
 
-
 @broker.subscriber(
     "test",
     group_id="group",
-    auto_commit=False,
+    ack_policy=AckPolicy.REJECT_ON_ERROR,
 )
 async def handler(msg: str, logger: Logger):
     logger.info(msg)

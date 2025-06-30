@@ -2,7 +2,7 @@ import pytest
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream, Logger
-from faststream._compat import model_to_json
+from faststream._internal._compat import model_to_json
 from faststream.confluent import KafkaBroker, TestKafkaBroker
 
 broker = KafkaBroker("localhost:9092")

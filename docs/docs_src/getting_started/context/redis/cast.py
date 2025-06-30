@@ -1,9 +1,9 @@
-from faststream import Context, FastStream, context
+from faststream import Context, FastStream
 from faststream.redis import RedisBroker
 
 broker = RedisBroker("redis://localhost:6379")
 app = FastStream(broker)
-context.set_global("secret", "1")
+app.context.set_global("secret", "1")
 
 @broker.subscriber("test-channel")
 async def handle(

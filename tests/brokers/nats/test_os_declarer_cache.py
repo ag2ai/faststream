@@ -7,9 +7,9 @@ from faststream.nats import NatsBroker
 from tests.tools import spy_decorator
 
 
-@pytest.mark.asyncio
-@pytest.mark.nats
-async def test_object_storage_cache():
+@pytest.mark.asyncio()
+@pytest.mark.nats()
+async def test_object_storage_cache() -> None:
     broker = NatsBroker()
     await broker.connect()
 
@@ -20,5 +20,5 @@ async def test_object_storage_cache():
     ) as m:
         await broker.object_storage("test")
         await broker.object_storage("test")
-        assert broker._os_declarer.buckets["test"]
+        assert broker.config.os_declarer.buckets["test"]
         m.mock.assert_called_once()

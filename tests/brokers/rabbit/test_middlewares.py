@@ -1,25 +1,23 @@
 import pytest
 
-from faststream.rabbit import RabbitBroker, TestRabbitBroker
 from tests.brokers.base.middlewares import (
     ExceptionMiddlewareTestcase,
     MiddlewareTestcase,
     MiddlewaresOrderTestcase,
 )
 
-
-@pytest.mark.rabbit
-class TestMiddlewares(MiddlewareTestcase):
-    broker_class = RabbitBroker
+from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 
-@pytest.mark.rabbit
-class TestExceptionMiddlewares(ExceptionMiddlewareTestcase):
-    broker_class = RabbitBroker
+class TestMiddlewaresOrder(RabbitMemoryTestcaseConfig, MiddlewaresOrderTestcase):
+    pass
 
 
-class TestMiddlewaresOrder(MiddlewaresOrderTestcase):
-    broker_class = RabbitBroker
+@pytest.mark.rabbit()
+class TestMiddlewares(RabbitTestcaseConfig, MiddlewareTestcase):
+    pass
 
-    def patch_broker(self, broker: RabbitBroker) -> TestRabbitBroker:
-        return TestRabbitBroker(broker)
+
+@pytest.mark.rabbit()
+class TestExceptionMiddlewares(RabbitTestcaseConfig, ExceptionMiddlewareTestcase):
+    pass

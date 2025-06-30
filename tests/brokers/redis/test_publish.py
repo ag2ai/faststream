@@ -1,37 +1,37 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
-from faststream.redis import ListSub, RedisBroker, RedisResponse, StreamSub
-from faststream.redis.annotations import Pipeline
+from faststream.redis import ListSub, Pipeline, RedisResponse, StreamSub
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
+from .basic import RedisTestcaseConfig
 
-@pytest.mark.redis
-@pytest.mark.asyncio
-class TestPublish(BrokerPublishTestcase):
-    def get_broker(self, apply_types: bool = False):
-        return RedisBroker(apply_types=apply_types)
 
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     async def test_list_publisher(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m(msg):
+        async def m(msg) -> str:
             return ""
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -52,13 +52,13 @@ class TestPublish(BrokerPublishTestcase):
     async def test_list_publish_batch(
         self,
         queue: str,
-    ):
+    ) -> None:
         pub_broker = self.get_broker()
 
         msgs_queue = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(list=queue)
-        async def handler(msg):
+        async def handler(msg) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -79,9 +79,10 @@ class TestPublish(BrokerPublishTestcase):
     async def test_batch_list_publisher(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker()
 
         batch_list = ListSub(queue + "resp", batch=True)
@@ -92,7 +93,7 @@ class TestPublish(BrokerPublishTestcase):
             return 1, 2, 3
 
         @pub_broker.subscriber(list=batch_list)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -113,9 +114,10 @@ class TestPublish(BrokerPublishTestcase):
     async def test_publisher_with_maxlen(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker()
 
         stream = StreamSub(queue + "resp", maxlen=1)
@@ -126,7 +128,7 @@ class TestPublish(BrokerPublishTestcase):
             return msg
 
         @pub_broker.subscriber(stream=stream)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -150,18 +152,19 @@ class TestPublish(BrokerPublishTestcase):
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m():
+        async def m() -> RedisResponse:
             return RedisResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg=Context("message")):
+        async def resp(msg=Context("message")) -> None:
             mock(
                 body=msg.body,
                 correlation_id=msg.correlation_id,
@@ -185,36 +188,31 @@ class TestPublish(BrokerPublishTestcase):
             correlation_id="1",
         )
 
-    @pytest.mark.asyncio
-    async def test_response_for_rpc(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ):
-        pub_broker = self.get_broker(apply_types=True)
+    async def test_response_for_rpc(self, queue: str) -> None:
+        pub_broker = self.get_broker()
 
         @pub_broker.subscriber(queue)
-        async def handle():
+        async def handle(msg: Any) -> RedisResponse:
             return RedisResponse("Hi!", correlation_id="1")
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
             response = await asyncio.wait_for(
-                br.publish("", queue, rpc=True),
+                br.request("", queue),
                 timeout=3,
             )
 
-            assert response == "Hi!", response
+            assert await response.decode() == "Hi!", response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         "type_queue",
-        [
+        (
             pytest.param("channel"),
             pytest.param("list"),
             pytest.param("stream"),
-        ],
+        ),
     )
     async def test_publish_with_pipeline(
         self,
@@ -223,7 +221,6 @@ class TestPublish(BrokerPublishTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         destination = {type_queue: queue + "resp"}
@@ -257,7 +254,7 @@ class TestPublish(BrokerPublishTestcase):
 
         assert mock.call_count == 10
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_publish_batch_with_pipeline(
         self, event: asyncio.Event, queue: str, mock: MagicMock
     ) -> None:
@@ -283,15 +280,3 @@ class TestPublish(BrokerPublishTestcase):
             await asyncio.wait(tasks, timeout=3)
 
         mock.assert_called_once_with([0, 1, 2, 3, 4])
-
-    @pytest.mark.asyncio
-    async def test_rpc_with_pipeline_forbidden(self, queue: str) -> None:
-        pub_broker = self.get_broker(apply_types=True)
-
-        async with self.patch_broker(pub_broker) as br:  # noqa: SIM117
-            async with br._connection.pipeline() as pipe:
-                with pytest.raises(RuntimeError, match=r"^You cannot use both"):
-                    await br.publish("", queue, pipeline=pipe, rpc=True)
-
-                with pytest.raises(RuntimeError, match=r"^You cannot use both"):
-                    await br.publisher(queue).publish("", pipeline=pipe, rpc=True)

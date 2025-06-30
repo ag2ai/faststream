@@ -1,21 +1,24 @@
-from typing import TYPE_CHECKING, Optional, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-from faststream.prometheus.middleware import BasePrometheusMiddleware
+from faststream._internal.basic_types import AnyDict
+from faststream._internal.constants import EMPTY
+from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.redis.prometheus.provider import settings_provider_factory
-from faststream.types import EMPTY
+from faststream.redis.response import RedisPublishCommand
 
 if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
 
-class RedisPrometheusMiddleware(BasePrometheusMiddleware):
+class RedisPrometheusMiddleware(PrometheusMiddleware[RedisPublishCommand, AnyDict]):
     def __init__(
         self,
         *,
         registry: "CollectorRegistry",
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=settings_provider_factory,

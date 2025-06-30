@@ -1,7 +1,7 @@
 from .pydantic import broker
 
 import pytest
-import pydantic
+from fast_depends.exceptions import ValidationError
 from faststream.rabbit import TestRabbitBroker
 
 
@@ -16,5 +16,5 @@ async def test_correct():
 @pytest.mark.asyncio
 async def test_invalid():
     async with TestRabbitBroker(broker) as br:
-        with pytest.raises(pydantic.ValidationError):
+        with pytest.raises(ValidationError):
             await br.publish("wrong message", "in-queue")

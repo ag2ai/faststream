@@ -1,14 +1,16 @@
-try:
-    from faststream.testing.app import TestApp
+from faststream._internal.testing.app import TestApp
 
+try:
     from .annotations import KafkaMessage
-    from .broker import KafkaBroker
+    from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
     from .response import KafkaResponse
-    from .router import KafkaPublisher, KafkaRoute, KafkaRouter
     from .schemas import TopicPartition
     from .testing import TestKafkaBroker
 
 except ImportError as e:
+    if "'confluent_kafka'" not in e.msg:
+        raise
+
     from faststream.exceptions import INSTALL_FASTSTREAM_CONFLUENT
 
     raise ImportError(INSTALL_FASTSTREAM_CONFLUENT) from e

@@ -5,22 +5,24 @@ import pytest
 
 from faststream.rabbit import ExchangeType, RabbitExchange, RabbitQueue, RabbitRouter
 from faststream.rabbit.fastapi import RabbitRouter as StreamRouter
-from faststream.rabbit.testing import TestRabbitBroker, build_message
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
+from .basic import RabbitMemoryTestcaseConfig
 
-@pytest.mark.rabbit
+
+@pytest.mark.rabbit()
 class TestRouter(FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = RabbitRouter
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_path(
         self,
         queue: str,
-        event: asyncio.Event,
         mock: MagicMock,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         router = self.router_class()
 
         @router.subscriber(
@@ -33,7 +35,7 @@ class TestRouter(FastAPITestcase):
                 type=ExchangeType.TOPIC,
             ),
         )
-        def subscriber(msg: str, name: str):
+        def subscriber(msg: str, name: str) -> None:
             mock(msg=msg, name=name)
             event.set()
 
@@ -42,7 +44,7 @@ class TestRouter(FastAPITestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        router.broker.publish("hello", "in.john", queue + "1")
+                        router.broker.publish("hello", "in.john", queue + "1"),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -53,14 +55,12 @@ class TestRouter(FastAPITestcase):
         mock.assert_called_once_with(msg="hello", name="john")
 
 
-@pytest.mark.asyncio
-class TestRouterLocal(FastAPILocalTestcase):
+@pytest.mark.asyncio()
+class TestRouterLocal(RabbitMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = RabbitRouter
-    broker_test = staticmethod(TestRabbitBroker)
-    build_message = staticmethod(build_message)
 
-    async def test_path(self):
+    async def test_path(self) -> None:
         router = self.router_class()
 
         @router.subscriber(
@@ -76,12 +76,11 @@ class TestRouterLocal(FastAPILocalTestcase):
         async def hello(name):
             return name
 
-        async with self.broker_test(router.broker):
-            r = await router.broker.publish(
+        async with self.patch_broker(router.broker) as br:
+            r = await br.request(
                 "hi",
                 "in.john",
                 "test",
-                rpc=True,
-                rpc_timeout=0.5,
+                timeout=0.5,
             )
-            assert r == "john"
+            assert await r.decode() == "john"

@@ -1,9 +1,10 @@
 import pytest
 
-from faststream.redis import RedisBroker
 from tests.brokers.base.parser import CustomParserTestcase
 
+from .basic import RedisTestcaseConfig
 
-@pytest.mark.redis
-class TestCustomParser(CustomParserTestcase):
-    broker_class = RedisBroker
+
+@pytest.mark.redis()
+class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
+    pass

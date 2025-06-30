@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from faststream.nats.schemas import JStream
 
@@ -8,7 +8,7 @@ class StreamBuilder:
 
     __slots__ = ("objects",)
 
-    objects: Dict[str, "JStream"]
+    objects: dict[str, "JStream"]
 
     def __init__(self) -> None:
         """Initialize the builder."""

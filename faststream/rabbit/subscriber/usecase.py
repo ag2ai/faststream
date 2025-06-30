@@ -1,168 +1,103 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Union,
-)
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator, Sequence
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
 
-from faststream.broker.publisher.fake import FakePublisher
-from faststream.broker.subscriber.usecase import SubscriberUsecase
-from faststream.broker.utils import process_msg
-from faststream.exceptions import SetupError
+from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
+from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
-from faststream.rabbit.schemas import BaseRMQInformation
+from faststream.rabbit.publisher.fake import RabbitFakePublisher
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
-    from fast_depends.dependencies import Depends
 
-    from faststream.broker.message import StreamMessage
-    from faststream.broker.types import BrokerMiddleware, CustomCallable
-    from faststream.rabbit.helpers import RabbitDeclarer
+    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.message import StreamMessage
+    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.publisher.producer import AioPikaFastProducer
-    from faststream.rabbit.schemas import (
-        Channel,
-        RabbitExchange,
-        RabbitQueue,
-        ReplyConfig,
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+
+    from .config import (
+        RabbitSubscriberConfig,
+        RabbitSubscriberSpecificationConfig,
     )
-    from faststream.types import AnyDict, Decorator, LoggerProto
 
 
-class LogicSubscriber(
-    SubscriberUsecase["IncomingMessage"],
-    BaseRMQInformation,
-):
+class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
-    app_id: Optional[str]
-    declarer: Optional["RabbitDeclarer"]
+    app_id: str | None
+    _outer_config: "RabbitBrokerConfig"
 
-    _consumer_tag: Optional[str]
+    _consumer_tag: str | None
     _queue_obj: Optional["RobustQueue"]
-    _producer: Optional["AioPikaFastProducer"]
 
     def __init__(
         self,
-        *,
-        queue: "RabbitQueue",
-        exchange: "RabbitExchange",
-        channel: Optional["Channel"],
-        consume_args: Optional["AnyDict"],
-        reply_config: Optional["ReplyConfig"],
-        # Subscriber args
-        no_ack: bool,
-        no_reply: bool,
-        retry: Union[bool, int],
-        broker_dependencies: Iterable["Depends"],
-        broker_middlewares: Sequence["BrokerMiddleware[IncomingMessage]"],
-        # AsyncAPI args
-        title_: Optional[str],
-        description_: Optional[str],
-        include_in_schema: bool,
+        config: "RabbitSubscriberConfig",
+        specification: "RabbitSubscriberSpecificationConfig",
+        calls: "CallsCollection",
     ) -> None:
-        parser = AioPikaParser(pattern=queue.path_regex)
-
+        parser = AioPikaParser(pattern=config.queue.path_regex)
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
         super().__init__(
-            default_parser=parser.parse_message,
-            default_decoder=parser.decode_message,
-            # Propagated options
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_middlewares=broker_middlewares,
-            broker_dependencies=broker_dependencies,
-            # AsyncAPI
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+            config,
+            specification=specification,
+            calls=calls,
         )
 
-        self.consume_args = consume_args or {}
-        self.reply_config = reply_config.to_dict() if reply_config else {}
+        self.queue = config.queue
+        self.exchange = config.exchange
+
+        self.consume_args = config.consume_args or {}
+
+        self.__no_ack = config.ack_first
 
         self._consumer_tag = None
         self._queue_obj = None
-        self.channel = channel
+        self.channel = config.channel
 
-        # BaseRMQInformation
-        self.queue = queue
-        self.exchange = exchange
-        # Setup it later
-        self.app_id = None
-        self.virtual_host = ""
-        self.declarer = None
+    @property
+    def app_id(self) -> str:
+        return self._outer_config.app_id
 
-    @override
-    def setup(  # type: ignore[override]
-        self,
-        *,
-        app_id: Optional[str],
-        virtual_host: str,
-        declarer: "RabbitDeclarer",
-        # basic args
-        logger: Optional["LoggerProto"],
-        producer: Optional["AioPikaFastProducer"],
-        graceful_timeout: Optional[float],
-        extra_context: "AnyDict",
-        # broker options
-        broker_parser: Optional["CustomCallable"],
-        broker_decoder: Optional["CustomCallable"],
-        # dependant args
-        apply_types: bool,
-        is_validate: bool,
-        _get_dependant: Optional[Callable[..., Any]],
-        _call_decorators: Iterable["Decorator"],
-    ) -> None:
-        self.app_id = app_id
-        self.virtual_host = virtual_host
-        self.declarer = declarer
-
-        super().setup(
-            logger=logger,
-            producer=producer,
-            graceful_timeout=graceful_timeout,
-            extra_context=extra_context,
-            broker_parser=broker_parser,
-            broker_decoder=broker_decoder,
-            apply_types=apply_types,
-            is_validate=is_validate,
-            _get_dependant=_get_dependant,
-            _call_decorators=_call_decorators,
-        )
+    def routing(self) -> str:
+        return f"{self._outer_config.prefix}{self.queue.routing()}"
 
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        if self.declarer is None:
-            raise SetupError("You should setup subscriber at first.")
+        await super().start()
 
-        self._queue_obj = queue = await self.declarer.declare_queue(
-            self.queue, channel=self.channel
+        queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
+
+        declarer = self._outer_config.declarer
+
+        self._queue_obj = queue = await declarer.declare_queue(
+            queue_to_bind,
+            channel=self.channel,
         )
 
         if (
             self.exchange is not None
-            and not queue.passive  # queue just getted from RMQ
+            and queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
-            exchange = await self.declarer.declare_exchange(
-                self.exchange, channel=self.channel
+            exchange = await declarer.declare_exchange(
+                self.exchange,
+                channel=self.channel,
             )
 
             await queue.bind(
                 exchange,
-                routing_key=self.queue.routing,
-                arguments=self.queue.bind_arguments,
-                timeout=self.queue.timeout,
+                routing_key=queue_to_bind.routing(),
+                arguments=queue_to_bind.bind_arguments,
+                timeout=queue_to_bind.timeout,
                 robust=self.queue.robust,
             )
 
@@ -170,10 +105,11 @@ class LogicSubscriber(
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume,  # type: ignore[arg-type]
+                no_ack=self.__no_ack,
                 arguments=self.consume_args,
             )
 
-        await super().start()
+        self._post_start()
 
     async def close(self) -> None:
         await super().close()
@@ -192,7 +128,7 @@ class LogicSubscriber(
         *,
         timeout: float = 5.0,
         no_ack: bool = True,
-    ) -> "Optional[RabbitMessage]":
+    ) -> "RabbitMessage | None":
         assert self._queue_obj, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -200,8 +136,11 @@ class LogicSubscriber(
 
         sleep_interval = timeout / 10
 
-        raw_message: Optional[IncomingMessage] = None
-        with anyio.move_on_after(timeout):
+        raw_message: IncomingMessage | None = None
+        with (
+            contextlib.suppress(asyncio.exceptions.CancelledError),
+            anyio.move_on_after(timeout),
+        ):
             while (  # noqa: ASYNC110
                 raw_message := await self._queue_obj.get(
                     fail=False,
@@ -211,49 +150,60 @@ class LogicSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        msg: Optional[RabbitMessage] = await process_msg(  # type: ignore[assignment]
+        context = self._outer_config.fd_config.context
+
+        msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
-            middlewares=self._broker_middlewares,
+            middlewares=(
+                m(raw_message, context=context) for m in self._broker_middlewares
+            ),
             parser=self._parser,
             decoder=self._decoder,
         )
         return msg
 
+    @override
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:
+        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
+        assert (  # nosec B101
+            not self.calls
+        ), "You can't use iterator method if subscriber has registered handlers."
+
+        context = self._outer_config.fd_config.context
+
+        async with self._queue_obj.iterator() as queue_iter:
+            async for raw_message in queue_iter:
+                raw_message = cast("IncomingMessage", raw_message)
+
+                msg: RabbitMessage = await process_msg(  # type: ignore[assignment]
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context)
+                        for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
+                )
+                yield msg
+
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",
-    ) -> Sequence["FakePublisher"]:
-        if self._producer is None:
-            return ()
-
+    ) -> Sequence["BasePublisherProto"]:
         return (
-            FakePublisher(
-                self._producer.publish,
-                publish_kwargs={
-                    **self.reply_config,
-                    "routing_key": message.reply_to,
-                    "app_id": self.app_id,
-                },
+            RabbitFakePublisher(
+                self._outer_config.producer,
+                routing_key=message.reply_to,
+                app_id=self.app_id,
             ),
         )
-
-    def __hash__(self) -> int:
-        return self.get_routing_hash(self.queue, self.exchange)
-
-    @staticmethod
-    def get_routing_hash(
-        queue: "RabbitQueue",
-        exchange: Optional["RabbitExchange"] = None,
-    ) -> int:
-        """Calculate the routing hash for a RabbitMQ queue and exchange."""
-        return hash(queue) + hash(exchange or "")
 
     @staticmethod
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
         queue: "RabbitQueue",
         exchange: Optional["RabbitExchange"] = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         return {
             "queue": queue.name,
             "exchange": getattr(exchange, "name", ""),
@@ -263,13 +213,9 @@ class LogicSubscriber(
     def get_log_context(
         self,
         message: Optional["StreamMessage[Any]"],
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         return self.build_log_context(
             message=message,
             queue=self.queue,
             exchange=self.exchange,
         )
-
-    def add_prefix(self, prefix: str) -> None:
-        """Include Subscriber in router."""
-        self.queue = self.queue.add_prefix(prefix)

@@ -1,8 +1,7 @@
-from typing import Union
+from typing import TypeAlias
 
 import aio_pika
-from typing_extensions import TypeAlias
 
-from faststream.types import SendableMessage
+from faststream._internal.basic_types import SendableMessage
 
-AioPikaSendableMessage: TypeAlias = Union[aio_pika.Message, SendableMessage]
+AioPikaSendableMessage: TypeAlias = aio_pika.Message | SendableMessage

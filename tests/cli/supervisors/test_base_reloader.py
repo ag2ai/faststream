@@ -1,8 +1,9 @@
 import signal
+from typing import Any
 
 import pytest
 
-from faststream.cli.supervisors.basereload import BaseReload
+from faststream._internal.cli.supervisors.basereload import BaseReload
 
 
 class PatchedBaseReload(BaseReload):
@@ -14,16 +15,16 @@ class PatchedBaseReload(BaseReload):
         return True
 
 
-def empty(*args, **kwargs):
+def empty(*args: Any, **kwargs: Any) -> None:
     pass
 
 
-@pytest.mark.slow
-def test_base():
+@pytest.mark.slow()
+def test_base() -> None:
     processor = PatchedBaseReload(target=empty, args=())
 
     processor._args = (processor.pid,)
     processor.run()
 
     code = abs(processor._process.exitcode or 0)
-    assert code == signal.SIGTERM.value or code == 0
+    assert code in {signal.SIGTERM.value, 0}

@@ -1,9 +1,10 @@
 import pytest
 
-from faststream.rabbit import RabbitBroker
 from tests.brokers.base.parser import CustomParserTestcase
 
+from .basic import RabbitTestcaseConfig
 
-@pytest.mark.rabbit
-class TestCustomParser(CustomParserTestcase):
-    broker_class = RabbitBroker
+
+@pytest.mark.rabbit()
+class TestCustomParser(RabbitTestcaseConfig, CustomParserTestcase):
+    pass

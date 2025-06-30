@@ -48,7 +48,7 @@ By default, it applies to all event handlers, unless you disabled the same optio
 
 !!! warning
     Setting the `apply_types=False` flag not only disables type casting but also `Depends` and `Context`.
-    If you want to disable only type casting, use `validate=False` instead.
+    If you want to disable only type casting, use `serializer=None` instead.
 
 This flag can be useful if you are using **FastStream** within another framework and you need to use its native dependency system.
 

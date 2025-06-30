@@ -1,9 +1,10 @@
 import pytest
 
-from faststream.nats import NatsBroker
 from tests.brokers.base.parser import CustomParserTestcase
 
+from .basic import NatsTestcaseConfig
 
-@pytest.mark.nats
-class TestCustomParser(CustomParserTestcase):
-    broker_class = NatsBroker
+
+@pytest.mark.nats()
+class TestCustomParser(NatsTestcaseConfig, CustomParserTestcase):
+    pass

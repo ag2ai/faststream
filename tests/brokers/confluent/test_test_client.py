@@ -3,59 +3,70 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from faststream import BaseMiddleware
-from faststream.confluent import KafkaBroker, TestKafkaBroker
+from faststream import AckPolicy, BaseMiddleware
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.tools import spy_decorator
 
-from .basic import ConfluentTestcaseConfig
+from .basic import ConfluentMemoryTestcaseConfig
 
 
-@pytest.mark.asyncio
-class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
-    """A class to represent a test Kafka broker."""
-
-    test_class = TestKafkaBroker
-
-    def get_broker(self, apply_types: bool = False):
-        return KafkaBroker(apply_types=apply_types)
-
-    def patch_broker(self, broker: KafkaBroker) -> TestKafkaBroker:
-        return TestKafkaBroker(broker)
-
-    def get_fake_producer_class(self) -> type:
-        return FakeProducer
-
+@pytest.mark.asyncio()
+class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_message_nack_seek(
         self,
         queue: str,
-    ):
+    ) -> None:
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(
             queue,
             group_id=f"{queue}-consume",
-            auto_commit=False,
             auto_offset_reset="earliest",
+            ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
-        async def m(msg: KafkaMessage):
+        async def m(msg: KafkaMessage) -> None:
             await msg.nack()
 
         async with self.patch_broker(broker) as br:
             with patch.object(
-                FAKE_CONSUMER, "seek", spy_decorator(FAKE_CONSUMER.seek)
+                FAKE_CONSUMER,
+                "seek",
+                spy_decorator(FAKE_CONSUMER.seek),
             ) as mocked:
                 await br.publish("hello", queue)
                 m.mock.assert_called_once_with("hello")
                 mocked.mock.assert_called_once()
 
-    async def test_publisher_autoflush_mock(
+    @pytest.mark.confluent()
+    async def test_with_real_testclient(
         self,
         queue: str,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        def subscriber(m) -> None:
+            event.set()
+
+        async with self.patch_broker(broker, with_real=True) as br:
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=10,
+            )
+
+        assert event.is_set()
+
+    async def test_publisher_autoflush_mock(self, queue: str) -> None:
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", autoflush=True)
@@ -66,72 +77,41 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
         async def m(msg):
             pass
 
-        async with TestKafkaBroker(broker) as br:
+        async with self.patch_broker(broker) as br:
             await br.publish("hello", queue)
-            publisher.flush.assert_awaited_once()
+
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once()
 
-    @pytest.mark.confluent
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ):
+            publisher.flush.assert_awaited_once()
+
+    async def test_batch_publisher_autoflush_mock(self, queue: str) -> None:
         broker = self.get_broker()
 
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @broker.subscriber(*args, **kwargs)
-        def subscriber(m):
-            event.set()
-
-        async with TestKafkaBroker(broker, with_real=True) as br:
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=10,
-            )
-
-        assert event.is_set()
-
-    @pytest.mark.confluent
-    async def test_autoflush_with_real_testclient(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ):
-        broker = self.get_broker()
-        publisher = broker.publisher(queue, autoflush=True)
-
-        args, kwargs = self.get_subscriber_params(queue)
+        publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
+        publisher.flush = AsyncMock()
 
         @publisher
-        @broker.subscriber(*args, **kwargs)
-        def subscriber(m):
-            event.set()
+        @broker.subscriber(queue)
+        async def m(msg):
+            return 1, 2, 3
 
-        async with TestKafkaBroker(broker, with_real=True) as br:
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=10,
-            )
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
 
-        assert event.is_set()
+            m.mock.assert_called_once_with("hello")
+            publisher.mock.assert_called_once_with([1, 2, 3])
+
+            publisher.flush.assert_awaited_once()
 
     async def test_batch_pub_by_default_pub(
         self,
         queue: str,
-    ):
+    ) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg):
+        async def m(msg) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -141,11 +121,11 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
     async def test_batch_pub_by_pub_batch(
         self,
         queue: str,
-    ):
+    ) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg):
+        async def m(msg) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -155,7 +135,7 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
     async def test_batch_publisher_mock(
         self,
         queue: str,
-    ):
+    ) -> None:
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True)
@@ -170,26 +150,6 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 
-    async def test_batch_publisher_autoflush_mock(
-        self,
-        queue: str,
-    ):
-        broker = self.get_broker()
-
-        publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
-        publisher.flush = AsyncMock()
-
-        @publisher
-        @broker.subscriber(queue)
-        async def m(msg):
-            return 1, 2, 3
-
-        async with TestKafkaBroker(broker) as br:
-            await br.publish("hello", queue)
-            publisher.flush.assert_awaited_once()
-            m.mock.assert_called_once_with("hello")
-            publisher.mock.assert_called_once_with([1, 2, 3])
-
     async def test_respect_middleware(self, queue):
         routes = []
 
@@ -198,22 +158,22 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
                 routes.append(None)
                 return await super().on_receive()
 
-        broker = KafkaBroker(middlewares=(Middleware,))
+        broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(): ...
+        async def h1(msg) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(): ...
+        async def h2(msg) -> None: ...
 
-        async with TestKafkaBroker(broker) as br:
+        async with self.patch_broker(broker) as br:
             await br.publish("", queue)
             await br.publish("", queue + "1")
 
         assert len(routes) == 2
 
-    @pytest.mark.confluent
-    async def test_real_respect_middleware(self, queue):
+    @pytest.mark.confluent()
+    async def test_real_respect_middleware(self, queue) -> None:
         routes = []
 
         class Middleware(BaseMiddleware):
@@ -221,19 +181,19 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
                 routes.append(None)
                 return await super().on_receive()
 
-        broker = KafkaBroker(middlewares=(Middleware,))
+        broker = self.get_broker(middlewares=(Middleware,))
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def h1(): ...
+        async def h1(msg) -> None: ...
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def h2(): ...
+        async def h2(msg) -> None: ...
 
-        async with TestKafkaBroker(broker, with_real=True) as br:
+        async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
             await br.publish("", queue + "1")
             await h1.wait_call(10)
@@ -244,81 +204,90 @@ class TestTestclient(ConfluentTestcaseConfig, BrokerTestclientTestcase):
     async def test_multiple_subscribers_different_groups(
         self,
         queue: str,
-        test_broker: KafkaBroker,
-    ):
-        @test_broker.subscriber(queue, group_id="group1")
-        async def subscriber1(): ...
+    ) -> None:
+        broker = self.get_broker()
 
-        @test_broker.subscriber(queue, group_id="group2")
-        async def subscriber2(): ...
+        @broker.subscriber(queue, group_id="group1")
+        async def subscriber1(msg) -> None: ...
 
-        await test_broker.start()
-        await test_broker.publish("", queue)
+        @broker.subscriber(queue, group_id="group2")
+        async def subscriber2(msg) -> None: ...
 
-        assert subscriber1.mock.call_count == 1
-        assert subscriber2.mock.call_count == 1
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("", queue)
+
+            assert subscriber1.mock.call_count == 1
+            assert subscriber2.mock.call_count == 1
 
     async def test_multiple_subscribers_same_group(
         self,
         queue: str,
-        test_broker: KafkaBroker,
-    ):
-        @test_broker.subscriber(queue, group_id="group1")
-        async def subscriber1(): ...
+    ) -> None:
+        broker = self.get_broker()
 
-        @test_broker.subscriber(queue, group_id="group1")
-        async def subscriber2(): ...
+        @broker.subscriber(queue, group_id="group1")
+        async def subscriber1(msg) -> None: ...
 
-        await test_broker.start()
-        await test_broker.publish("", queue)
+        @broker.subscriber(queue, group_id="group1")
+        async def subscriber2(msg) -> None: ...
 
-        assert subscriber1.mock.call_count == 1
-        assert subscriber2.mock.call_count == 0
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("", queue)
+
+            assert subscriber1.mock.call_count == 1
+            assert subscriber2.mock.call_count == 0
 
     async def test_multiple_batch_subscriber_with_different_group(
         self,
-        test_broker: KafkaBroker,
         queue: str,
-    ):
-        @test_broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(): ...
+    ) -> None:
+        broker = self.get_broker()
 
-        @test_broker.subscriber(queue, batch=True, group_id="group2")
-        async def subscriber2(): ...
+        @broker.subscriber(queue, batch=True, group_id="group1")
+        async def subscriber1(msg) -> None: ...
 
-        await test_broker.start()
-        await test_broker.publish("", queue)
+        @broker.subscriber(queue, batch=True, group_id="group2")
+        async def subscriber2(msg) -> None: ...
 
-        assert subscriber1.mock.call_count == 1
-        assert subscriber2.mock.call_count == 1
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("", queue)
+
+            assert subscriber1.mock.call_count == 1
+            assert subscriber2.mock.call_count == 1
 
     async def test_multiple_batch_subscriber_with_same_group(
         self,
-        test_broker: KafkaBroker,
         queue: str,
-    ):
-        @test_broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(): ...
+    ) -> None:
+        broker = self.get_broker()
 
-        @test_broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber2(): ...
+        @broker.subscriber(queue, batch=True, group_id="group1")
+        async def subscriber1(msg) -> None: ...
 
-        await test_broker.start()
-        await test_broker.publish("", queue)
+        @broker.subscriber(queue, batch=True, group_id="group1")
+        async def subscriber2(msg) -> None: ...
 
-        assert subscriber1.mock.call_count == 1
-        assert subscriber2.mock.call_count == 0
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("", queue)
 
-    @pytest.mark.confluent
-    async def test_broker_gets_patched_attrs_within_cm(self):
-        await super().test_broker_gets_patched_attrs_within_cm()
+            assert subscriber1.mock.call_count == 1
+            assert subscriber2.mock.call_count == 0
 
-    @pytest.mark.confluent
-    async def test_broker_with_real_doesnt_get_patched(self):
+    @pytest.mark.confluent()
+    async def test_broker_gets_patched_attrs_within_cm(self) -> None:
+        await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
+
+    @pytest.mark.confluent()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.confluent
+    @pytest.mark.confluent()
     async def test_broker_with_real_patches_publishers_and_subscribers(
-        self, queue: str
-    ):
+        self,
+        queue: str,
+    ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)

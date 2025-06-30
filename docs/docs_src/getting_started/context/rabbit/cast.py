@@ -1,9 +1,9 @@
-from faststream import Context, FastStream, context
+from faststream import Context, FastStream
 from faststream.rabbit import RabbitBroker
 
 broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 app = FastStream(broker)
-context.set_global("secret", "1")
+app.context.set_global("secret", "1")
 
 @broker.subscriber("test-queue")
 async def handle(

@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING, Optional
+from unittest.mock import AsyncMock
 
 import pytest
 
 from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
-from faststream.rabbit.helpers.declarer import RabbitDeclarer
+from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
 
 if TYPE_CHECKING:
     import aio_pika
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class FakeChannelManager:
-    def __init__(self, async_mock):
+    def __init__(self, async_mock: AsyncMock) -> None:
         self.async_mock = async_mock
 
     async def get_channel(
@@ -22,9 +23,9 @@ class FakeChannelManager:
         return self.async_mock
 
 
-@pytest.mark.asyncio
-async def test_declare_queue(async_mock, queue: str) -> None:
-    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
+@pytest.mark.asyncio()
+async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
 
     q1 = await declarer.declare_queue(RabbitQueue(queue))
     q2 = await declarer.declare_queue(RabbitQueue(queue))
@@ -33,9 +34,9 @@ async def test_declare_queue(async_mock, queue: str) -> None:
     async_mock.declare_queue.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_declare_exchange(async_mock, queue: str) -> None:
-    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
+@pytest.mark.asyncio()
+async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
 
     ex1 = await declarer.declare_exchange(RabbitExchange(queue))
     ex2 = await declarer.declare_exchange(RabbitExchange(queue))
@@ -44,9 +45,11 @@ async def test_declare_exchange(async_mock, queue: str) -> None:
     async_mock.declare_exchange.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_declare_nested_exchange_cash_nested(async_mock, queue: str) -> None:
-    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
+@pytest.mark.asyncio()
+async def test_declare_nested_exchange_cash_nested(
+    async_mock: AsyncMock, queue: str
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
 
     exchange = RabbitExchange(queue)
 
@@ -57,18 +60,18 @@ async def test_declare_nested_exchange_cash_nested(async_mock, queue: str) -> No
     assert async_mock.declare_exchange.await_count == 2
 
 
-@pytest.mark.asyncio
-async def test_publisher_declare(async_mock, queue: str) -> None:
-    declarer = RabbitDeclarer(FakeChannelManager(async_mock))
+@pytest.mark.asyncio()
+async def test_publisher_declare(async_mock: AsyncMock, queue: str) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
 
     broker = RabbitBroker()
     broker._connection = async_mock
-    broker.declarer = declarer
+    broker.config.declarer = declarer
 
     @broker.publisher(queue, queue)
-    async def f(): ...
+    async def f() -> None: ...
 
     await broker.start()
 
-    assert not async_mock.declare_queue.await_count
-    async_mock.declare_exchange.assert_awaited_once()
+    assert RabbitQueue.validate(queue) not in declarer._queues
+    assert RabbitExchange.validate(queue) in declarer._exchanges

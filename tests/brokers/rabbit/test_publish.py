@@ -1,95 +1,96 @@
 import asyncio
 import datetime as dt
-from unittest.mock import Mock, patch
+from typing import TYPE_CHECKING
+from unittest.mock import MagicMock, patch
 
 import pytest
 from dirty_equals import IsNow
 
 from faststream import Context
-from faststream.rabbit import RabbitBroker, RabbitResponse, ReplyConfig
-from faststream.rabbit.publisher.producer import AioPikaFastProducer
+from faststream.rabbit import RabbitResponse
+from faststream.rabbit.publisher.producer import AioPikaFastProducerImpl
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
+from .basic import RabbitTestcaseConfig
 
-@pytest.mark.rabbit
-class TestPublish(BrokerPublishTestcase):
-    def get_broker(self, apply_types: bool = False) -> RabbitBroker:
-        return RabbitBroker(apply_types=apply_types)
+if TYPE_CHECKING:
+    from faststream.rabbit.response import RabbitPublishCommand
 
-    @pytest.mark.asyncio
+
+@pytest.mark.rabbit()
+class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
+    @pytest.mark.asyncio()
     async def test_reply_config(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker()
 
         reply_queue = queue + "reply"
 
         @pub_broker.subscriber(reply_queue)
-        async def reply_handler(m):
+        async def reply_handler(m) -> None:
             event.set()
             mock(m)
 
-        with pytest.warns(DeprecationWarning):
-
-            @pub_broker.subscriber(queue, reply_config=ReplyConfig(persist=True))
-            async def handler(m):
-                return m
+        @pub_broker.subscriber(queue)
+        async def handler(m):
+            return RabbitResponse(m, persist=True)
 
         async with self.patch_broker(pub_broker) as br:
             with patch.object(
-                AioPikaFastProducer,
+                AioPikaFastProducerImpl,
                 "publish",
-                spy_decorator(AioPikaFastProducer.publish),
+                spy_decorator(AioPikaFastProducerImpl.publish),
             ) as m:
                 await br.start()
 
                 await asyncio.wait(
                     (
                         asyncio.create_task(
-                            br.publish("Hello!", queue, reply_to=reply_queue)
+                            br.publish("Hello!", queue, reply_to=reply_queue),
                         ),
                         asyncio.create_task(event.wait()),
                     ),
                     timeout=3,
                 )
 
-                assert m.mock.call_args.kwargs.get("persist")
-                assert m.mock.call_args.kwargs.get("immediate") is False
+                cmd: RabbitPublishCommand = m.mock.call_args[0][1]
+                assert cmd.message_options["persist"]
+                assert not cmd.publish_options["immediate"]
 
         assert event.is_set()
         mock.assert_called_with("Hello!")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
         @pub_broker.publisher(queue + "1")
         async def handle():
-            return RabbitResponse(
-                1,
-                persist=True,
-            )
+            return RabbitResponse(1, persist=True)
 
         @pub_broker.subscriber(queue + "1")
-        async def handle_next(msg=Context("message")):
+        async def handle_next(msg=Context("message")) -> None:
             mock(body=msg.body)
             event.set()
 
         async with self.patch_broker(pub_broker) as br:
             with patch.object(
-                AioPikaFastProducer,
+                AioPikaFastProducerImpl,
                 "publish",
-                spy_decorator(AioPikaFastProducer.publish),
+                spy_decorator(AioPikaFastProducerImpl.publish),
             ) as m:
                 await br.start()
 
@@ -103,16 +104,16 @@ class TestPublish(BrokerPublishTestcase):
 
                 assert event.is_set()
 
-                assert m.mock.call_args.kwargs.get("persist")
+                cmd: RabbitPublishCommand = m.mock.call_args[0][1]
+                assert cmd.message_options["persist"]
 
         mock.assert_called_once_with(body=b"1")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response_for_rpc(
         self,
         queue: str,
-        event: asyncio.Event,
-    ):
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -123,19 +124,19 @@ class TestPublish(BrokerPublishTestcase):
             await br.start()
 
             response = await asyncio.wait_for(
-                br.publish("", queue, rpc=True),
+                br.request("", queue),
                 timeout=3,
             )
 
-            assert response == "Hi!", response
+            assert await response.decode() == "Hi!", response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_default_timestamp(
         self,
         queue: str,
         event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -156,6 +157,7 @@ class TestPublish(BrokerPublishTestcase):
 
             assert event.is_set()
 
-        mock.assert_called_once_with(
-            body=b"", timestamp=IsNow(delta=3, tz=dt.timezone.utc)
-        )
+        assert mock.call_args.kwargs == {
+            "body": b"",
+            "timestamp": IsNow(delta=dt.timedelta(seconds=10), tz=dt.timezone.utc),
+        }

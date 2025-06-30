@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from yarl import URL
@@ -8,7 +8,7 @@ from faststream.rabbit.utils import build_url
 
 @pytest.mark.parametrize(
     ("url_kwargs", "expected_url"),
-    [
+    (
         pytest.param(
             {},
             URL("amqp://guest:guest@localhost:5672/"),  # pragma: allowlist secret
@@ -31,8 +31,8 @@ from faststream.rabbit.utils import build_url
             ),
             id="exotic virtualhost",
         ),
-    ],
+    ),
 )
-def test_unpack_args(url_kwargs: Dict[str, Any], expected_url: URL) -> None:
+def test_unpack_args(url_kwargs: dict[str, Any], expected_url: URL) -> None:
     url = build_url(**url_kwargs)
     assert url == expected_url

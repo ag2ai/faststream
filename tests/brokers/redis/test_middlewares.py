@@ -1,25 +1,23 @@
 import pytest
 
-from faststream.redis import RedisBroker, TestRedisBroker
 from tests.brokers.base.middlewares import (
     ExceptionMiddlewareTestcase,
     MiddlewareTestcase,
     MiddlewaresOrderTestcase,
 )
 
-
-@pytest.mark.redis
-class TestMiddlewares(MiddlewareTestcase):
-    broker_class = RedisBroker
+from .basic import RedisMemoryTestcaseConfig, RedisTestcaseConfig
 
 
-@pytest.mark.redis
-class TestExceptionMiddlewares(ExceptionMiddlewareTestcase):
-    broker_class = RedisBroker
+class TestMiddlewaresOrder(RedisMemoryTestcaseConfig, MiddlewaresOrderTestcase):
+    pass
 
 
-class TestMiddlewaresOrder(MiddlewaresOrderTestcase):
-    broker_class = RedisBroker
+@pytest.mark.redis()
+class TestMiddlewares(RedisTestcaseConfig, MiddlewareTestcase):
+    pass
 
-    def patch_broker(self, broker: RedisBroker) -> TestRedisBroker:
-        return TestRedisBroker(broker)
+
+@pytest.mark.redis()
+class TestExceptionMiddlewares(RedisTestcaseConfig, ExceptionMiddlewareTestcase):
+    pass

@@ -1,4 +1,4 @@
-from faststream import FastStream
+from faststream import FastStream, AckPolicy
 from faststream.exceptions import AckMessage
 from faststream.confluent import KafkaBroker
 
@@ -7,7 +7,7 @@ app = FastStream(broker)
 
 
 @broker.subscriber(
-    "test-error-topic", group_id="test-error-group", auto_commit=False, auto_offset_reset="earliest"
+    "test-error-topic", group_id="test-error-group", ack_policy=AckPolicy.REJECT_ON_ERROR, auto_offset_reset="earliest"
 )
 async def handle(body):
     smth_processing(body)
