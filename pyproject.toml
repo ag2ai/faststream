@@ -107,7 +107,7 @@ devdocs = [
 
 types = [
     "faststream[optionals]",
-    "mypy==1.16.0",
+    "mypy==1.16.1",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -122,10 +122,10 @@ types = [
 
 lint = [
     "faststream[types]",
-    "ruff==0.11.13",
-    "bandit==1.8.3; python_version >= '3.9'",
+    "ruff==0.12.1",
+    "bandit==1.8.5; python_version >= '3.9'",
     "bandit==1.7.10; python_version < '3.9'",
-    "semgrep==1.125.0; python_version >= '3.9'",
+    "semgrep==1.127.1; python_version >= '3.9'",
     "semgrep==1.99.0; python_version < '3.9'",
     "codespell==2.4.1",
 ]
@@ -133,7 +133,7 @@ lint = [
 test-core = [
     "coverage[toml]==7.9.1; python_version >= '3.9'",
     "coverage[toml]==7.6.1; python_version < '3.9'",
-    "pytest==8.4.0; python_version >= '3.9'",
+    "pytest==8.4.1; python_version >= '3.9'",
     "pytest==8.3.5; python_version < '3.9'",
     "pytest-asyncio==1.0.0; python_version >= '3.9'",
     "pytest-asyncio==0.24.0; python_version < '3.9'",
@@ -143,7 +143,7 @@ test-core = [
 
 testing = [
     "faststream[test-core]",
-    "fastapi==0.115.12",
+    "fastapi==0.115.14",
     "pydantic-settings>=2.0.0,<3.0.0",
     "httpx==0.28.1",
     "PyYAML==6.0.2",
