@@ -12,7 +12,7 @@ class TestArguments(ArgumentsTestcase):
         @broker.subscriber("test")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -28,7 +28,7 @@ class TestArguments(ArgumentsTestcase):
         @broker.subscriber(partitions=[part1, part2])
         async def handle(msg): ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -44,7 +44,7 @@ class TestArguments(ArgumentsTestcase):
         @broker.subscriber(partitions=[part1, part2])
         async def handle(msg): ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key1 = tuple(schema["channels"].keys())[0]  # noqa: RUF015
         key2 = tuple(schema["channels"].keys())[1]
 

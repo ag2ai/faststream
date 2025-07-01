@@ -1,3 +1,5 @@
+set shell := ["powershell.exe", "-c"]
+
 [doc("All command information")]
 default:
   @just --list --unsorted --list-heading $'FastStream  commands…\n'
@@ -28,51 +30,51 @@ down:
 [doc("Run fast tests")]
 [group("tests")]
 test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+  docker compose exec faststream pytest {{path}} -m "{{marks}}" {{params}}
 
 [doc("Run all tests")]
 [group("tests")]
 test-all path="tests/" params="" marks="all":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+  docker compose exec faststream pytest {{path}} -m "{{marks}}" {{params}}
 
 [doc("Run fast tests with coverage")]
 [group("tests")]
 coverage-test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
 coverage-test-all path="tests/" params="" marks="all":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 
 # Docs
 [doc("Build docs")]
 [group("docs")]
 docs-build:
-  docker compose exec -T faststream uv run sh -c "cd docs && python docs.py build"
+  docker compose exec -T faststream sh -c "cd docs && python docs.py build"
 
 [doc("Serve docs")]
 [group("docs")]
 docs-serve:
-  docker compose exec faststream uv run sh -c "cd docs && python docs.py live 8000 --fast"
+  docker compose exec faststream sh -c "cd docs && python docs.py live 8000 --fast"
 
 
 # Linter
 [doc("Ruff check")]
 [group("linter")]
 ruff-check *params:
-  -docker compose exec -T faststream uv run ruff check --exit-non-zero-on-fix {{params}}
+  -docker compose exec -T faststream ruff check --exit-non-zero-on-fix {{params}}
 
 [doc("Ruff format")]
 [group("linter")]
 ruff-format *params:
-  -docker compose exec -T faststream uv run ruff format {{params}}
+  -docker compose exec -T faststream ruff format {{params}}
 
 [doc("Codespell check")]
 [group("linter")]
 codespell:
-  -docker compose exec -T faststream uv run codespell
+  -docker compose exec -T faststream codespell
 
 [doc("Linter run")]
 [group("linter")]
@@ -83,17 +85,17 @@ linter: ruff-check ruff-format codespell
 [doc("Mypy check")]
 [group("static analysis")]
 mypy *params:
-  -docker compose exec -T faststream uv run mypy {{params}}
+  -docker compose exec -T faststream mypy {{params}}
 
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
-  -docker compose exec -T faststream uv run bandit -c pyproject.toml -r faststream
+  -docker compose exec -T faststream bandit -c pyproject.toml -r faststream
 
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  -docker compose exec -T faststream uv run semgrep scan --config auto --error
+  -docker compose exec -T faststream semgrep scan --config auto --error
 
 [doc("Static analysis check")]
 [group("static analysis")]

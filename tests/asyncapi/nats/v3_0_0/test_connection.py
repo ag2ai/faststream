@@ -1,6 +1,7 @@
 from faststream import FastStream
 from faststream.nats import NatsBroker
 from faststream.specification import Tag
+from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
 
 
 def test_base() -> None:
@@ -11,8 +12,7 @@ def test_base() -> None:
         description="Test description",
         tags=(Tag(name="some-tag", description="experimental"),),
     )
-
-    schema = FastStream(broker).schema.to_specification().to_jsonable()
+    schema = get_3_0_0_schema(broker)
 
     assert schema == {
         "asyncapi": "3.0.0",
@@ -36,8 +36,7 @@ def test_base() -> None:
 
 def test_multi() -> None:
     broker = NatsBroker(["nats:9092", "nats:9093"])
-
-    schema = FastStream(broker).schema.to_specification().to_jsonable()
+    schema = get_3_0_0_schema(broker)
 
     assert schema == {
         "asyncapi": "3.0.0",
@@ -68,8 +67,7 @@ def test_custom() -> None:
         ["nats:9092", "nats:9093"],
         specification_url=["nats:9094", "nats:9095"],
     )
-
-    schema = FastStream(broker).schema.to_specification().to_jsonable()
+    schema = get_3_0_0_schema(broker)
 
     assert schema == {
         "asyncapi": "3.0.0",
