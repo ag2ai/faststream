@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from faststream.redis.publisher.specification import SpecificationPublisher
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.specification.base import SpecificationFactory
 
 
 class RedisRouter(StreamRouter[UnifyRedisDict]):
@@ -120,6 +121,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             str | None,
             Doc("AsyncAPI server description."),
         ] = None,
+        specification: Optional["SpecificationFactory"] = None,
         specification_tags: Annotated[
             Iterable[Union["Tag", "TagDict"]],
             Doc("AsyncAPI server tags."),
@@ -397,6 +399,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             protocol_version=protocol_version,
             specification_tags=specification_tags,
             specification_url=specification_url,
+            specification=specification,
             # FastAPI kwargs
             prefix=prefix,
             tags=tags,

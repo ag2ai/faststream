@@ -1,4 +1,8 @@
+from typing import Any
+
+from faststream._internal.broker import BrokerUsecase
 from faststream.redis import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
+from faststream.specification import Specification
 from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
@@ -21,7 +25,7 @@ class TestRouter(RouterTestcase):
 
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert schema == {
             "asyncapi": "2.6.0",
@@ -59,7 +63,7 @@ class TestRouter(RouterTestcase):
                 },
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "redis",
@@ -73,16 +77,12 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RedisRouter
 
-    def build_app(self, router):
-        broker = RedisBroker()
-        broker.include_router(router)
-        return broker
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RedisBroker(routers=[broker]))
 
 
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RedisRouter
 
-    def build_app(self, router):
-        broker = RedisBroker()
-        broker.include_router(router)
-        return broker
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RedisBroker(routers=[broker]))

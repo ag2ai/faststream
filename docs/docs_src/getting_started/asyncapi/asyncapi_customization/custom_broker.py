@@ -7,11 +7,8 @@ broker = KafkaBroker(
     description="Kafka broker running locally",
     specification_url="non-sensitive-url:9092",
 )
-app = FastStream(broker)
-asyncapi = AsyncAPI(
-    broker,
-    schema_version="2.6.0",
-)
+app = FastStream(broker, specification=AsyncAPI(schema_version="2.6.0"))
+asyncapi = app.schema.to_specification()
 
 
 @broker.publisher("output_data")

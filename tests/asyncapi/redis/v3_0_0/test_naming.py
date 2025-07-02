@@ -14,10 +14,7 @@ class TestNaming(NamingTestCase):
         @broker.subscriber("test")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(
-            broker,
-            schema_version="3.0.0",
-        ).to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert schema == {
             "asyncapi": "3.0.0",
@@ -63,7 +60,7 @@ class TestNaming(NamingTestCase):
                 "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "redis",
@@ -88,7 +85,7 @@ class TestNaming(NamingTestCase):
         @broker.subscriber(**args)
         async def handle() -> None: ...
 
-        schema = AsyncAPI(broker)
+        schema = self.get_spec(broker)
         assert list(schema.to_jsonable()["channels"].keys()) == ["test:Handle"]
 
     @pytest.mark.parametrize(
@@ -105,5 +102,5 @@ class TestNaming(NamingTestCase):
         @broker.publisher(**args)
         async def handle() -> None: ...
 
-        schema = AsyncAPI(broker)
+        schema = self.get_spec(broker)
         assert list(schema.to_jsonable()["channels"].keys()) == ["test:Publisher"]

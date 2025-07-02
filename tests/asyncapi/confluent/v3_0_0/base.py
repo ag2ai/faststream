@@ -1,8 +1,9 @@
 from faststream.confluent import KafkaBroker
 from faststream.specification.asyncapi import AsyncAPI
 from faststream.specification.base.specification import Specification
+from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_spec
 
 
 class AsyncAPI30Mixin:
     def get_schema(self, broker: KafkaBroker) -> Specification:
-        return AsyncAPI(broker, schema_version="3.0.0")
+        return get_3_0_0_spec(broker)

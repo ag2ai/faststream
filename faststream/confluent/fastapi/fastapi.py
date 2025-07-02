@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     )
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.specification.base import SpecificationFactory
 
 
 Partition = TypeVar("Partition")
@@ -100,6 +101,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             ]
         ] = (),
         # Specification args
+        specification: Optional["SpecificationFactory"] = None,
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
         protocol: str | None = None,
@@ -283,6 +285,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
+            specification=specification
         )
 
     @overload  # type: ignore[override]

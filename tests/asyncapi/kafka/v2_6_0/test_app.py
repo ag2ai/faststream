@@ -3,17 +3,17 @@ from dirty_equals import IsPartialDict
 from faststream.kafka import KafkaBroker
 from faststream.specification import Contact, ExternalDocs, License, Tag
 from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 
 def test_base() -> None:
-    schema = AsyncAPI(KafkaBroker(), schema_version="2.6.0").to_jsonable()
-
+    schema = get_2_6_0_schema(KafkaBroker())
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "kafka",
@@ -25,13 +25,12 @@ def test_base() -> None:
 
 
 def test_with_name() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         KafkaBroker(),
         title="My App",
-        app_version="1.0.0",
+        version="1.0.0",
         description="Test description",
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -54,10 +53,10 @@ def test_with_name() -> None:
 
 
 def test_full() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         KafkaBroker(),
         title="My App",
-        app_version="1.0.0",
+        version="1.0.0",
         description="Test description",
         license=License(name="MIT", url="https://mit.com/"),
         terms_of_service="https://my-terms.com/",
@@ -67,8 +66,7 @@ def test_full() -> None:
         external_docs=ExternalDocs(
             url="https://extra-docs.py/",
         ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -97,10 +95,10 @@ def test_full() -> None:
 
 
 def test_full_dict() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         KafkaBroker(),
         title="My App",
-        app_version="1.0.0",
+        version="1.0.0",
         description="Test description",
         license={"name": "MIT", "url": "https://mit.com/"},
         terms_of_service="https://my-terms.com/",
@@ -110,8 +108,7 @@ def test_full_dict() -> None:
         external_docs={
             "url": "https://extra-docs.py/",
         },
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -140,10 +137,10 @@ def test_full_dict() -> None:
 
 
 def test_extra() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         KafkaBroker(),
         title="My App",
-        app_version="1.0.0",
+        version="1.0.0",
         description="Test description",
         license={"name": "MIT", "url": "https://mit.com/", "x-field": "extra"},
         terms_of_service="https://my-terms.com/",
@@ -154,8 +151,7 @@ def test_extra() -> None:
             "url": "https://extra-docs.py/",
             "x-field": "extra",
         },
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == IsPartialDict({
         "info": {

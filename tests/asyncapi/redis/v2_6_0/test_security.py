@@ -6,6 +6,7 @@ from faststream.security import (
     SASLPlaintext,
 )
 from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 
 def test_base_security_schema() -> None:
@@ -19,14 +20,14 @@ def test_base_security_schema() -> None:
         == ["rediss://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "rediss",
@@ -54,7 +55,7 @@ def test_plaintext_security_schema() -> None:
         == ["redis://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -65,7 +66,7 @@ def test_plaintext_security_schema() -> None:
             "securitySchemes": {"user-password": {"type": "userPassword"}},
         },
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "redis",
@@ -90,7 +91,7 @@ def test_plaintext_security_schema_without_ssl() -> None:
         == ["redis://localhost:6379/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -101,7 +102,7 @@ def test_plaintext_security_schema_without_ssl() -> None:
             "securitySchemes": {"user-password": {"type": "userPassword"}},
         },
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "redis",
