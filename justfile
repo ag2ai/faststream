@@ -1,5 +1,3 @@
-set shell := ["powershell.exe", "-c"]
-
 [doc("All command information")]
 default:
   @just --list --unsorted --list-heading $'FastStream  commands…\n'

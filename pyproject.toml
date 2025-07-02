@@ -57,9 +57,7 @@ version = "0.6.0rc0"
 dependencies = [
     "anyio>=3.7.1,<5",
     "fast-depends[pydantic]>=3.0.0a9,<4.0.0",
-    "starlette>=0.46.2",
     "typing-extensions>=4.8.0",
-    "utils>=1.0.2",
 ]
 
 [project.optional-dependencies]
