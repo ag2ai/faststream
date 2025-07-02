@@ -31,7 +31,6 @@ from tests.marks import skip_windows
             ["Worker id is 0", "Worker id is 1"],
             ["--workers", "2"],
             id="many_workers",
-            marks=pytest.mark.flaky(reruns=3, reruns_delay=1),
         ),
     ),
 )
