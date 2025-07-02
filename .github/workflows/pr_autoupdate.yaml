@@ -1,4 +1,4 @@
-name: Run linting, update API References and commit changes
+name: Run linting, update API References
 
 on:
   pull_request_target:
@@ -54,3 +54,4 @@ jobs:
           commit_message: "docs: generate API References"
           commit_user_name: faststream-actions[bot]
           commit_user_email: faststream-actions[bot]@users.noreply.github.com
+          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>
