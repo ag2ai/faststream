@@ -11,6 +11,7 @@ from faststream.security import (
     SASLScram512,
 )
 from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 basic_schema = {
     "asyncapi": "2.6.0",
@@ -58,7 +59,7 @@ basic_schema = {
         "securitySchemes": {},
     },
     "defaultContentType": "application/json",
-    "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+    "info": {"title": "FastStream", "version": "0.1.0"},
     "servers": {
         "development": {
             "protocol": "kafka-secure",
@@ -81,7 +82,7 @@ def test_base_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert schema == basic_schema
 
@@ -101,7 +102,7 @@ def test_plaintext_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     plaintext_security_schema = deepcopy(basic_schema)
     plaintext_security_schema["servers"]["development"]["security"] = [
@@ -129,7 +130,7 @@ def test_scram256_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     sasl256_security_schema = deepcopy(basic_schema)
     sasl256_security_schema["servers"]["development"]["security"] = [{"scram256": []}]
@@ -155,7 +156,7 @@ def test_scram512_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     sasl512_security_schema = deepcopy(basic_schema)
     sasl512_security_schema["servers"]["development"]["security"] = [{"scram512": []}]
@@ -179,7 +180,7 @@ def test_oauthbearer_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     sasl_oauthbearer_security_schema = deepcopy(basic_schema)
     sasl_oauthbearer_security_schema["servers"]["development"]["security"] = [
@@ -205,7 +206,7 @@ def test_gssapi_security_schema() -> None:
     async def test_topic(msg: str) -> str:
         pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     gssapi_security_schema = deepcopy(basic_schema)
     gssapi_security_schema["servers"]["development"]["security"] = [{"gssapi": []}]

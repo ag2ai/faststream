@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     )
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.specification.base import SpecificationFactory
 
 Partition = TypeVar("Partition")
 
@@ -280,6 +281,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         # Specification args
+        specification: Optional["SpecificationFactory"] = None,
         security: Annotated[
             Optional["BaseSecurity"],
             Doc(
@@ -604,6 +606,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
+            specification=specification,
         )
 
     @overload  # type: ignore[override]

@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.subscriber import RabbitSubscriber
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.specification.base import SpecificationFactory
 
 
 class RabbitRouter(StreamRouter["IncomingMessage"]):
@@ -133,6 +134,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
                 "Security options to connect broker and generate AsyncAPI server security information.",
             ),
         ] = None,
+        specification: Optional["SpecificationFactory"] = None,
         specification_url: Annotated[
             str | None,
             Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
@@ -434,6 +436,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
+            specification=specification,
         )
 
     @override

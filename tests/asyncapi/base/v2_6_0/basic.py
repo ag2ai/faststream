@@ -13,12 +13,15 @@ class AsyncAPI260Factory:
         return factory.to_specification()
 
 
-def get_2_6_0_spec(broker: BrokerUsecase[Any, Any]) -> Specification:
+def get_2_6_0_spec(
+        broker: BrokerUsecase[Any, Any], **kwargs: Any
+) -> Specification:
     return (
-        FastStream(broker, specification=AsyncAPI(schema_version="2.6.0"))
-        .schema.to_specification()
+        FastStream(broker, specification=AsyncAPI(
+            schema_version="2.6.0", **kwargs
+        )).schema.to_specification()
     )
 
 
-def get_2_6_0_schema(broker: BrokerUsecase[Any, Any]) -> Any:
-    return get_2_6_0_spec(broker).to_jsonable()
+def get_2_6_0_schema(broker: BrokerUsecase[Any, Any], **kwargs: Any) -> Any:
+    return get_2_6_0_spec(broker, **kwargs).to_jsonable()

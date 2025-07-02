@@ -12,10 +12,7 @@ class TestNaming(NamingTestCase):
         @broker.subscriber("test", "exchange")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(
-            broker,
-            schema_version="3.0.0",
-        ).to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert list(schema["channels"].keys()) == ["test:exchange:Handle"]
 
@@ -29,10 +26,7 @@ class TestNaming(NamingTestCase):
         @broker.publisher("test", "exchange")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(
-            broker,
-            schema_version="3.0.0",
-        ).to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert list(schema["channels"].keys()) == ["test:exchange:Publisher"]
 
@@ -46,15 +40,12 @@ class TestNaming(NamingTestCase):
         @broker.subscriber("test")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(
-            broker,
-            schema_version="3.0.0",
-        ).to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert schema == {
             "asyncapi": "3.0.0",
             "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0", "description": ""},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "host": "guest:guest@localhost:5672",  # pragma: allowlist secret

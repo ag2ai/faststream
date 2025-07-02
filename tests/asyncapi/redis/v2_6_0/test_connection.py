@@ -1,10 +1,11 @@
 from faststream.redis import RedisBroker
 from faststream.specification import Tag
 from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 
 def test_base() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         RedisBroker(
             "redis://localhost:6379",
             protocol="plaintext",
@@ -12,15 +13,14 @@ def test_base() -> None:
             description="Test description",
             tags=(Tag(name="some-tag", description="experimental"),),
         ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "description": "Test description",
@@ -34,20 +34,19 @@ def test_base() -> None:
 
 
 def test_custom() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         RedisBroker(
             "redis://localhost:6379",
             specification_url="rediss://127.0.0.1:8000",
         ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "rediss",
