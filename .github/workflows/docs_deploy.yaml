@@ -46,3 +46,4 @@ jobs:
           else
             cd docs && mike deploy -F mkdocs.yml --update-aliases $VERSION
           fi
+          git push -f

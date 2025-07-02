@@ -52,3 +52,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "docs: generate API References"
+          commit_user_name: faststream-actions[bot]
+          commit_user_email: faststream-actions[bot]@users.noreply.github.com
