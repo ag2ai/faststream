@@ -3,7 +3,7 @@ from faststream.specification.asyncapi import AsyncAPI
 
 
 def test_basic_customization() -> None:
-    schema = AsyncAPI(app.broker, schema_version="2.6.0").to_jsonable()
+    schema = app.schema.to_specification().to_jsonable()
 
     assert schema == {
         "asyncapi": "2.6.0",
@@ -54,7 +54,7 @@ def test_basic_customization() -> None:
             },
         },
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "kafka",

@@ -3,8 +3,8 @@ from faststream.kafka import KafkaBroker
 from faststream.specification.asyncapi import AsyncAPI
 
 broker = KafkaBroker("localhost:9092")
-app = FastStream(broker)
-asyncapi = AsyncAPI(broker)
+app = FastStream(broker, specification=AsyncAPI(schema_version="2.6.0"))
+asyncapi = app.schema.to_specification()
 
 @broker.publisher("output_data")
 @broker.subscriber("input_data")
