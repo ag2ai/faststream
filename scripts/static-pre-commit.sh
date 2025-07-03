@@ -16,7 +16,7 @@ cd "$(dirname "$0")"/..
 # Avoid pip spending time quietly retrying since
 # likely cause of failure is lack of VPN connection.
 pip install uv
-uv pip install --editable ".[dev]" --quiet
+uv pip install --group dev --editable . --quiet
 
 # Run on all files,
 # ignoring the paths passed to this script,

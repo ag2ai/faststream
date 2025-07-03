@@ -15,7 +15,7 @@ cd "$(dirname "$0")"/..
 # In my case, I need to use a custom index URL.
 # Avoid pip spending time quietly retrying since
 # likely cause of failure is lack of VPN connection.
-pip install --editable ".[dev]" \
+pip install --group dev --editable . \
  --retries 1 \
  --no-input \
  --quiet

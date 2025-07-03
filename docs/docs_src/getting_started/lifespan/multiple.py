@@ -1,6 +1,8 @@
+from unittest.mock import AsyncMock
+
 from faststream import Context, ContextRepo, FastStream
 
-app = FastStream()
+app = FastStream(AsyncMock())
 
 
 @app.on_startup

@@ -56,7 +56,6 @@ class ObjWatch:
     def validate(cls, value: Union[bool, "ObjWatch"]) -> Optional["ObjWatch"]:
         if value is True:
             return ObjWatch()
-        elif value is False:
+        if value is False:
             return None
-        else:
-            return value
+        return value

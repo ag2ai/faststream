@@ -18,5 +18,5 @@ class HelloWorld(BaseModel):
 
 
 @broker.subscriber("test_batch", batch=True)
-async def handle_batch(msg: List[HelloWorld], logger: Logger):
+async def handle_batch(msg: list[HelloWorld], logger: Logger):
     logger.info(msg)

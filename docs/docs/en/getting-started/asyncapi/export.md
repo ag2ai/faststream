@@ -24,7 +24,7 @@ Save it in a file called `basic.py`.
 
 ## Generating the AsyncAPI Specification
 
-Now that we have a FastStream application, we can proceed with generating the AsyncAPI specification using a CLI command.
+Now that we have a FastStream application and specification object, we can proceed with generating the AsyncAPI specification using a CLI command.
 
 ```shell
 {! docs_src/getting_started/asyncapi/serve.py [ln:9] !}

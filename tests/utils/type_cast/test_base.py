@@ -1,21 +1,19 @@
-from typing import Tuple
-
 import pytest
 
-from faststream.utils import apply_types
+from faststream._internal.utils import apply_types
 
 
 @apply_types
-def cast_int(t: int = 1) -> Tuple[bool, int]:
+def cast_int(t: int = 1) -> tuple[bool, int]:
     return isinstance(t, int), t
 
 
 @apply_types
-def cast_default(t: int = 1) -> Tuple[bool, int]:
+def cast_default(t: int = 1) -> tuple[bool, int]:
     return isinstance(t, int), t
 
 
-def test_int():
+def test_int() -> None:
     assert cast_int("1") == (True, 1)
 
     assert cast_int(t=1.0) == (True, 1)
@@ -30,7 +28,7 @@ def test_int():
         assert cast_int([])
 
 
-def test_cast_default():
+def test_cast_default() -> None:
     assert cast_default("1") == (True, 1)
 
     assert cast_default(t=1.0) == (True, 1)
