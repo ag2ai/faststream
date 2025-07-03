@@ -49,6 +49,7 @@ jobs:
         with:
           branch: gh-pages
           file_pattern: "docs/site/**"
+          push_options: "--force"
           commit_message: "docs: deploy docs"
           commit_user_name: faststream-actions[bot]
           commit_user_email: faststream-actions[bot]@users.noreply.github.com
