@@ -25,9 +25,9 @@ class TasksMixin(SubscriberUsecase[Any]):
     def add_task(self, coro: Coroutine[Any, Any, Any]) -> None:
         self.tasks.append(asyncio.create_task(coro))
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
-        await super().close()
+        await super().stop()
 
         for task in self.tasks:
             if not task.done():

@@ -19,7 +19,7 @@ class BrokerConnectionTestcase:
     async def test_close_before_start(self, async_mock):
         br = self.broker()
         assert br._connection is None
-        await br.close()
+        await br.stop()
         br._connection = async_mock
         await br._close()
         assert not br.running
@@ -30,7 +30,7 @@ class BrokerConnectionTestcase:
         broker = self.broker(**kwargs)
         await broker.connect()
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_connection_by_url(self, settings):
@@ -38,7 +38,7 @@ class BrokerConnectionTestcase:
         broker = self.broker()
         await broker.connect(**kwargs)
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_connect_by_url_priority(self, settings):
@@ -46,7 +46,7 @@ class BrokerConnectionTestcase:
         broker = self.broker("wrong_url")
         await broker.connect(**kwargs)
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_ping_timeout(self, settings):
@@ -54,4 +54,4 @@ class BrokerConnectionTestcase:
         broker = self.broker("wrong_url")
         await broker.connect(**kwargs)
         assert not await broker.ping(timeout=1e-24)
-        await broker.close()
+        await broker.stop()

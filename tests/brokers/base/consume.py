@@ -269,7 +269,7 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
             with anyio.move_on_after(self.timeout):
                 await event.wait()
 
-            await sub.close()
+            await sub.stop()
 
         assert event.is_set()
 

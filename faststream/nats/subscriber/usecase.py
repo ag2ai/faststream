@@ -167,9 +167,9 @@ class LogicSubscriber(Generic[ConnectionType, MsgType], SubscriberUsecase[MsgTyp
         if self.calls:
             await self._create_subscription(connection=self._connection)
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
-        await super().close()
+        await super().stop()
 
         if self.subscription is not None:
             await self.subscription.unsubscribe()

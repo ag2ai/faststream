@@ -171,8 +171,8 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
         if self.calls:
             self.add_task(self._run_consume_loop(self.consumer))
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.consumer is not None:
             await self.consumer.stop()
@@ -617,7 +617,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
             for consumer in self.consumer_subgroup:
                 self.add_task(self._run_consume_loop(consumer))
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
@@ -625,7 +625,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
             self.consumer_subgroup = []
 
-        await super().close()
+        await super().stop()
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
         assert consumer, "You should setup subscriber at first."  # nosec B101
