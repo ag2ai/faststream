@@ -200,8 +200,8 @@ class LogicSubscriber(SubscriberUsecase[UnifyRedisDict]):
     async def _get_msgs(self, *args: Any) -> None:
         raise NotImplementedError()
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.task is not None and not self.task.done():
             self.task.cancel()
@@ -283,13 +283,13 @@ class ChannelSubscriber(LogicSubscriber):
 
         await super().start(psub)
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         if self.subscription is not None:
             await self.subscription.unsubscribe()
             await self.subscription.aclose()  # type: ignore[attr-defined]
             self.subscription = None
 
-        await super().close()
+        await super().stop()
 
     @override
     async def get_one(  # type: ignore[override]

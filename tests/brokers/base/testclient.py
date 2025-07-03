@@ -126,11 +126,13 @@ class BrokerTestclientTestcase(
             assert isinstance(br.start, Mock)
             assert isinstance(br._connect, Mock)
             assert isinstance(br.close, Mock)
+            assert isinstance(br.stop, Mock)
             assert isinstance(br._producer, fake_producer_class)
 
         assert not isinstance(br.start, Mock)
         assert not isinstance(br._connect, Mock)
         assert not isinstance(br.close, Mock)
+        assert not isinstance(br.stop, Mock)
         assert br._connection is not None
         assert not isinstance(br._producer, fake_producer_class)
 
@@ -142,6 +144,7 @@ class BrokerTestclientTestcase(
             assert not isinstance(br.start, Mock)
             assert not isinstance(br._connect, Mock)
             assert not isinstance(br.close, Mock)
+            assert not isinstance(br.stop, Mock)
             assert br._connection is not None
             assert br._producer is not None
 

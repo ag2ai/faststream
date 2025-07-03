@@ -20,7 +20,7 @@ async def start_broker(app, loop):
 
 @app.after_server_stop
 async def stop_broker(app, loop):
-    await broker.close()
+    await broker.stop()
 
 
 @app.get("/")

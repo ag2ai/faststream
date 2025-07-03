@@ -215,7 +215,7 @@ class BrokerUsecase(
         exc_val: Optional[BaseException],
         exc_tb: Optional["TracebackType"],
     ) -> None:
-        await self.close(exc_type, exc_val, exc_tb)
+        await self.stop(exc_type, exc_val, exc_tb)
 
     @abstractmethod
     async def start(self) -> None:
@@ -309,6 +309,13 @@ class BrokerUsecase(
                     self._get_fmt(),
                 )
 
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
     async def close(
         self,
         exc_type: Optional[Type[BaseException]] = None,
@@ -316,10 +323,23 @@ class BrokerUsecase(
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
+        return await self.stop(
+            exc_type=exc_type,
+            exc_val=exc_val,
+            exc_tb=exc_tb,
+        )
+
+    async def stop(
+        self,
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        """Stops subscribers and closes connection."""
         self.running = False
 
         for h in self._subscribers.values():
-            await h.close()
+            await h.stop()
 
         if self._connection is not None:
             await self._close(exc_type, exc_val, exc_tb)

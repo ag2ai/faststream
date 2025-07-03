@@ -15,7 +15,7 @@ async def start_broker(app):
 
 
 async def stop_broker(app):
-    await broker.close()
+    await broker.stop()
 
 
 async def hello(request):

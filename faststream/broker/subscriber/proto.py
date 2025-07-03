@@ -10,7 +10,7 @@ from typing import (
     Sequence,
 )
 
-from typing_extensions import Self, override
+from typing_extensions import Self, deprecated, override
 
 from faststream.asyncapi.proto import AsyncAPIProto
 from faststream.broker.proto import EndpointProto
@@ -86,8 +86,18 @@ class SubscriberProto(
     @abstractmethod
     async def start(self) -> None: ...
 
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
+    async def close(self) -> None:
+        return await self.stop()
+
     @abstractmethod
-    async def close(self) -> None: ...
+    async def stop(self) -> None: ...
 
     @abstractmethod
     async def consume(self, msg: MsgType) -> Any: ...

@@ -404,7 +404,7 @@ class TestConsume(BrokerRealConsumeTestcase):
             await asyncio.sleep(1)
             assert inputs == {"hello1", "hello2", "hello3", "hello4", "hello5"}
 
-            await broker.close()
+            await broker.stop()
 
     @pytest.mark.asyncio
     @pytest.mark.slow
@@ -457,7 +457,7 @@ class TestConsume(BrokerRealConsumeTestcase):
                 )
                 assert mock.mock.call_count == 2
 
-            await broker.close()
+            await broker.stop()
 
     @pytest.mark.asyncio
     @pytest.mark.slow
@@ -500,7 +500,7 @@ class TestConsume(BrokerRealConsumeTestcase):
         with patch.object(consume_broker, "logger", Mock(handlers=[])) as mock:
             async with self.patch_broker(consume_broker) as broker:
                 await broker.start()
-                await broker.close()
+                await broker.stop()
             if warning:
                 assert (
                     len(
@@ -608,7 +608,7 @@ class TestConsume(BrokerRealConsumeTestcase):
 
         async with self.patch_broker(consume_broker) as broker:
             await broker.start()
-            await broker.close()
+            await broker.stop()
 
         assert called_assigned is True
         assert called_revoked is True
@@ -643,7 +643,7 @@ class TestConsume(BrokerRealConsumeTestcase):
 
         async with self.patch_broker(consume_broker) as broker:
             await broker.start()
-            await broker.close()
+            await broker.stop()
 
         assert called_assigned is True
         assert called_revoked is True

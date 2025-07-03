@@ -307,7 +307,7 @@ async def start_broker(app):
     await broker.start()
 
 async def stop_broker(app):
-    await broker.close()
+    await broker.stop()
 
 async def hello(request):
     return web.Response(text="Hello, world")

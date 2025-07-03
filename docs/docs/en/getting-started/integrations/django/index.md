@@ -127,7 +127,7 @@ async def broker_lifespan(app):
     try:
         yield
     finally:
-        await broker.close()
+        await broker.stop()
 
 application = Starlette(
     ...,
@@ -160,7 +160,7 @@ application = Starlette(
         try:
             yield
         finally:
-            await broker.close()
+            await broker.stop()
 
     application = Starlette(
         routes=(
