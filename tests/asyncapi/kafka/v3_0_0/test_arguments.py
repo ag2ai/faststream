@@ -1,5 +1,4 @@
 from faststream.kafka import KafkaBroker
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 

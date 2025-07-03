@@ -3,7 +3,6 @@ from typing import Any
 from faststream._internal.broker import BrokerUsecase
 from faststream.kafka import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
 from faststream.specification import Specification
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase

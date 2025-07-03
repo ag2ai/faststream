@@ -13,7 +13,7 @@ from .response import AsgiResponse
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker import BrokerUsecase
-    from faststream.specification import Specification
+    from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema import Tag, TagDict
 
     from .types import ASGIApp, Scope
@@ -45,51 +45,79 @@ def make_ping_asgi(
     return ping
 
 
-def make_asyncapi_asgi(
-    schema: "Specification",
-    sidebar: bool = True,
-    info: bool = True,
-    servers: bool = True,
-    operations: bool = True,
-    messages: bool = True,
-    schemas: bool = True,
-    errors: bool = True,
-    include_in_schema: bool = True,
-    expand_message_examples: bool = True,
-    asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
-    asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
-    description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
-    unique_id: str | None = None,
-) -> "ASGIApp":
-    cached_docs = None
+class AsyncAPIRoute:
+    def __init__(
+        self,
+        path: str,
+        description: str | None = None,
+        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        unique_id: str | None = None,
+        include_in_schema: bool = True,
+        *,
+        sidebar: bool = True,
+        info: bool = True,
+        servers: bool = True,
+        operations: bool = True,
+        messages: bool = True,
+        schemas: bool = True,
+        errors: bool = True,
+        expand_message_examples: bool = True,
+        asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
+        asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    ) -> "ASGIApp":
+        self.path = path
 
-    @get(
-        include_in_schema=include_in_schema,
-        description=description,
-        tags=tags,
-        unique_id=unique_id,
-    )
-    async def docs(scope: "Scope") -> AsgiResponse:
-        nonlocal cached_docs
-        if not cached_docs:
-            cached_docs = get_asyncapi_html(
-                schema.schema,
-                sidebar=sidebar,
-                info=info,
-                servers=servers,
-                operations=operations,
-                messages=messages,
-                schemas=schemas,
-                errors=errors,
-                expand_message_examples=expand_message_examples,
-                asyncapi_js_url=asyncapi_js_url,
-                asyncapi_css_url=asyncapi_css_url,
-            )
-        return AsgiResponse(
-            cached_docs.encode("utf-8"),
-            200,
-            {"Content-Type": "text/html; charset=utf-8"},
+        self.description = description
+        self.tags = tags
+        self.unique_id = unique_id
+        self.include_in_schema = include_in_schema
+
+        self.sidebar = sidebar
+        self.info = info
+        self.servers = servers
+        self.operations = operations
+        self.messages = messages
+        self.schemas = schemas
+        self.errors = errors
+        self.expand_message_examples = expand_message_examples
+        self.asyncapi_js_url = asyncapi_js_url
+        self.asyncapi_css_url = asyncapi_css_url
+
+    @classmethod
+    def ensure_route(self, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
+        if isinstance(path, AsyncAPIRoute):
+            return path
+        return AsyncAPIRoute(path)
+
+    def __call__(self, schema: "SpecificationFactory") -> "ASGIApp":
+        cached_docs = None
+
+        @get(
+            include_in_schema=self.include_in_schema,
+            description=self.description,
+            tags=self.tags,
+            unique_id=self.unique_id,
         )
+        async def docs(scope: "Scope") -> AsgiResponse:
+            nonlocal cached_docs
+            if not cached_docs:
+                cached_docs = get_asyncapi_html(
+                    schema.to_specification(),
+                    sidebar=self.sidebar,
+                    info=self.info,
+                    servers=self.servers,
+                    operations=self.operations,
+                    messages=self.messages,
+                    schemas=self.schemas,
+                    errors=self.errors,
+                    expand_message_examples=self.expand_message_examples,
+                    asyncapi_js_url=self.asyncapi_js_url,
+                    asyncapi_css_url=self.asyncapi_css_url,
+                )
+            return AsgiResponse(
+                cached_docs.encode("utf-8"),
+                200,
+                {"Content-Type": "text/html; charset=utf-8"},
+            )
 
-    return docs
+        return docs

@@ -75,6 +75,7 @@ class TestRouterArguments(ArgumentsTestcase):
     def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
         return super().get_spec(KafkaBroker(routers=[broker]))
 
+
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 

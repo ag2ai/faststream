@@ -13,14 +13,10 @@ class AsyncAPI300Factory:
         return factory.to_specification()
 
 
-def get_3_0_0_spec(
-        broker: BrokerUsecase[Any, Any], **kwargs: Any
-) -> Specification:
-    return (
-        FastStream(broker, specification=AsyncAPI(
-            schema_version="3.0.0", **kwargs
-        )).schema.to_specification()
-    )
+def get_3_0_0_spec(broker: BrokerUsecase[Any, Any], **kwargs: Any) -> Specification:
+    return FastStream(
+        broker, specification=AsyncAPI(schema_version="3.0.0", **kwargs)
+    ).schema.to_specification()
 
 
 def get_3_0_0_schema(broker: BrokerUsecase[Any, Any], **kwargs: Any) -> Any:

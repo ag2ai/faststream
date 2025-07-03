@@ -23,4 +23,3 @@ class TestRouterPublisher(PublisherTestcase):
 
     def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
         return super().get_spec(broker.broker)
-

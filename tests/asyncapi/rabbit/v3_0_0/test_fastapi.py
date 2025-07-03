@@ -5,9 +5,8 @@ from faststream.rabbit.fastapi import RabbitRouter
 from faststream.rabbit.testing import TestRabbitBroker
 from faststream.security import SASLPlaintext
 from faststream.specification import Specification
-from faststream.specification.asyncapi import AsyncAPI
-from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
 from tests.asyncapi.base.v3_0_0.arguments import FastAPICompatible
+from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
 from tests.asyncapi.base.v3_0_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 

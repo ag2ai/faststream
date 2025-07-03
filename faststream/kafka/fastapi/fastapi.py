@@ -59,8 +59,8 @@ if TYPE_CHECKING:
         SpecificationDefaultSubscriber,
     )
     from faststream.security import BaseSecurity
-    from faststream.specification.schema.extra import Tag, TagDict
     from faststream.specification.base import SpecificationFactory
+    from faststream.specification.schema.extra import Tag, TagDict
 
 Partition = TypeVar("Partition")
 

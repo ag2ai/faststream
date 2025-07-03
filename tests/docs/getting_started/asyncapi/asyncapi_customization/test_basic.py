@@ -1,5 +1,4 @@
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.basic import app
-from faststream.specification.asyncapi import AsyncAPI
 
 
 def test_basic_customization() -> None:

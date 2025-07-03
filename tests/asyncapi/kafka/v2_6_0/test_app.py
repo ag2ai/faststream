@@ -2,7 +2,6 @@ from dirty_equals import IsPartialDict
 
 from faststream.kafka import KafkaBroker
 from faststream.specification import Contact, ExternalDocs, License, Tag
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 

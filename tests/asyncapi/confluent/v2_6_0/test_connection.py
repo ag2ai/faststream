@@ -4,13 +4,15 @@ from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 
 def test_base() -> None:
-    schema = get_2_6_0_schema(KafkaBroker(
-        "kafka:9092",
-        protocol="plaintext",
-        protocol_version="0.9.0",
-        description="Test description",
-        tags=(Tag(name="some-tag", description="experimental"),),
-    ))
+    schema = get_2_6_0_schema(
+        KafkaBroker(
+            "kafka:9092",
+            protocol="plaintext",
+            protocol_version="0.9.0",
+            description="Test description",
+            tags=(Tag(name="some-tag", description="experimental"),),
+        )
+    )
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
@@ -54,10 +56,12 @@ def test_multi() -> None:
 
 
 def test_custom() -> None:
-    schema = get_2_6_0_schema(KafkaBroker(
-        ["kafka:9092", "kafka:9093"],
-        specification_url=["kafka:9094", "kafka:9095"],
-    ))
+    schema = get_2_6_0_schema(
+        KafkaBroker(
+            ["kafka:9092", "kafka:9093"],
+            specification_url=["kafka:9094", "kafka:9095"],
+        )
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",

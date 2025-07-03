@@ -1,5 +1,4 @@
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 

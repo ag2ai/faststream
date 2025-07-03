@@ -10,7 +10,6 @@ from faststream.security import (
     SASLScram256,
     SASLScram512,
 )
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 basic_schema = {

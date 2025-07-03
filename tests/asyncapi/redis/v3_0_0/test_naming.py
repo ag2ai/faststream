@@ -1,7 +1,6 @@
 import pytest
 
 from faststream.redis import RedisBroker
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 
 

@@ -5,7 +5,6 @@ from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
 from faststream.specification import Specification
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import FastAPICompatible
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 from tests.asyncapi.base.v2_6_0.fastapi import FastAPITestCase
@@ -33,7 +32,7 @@ def test_fastapi_security_schema() -> None:
 
     router = KafkaRouter("localhost:9092", security=security)
 
-    #schema = AsyncAPI(router.broker, schema_version="2.6.0").to_jsonable()
+    # schema = AsyncAPI(router.broker, schema_version="2.6.0").to_jsonable()
     schema = get_2_6_0_schema(router.broker)
 
     assert schema["servers"]["development"] == {

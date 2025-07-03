@@ -1,6 +1,5 @@
 from faststream.redis import RedisBroker
 from faststream.specification import Tag
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 

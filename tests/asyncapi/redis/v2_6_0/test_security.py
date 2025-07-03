@@ -5,7 +5,6 @@ from faststream.security import (
     BaseSecurity,
     SASLPlaintext,
 )
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 

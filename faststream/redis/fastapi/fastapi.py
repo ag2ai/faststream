@@ -47,8 +47,8 @@ if TYPE_CHECKING:
     from faststream.redis.message import UnifyRedisMessage
     from faststream.redis.publisher.specification import SpecificationPublisher
     from faststream.security import BaseSecurity
-    from faststream.specification.schema.extra import Tag, TagDict
     from faststream.specification.base import SpecificationFactory
+    from faststream.specification.schema.extra import Tag, TagDict
 
 
 class RedisRouter(StreamRouter[UnifyRedisDict]):

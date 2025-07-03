@@ -15,6 +15,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
+from .factories import AsyncAPIRoute
 from .handlers import HttpHandler
 from .response import AsgiResponse
 from .websocket import WebSocketClose
@@ -99,6 +100,7 @@ class AsgiFastStream(Application):
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
+        asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
         super().__init__(
             broker,
@@ -116,8 +118,11 @@ class AsgiFastStream(Application):
         )
 
         self.routes = list(asgi_routes)
+        if asyncapi_path:
+            route = AsyncAPIRoute.ensure_route(asyncapi_path)
+            self.routes.append((route.path, route(self.schema)))
 
-        for path, app in asgi_routes:
+        for path, app in self.routes:
             if isinstance(app, HttpHandler):
                 self.schema.add_http_route(path, app)
 
@@ -131,10 +136,12 @@ class AsgiFastStream(Application):
         cls,
         app: Application,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]],
+        asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> "AsgiFastStream":
         asgi_app = cls(
             app.broker,
             asgi_routes=asgi_routes,
+            asyncapi_path=asyncapi_path,
             logger=app.logger,
             lifespan=None,
         )

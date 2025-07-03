@@ -53,8 +53,8 @@ if TYPE_CHECKING:
         DefaultSubscriber,
     )
     from faststream.security import BaseSecurity
-    from faststream.specification.schema.extra import Tag, TagDict
     from faststream.specification.base import SpecificationFactory
+    from faststream.specification.schema.extra import Tag, TagDict
 
 
 Partition = TypeVar("Partition")
@@ -285,7 +285,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
-            specification=specification
+            specification=specification,
         )
 
     @overload  # type: ignore[override]

@@ -5,6 +5,7 @@ from typing import (
     Any,
     Optional,
     TypeVar,
+    Union,
 )
 
 import anyio
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream.asgi import AsyncAPIRoute
     from faststream.asgi.types import ASGIApp
     from faststream.specification.base import SpecificationFactory
 
@@ -101,5 +103,10 @@ class FastStream(Application):
     def as_asgi(
         self,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
+        asyncapi_path: Union[str, "AsyncAPIRoute", None] = None,
     ) -> AsgiFastStream:
-        return AsgiFastStream.from_app(self, asgi_routes)
+        return AsgiFastStream.from_app(
+            self,
+            asgi_routes=asgi_routes,
+            asyncapi_path=asyncapi_path,
+        )

@@ -11,7 +11,6 @@ from faststream.rabbit import (
     RabbitRouter,
 )
 from faststream.specification import Specification
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase

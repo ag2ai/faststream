@@ -20,7 +20,7 @@ def test_run(
 
     from faststream import FastStream, specification
     from faststream.rabbit import RabbitBroker
-    from faststream.asgi import AsgiResponse, get, make_asyncapi_asgi
+    from faststream.asgi import AsgiResponse, get
 
     CONTEXT = {}
 
@@ -29,12 +29,12 @@ def test_run(
         return AsgiResponse(json.dumps(CONTEXT).encode(), status_code=200)
 
     broker = RabbitBroker()
-    app = FastStream(broker).as_asgi(
+    app = FastStream(broker, specification=specification.AsyncAPI()).as_asgi(
         asgi_routes=[
             ("/context", context),
             ("/liveness", AsgiResponse(b"hello world", status_code=200)),
-            ("/docs", make_asyncapi_asgi(specification.AsyncAPI(broker))),
         ],
+        asyncapi_path="/docs",
     )
 
     @app.on_startup

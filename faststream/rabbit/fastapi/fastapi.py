@@ -50,8 +50,8 @@ if TYPE_CHECKING:
     from faststream.rabbit.schemas import Channel
     from faststream.rabbit.subscriber import RabbitSubscriber
     from faststream.security import BaseSecurity
-    from faststream.specification.schema.extra import Tag, TagDict
     from faststream.specification.base import SpecificationFactory
+    from faststream.specification.schema.extra import Tag, TagDict
 
 
 class RabbitRouter(StreamRouter["IncomingMessage"]):

@@ -1,6 +1,5 @@
-from faststream import FastStream
 from faststream.nats import NatsBroker
-from faststream.specification import AsyncAPI, Tag
+from faststream.specification import Tag
 from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 
 

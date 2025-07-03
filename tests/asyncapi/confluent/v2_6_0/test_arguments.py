@@ -1,5 +1,4 @@
 from faststream.confluent import KafkaBroker, TopicPartition
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
