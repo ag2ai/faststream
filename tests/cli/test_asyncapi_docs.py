@@ -145,6 +145,7 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
 
 @pytest.mark.slow()
 @require_aiokafka
+@pytest.mark.kafka()
 @pytest.mark.parametrize(
     ("commands", "load_schema"),
     (
@@ -198,6 +199,7 @@ def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.kafka()
 @require_aiokafka
 def test_serve_asyncapi_docs_from_app(
     generate_template: GenerateTemplateFactory,
