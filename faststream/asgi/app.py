@@ -183,7 +183,9 @@ class AsgiFastStream(Application):
 
     @asynccontextmanager
     async def start_lifespan_context(self) -> AsyncIterator[None]:
-        async with anyio.create_task_group() as tg, self.lifespan_context():
+        async with anyio.create_task_group() as tg, self.lifespan_context(
+            **self._run_extra_options
+        ):
             tg.start_soon(self._startup, self._log_level, self._run_extra_options)
 
             try:
