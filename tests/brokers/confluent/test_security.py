@@ -32,6 +32,6 @@ async def test_base_security_pass_ssl_context() -> None:
 
     with pytest.raises(
         SetupError,
-        match="ssl_context is not supported by confluent-kafka-python, please use config instead.",
+        match=r"ssl_context is not supported by confluent-kafka-python, please use config instead.",
     ):
         KafkaBroker("localhost:9092", security=security)

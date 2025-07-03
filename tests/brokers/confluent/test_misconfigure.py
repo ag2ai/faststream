@@ -13,7 +13,7 @@ def test_max_workers_with_manual(queue: str) -> None:
 
     with pytest.warns(DeprecationWarning):
         sub = broker.subscriber(queue, max_workers=3, auto_commit=True)
-        assert isinstance(sub, ConcurrentDefaultSubscriber)
+    assert isinstance(sub, ConcurrentDefaultSubscriber)
 
     with pytest.raises(SetupError), pytest.warns(DeprecationWarning):
         broker.subscriber(queue, max_workers=3, auto_commit=False)

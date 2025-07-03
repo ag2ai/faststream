@@ -6,7 +6,7 @@ from faststream.nats import TestNatsBroker
 
 @pytest.mark.asyncio()
 @pytest.mark.nats()
-@pytest.mark.flaky(retries=3, retry_delay=1)
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_basic() -> None:
     from docs.docs_src.nats.js.key_value import app, broker, handler
 

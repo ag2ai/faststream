@@ -65,7 +65,7 @@ try:
 except ImportError:
     SendableMessage: TypeAlias = BaseSendableMessage  # type: ignore[no-redef,misc]
 
-SettingField: TypeAlias = bool | str | list[bool | str] | list[str] | list[bool]
+SettingField: TypeAlias = bool | str | list[bool | str] | list[str] | list[bool] | int | None
 
 Lifespan: TypeAlias = Callable[..., AbstractAsyncContextManager[None]]
 

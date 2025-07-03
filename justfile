@@ -37,12 +37,12 @@ test-all path="tests/" params="" marks="all":
 
 [doc("Run fast tests with coverage")]
 [group("tests")]
-coverage-test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
+test-coverage path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
   -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
-coverage-test-all path="tests/" params="" marks="all":
+test-coverage-all path="tests/" params="" marks="all":
   -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 
@@ -62,28 +62,30 @@ docs-serve:
 [doc("Ruff check")]
 [group("linter")]
 ruff-check *params:
-  -docker compose exec -T faststream ruff check --exit-non-zero-on-fix {{params}}
+  uv run ruff check --exit-non-zero-on-fix {{params}}
 
 [doc("Ruff format")]
 [group("linter")]
 ruff-format *params:
-  -docker compose exec -T faststream ruff format {{params}}
+  uv run ruff format {{params}}
 
 [doc("Codespell check")]
 [group("linter")]
 codespell:
-  -docker compose exec -T faststream codespell
+  uv run codespell
+
+alias lint := linter
 
 [doc("Linter run")]
 [group("linter")]
-linter: ruff-check ruff-format codespell
+linter: ruff-format ruff-check codespell
 
 
 # Static analysis
 [doc("Mypy check")]
 [group("static analysis")]
 mypy *params:
-  -docker compose exec -T faststream mypy {{params}}
+  uv run mypy {{params}}
 
 [doc("Bandit check")]
 [group("static analysis")]
@@ -117,7 +119,11 @@ kafka-logs:
 
 [doc("Run kafka tests")]
 [group("kafka")]
-kafka-tests: (test "kafka")
+test-kafka: (test "tests/brokers/kafka")
+
+[doc("Run confluent tests")]
+[group("kafka")]
+test-confluent: (test "tests/brokers/confluent")
 
 
 # RabbitMQ
@@ -138,7 +144,7 @@ rabbit-logs:
 
 [doc("Run rabbitmq tests")]
 [group("rabbitmq")]
-rabbit-tests: (test "rabbit")
+test-rabbit: (test "tests/brokers/rabbit")
 
 
 # Redis
@@ -159,7 +165,7 @@ redis-logs:
 
 [doc("Run redis tests")]
 [group("redis")]
-redis-tests: (test "redis")
+test-redis: (test "tests/brokers/redis")
 
 
 # Nats
@@ -180,4 +186,4 @@ nats-logs:
 
 [doc("Run nats tests")]
 [group("nats")]
-nats-tests: (test "nats")
+test-nats *params: (test "tests/brokers/nats")

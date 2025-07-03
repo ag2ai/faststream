@@ -117,7 +117,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    @pytest.mark.flaky(retries=3, only_on=[AssertionError], retry_delay=1)
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_auto_ack(self, event: asyncio.Event, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
@@ -439,7 +439,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    @pytest.mark.flaky(retries=3, retry_delay=1)
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_between_partitions(
         self,
         queue: str,
@@ -487,7 +487,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    @pytest.mark.flaky(retries=3, retry_delay=1)
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     @pytest.mark.parametrize(
         "with_explicit_commit",
         (
@@ -542,7 +542,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.asyncio()
 @pytest.mark.slow()
 @pytest.mark.kafka()
-@pytest.mark.flaky(retries=3, retry_delay=1)
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("partitions", "warning"),
     (
