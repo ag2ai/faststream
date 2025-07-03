@@ -4,6 +4,9 @@
 # Global
 * @Lancetnik
 
+# Documentation
+/docs/ @kumaranvpl
+
 # Observability
 /faststream/opentelemetry/ @draincoder
 /faststream/prometheus/ @draincoder
