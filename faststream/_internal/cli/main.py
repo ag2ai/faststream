@@ -127,6 +127,8 @@ def run(
     if reload and workers > 1:
         msg = "You can't use reload option with multiprocessing"
         raise SetupError(msg)
+    if workers <= 1:
+        extra["worker_id"] = None
 
     if reload:
         try:

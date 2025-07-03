@@ -264,7 +264,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         mock.assert_called_once_with(msg)
 
-    @pytest.mark.flaky(retries=3, retry_delay=1)
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_no_trace_context_create_process_span(
         self,
         queue: str,

@@ -61,7 +61,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
         parser: Annotated[
             Optional["CustomCallable"],
             Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
+                "Parser to map original **redis.ResponseT (Union[Awaitable[Any], Any])** Msg to FastStream one."
             ),
         ] = None,
         decoder: Annotated[

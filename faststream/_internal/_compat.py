@@ -255,15 +255,12 @@ except ImportError:  # pragma: no cover
 
 
 uvicorn: Any
-UvicornMultiprocess: Any
 
 try:
     import uvicorn
-    from uvicorn.supervisors.multiprocess import Multiprocess as UvicornMultiprocess
 
     HAS_UVICORN = True
 
 except ImportError:
     uvicorn = None
-    UvicornMultiprocess = None
     HAS_UVICORN = False

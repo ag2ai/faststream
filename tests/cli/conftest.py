@@ -101,8 +101,7 @@ class CLIThread:
             return
 
         while self.running:
-            rlist, _, _ = select.select([self.process.stderr], [], [], 1.0)
-
+            rlist, _, _ = select.select([self.process.stderr], [], [], 0.1)
             if rlist:
                 self.started = True
 
@@ -118,9 +117,13 @@ class CLIThread:
     def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
         assert self.process.stderr
 
+        if message in self.stderr:
+            return True
+
         expiration_time = time.time() + timeout
 
         while time.time() < expiration_time:
+            time.sleep(0.1)
             if message in self.stderr:
                 return True
 
