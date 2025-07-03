@@ -35,7 +35,6 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
-        # should install with `-e`
         run: |
           set -ux
           uv pip install --system -e .[dev]

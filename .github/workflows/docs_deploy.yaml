@@ -30,13 +30,10 @@ jobs:
           set -ux
           uv pip install --system -e .[dev]
           uv pip uninstall --system email-validator # This is to fix broken link in docs
+
       - run: ./scripts/build-docs.sh
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
       - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
-      - name: Configure Git user
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
       - run: echo $VERSION
       - run: echo $IS_RC
       - run: |
@@ -46,4 +43,13 @@ jobs:
           else
             cd docs && mike deploy -F mkdocs.yml --update-aliases $VERSION
           fi
-          git push -f
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: gh-pages
+          file_pattern: "docs/site/**"
+          commit_message: "docs: deploy docs"
+          commit_user_name: faststream-actions[bot]
+          commit_user_email: faststream-actions[bot]@users.noreply.github.com
+          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>
