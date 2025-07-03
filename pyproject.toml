@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.7.19,<0.8.0"]
+build-backend = "uv_build"
 
 [project]
 name = "faststream"
@@ -161,12 +161,9 @@ Discord = "https://discord.gg/qFm6aSqq59"
 [project.scripts]
 faststream = "faststream.__main__:cli"
 
-[tool.hatch.version]
-path = "faststream/__about__.py"
-
-[tool.hatch.build]
-skip-excluded-dirs = true
-exclude = ["/tests", "/docs"]
+[tool.uv.build-backend]
+module-root = "."
+module-name = "faststream"
 
 [tool.mypy]
 files = ["faststream", "tests/mypy"]
