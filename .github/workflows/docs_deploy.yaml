@@ -49,7 +49,7 @@ jobs:
         with:
           branch: gh-pages
           file_pattern: "docs/site/**"
-          push_options: "--force"
+          push_options: "--force"  # force push to stay with clear gh-pages branch history
           commit_message: "docs: deploy docs"
           commit_user_name: faststream-actions[bot]
           commit_user_email: faststream-actions[bot]@users.noreply.github.com
