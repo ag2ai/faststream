@@ -5,6 +5,7 @@ from tests.marks import skip_windows
 
 
 @pytest.mark.slow()
+@skip_windows
 @pytest.mark.parametrize(
     ("app_import"),
     (
@@ -15,7 +16,6 @@ from tests.marks import skip_windows
         pytest.param(
             "from faststream.asgi import AsgiFastStream",
             id="asgi_app",
-            marks=skip_windows,
         ),
     ),
 )
