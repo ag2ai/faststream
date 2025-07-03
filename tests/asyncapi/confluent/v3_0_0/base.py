@@ -1,6 +1,6 @@
 from faststream.confluent import KafkaBroker
 from faststream.specification.base.specification import Specification
-from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_spec
+from tests.asyncapi.base.v3_0_0 import get_3_0_0_spec
 
 
 class AsyncAPI30Mixin:

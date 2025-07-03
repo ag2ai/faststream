@@ -1,14 +1,15 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from redis.exceptions import AuthenticationError
 
-from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @contextmanager
-def patch_asyncio_open_connection() -> tuple[MagicMock, MagicMock]:
+def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
     try:
         reader = MagicMock()
         reader.readline = AsyncMock(return_value=b":1\r\n")
@@ -37,13 +38,13 @@ async def test_base_security() -> None:
 
         assert connection.call_args.kwargs["ssl"]
 
-        schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+        schema = get_2_6_0_schema(broker)
         assert schema == {
             "asyncapi": "2.6.0",
             "channels": {},
             "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "redis",
@@ -67,7 +68,7 @@ async def test_plaintext_security() -> None:
 
         assert connection.call_args.kwargs["ssl"]
 
-        schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+        schema = get_2_6_0_schema(broker)
         assert schema == {
             "asyncapi": "2.6.0",
             "channels": {},
@@ -77,7 +78,7 @@ async def test_plaintext_security() -> None:
                 "securitySchemes": {"user-password": {"type": "userPassword"}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "redis",

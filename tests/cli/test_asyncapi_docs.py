@@ -131,8 +131,7 @@ class DataBasic(BaseModel):
 
 
 broker = KafkaBroker("localhost:9092")
-doc = AsyncAPI(broker)
-app = FastStream(broker)
+app = FastStream(broker, specification=AsyncAPI())
 
 
 @broker.publisher("output_data")

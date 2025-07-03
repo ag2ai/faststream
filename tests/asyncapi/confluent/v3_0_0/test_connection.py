@@ -1,6 +1,6 @@
 from faststream.confluent import KafkaBroker
 from faststream.specification import Tag
-from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
+from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 def test_base() -> None:

@@ -35,8 +35,7 @@ class HttpHandler:
         else:
             try:
                 response = await self.func(scope)
-            except Exception as e:
-                print(e)
+            except Exception:
                 response = AsgiResponse(body=b"Internal Server Error", status_code=500)
 
         await response(scope, receive, send)

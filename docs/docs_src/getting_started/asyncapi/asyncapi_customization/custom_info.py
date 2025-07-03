@@ -1,5 +1,5 @@
 from faststream import FastStream
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import AsyncAPI
 from faststream.specification import License, Contact
 from faststream.kafka import KafkaBroker
 

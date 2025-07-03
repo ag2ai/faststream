@@ -137,15 +137,14 @@ Just create an `AsgiFastStream` object with a special option:
 ```python linenums="1" hl_lines="11"
 from faststream.nats import NatsBroker
 from faststream.asgi import AsgiFastStream
-from faststream.specification.asyncapi import AsyncAPI
-from faststream.asgi import make_asyncapi_asgi
+from faststream.specification import AsyncAPI
 
 broker = NatsBroker()
-asyncapi = AsyncAPI(broker)
 
 app = AsgiFastStream(
     broker,
-    asgi_routes=("/docs/asyncapi", make_asyncapi_asgi(asyncapi)),
+    specification=AsyncAPI(),
+    asyncapi_path="/docs/asyncapi",
 )
 ```
 
@@ -158,23 +157,22 @@ You may also use regular `FastStream` application object for similar result.
 ```python linenums="1" hl_lines="2 14"
 from faststream import FastStream
 from faststream.nats import NatsBroker
-from faststream.specification.asyncapi import AsyncAPI
-from faststream.asgi import make_asyncapi_asgi, make_ping_asgi, AsgiResponse
+from faststream.specification import AsyncAPI
+from faststream.asgi import make_ping_asgi, AsgiResponse
 from faststream.asgi import make_ping_asgi, AsgiResponse
 
 broker = NatsBroker()
-asyncapi = AsyncAPI(broker)
 
 @get
 async def liveness_ping(scope):
     return AsgiResponse(b"", status_code=200)
 
-app = FastStream(broker).as_asgi(
+app = FastStream(broker, specification=AsyncAPI()).as_asgi(
     asgi_routes=[
         ("/liveness", liveness_ping),
         ("/readiness", make_ping_asgi(broker, timeout=5.0)),
-        ("/docs/asyncapi", make_asyncapi_asgi(asyncapi))
     ],
+    asyncapi_path="/docs/asyncapi",
 )
 ```
 
@@ -198,7 +196,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from faststream.nats import NatsBroker
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import AsyncAPI
 from faststream.asgi import make_ping_asgi, make_asyncapi_asgi
 
 broker = NatsBroker()

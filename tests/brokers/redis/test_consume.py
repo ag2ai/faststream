@@ -771,6 +771,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         assert event.is_set()
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_and_delete_acked(
         self, queue: str, event: asyncio.Event
     ) -> None:

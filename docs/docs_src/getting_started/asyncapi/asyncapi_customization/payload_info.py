@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import AsyncAPI
 
 
 class DataBasic(BaseModel):

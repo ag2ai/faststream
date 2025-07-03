@@ -1,7 +1,7 @@
 import pytest
 from aiormq.exceptions import AMQPConnectionError
 
-from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @pytest.mark.asyncio()
@@ -13,13 +13,13 @@ async def test_base_security() -> None:
         async with broker:
             pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "amqps",
@@ -40,7 +40,7 @@ async def test_plaintext_security() -> None:
         async with broker:
             pass
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
     assert (
         schema
         == {
@@ -52,7 +52,7 @@ async def test_plaintext_security() -> None:
                 "securitySchemes": {"user-password": {"type": "userPassword"}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "amqps",

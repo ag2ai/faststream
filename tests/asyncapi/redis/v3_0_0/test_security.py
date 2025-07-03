@@ -5,7 +5,7 @@ from faststream.security import (
     BaseSecurity,
     SASLPlaintext,
 )
-from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
+from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 def test_base_security_schema() -> None:

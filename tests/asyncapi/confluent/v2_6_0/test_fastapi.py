@@ -5,8 +5,8 @@ from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
 from faststream.specification import Specification
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 from tests.asyncapi.base.v2_6_0.arguments import FastAPICompatible
-from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
 from tests.asyncapi.base.v2_6_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 

@@ -61,7 +61,7 @@ FastStream includes lightweight [**ASGI** support](../asgi.md){.internal-link} t
 ```python linenums="1"
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import AsyncAPI
 from faststream.asgi import make_asyncapi_asgi
 
 broker = KafkaBroker()
@@ -93,7 +93,7 @@ You can choose the method that best fits with your application architecture.
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI, responses
-    from faststream.specification.asyncapi import get_asyncapi_html, AsyncAPI
+    from faststream.specification import get_asyncapi_html, AsyncAPI
     from faststream.kafka import KafkaBroker
 
     broker = KafkaBroker()
@@ -124,7 +124,7 @@ You can choose the method that best fits with your application architecture.
     from fastapi import FastAPI
     from faststream import FastStream
     from faststream.asgi import make_asyncapi_asgi
-    from faststream.specification.asyncapi import AsyncAPI
+    from faststream.specification import AsyncAPI
     from faststream.kafka import KafkaBroker
 
     broker = KafkaBroker()

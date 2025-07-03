@@ -84,7 +84,7 @@ class AsyncAPIRoute:
         self.asyncapi_css_url = asyncapi_css_url
 
     @classmethod
-    def ensure_route(self, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
+    def ensure_route(cls, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
         if isinstance(path, AsyncAPIRoute):
             return path
         return AsyncAPIRoute(path)
