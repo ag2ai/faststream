@@ -14,7 +14,7 @@ Sometimes, you need to register exception processors at the top level of your ap
 
 For this purpose, **FastStream** provides a special `ExceptionMiddleware`. You just need to create it, register handlers, and add it to the broker, router, or subscribers you want (as a [regular middleware](index.md){.internal-link}).
 
-```python
+```python linenums="1"
 from faststream import ExceptionMiddleware
 
 exception_middleware = ExceptionMiddleware()
@@ -32,7 +32,7 @@ You can register such handlers in two ways:
 
 ### 1. Using the `#!python @add_handler` decorator
 
-```python
+```python linenums="1" hl_lines="5-7"
 from faststream import ExceptionMiddleware
 
 exc_middleware = ExceptionMiddleware()
@@ -44,7 +44,7 @@ async def error_handler(exc: Exception) -> None:
 
 ### 2. Using the `handlers` initialization option
 
-```python
+```python linenums="1" hl_lines="7"
 from faststream import ExceptionMiddleware
 
 async def error_handler(exc: Exception) -> None:
@@ -65,7 +65,7 @@ They can be registered in the same two ways as the previous one, but with a slig
 
 ### 1. Using the `!#python @add_handler(..., publish=True)` decorator:
 
-```python
+```python linenums="1" hl_lines="5"
 from faststream import ExceptionMiddleware
 
 exc_middleware = ExceptionMiddleware()
@@ -78,7 +78,7 @@ async def error_handler(exc: Exception) -> str:
 
 ### 2. Using the `publish_handlers` initialization option
 
-```python
+```python linenums="1" hl_lines="8"
 from faststream import ExceptionMiddleware
 
 async def error_handler(exc: Exception) -> str:
@@ -103,7 +103,7 @@ This works in the same way as a regular message handler.
 
 For example, you can access a consumed message in your handler as follows:
 
-```python
+```python linenums="1" hl_lines="10"
 from typing import Any
 from faststream import ExceptionMiddleware, Context
 from faststream.message import StreamMessage
@@ -123,7 +123,7 @@ async def base_exc_handler(
 
 Here's a comprehensive example showing how to use both types of exception handlers:
 
-```python
+```python linenums="1" hl_lines="9 16 29 42"
 from typing import Any
 from faststream import FastStream, ExceptionMiddleware, Context, Broker
 from faststream.message import StreamMessage
@@ -196,7 +196,7 @@ async def process_message(msg: dict[str, Any]) -> dict[str, Any]:
 
 Exception handlers are processed in the order they were registered. The first handler that matches the exception type (including inheritance) will be executed:
 
-```python
+```python linenums="1" hl_lines="11"
 from faststream import ExceptionMiddleware
 
 exc_middleware = ExceptionMiddleware()

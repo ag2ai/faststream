@@ -45,7 +45,7 @@ These middlewares intercept outgoing messages and can be applied at **broker**, 
 
 All middlewares inherit from `BaseMiddleware`:
 
-```python
+```python linenums="1" hl_lines="1"
 from faststream import BaseMiddleware
 
 class MyMiddleware(BaseMiddleware):
@@ -57,7 +57,7 @@ class MyMiddleware(BaseMiddleware):
 
 These middlewares control the entire message lifecycle using `on_receive` and `after_processed` methods:
 
-```python
+```python linenums="1" hl_lines="5 11 24"
 from types import TracebackType
 from faststream import BaseMiddleware, Broker
 
@@ -94,7 +94,7 @@ Please always call `#!python super()` methods at the end of your function; this 
 
 Consumer middlewares intercept messages before your handler using the `consume_scope` method:
 
-```python
+```python linenums="1" hl_lines="6 20"
 from typing import Any, Callable, Awaitable
 from faststream import BaseMiddleware
 from faststream.message import StreamMessage
@@ -124,12 +124,13 @@ class ConsumerMiddleware(BaseMiddleware):
 
 # Can be applied at different levels
 broker = Broker(middlewares=[ConsumerMiddleware])
+# Or
 router = BrokerRouter(middlewares=[ConsumerMiddleware])
 ```
 
 If you want to apply such middleware to a specific subscriber instead of the whole application, you can just create a function with the same signature and pass it right to your subscriber:
 
-```python
+```python linenums="1" hl_lines="10"
 from typing import Any, Callable, Awaitable
 from faststream.message import StreamMessage
 
@@ -151,7 +152,7 @@ The `msg` option always has the already decoded body. To prevent the default `!#
 
 Publisher middlewares intercept outgoing messages using the `publish_scope` method:
 
-```python
+```python linenums="1" hl_lines="5"
 from typing import Any, Callable, Awaitable
 from faststream import BaseMiddleware
 
@@ -179,7 +180,7 @@ This method consumes the message body to send and any other options passing to t
 
 Also, you can specify middleware for publisher object as well. In this case, you should create a function with the same `publish_scope` signature and use it as a publisher middleware:
 
-```python
+```python linenums="1" hl_lines="3 5"
 from typing import Any, Callable, Awaitable
 
 async def publisher_middleware(
@@ -224,7 +225,7 @@ The `ExceptionMiddleware` handles exceptions at the application level. For detai
 
 ### Request Logging Middleware
 
-```python
+```python linenums="1" hl_lines="7"
 import time
 from typing import Any, Callable, Awaitable
 from faststream import BaseMiddleware
@@ -253,7 +254,7 @@ class RequestLoggingMiddleware(BaseMiddleware):
 
 ### Message Validation Middleware
 
-```python
+```python linenums="1" hl_lines="18"
 from typing import Any, Callable, Awaitable, TypeVar
 from pydantic import BaseModel, ValidationError
 from faststream import BaseMiddleware
@@ -291,7 +292,7 @@ class ValidationMiddleware(BaseMiddleware):
 
 ### Retry Middleware
 
-```python
+```python linenums="1" hl_lines="16"
 import asyncio
 from typing import Any, Callable, Awaitable
 from faststream import BaseMiddleware
@@ -340,7 +341,7 @@ class RetryMiddleware(BaseMiddleware):
 
 Middlewares can access FastStream's context system:
 
-```python
+```python linenums="1" hl_lines="12"
 from typing import Any, Callable, Awaitable
 from faststream import BaseMiddleware, Context
 from faststream.message import StreamMessage
