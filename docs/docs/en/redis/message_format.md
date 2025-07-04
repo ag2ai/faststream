@@ -1,32 +1,30 @@
 # Dealing with message encoded by FastStream
 
-To provide such great features as observability and many others **FastStream** needs to add extra data to your message. **Redis** in turn provides ability to send any type of data inside the message. Since that, **FastStream** uses it's own binary format for messages that supports any type of data that you are going to use and add any additional information.
-
+To provide great features like observability and more, **FastStream** needs to include extra data in your message. **Redis**, in turn, provides the ability to send any type of data within a message. Therefore, **FastStream** uses its own binary format for messages, which supports any type of data you want to use and can include any additional information.
 
 ### Migration plan
 
-Currently **FastStream** uses JSON by default to encode and parse messages internally. But in future updates it will be deprecated and removed according to the following plan:
+Currently, **FastStream** uses JSON as the default format for encoding and parsing messages internally. However, in future updates, JSON will be deprecated and eventually removed, as per the following plan:
 
-- in versions 0.5.* - JSON will stay as default message format
-- in versions 0.6.* - JSON will be deprecated and new binary format will be used as default
-- in versions 0.7.* - JSON message format will be completely removed
-
+- In versions 0.5.x - JSON will continue to be the default message format
+- In versions 0.6.x - the new binary format will become the default, with JSON being deprecated
+- In versions 0.7.x and beyond - JSON will no longer be supported and will be removed completely
 
 ### Message structure
 
-The message compiled by **FastStream** has the following structure:
+The message compiled by **FastStream** in binary format has the following structure:
 
 ```txt
 # Format metadata
 [Identification header: 8 bytes]
 [Format version: 16 bit big-endian int]
-[Headers offset (points to the number of headers): 32 bit big-endian int]
-[Data offset (indicates position at which the data starts): 32 bit big-endian int]
-[Number of headers: 16 bit big-endian int]
+[Headers offset (points to the number of headers): 32 bit big-endian uint]
+[Data offset (indicates position at which the data starts): 32 bit big-endian uint]
+[Number of headers: 16 bit big-endian uint]
 # headers
-[Length of key: 16 bit big-endian int]
+[Length of key: 16 bit big-endian uint]
 [Key: UTF-8 string]
-[Length of value: 16 bit big-endian int]
+[Length of value: 16 bit big-endian uint]
 [Value: UTF-8 string]
 # and so on until headers length is reached ...
 
@@ -36,11 +34,10 @@ The message compiled by **FastStream** has the following structure:
 ```
 
 !!! note
-    The [...] blocks go one after another without any symbol or data between them
-
+    The [...] blocks are arranged in a sequence, with no symbols or data separating them.
 ### Switching between formats
 
-#### On Publisher's side
+#### On the publisher's side
 
 ```python
 from faststream import FastStream
@@ -57,7 +54,7 @@ async def message_publisher():
     return "message"
 ```
 
-#### On Subscriber's side
+#### On the subscriber's side
 
 
 ```python
@@ -77,7 +74,7 @@ async def message_handler(msg):
 
 ### Parsing in FastStream application
 
-Basically this message format is internal, but in some cases you will need to parse it correctly. For example in **on_receive** middleware's method:
+This message format is primarily internal, but there are some cases where you may need to correctly parse it. For example, in the **on_receive** method of the middleware:
 
 ```python
 from faststream import BaseMiddleware
@@ -98,7 +95,7 @@ class MyMiddleware(BaseMiddleware):
 
 ### Parsing without FastStream
 
-You can always see the **FastStream's** implementation on [github](https://github.com/ag2ai/faststream).
+You can always find the **FastStream's** implementation on [github](https://github.com/ag2ai/faststream).
 
 ### Parsing in Go
 
