@@ -1,5 +1,8 @@
+from typing import Any
+
+from faststream._internal.broker import BrokerUsecase
 from faststream.confluent import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase
@@ -21,12 +24,12 @@ class TestRouter(RouterTestcase):
 
         broker.include_router(router)
 
-        schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert schema == {
             "asyncapi": "2.6.0",
             "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0", "description": ""},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "url": "localhost",
@@ -69,16 +72,12 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = KafkaRouter
 
-    def build_app(self, router):
-        broker = KafkaBroker()
-        broker.include_router(router)
-        return broker
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(KafkaBroker(routers=[broker]))
 
 
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def build_app(self, router):
-        broker = KafkaBroker()
-        broker.include_router(router)
-        return broker
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(KafkaBroker(routers=[broker]))

@@ -423,7 +423,7 @@ class RedisBroker(
         return await self._basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
-    async def ping(self, timeout: float | None) -> bool:
+    async def ping(self, timeout: float | None = 3) -> bool:
         sleep_time = (timeout or 10) / 10
 
         with move_on_after(timeout) as cancel_scope:

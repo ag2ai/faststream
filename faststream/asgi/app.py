@@ -15,6 +15,8 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
+from .factories import AsyncAPIRoute
+from .handlers import HttpHandler
 from .response import AsgiResponse
 from .websocket import WebSocketClose
 
@@ -33,6 +35,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream.specification.base import SpecificationFactory
 
     class UvicornServerProtocol(Protocol):
         should_exit: bool
@@ -88,16 +91,16 @@ class AsgiFastStream(Application):
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
-        # regular broker args
         logger: Optional["LoggerProto"] = logger,
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         lifespan: Optional["Lifespan"] = None,
-        # hooks
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
+        specification: Optional["SpecificationFactory"] = None,
+        asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
         super().__init__(
             broker,
@@ -111,9 +114,17 @@ class AsgiFastStream(Application):
             after_startup=after_startup,
             on_shutdown=on_shutdown,
             after_shutdown=after_shutdown,
+            specification=specification,
         )
 
         self.routes = list(asgi_routes)
+        if asyncapi_path:
+            route = AsyncAPIRoute.ensure_route(asyncapi_path)
+            self.routes.append((route.path, route(self.schema)))
+
+        for path, app in self.routes:
+            if isinstance(app, HttpHandler):
+                self.schema.add_http_route(path, app)
 
         self._server = OuterRunState()
 
@@ -125,10 +136,12 @@ class AsgiFastStream(Application):
         cls,
         app: Application,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]],
+        asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> "AsgiFastStream":
         asgi_app = cls(
             app.broker,
             asgi_routes=asgi_routes,
+            asyncapi_path=asyncapi_path,
             logger=app.logger,
             lifespan=None,
         )

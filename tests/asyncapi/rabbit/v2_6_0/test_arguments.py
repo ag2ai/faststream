@@ -1,5 +1,4 @@
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
@@ -15,7 +14,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -48,7 +47,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -74,7 +73,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -100,7 +99,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -126,7 +125,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -152,7 +151,7 @@ class TestArguments(ArgumentsTestcase):
         )
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {

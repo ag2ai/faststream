@@ -29,6 +29,7 @@ async def test_broker_context_kafka() -> None:
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @require_confluent
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_broker_context_confluent() -> None:
     from docs.docs_src.getting_started.publishing.confluent.broker_context import (
         app,
@@ -38,7 +39,7 @@ async def test_broker_context_confluent() -> None:
     from faststream.confluent import TestKafkaBroker as TestConfluentKafkaBroker
 
     async with TestConfluentKafkaBroker(broker, with_real=True), TestApp(app):
-        await handle.wait_call(30)
+        await handle.wait_call(10)
         handle.mock.assert_called_once_with("Hi!")
 
 

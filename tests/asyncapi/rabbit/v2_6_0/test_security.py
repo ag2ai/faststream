@@ -5,7 +5,7 @@ from faststream.security import (
     BaseSecurity,
     SASLPlaintext,
 )
-from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 def test_base_security_schema() -> None:
@@ -20,14 +20,14 @@ def test_base_security_schema() -> None:
     )  # pragma: allowlist secret
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "protocol": "amqps",
@@ -56,7 +56,8 @@ def test_plaintext_security_schema() -> None:
     )  # pragma: allowlist secret
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
+
     assert (
         schema
         == {
@@ -68,7 +69,7 @@ def test_plaintext_security_schema() -> None:
                 "securitySchemes": {"user-password": {"type": "userPassword"}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "amqps",
@@ -94,7 +95,8 @@ def test_plaintext_security_schema_without_ssl() -> None:
         == ["amqp://admin:password@localhost:5672/"]  # pragma: allowlist secret
     )  # pragma: allowlist secret
 
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
+
     assert (
         schema
         == {
@@ -106,7 +108,7 @@ def test_plaintext_security_schema_without_ssl() -> None:
                 "securitySchemes": {"user-password": {"type": "userPassword"}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "amqp",

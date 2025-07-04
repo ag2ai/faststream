@@ -131,8 +131,7 @@ class DataBasic(BaseModel):
 
 
 broker = KafkaBroker("localhost:9092")
-doc = AsyncAPI(broker)
-app = FastStream(broker)
+app = FastStream(broker, specification=AsyncAPI())
 
 
 @broker.publisher("output_data")
@@ -172,7 +171,7 @@ def test_gen_asyncapi_for_kafka_app(
             "faststream",
             "docs",
             "gen",
-            f"{app_path.stem}:doc",
+            f"{app_path.stem}:app",
             "--out",
             str(app_path.parent / "schema.json"),
             *commands,
@@ -192,7 +191,7 @@ def test_gen_asyncapi_for_kafka_app(
 
 @pytest.mark.slow()
 def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
-    with faststream_cli("faststream", "docs", "gen", "non_existent:doc") as cli:
+    with faststream_cli("faststream", "docs", "gen", "non_existent:app") as cli:
         assert cli.wait_for_stderr("No such file or directory")
 
 
@@ -205,7 +204,7 @@ def test_serve_asyncapi_docs_from_app(
 ) -> None:
     with (
         generate_template(app_code) as app_path,
-        faststream_cli("faststream", "docs", "serve", f"{app_path.stem}:doc"),
+        faststream_cli("faststream", "docs", "serve", f"{app_path.stem}:app"),
     ):
         response = httpx.get("http://localhost:8000")
         assert "<title>FastStream AsyncAPI</title>" in response.text

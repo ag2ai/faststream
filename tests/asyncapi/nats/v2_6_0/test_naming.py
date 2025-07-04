@@ -1,5 +1,4 @@
 from faststream.nats import NatsBroker
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
 
 
@@ -12,12 +11,12 @@ class TestNaming(NamingTestCase):
         @broker.subscriber("test")
         async def handle() -> None: ...
 
-        schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
 
         assert schema == {
             "asyncapi": "2.6.0",
             "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0", "description": ""},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "url": "nats://localhost:4222",

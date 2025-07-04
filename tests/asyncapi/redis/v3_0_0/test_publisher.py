@@ -1,18 +1,17 @@
 from faststream.redis import RedisBroker
-from faststream.specification.asyncapi import AsyncAPI
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 class TestArguments(PublisherTestcase):
-    broker_factory = RedisBroker
+    broker_class = RedisBroker
 
     def test_channel_publisher(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.publisher("test")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -24,12 +23,12 @@ class TestArguments(PublisherTestcase):
         }
 
     def test_list_publisher(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.publisher(list="test")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
@@ -37,12 +36,12 @@ class TestArguments(PublisherTestcase):
         }
 
     def test_stream_publisher(self) -> None:
-        broker = self.broker_factory()
+        broker = self.broker_class()
 
         @broker.publisher(stream="test")
         async def handle(msg) -> None: ...
 
-        schema = AsyncAPI(self.build_app(broker), schema_version="3.0.0").to_jsonable()
+        schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {

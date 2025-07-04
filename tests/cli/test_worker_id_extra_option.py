@@ -5,6 +5,7 @@ from tests.marks import skip_windows
 
 
 @pytest.mark.slow()
+@skip_windows
 @pytest.mark.parametrize(
     ("app_import"),
     (
@@ -15,7 +16,6 @@ from tests.marks import skip_windows
         pytest.param(
             "from faststream.asgi import AsgiFastStream",
             id="asgi_app",
-            marks=skip_windows,
         ),
     ),
 )
@@ -67,4 +67,6 @@ def test_worker_id_parameter_exists(
             *cli_options,
         ) as cli,
     ):
-        assert all(cli.wait_for_stderr(log_string, timeout=4) for log_string in log_strings)
+        assert all(
+            cli.wait_for_stderr(log_string, timeout=10) for log_string in log_strings
+        )

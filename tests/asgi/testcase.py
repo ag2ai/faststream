@@ -9,7 +9,6 @@ from faststream.asgi import (
     AsgiFastStream,
     AsgiResponse,
     get,
-    make_asyncapi_asgi,
     make_ping_asgi,
 )
 from faststream.asgi.types import Scope
@@ -83,13 +82,14 @@ class AsgiTestcase:
 
         app = AsgiFastStream(
             broker,
-            asgi_routes=[("/docs", make_asyncapi_asgi(AsyncAPI(broker)))],
+            specification=AsyncAPI(),
+            asyncapi_path="/docs",
         )
 
         async with self.get_test_broker(broker):
             with TestClient(app) as client:
                 response = client.get("/docs")
-                assert response.status_code == 200
+                assert response.status_code == 200, response
                 assert response.text
 
     @pytest.mark.asyncio()

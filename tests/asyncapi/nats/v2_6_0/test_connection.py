@@ -1,26 +1,24 @@
 from faststream.nats import NatsBroker
 from faststream.specification import Tag
-from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 def test_base() -> None:
-    schema = AsyncAPI(
-        NatsBroker(
-            "nats:9092",
-            protocol="plaintext",
-            protocol_version="0.9.0",
-            description="Test description",
-            tags=(Tag(name="some-tag", description="experimental"),),
-        ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    broker = NatsBroker(
+        "nats:9092",
+        protocol="plaintext",
+        protocol_version="0.9.0",
+        description="Test description",
+        tags=(Tag(name="some-tag", description="experimental"),),
+    )
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "description": "Test description",
@@ -34,17 +32,15 @@ def test_base() -> None:
 
 
 def test_multi() -> None:
-    schema = AsyncAPI(
-        NatsBroker(["nats:9092", "nats:9093"]),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    broker = NatsBroker(["nats:9092", "nats:9093"])
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "Server1": {
                 "protocol": "nats",
@@ -61,20 +57,18 @@ def test_multi() -> None:
 
 
 def test_custom() -> None:
-    schema = AsyncAPI(
-        NatsBroker(
-            ["nats:9092", "nats:9093"],
-            specification_url=["nats:9094", "nats:9095"],
-        ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+    broker = NatsBroker(
+        ["nats:9092", "nats:9093"],
+        specification_url=["nats:9094", "nats:9095"],
+    )
+    schema = get_2_6_0_schema(broker)
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "Server1": {
                 "protocol": "nats",

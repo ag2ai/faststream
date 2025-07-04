@@ -1,26 +1,25 @@
 from faststream.rabbit import RabbitBroker
 from faststream.specification import Tag
-from faststream.specification.asyncapi import AsyncAPI
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 def test_base() -> None:
-    schema = AsyncAPI(
+    schema = get_2_6_0_schema(
         RabbitBroker(
             "amqps://localhost",
             port=5673,
             protocol_version="0.9.0",
             description="Test description",
             tags=(Tag(name="some-tag", description="experimental"),),
-        ),
-        schema_version="2.6.0",
-    ).to_jsonable()
+        )
+    )
 
     assert schema == {
         "asyncapi": "2.6.0",
         "channels": {},
         "components": {"messages": {}, "schemas": {}},
         "defaultContentType": "application/json",
-        "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+        "info": {"title": "FastStream", "version": "0.1.0"},
         "servers": {
             "development": {
                 "description": "Test description",
@@ -54,7 +53,7 @@ def test_custom() -> None:
     )
 
     broker.publisher("test")
-    schema = AsyncAPI(broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(broker)
 
     assert (
         schema
@@ -108,7 +107,7 @@ def test_custom() -> None:
                 "schemas": {"test:_:PublisherPayload": {}},
             },
             "defaultContentType": "application/json",
-            "info": {"description": "", "title": "FastStream", "version": "0.1.0"},
+            "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
                     "protocol": "amqp",

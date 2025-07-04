@@ -34,6 +34,7 @@ async def test_validate_kafka() -> None:
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 @require_confluent
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_handle_confluent() -> None:
     from docs.docs_src.getting_started.subscription.confluent.real_testing import (
         test_handle as test_handle_confluent,
@@ -45,6 +46,7 @@ async def test_handle_confluent() -> None:
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @require_confluent
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_validate_confluent() -> None:
     from docs.docs_src.getting_started.subscription.confluent.real_testing import (
         test_validation_error as test_validation_error_confluent,

@@ -1,6 +1,9 @@
 import pytest
 
-from faststream._internal._compat import IS_WINDOWS, PYDANTIC_V2
+from faststream._internal._compat import (
+    IS_WINDOWS,
+    PYDANTIC_V2,
+)
 
 skip_windows = pytest.mark.skipif(
     IS_WINDOWS,

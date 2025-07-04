@@ -14,6 +14,24 @@ alwaysApply: false
 - Always use type annotations in `@broker.subscriber` or `@router.subscriber` decorated functions. Result annotation should be `None` by default
 - Never add to `@broker.subscriber` or `@router.subscriber` decorated functions useless in code options.
 
+## Subscribers registration
+
+To consume any message you should create Subscribers objects using broker
+
+```python
+from faststream.[broker] import [Broker]
+
+broker = [Broker]
+
+@broker.subscruber("subject")
+async def handler(message_body: str) -> None:
+    ...
+```
+
+- Incoming message type should be serialized using type hint.
+- `[broker]` could be one of `nats` | `rabbit` | `kafka` | `redis` | `confluent`.
+- `[broker]` could be one of `NatsBroker` | `RabbitBroker` | `KafkaBroker` accordingly
+
 ## JSON Serialization
 
 To serialize incoming messages with complex JSON structure use `Pydantic` models in annotations

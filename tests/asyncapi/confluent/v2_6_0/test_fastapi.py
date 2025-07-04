@@ -1,26 +1,30 @@
+from typing import Any
+
+from faststream._internal.broker import BrokerUsecase
 from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import Specification
+from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 from tests.asyncapi.base.v2_6_0.arguments import FastAPICompatible
 from tests.asyncapi.base.v2_6_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 
 
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
-    broker_class = staticmethod(lambda: KafkaRouter().broker)
+    broker_class = KafkaRouter
     router_class = KafkaRouter
     broker_wrapper = staticmethod(TestKafkaBroker)
 
-    def build_app(self, router):
-        return router
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(broker.broker)
 
 
 class TestRouterPublisher(PublisherTestcase):
-    broker_class = staticmethod(lambda: KafkaRouter().broker)
+    broker_class = KafkaRouter
 
-    def build_app(self, router):
-        return router
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(broker.broker)
 
 
 def test_fastapi_security_schema() -> None:
@@ -28,7 +32,8 @@ def test_fastapi_security_schema() -> None:
 
     router = KafkaRouter("localhost:9092", security=security)
 
-    schema = AsyncAPI(router.broker, schema_version="2.6.0").to_jsonable()
+    # schema = AsyncAPI(router.broker, schema_version="2.6.0").to_jsonable()
+    schema = get_2_6_0_schema(router.broker)
 
     assert schema["servers"]["development"] == {
         "protocol": "kafka",

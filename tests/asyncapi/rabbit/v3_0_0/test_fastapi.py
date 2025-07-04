@@ -1,26 +1,30 @@
+from typing import Any
+
+from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit.fastapi import RabbitRouter
 from faststream.rabbit.testing import TestRabbitBroker
 from faststream.security import SASLPlaintext
-from faststream.specification.asyncapi import AsyncAPI
+from faststream.specification import Specification
+from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 from tests.asyncapi.base.v3_0_0.arguments import FastAPICompatible
 from tests.asyncapi.base.v3_0_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
-    broker_factory = staticmethod(lambda: RabbitRouter().broker)
-    router_factory = RabbitRouter
+    broker_class = RabbitRouter
+    router_class = RabbitRouter
     broker_wrapper = staticmethod(TestRabbitBroker)
 
-    def build_app(self, router):
-        return router
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(broker.broker)
 
 
 class TestRouterPublisher(PublisherTestcase):
-    broker_factory = staticmethod(lambda: RabbitRouter().broker)
+    broker_class = RabbitRouter
 
-    def build_app(self, router):
-        return router
+    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(broker.broker)
 
 
 def test_fastapi_security_schema() -> None:
@@ -28,7 +32,7 @@ def test_fastapi_security_schema() -> None:
 
     router = RabbitRouter(security=security)
 
-    schema = AsyncAPI(router.broker, schema_version="3.0.0").to_jsonable()
+    schema = get_3_0_0_schema(router.broker)
 
     assert schema["servers"]["development"] == {
         "protocol": "amqp",
