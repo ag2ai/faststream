@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 from typing_extensions import Annotated, Doc, deprecated, override
 
@@ -9,6 +19,7 @@ from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.asyncapi import AsyncAPIPublisher
 from faststream.redis.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
+from faststream.types import EMPTY
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
@@ -21,6 +32,7 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.asyncapi import PublisherType
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.types import AnyDict
@@ -97,6 +109,10 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                 "Whether to disable **FastStream** RPC and Reply To auto responses or not."
             ),
         ] = False,
+        message_format: Annotated[
+            Type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = EMPTY,
         # AsyncAPI information
         title: Annotated[
             Optional[str],
@@ -122,6 +138,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     list=list,
                     stream=stream,
                     # subscriber args
+                    message_format=message_format,
                     no_ack=no_ack,
                     no_reply=no_reply,
                     retry=retry,
