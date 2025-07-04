@@ -284,7 +284,7 @@ class RetryMiddleware(BaseMiddleware):
 
 ## Context Access
 
-Middlewares can access the [FastStream's context](../context/index.md){.external-link} system:
+Middlewares can access the [FastStream's context](../context/index.md){.internal-link} system:
 
 ```python linenums="1" hl_lines="12"
 from typing import Any, Callable, Awaitable
