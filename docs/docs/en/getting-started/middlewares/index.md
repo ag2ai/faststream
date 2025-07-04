@@ -128,23 +128,6 @@ broker = Broker(middlewares=[ConsumerMiddleware])
 router = BrokerRouter(middlewares=[ConsumerMiddleware])
 ```
 
-If you want to apply such middleware to a specific subscriber instead of the whole application, you can just create a function with the same signature and pass it right to your subscriber:
-
-```python linenums="1" hl_lines="10"
-from typing import Any, Callable, Awaitable
-from faststream.message import StreamMessage
-
-async def subscriber_middleware(
-    call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
-    msg: StreamMessage[Any],
-) -> Any:
-    return await call_next(msg)
-
-@broker.subscriber("topic", middlewares=[subscriber_middleware])
-async def handler(msg: Any) -> str:
-    return "processed"
-```
-
 !!! note
 The `msg` option always has the already decoded body. To prevent the default `!#python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
 
@@ -178,46 +161,10 @@ broker = Broker(middlewares=[PublisherMiddleware])
 
 This method consumes the message body to send and any other options passing to the `publish` call (destination, headers, etc).
 
-Also, you can specify middleware for publisher object as well. In this case, you should create a function with the same `publish_scope` signature and use it as a publisher middleware:
-
-```python linenums="1" hl_lines="3 5"
-from typing import Any, Callable, Awaitable
-
-async def publisher_middleware(
-    call_next: Callable[..., Awaitable[Any]],
-    msg: Any,
-    **options: Any,
-) -> Any:
-    return await call_next(msg, **options)
-
-@broker.subscriber("input_topic")
-@broker.publisher("output_topic", middlewares=[publisher_middleware])
-async def handler(msg: Any) -> str:
-    return f"processed: {msg}"
-```
-
 !!! note
 If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `!#python *msgs` option additionally.
 
-## Built-in Middlewares
-
-### Acknowledgement Middleware
-
-Controls message [acknowledgment](../acknowledgement.md){.internal-link} behavior:
-
-```python
-from faststream.middlewares import AcknowledgementMiddleware, AckPolicy
-
-# The middleware is typically configured at the broker level
-# and uses different acknowledgment policies:
-# - AckPolicy.ACK_FIRST: Acknowledge immediately on receive
-# - AckPolicy.ACK: Acknowledge after successful processing
-# - AckPolicy.REJECT_ON_ERROR: Reject message on error
-# - AckPolicy.NACK_ON_ERROR: Negative acknowledge on error
-# - AckPolicy.DO_NOTHING: Manual acknowledgment control
-```
-
-### Exception Middleware
+## Exception Middleware
 
 The `ExceptionMiddleware` handles exceptions at the application level. For detailed information about exception handling, see the [Exception Middleware](exception.md){.internal-link} documentation.
 
@@ -339,7 +286,7 @@ class RetryMiddleware(BaseMiddleware):
 
 ## Context Access
 
-Middlewares can access FastStream's context system:
+Middlewares can access [FastStream's context](../context/index.md){.external-link} system:
 
 ```python linenums="1" hl_lines="12"
 from typing import Any, Callable, Awaitable
