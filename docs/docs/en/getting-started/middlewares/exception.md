@@ -10,9 +10,9 @@ search:
 
 # Exception Middleware
 
-Sometimes, you need to register exception processors at the top level of your application instead of within each message handler.
+Sometimes, it is necessary to register exception handlers at the top level of your application, rather than within each individual message handler.
 
-For this purpose, **FastStream** provides a special `ExceptionMiddleware`. You just need to create it, register handlers, and add it to the broker, router, or subscribers you want (as a [regular middleware](index.md){.internal-link}).
+To achieve this, **FastStream** offers a special `ExceptionMiddleware` feature. You simply need to create this middleware, register handlers for it, and add it to the broker, router, or subscribers that you want [like any other middleware](index.md){.internal-link}.
 
 ```python linenums="1"
 from faststream import ExceptionMiddleware
@@ -22,13 +22,13 @@ exception_middleware = ExceptionMiddleware()
 broker = Broker(middlewares=[exception_middleware])
 ```
 
-This middleware can be used in two ways, which we will discuss further.
+This middleware can be used in two main ways, which we will discuss in more detail.
 
 ## General Exceptions Processing
 
-The first way is general exception processing. This is the default case, which can be used to log exceptions correctly, perform cleanup, etc. This type of handler processes all sources of errors such as message handlers, parser/decoder, other middlewares, and publishing. However, it **cannot be used to publish** a default value in response to a request.
+The first approach is general exception handling. This is the default option, which can be used to correctly log exceptions, perform cleanup, and so on. This type of error handler processes all sources of errors, such as message handlers, parsers/decoders, other middleware, and publishing. However, it cannot be used to return a default value in response to a request.
 
-You can register such handlers in two ways:
+You can register these handlers in two ways:
 
 ### 1. Using the `#!python @add_handler` decorator
 
@@ -59,9 +59,9 @@ exc_middleware = ExceptionMiddleware(
 
 ## Publishing Exceptions Handlers
 
-The second way to process messages is to fallback to a default result that should be published in case of an error. Such handlers can process errors in your message handler (or serialization) function only.
+The second way to handle messages is by using a default result, which should be published if an error occurs. These handlers can only process errors in the message handler or serialization function.
 
-They can be registered in the same two ways as the previous one, but with a slight difference:
+They can be registered in two ways, similar to the previous method, but with a slight difference:
 
 ### 1. Using the `!#python @add_handler(..., publish=True)` decorator:
 
@@ -94,14 +94,14 @@ exc_middleware = ExceptionMiddleware(
 
 ## Handler Requirements
 
-Your registered exception handlers are also wrapped by the **FastDepends** serialization mechanism, so they can be:
+Your registered exception handlers are also wrapped by the **FastDepends** serialization mechanism, which allows them to be:
 
-- Either sync or async
-- Able to access the [Context](../context/index.md){.internal-link} feature
+- Sync or async
+- Access the [Context](../context/index.md){.internal-link} feature
 
-This works in the same way as a regular message handler.
+This works the same as a regular message handler.
 
-For example, you can access a consumed message in your handler as follows:
+For example, you can access the consumed message in your handler by using the following code:
 
 ```python linenums="1" hl_lines="10"
 from typing import Any
@@ -121,7 +121,7 @@ async def base_exc_handler(
 
 ## Complete Example
 
-Here's a comprehensive example showing how to use both types of exception handlers:
+Here is a detailed example demonstrating how to use both types of error handling mechanisms:
 
 ```python linenums="1" hl_lines="9 16 29 42"
 from typing import Any
@@ -194,7 +194,7 @@ async def process_message(msg: dict[str, Any]) -> dict[str, Any]:
 
 ## Handler Priority
 
-Exception handlers are processed in the order they were registered. The first handler that matches the exception type (including inheritance) will be executed:
+Exception handlers are processed in the order in which they were registered. The first handler that matches the type of exception (including inheritance) will be executed.
 
 ```python linenums="1" hl_lines="11"
 from faststream import ExceptionMiddleware
@@ -221,4 +221,4 @@ async def handle_general_error(exc: Exception) -> str:
 5. **Use context access** to get additional information about the failed message
 6. **Handle both sync and async handlers** - the middleware supports both
 
-This exception middleware provides a robust way to handle errors across your entire FastStream application, ensuring that exceptions are properly logged, handled, and can provide meaningful responses to message consumers.
+This exception middleware provides a robust way to handle errors across your FastStream application. It ensures that exceptions are properly logged and handled, and it can provide meaningful responses to message consumers.

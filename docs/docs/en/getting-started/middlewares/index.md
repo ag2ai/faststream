@@ -10,34 +10,32 @@ search:
 
 # Middlewares
 
-**Middlewares** are a powerful mechanism that allows you to add additional logic to any stage of the message processing pipeline.
+**Middlewares** are a powerful tool that allows you to add extra logic to any stage of the message processing pipeline. This way, you can extend your **FastStream** application with various features:
 
-This way, you can greatly extend your **FastStream** application with features such as:
+- Integration with logging/metrics systems
+- Custom message serialization logic at the application level
+- Publishing of messages with additional information
+- Validation and transformation of requests and responses
+- Error handling and retries
+- And many more capabilities
 
-- Integration with any logging/metrics systems
-- Application-level message serialization logic
-- Rich publishing of messages with extra information
-- Request/response validation and transformation
-- Error handling and retry mechanisms
-- And many other capabilities
-
-**Middlewares** have several methods to override. You can implement some or all of them and use middlewares at the broker, router, or subscriber level. Thus, middlewares are the most flexible **FastStream** feature.
+**Middlewares** have several methods that you can override. You can choose to implement some or all of these methods and use middlewares at different stages of the pipeline, such as at the broker or router level. Middlewares are one of the most flexible features of **FastStream**.
 
 ## Types of Middlewares
 
-FastStream supports three main types of middlewares, each serving different purposes:
+**FastStream** supports three main types of middleware, each with a different purpose:
 
 ### 1. Message Processing Middlewares
 
-These middlewares wrap the entire message processing lifecycle and are applied at the **broker level only**.
+These middlewares wrap the entire message processing lifecycle and are only applied at the broker level.
 
 ### 2. Consumer Middlewares
 
-These middlewares intercept messages before they reach your handler function and can be applied at **broker**, **router**, or **subscriber** levels.
+These middleware intercept messages before they reach your handler function and can be applied at the broker, router, or subscriber levels.
 
 ### 3. Publisher Middlewares
 
-These middlewares intercept outgoing messages and can be applied at **broker**, **router**, or **publisher** levels.
+These middlewares intercept outgoing messages and can be applied at the **broker** or **router**.
 
 ## Creating Custom Middlewares
 
@@ -55,7 +53,7 @@ class MyMiddleware(BaseMiddleware):
 
 ### Message Processing Middlewares (Broker Level)
 
-These middlewares control the entire message lifecycle using `on_receive` and `after_processed` methods:
+These middleware components control the entire message lifecycle using the `on_receive` and `after_processed` methods.
 
 ```python linenums="1" hl_lines="5 11 24"
 from types import TracebackType
@@ -88,7 +86,7 @@ broker = Broker(middlewares=[MessageProcessingMiddleware])
 ```
 
 !!! tip
-Please always call `#!python super()` methods at the end of your function; this is important for correct error processing.
+Please always call `#!python super()` methods at the end of your function. This is important for proper error handling.
 
 ### Consumer Middlewares
 
@@ -129,11 +127,11 @@ router = BrokerRouter(middlewares=[ConsumerMiddleware])
 ```
 
 !!! note
-The `msg` option always has the already decoded body. To prevent the default `!#python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
+The `msg` option always contains the already decoded body. To avoid the default `!#python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
 
 ### Publisher Middlewares
 
-Publisher middlewares intercept outgoing messages using the `publish_scope` method:
+The publisher middleware intercepts outgoing messages using the `publish_scope` method:
 
 ```python linenums="1" hl_lines="5"
 from typing import Any, Callable, Awaitable
@@ -159,14 +157,14 @@ class PublisherMiddleware(BaseMiddleware):
 broker = Broker(middlewares=[PublisherMiddleware])
 ```
 
-This method consumes the message body to send and any other options passing to the `publish` call (destination, headers, etc).
+This method consumes the message body and any other options passed to the `publish` function (destination, headers, etc.) in order to send the message.
 
 !!! note
-If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `!#python *msgs` option additionally.
+If you are using the `publish_batch` function in your application, your publishing middleware should also consume the `!#python *msgs` option.
 
 ## Exception Middleware
 
-The `ExceptionMiddleware` handles exceptions at the application level. For detailed information about exception handling, see the [Exception Middleware](exception.md){.internal-link} documentation.
+The `ExceptionMiddleware` is responsible for handling exceptions at the application level. For more detailed information about how exceptions are handled, please see the [Exception Handling](exception.md){.internal-link} documentation.
 
 ## Practical Examples
 
@@ -274,19 +272,19 @@ class RetryMiddleware(BaseMiddleware):
 
 ## Best Practices
 
-1. **Always call `super()` methods** in message processing middlewares to ensure proper error handling
+1. **Always call the `super()` methods** in message processing middleware to ensure proper error handling.
 2. **Use appropriate middleware types** for your use case:
-   - Message processing: For broker-wide lifecycle control
-   - Consumer: For message interception and transformation
-   - Publisher: For outgoing message modification
-3. **Handle exceptions properly** in middlewares to avoid breaking the processing pipeline
-4. **Keep middlewares lightweight** to avoid performance impact
-5. **Use dependency injection** - middlewares support FastStream's context system
-6. **Test middlewares thoroughly** as they affect the entire message flow
+   - Message processing middleware: For broker-wide lifecycle control.
+   - Consumer: For message interception and transformation.
+   - Publisher: For outgoing message modification.
+3. **Handle exceptions properly** in middlewares to avoid breaking the processing pipeline.
+4. **Keep middlewares lightweight** to avoid performance issues.
+5. **Use dependency injection** - middlewares support FastStream's context system.
+6. **Test middlewares thoroughly** as they affect the entire message flow.
 
 ## Context Access
 
-Middlewares can access [FastStream's context](../context/index.md){.external-link} system:
+Middlewares can access the [FastStream's context](../context/index.md){.external-link} system:
 
 ```python linenums="1" hl_lines="12"
 from typing import Any, Callable, Awaitable
@@ -306,4 +304,4 @@ class ContextMiddleware(BaseMiddleware):
         return await call_next(msg)
 ```
 
-This approach provides a clean, flexible way to extend FastStream applications with cross-cutting concerns while maintaining clear separation of responsibilities.
+This approach provides a clean and flexible way to add cross-cutting concerns to FastStream applications, while maintaining a clear separation of responsibilities.
