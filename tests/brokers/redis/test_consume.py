@@ -591,7 +591,7 @@ class TestConsumeStream:
         )
         async def handler(msg: RedisMessage): ...
 
-        assert next(iter(consume_broker._subscribers.values())).last_id == "$"
+        assert next(iter(consume_broker._subscribers.values())).last_id == ">"
 
     async def test_consume_group_with_last_id(
         self,
