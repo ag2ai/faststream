@@ -43,6 +43,9 @@ jobs:
 
       - name: Publish
         uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          # Remove this token after Trusted Publisher setup
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Dump GitHub context
         env:
