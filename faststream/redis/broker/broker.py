@@ -207,6 +207,14 @@ class RedisBroker(
         ] = (),
     ) -> None:
         self._producer = None
+
+        if message_format == JSONMessageFormat:
+            warnings.warn(
+                "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
+                "Instead, use BinaryMessageFormatV1 when initializing broker",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         self.message_format = message_format
 
         if asyncapi_url is None:
