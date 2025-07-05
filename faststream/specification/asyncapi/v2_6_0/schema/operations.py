@@ -52,7 +52,7 @@ class Operation(BaseModel):
         return cls(
             message=Message.from_spec(operation.message),
             bindings=OperationBinding.from_sub(operation.bindings),
-            operationId=None,
+            operationId=operation.operationId,
             summary=None,
             description=None,
             tags=None,
@@ -64,7 +64,7 @@ class Operation(BaseModel):
         return cls(
             message=Message.from_spec(operation.message),
             bindings=OperationBinding.from_pub(operation.bindings),
-            operationId=None,
+            operationId=operation.operationId,
             summary=None,
             description=None,
             tags=None,

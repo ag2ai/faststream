@@ -26,6 +26,7 @@ def create_publisher(
     # Specification args
     schema_: Any | None,
     title_: str | None,
+    operation_id_: str,
     description_: str | None,
     include_in_schema: bool,
 ) -> RabbitPublisher:
@@ -49,6 +50,7 @@ def create_publisher(
             exchange=exchange,
             # specification options
             schema_=schema_,
+            operation_id_=operation_id_,
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
