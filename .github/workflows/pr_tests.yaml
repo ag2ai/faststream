@@ -24,8 +24,6 @@ jobs:
   pre-commit-check:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    env:
-      SKIP: "docs"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -295,7 +293,7 @@ jobs:
           uv pip install --system --group test-core ".[cli,rabbit]"
       - name: Test
         run: >
-          coverage run -m pytest 
+          coverage run -m pytest
           -vv -m "not rabbit"
           tests/brokers/rabbit/test_test_client.py
 

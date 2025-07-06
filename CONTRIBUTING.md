@@ -8,9 +8,7 @@ After cloning the project, you'll need to set up the development environment. He
 
 Install justfile on your system:
 
-```bash
-brew install justfile
-```
+https://just.systems/man/en/prerequisites.html
 
 View all available commands:
 
@@ -18,9 +16,14 @@ View all available commands:
 just
 ```
 
+## Install uv
+
+Install uv on your system:
+
+https://docs.astral.sh/uv/getting-started/installation/
 ## Init development environment
 
-Build faststream image:
+Build faststream image and install all dependencies:
 
 ```bash
 just init
@@ -158,4 +161,12 @@ Run docs:
 
 ```bash
 just docs-serve
+```
+
+## Pre-commit
+
+Run pre-commit:
+
+```bash
+just pre-commit
 ```

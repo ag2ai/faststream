@@ -8,6 +8,7 @@ default:
 [group("infra")]
 init python="3.10":
   docker build . --build-arg PYTHON_VERSION={{python}}
+  uv sync --group dev
 
 [doc("Run all containers")]
 [group("infra")]
@@ -28,34 +29,34 @@ down:
 [doc("Run fast tests")]
 [group("tests")]
 test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  docker compose exec faststream pytest {{path}} -m "{{marks}}" {{params}}
+  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
 
 [doc("Run all tests")]
 [group("tests")]
 test-all path="tests/" params="" marks="all":
-  docker compose exec faststream pytest {{path}} -m "{{marks}}" {{params}}
+  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
 
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
 test-coverage-all path="tests/" params="" marks="all":
-  -docker compose exec faststream sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 
 # Docs
 [doc("Build docs")]
 [group("docs")]
 docs-build:
-  docker compose exec -T faststream sh -c "cd docs && python docs.py build"
+  cd docs && uv run python docs.py build
 
 [doc("Serve docs")]
 [group("docs")]
 docs-serve:
-  docker compose exec faststream sh -c "cd docs && python docs.py live 8000 --fast"
+  cd docs && uv run python docs.py live 8000 --fast
 
 
 # Linter
@@ -90,16 +91,28 @@ mypy *params:
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
-  -docker compose exec -T faststream bandit -c pyproject.toml -r faststream
+  uv run bandit -c pyproject.toml -r faststream
 
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  -docker compose exec -T faststream semgrep scan --config auto --error
+  uv run semgrep scan --config auto --error
 
 [doc("Static analysis check")]
 [group("static analysis")]
 static-analysis: mypy bandit semgrep
+
+
+[doc("Pre-commit modified files")]
+[group("pre-commit")]
+pre-commit:
+  uv run pre-commit run
+
+[doc("Pre-commit all files")]
+[group("pre-commit")]
+pre-commit-all:
+  uv run pre-commit run --all-files
+
 
 # Kafka
 [doc("Run kafka container")]
