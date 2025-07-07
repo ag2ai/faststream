@@ -56,8 +56,7 @@ Also, you can use `BaseMiddleware` inheritors as [Router](../routers/index.md){.
 
 Finally, using middleware, you can also patch outgoing messages. For example, you can compress or encode outgoing messages at the application level, or add custom serialization logic for specific types.
 
-Publisher middlewares can be applied at the **broker**, **router** or each **publisher** level. **Broker** publisher middlewares affect all the ways to publish something (including the `#!python broker.publish` call).
-
+Publisher middlewares can be applied at the **broker** and **router** level. **Publisher middlewares** affect all ways of publishing something, including the `#!python broker.publish` call.
 In this case, you need to specify the `publish_scope` method:
 
 ```python linenums="1"
