@@ -52,16 +52,6 @@ repos:
         require_serial: true
         verbose: true
 
--   repo: local
-    hooks:
-    -   id: docs
-        name: Build docs
-        entry: "scripts/build-docs-pre-commit.sh"
-        language: python
-        files: ^docs
-        require_serial: true
-        verbose: true
-
 -   repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:

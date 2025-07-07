@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: write
+  workflows: write
 
 jobs:
   check-linting-and-docs-changes:
