@@ -161,8 +161,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://faststream.airt.ai/latest/"
-Documentation = "https://faststream.airt.ai/latest/getting-started/"
+Homepage = "https://faststream.ag2.ai/latest/"
+Documentation = "https://faststream.ag2.ai/latest/getting-started/"
 Tracker = "https://github.com/ag2ai/FastStream/issues"
 Source = "https://github.com/ag2ai/FastStream"
 Discord = "https://discord.gg/qFm6aSqq59"

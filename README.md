@@ -251,7 +251,7 @@ And multiprocessing horizontal scaling feature as well:
 faststream run basic:app --workers 3
 ```
 
-You can learn more about **CLI** features [here](https://faststream.airt.ai/latest/getting-started/cli/)
+You can learn more about **CLI** features [here](https://faststream.ag2.ai/latest/getting-started/cli/)
 
 ---
 
@@ -347,7 +347,7 @@ app = FastAPI()
 app.include_router(router)
 ```
 
-More integration features can be found [here](https://faststream.airt.ai/latest/getting-started/integrations/fastapi/)
+More integration features can be found [here](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/)
 
 ---
 

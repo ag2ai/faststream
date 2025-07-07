@@ -1,7 +1,7 @@
 site_name: FastStream
 # description to improve website indexing
 site_description: FastStream Python messaging framework documentation
-site_url: https://faststream.airt.ai/
+site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
 copyright: '&copy; 2025 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
 
