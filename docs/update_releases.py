@@ -28,7 +28,11 @@ def find_header(lines: List[str]) -> Tuple[str, List[str]]:
 def get_github_releases() -> Sequence[Tuple[str, str]]:
     # Get the latest version from GitHub releases
     response = requests.get("https://api.github.com/repos/ag2ai/FastStream/releases")
-    return ((x["tag_name"], x["body"]) for x in reversed(response.json()))
+    row_data = response.json()
+    try:
+        return ((x["tag_name"], x["body"]) for x in reversed(row_data))
+    except Exception as e:
+        raise Exception(f"Error getting GitHub releases: {e}, {row_data}") from e
 
 
 def convert_links_and_usernames(text):
