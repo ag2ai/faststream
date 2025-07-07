@@ -50,7 +50,7 @@ Also, you can use `BaseMiddleware` inheritors as [Router](../routers/index.md){.
 !!! tip
 
 1. Please always call the `#!python super()` method at the end of your function. This is important for proper error handling.
-2. The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md) instead.
+2. The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
 
 ## Publisher Middlewares
 
