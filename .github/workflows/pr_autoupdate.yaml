@@ -1,4 +1,4 @@
-name: Run linting, update API References
+name: Run linters
 
 on:
   pull_request_target:
@@ -13,7 +13,6 @@ concurrency:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   check-linting-and-docs-changes:
@@ -49,9 +48,6 @@ jobs:
         continue-on-error: true
         with:
           extra_args: --hook-stage manual --all-files
-
-      - name: Run build docs
-        run: bash scripts/build-docs.sh
 
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v6
