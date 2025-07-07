@@ -22,6 +22,6 @@ jobs:
       - id: fixer
         uses: mahenzon/md-code-block-auto-lang@v1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.AUTOMERGE_TOKEN }}
           language: python
           silent: 'true'
