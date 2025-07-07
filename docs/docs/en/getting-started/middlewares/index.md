@@ -45,7 +45,7 @@ These methods should only be overridden in broker-level middleware.
 broker = Broker(middlewares=[MyMiddleware])
 ```
 
-Also, you can use `BaseMiddleware` inheritors as [Router](../routers/index.md)-level dependencies as well(they will be applied only to objects created by that router):
+Also, you can use `BaseMiddleware` inheritors as [Router](../routers/index.md){.internal-link}-level dependencies as well(they will be applied only to objects created by that router):
 
 !!! tip
 
