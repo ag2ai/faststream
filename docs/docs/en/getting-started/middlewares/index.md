@@ -25,7 +25,7 @@ This way, you can significantly enhance your **FastStream** application with fea
 
 Unfortunately, this powerful feature also has a somewhat complex implementation.
 
-Using middlewares, you can encapsulate the entire message processing pipeline. In this scenario, you would need to define `on_receive` and `after_process` methods:
+Using middlewares, you can encapsulate the entire message processing pipeline. In this scenario, you would need to define `on_receive` and `after_processed` methods:
 
 ```python linenums="1"
 from faststream import BaseMiddleware
