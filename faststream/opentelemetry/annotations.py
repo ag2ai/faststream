@@ -6,5 +6,3 @@ from faststream.opentelemetry.baggage import Baggage
 
 CurrentSpan = Annotated[Span, Context("span")]
 CurrentBaggage = Annotated[Baggage, Context("baggage")]
-
-
