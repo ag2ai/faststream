@@ -674,7 +674,11 @@ class NatsBroker(
                     await self.stream.update_stream(
                         config=stream.config,
                         subjects=tuple(
-                            set(old_config.subjects or ()).union(stream.subjects)
+                            set(old_config.subjects or ()).union(
+                                subject for subject in stream.subjects if (
+                                    "*" not in subject and ">" not in subject
+                                )
+                            )
                         ),
                     )
 
