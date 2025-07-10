@@ -1,10 +1,12 @@
-from typing import TYPE_CHECKING, NoReturn, Optional
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
+from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message import encode_message
 
@@ -18,10 +20,9 @@ if TYPE_CHECKING:
 
     from faststream._internal.types import CustomCallable
     from faststream.confluent.helpers.client import AsyncConfluentProducer
-    from faststream.confluent.response import KafkaPublishCommand
 
 
-class AsyncConfluentFastProducer(ProducerProto):
+class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     """A class to represent Kafka producer."""
 
     def connect(
@@ -30,31 +31,33 @@ class AsyncConfluentFastProducer(ProducerProto):
         serializer: Optional["SerializerProto"],
     ) -> None: ...
 
-    async def disconnect(self) -> None: ...
+    def __bool__(self) -> bool:
+        return False
 
-    def __bool__(self) -> bool: ...
+    async def disconnect(self) -> None:
+        return None
 
-    async def ping(self, timeout: float) -> bool: ...
+    async def flush(self) -> None:
+        return None
 
-    async def flush(self) -> None: ...
+    @abstractmethod
+    async def ping(self, timeout: float) -> bool:
+        return False
 
     @override
+    @abstractmethod
     async def publish(
-        self,
-        cmd: "KafkaPublishCommand",
+        self, cmd: "KafkaPublishCommand"
     ) -> "asyncio.Future[Message | None] | Message | None": ...
 
     @override
-    async def publish_batch(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None: ...
+    @abstractmethod
+    async def publish_batch(self, cmd: "KafkaPublishCommand") -> None: ...
 
     @override
-    async def request(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> NoReturn: ...
+    async def request(self, cmd: "KafkaPublishCommand") -> Any:
+        msg = "Kafka doesn't support `request` method without test client."
+        raise FeatureNotSupportedException(msg)
 
 
 class FakeConfluentFastProducer(AsyncConfluentFastProducer):
@@ -68,38 +71,24 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
     async def disconnect(self) -> None:
         raise NotImplementedError
 
-    def __bool__(self) -> bool:
-        return False
+    async def flush(self) -> None:
+        raise NotImplementedError
 
     async def ping(self, timeout: float) -> bool:
         raise NotImplementedError
 
-    async def flush(self) -> None:
-        raise NotImplementedError
-
     @override
     async def publish(
-        self,
-        cmd: "KafkaPublishCommand",
+        self, cmd: "KafkaPublishCommand"
     ) -> "asyncio.Future[Message | None] | Message | None":
         raise NotImplementedError
 
     @override
-    async def publish_batch(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None:
-        raise NotImplementedError
-
-    @override
-    async def request(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> NoReturn:
+    async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         raise NotImplementedError
 
 
-class AsyncConfluentFastProducerImpl(ProducerProto):
+class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     """A class to represent Kafka producer."""
 
     def __init__(
@@ -138,8 +127,7 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
 
     @override
     async def publish(
-        self,
-        cmd: "KafkaPublishCommand",
+        self, cmd: "KafkaPublishCommand"
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body, serializer=self.serializer)
@@ -160,10 +148,7 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
         )
 
     @override
-    async def publish_batch(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None:
+    async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to a topic."""
         batch = self._producer.producer.create_batch()
 
@@ -193,11 +178,3 @@ class AsyncConfluentFastProducerImpl(ProducerProto):
             partition=cmd.partition,
             no_confirm=cmd.no_confirm,
         )
-
-    @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> NoReturn:
-        msg = "Kafka doesn't support `request` method without test client."
-        raise FeatureNotSupportedException(msg)

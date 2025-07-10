@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from confluent_kafka import Message
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class KafkaPrometheusMiddleware(
     PrometheusMiddleware[
         KafkaPublishCommand,
-        Union[Message, Sequence[Message]],
+        Message | Sequence[Message],
     ]
 ):
     def __init__(

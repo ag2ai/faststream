@@ -235,7 +235,7 @@ class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[BaseMessage]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

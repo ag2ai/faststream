@@ -162,7 +162,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -170,7 +170,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         async for raw_message in self.consumer:
             context = self._outer_config.fd_config.context
-            msg: StreamMessage[MsgType] = await process_msg(  # type: ignore[assignment]
+            msg: KafkaMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares

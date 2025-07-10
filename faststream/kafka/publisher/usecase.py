@@ -1,11 +1,9 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union, cast, overload
 
-from aiokafka import ConsumerRecord
 from typing_extensions import Doc, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream._internal.types import MsgType
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
     from .producer import AioKafkaFastProducer
 
 
-class LogicPublisher(PublisherUsecase[MsgType]):
+class LogicPublisher(PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
     def __init__(
@@ -127,7 +125,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         await producer.flush()
 
 
-class DefaultPublisher(LogicPublisher[ConsumerRecord]):
+class DefaultPublisher(LogicPublisher):
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -327,7 +325,7 @@ class DefaultPublisher(LogicPublisher[ConsumerRecord]):
         )
 
 
-class BatchPublisher(LogicPublisher[tuple["ConsumerRecord", ...]]):
+class BatchPublisher(LogicPublisher):
     @overload
     async def publish(
         self,

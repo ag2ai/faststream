@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, Any, Protocol, Union
+from typing import Any, Protocol
 
 from faststream.message import AckStatus, StreamMessage
 
-if TYPE_CHECKING:
-    from confluent_kafka import Message
+from confluent_kafka import Message
 
 
 class ConsumerProtocol(Protocol):
@@ -38,12 +37,7 @@ FAKE_CONSUMER = FakeConsumer()
 
 
 class KafkaMessage(
-    StreamMessage[
-        Union[
-            "Message",
-            tuple["Message", ...],
-        ]
-    ],
+    StreamMessage[Message | tuple[Message, ...]],
 ):
     """Represents a Kafka message in the FastStream framework.
 
@@ -74,7 +68,7 @@ class KafkaMessage(
     async def nack(self) -> None:
         """Reject the Kafka message."""
         if self.is_manual and not self.committed:
-            raw_message = (
+            raw_message: Message = (
                 self.raw_message[0]
                 if isinstance(self.raw_message, tuple)
                 else self.raw_message

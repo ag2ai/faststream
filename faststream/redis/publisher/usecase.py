@@ -9,7 +9,6 @@ from faststream._internal.endpoint.publisher import (
     PublisherUsecase,
 )
 from faststream.message import gen_cor_id
-from faststream.redis.message import UnifyRedisDict
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -25,7 +24,7 @@ if TYPE_CHECKING:
     from .config import RedisPublisherConfig
 
 
-class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
+class LogicPublisher(PublisherUsecase):
     """A class to represent a Redis publisher."""
 
     def __init__(

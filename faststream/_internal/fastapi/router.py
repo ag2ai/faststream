@@ -239,7 +239,7 @@ class StreamRouter(
         **broker_kwargs: Any,
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
-        "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
+        "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
     ]:
         """A function decorator for subscribing to a message queue."""
         dependencies = (*self.dependencies, *dependencies)
@@ -379,7 +379,7 @@ class StreamRouter(
         return func
 
     @abstractmethod
-    def publisher(self) -> "PublisherUsecase[MsgType]":
+    def publisher(self) -> "PublisherUsecase":
         """Create Publisher object."""
         raise NotImplementedError
 

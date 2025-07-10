@@ -7,7 +7,8 @@ if TYPE_CHECKING:
 
 
 class ProducerState(Protocol):
-    producer: "AsyncConfluentProducer"
+    @property
+    def producer(self) -> "AsyncConfluentProducer": ...
 
     def __bool__(self) -> bool: ...
 
@@ -18,7 +19,7 @@ class ProducerState(Protocol):
     async def flush(self) -> None: ...
 
 
-class EmptyProducerState(ProducerState):
+class EmptyProducerState:
     __slots__ = ()
 
     @property
@@ -39,7 +40,7 @@ class EmptyProducerState(ProducerState):
         pass
 
 
-class RealProducer(ProducerState):
+class RealProducer:
     __slots__ = ("producer",)
 
     def __init__(self, producer: "AsyncConfluentProducer") -> None:

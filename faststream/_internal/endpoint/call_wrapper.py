@@ -5,17 +5,12 @@ from typing import (
     Any,
     Generic,
     Optional,
-    Union,
 )
 from unittest.mock import MagicMock
 
 import anyio
 
-from faststream._internal.types import (
-    MsgType,
-    P_HandlerParams,
-    T_HandlerReturn,
-)
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
@@ -29,18 +24,15 @@ if TYPE_CHECKING:
 
 
 def ensure_call_wrapper(
-    call: Union[
-        "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
-        Callable[P_HandlerParams, T_HandlerReturn],
-    ],
-) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]":
+    call: Callable[P_HandlerParams, T_HandlerReturn],
+) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
     if isinstance(call, HandlerCallWrapper):
         return call
 
     return HandlerCallWrapper(call)
 
 
-class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
+class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
     mock: MagicMock | None
@@ -83,7 +75,7 @@ class HandlerCallWrapper(Generic[MsgType, P_HandlerParams, T_HandlerReturn]):
 
     async def call_wrapped(
         self,
-        message: "StreamMessage[MsgType]",
+        message: "StreamMessage[Any]",
     ) -> Any:
         """Calls the wrapped function with the given message."""
         assert self._wrapped_call, "You should use `set_wrapped` first"  # nosec B101

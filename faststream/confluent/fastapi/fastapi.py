@@ -60,7 +60,7 @@ if TYPE_CHECKING:
 Partition = TypeVar("Partition")
 
 
-class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
+class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     """A class to represent a Kafka router."""
 
     broker_class = KB
@@ -254,7 +254,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
             graceful_timeout=graceful_timeout,
             decoder=decoder,
             parser=parser,
-            middlewares=middlewares,  # type: ignore[arg-type]
+            middlewares=middlewares,
             schema_url=schema_url,
             setup_state=setup_state,
             # logger options
@@ -392,7 +392,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-    ) -> "SpecificationBatchSubscriber": ...
+    ) -> "BatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -506,8 +506,8 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
 
         Args:
             *topics: Kafka topics to consume messages from.
-            partitions: Sequence of topic partitions to consume from.
-            polling_interval: Interval between polling for new messages.
+            partitions: Sequence of topic partitions.
+            polling_interval: Polling interval in seconds.
             group_id: Name of the consumer group to join for dynamic
                 partition assignment (if enabled), and to use for fetching and
                 committing offsets. If `None`, auto-partition assignment (via
@@ -611,18 +611,18 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
                 return the LSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
-            dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
+            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
             middlewares: Subscriber middlewares to wrap incoming message processing.
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
-            ack_policy: Acknowledgement policy for message processing.
+            ack_policy: Acknowledgement policy for the subscriber.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title: Specification subscriber object title.
             description: Specification subscriber object description.
                 Uses decorated docstring as default.
             include_in_schema: Whether to include operation in Specification schema or not.
-            response_model: The type to use for the response.
+            max_workers: Number of workers to process messages concurrently.
         """
         subscriber = super().subscriber(
             *topics,
@@ -678,7 +678,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -703,7 +703,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -728,7 +728,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -753,7 +753,7 @@ class KafkaRouter(StreamRouter[Union[Message, tuple[Message, ...]]]):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",

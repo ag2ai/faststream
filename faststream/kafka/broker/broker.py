@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
@@ -15,6 +16,7 @@ import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
+from aiokafka.structs import RecordMetadata
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
@@ -38,12 +40,10 @@ from .registrator import KafkaRegistrator
 Partition = TypeVar("Partition")
 
 if TYPE_CHECKING:
-    import asyncio
     from types import TracebackType
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
-    from aiokafka.structs import RecordMetadata
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from typing_extensions import TypedDict
@@ -175,7 +175,7 @@ if TYPE_CHECKING:
 class KafkaBroker(
     KafkaRegistrator,
     BrokerUsecase[
-        Union[aiokafka.ConsumerRecord, tuple[aiokafka.ConsumerRecord, ...]],
+        aiokafka.ConsumerRecord | tuple[aiokafka.ConsumerRecord, ...],
         Callable[..., aiokafka.AIOKafkaConsumer],
     ],
 ):
@@ -204,7 +204,7 @@ class KafkaBroker(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),
+        ] = DefaultPartitioner(),  # noqa: B008
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -215,9 +215,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence[
-            "BrokerMiddleware[ConsumerRecord | tuple[ConsumerRecord, ...]]"
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[ConsumerRecord]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -511,7 +509,7 @@ class KafkaBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+    ) -> asyncio.Future[RecordMetadata] | RecordMetadata:
         """Publish message directly.
 
         This method allows you to publish message in not AsyncAPI-documented way. You can use it in another frameworks

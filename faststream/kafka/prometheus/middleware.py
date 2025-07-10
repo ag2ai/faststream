@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from aiokafka import ConsumerRecord
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class KafkaPrometheusMiddleware(
     PrometheusMiddleware[
         KafkaPublishCommand,
-        Union[ConsumerRecord, Sequence[ConsumerRecord]],
+        ConsumerRecord | Sequence[ConsumerRecord],
     ],
 ):
     def __init__(

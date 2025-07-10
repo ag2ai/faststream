@@ -357,7 +357,7 @@ class NatsRouter(
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

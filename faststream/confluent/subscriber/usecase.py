@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    cast,
 )
 
 import anyio
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
+    from faststream.confluent.message import KafkaMessage
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
@@ -113,7 +115,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         context = self._outer_config.fd_config.context
 
         return await process_msg(
-            msg=raw_message,  # type: ignore[arg-type]
+            msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
@@ -122,7 +124,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -137,13 +139,17 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
             context = self._outer_config.fd_config.context
 
-            yield await process_msg(
-                msg=raw_message,  # type: ignore[arg-type]
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
+            yield cast(
+                "KafkaMessage",
+                await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context)
+                        for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
             )
 
     def _make_response_publisher(

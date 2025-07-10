@@ -31,7 +31,7 @@ class ConnectionState:
             lib_name="faststream",
             lib_version=__version__,
         )
-        client: Redis[bytes] = Redis.from_pool(pool)
+        client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
         self._client = client
         self._connected = True
@@ -40,7 +40,7 @@ class ConnectionState:
 
     async def disconnect(self) -> None:
         if self._client:
-            await self._client.aclose()
+            await self._client.aclose()  # type: ignore[attr-defined]
 
         self._client = None
         self._connected = False
