@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Final,
     Iterable,
     List,
     Optional,
@@ -216,6 +217,41 @@ if TYPE_CHECKING:
             Optional[float],
             Doc("Max duration to wait for a forced flush to occur."),
         ]
+
+
+def is_covered(subject: str, pattern: str) -> bool:
+    subject_parts: Final = subject.split(".")
+    pattern_parts: Final = pattern.split(".")
+
+    if len(subject_parts) < len(pattern_parts):
+        return False
+
+    for i, pattern_part in enumerate(pattern_parts):
+        if pattern_part == "*":
+            continue
+        if pattern_part == ">" and i == len(pattern_parts) - 1:
+            return True
+        if subject_parts[i] != pattern_part:
+            return False
+
+    return len(subject_parts) == len(pattern_parts)
+
+
+def filter_overlapped_subjects(subjects: list[str]) -> list[str]:
+    filtered_subjects: Final[list[str]] = []
+    for subject in subjects:
+        need_to_add = True
+        for filtered_subject_position in range(len(filtered_subjects)):
+            if is_covered(subject, filtered_subjects[filtered_subject_position]):
+                need_to_add = False
+                break
+            if is_covered(filtered_subjects[filtered_subject_position], subject):
+                need_to_add = False
+                filtered_subjects[filtered_subject_position] = subject
+                continue
+        if need_to_add:
+            filtered_subjects.append(subject)
+    return filtered_subjects
 
 
 class NatsBroker(
@@ -653,7 +689,7 @@ class NatsBroker(
             try:
                 await self.stream.add_stream(
                     config=stream.config,
-                    subjects=stream.subjects,
+                    subjects=filter_overlapped_subjects(stream.subjects),
                 )
 
             except BadRequestError as e:  # noqa: PERF203
@@ -671,14 +707,11 @@ class NatsBroker(
                     old_config = (await self.stream.stream_info(stream.name)).config
 
                     self._log(str(e), logging.WARNING, log_context)
+
                     await self.stream.update_stream(
                         config=stream.config,
-                        subjects=tuple(
-                            set(old_config.subjects or ()).union(
-                                subject for subject in stream.subjects if (
-                                    "*" not in subject and ">" not in subject
-                                )
-                            )
+                        subjects=filter_overlapped_subjects(
+                            set(old_config.subjects or ()).union(stream.subjects)
                         ),
                     )
 
