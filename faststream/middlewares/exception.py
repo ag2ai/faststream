@@ -64,6 +64,7 @@ class ExceptionMiddleware:
                     exc_type,
                     apply_types(
                         cast("Callable[..., Awaitable[None]]", to_async(handler)),
+                        serializer_cls=None,
                     ),
                 )
                 for exc_type, handler in (handlers or {}).items()
@@ -73,7 +74,7 @@ class ExceptionMiddleware:
         self._publish_handlers: CastedPublishingHandlers = [
             (IgnoredException, ignore_handler),
             *(
-                (exc_type, apply_types(to_async(handler)))
+                (exc_type, apply_types(to_async(handler), serializer_cls=None))
                 for exc_type, handler in (publish_handlers or {}).items()
             ),
         ]
@@ -108,7 +109,7 @@ class ExceptionMiddleware:
                 self._publish_handlers.append(
                     (
                         exc,
-                        apply_types(to_async(func)),
+                        apply_types(to_async(func), serializer_cls=None),
                     ),
                 )
                 return func
@@ -121,7 +122,7 @@ class ExceptionMiddleware:
             self._handlers.append(
                 (
                     exc,
-                    apply_types(to_async(func)),
+                    apply_types(to_async(func), serializer_cls=None),
                 ),
             )
             return func

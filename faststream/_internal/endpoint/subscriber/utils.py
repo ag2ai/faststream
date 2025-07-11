@@ -1,10 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-)
+from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
 from typing_extensions import Self

@@ -136,7 +136,6 @@ search:
             - [Path](public_api/faststream/Path.md)
             - [Response](public_api/faststream/Response.md)
             - [TestApp](public_api/faststream/TestApp.md)
-            - [apply_types](public_api/faststream/apply_types.md)
             - asgi
                 - [AsgiFastStream](public_api/faststream/asgi/AsgiFastStream.md)
                 - [AsgiResponse](public_api/faststream/asgi/AsgiResponse.md)

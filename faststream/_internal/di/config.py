@@ -3,12 +3,12 @@ from collections.abc import Awaitable, Callable, Mapping, Reversible, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
-from fast_depends import Provider, inject
+from fast_depends import Provider
 from fast_depends.core import CallModel, build_call_model
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
-from faststream._internal.utils.functions import to_async
+from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -43,7 +43,7 @@ class FastDependsConfig:
         if self.serializer is EMPTY:
             from fast_depends.pydantic import PydanticSerializer
 
-            return PydanticSerializer()
+            return PydanticSerializer(use_fastdepends_errors=False)
 
         return self.serializer
 
@@ -83,7 +83,7 @@ class FastDependsConfig:
             )
 
             if self.use_fastdepends:
-                wrapper = inject(None, context__=self.context)
+                wrapper = apply_types(None, context__=self.context)
                 wrapped_call = wrapper(func=wrapped_call, model=dependent)
 
             wrapped_call = _unwrap_message_to_fast_depends_decorator(
