@@ -1,36 +1,44 @@
-from typing import List, Set
+from typing import Final, List, Set
 
 import pytest
 
 from faststream.nats.broker.broker import filter_overlapped_subjects
 
+TEST_CASES: Final = {
+    "single_subject": (["a"], {"a"}),
+    "duplicate_subject": (["a", "a"], {"a"}),
+    "duplicate_nested_subject": (["a.b", "a.b"], {"a.b"}),
+    "different_subjects": (["a", "b"], {"a", "b"}),
+    "different_nested_subjects": (["a.b", "b.b"], {"a.b", "b.b"}),
+    "nested_and_wildcard": (["a.b", "a.*"], {"a.*"}),
+    "deep_nested_and_wildcard": (["a.b.c", "a.*.c"], {"a.*.c"}),
+    "overlapping_wildcards_and_specific": (
+        ["*.b.c", "a.>", "a.b.c"],
+        {"a.>", "*.b.c"},
+    ),  # <- this case will raise subject "a.>" overlaps with "*.b.c" but I don't know what to do with it
+    "nested_wildcard_and_specific": (["a.b", "a.*", "a.b.c"], {"a.b.c", "a.*"}),
+    "wildcard_overlaps_specific": (["a.b", "a.>", "a.b.c"], {"a.>"}),
+    "wildcard_overlaps_wildcard": (["a.*", "a.>"], {"a.>"}),
+    "wildcard_overlaps_wildcard_reversed": (["a.>", "a.*"], {"a.>"}),
+    "wildcard_overlaps_wildcard_and_specific": (["a.*", "a.>", "a.b"], {"a.>"}),
+    "specific_wildcard_overlaps_wildcard": (["a.b", "a.*", "a.>"], {"a.>"}),
+    "deep_wildcard_overlaps_wildcard": (["a.*.*", "a.>"], {"a.>"}),
+    "deep_wildcards_and_wildcard": (
+        ["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d", "a.>"],
+        {"a.>"},
+    ),
+    "wildcard_overlaps_deep_wildcards": (
+        ["a.>", "a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"],
+        {"a.>"},
+    ),
+    "deep_wildcards": (["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"], {"a.*.*.*", "a.*.*"}),
+}
+
 
 @pytest.mark.parametrize(
     ("subjects", "expected"),
-    [
-        (["a"], {"a"}),
-        (["a", "a"], {"a"}),
-        (["a.b", "a.b"], {"a.b"}),
-        (["a", "b"], {"a", "b"}),
-        (["a.b", "b.b"], {"a.b", "b.b"}),
-        (["a.b", "a.*"], {"a.*"}),
-        (["a.b.c", "a.*.c"], {"a.*.c"}),
-        (
-            ["*.b.c", "a.>", "a.b.c"],
-            {"*.b.c", "a.>"},
-        ),  # <- this case will raise subject "a.>" overlaps with "*.b.c" but I don't know what to do with it
-        (
-            ["a.b", "a.*", "a.b.c"],
-            {"a.*", "a.b.c"},
-        ),
-        (["a.b", "a.>", "a.b.c"], {"a.>"}),
-        (["a.*", "a.>"], {"a.>", "a.*"}),
-        (["a.*", "a.>", "a.b"], {"a.>", "a.*"}),
-        (["a.*.*", "a.>"], {"a.>"}),
-        (["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d", "a.>"], {"a.>"}),
-        (["a.>", "a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"], {"a.>"}),
-        (["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"], {"a.*.*", "a.*.*.*"}),
-    ],
+    TEST_CASES.values(),
+    ids=TEST_CASES.keys(),
 )
 def test_filter_overlapped_subjects(subjects: List[str], expected: Set[str]) -> None:
     assert set(filter_overlapped_subjects(subjects)) == expected
