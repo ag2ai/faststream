@@ -6,6 +6,7 @@ from typing import (
     Any,
     Optional,
     Union,
+    cast,
 )
 
 from fastapi.datastructures import Default
@@ -45,7 +46,8 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.redis.message import UnifyRedisMessage
-    from faststream.redis.publisher.specification import SpecificationPublisher
+    from faststream.redis.publisher.factory import PublisherType
+    from faststream.redis.subscriber.factory import SubsciberType
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -617,30 +619,33 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ):
-        return super().subscriber(
-            channel=channel,
-            max_workers=max_workers,
-            list=list,
-            stream=stream,
-            dependencies=dependencies,
-            parser=parser,
-            decoder=decoder,
-            middlewares=middlewares,
-            ack_policy=ack_policy,
-            no_ack=no_ack,
-            no_reply=no_reply,
-            title=title,
-            description=description,
-            include_in_schema=include_in_schema,
-            # FastAPI args
-            response_model=response_model,
-            response_model_include=response_model_include,
-            response_model_exclude=response_model_exclude,
-            response_model_by_alias=response_model_by_alias,
-            response_model_exclude_unset=response_model_exclude_unset,
-            response_model_exclude_defaults=response_model_exclude_defaults,
-            response_model_exclude_none=response_model_exclude_none,
+    ) -> "SubsciberType":
+        return cast(
+            "SubsciberType",
+            super().subscriber(
+                channel=channel,
+                max_workers=max_workers,
+                list=list,
+                stream=stream,
+                dependencies=dependencies,
+                parser=parser,
+                decoder=decoder,
+                middlewares=middlewares,
+                ack_policy=ack_policy,
+                no_ack=no_ack,
+                no_reply=no_reply,
+                title=title,
+                description=description,
+                include_in_schema=include_in_schema,
+                # FastAPI args
+                response_model=response_model,
+                response_model_include=response_model_include,
+                response_model_exclude=response_model_exclude,
+                response_model_by_alias=response_model_by_alias,
+                response_model_exclude_unset=response_model_exclude_unset,
+                response_model_exclude_defaults=response_model_exclude_defaults,
+                response_model_exclude_none=response_model_exclude_none,
+            ),
         )
 
     @override
@@ -697,7 +702,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "PublisherType":
         return self.broker.publisher(
             channel,
             list=list,

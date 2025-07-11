@@ -312,7 +312,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter["IncomingMessage"]):
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[IncomingMessage]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

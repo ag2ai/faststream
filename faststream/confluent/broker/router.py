@@ -44,7 +44,7 @@ class KafkaPublisher(ArgsContainer):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -326,12 +326,7 @@ class KafkaRouter(
         handlers: Iterable[KafkaRoute] = (),
         *,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence[
-            Union[
-                "BrokerMiddleware[Message]",
-                "BrokerMiddleware[tuple[Message, ...]]",
-            ]
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[Message]"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,

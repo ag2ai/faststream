@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic
 
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
+from faststream.exceptions import FeatureNotSupportedException
 from faststream.message.source_type import SourceType
 
 if TYPE_CHECKING:
@@ -49,13 +50,13 @@ class BrokerPublishMixin(Generic[MsgType]):
 
         return await publish(cmd)
 
-    @abstractmethod
     async def publish_batch(
         self,
         *messages: "SendableMessage",
         queue: str,
     ) -> Any:
-        raise NotImplementedError
+        msg = f"{self.__class__.__name__} doesn't support publishing in batches."
+        raise FeatureNotSupportedException(msg)
 
     async def _basic_publish_batch(
         self,

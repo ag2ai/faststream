@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
+    Generic,
     NamedTuple,
     Optional,
     Union,
@@ -21,7 +22,7 @@ from faststream._internal.types import (
     T_HandlerReturn,
 )
 from faststream._internal.utils.functions import FakeContext, to_async
-from faststream.exceptions import SetupError, StopConsume, SubscriberNotFound
+from faststream.exceptions import StopConsume, SubscriberNotFound
 from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
@@ -61,14 +62,12 @@ class _CallOptions(NamedTuple):
     dependencies: Iterable["Dependant"]
 
 
-class SubscriberUsecase(Endpoint[MsgType]):
+class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
     lock: "AbstractContextManager[Any]"
     extra_watcher_options: "AnyDict"
     graceful_timeout: float | None
-
-    _call_options: Optional["_CallOptions"]
 
     def __init__(
         self,
@@ -87,7 +86,13 @@ class SubscriberUsecase(Endpoint[MsgType]):
         self._decoder = config.decoder
         self.ack_policy = config.ack_policy
 
-        self._call_options = None
+        self._call_options = _CallOptions(
+            parser=None,
+            decoder=None,
+            middlewares=(),
+            dependencies=(),
+        )
+
         self._call_decorators: tuple[Decorator, ...] = ()
 
         self.running = False
@@ -164,9 +169,27 @@ class SubscriberUsecase(Endpoint[MsgType]):
     @overload
     def __call__(
         self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0"
+            ),
+        ] = (),
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
         func: None = None,
         *,
-        filter: "Filter[StreamMessage[MsgType]]" = default_filter,
+        filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
@@ -179,40 +202,15 @@ class SubscriberUsecase(Endpoint[MsgType]):
         dependencies: Iterable["Dependant"] = (),
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
-        "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
+        "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
     ]: ...
-
-    @overload
-    def __call__(
-        self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
-        ],
-        *,
-        filter: "Filter[StreamMessage[MsgType]]" = default_filter,
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
-            ),
-        ] = (),
-        dependencies: Iterable["Dependant"] = (),
-    ) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]": ...
 
     @override
     def __call__(
         self,
-        func: Union[
-            Callable[P_HandlerParams, T_HandlerReturn],
-            "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
-            None,
-        ] = None,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
         *,
-        filter: "Filter[StreamMessage[MsgType]]" = default_filter,
+        filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
@@ -224,36 +222,27 @@ class SubscriberUsecase(Endpoint[MsgType]):
         ] = (),
         dependencies: Iterable["Dependant"] = (),
     ) -> Union[
-        "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
+        "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         Callable[
             [Callable[P_HandlerParams, T_HandlerReturn]],
-            "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
+            "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         ],
     ]:
-        if (options := self._call_options) is None:
-            msg = (
-                "You can't create subscriber directly. Please, use `add_call` at first."
-            )
-            raise SetupError(msg)
-
-        total_deps = (*options.dependencies, *dependencies)
-        total_middlewares = (*options.middlewares, *middlewares)
+        total_deps = (*self._call_options.dependencies, *dependencies)
+        total_middlewares = (*self._call_options.middlewares, *middlewares)
         async_filter: AsyncFilter[StreamMessage[MsgType]] = to_async(filter)
 
         def real_wrapper(
-            func: Union[
-                Callable[P_HandlerParams, T_HandlerReturn],
-                "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
-            ],
-        ) -> "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]":
+            func: Callable[P_HandlerParams, T_HandlerReturn],
+        ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
             handler = super(SubscriberUsecase, self).__call__(func)
 
             self.calls.add_call(
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
-                    item_parser=parser or options.parser,
-                    item_decoder=decoder or options.decoder,
+                    item_parser=parser or self._call_options.parser,
+                    item_decoder=decoder or self._call_options.decoder,
                     item_middlewares=total_middlewares,
                     dependencies=total_deps,
                 ),

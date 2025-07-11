@@ -1,5 +1,6 @@
+import asyncio
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 from confluent_kafka import Message
 from typing_extensions import override
@@ -8,23 +9,21 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
-from faststream._internal.types import MsgType
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    import asyncio
-
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.confluent.message import KafkaMessage
     from faststream.response.response import PublishCommand
 
     from .config import KafkaPublisherConfig
+    from .producer import AsyncConfluentFastProducer
 
 
-class LogicPublisher(PublisherUsecase[MsgType]):
+class LogicPublisher(PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
     def __init__(
@@ -49,7 +48,7 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: bytes | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -74,10 +73,11 @@ class LogicPublisher(PublisherUsecase[MsgType]):
         return msg
 
     async def flush(self) -> None:
-        await self._outer_config.producer.flush()
+        producer = cast("AsyncConfluentFastProducer", self._outer_config.producer)
+        await producer.flush()
 
 
-class DefaultPublisher(LogicPublisher[Message]):
+class DefaultPublisher(LogicPublisher):
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -87,20 +87,50 @@ class DefaultPublisher(LogicPublisher[Message]):
 
         self.key = config.key
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: bytes | str | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: Literal[True],
+    ) -> asyncio.Future[Message | None]: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: bytes | str | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: Literal[False] = False,
+    ) -> Message | None: ...
+
     @override
     async def publish(
         self,
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: bytes | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> "asyncio.Future":
+    ) -> asyncio.Future[Message | None] | Message | None:
         cmd = KafkaPublishCommand(
             message,
             topic=topic or self.topic,
@@ -113,9 +143,12 @@ class DefaultPublisher(LogicPublisher[Message]):
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,
         )
-        return await self._basic_publish(
+        msg: (
+            asyncio.Future[Message | None] | Message | None
+        ) = await self._basic_publish(
             cmd, producer=self._outer_config.producer, _extra_middlewares=()
         )
+        return msg
 
     @override
     async def _publish(
@@ -146,7 +179,7 @@ class DefaultPublisher(LogicPublisher[Message]):
         message: "SendableMessage",
         topic: str = "",
         *,
-        key: bytes | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -165,7 +198,7 @@ class DefaultPublisher(LogicPublisher[Message]):
         )
 
 
-class BatchPublisher(LogicPublisher[tuple[Message, ...]]):
+class BatchPublisher(LogicPublisher):
     @override
     async def publish(
         self,
@@ -191,7 +224,7 @@ class BatchPublisher(LogicPublisher[tuple[Message, ...]]):
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(
+        await self._basic_publish_batch(
             cmd, producer=self._outer_config.producer, _extra_middlewares=()
         )
 

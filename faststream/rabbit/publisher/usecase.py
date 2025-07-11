@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from aio_pika import IncomingMessage
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
     from .config import RabbitPublisherConfig
 
 
-class RabbitPublisher(PublisherUsecase[IncomingMessage]):
+class RabbitPublisher(PublisherUsecase):
     """A class to represent a RabbitMQ publisher."""
 
     _outer_config: "RabbitBrokerConfig"

@@ -335,7 +335,7 @@ class ConfluentFastConfig:
             "metadata_max_age_ms": metadata_max_age_ms,
         }
 
-        # extended consumer options are passing in `broker.subscriber` method
+        # extended consumer options were passed to `broker.subscriber` method
         self.raw_consumer_config = shared_config
 
         self.raw_producer_config = shared_config | {

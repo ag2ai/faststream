@@ -61,7 +61,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: KafkaBroker,
-        publisher: "LogicPublisher[Any]",
+        publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: LogicSubscriber[Any] | None = None
         for handler in broker.subscribers:

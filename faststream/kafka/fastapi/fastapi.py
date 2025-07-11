@@ -213,7 +213,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             (filtered to partitions with available leaders only, if possible).
             """,
             ),
-        ] = DefaultPartitioner(),
+        ] = DefaultPartitioner(),  # noqa: B008
         max_request_size: Annotated[
             int,
             Doc(

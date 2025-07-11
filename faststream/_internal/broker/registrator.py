@@ -38,7 +38,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self.config: ConfigComposition[BrokerConfigType] = ConfigComposition(config)
 
         self._subscribers: list[SubscriberUsecase[MsgType]] = []
-        self._publishers: list[PublisherUsecase[MsgType]] = []
+        self._publishers: list[PublisherUsecase] = []
         self.routers: list[Registrator[MsgType, Any]] = []
 
         self.include_routers(*routers)
@@ -48,17 +48,17 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         return self._subscribers + [sub for r in self.routers for sub in r.subscribers]
 
     @property
-    def publishers(self) -> list["PublisherUsecase[MsgType]"]:
+    def publishers(self) -> list["PublisherUsecase"]:
         return self._publishers + [pub for r in self.routers for pub in r.publishers]
 
-    def add_middleware(self, middleware: "BrokerMiddleware[MsgType]") -> None:
+    def add_middleware(self, middleware: "BrokerMiddleware[Any, Any]") -> None:
         """Append BrokerMiddleware to the end of middlewares list.
 
         Current middleware will be used as a most inner of the stack.
         """
         self.config.add_middleware(middleware)
 
-    def insert_middleware(self, middleware: "BrokerMiddleware[MsgType]") -> None:
+    def insert_middleware(self, middleware: "BrokerMiddleware[Any, Any]") -> None:
         """Insert BrokerMiddleware to the start of middlewares list.
 
         Current middleware will be used as a most outer of the stack.
@@ -76,8 +76,8 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
     @abstractmethod
     def publisher(
         self,
-        publisher: "PublisherUsecase[MsgType]",
-    ) -> "PublisherUsecase[MsgType]":
+        publisher: "PublisherUsecase",
+    ) -> "PublisherUsecase":
         self._publishers.append(publisher)
         return publisher
 

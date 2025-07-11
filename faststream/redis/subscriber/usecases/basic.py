@@ -118,7 +118,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             "message_id": getattr(message, "message_id", ""),
         }
 
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
+    async def consume_one(self, msg: Any) -> None:
         await self.consume(msg)
 
 

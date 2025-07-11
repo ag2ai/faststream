@@ -131,7 +131,7 @@ class RedisBroker(
             Doc("Dependencies to apply to all broker subscribers."),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[UnifyRedisDict]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         routers: Annotated[

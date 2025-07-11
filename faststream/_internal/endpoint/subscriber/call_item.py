@@ -48,8 +48,8 @@ class HandlerItem(Generic[MsgType]):
     def __init__(
         self,
         *,
-        handler: "HandlerCallWrapper[MsgType, ..., Any]",
-        filter: "AsyncFilter[StreamMessage[MsgType]]",
+        handler: "HandlerCallWrapper[..., Any]",
+        filter: "AsyncFilter[Any]",
         item_parser: Optional["CustomCallable"],
         item_decoder: Optional["CustomCallable"],
         item_middlewares: Sequence["SubscriberMiddleware[StreamMessage[MsgType]]"],

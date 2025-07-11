@@ -13,7 +13,6 @@ from faststream._internal.endpoint.call_wrapper import (
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import (
-    MsgType,
     P_HandlerParams,
     T_HandlerReturn,
 )
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     from .specification import PublisherSpecification
 
 
-class PublisherUsecase(Endpoint[MsgType], PublisherProto):
+class PublisherUsecase(Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
     def __init__(
@@ -69,15 +68,12 @@ class PublisherUsecase(Endpoint[MsgType], PublisherProto):
 
     def __call__(
         self,
-        func: Callable[P_HandlerParams, T_HandlerReturn]
-        | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-    ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]:
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
-
         self.specification.add_call(handler._original_call)
-
         return handler
 
     async def _basic_publish(

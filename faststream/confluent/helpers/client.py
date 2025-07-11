@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from .admin import AdminService
 
     class _SendKwargs(TypedDict):
-        value: str | bytes | None
-        key: str | bytes | None
+        value: bytes | str | None
+        key: bytes | str | None
         headers: list[tuple[str, str | bytes]] | None
         partition: NotRequired[int]
         timestamp: NotRequired[int]
@@ -49,7 +49,7 @@ class AsyncConfluentProducer:
         self.config = config.producer_config
         self.producer = Producer(
             self.config,
-            logger=self.logger_state.logger.logger,  # type: ignore[call-arg]
+            logger=self.logger_state.logger.logger,
         )
 
         self.__running = True
@@ -74,8 +74,8 @@ class AsyncConfluentProducer:
     async def send(
         self,
         topic: str,
-        value: str | bytes | None = None,
-        key: str | bytes | None = None,
+        value: bytes | str | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: list[tuple[str, str | bytes]] | None = None,
@@ -110,9 +110,9 @@ class AsyncConfluentProducer:
         # should be sync to prevent segfault
         self.producer.produce(topic, **kwargs)
 
-        if not no_confirm:
-            return await result_future
-        return result_future
+        if no_confirm:
+            return result_future
+        return await result_future
 
     def create_batch(self) -> "BatchBuilder":
         """Creates a batch for sending multiple messages."""
@@ -236,7 +236,7 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
+        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
@@ -313,7 +313,7 @@ class AsyncConfluentConsumer:
 
         # Wrap calls to async to make method cancelable by timeout
         # We shouldn't read messages and close consumer concurrently
-        # https://github.com/airtai/faststream/issues/1904#issuecomment-2506990895
+        # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         # Now it works without lock due `ThreadPoolExecutor(max_workers=1)`
         # that makes all calls to consumer sequential
         await run_in_executor(self._thread_pool, self.consumer.close)
@@ -333,7 +333,7 @@ class AsyncConfluentConsumer:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
         raw_messages: list[Message | None] = await run_in_executor(
             self._thread_pool,
-            self.consumer.consume,  # type: ignore[arg-type]
+            self.consumer.consume,
             num_messages=max_records or 10,
             timeout=timeout,
         )
@@ -369,9 +369,9 @@ class BatchBuilder:
     def append(
         self,
         *,
+        value: bytes | str | None = None,
+        key: bytes | str | None = None,
         timestamp: int | None = None,
-        key: str | bytes | None = None,
-        value: str | bytes | None = None,
         headers: list[tuple[str, bytes]] | None = None,
     ) -> None:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""

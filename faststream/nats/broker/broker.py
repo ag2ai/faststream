@@ -3,6 +3,7 @@ from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
+    Any,
     Optional,
     Union,
     cast,
@@ -28,11 +29,9 @@ from nats.js.errors import BadRequestError
 from typing_extensions import Doc, deprecated, overload, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.basic_types import SendableMessage
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
-from faststream.exceptions import FeatureNotSupportedException
 from faststream.message import gen_cor_id
 from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.publisher.producer import (
@@ -67,6 +66,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import (
         LoggerProto,
+        SendableMessage,
     )
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -371,7 +371,7 @@ class NatsBroker(
             Doc("Dependencies to apply to all broker subscribers."),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         routers: Annotated[
@@ -862,12 +862,3 @@ class NatsBroker(
                 await anyio.sleep(sleep_time)
 
         return False
-
-    @override
-    async def publish_batch(  # type: ignore[override]
-        self,
-        *messages: SendableMessage,
-        subject: str,
-    ) -> None:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)

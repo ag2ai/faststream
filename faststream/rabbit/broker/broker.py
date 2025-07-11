@@ -2,6 +2,7 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Any,
     Optional,
     Union,
     cast,
@@ -93,7 +94,7 @@ class RabbitBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[IncomingMessage]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,

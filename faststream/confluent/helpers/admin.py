@@ -15,7 +15,7 @@ class CreateResult:
 
 class AdminService:
     def __init__(self) -> None:
-        self.admin_client = None
+        self.admin_client: AdminClient | None = None
 
     async def connect(self, config: "ConfluentFastConfig") -> None:
         if self.admin_client is None:

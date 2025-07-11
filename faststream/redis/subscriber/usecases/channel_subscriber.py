@@ -34,8 +34,6 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
-    subscription: RPubSub | None
-
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -49,7 +47,7 @@ class ChannelSubscriber(LogicSubscriber):
         super().__init__(config, specification, calls)
 
         self._channel = config.channel_sub
-        self.subscription = None
+        self.subscription: RPubSub | None = None
 
     @property
     def channel(self) -> "PubSub":
@@ -133,7 +131,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (
+                while (  # noqa: ASYNC110
                     raw_message := await self._get_message(self.subscription)
                 ) is None:
                     await anyio.sleep(sleep_interval)

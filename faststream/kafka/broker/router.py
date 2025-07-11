@@ -609,12 +609,7 @@ class KafkaRouter(
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence[
-                Union[
-                    "BrokerMiddleware[ConsumerRecord]",
-                    "BrokerMiddleware[tuple[ConsumerRecord, ...]]",
-                ]
-            ],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

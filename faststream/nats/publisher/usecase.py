@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
-from nats.aio.msg import Msg
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
     from .config import NatsPublisherConfig
 
 
-class LogicPublisher(PublisherUsecase[Msg]):
+class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
 
     _outer_config: "NatsBrokerConfig"

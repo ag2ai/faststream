@@ -20,4 +20,4 @@ class KafkaPublisherConfig(PublisherUsecaseConfig):
     topic: str
     partition: int | None
     headers: dict[str, str] | None
-    reply_to: str | None
+    reply_to: str
