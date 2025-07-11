@@ -237,8 +237,8 @@ def is_covered(subject: str, pattern: str) -> bool:
     return len(subject_parts) == len(pattern_parts)
 
 
-def filter_overlapped_subjects(subjects: list[str]) -> list[str]:
-    filtered_subjects: Final[list[str]] = []
+def filter_overlapped_subjects(subjects: List[str]) -> List[str]:
+    filtered_subjects: Final[List[str]] = []
     for subject in subjects:
         need_to_add = True
         for filtered_subject_position in range(len(filtered_subjects)):

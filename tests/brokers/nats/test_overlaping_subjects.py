@@ -1,3 +1,5 @@
+from typing import List, Set
+
 import pytest
 
 from faststream.nats.broker.broker import filter_overlapped_subjects
@@ -30,5 +32,5 @@ from faststream.nats.broker.broker import filter_overlapped_subjects
         (["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"], {"a.*.*", "a.*.*.*"}),
     ],
 )
-def test_filter_overlapped_subjects(subjects: list[str], expected: set[str]) -> None:
+def test_filter_overlapped_subjects(subjects: List[str], expected: Set[str]) -> None:
     assert set(filter_overlapped_subjects(subjects)) == expected
