@@ -187,10 +187,6 @@ def get_asgi_routes(
     http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> dict[str, Channel]:
     """Get the ASGI routes for an application."""
-    # We should import this here due
-    # ASGI > Application > asynciapi.proto
-    # so it looks like a circular import
-
     channels: dict[str, Channel] = {}
     for path, asgi_app in http_handlers:
         if asgi_app.include_in_schema:
