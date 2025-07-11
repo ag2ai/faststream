@@ -5,8 +5,8 @@ from faststream.rabbit import RabbitBroker
 broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 app = FastStream(broker)
 
-
 subscriber = broker.subscriber("test-queue")
+
 
 @subscriber(filter=lambda m: m.content_type == "application/json")
 async def handle_json(msg, logger: Logger):

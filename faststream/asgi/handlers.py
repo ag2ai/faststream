@@ -1,17 +1,11 @@
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Optional,
-    Sequence,
-    Union,
-    overload,
-)
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
-    from faststream.asyncapi.schema import Tag, TagDict
-    from faststream.types import AnyDict
+    from faststream._internal.basic_types import AnyDict
+    from faststream.specification.schema import Tag, TagDict
 
     from .types import ASGIApp, Receive, Scope, Send, UserApp
 
@@ -22,11 +16,11 @@ class HttpHandler:
         func: "UserApp",
         *,
         include_in_schema: bool = True,
-        description: Optional[str] = None,
-        methods: Optional[Sequence[str]] = None,
-        tags: Optional[Sequence[Union["Tag", "TagDict", "AnyDict"]]] = None,
-        unique_id: Optional[str] = None,
-    ):
+        description: str | None = None,
+        methods: Sequence[str] | None = None,
+        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        unique_id: str | None = None,
+    ) -> None:
         self.func = func
         self.methods = methods or ()
         self.include_in_schema = include_in_schema
@@ -45,7 +39,6 @@ class HttpHandler:
                 response = AsgiResponse(body=b"Internal Server Error", status_code=500)
 
         await response(scope, receive, send)
-        return
 
 
 class GetHandler(HttpHandler):
@@ -54,10 +47,10 @@ class GetHandler(HttpHandler):
         func: "UserApp",
         *,
         include_in_schema: bool = True,
-        description: Optional[str] = None,
-        tags: Optional[Sequence[Union["Tag", "TagDict", "AnyDict"]]] = None,
-        unique_id: Optional[str] = None,
-    ):
+        description: str | None = None,
+        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        unique_id: str | None = None,
+    ) -> None:
         super().__init__(
             func,
             include_in_schema=include_in_schema,
@@ -73,9 +66,9 @@ def get(
     func: "UserApp",
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
-    tags: Optional[Sequence[Union["Tag", "TagDict", "AnyDict"]]] = None,
-    unique_id: Optional[str] = None,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> "ASGIApp": ...
 
 
@@ -84,9 +77,9 @@ def get(
     func: None = None,
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
-    tags: Optional[Sequence[Union["Tag", "TagDict", "AnyDict"]]] = None,
-    unique_id: Optional[str] = None,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
 
@@ -94,9 +87,9 @@ def get(
     func: Optional["UserApp"] = None,
     *,
     include_in_schema: bool = True,
-    description: Optional[str] = None,
-    tags: Optional[Sequence[Union["Tag", "TagDict", "AnyDict"]]] = None,
-    unique_id: Optional[str] = None,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    unique_id: str | None = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(

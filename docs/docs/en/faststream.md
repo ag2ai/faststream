@@ -30,11 +30,11 @@ search:
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="Package version"/>
+    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="Package version">
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Supported Python versions"/>
+    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Supported Python versions">
   </a>
 
   <br/>

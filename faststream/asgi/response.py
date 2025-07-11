@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, List, Mapping, Optional, Tuple
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .types import Receive, Scope, Send
@@ -7,9 +8,9 @@ if TYPE_CHECKING:
 class AsgiResponse:
     def __init__(
         self,
-        body: bytes,
-        status_code: int,
-        headers: Optional[Mapping[str, str]] = None,
+        body: bytes = b"",
+        status_code: int = 200,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         self.status_code = status_code
         self.body = body
@@ -22,23 +23,23 @@ class AsgiResponse:
                 "type": f"{prefix}http.response.start",
                 "status": self.status_code,
                 "headers": self.raw_headers,
-            }
+            },
         )
         await send(
             {
                 "type": f"{prefix}http.response.body",
                 "body": self.body,
-            }
+            },
         )
 
 
 def _get_response_headers(
     body: bytes,
-    headers: Optional[Mapping[str, str]],
+    headers: Mapping[str, str] | None,
     status_code: int,
-) -> List[Tuple[bytes, bytes]]:
+) -> list[tuple[bytes, bytes]]:
     if headers is None:
-        raw_headers: List[Tuple[bytes, bytes]] = []
+        raw_headers: list[tuple[bytes, bytes]] = []
         populate_content_length = True
 
     else:
@@ -52,7 +53,7 @@ def _get_response_headers(
     if (
         body
         and populate_content_length
-        and not (status_code < 200 or status_code in (204, 304))
+        and not (status_code < 200 or status_code in {204, 304})
     ):
         content_length = str(len(body))
         raw_headers.append((b"content-length", content_length.encode("latin-1")))

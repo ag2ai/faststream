@@ -1,5 +1,7 @@
-from faststream.broker.schemas import NameRequired
-from faststream.utils.path import compile_path
+from copy import deepcopy
+
+from faststream._internal.proto import NameRequired
+from faststream._internal.utils.path import compile_path
 
 
 class PubSub(NameRequired):
@@ -33,5 +35,7 @@ class PubSub(NameRequired):
         self.pattern = channel if pattern else None
         self.polling_interval = polling_interval
 
-    def __hash__(self) -> int:
-        return hash(f"pubsub:{self.name}")
+    def add_prefix(self, prefix: str) -> "PubSub":
+        new_ch = deepcopy(self)
+        new_ch.name = f"{prefix}{new_ch.name}"
+        return new_ch

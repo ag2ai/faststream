@@ -1,7 +1,6 @@
-import warnings
-from typing import Optional
+from copy import deepcopy
 
-from faststream.broker.schemas import NameRequired
+from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
 
 
@@ -23,24 +22,18 @@ class StreamSub(NameRequired):
     def __init__(
         self,
         stream: str,
-        polling_interval: Optional[int] = 100,
-        group: Optional[str] = None,
-        consumer: Optional[str] = None,
+        polling_interval: int | None = 100,
+        group: str | None = None,
+        consumer: str | None = None,
         batch: bool = False,
         no_ack: bool = False,
-        last_id: Optional[str] = None,
-        maxlen: Optional[int] = None,
-        max_records: Optional[int] = None,
+        last_id: str | None = None,
+        maxlen: int | None = None,
+        max_records: int | None = None,
     ) -> None:
         if (group and not consumer) or (not group and consumer):
-            raise SetupError("You should specify `group` and `consumer` both")
-
-        if group and consumer and no_ack:
-            warnings.warn(
-                message="`no_ack` has no effect with consumer group",
-                category=RuntimeWarning,
-                stacklevel=1,
-            )
+            msg = "You should specify `group` and `consumer` both"
+            raise SetupError(msg)
 
         if last_id is None:
             last_id = "$"
@@ -56,9 +49,7 @@ class StreamSub(NameRequired):
         self.maxlen = maxlen
         self.max_records = max_records
 
-    def __hash__(self) -> int:
-        if self.group is not None:
-            return hash(
-                f"stream:{self.name} group:{self.group} consumer:{self.consumer}"
-            )
-        return hash(f"stream:{self.name}")
+    def add_prefix(self, prefix: str) -> "StreamSub":
+        new_stream = deepcopy(self)
+        new_stream.name = f"{prefix}{new_stream.name}"
+        return new_stream
