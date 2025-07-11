@@ -1,1 +1,1 @@
-from .operation import OperationBinding
+from .operation import OperationBinding as OperationBinding

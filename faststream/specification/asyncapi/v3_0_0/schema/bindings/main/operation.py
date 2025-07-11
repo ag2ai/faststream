@@ -4,11 +4,11 @@ from typing_extensions import Self
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     amqp as amqp_bindings,
+    http as http_bindings,
     kafka as kafka_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
     sqs as sqs_bindings,
-    http as http_bindings,
 )
 from faststream.specification.schema.bindings import OperationBinding as SpecBinding
 

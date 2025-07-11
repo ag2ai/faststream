@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal._compat import DEF_KEY
-from faststream._internal.application import Application
 from faststream._internal.basic_types import AnyDict, AnyHttpUrl
 from faststream._internal.constants import ContentTypes
 from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
@@ -21,14 +20,15 @@ from faststream.specification.asyncapi.v2_6_0.schema import (
     Server,
     Tag,
 )
-from faststream.specification.asyncapi.v2_6_0.schema.bindings import \
-    OperationBinding
-from faststream.specification.asyncapi.v2_6_0.schema.bindings import \
-    http as http_bindings
+from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
+    OperationBinding,
+    http as http_bindings,
+)
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
+    from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema.extra import (
         Contact as SpecContact,
         ContactDict,
@@ -39,7 +39,6 @@ if TYPE_CHECKING:
         Tag as SpecTag,
         TagDict,
     )
-    from faststream.asgi.handlers import HttpHandler
 
 
 def get_app_schema(
@@ -55,7 +54,7 @@ def get_app_schema(
     identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]],
     external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
-    http_handlers: list[tuple[str, "HttpHandler"]] | None
+    http_handlers: list[tuple[str, "HttpHandler"]] | None,
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -185,7 +184,7 @@ def get_broker_channels(
 
 
 def get_asgi_routes(
-        http_handlers: list[tuple[str, "HttpHandler"]]
+    http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> dict[str, Channel]:
     """Get the ASGI routes for an application."""
     # We should import this here due
@@ -206,7 +205,7 @@ def get_asgi_routes(
                             method=", ".join(asgi_app.methods)
                         )
                     ),
-                    message=None
+                    message=None,
                 ),
             )
 

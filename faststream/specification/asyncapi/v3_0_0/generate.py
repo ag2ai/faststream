@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
-from faststream._internal.application import Application
 from faststream._internal.basic_types import AnyDict, AnyHttpUrl
 from faststream._internal.constants import ContentTypes
 from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
@@ -23,17 +22,16 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     Server,
     Tag,
 )
-from faststream.specification.asyncapi.v3_0_0.schema.bindings import \
-    (
-    ChannelBinding,
+from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     OperationBinding,
+    http as http_bindings,
 )
-from faststream.specification.asyncapi.v3_0_0.schema.bindings import http as http_bindings
 from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
+    from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema.extra import (
         Contact as SpecContact,
         ContactDict,
@@ -44,7 +42,6 @@ if TYPE_CHECKING:
         Tag as SpecTag,
         TagDict,
     )
-    from faststream.asgi.handlers import HttpHandler
 
 
 def get_app_schema(
@@ -60,7 +57,7 @@ def get_app_schema(
     identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]] | None,
     external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
-    http_handlers: list[tuple[str, "HttpHandler"]] | None
+    http_handlers: list[tuple[str, "HttpHandler"]] | None,
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -219,10 +216,8 @@ def get_broker_channels(
 
 
 def get_asgi_routes(
-        http_handlers: list[tuple[str, "HttpHandler"]]
-) -> tuple[
-    dict[str, Channel], dict[str, Operation]
-]:
+    http_handlers: list[tuple[str, "HttpHandler"]],
+) -> tuple[dict[str, Channel], dict[str, Operation]]:
     """Get the ASGI routes for an application."""
     # We should import this here due
     # ASGI > Application > asynciapi.proto
@@ -239,7 +234,8 @@ def get_asgi_routes(
                 messages={},
             )
             channel_name = "".join(
-                char for char in path.strip("/").replace("/", "_")
+                char
+                for char in path.strip("/").replace("/", "_")
                 if char in string.ascii_letters + string.digits + "_"
             )
             channel_name = f"{channel_name}HttpChannel"
@@ -250,9 +246,9 @@ def get_asgi_routes(
                 bindings=OperationBinding(
                     http=http_bindings.OperationBinding(
                         method=_get_http_binding_method(asgi_app.methods),
-                        bindingVersion="0.3.0"
+                        bindingVersion="0.3.0",
                     )
-                )
+                ),
             )
             operations[channel_name] = operation
     return channels, operations
