@@ -1,8 +1,8 @@
 from typing import Any, Protocol
 
-from faststream.message import AckStatus, StreamMessage
-
 from confluent_kafka import Message
+
+from faststream.message import AckStatus, StreamMessage
 
 
 class ConsumerProtocol(Protocol):

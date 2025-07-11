@@ -222,6 +222,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             decoder: Custom decoder object.
             parser: Custom parser object.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
+            specification: Optional specification factory to generate the AsyncAPI schema for the broker.
+                If provided, this will be used to customize or override the default schema generation.
             security: Security options to connect broker and generate Specification server security information.
             specification_url: Specification hardcoded server addresses. Use `servers` if not specified.
             protocol: Specification server protocol.
@@ -232,6 +234,116 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             log_level: Service messages log level.
             setup_state: Whether to add broker to app scope in lifespan.
                 You should disable this option at old ASGI servers.
+            schema_url: The URL path where the AsyncAPI schema will be served (e.g. "/asyncapi").
+                If set to None, the schema endpoint will not be added automatically.
+
+            prefix: An optional path prefix for the router.
+            tags: A list of tags to be applied to all the *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                FastAPI docs for Path Operation Configuration:
+                https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
+            dependencies: A list of dependencies (using `Depends()`) to be applied to all the
+                *path operations* in this router.
+
+                Read more about it in the
+                FastAPI docs for Bigger Applications - Multiple Files:
+                https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies
+            default_response_class: The default response class to be used.
+
+                Read more in the
+                FastAPI docs for Custom Response - HTML, Stream, File, others:
+                https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class
+            responses: Additional responses to be shown in OpenAPI.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                FastAPI docs for Additional Responses in OpenAPI:
+                https://fastapi.tiangolo.com/advanced/additional-responses/
+
+                And in the
+                FastAPI docs for Bigger Applications:
+                https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies
+            callbacks: OpenAPI callbacks that should apply to all *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                FastAPI docs for OpenAPI Callbacks:
+                https://fastapi.tiangolo.com/advanced/openapi-callbacks/
+            routes: **Note**: you probably shouldn't use this parameter, it is inherited
+                from Starlette and supported for compatibility.
+
+                ---
+
+                A list of routes to serve incoming HTTP and WebSocket requests.
+
+                You normally wouldn't use this parameter with FastAPI, it is inherited
+                from Starlette and supported for compatibility.
+
+                In FastAPI, you normally would use the *path operation methods*,
+                like `router.get()`, `router.post()`, etc.
+            redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
+                use the same format.
+            default: Default function handler for this router. Used to handle
+                404 Not Found errors.
+            dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
+
+                You shouldn't need to use it. It normally points to the `FastAPI` app
+                object.
+            route_class: Custom route (*path operation*) class to be used by this router.
+
+                Read more about it in the
+                FastAPI docs for Custom Request and APIRoute class:
+                https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router
+            on_startup: A list of startup event handler functions.
+
+                You should instead use the `lifespan` handlers.
+
+                Read more in the FastAPI docs for `lifespan`:
+                https://fastapi.tiangolo.com/advanced/events/
+            on_shutdown: A list of shutdown event handler functions.
+
+                You should instead use the `lifespan` handlers.
+
+                Read more in the
+                FastAPI docs for `lifespan`:
+                https://fastapi.tiangolo.com/advanced/events/
+            lifespan: A `Lifespan` context manager handler. This replaces `startup` and
+                `shutdown` functions with a single context manager.
+
+                Read more in the
+                FastAPI docs for `lifespan`:
+                https://fastapi.tiangolo.com/advanced/events/
+            deprecated: Mark all *path operations* in this router as deprecated.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                FastAPI docs for Path Operation Configuration:
+                https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
+            include_in_schema: To include (or not) all the *path operations* in this router in the
+                generated OpenAPI.
+
+                This affects the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                FastAPI docs for Query Parameters and String Validations:
+                https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-parameters-from-openapi
+            generate_unique_id_function: Customize the function used to generate unique IDs for the *path
+                operations* shown in the generated OpenAPI.
+
+                This is particularly useful when automatically generating clients or
+                SDKs for your API.
+
+                Read more about it in the
+                FastAPI docs about how to Generate Clients:
+                https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function
         """
         super().__init__(
             bootstrap_servers=bootstrap_servers,
@@ -623,6 +735,85 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 Uses decorated docstring as default.
             include_in_schema: Whether to include operation in Specification schema or not.
             max_workers: Number of workers to process messages concurrently.
+            response_model: The type to use for the response.
+
+                It could be any valid Pydantic *field* type. So, it doesn't have to
+                be a Pydantic model, it could be other things, like a `list`, `dict`,
+                etc.
+
+                It will be used for:
+
+                * Documentation: the generated OpenAPI (and the UI at `/docs`) will
+                    show it as the response (JSON Schema).
+                * Serialization: you could return an arbitrary object and the
+                    `response_model` would be used to serialize that object into the
+                    corresponding JSON.
+                * Filtering: the JSON sent to the client will only contain the data
+                    (fields) defined in the `response_model`. If you returned an object
+                    that contains an attribute `password` but the `response_model` does
+                    not include that field, the JSON sent to the client would not have
+                    that `password`.
+                * Validation: whatever you return will be serialized with the
+                    `response_model`, converting any data as necessary to generate the
+                    corresponding JSON. But if the data in the object returned is not
+                    valid, that would mean a violation of the contract with the client,
+                    so it's an error from the API developer. So, FastAPI will raise an
+                    error and return a 500 error code (Internal Server Error).
+
+                Read more about it in the
+                [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
+
+            response_model_include: Configuration passed to Pydantic to include only certain fields in the
+                response data.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
+
+            response_model_exclude: Configuration passed to Pydantic to exclude certain fields in the
+                response data.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
+
+            response_model_by_alias: Configuration passed to Pydantic to define if the response model
+                should be serialized by alias when an alias is used.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
+
+            response_model_exclude_unset: Configuration passed to Pydantic to define if the response data
+                should have all the fields, including the ones that were not set and
+                have their default values. This is different from
+                `response_model_exclude_defaults` in that if the fields are set,
+                they will be included in the response, even if the value is the same
+                as the default.
+
+                When `True`, default values are omitted from the response.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
+
+            response_model_exclude_defaults: Configuration passed to Pydantic to define if the response data
+                should have all the fields, including the ones that have the same value
+                as the default. This is different from `response_model_exclude_unset`
+                in that if the fields are set but contain the same default values,
+                they will be excluded from the response.
+
+                When `True`, default values are omitted from the response.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
+
+            response_model_exclude_none: Configuration passed to Pydantic to define if the response data should
+                exclude fields set to `None`.
+
+                This is much simpler (less smart) than `response_model_exclude_unset`
+                and `response_model_exclude_defaults`. You probably want to use one of
+                those two instead of this one, as those allow returning `None` values
+                when it makes sense.
+
+                Read more about it in the
+                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
         """
         subscriber = super().subscriber(
             *topics,
