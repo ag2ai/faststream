@@ -194,7 +194,7 @@ def get_asgi_routes(
 
     channels: dict[str, Channel] = {}
     for path, asgi_app in http_handlers:
-        if isinstance(asgi_app, HttpHandler) and asgi_app.include_in_schema:
+        if asgi_app.include_in_schema:
             channel = Channel(
                 description=asgi_app.description,
                 subscribe=Operation(
