@@ -78,23 +78,23 @@ def test_asgi_v3_0_0() -> None:
     schema = app.schema.to_specification().to_jsonable()
 
     assert schema["channels"] == {
-        "testHttpChannel": {
+        "test:HttpChannel": {
             "address": "/test",
             "description": "test description",
             "messages": {},
         },
-        "test2HttpChannel": {"address": "/test2", "messages": {}},
+        "test2:HttpChannel": {"address": "/test2", "messages": {}},
     }
     assert schema["operations"] == {
-        "testHttpChannel": {
+        "test:HttpChannel": {
             "action": "receive",
-            "channel": {"$ref": "#/channels/testHttpChannel"},
+            "channel": {"$ref": "#/channels/test:HttpChannel"},
             "bindings": {"http": {"method": "GET", "bindingVersion": "0.3.0"}},
             "messages": [],
         },
-        "test2HttpChannel": {
+        "test2:HttpChannel": {
             "action": "receive",
-            "channel": {"$ref": "#/channels/test2HttpChannel"},
+            "channel": {"$ref": "#/channels/test2:HttpChannel"},
             "bindings": {"http": {"method": "GET", "bindingVersion": "0.3.0"}},
             "messages": [],
         },

@@ -57,7 +57,7 @@ def get_app_schema(
     identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]] | None,
     external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
-    http_handlers: list[tuple[str, "HttpHandler"]] | None,
+    http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -222,7 +222,6 @@ def get_asgi_routes(
     # We should import this here due
     # ASGI > Application > asynciapi.proto
     # so it looks like a circular import
-    from faststream.asgi.handlers import HttpHandler
 
     channels: dict[str, Channel] = {}
     operations: dict[str, Operation] = {}
@@ -238,7 +237,7 @@ def get_asgi_routes(
                 for char in path.strip("/").replace("/", "_")
                 if char in string.ascii_letters + string.digits + "_"
             )
-            channel_name = f"{channel_name}HttpChannel"
+            channel_name = f"{channel_name}:HttpChannel"
             channels[channel_name] = channel
             operation = Operation(
                 action=Action.RECEIVE,

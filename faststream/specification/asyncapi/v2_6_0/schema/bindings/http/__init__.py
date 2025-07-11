@@ -1,1 +1,3 @@
-from .operation import OperationBinding as OperationBinding
+from .operation import OperationBinding
+
+__all__ = ("OperationBinding",)

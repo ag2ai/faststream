@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from faststream.specification.asyncapi.v2_6_0.schema.bindings.http import (
+    OperationBinding as OldOperationBinding,
+)
 
 
-class OperationBinding(BaseModel):
-    method: str
+class OperationBinding(OldOperationBinding):
     bindingVersion: str = "0.3.0"
