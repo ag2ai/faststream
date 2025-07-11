@@ -63,6 +63,7 @@ class AsyncAPI(SpecificationFactory):
                 identifier=self.identifier,
                 tags=self.tags,
                 external_docs=self.external_docs,
+                http_handlers=self.http_handlers,
             )
 
         if self.schema_version.startswith("2.6."):
@@ -80,6 +81,7 @@ class AsyncAPI(SpecificationFactory):
                 identifier=self.identifier,
                 tags=self.tags,
                 external_docs=self.external_docs,
+                http_handlers=self.http_handlers,
             )
 
         msg = f"Unsupported schema version: {self.schema_version}"

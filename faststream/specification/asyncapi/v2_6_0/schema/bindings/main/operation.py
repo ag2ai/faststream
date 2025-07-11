@@ -6,6 +6,7 @@ from typing_extensions import Self
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
     amqp as amqp_bindings,
+    http as http_bindings,
     kafka as kafka_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
@@ -23,6 +24,7 @@ class OperationBinding(BaseModel):
         sqs : SQS operation binding (optional)
         nats : NATS operation binding (optional)
         redis : Redis operation binding (optional)
+        http : HTTP channel binding (optional)
     """
 
     amqp: amqp_bindings.OperationBinding | None = None
@@ -30,6 +32,7 @@ class OperationBinding(BaseModel):
     sqs: sqs_bindings.OperationBinding | None = None
     nats: nats_bindings.OperationBinding | None = None
     redis: redis_bindings.OperationBinding | None = None
+    http: http_bindings.OperationBinding | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
