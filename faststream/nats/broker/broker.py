@@ -227,9 +227,13 @@ def is_covered(subject: str, pattern: str) -> bool:
         return False
 
     for i, pattern_part in enumerate(pattern_parts):
-        if pattern_part == "*":
+        if pattern_part == "*" and subject_parts[i] != ">":
             continue
-        if pattern_part == ">" and i == len(pattern_parts) - 1:
+        if (
+            pattern_part == ">"
+            and (subject_parts[i] != "*" or len(subject_parts) > len(pattern_parts))
+            and i == len(pattern_parts) - 1
+        ):
             return True
         if subject_parts[i] != pattern_part:
             return False
