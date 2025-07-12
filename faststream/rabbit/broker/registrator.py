@@ -55,6 +55,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         no_reply: bool = False,
         # AsyncAPI information
         title: str | None = None,
+        operation_id: str,
         description: str | None = None,
         include_in_schema: bool = True,
     ) -> "RabbitSubscriber":
@@ -93,6 +94,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             # specification args
             title_=title,
             description_=description,
+            operation_id_=operation_id,
             include_in_schema=include_in_schema,
         )
 
@@ -122,6 +124,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         middlewares: Sequence["PublisherMiddleware"] = (),
         # AsyncAPI information
         title: str | None = None,
+        operation_id: str,
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
@@ -194,6 +197,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             config=cast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
+            operation_id_=operation_id,
             description_=description,
             schema_=schema,
             include_in_schema=include_in_schema,
