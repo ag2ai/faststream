@@ -23,7 +23,7 @@ This way, you can significantly enhance your **FastStream** application with fea
 
 You need to import only the BaseMiddleware, as it contains all the necessary methods. All available methods can be overridden:
 
-```python linenums="1" hl_lines="10 16 26 35"
+```python linenums="1" hl_lines="10 16 25 34"
 from types import TracebackType
 from typing import Any, Awaitable, Callable, Optional
 from faststream import BaseMiddleware
@@ -66,13 +66,7 @@ class MyMiddleware(BaseMiddleware):
         return await super().after_processed(exc_type, exc_val, exc_tb)
 ```
 
-PayAttention to the order: the methods are executed in this sequence after each stage.
-
-Workflow:
-
-```
-on_receive -> consume_scope -> publish_scope -> after_processed.
-```
+PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#middlewares-flow).
 
 **Middlewares** can be used Broker or [Router](../routers/index.md){.internal-link}. For example:
 
@@ -82,7 +76,23 @@ broker = Broker(middlewares=[MyMiddleware])
 router = BrokerRouter(middlewares=[MyMiddleware])
 ```
 
-## Publisher Middlewares
+## Middlewares Flow
+
+![flow](./flow.svg){ width=300 height=100 }
+
+### What is on the diagram?
+
+#### on_recieve
+
+- explain
+- explain
+
+#### parser
+
+- explain
+- explain
+
+## More about the publish_scope
 
 **Publisher middlewares** affect all ways of publishing something, including the `#!python broker.publish` call.
 If you want to intercept the publishing process, you will need to use the `publish_scope` method.
@@ -93,17 +103,20 @@ from faststream import BaseMiddleware
 from faststream.response import PublishCommand
 
 class MyMiddleware(BaseMiddleware):
-    async def publish_scope(
-        self,
-        call_next: Callable[[PublishCommand], Awaitable[Any]],
-        cmd: PublishCommand,
-    ) -> Any:
-        return await super().publish_scope(call_next, cmd)
+async def publish_scope(
+self,
+call_next: Callable[[PublishCommand], Awaitable[Any]],
+cmd: PublishCommand,
+) -> Any:
+return await super().publish_scope(call_next, cmd)
 
 broker = Broker(middlewares=[MyMiddleware])
 ```
 
 This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
+
+!!! note
+    If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
 
 ## Context Access
 
@@ -126,7 +139,7 @@ class ContextMiddleware(BaseMiddleware):
         return await call_next(msg)
 ```
 
-## Real example
+## Examples
 
 ### Retry Middleware
 
@@ -159,10 +172,7 @@ class RetryMiddleware(BaseMiddleware):
         return None
 ```
 
-!!! tip
+## Facts
 
 1. Please always call the `#!python super()` method at the end of your function. This is important for proper error handling.
 2. The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
-
-!!! note
-If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *msgs` option additionally.
