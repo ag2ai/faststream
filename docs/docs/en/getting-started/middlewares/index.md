@@ -10,142 +10,169 @@ search:
 
 # Middlewares
 
-**Middlewares** are a powerful mechanism that allows you to add additional logic to any stage of the message processing pipeline.
+**Middlewares** are a powerful tool that allows you to add extra logic to any part of the message processing pipeline.
 
-This way, you can greatly extend your **FastStream** application with features such as:
+This way, you can significantly enhance your **FastStream** application with features such as:
 
-* Integration with any logging/metrics systems
-* Application-level message serialization logic
-* Rich publishing of messages with extra information
-* And many other capabilities
+- Integration with various logging and metrics systems
+- Application-level message serialization logic
+- Extensive publication of messages with additional information
+- And numerous other capabilities
 
-**Middlewares** have several methods to override. You can implement some or all of them and use middlewares at the broker, router, or subscriber level. Thus, middlewares are the most flexible  **FastStream** feature.
+**Middlewares** have several methods that can be overridden. You can choose to implement some or all of these methods.
 
-## Message Processing Middleware
+You need to import only the BaseMiddleware, as it contains all the necessary methods. All available methods can be overridden:
 
-Unfortunately, this powerful feature has a somewhat complex signature too.
-
-Using middlewares, you can wrap the entire message processing pipeline. In this case, you need to specify `on_receive` and `after_processed` methods:
-
-```python linenums="1"
+```python linenums="1" hl_lines="10 16 25 34"
+from types import TracebackType
+from typing import Any, Awaitable, Callable, Optional
 from faststream import BaseMiddleware
+from faststream.message import StreamMessage
+from faststream.response import PublishCommand
 
 class MyMiddleware(BaseMiddleware):
-    async def on_receive(self):
+    # Use this if you want to add logic when a message is received for the first time,
+    # such as logging incoming messages, validating headers, or setting up the context.
+    async def on_receive(self) -> Any:
         print(f"Received: {self.msg}")
         return await super().on_receive()
 
-    async def after_processed(self, exc_type, exc_val, exc_tb):
-        return await super().after_processed(exc_type, exc_val, exc_tb)
-```
-
-These methods should be overridden only in a broker-level middlewares.
-
-```python
-Broker(middlewares=[MyMiddleware])
-```
-
-Also, you can use `BaseMiddleware` inheritors as [router](../routers/index.md)-level dependencies as well(they will be applied only to objects created by this router):
-
-```python
-BrokerRouter(middlewares=[MyMiddleware])
-```
-
-!!! tip
-    Please always call `#!python super()` methods at the end of your function; this is important for correct error processing.
-
-## Subscriber Middleware
-
-Subscriber middlewares will be called at your `handler` function call. Using it, you can patch the incoming message body right before passing it to your consumer/subscriber or catch any handler exception by returning a fallback value to publish (the middleware return value will be published then).
-
-In this case, you need to implement the `consume_scope` middleware method:
-
-```python linenums="1"
-from typing import Callable, Awaitable
-
-from faststream import BaseMiddleware
-from faststream.broker.message import StreamMessage
-
-class MyMiddleware(BaseMiddleware):
+    # Use this if you want to wrap the entire message processing process,
+    # such as implementing retry logic, circuit breakers, rate limiting, or authentication.
     async def consume_scope(
         self,
-        call_next: Callable[[Any], Awaitable[Any]],
+        call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
         msg: StreamMessage[Any],
     ) -> Any:
         return await call_next(msg)
 
-
-Broker(middlewares=[MyMiddleware])
-```
-
-!!! note
-    The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md) instead.
-
-If you want to apply such middleware to a specific subscriber instead of the whole application, you can just create a function with the same signature and pass it right to your subscriber:
-
-```python linenums="1" hl_lines="10"
-async def subscriber_middleware(
-    call_next: Callable[[Any], Awaitable[Any]],
-    msg: StreamMessage[Any],
-) -> Any:
-    return await call_next(msg)
-
-
-@broker.subscriber(
-    ...,
-    middlewares=[subscriber_middleware],
-)
-async def handler():
-    ...
-```
-
-## Publisher Middlewares
-
-Finally, using middlewares, you are able to patch outgoing messages too. For example, you can compress/encode outgoing messages at the application level or add custom types serialization logic.
-
-Publisher middlewares can be applied at the **broker**, **router** or each **publisher** level. **Broker** publisher middlewares affect all the ways to publish something (including `#!python broker.publish` call).
-
-In this case, you need to specify the `publish_scope` method:
-
-```python linenums="1"
-from typing import Callable, Awaitable
-
-from faststream import BaseMiddleware
-
-class MyMiddleware(BaseMiddleware):
+    # Use this if you want to customize outgoing messages before they are sent,
+    # such as adding encryption, compression, or custom headers.
     async def publish_scope(
         self,
-        call_next: Callable[..., Awaitable[Any]],
-        msg: Any,
-        **options: Any,
+        call_next: Callable[[PublishCommand], Awaitable[Any]],
+        cmd: PublishCommand,
     ) -> Any:
-        return await call_next(msg, **options)
+        return await super().publish_scope(call_next, cmd)
 
-
-Broker(middlewares=[MyMiddleware])
+    # Use this if you want to perform post-processing tasks after message handling has completed,
+    # such as cleaning up, logging errors, collecting metrics, or committing transactions.
+    async def after_processed(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional[TracebackType] = None,
+    ) -> bool | None:
+        return await super().after_processed(exc_type, exc_val, exc_tb)
 ```
 
-This method consumes the message body to send and any other options passing to the `publish` call (destination. headers, etc).
+PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#middlewares-flow).
 
-Also, you can specify middleware for publisher object as well. In this case, you should create a function with the same `publish_scope` signature and use it as a publisher middleware:
+**Middlewares** can be used Broker or [Router](../routers/index.md){.internal-link}. For example:
 
-```python linenums="1" hl_lines="12"
-async def publisher_middleware(
-    call_next: Callable[..., Awaitable[Any]],
-    msg: Any,
-    **options: Any,
+```python
+broker = Broker(middlewares=[MyMiddleware])
+# Or
+router = BrokerRouter(middlewares=[MyMiddleware])
+```
+
+## Middlewares Flow
+
+![flow](./flow.svg){ width=300 height=100 }
+
+### What is on the diagram?
+
+#### on_recieve
+
+- explain
+- explain
+
+#### parser
+
+- explain
+- explain
+
+## More about the publish_scope
+
+**Publisher middlewares** affect all ways of publishing something, including the `#!python broker.publish` call.
+If you want to intercept the publishing process, you will need to use the `publish_scope` method.
+
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from faststream import BaseMiddleware
+from faststream.response import PublishCommand
+
+class MyMiddleware(BaseMiddleware):
+async def publish_scope(
+self,
+call_next: Callable[[PublishCommand], Awaitable[Any]],
+cmd: PublishCommand,
 ) -> Any:
-    return await call_next(msg, **options)
+return await super().publish_scope(call_next, cmd)
 
-
-@broker.subscriber(...)
-@broker.publisher(
-    ...,
-    middlewares=[publisher_middleware],
-)
-async def handler():
-    ...
+broker = Broker(middlewares=[MyMiddleware])
 ```
+
+This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
 
 !!! note
-    If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *msgs` option additionally.
+    If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
+
+## Context Access
+
+Middlewares can access the [Context](../context/index.md){.internal-link} for all available methods. For example:
+
+```python linenums="1" hl_lines="8"
+from faststream import BaseMiddleware
+
+class ContextMiddleware(BaseMiddleware):
+    # Context is also available for the following methods:
+    # on_receive, after_processed and publish_scope.
+    async def consume_scope(
+        self,
+        call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
+        msg: StreamMessage[Any],
+    ) -> Any:
+        # Access context
+        message_context = self.context.get_local("message")
+        # Your middleware logic here
+        return await call_next(msg)
+```
+
+## Examples
+
+### Retry Middleware
+
+```python
+import asyncio
+from typing import Any, Awaitable, Callable, Final
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.message import StreamMessage
+
+class RetryMiddleware(BaseMiddleware):
+    MAX_RETRIES: Final[int] = 3
+
+    @override
+    async def consume_scope(
+        self,
+        call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
+        msg: StreamMessage[Any],
+    ) -> Any:
+        for attempt in range(self.MAX_RETRIES + 1):
+            try:
+                return await call_next(msg)
+            except Exception as e:
+                if attempt == self.MAX_RETRIES:
+                    print(f"Failed after {self.MAX_RETRIES} retries: {e}")
+                    raise
+
+                print(f"Attempt {attempt + 1} failed, retrying: {e}")
+                await asyncio.sleep(2**attempt)  # Exponential backoff
+        return None
+```
+
+## Facts
+
+1. Please always call the `#!python super()` method at the end of your function. This is important for proper error handling.
+2. The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
