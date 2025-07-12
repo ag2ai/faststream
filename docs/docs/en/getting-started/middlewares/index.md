@@ -78,7 +78,7 @@ router = BrokerRouter(middlewares=[MyMiddleware])
 
 ## Middlewares Flow
 
-![flow](./flow.svg){ width=300 height=100 }
+![flow](./middlewares-flow.svg){ width=300 height=100 }
 
 ### What is on the diagram?
 
@@ -116,7 +116,7 @@ broker = Broker(middlewares=[MyMiddleware])
 This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
 
 !!! note
-    If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
+If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
 
 ## Context Access
 
