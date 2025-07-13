@@ -104,9 +104,10 @@ app = AsgiFastStream(
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
 
 ### ASGI Documentation
+
 By default, any ASGI routes will be added to your AsyncAPI documentation. If you wish to exclude these routes, just do the following:
 
-```
+```python linenums="1"
 app = AsgiFastStream(
     broker,
     asgi_routes=[
@@ -117,7 +118,7 @@ app = AsgiFastStream(
 
 Or, for custom ASGI routes:
 
-```
+```python linenums="1"
 @get(include_in_schema=False)
 async def liveness_ping(scope):
     return AsgiResponse(b"", status_code=200)

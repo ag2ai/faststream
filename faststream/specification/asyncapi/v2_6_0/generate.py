@@ -15,14 +15,20 @@ from faststream.specification.asyncapi.v2_6_0.schema import (
     ExternalDocs,
     License,
     Message,
+    Operation,
     Reference,
     Server,
     Tag,
+)
+from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
+    OperationBinding,
+    http as http_bindings,
 )
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
+    from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema.extra import (
         Contact as SpecContact,
         ContactDict,
@@ -41,13 +47,14 @@ def get_app_schema(
     title: str,
     app_version: str,
     schema_version: str,
-    description: str,
+    description: str | None,
     terms_of_service: Optional["AnyHttpUrl"],
     contact: Union["SpecContact", "ContactDict", "AnyDict"] | None,
     license: Union["SpecLicense", "LicenseDict", "AnyDict"] | None,
     identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]],
     external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
+    http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -58,6 +65,7 @@ def get_app_schema(
 
     for channel in channels.values():
         channel.servers = list(servers.keys())
+    channels.update(get_asgi_routes(http_handlers))
 
     for channel_name, ch in channels.items():
         resolve_channel_messages(ch, channel_name, payloads, messages)
@@ -94,7 +102,7 @@ def resolve_channel_messages(
     payloads: dict[str, AnyDict],
     messages: dict[str, Message],
 ) -> None:
-    if channel.subscribe is not None:
+    if channel.subscribe is not None and channel.subscribe.message:
         assert isinstance(channel.subscribe.message, Message)
 
         channel.subscribe.message = _resolve_msg_payloads(
@@ -171,6 +179,32 @@ def get_broker_channels(
                 )
 
             channels[key] = Channel.from_pub(pub)
+
+    return channels
+
+
+def get_asgi_routes(
+    http_handlers: list[tuple[str, "HttpHandler"]],
+) -> dict[str, Channel]:
+    """Get the ASGI routes for an application."""
+    channels: dict[str, Channel] = {}
+    for path, asgi_app in http_handlers:
+        if asgi_app.include_in_schema:
+            channel = Channel(
+                description=asgi_app.description,
+                subscribe=Operation(
+                    tags=asgi_app.tags,
+                    operationId=asgi_app.unique_id,
+                    bindings=OperationBinding(
+                        http=http_bindings.OperationBinding(
+                            method=", ".join(asgi_app.methods)
+                        )
+                    ),
+                    message=None,
+                ),
+            )
+
+            channels[path] = channel
 
     return channels
 

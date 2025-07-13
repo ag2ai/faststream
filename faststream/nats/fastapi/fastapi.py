@@ -60,7 +60,17 @@ if TYPE_CHECKING:
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
-    from faststream.nats.subscriber.specification import SpecificationSubscriber
+    from faststream.nats.subscriber.usecases import (
+        BatchPullStreamSubscriber,
+        ConcurrentCoreSubscriber,
+        ConcurrentPullStreamSubscriber,
+        ConcurrentPushStreamSubscriber,
+        CoreSubscriber,
+        KeyValueWatchSubscriber,
+        ObjStoreWatchSubscriber,
+        PullStreamSubscriber,
+        PushStreamSubscriber,
+    )
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -843,9 +853,19 @@ class NatsRouter(StreamRouter["Msg"]):
                 """,
             ),
         ] = False,
-    ) -> "SpecificationSubscriber":
+    ) -> Union[
+        "BatchPullStreamSubscriber",
+        "ConcurrentCoreSubscriber",
+        "ConcurrentPullStreamSubscriber",
+        "ConcurrentPushStreamSubscriber",
+        "CoreSubscriber",
+        "KeyValueWatchSubscriber",
+        "ObjStoreWatchSubscriber",
+        "PullStreamSubscriber",
+        "PushStreamSubscriber",
+    ]:
         return cast(
-            "SpecificationSubscriber",
+            "BatchPullStreamSubscriber | ConcurrentCoreSubscriber | ConcurrentPullStreamSubscriber | ConcurrentPushStreamSubscriber | CoreSubscriber | KeyValueWatchSubscriber | ObjStoreWatchSubscriber | PullStreamSubscriber | PushStreamSubscriber",
             super().subscriber(
                 subject=subject,
                 queue=queue,

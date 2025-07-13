@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
-    from .usecase import PublishKwargs
+    from .options import PublishKwargs
 
 
 def create_publisher(

@@ -19,7 +19,7 @@ async def start_broker():
 
 @app.after_serving
 async def stop_broker():
-    await broker.close()
+    await broker.stop()
 
 
 @app.route("/")

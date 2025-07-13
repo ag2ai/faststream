@@ -1,7 +1,7 @@
 import warnings
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Generator, Iterator
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import AbstractContextManager, asynccontextmanager, contextmanager
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from faststream._internal.configs import BrokerConfig
-    from faststream._internal.endpoint.subscriber import SubscriberProto
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.producer import ProducerProto
 
 
@@ -32,7 +32,7 @@ Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
 
 @contextmanager
 def change_producer(
-    config: "BrokerConfig", producer: "ProducerProto"
+    config: "BrokerConfig", producer: "ProducerProto[Any]"
 ) -> Generator[None, None, None]:
     old_producer, config.producer = config.producer, producer
     yield
@@ -73,7 +73,7 @@ class TestBroker(Generic[Broker]):
                 connect_only = False
 
         self.connect_only = connect_only
-        self._fake_subscribers: list[SubscriberProto[Any]] = []
+        self._fake_subscribers: list[SubscriberUsecase[Any]] = []
 
     async def __aenter__(self) -> Broker:
         self._ctx = self._create_ctx()
@@ -91,7 +91,7 @@ class TestBroker(Generic[Broker]):
     async def _create_ctx(self) -> AsyncGenerator[Broker, None]:
         if self.with_real:
             self._fake_start(self.broker)
-            context = FakeContext()
+            context: AbstractContextManager[Any, Any] = FakeContext()
         else:
             context = self._patch_broker(self.broker)
 
@@ -140,6 +140,10 @@ class TestBroker(Generic[Broker]):
             ),
             mock.patch.object(
                 broker,
+                "stop",
+            ),
+            mock.patch.object(  # TODO: remove it in 0.7
+                broker,
                 "close",
             ),
             mock.patch.object(
@@ -175,7 +179,7 @@ class TestBroker(Generic[Broker]):
 
             if is_real:
                 mock = MagicMock()
-                publisher.set_test(mock=mock, with_fake=False)  # type: ignore[attr-defined]
+                publisher.set_test(mock=mock, with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
                     assert h.handler.mock  # nosec B101
@@ -185,7 +189,7 @@ class TestBroker(Generic[Broker]):
                 handler = sub.calls[0].handler
                 handler.set_test()
                 assert handler.mock  # nosec B101
-                publisher.set_test(mock=handler.mock, with_fake=True)  # type: ignore[attr-defined]
+                publisher.set_test(mock=handler.mock, with_fake=True)
 
         patch_broker_calls(broker)
 
@@ -201,7 +205,7 @@ class TestBroker(Generic[Broker]):
     ) -> None:
         for p in broker.publishers:
             if getattr(p, "_fake_handler", None):
-                p.reset_test()  # type: ignore[attr-defined]
+                p.reset_test()
 
         self.broker._subscribers = [
             sub for sub in self.broker._subscribers if sub not in self._fake_subscribers
@@ -218,12 +222,11 @@ class TestBroker(Generic[Broker]):
     def create_publisher_fake_subscriber(
         broker: Broker,
         publisher: Any,
-    ) -> tuple["SubscriberProto[Any]", bool]:
+    ) -> tuple["SubscriberUsecase[Any]", bool]:
         raise NotImplementedError
 
-    @staticmethod
     @abstractmethod
-    async def _fake_connect(broker: Broker, *args: Any, **kwargs: Any) -> None:
+    async def _fake_connect(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
 

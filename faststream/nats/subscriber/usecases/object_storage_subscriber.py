@@ -1,11 +1,6 @@
 from collections.abc import AsyncIterator, Iterable
 from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-    Optional,
-    cast,
-)
+from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
 
 import anyio
 from nats.errors import TimeoutError
@@ -26,15 +21,14 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
 
-    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsObjMessage
     from faststream.nats.schemas import ObjWatch
-    from faststream.nats.subscriber.config import (
-        NatsSubscriberConfig,
-        NatsSubscriberSpecificationConfig,
-    )
+    from faststream.nats.subscriber.config import NatsSubscriberConfig
+
 
 OBJECT_STORAGE_CONTEXT_KEY = "__object_storage"
 
@@ -49,8 +43,8 @@ class ObjStoreWatchSubscriber(
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        specification: "NatsSubscriberSpecificationConfig",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[ObjectInfo]",
         *,
         obj_watch: "ObjWatch",
     ) -> None:
@@ -63,11 +57,7 @@ class ObjStoreWatchSubscriber(
         self.obj_watch_conn = None
 
     @override
-    async def get_one(
-        self,
-        *,
-        timeout: float = 5,
-    ) -> Optional["NatsObjMessage"]:
+    async def get_one(self, *, timeout: float = 5) -> Optional["NatsObjMessage"]:
         assert (  # nosec B101
             not self.calls
         ), "You can't use `get_one` method if subscriber has registered handlers."
@@ -89,26 +79,25 @@ class ObjStoreWatchSubscriber(
         else:
             fetch_sub = self._fetch_sub
 
-        raw_message = None
+        msg = None
         sleep_interval = timeout / 10
         with anyio.move_on_after(timeout):
             while (  # noqa: ASYNC110
-                # type: ignore[no-untyped-call]
-                raw_message := await fetch_sub.obj.updates(timeout)
+                msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
             ) is None:
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.fd_config.context
 
-        msg: NatsObjMessage = await process_msg(
-            msg=raw_message,
-            middlewares=(
-                m(raw_message, context=context) for m in self._broker_middlewares
+        return cast(
+            "NatsObjMessage",
+            await process_msg(
+                msg=msg,
+                middlewares=(m(msg, context=context) for m in self._broker_middlewares),
+                parser=self._parser,
+                decoder=self._decoder,
             ),
-            parser=self._parser,
-            decoder=self._decoder,
         )
-        return msg
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
@@ -136,28 +125,29 @@ class ObjStoreWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
         while True:
-            raw_message = None
+            msg = None
             with anyio.move_on_after(timeout):
                 while (  # noqa: ASYNC110
-                    # type: ignore[no-untyped-call]
-                    raw_message := await fetch_sub.obj.updates(timeout)
+                    msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if raw_message is None:
+            if msg is None:
                 continue
 
             context = self._outer_config.fd_config.context
 
-            msg: NatsObjMessage = await process_msg(  # type: ignore[assignment]
-                msg=raw_message,
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
+            yield cast(
+                "NatsObjMessage",
+                await process_msg(
+                    msg=msg,
+                    middlewares=(
+                        m(msg, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
             )
-            yield msg
 
     @override
     async def _create_subscription(self) -> None:
@@ -202,7 +192,7 @@ class ObjStoreWatchSubscriber(
             "StreamMessage[ObjectInfo]",
             Doc("Message requiring reply"),
         ],
-    ) -> Iterable["BasePublisherProto"]:
+    ) -> Iterable["PublisherProto"]:
         """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
         return ()
 

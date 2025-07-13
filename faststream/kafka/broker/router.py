@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -609,12 +609,7 @@ class KafkaRouter(
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence[
-                Union[
-                    "BrokerMiddleware[ConsumerRecord]",
-                    "BrokerMiddleware[tuple[ConsumerRecord, ...]]",
-                ]
-            ],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

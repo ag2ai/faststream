@@ -8,14 +8,15 @@ from faststream.exceptions import (
     NackMessage,
     RejectMessage,
 )
-from faststream.middlewares.acknowledgement.conf import AckPolicy
+
+from .config import AckPolicy
 
 if TYPE_CHECKING:
     from types import TracebackType
 
     from faststream._internal.basic_types import AnyDict, AsyncFuncAny
     from faststream._internal.context.repository import ContextRepo
-    from faststream._internal.di import LoggerState
+    from faststream._internal.logger import LoggerState
     from faststream.message import StreamMessage
 
 

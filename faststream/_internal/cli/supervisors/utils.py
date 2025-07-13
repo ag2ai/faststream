@@ -19,12 +19,13 @@ multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")
 
 
-HANDLED_SIGNALS = (
+HANDLED_SIGNALS: tuple[int, ...] = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
 if IS_WINDOWS:  # pragma: py-not-win32
-    HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
+    # Windows signal 21. Sent by Ctrl+Break.
+    HANDLED_SIGNALS += (signal.SIGBREAK,)  # type: ignore[attr-defined]
 
 
 def set_exit(

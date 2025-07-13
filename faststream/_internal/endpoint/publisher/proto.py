@@ -1,21 +1,19 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
     Protocol,
 )
 
-from faststream._internal.endpoint.usecase import Endpoint
-from faststream._internal.types import MsgType
+from faststream._internal.types import PublishCommandType_contra
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.response import PublishCommand
 
 
-class BasePublisherProto(Protocol):
+class PublisherProto(Protocol[PublishCommandType_contra]):
     @abstractmethod
     async def publish(
         self,
@@ -33,7 +31,7 @@ class BasePublisherProto(Protocol):
     @abstractmethod
     async def _publish(
         self,
-        cmd: "PublishCommand",
+        cmd: "PublishCommandType_contra",
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -53,10 +51,3 @@ class BasePublisherProto(Protocol):
     ) -> Any | None:
         """Publishes a message synchronously."""
         ...
-
-
-class PublisherProto(Endpoint[MsgType], BasePublisherProto):
-    _middlewares: Sequence["PublisherMiddleware"]
-
-    @abstractmethod
-    async def start(self) -> None: ...

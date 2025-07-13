@@ -12,7 +12,6 @@ from typing import (
     overload,
 )
 
-from fast_depends.core import CallModel
 from fast_depends.utils import (
     is_coroutine_callable,
     run_async as call_or_await,
@@ -27,7 +26,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "call_or_await",
-    "drop_response_type",
     "fake_context",
     "to_async",
 )
@@ -97,11 +95,6 @@ class FakeContext:
     ) -> None:
         if exc_val:
             raise exc_val
-
-
-def drop_response_type(model: CallModel) -> CallModel:
-    setattr(model.serializer, "response_callback", None)  # noqa: B010
-    return model
 
 
 async def return_input(x: Any) -> Any:

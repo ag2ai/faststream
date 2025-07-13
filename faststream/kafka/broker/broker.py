@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
@@ -15,7 +16,8 @@ import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
-from typing_extensions import override
+from aiokafka.structs import RecordMetadata
+from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -38,12 +40,10 @@ from .registrator import KafkaRegistrator
 Partition = TypeVar("Partition")
 
 if TYPE_CHECKING:
-    import asyncio
     from types import TracebackType
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
-    from aiokafka.structs import RecordMetadata
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from typing_extensions import TypedDict
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -175,7 +175,7 @@ if TYPE_CHECKING:
 class KafkaBroker(
     KafkaRegistrator,
     BrokerUsecase[
-        Union[aiokafka.ConsumerRecord, tuple[aiokafka.ConsumerRecord, ...]],
+        aiokafka.ConsumerRecord | tuple[aiokafka.ConsumerRecord, ...],
         Callable[..., aiokafka.AIOKafkaConsumer],
     ],
 ):
@@ -204,7 +204,7 @@ class KafkaBroker(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),
+        ] = DefaultPartitioner(),  # noqa: B008
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -215,9 +215,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence[
-            "BrokerMiddleware[ConsumerRecord | tuple[ConsumerRecord, ...]]"
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[ConsumerRecord]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -436,17 +434,32 @@ class KafkaBroker(
     @override
     async def _connect(self) -> Callable[..., aiokafka.AIOKafkaConsumer]:
         await self.config.connect(**self._connection_kwargs)
-        return self.config.builder
+        return self.config.broker_config.builder
 
+    async def stop(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await super().stop(exc_type, exc_val, exc_tb)
+        await self.config.disconnect()
+        self._connection = None
+
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
     async def close(
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        await super().close(exc_type, exc_val, exc_tb)
-        await self.config.disconnect()
-        self._connection = None
+        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Connect broker to Kafka and startup all subscribers."""
@@ -496,7 +509,7 @@ class KafkaBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+    ) -> asyncio.Future[RecordMetadata] | RecordMetadata:
         """Publish message directly.
 
         This method allows you to publish message in not AsyncAPI-documented way. You can use it in another frameworks
@@ -605,7 +618,7 @@ class KafkaBroker(
         )
         return msg
 
-    @overload
+    @overload  # type: ignore[override]
     async def publish_batch(
         self,
         *messages: "SendableMessage",

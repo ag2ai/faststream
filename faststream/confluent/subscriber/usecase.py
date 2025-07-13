@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    cast,
 )
 
 import anyio
@@ -20,14 +21,15 @@ from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import TopicPartition
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
+    from faststream.confluent.message import KafkaMessage
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
-    from .specification import KafkaSubscriberSpecification
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -43,7 +45,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        specification: "KafkaSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[MsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
@@ -90,8 +92,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         if self.calls:
             self.add_task(self._consume())
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.consumer is not None:
             await self.consumer.stop()
@@ -113,7 +115,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         context = self._outer_config.fd_config.context
 
         return await process_msg(
-            msg=raw_message,  # type: ignore[arg-type]
+            msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
@@ -122,7 +124,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
         assert self.consumer, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -137,19 +139,23 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
             context = self._outer_config.fd_config.context
 
-            yield await process_msg(
-                msg=raw_message,  # type: ignore[arg-type]
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
+            yield cast(
+                "KafkaMessage",
+                await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context)
+                        for m in self._broker_middlewares
+                    ),
+                    parser=self._parser,
+                    decoder=self._decoder,
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
             )
 
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",
-    ) -> Sequence["BasePublisherProto"]:
+    ) -> Sequence["PublisherProto"]:
         return (
             KafkaFakePublisher(
                 self._outer_config.producer,
@@ -213,7 +219,7 @@ class DefaultSubscriber(LogicSubscriber[Message]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        specification: "KafkaSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Message]",
     ) -> None:
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
@@ -254,7 +260,7 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
-        specification: "KafkaSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[tuple[Message, ...]]",
         max_records: int | None,
     ) -> None:

@@ -2,12 +2,7 @@ import inspect
 from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from faststream._internal.types import MsgType
 from faststream._internal.utils.functions import return_input, to_async

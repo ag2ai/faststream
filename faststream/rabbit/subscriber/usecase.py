@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
+from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
@@ -14,33 +14,29 @@ from faststream.rabbit.publisher.fake import RabbitFakePublisher
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
-    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.endpoint.subscriber.specification import (
+        SubscriberSpecification,
+    )
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
-    from .config import (
-        RabbitSubscriberConfig,
-        RabbitSubscriberSpecificationConfig,
-    )
+    from .config import RabbitSubscriberConfig
 
 
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
-    app_id: str | None
     _outer_config: "RabbitBrokerConfig"
-
-    _consumer_tag: str | None
-    _queue_obj: Optional["RobustQueue"]
 
     def __init__(
         self,
         config: "RabbitSubscriberConfig",
-        specification: "RabbitSubscriberSpecificationConfig",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[IncomingMessage]",
     ) -> None:
         parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
@@ -58,12 +54,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         self.__no_ack = config.ack_first
 
-        self._consumer_tag = None
-        self._queue_obj = None
+        self._consumer_tag: str | None = None
+        self._queue_obj: RobustQueue | None = None
         self.channel = config.channel
 
     @property
-    def app_id(self) -> str:
+    def app_id(self) -> str | None:
         return self._outer_config.app_id
 
     def routing(self) -> str:
@@ -111,8 +107,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         self._post_start()
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self._queue_obj is not None:
             if self._consumer_tag is not None:  # pragma: no branch
@@ -163,7 +159,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
         assert self._queue_obj, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -189,7 +185,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",
-    ) -> Sequence["BasePublisherProto"]:
+    ) -> Sequence["PublisherProto"]:
         return (
             RabbitFakePublisher(
                 self._outer_config.producer,

@@ -1,6 +1,8 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Generic, Optional, Union
+
+from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
@@ -10,7 +12,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.types import AsyncCallable, BrokerMiddleware
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
 
 
 @dataclass(kw_only=True)
@@ -18,11 +20,11 @@ class BrokerConfig:
     prefix: str = ""
     include_in_schema: bool | None = True
 
-    broker_middlewares: Iterable["BrokerMiddleware[Any]"] = ()
-    broker_parser: Optional["AsyncCallable"] = None
-    broker_decoder: Optional["AsyncCallable"] = None
+    broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
+    broker_parser: Optional["CustomCallable"] = None
+    broker_decoder: Optional["CustomCallable"] = None
 
-    producer: "ProducerProto" = field(default_factory=ProducerUnset)
+    producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)
     fd_config: "FastDependsConfig" = field(default_factory=FastDependsConfig)
 
@@ -49,24 +51,33 @@ class BrokerConfig:
         self.broker_middlewares = (middleware, *self.broker_middlewares)
 
 
-class ConfigComposition:
-    def __init__(self, *configs: "BrokerConfig") -> None:
-        self.configs = configs
+BrokerConfigType = TypeVar313(
+    "BrokerConfigType",
+    bound=BrokerConfig,
+    default=BrokerConfig,
+)
+
+ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
+
+
+class ConfigComposition(Generic[BrokerConfigType]):
+    def __init__(self, config: BrokerConfigType) -> None:
+        self.configs: tuple[ConfigType, ...] = (config,)
 
     @property
-    def broker_config(self) -> "BrokerConfig":
+    def broker_config(self) -> "BrokerConfigType":
         assert self.configs
-        return self.configs[0]
+        return self.configs[0]  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({', '.join(repr(c) for c in self.configs)})"
 
-    def add_config(self, config: "BrokerConfig") -> None:
+    def add_config(self, config: "ConfigType") -> None:
         self.configs = (config, *self.configs)
 
-    # broker priorrity options
+    # broker priority options
     @property
-    def producer(self) -> "ProducerProto":
+    def producer(self) -> "ProducerProto[Any]":
         return self.broker_config.producer
 
     @property
@@ -77,23 +88,33 @@ class ConfigComposition:
     def fd_config(self) -> "FastDependsConfig":
         return self.broker_config.fd_config
 
+    @fd_config.setter
+    def fd_config(self, value: "FastDependsConfig") -> None:
+        self.broker_config.fd_config = value
+
     @property
     def graceful_timeout(self) -> float | None:
         return self.broker_config.graceful_timeout
+
+    def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
+        self.broker_config.add_middleware(middleware)
+
+    def insert_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
+        self.broker_config.insert_middleware(middleware)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.broker_config, name)
 
     # first valuable option
     @property
-    def broker_parser(self) -> Optional["AsyncCallable"]:
+    def broker_parser(self) -> Optional["CustomCallable"]:
         for c in self.configs:
             if c.broker_parser:
                 return c.broker_parser
         return None
 
     @property
-    def broker_decoder(self) -> Optional["AsyncCallable"]:
+    def broker_decoder(self) -> Optional["CustomCallable"]:
         for c in self.configs:
             if c.broker_decoder:
                 return c.broker_decoder
@@ -116,9 +137,9 @@ class ConfigComposition:
         return all(c.include_in_schema is not False for c in self.configs)
 
     @property
-    def broker_middlewares(self) -> Iterable["BrokerMiddleware[Any]"]:
+    def broker_middlewares(self) -> Sequence["BrokerMiddleware[Any]"]:
         return [m for c in self.configs for m in c.broker_middlewares]
 
     @property
     def broker_dependencies(self) -> Iterable["Dependant"]:
-        return [b for c in self.configs for b in c.broker_dependencies]
+        return (b for c in self.configs for b in c.broker_dependencies)

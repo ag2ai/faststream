@@ -2,18 +2,16 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from typing_extensions import override
 
+from faststream._internal.endpoint.subscriber import (
+    SubscriberSpecification,
+    SubscriberUsecase,
+)
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream.redis.message import (
     UnifyRedisDict,
 )
@@ -22,14 +20,13 @@ from faststream.redis.publisher.fake import RedisFakePublisher
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
-    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.subscriber.config import RedisSubscriberConfig
-    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -48,7 +45,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     def _make_response_publisher(
         self,
         message: "BrokerStreamMessage[UnifyRedisDict]",
-    ) -> Sequence["BasePublisherProto"]:
+    ) -> Sequence["PublisherProto"]:
         return (
             RedisFakePublisher(
                 self._outer_config.producer,
@@ -121,25 +118,25 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             "message_id": getattr(message, "message_id", ""),
         }
 
-    async def consume_one(self, msg: "BrokerStreamMessage") -> None:
+    async def consume_one(self, msg: Any) -> None:
         await self.consume(msg)
 
 
-class ConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], LogicSubscriber):
+class ConcurrentSubscriber(
+    ConcurrentMixin["BrokerStreamMessage[Any]"], LogicSubscriber
+):
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
         max_workers: int,
     ) -> None:
         super().__init__(config, specification, calls, max_workers=max_workers)
 
-        self._client = None
-
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
 
-    async def consume_one(self, msg: "BrokerStreamMessage") -> None:
+    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
         await self._put_msg(msg)

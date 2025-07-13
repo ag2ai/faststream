@@ -43,7 +43,9 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
     @property
     def include_in_schema(self) -> bool:
-        return self._outer_config.include_in_schema and self.config.include_in_schema
+        return bool(
+            self._outer_config.include_in_schema and self.config.include_in_schema
+        )
 
     @property
     def description(self) -> str | None:

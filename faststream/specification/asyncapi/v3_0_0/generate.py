@@ -1,3 +1,4 @@
+import string
 import warnings
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
@@ -21,10 +22,16 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     Server,
     Tag,
 )
+from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
+    OperationBinding,
+    http as http_bindings,
+)
+from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
+    from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema.extra import (
         Contact as SpecContact,
         ContactDict,
@@ -43,13 +50,14 @@ def get_app_schema(
     title: str,
     app_version: str,
     schema_version: str,
-    description: str,
+    description: str | None,
     terms_of_service: Optional["AnyHttpUrl"],
     contact: Union["SpecContact", "ContactDict", "AnyDict"] | None,
     license: Union["SpecLicense", "LicenseDict", "AnyDict"] | None,
     identifier: str | None,
     tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]] | None,
     external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
+    http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
     servers = get_broker_server(broker)
@@ -62,6 +70,9 @@ def get_app_schema(
         channel.servers = [
             {"$ref": f"#/servers/{server_name}"} for server_name in list(servers.keys())
         ]
+    added_channels, added_operations = get_asgi_routes(http_handlers)
+    channels.update(added_channels)
+    operations.update(added_operations)
 
     for channel_name, channel in channels.items():
         msgs: dict[str, Message | Reference] = {}
@@ -202,6 +213,44 @@ def get_broker_channels(
             )
 
     return channels, operations
+
+
+def get_asgi_routes(
+    http_handlers: list[tuple[str, "HttpHandler"]],
+) -> tuple[dict[str, Channel], dict[str, Operation]]:
+    """Get the ASGI routes for an application."""
+    channels: dict[str, Channel] = {}
+    operations: dict[str, Operation] = {}
+    for path, asgi_app in http_handlers:
+        if asgi_app.include_in_schema:
+            channel = Channel(
+                description=asgi_app.description,
+                address=path,
+                messages={},
+            )
+            channel_name = "".join(
+                char
+                for char in path.strip("/").replace("/", "_")
+                if char in string.ascii_letters + string.digits + "_"
+            )
+            channel_name = f"{channel_name}:HttpChannel"
+            channels[channel_name] = channel
+            operation = Operation(
+                action=Action.RECEIVE,
+                channel=Reference(**{"$ref": f"#/channels/{channel_name}"}),
+                bindings=OperationBinding(
+                    http=http_bindings.OperationBinding(
+                        method=_get_http_binding_method(asgi_app.methods),
+                        bindingVersion="0.3.0",
+                    )
+                ),
+            )
+            operations[channel_name] = operation
+    return channels, operations
+
+
+def _get_http_binding_method(methods: Sequence[str]) -> str:
+    return next((method for method in methods if method != "HEAD"), "HEAD")
 
 
 def _resolve_msg_payloads(

@@ -14,9 +14,10 @@ from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import Registrator
+from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
+from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.publisher.factory import create_publisher
 from faststream.kafka.subscriber.factory import create_subscriber
 from faststream.middlewares import AckPolicy
@@ -33,43 +34,26 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.kafka.message import KafkaMessage
-    from faststream.kafka.publisher.specification import (
-        SpecificationBatchPublisher,
-        SpecificationDefaultPublisher,
+    from faststream.kafka.publisher.usecase import (
+        BatchPublisher,
+        DefaultPublisher,
     )
-    from faststream.kafka.subscriber.specification import (
-        SpecificationBatchSubscriber,
-        SpecificationConcurrentBetweenPartitionsSubscriber,
-        SpecificationConcurrentDefaultSubscriber,
-        SpecificationDefaultSubscriber,
+    from faststream.kafka.subscriber.usecase import (
+        BatchSubscriber,
+        ConcurrentBetweenPartitionsSubscriber,
+        ConcurrentDefaultSubscriber,
+        DefaultSubscriber,
     )
 
 
 class KafkaRegistrator(
     Registrator[
-        Union[
-            ConsumerRecord,
-            tuple[ConsumerRecord, ...],
-        ]
+        ConsumerRecord | tuple[ConsumerRecord, ...],
+        KafkaBrokerConfig,
     ],
 ):
     """Includable to KafkaBroker router."""
-
-    config: "KafkaBrokerConfig"
-
-    _subscribers: list[
-        Union[
-            "SpecificationBatchSubscriber",
-            "SpecificationDefaultSubscriber",
-            "SpecificationConcurrentDefaultSubscriber",
-            "SpecificationConcurrentBetweenPartitionsSubscriber",
-        ]
-    ]
-    _publishers: list[
-        Union["SpecificationBatchPublisher", "SpecificationDefaultPublisher"],
-    ]
 
     @overload  # type: ignore[override]
     def subscriber(
@@ -450,7 +434,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationDefaultSubscriber": ...
+    ) -> "DefaultSubscriber": ...
 
     @overload
     def subscriber(
@@ -831,7 +815,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationBatchSubscriber": ...
+    ) -> "BatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -1213,8 +1197,8 @@ class KafkaRegistrator(
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
     ]: ...
 
     @override
@@ -1608,12 +1592,12 @@ class KafkaRegistrator(
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationDefaultSubscriber",
-        "SpecificationBatchSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
-        "SpecificationConcurrentBetweenPartitionsSubscriber",
+        "DefaultSubscriber",
+        "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
+        "ConcurrentBetweenPartitionsSubscriber",
     ]:
-        sub = create_subscriber(
+        subscriber = create_subscriber(
             *topics,
             batch=batch,
             max_workers=max_workers,
@@ -1649,36 +1633,30 @@ class KafkaRegistrator(
             auto_commit=auto_commit,
             # subscriber args
             no_reply=no_reply,
-            config=self.config,
+            config=cast("KafkaBrokerConfig", self.config),
             # Specification
             title_=title,
             description_=description,
             include_in_schema=include_in_schema,
         )
 
-        subscriber = super().subscriber(sub)
+        super().subscriber(subscriber)
 
-        if batch:
-            subscriber = cast("SpecificationBatchSubscriber", subscriber)
-
-        elif max_workers > 1:
-            if auto_commit:
-                subscriber = cast(
-                    "SpecificationConcurrentDefaultSubscriber", subscriber
-                )
-            else:
-                subscriber = cast(
-                    "SpecificationConcurrentBetweenPartitionsSubscriber", subscriber
-                )
-        else:
-            subscriber = cast("SpecificationDefaultSubscriber", subscriber)
-
-        return subscriber.add_call(
+        subscriber.add_call(
             parser_=parser,
             decoder_=decoder,
             dependencies_=dependencies,
             middlewares_=middlewares,
         )
+
+        if batch:
+            return cast("BatchSubscriber", subscriber)
+
+        if max_workers > 1:
+            if auto_commit:
+                return cast("ConcurrentDefaultSubscriber", subscriber)
+            return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
+        return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
     def publisher(
@@ -1760,7 +1738,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationDefaultPublisher": ...
+    ) -> "DefaultPublisher": ...
 
     @overload
     def publisher(
@@ -1842,7 +1820,7 @@ class KafkaRegistrator(
             bool,
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
-    ) -> "SpecificationBatchPublisher": ...
+    ) -> "BatchPublisher": ...
 
     @overload
     def publisher(
@@ -1925,8 +1903,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]: ...
 
     @override
@@ -2010,8 +1988,8 @@ class KafkaRegistrator(
             Doc("Whether to flush the producer or not on every publish call."),
         ] = False,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]:
         """Creates long-living and Specification-documented publisher object.
 
@@ -2032,7 +2010,7 @@ class KafkaRegistrator(
             headers=headers,
             reply_to=reply_to,
             # publisher-specific
-            config=self.config,
+            config=cast("KafkaBrokerConfig", self.config),
             middlewares=middlewares,
             # Specification
             title_=title,
@@ -2041,11 +2019,11 @@ class KafkaRegistrator(
             include_in_schema=include_in_schema,
         )
 
-        publisher = super().publisher(publisher)
+        super().publisher(publisher)
 
         if batch:
-            return cast("SpecificationBatchPublisher", publisher)
-        return cast("SpecificationDefaultPublisher", publisher)
+            return cast("BatchPublisher", publisher)
+        return cast("DefaultPublisher", publisher)
 
     @override
     def include_router(
@@ -2054,7 +2032,7 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable[
+        middlewares: Sequence[
             "BrokerMiddleware[ConsumerRecord | tuple[ConsumerRecord, ...]]"
         ] = (),
         include_in_schema: bool | None = None,

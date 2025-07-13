@@ -33,16 +33,27 @@ jobs:
       - run: cd docs && python docs.py build
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
       - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
-      - name: Configure Git user
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
       - run: echo $VERSION
       - run: echo $IS_RC
+      - name: Configure Git user
+        run: |
+          git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
+          git config --local user.name "faststream-actions[bot]"
       - run: |
           if [ "$IS_RC" == "False" ]; then
             cd docs && mike deploy -F mkdocs.yml --update-aliases $VERSION latest
-            mike set-default --push --allow-empty -F mkdocs.yml latest
+            mike set-default --allow-empty -F mkdocs.yml latest
           else
-            cd docs && mike deploy --push -F mkdocs.yml --update-aliases $VERSION
+            cd docs && mike deploy -F mkdocs.yml --update-aliases $VERSION
           fi
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: gh-pages
+          file_pattern: "docs/site/**"
+          push_options: "--force"  # force push to stay with clear gh-pages branch history
+          commit_message: "docs: deploy docs"
+          commit_user_name: faststream-actions[bot]
+          commit_user_email: faststream-actions[bot]@users.noreply.github.com
+          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>

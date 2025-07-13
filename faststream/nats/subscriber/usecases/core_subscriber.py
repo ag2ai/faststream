@@ -1,9 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-    Optional,
-)
+from typing import TYPE_CHECKING, Annotated, Any, Optional
 
 from nats.errors import TimeoutError
 from typing_extensions import Doc, override
@@ -19,13 +15,11 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.aio.subscription import Subscription
 
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
-    from faststream.nats.subscriber.config import (
-        NatsSubscriberConfig,
-        NatsSubscriberSpecificationConfig,
-    )
+    from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
 class CoreSubscriber(DefaultSubscriber["Msg"]):
@@ -35,8 +29,8 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        specification: "NatsSubscriberSpecificationConfig",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[Msg]",
         *,
         queue: str,
     ) -> None:

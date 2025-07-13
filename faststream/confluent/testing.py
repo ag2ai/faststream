@@ -1,7 +1,7 @@
 from collections.abc import Callable, Generator, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream.confluent.publisher.specification import SpecificationPublisher
+    from faststream.confluent.publisher.usecase import LogicPublisher
     from faststream.confluent.response import KafkaPublishCommand
     from faststream.confluent.subscriber.usecase import LogicSubscriber
 
@@ -55,10 +55,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: KafkaBroker,
-        publisher: "SpecificationPublisher[Any, Any]",
+        publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: LogicSubscriber[Any] | None = None
         for handler in broker.subscribers:
+            handler = cast("LogicSubscriber[Any]", handler)
             if _is_handler_matches(
                 handler,
                 topic=publisher.topic,
@@ -109,14 +110,11 @@ class FakeProducer(AsyncConfluentFastProducer):
     def __bool__(self) -> bool:
         return True
 
-    async def ping(self, timeout: float) -> None:
+    async def ping(self, timeout: float) -> bool:
         return True
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None:
+    async def publish(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a message to the Kafka broker."""
         incoming = build_message(
             message=cmd.body,
@@ -131,7 +129,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("Iterable[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
@@ -141,13 +139,11 @@ class FakeProducer(AsyncConfluentFastProducer):
 
             await self._execute_handler(msg_to_send, cmd.destination, handler)
 
-    async def publish_batch(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None:
+    @override
+    async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("Iterable[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
@@ -173,10 +169,7 @@ class FakeProducer(AsyncConfluentFastProducer):
                     await self._execute_handler(m, cmd.destination, handler)
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> "MockConfluentMessage":
+    async def request(self, cmd: "KafkaPublishCommand") -> "MockConfluentMessage":
         incoming = build_message(
             message=cmd.body,
             topic=cmd.destination,
@@ -189,7 +182,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("Iterable[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
@@ -226,7 +219,7 @@ class MockConfluentMessage:
         self,
         raw_msg: bytes,
         topic: str,
-        key: bytes,
+        key: bytes | str,
         headers: list[tuple[str, bytes]],
         offset: int,
         partition: int,
@@ -236,7 +229,12 @@ class MockConfluentMessage:
     ) -> None:
         self._raw_msg = raw_msg
         self._topic = topic
-        self._key = key
+
+        if isinstance(key, str):
+            self._key = key.encode()
+        else:
+            self._key = key
+
         self._headers = headers
         self._error = error
         self._offset = offset
@@ -278,7 +276,7 @@ def build_message(
     correlation_id: str | None = None,
     partition: int | None = None,
     timestamp_ms: int | None = None,
-    key: bytes | None = None,
+    key: bytes | str | None = None,
     headers: dict[str, str] | None = None,
     reply_to: str = "",
     serializer: Optional["SerializerProto"] = None,

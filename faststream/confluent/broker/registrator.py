@@ -9,17 +9,18 @@ from typing import (
     overload,
 )
 
+from confluent_kafka import Message
 from typing_extensions import override
 
-from faststream._internal.broker.abc_broker import Registrator
+from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.publisher.factory import create_publisher
 from faststream.confluent.subscriber.factory import create_subscriber
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from confluent_kafka import Message
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.types import (
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.confluent.publisher.usecase import (
         BatchPublisher,
@@ -43,22 +43,9 @@ if TYPE_CHECKING:
 
 
 class KafkaRegistrator(
-    Registrator[
-        Union[
-            "Message",
-            tuple["Message", ...],
-        ]
-    ],
+    Registrator[Message | tuple[Message, ...], KafkaBrokerConfig],
 ):
     """Includable to KafkaBroker router."""
-
-    config: "KafkaBrokerConfig"
-    _subscribers: list[  # type: ignore[assignment]
-        Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"],
-    ]
-    _publishers: list[  # type: ignore[assignment]
-        Union["BatchPublisher", "DefaultPublisher"]
-    ]
 
     @overload  # type: ignore[override]
     def subscriber(
@@ -97,7 +84,7 @@ class KafkaRegistrator(
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-    ) -> "SpecificationBatchSubscriber": ...
+    ) -> "BatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -382,7 +369,7 @@ class KafkaRegistrator(
             ack_policy=ack_policy,
             no_ack=no_ack,
             no_reply=no_reply,
-            config=self.config,
+            config=cast("KafkaBrokerConfig", self.config),
             # Specification
             title_=title,
             description_=description,
@@ -410,7 +397,7 @@ class KafkaRegistrator(
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -430,7 +417,7 @@ class KafkaRegistrator(
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -450,7 +437,7 @@ class KafkaRegistrator(
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -473,7 +460,7 @@ class KafkaRegistrator(
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -534,7 +521,7 @@ class KafkaRegistrator(
             headers=headers,
             reply_to=reply_to,
             # publisher-specific
-            config=self.config,
+            config=cast("KafkaBrokerConfig", self.config),
             middlewares=middlewares,
             # Specification
             title_=title,
@@ -544,12 +531,11 @@ class KafkaRegistrator(
             autoflush=autoflush,
         )
 
-        if batch:
-            publisher = cast("BatchPublisher", publisher)
-        else:
-            publisher = cast("DefaultPublisher", publisher)
+        super().publisher(publisher)
 
-        return super().publisher(publisher)  # type: ignore[return-value,arg-type]
+        if batch:
+            return cast("BatchPublisher", publisher)
+        return cast("DefaultPublisher", publisher)
 
     @override
     def include_router(
@@ -558,7 +544,7 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):

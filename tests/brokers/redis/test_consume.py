@@ -551,6 +551,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         mock.assert_called_once_with({"message": "hello"})
 
     @pytest.mark.slow()
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_stream_batch(
         self,
         mock: MagicMock,

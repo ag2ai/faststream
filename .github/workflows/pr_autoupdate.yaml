@@ -1,0 +1,62 @@
+name: Run linting, update API References
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  workflows: write
+
+jobs:
+  check-linting-and-docs-changes:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set $PY environment variable
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -ux
+          uv pip install --system --group dev -e .
+
+      - uses: pre-commit/action@v3.0.1
+        continue-on-error: true
+        with:
+          extra_args: --hook-stage manual --all-files
+
+      - name: Run build docs
+        run: cd docs && python docs.py build
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "docs: generate API References"
+          commit_user_name: faststream-actions[bot]
+          commit_user_email: faststream-actions[bot]@users.noreply.github.com
+          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>

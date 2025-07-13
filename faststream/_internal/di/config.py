@@ -3,12 +3,12 @@ from collections.abc import Awaitable, Callable, Mapping, Reversible, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
-from fast_depends import Provider, inject
+from fast_depends import Provider
 from fast_depends.core import CallModel, build_call_model
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
-from faststream._internal.utils.functions import to_async
+from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -29,7 +29,7 @@ class BuiltDependant:
 class FastDependsConfig:
     use_fastdepends: bool = True
 
-    provider: Optional["Provider"] = field(default_factory=Provider)
+    provider: "Provider" = field(default_factory=Provider)
     serializer: Optional["SerializerProto"] = field(default_factory=lambda: EMPTY)
 
     context: "ContextRepo" = field(default_factory=ContextRepo)
@@ -43,7 +43,7 @@ class FastDependsConfig:
         if self.serializer is EMPTY:
             from fast_depends.pydantic import PydanticSerializer
 
-            return PydanticSerializer()
+            return PydanticSerializer(use_fastdepends_errors=False)
 
         return self.serializer
 
@@ -52,7 +52,7 @@ class FastDependsConfig:
 
         return FastDependsConfig(
             use_fastdepends=use_fd,
-            provider=value.provider or self.provider,
+            provider=value.provider,
             serializer=self.serializer or value.serializer,
             context=self.context,
             call_decorators=(*value.call_decorators, *self.call_decorators),
@@ -63,8 +63,8 @@ class FastDependsConfig:
         self,
         call: Callable[..., Any],
         *,
-        dependencies: Sequence["Dependant"],
-        call_decorators: Reversible["Decorator"],
+        dependencies: Sequence["Dependant"] = (),
+        call_decorators: Reversible["Decorator"] = (),
     ) -> BuiltDependant:
         for d in reversed((*call_decorators, *self.call_decorators)):
             call = d(call)
@@ -75,8 +75,6 @@ class FastDependsConfig:
             dependent = self.get_dependent(wrapped_call, dependencies)
 
         else:
-            assert self.provider
-
             dependent = build_call_model(
                 wrapped_call,
                 extra_dependencies=dependencies,
@@ -85,7 +83,7 @@ class FastDependsConfig:
             )
 
             if self.use_fastdepends:
-                wrapper = inject(None, context__=self.context)
+                wrapper = apply_types(None, context__=self.context)
                 wrapped_call = wrapper(func=wrapped_call, model=dependent)
 
             wrapped_call = _unwrap_message_to_fast_depends_decorator(

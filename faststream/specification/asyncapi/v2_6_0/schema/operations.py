@@ -30,7 +30,7 @@ class Operation(BaseModel):
 
     bindings: OperationBinding | None = None
 
-    message: Message | Reference
+    message: Message | Reference | None
 
     security: dict[str, list[str]] | None = None
 

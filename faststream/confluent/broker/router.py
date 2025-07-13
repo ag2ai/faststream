@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -44,7 +44,7 @@ class KafkaPublisher(ArgsContainer):
         self,
         topic: str,
         *,
-        key: bytes | Any | None = None,
+        key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
@@ -326,12 +326,7 @@ class KafkaRouter(
         handlers: Iterable[KafkaRoute] = (),
         *,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence[
-            Union[
-                "BrokerMiddleware[Message]",
-                "BrokerMiddleware[tuple[Message, ...]]",
-            ]
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[Message]"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,

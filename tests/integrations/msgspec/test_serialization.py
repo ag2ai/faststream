@@ -71,7 +71,7 @@ async def test_msgspec_serialize(
     broker_cls: type[BrokerUsecase[Any, Any]],
     test_cls: type[TestBroker[Any]],
 ) -> None:
-    broker = broker_cls(serializer=MsgSpecSerializer)
+    broker = broker_cls(serializer=MsgSpecSerializer())
 
     @broker.subscriber("test")
     async def handler(m: message_type) -> None:

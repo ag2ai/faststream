@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Protocol
 
+from faststream._internal.types import PublishCommandType_contra
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
@@ -8,22 +9,22 @@ if TYPE_CHECKING:
     from faststream.response import PublishCommand
 
 
-class ProducerProto(Protocol):
+class ProducerProto(Protocol[PublishCommandType_contra]):
     _parser: "AsyncCallable"
     _decoder: "AsyncCallable"
 
     @abstractmethod
-    async def publish(self, cmd: "PublishCommand") -> Any | None:
+    async def publish(self, cmd: "PublishCommandType_contra") -> Any:
         """Publishes a message asynchronously."""
         ...
 
     @abstractmethod
-    async def request(self, cmd: "PublishCommand") -> Any:
+    async def request(self, cmd: "PublishCommandType_contra") -> Any:
         """Publishes a message synchronously."""
         ...
 
     @abstractmethod
-    async def publish_batch(self, cmd: "PublishCommand") -> Any:
+    async def publish_batch(self, cmd: "PublishCommandType_contra") -> Any:
         """Publishes a messages batch asynchronously."""
         ...
 

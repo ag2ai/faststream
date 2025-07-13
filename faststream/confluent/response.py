@@ -17,7 +17,7 @@ class KafkaResponse(Response):
         headers: Optional["AnyDict"] = None,
         correlation_id: str | None = None,
         timestamp_ms: int | None = None,
-        key: bytes | None = None,
+        key: bytes | str | None = None,
     ) -> None:
         super().__init__(
             body=body,

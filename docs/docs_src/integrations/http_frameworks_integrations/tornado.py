@@ -33,7 +33,7 @@ async def main():
     try:
         await asyncio.Event().wait()
     finally:
-        await broker.close()
+        await broker.stop()
 
 
 if __name__ == "__main__":

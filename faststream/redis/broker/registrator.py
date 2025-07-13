@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import Registrator
+from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.publisher.factory import create_publisher
+from faststream.redis.publisher.factory import PublisherType, create_publisher
 from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
 
 if TYPE_CHECKING:
@@ -21,21 +22,12 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.message import UnifyRedisMessage
-    from faststream.redis.publisher.specification import (
-        PublisherType,
-        SpecificationPublisher,
-    )
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
-class RedisRegistrator(Registrator[UnifyRedisDict]):
+class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     """Includable to RedisBroker router."""
-
-    config: "RedisBrokerConfig"
-    _subscribers: list["SubsciberType"]
-    _publishers: list["PublisherType"]
 
     @override
     def subscriber(  # type: ignore[override]
@@ -111,7 +103,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ):
+    ) -> SubsciberType:
         subscriber = create_subscriber(
             channel=channel,
             list=list,
@@ -121,14 +113,14 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             no_ack=no_ack,
             no_reply=no_reply,
             ack_policy=ack_policy,
-            config=self.config,
+            config=cast("RedisBrokerConfig", self.config),
             # AsyncAPI
             title_=title,
             description_=description,
             include_in_schema=include_in_schema,
         )
 
-        subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
+        super().subscriber(subscriber)
 
         return subscriber.add_call(
             parser_=parser or self._parser,
@@ -192,7 +184,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "SpecificationPublisher":
+    ) -> "PublisherType":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -200,26 +192,23 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
 
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
         """
-        return cast(
-            "SpecificationPublisher",
-            super().publisher(
-                create_publisher(
-                    channel=channel,
-                    list=list,
-                    stream=stream,
-                    headers=headers,
-                    reply_to=reply_to,
-                    # Specific
-                    config=self.config,
-                    middlewares=middlewares,
-                    # AsyncAPI
-                    title_=title,
-                    description_=description,
-                    schema_=schema,
-                    include_in_schema=include_in_schema,
-                ),
-            ),
+        publisher = create_publisher(
+            channel=channel,
+            list=list,
+            stream=stream,
+            headers=headers,
+            reply_to=reply_to,
+            # Specific
+            config=cast("RedisBrokerConfig", self.config),
+            middlewares=middlewares,
+            # AsyncAPI
+            title_=title,
+            description_=description,
+            schema_=schema,
+            include_in_schema=include_in_schema,
         )
+        super().publisher(publisher)
+        return publisher
 
     @override
     def include_router(
@@ -228,7 +217,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict]):
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable["BrokerMiddleware[UnifyRedisDict]"] = (),
+        middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RedisRegistrator):

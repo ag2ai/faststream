@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
@@ -8,6 +9,7 @@ from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
+from faststream.kafka.response import KafkaPublishCommand
 from faststream.message import encode_message
 
 from .state import EmptyProducerState, ProducerState, RealProducer
@@ -20,10 +22,9 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import CustomCallable
-    from faststream.kafka.response import KafkaPublishCommand
 
 
-class AioKafkaFastProducer(ProducerProto):
+class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     async def connect(
         self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
     ) -> None: ...
@@ -34,20 +35,25 @@ class AioKafkaFastProducer(ProducerProto):
         return False
 
     @property
-    def closed(self) -> bool: ...
+    def closed(self) -> bool:
+        return True
 
-    async def flush(self) -> None: ...
+    async def flush(self) -> None:
+        return None
 
+    @abstractmethod
     async def publish(
         self, cmd: "KafkaPublishCommand"
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
+    @abstractmethod
     async def publish_batch(
         self, cmd: "KafkaPublishCommand"
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     async def request(self, cmd: "KafkaPublishCommand") -> Any:
-        raise NotImplementedError
+        msg = "Kafka doesn't support `request` method without test client."
+        raise FeatureNotSupportedException(msg)
 
 
 class AioKafkaFastProducerImpl(AioKafkaFastProducer):
@@ -88,9 +94,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         await self._producer.flush()
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
+    async def publish(
+        self, cmd: "KafkaPublishCommand"
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body, serializer=self.serializer)
@@ -115,8 +120,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
     @override
     async def publish_batch(
-        self,
-        cmd: "KafkaPublishCommand",
+        self, cmd: "KafkaPublishCommand"
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a batch of messages to a topic."""
         batch = self._producer.producer.create_batch()
@@ -152,17 +156,11 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
             return await send_future
         return send_future
 
-    @override
-    async def request(
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> Any:
-        msg = "Kafka doesn't support `request` method without test client."
-        raise FeatureNotSupportedException(msg)
-
 
 class FakeAioKafkaFastProducer(AioKafkaFastProducer):
-    async def connect(self, producer: "AIOKafkaProducer") -> None:
+    async def connect(
+        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+    ) -> None:
         raise NotImplementedError
 
     async def disconnect(self) -> None:
@@ -186,7 +184,4 @@ class FakeAioKafkaFastProducer(AioKafkaFastProducer):
     async def publish_batch(
         self, cmd: "KafkaPublishCommand"
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
-        raise NotImplementedError
-
-    async def request(self, cmd: "KafkaPublishCommand") -> Any:
         raise NotImplementedError

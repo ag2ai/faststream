@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from faststream._internal.basic_types import SendableMessage
 from faststream.response.publish_type import PublishType
 
-from .proto import BasePublisherProto
+from .proto import PublisherProto
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AsyncFunc
@@ -15,13 +15,13 @@ if TYPE_CHECKING:
     from faststream.response.response import PublishCommand
 
 
-class FakePublisher(BasePublisherProto):
+class FakePublisher(PublisherProto):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
     def __init__(
         self,
         *,
-        producer: "ProducerProto",
+        producer: "ProducerProto[Any]",
     ) -> None:
         """Initialize an object."""
         self._producer = producer

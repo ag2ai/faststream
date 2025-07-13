@@ -13,7 +13,7 @@ class NatsFakePublisher(FakePublisher):
 
     def __init__(
         self,
-        producer: "ProducerProto",
+        producer: "ProducerProto[NatsPublishCommand]",
         subject: str,
     ) -> None:
         super().__init__(producer=producer)

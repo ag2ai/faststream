@@ -127,7 +127,7 @@ async def broker_lifespan(app):
     try:
         yield
     finally:
-        await broker.close()
+        await broker.stop()
 
 application = Starlette(
     ...,
@@ -160,7 +160,7 @@ application = Starlette(
         try:
             yield
         finally:
-            await broker.close()
+            await broker.stop()
 
     application = Starlette(
         routes=(
@@ -221,7 +221,7 @@ Start consumer with:
 faststream run serve_faststream:app
 ```
 
-It is advisable to use FastStream's router to keep `serve_faststream.py` clean and to ensure `django.setup()` is always called first. See [FastStream Router](https://faststream.airt.ai/latest/getting-started/routers/) for more information.
+It is advisable to use FastStream's router to keep `serve_faststream.py` clean and to ensure `django.setup()` is always called first. See [FastStream Router](https://faststream.ag2.ai/latest/getting-started/routers/) for more information.
 ## Start using Django's management command
 This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When management command runs, it automatically sets up Django and makes the ORM available.
 ```Python

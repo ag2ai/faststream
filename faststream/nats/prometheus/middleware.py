@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from nats.aio.msg import Msg
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class NatsPrometheusMiddleware(
-    PrometheusMiddleware[NatsPublishCommand, Union[Msg, Sequence[Msg]]]
+    PrometheusMiddleware[NatsPublishCommand, Msg | Sequence[Msg]]
 ):
     def __init__(
         self,

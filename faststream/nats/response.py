@@ -48,7 +48,7 @@ class NatsPublishCommand(PublishCommand):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         stream: str | None = None,
-        timeout: float | None = None,
+        timeout: float = 0.5,
         _publish_type: PublishType,
     ) -> None:
         super().__init__(

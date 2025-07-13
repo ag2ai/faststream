@@ -14,7 +14,7 @@ async def base_handler(body):
 async def lifespan(app: FastAPI):
     await broker.start()
     yield
-    await broker.close()
+    await broker.stop()
 
 app = FastAPI(lifespan=lifespan)
 

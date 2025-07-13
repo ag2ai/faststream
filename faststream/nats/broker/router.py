@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -357,7 +357,7 @@ class NatsRouter(
             ),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Router middlewares to apply to all routers' publishers/subscribers."),
         ] = (),
         routers: Annotated[

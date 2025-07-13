@@ -1,0 +1,30 @@
+name: Auto-fix Markdown code blocks
+
+permissions:
+  issues: write
+  pull-requests: write
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+jobs:
+  fix-md-code-blocks:
+    runs-on: ubuntu-latest
+    steps:
+      - id: fixer
+        uses: mahenzon/md-code-block-auto-lang@v1
+        with:
+          github-token: ${{ secrets.AUTOMERGE_TOKEN }}
+          language: python
+          silent: true
+
+      - name: Show fix result count
+        run: echo "Fixed ${{ steps.fixer.outputs.fixes }} code blocks"

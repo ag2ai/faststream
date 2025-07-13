@@ -8,21 +8,21 @@ from typing import (
 )
 
 from fast_depends import Provider
-from typing_extensions import Self
+from typing_extensions import Self, deprecated
 
+from faststream._internal.configs import BrokerConfigType
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
     MsgType,
 )
 
-from .abc_broker import Registrator
 from .pub_base import BrokerPublishMixin
+from .registrator import Registrator
 
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.configs import BrokerConfig
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
@@ -30,9 +30,9 @@ if TYPE_CHECKING:
 
 
 class BrokerUsecase(
-    Registrator[MsgType],
+    Registrator[MsgType, BrokerConfigType],
     BrokerPublishMixin[MsgType],
-    Generic[MsgType, ConnectionType],
+    Generic[MsgType, ConnectionType, BrokerConfigType],
 ):
     """Basic class for brokers-only.
 
@@ -44,7 +44,7 @@ class BrokerUsecase(
     def __init__(
         self,
         *,
-        config: "BrokerConfig",
+        config: BrokerConfigType,
         specification: "BrokerSpec",
         routers: Sequence["Registrator[MsgType]"],
         **connection_kwargs: Any,
@@ -86,13 +86,11 @@ class BrokerUsecase(
         exc_val: BaseException | None,
         exc_tb: Optional["TracebackType"],
     ) -> None:
-        await self.close(exc_type, exc_val, exc_tb)
+        await self.stop(exc_type, exc_val, exc_tb)
 
     def _update_fd_config(self, config: "FastDependsConfig") -> None:
         """Private method to change broker config state by outer application."""
-        self.config.broker_config.fd_config = (
-            config | self.config.broker_config.fd_config
-        )
+        self.config.fd_config = config | self.config.fd_config
 
     async def start(self) -> None:
         self._setup_logger()
@@ -124,7 +122,7 @@ class BrokerUsecase(
     async def _connect(self) -> ConnectionType:
         raise NotImplementedError
 
-    async def close(
+    async def stop(
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
@@ -132,9 +130,25 @@ class BrokerUsecase(
     ) -> None:
         """Closes the object."""
         for sub in self.subscribers:
-            await sub.close()
+            await sub.stop()
 
         self.running = False
+
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
+    async def close(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        """Closes the object."""
+        await self.stop(exc_type, exc_val, exc_tb)
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

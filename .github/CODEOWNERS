@@ -4,9 +4,20 @@
 # Global
 * @Lancetnik
 
+# Documentation
+/docs/ @kumaranvpl
+
 # Observability
 /faststream/opentelemetry/ @draincoder
 /faststream/prometheus/ @draincoder
 /tests/opentelemetry/ @draincoder
 /tests/prometheus/ @draincoder
 /docs/docs/en/getting-started/observability/ @draincoder
+
+# ASGI
+/faststream/asgi @Sehat1137
+/tests/asgi @Sehat1137
+
+# CLI
+/faststream/cli @Sehat1137
+/tests/cli @Sehat1137

@@ -8,7 +8,6 @@ from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
 
 from faststream import Context
-from faststream._internal._compat import PYDANTIC_V2
 from faststream._internal.broker import BrokerUsecase
 from tests.marks import PYDANTIC_V2, pydantic_v2
 

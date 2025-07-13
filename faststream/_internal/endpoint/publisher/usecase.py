@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from functools import partial
 from itertools import chain
 from typing import (
@@ -7,14 +7,12 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
-from typing_extensions import override
-
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
+from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import (
-    MsgType,
     P_HandlerParams,
     T_HandlerReturn,
 )
@@ -34,7 +32,7 @@ if TYPE_CHECKING:
     from .specification import PublisherSpecification
 
 
-class PublisherUsecase(PublisherProto[MsgType]):
+class PublisherUsecase(Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
     def __init__(
@@ -42,25 +40,14 @@ class PublisherUsecase(PublisherProto[MsgType]):
         config: "PublisherUsecaseConfig",
         specification: "PublisherSpecification",
     ) -> None:
+        super().__init__(config._outer_config)
+
         self.specification = specification
-
-        broker_config = config._outer_config
-        self._outer_config = broker_config
-
         self.middlewares = config.middlewares
 
         self._fake_handler = False
         self.mock: MagicMock | None = None
 
-    @property
-    def include_in_schema(self) -> bool:
-        return self._outer_config.include_in_schema and self.include_in_schema_
-
-    @property
-    def _producer(self) -> "ProducerProto":
-        return self._outer_config.producer
-
-    @override
     async def start(self) -> None:
         pass
 
@@ -81,46 +68,45 @@ class PublisherUsecase(PublisherProto[MsgType]):
 
     def __call__(
         self,
-        func: Callable[P_HandlerParams, T_HandlerReturn]
-        | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-    ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]:
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
-
         self.specification.add_call(handler._original_call)
-
         return handler
 
     async def _basic_publish(
         self,
         cmd: "PublishCommand",
         *,
+        producer: "ProducerProto[Any]",
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> Any:
-        pub: Callable[..., Awaitable[Any]] = self._producer.publish
+        pub = producer.publish
         for pub_m in self._build_middlewares_stack(_extra_middlewares):
             pub = partial(pub_m, pub)
-
         return await pub(cmd)
 
     async def _basic_publish_batch(
         self,
         cmd: "PublishCommand",
         *,
+        producer: "ProducerProto[Any]",
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> Any:
-        pub = self._producer.publish_batch
+        pub = producer.publish_batch
         for pub_m in self._build_middlewares_stack(_extra_middlewares):
             pub = partial(pub_m, pub)
-
         return await pub(cmd)
 
     async def _basic_request(
         self,
         cmd: "PublishCommand",
-    ) -> Any | None:
-        request = self._producer.request
+        *,
+        producer: "ProducerProto[Any]",
+    ) -> Any:
+        request = producer.request
         for pub_m in self._build_middlewares_stack():
             request = partial(pub_m, request)
 
@@ -132,10 +118,10 @@ class PublisherUsecase(PublisherProto[MsgType]):
             msg=published_msg,
             middlewares=(
                 m(published_msg, context=context)
-                for m in self._outer_config.broker_middlewares[::-1]
+                for m in reversed(self._outer_config.broker_middlewares)
             ),
-            parser=self._producer._parser,
-            decoder=self._producer._decoder,
+            parser=producer._parser,
+            decoder=producer._decoder,
             source_type=SourceType.RESPONSE,
         )
         return response_msg
@@ -152,7 +138,7 @@ class PublisherUsecase(PublisherProto[MsgType]):
                 extra_middlewares
                 or (
                     m(None, context=context).publish_scope
-                    for m in self._outer_config.broker_middlewares[::-1]
+                    for m in reversed(self._outer_config.broker_middlewares)
                 )
             ),
         )

@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -16,11 +16,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.middlewares import AckPolicy
     from faststream.rabbit.configs import RabbitBrokerConfig
-    from faststream.rabbit.schemas import (
-        Channel,
-        RabbitExchange,
-        RabbitQueue,
-    )
+    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
 
 
 def create_subscriber(
@@ -54,7 +50,7 @@ def create_subscriber(
         _outer_config=config,
     )
 
-    calls = CallsCollection()
+    calls = CallsCollection[Any]()
 
     specification = RabbitSubscriberSpecification(
         _outer_config=config,

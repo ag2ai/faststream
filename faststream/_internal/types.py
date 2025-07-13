@@ -30,7 +30,13 @@ ConnectionType = TypeVar("ConnectionType")
 PublishCommandType = TypeVar313(
     "PublishCommandType",
     bound=PublishCommand,
-    default=Any,
+    default=PublishCommand,
+)
+PublishCommandType_contra = TypeVar313(
+    "PublishCommandType_contra",
+    bound=PublishCommand,
+    default=PublishCommand,
+    contravariant=True,
 )
 
 SyncFilter: TypeAlias = Callable[[StreamMsg], bool]
@@ -83,11 +89,11 @@ SubscriberMiddleware: TypeAlias = Callable[
 ]
 
 
-class PublisherMiddleware(Protocol):
+class PublisherMiddleware(Protocol[PublishCommandType]):
     """Publisher middleware interface."""
 
     def __call__(
         self,
-        call_next: Callable[[PublishCommand], Awaitable[Any]],
-        cmd: PublishCommand,
+        call_next: Callable[[PublishCommandType], Awaitable[Any]],
+        cmd: PublishCommandType,
     ) -> Any: ...

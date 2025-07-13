@@ -1,8 +1,6 @@
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-)
+from typing import TYPE_CHECKING, Optional
 
+from nats.aio.msg import Msg
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
@@ -31,7 +29,7 @@ class PushStreamSubscriber(StreamSubscriber):
         )
 
 
-class ConcurrentPushStreamSubscriber(ConcurrentMixin["Msg"], StreamSubscriber):
+class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override

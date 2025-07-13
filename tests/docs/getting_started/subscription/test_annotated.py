@@ -1,7 +1,7 @@
 from typing import Any, TypeAlias
 
 import pytest
-from fast_depends.exceptions import ValidationError
+from pydantic import ValidationError
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.endpoint.subscriber import SubscriberUsecase

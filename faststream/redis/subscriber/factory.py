@@ -1,10 +1,8 @@
 import warnings
-from typing import TYPE_CHECKING, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber.call_item import (
-    CallsCollection,
-)
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
@@ -83,7 +81,7 @@ def create_subscriber(
         include_in_schema=include_in_schema,
     )
 
-    calls = CallsCollection()
+    calls = CallsCollection[Any]()
 
     specification: RedisSubscriberSpecification
     if subscriber_config.channel_sub:

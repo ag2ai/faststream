@@ -7,7 +7,7 @@ from faststream._internal.configs import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.rabbit.configs.base import RabbitConfig, RabbitEndpointConfig
+from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
@@ -23,7 +23,9 @@ class RabbitSubscriberSpecificationConfig(
 
 
 @dataclass(kw_only=True)
-class RabbitSubscriberConfig(RabbitEndpointConfig, SubscriberUsecaseConfig):
+class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
+    _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
+
     consume_args: Optional["AnyDict"] = None
     channel: Optional["Channel"] = None
 

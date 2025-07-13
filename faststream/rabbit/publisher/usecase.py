@@ -1,7 +1,6 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-from aio_pika import IncomingMessage
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -11,11 +10,12 @@ from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
 
-from .options import MessageOptions, PublishKwargs, PublishOptions, RequestPublishKwargs
+from .options import BasicMessageOptions, PublishKwargs, PublishOptions
 
 if TYPE_CHECKING:
     import aiormq
 
+    from faststream._internal.endpoint.publisher import PublisherSpecification
     from faststream._internal.types import PublisherMiddleware
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
@@ -23,10 +23,9 @@ if TYPE_CHECKING:
     from faststream.response.response import PublishCommand
 
     from .config import RabbitPublisherConfig
-    from .specification import RabbitPublisherSpecification
 
 
-class RabbitPublisher(PublisherUsecase[IncomingMessage]):
+class RabbitPublisher(PublisherUsecase):
     """A class to represent a RabbitMQ publisher."""
 
     _outer_config: "RabbitBrokerConfig"
@@ -34,7 +33,7 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
     def __init__(
         self,
         config: "RabbitPublisherConfig",
-        specification: "RabbitPublisherSpecification",
+        specification: "PublisherSpecification[Any, Any]",
     ) -> None:
         super().__init__(config, specification)
 
@@ -47,14 +46,16 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
         self.timeout = config.message_kwargs.pop("timeout", None)
 
-        message_options, _ = filter_by_dict(MessageOptions, dict(config.message_kwargs))
+        message_options, _ = filter_by_dict(
+            BasicMessageOptions, dict(config.message_kwargs)
+        )
         self._message_options = message_options
 
         publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
         self.publish_options = publish_options
 
     @property
-    def message_options(self) -> "MessageOptions":
+    def message_options(self) -> "BasicMessageOptions":
         if self._outer_config.app_id and "app_id" not in self._message_options:
             message_options = self._message_options.copy()
             message_options["app_id"] = self._outer_config.app_id
@@ -90,24 +91,28 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         exchange: Union["RabbitExchange", str, None] = None,
         *,
         routing_key: str = "",
-        # message args
-        correlation_id: str | None = None,
-        # publisher specific
         **publish_kwargs: "Unpack[PublishKwargs]",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        headers = self.headers | publish_kwargs.pop("headers", {})
+        if "headers" in publish_kwargs:
+            headers = self.headers | (publish_kwargs.pop("headers") or {})
+        else:
+            headers = self.headers
+
+        correlation_id = publish_kwargs.pop("correlation_id", gen_cor_id())
+
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
             exchange=RabbitExchange.validate(exchange or self.exchange),
-            correlation_id=correlation_id or gen_cor_id(),
             headers=headers,
+            correlation_id=correlation_id,
             _publish_type=PublishType.PUBLISH,
-            **(self.publish_options | self.message_options | publish_kwargs),
+            **(self.publish_options | self.message_options | publish_kwargs),  # type: ignore[operator]
         )
 
         frame: aiormq.abc.ConfirmationFrameType | None = await self._basic_publish(
             cmd,
+            producer=self._outer_config.producer,
             _extra_middlewares=(),
         )
         return frame
@@ -118,7 +123,7 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         cmd: Union["RabbitPublishCommand", "PublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+    ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RabbitPublishCommand.from_cmd(cmd)
 
@@ -131,7 +136,11 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         cmd.message_options = {**self.message_options, **cmd.message_options}
         cmd.publish_options = {**self.publish_options, **cmd.publish_options}
 
-        return await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
     @override
     async def request(
@@ -141,19 +150,26 @@ class RabbitPublisher(PublisherUsecase[IncomingMessage]):
         exchange: Union["RabbitExchange", str, None] = None,
         *,
         routing_key: str = "",
-        correlation_id: str | None = None,
-        **publish_kwargs: "Unpack[RequestPublishKwargs]",
+        **publish_kwargs: "Unpack[PublishKwargs]",
     ) -> "RabbitMessage":
-        headers = self.headers | publish_kwargs.pop("headers", {})
+        if "headers" in publish_kwargs:
+            headers = self.headers | (publish_kwargs.pop("headers") or {})
+        else:
+            headers = self.headers
+
+        correlation_id = publish_kwargs.pop("correlation_id", gen_cor_id())
+
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
             exchange=RabbitExchange.validate(exchange or self.exchange),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id,
             headers=headers,
             _publish_type=PublishType.PUBLISH,
-            **(self.publish_options | self.message_options | publish_kwargs),
+            **(self.publish_options | self.message_options | publish_kwargs),  # type: ignore[operator]
         )
 
-        msg: RabbitMessage = await self._basic_request(cmd)
+        msg: RabbitMessage = await self._basic_request(
+            cmd, producer=self._outer_config.producer
+        )
         return msg

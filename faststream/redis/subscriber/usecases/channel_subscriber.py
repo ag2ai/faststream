@@ -1,10 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from redis.asyncio.client import (
@@ -25,13 +20,13 @@ from faststream.redis.parser import (
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import PubSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
-    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -39,12 +34,10 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
-    subscription: RPubSub | None
-
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
         assert config.channel_sub  # nosec B101
@@ -54,7 +47,7 @@ class ChannelSubscriber(LogicSubscriber):
         super().__init__(config, specification, calls)
 
         self._channel = config.channel_sub
-        self.subscription = None
+        self.subscription: RPubSub | None = None
 
     @property
     def channel(self) -> "PubSub":
@@ -85,8 +78,8 @@ class ChannelSubscriber(LogicSubscriber):
 
         await super().start(psub)
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.subscription is not None:
             await self.subscription.unsubscribe()
@@ -125,8 +118,7 @@ class ChannelSubscriber(LogicSubscriber):
         return msg
 
     @override
-    # type: ignore[override]
-    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:
+    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
         assert self.subscription, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -139,7 +131,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (
+                while (  # noqa: ASYNC110
                     raw_message := await self._get_message(self.subscription)
                 ) is None:
                     await anyio.sleep(sleep_interval)
@@ -181,12 +173,12 @@ class ChannelSubscriber(LogicSubscriber):
 
 
 class ChannelConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage"],
+    ConcurrentMixin["BrokerStreamMessage[Any]"],
     ChannelSubscriber,
 ):
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
 
-    async def consume_one(self, msg: "BrokerStreamMessage") -> None:
+    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
         await self._put_msg(msg)

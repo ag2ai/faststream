@@ -1,4 +1,4 @@
-from .broker import BrokerConfig, ConfigComposition
+from .broker import BrokerConfig, BrokerConfigType, ConfigComposition
 from .endpoint import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from .specification import (
     PublisherSpecificationConfig,
@@ -7,6 +7,7 @@ from .specification import (
 
 __all__ = (
     "BrokerConfig",
+    "BrokerConfigType",
     "ConfigComposition",
     "PublisherSpecificationConfig",
     "PublisherUsecaseConfig",

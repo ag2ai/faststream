@@ -48,15 +48,15 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.kafka.message import KafkaMessage
-    from faststream.kafka.publisher.specification import (
-        SpecificationBatchPublisher,
-        SpecificationDefaultPublisher,
+    from faststream.kafka.publisher.usecase import (
+        BatchPublisher,
+        DefaultPublisher,
     )
-    from faststream.kafka.subscriber.specification import (
-        SpecificationBatchSubscriber,
-        SpecificationConcurrentBetweenPartitionsSubscriber,
-        SpecificationConcurrentDefaultSubscriber,
-        SpecificationDefaultSubscriber,
+    from faststream.kafka.subscriber.usecase import (
+        BatchSubscriber,
+        ConcurrentBetweenPartitionsSubscriber,
+        ConcurrentDefaultSubscriber,
+        DefaultSubscriber,
     )
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
@@ -213,7 +213,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             (filtered to partitions with available leaders only, if possible).
             """,
             ),
-        ] = DefaultPartitioner(),
+        ] = DefaultPartitioner(),  # noqa: B008
         max_request_size: Annotated[
             int,
             Doc(
@@ -1108,7 +1108,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 """,
             ),
         ] = False,
-    ) -> "SpecificationDefaultSubscriber": ...
+    ) -> "DefaultSubscriber": ...
 
     @overload
     def subscriber(
@@ -1609,7 +1609,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 """,
             ),
         ] = False,
-    ) -> "SpecificationBatchSubscriber": ...
+    ) -> "BatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -2111,8 +2111,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             ),
         ] = False,
     ) -> Union[
-        "SpecificationBatchSubscriber",
-        "SpecificationDefaultSubscriber",
+        "BatchSubscriber",
+        "DefaultSubscriber",
     ]: ...
 
     @override
@@ -2626,10 +2626,10 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             ),
         ] = 1,
     ) -> Union[
-        "SpecificationBatchSubscriber",
-        "SpecificationDefaultSubscriber",
-        "SpecificationConcurrentDefaultSubscriber",
-        "SpecificationConcurrentBetweenPartitionsSubscriber",
+        "BatchSubscriber",
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
+        "ConcurrentBetweenPartitionsSubscriber",
     ]:
         subscriber = super().subscriber(
             *topics,
@@ -2682,14 +2682,12 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         )
 
         if batch:
-            return cast("SpecificationBatchSubscriber", subscriber)
+            return cast("BatchSubscriber", subscriber)
         if max_workers > 1:
             if auto_commit:
-                return cast("SpecificationConcurrentDefaultSubscriber", subscriber)
-            return cast(
-                "SpecificationConcurrentBetweenPartitionsSubscriber", subscriber
-            )
-        return cast("SpecificationDefaultSubscriber", subscriber)
+                return cast("ConcurrentDefaultSubscriber", subscriber)
+            return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
+        return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
     def publisher(
@@ -2767,7 +2765,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationDefaultPublisher": ...
+    ) -> "DefaultPublisher": ...
 
     @overload
     def publisher(
@@ -2845,7 +2843,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             bool,
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
-    ) -> "SpecificationBatchPublisher": ...
+    ) -> "BatchPublisher": ...
 
     @overload
     def publisher(
@@ -2924,8 +2922,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]: ...
 
     @override
@@ -3005,8 +3003,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             Doc("Whetever to include operation in Specification schema or not."),
         ] = True,
     ) -> Union[
-        "SpecificationBatchPublisher",
-        "SpecificationDefaultPublisher",
+        "BatchPublisher",
+        "DefaultPublisher",
     ]:
         return self.broker.publisher(
             topic=topic,

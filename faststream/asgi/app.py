@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
+from fast_depends import Provider
 
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
@@ -24,7 +25,6 @@ if TYPE_CHECKING:
     from types import FrameType
 
     from anyio.abc import TaskStatus
-    from fast_depends import Provider
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import (
@@ -92,7 +92,7 @@ class AsgiFastStream(Application):
         /,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
         logger: Optional["LoggerProto"] = logger,
-        provider: Optional["Provider"] = None,
+        provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
@@ -106,7 +106,7 @@ class AsgiFastStream(Application):
             broker,
             logger=logger,
             config=FastDependsConfig(
-                provider=provider,
+                provider=provider or Provider(),
                 serializer=serializer,
             ),
             lifespan=lifespan,

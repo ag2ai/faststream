@@ -7,17 +7,14 @@ from faststream.response import PublishCommand, Response
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from typing import TypedDict
-
     from aio_pika.abc import TimeoutType
 
-    from faststream.rabbit.publisher.options import MessageOptions
+    from faststream.rabbit.publisher.options import (
+        BasicMessageOptions,
+        MessageOptions,
+        PublishOptions,
+    )
     from faststream.rabbit.types import AioPikaSendableMessage
-
-    class _PublishOptions(TypedDict):
-        timeout: TimeoutType
-        mandatory: bool
-        immediate: bool
 
 
 class RabbitResponse(Response):
@@ -39,8 +36,8 @@ class RabbitResponse(Response):
             correlation_id=correlation_id,
         )
 
-        self.message_options = message_options
-        self.publish_options: _PublishOptions = {
+        self.message_options: BasicMessageOptions = message_options
+        self.publish_options: PublishOptions = {
             "mandatory": mandatory,
             "immediate": immediate,
             "timeout": timeout,
@@ -48,12 +45,11 @@ class RabbitResponse(Response):
 
     @override
     def as_publish_command(self) -> "RabbitPublishCommand":
-        return RabbitPublishCommand(  # type: ignore[misc]
+        return RabbitPublishCommand(
             message=self.body,
             headers=self.headers,
             correlation_id=self.correlation_id,
             _publish_type=PublishType.PUBLISH,
-            # RMQ specific
             routing_key="",
             **self.publish_options,
             **self.message_options,
@@ -90,8 +86,8 @@ class RabbitPublishCommand(PublishCommand):
 
         self.timeout = timeout
 
-        self.message_options = message_options
-        self.publish_options = {
+        self.message_options: BasicMessageOptions = message_options
+        self.publish_options: PublishOptions = {
             "mandatory": mandatory,
             "immediate": immediate,
         }

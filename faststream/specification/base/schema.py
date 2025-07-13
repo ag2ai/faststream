@@ -21,6 +21,10 @@ class BaseApplicationSchema(BaseModel):
 
     info: BaseApplicationInfo
 
+    @property
+    def title(self) -> str:
+        return self.info.title
+
     def to_jsonable(self) -> Any:
         """Convert the schema to a JSON-serializable object."""
         return model_to_jsonable(

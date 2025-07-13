@@ -1,5 +1,6 @@
 import asyncio
-from typing import TYPE_CHECKING, Optional
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
 import nats
@@ -15,6 +16,7 @@ from faststream.nats.helpers.state import (
     EmptyConnectionState,
 )
 from faststream.nats.parser import NatsParser
+from faststream.nats.response import NatsPublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -26,34 +28,25 @@ if TYPE_CHECKING:
         AsyncCallable,
         CustomCallable,
     )
-    from faststream.nats.response import NatsPublishCommand
     from faststream.nats.schemas import PubAck
 
 
-class NatsFastProducer(ProducerProto):
+class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     def connect(
-        self, connection: "Client", serializer: Optional["SerializerProto"]
+        self, connection: Any, serializer: Optional["SerializerProto"]
     ) -> None: ...
 
     def disconnect(self) -> None: ...
 
-    @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None: ...
+    @abstractmethod
+    async def publish(self, cmd: "NatsPublishCommand") -> Optional["PubAck"]: ...
 
-    @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> "Msg": ...
+    @abstractmethod
+    async def request(self, cmd: "NatsPublishCommand") -> "Msg": ...
 
-    @override
-    async def publish_batch(
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None: ...
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
+        msg = "NATS doesn't support publishing in batches."
+        raise FeatureNotSupportedException(msg)
 
 
 class NatsFastProducerImpl(NatsFastProducer):
@@ -85,10 +78,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         self.__state = EmptyConnectionState()
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None:
+    async def publish(self, cmd: "NatsPublishCommand") -> None:
         payload, content_type = encode_message(cmd.body, self.serializer)
 
         headers_to_send = {
@@ -104,10 +94,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         )
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> "Msg":
+    async def request(self, cmd: "NatsPublishCommand") -> "Msg":
         payload, content_type = encode_message(cmd.body, self.serializer)
 
         headers_to_send = {
@@ -121,14 +108,6 @@ class NatsFastProducerImpl(NatsFastProducer):
             headers=headers_to_send,
             timeout=cmd.timeout,
         )
-
-    @override
-    async def publish_batch(
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
 
 
 class NatsJSFastProducer(NatsFastProducer):
@@ -161,10 +140,7 @@ class NatsJSFastProducer(NatsFastProducer):
         self.__state = EmptyConnectionState()
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> "PubAck":
+    async def publish(self, cmd: "NatsPublishCommand") -> "PubAck":
         payload, content_type = encode_message(cmd.body, self.serializer)
 
         headers_to_send = {
@@ -181,10 +157,7 @@ class NatsJSFastProducer(NatsFastProducer):
         )
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> "Msg":
+    async def request(self, cmd: "NatsPublishCommand") -> "Msg":
         payload, content_type = encode_message(cmd.body, self.serializer)
 
         reply_to = self.__state.connection._nc.new_inbox()
@@ -222,39 +195,23 @@ class NatsJSFastProducer(NatsFastProducer):
 
             return msg
 
-    @override
-    async def publish_batch(
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
 
-
-class FakeNatsFastProducer(ProducerProto):
-    def connect(self, connection: "Client") -> None:
+class FakeNatsFastProducer(NatsFastProducer):
+    def connect(self, connection: Any, serializer: Optional["SerializerProto"]) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:
         raise NotImplementedError
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None:
+    async def publish(self, cmd: "NatsPublishCommand") -> None:
         raise NotImplementedError
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> "Msg":
+    async def request(self, cmd: "NatsPublishCommand") -> "Msg":
         raise NotImplementedError
 
     @override
-    async def publish_batch(
-        self,
-        cmd: "NatsPublishCommand",
-    ) -> None:
-        raise NotImplementedError
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
+        msg = "NATS doesn't support publishing in batches."
+        raise FeatureNotSupportedException(msg)

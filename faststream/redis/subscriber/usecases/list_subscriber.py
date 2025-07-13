@@ -1,10 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from typing_extensions import override
@@ -26,6 +21,7 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
@@ -42,7 +38,7 @@ class _ListHandlerMixin(LogicSubscriber):
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
         super().__init__(config, specification, calls)
@@ -225,10 +221,12 @@ class ListBatchSubscriber(_ListHandlerMixin):
             await anyio.sleep(self.list_sub.polling_interval)
 
 
-class ListConcurrentSubscriber(ConcurrentMixin["BrokerStreamMessage"], ListSubscriber):
+class ListConcurrentSubscriber(
+    ConcurrentMixin["BrokerStreamMessage[Any]"], ListSubscriber
+):
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
 
-    async def consume_one(self, msg: "BrokerStreamMessage") -> None:
+    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
         await self._put_msg(msg)

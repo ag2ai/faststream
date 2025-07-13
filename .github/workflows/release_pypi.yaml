@@ -12,6 +12,9 @@ jobs:
     permissions:
         id-token: write
 
+    permissions:
+        id-token: write
+
     steps:
       - name: Dump GitHub context
         env:
@@ -41,9 +44,10 @@ jobs:
         run: python -m build
 
       - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1 # nosemgrep
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
-          skip-existing: true
+          # Remove this token after Trusted Publisher setup
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Dump GitHub context
         env:

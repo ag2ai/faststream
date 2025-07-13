@@ -1,16 +1,19 @@
+import asyncio
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Optional,
     TypeVar,
     Union,
+    overload,
 )
 
 import anyio
-import confluent_kafka
-from typing_extensions import override
+from confluent_kafka import Message
+from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -31,10 +34,8 @@ from .logging import make_kafka_logger_state
 from .registrator import KafkaRegistrator
 
 if TYPE_CHECKING:
-    import asyncio
     from types import TracebackType
 
-    from confluent_kafka import Message
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -55,13 +56,10 @@ if TYPE_CHECKING:
 Partition = TypeVar("Partition")
 
 
-class KafkaBroker(  # type: ignore[misc]
+class KafkaBroker(
     KafkaRegistrator,
     BrokerUsecase[
-        Union[
-            confluent_kafka.Message,
-            tuple[confluent_kafka.Message, ...],
-        ],
+        Message | tuple[Message, ...],
         Callable[..., AsyncConfluentConsumer],
     ],
 ):
@@ -96,7 +94,7 @@ class KafkaBroker(  # type: ignore[misc]
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[Message]"] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -294,24 +292,69 @@ class KafkaBroker(  # type: ignore[misc]
     @override
     async def _connect(self) -> Callable[..., AsyncConfluentConsumer]:
         await self.config.connect()
-        return self.config.builder
+        return self.config.broker_config.builder
 
+    async def stop(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await super().stop(exc_type, exc_val, exc_tb)
+        await self.config.disconnect()
+        self._connection = None
+
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
     async def close(
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        await super().close(exc_type, exc_val, exc_tb)
-        await self.config.disconnect()
-        self._connection = None
+        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         await self.connect()
         await super().start()
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str,
+        *,
+        key: bytes | str | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: Literal[True],
+    ) -> asyncio.Future[Message | None]: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str,
+        *,
+        key: bytes | str | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: Literal[False] = False,
+    ) -> Message | None: ...
+
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         message: "SendableMessage",
         topic: str,
@@ -323,7 +366,7 @@ class KafkaBroker(  # type: ignore[misc]
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> "asyncio.Future":
+    ) -> asyncio.Future[Message | None] | Message | None:
         """Publish message directly.
 
         This method allows you to publish message in not AsyncAPI-documented way. You can use it in another frameworks
@@ -357,7 +400,10 @@ class KafkaBroker(  # type: ignore[misc]
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
         )
-        return await super()._basic_publish(cmd, producer=self.config.producer)
+        result: (
+            asyncio.Future[Message | None] | Message | None
+        ) = await super()._basic_publish(cmd, producer=self.config.producer)
+        return result
 
     @override
     async def request(  # type: ignore[override]
@@ -389,7 +435,8 @@ class KafkaBroker(  # type: ignore[misc]
         )
         return msg
 
-    async def publish_batch(
+    @override
+    async def publish_batch(  # type: ignore[override]
         self,
         *messages: "SendableMessage",
         topic: str,
@@ -412,21 +459,23 @@ class KafkaBroker(  # type: ignore[misc]
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(cmd, producer=self.config.producer)
+        await self._basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def ping(self, timeout: float | None) -> bool:
         sleep_time = (timeout or 10) / 10
 
+        producer = self.config.broker_config.producer
+
         with anyio.move_on_after(timeout) as cancel_scope:
-            if not self.config.producer:
+            if not producer:
                 return False
 
             while True:
                 if cancel_scope.cancel_called:
                     return False
 
-                if await self.config.producer.ping(timeout=timeout):
+                if await producer.ping(timeout=timeout or 3.0):
                     return True
 
                 await anyio.sleep(sleep_time)

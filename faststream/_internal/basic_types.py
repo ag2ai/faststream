@@ -58,11 +58,26 @@ BaseSendableMessage: TypeAlias = (
 )
 
 try:
-    from faststream._internal._compat import BaseModel
+    from pydantic import BaseModel
 
-    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage
-
+    HAS_PYDANTIC = True
 except ImportError:
+    HAS_PYDANTIC = False
+
+try:
+    from msgspec import Struct
+
+    HAS_MSGSPEC = True
+except ImportError:
+    HAS_MSGSPEC = False
+
+if HAS_PYDANTIC and HAS_MSGSPEC:
+    SendableMessage: TypeAlias = Struct | BaseModel | BaseSendableMessage
+elif HAS_PYDANTIC:
+    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage  # type: ignore[no-redef,misc]
+elif HAS_MSGSPEC:
+    SendableMessage: TypeAlias = Struct | BaseSendableMessage  # type: ignore[no-redef,misc]
+else:
     SendableMessage: TypeAlias = BaseSendableMessage  # type: ignore[no-redef,misc]
 
 SettingField: TypeAlias = (

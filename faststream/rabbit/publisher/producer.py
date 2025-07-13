@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
     Optional,
@@ -6,12 +7,13 @@ from typing import (
 )
 
 import anyio
-from typing_extensions import ReadOnly, Unpack, override
+from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.utils import resolve_custom_func
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.rabbit.parser import AioPikaParser
+from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
 
 if TYPE_CHECKING:
@@ -28,15 +30,17 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.rabbit.helpers import RabbitDeclarer
-    from faststream.rabbit.response import MessageOptions, RabbitPublishCommand
     from faststream.rabbit.types import AioPikaSendableMessage
+
+    from .options import MessageOptions
 
 
 class LockState(Protocol):
-    lock: ReadOnly["anyio.Lock"]
+    @property
+    def lock(self) -> "anyio.Lock": ...
 
 
-class LockUnset(LockState):
+class LockUnset:
     __slots__ = ()
 
     @property
@@ -45,37 +49,30 @@ class LockUnset(LockState):
         raise IncorrectState(msg)
 
 
-class RealLock(LockState):
+class RealLock:
     __slots__ = ("lock",)
 
     def __init__(self) -> None:
         self.lock = anyio.Lock()
 
 
-class AioPikaFastProducer(ProducerProto):
+class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
     def connect(self, serializer: Optional["SerializerProto"] = None) -> None: ...
 
     def disconnect(self) -> None: ...
 
-    @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        """Publish a message to a RabbitMQ queue."""
+    @abstractmethod
+    async def publish(
+        self, cmd: "RabbitPublishCommand"
+    ) -> Optional["aiormq.abc.ConfirmationFrameType"]: ...
+
+    @abstractmethod
+    async def request(self, cmd: "RabbitPublishCommand") -> "IncomingMessage": ...
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> "IncomingMessage":
-        """Publish a message to a RabbitMQ queue."""
-
-    @override
-    async def publish_batch(
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> None: ...
+    async def publish_batch(self, cmd: "RabbitPublishCommand") -> None:
+        msg = "RabbitMQ doesn't support publishing in batches."
+        raise FeatureNotSupportedException(msg)
 
 
 class FakeAioPikaFastProducer(AioPikaFastProducer):
@@ -89,24 +86,13 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
         raise NotImplementedError
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
+    async def publish(
+        self, cmd: "RabbitPublishCommand"
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         raise NotImplementedError
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> "IncomingMessage":
-        raise NotImplementedError
-
-    @override
-    async def publish_batch(
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> None:
+    async def request(self, cmd: "RabbitPublishCommand") -> "IncomingMessage":
         raise NotImplementedError
 
 
@@ -144,9 +130,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self.__lock = LockUnset()
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
+    async def publish(
+        self, cmd: "RabbitPublishCommand"
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         return await self._publish(
             message=cmd.body,
@@ -160,10 +145,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         )
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> "IncomingMessage":
+    async def request(self, cmd: "RabbitPublishCommand") -> "IncomingMessage":
         async with _RPCCallback(
             self.__lock.lock,
             await self.declarer.declare_queue(RABBIT_REPLY),
@@ -208,14 +190,6 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
             immediate=immediate,
             timeout=timeout,
         )
-
-    @override
-    async def publish_batch(
-        self,
-        cmd: "RabbitPublishCommand",
-    ) -> None:
-        msg = "RabbitMQ doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
 
 
 class _RPCCallback:

@@ -1,12 +1,7 @@
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from faststream._internal.types import (
-    BrokerMiddleware,
-    MsgType,
-    P_HandlerParams,
-    T_HandlerReturn,
-)
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 
 from .call_wrapper import (
     HandlerCallWrapper,
@@ -14,24 +9,17 @@ from .call_wrapper import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.producer import ProducerProto
+    from faststream._internal.configs import BrokerConfig
 
 
-class Endpoint(Protocol[MsgType]):
-    @property
-    def _producer(self) -> "ProducerProto":
-        raise NotImplementedError
-
-    @property
-    def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
-        raise NotImplementedError
+class Endpoint:
+    def __init__(self, config: "BrokerConfig") -> None:
+        self._outer_config = config
 
     def __call__(
-        self,
-        func: Callable[P_HandlerParams, T_HandlerReturn]
-        | HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn],
-    ) -> HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]:
-        handler: HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn] = (
+        self, func: Callable[P_HandlerParams, T_HandlerReturn]
+    ) -> HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]:
+        handler: HandlerCallWrapper[P_HandlerParams, T_HandlerReturn] = (
             ensure_call_wrapper(func)
         )
         return handler

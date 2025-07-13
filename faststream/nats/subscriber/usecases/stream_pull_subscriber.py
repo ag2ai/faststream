@@ -1,10 +1,6 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from nats.errors import ConnectionClosedError, TimeoutError
@@ -24,13 +20,11 @@ if TYPE_CHECKING:
     from nats.js import JetStreamContext
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream, PullSub
-    from faststream.nats.subscriber.config import (
-        NatsSubscriberConfig,
-        NatsSubscriberSpecificationConfig,
-    )
+    from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
 class PullStreamSubscriber(
@@ -42,8 +36,8 @@ class PullStreamSubscriber(
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        specification: "NatsSubscriberSpecificationConfig",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[Msg]",
         *,
         queue: str,
         pull_sub: "PullSub",
@@ -123,8 +117,8 @@ class BatchPullStreamSubscriber(
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        specification: "NatsSubscriberSpecificationConfig",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[list[Msg]]",
         *,
         stream: "JStream",
         pull_sub: "PullSub",

@@ -1,13 +1,15 @@
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
+from nats.aio.msg import Msg
 from nats.js import api
 from typing_extensions import Doc, deprecated, override
 
-from faststream._internal.broker.abc_broker import Registrator
+from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.factory import create_publisher
 from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
@@ -15,7 +17,6 @@ from faststream.nats.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
-    from nats.aio.msg import Msg
 
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -23,15 +24,23 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
+    from faststream.nats.subscriber.usecases import (
+        BatchPullStreamSubscriber,
+        ConcurrentCoreSubscriber,
+        ConcurrentPullStreamSubscriber,
+        ConcurrentPushStreamSubscriber,
+        CoreSubscriber,
+        KeyValueWatchSubscriber,
+        ObjStoreWatchSubscriber,
+        PullStreamSubscriber,
+        PushStreamSubscriber,
+    )
 
 
-class NatsRegistrator(Registrator["Msg"]):
+class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     """Includable to NatsBroker router."""
-
-    config: "NatsBrokerConfig"
 
     def __init__(self, **kwargs: Any) -> None:
         self._stream_builder = StreamBuilder()
@@ -203,46 +212,56 @@ class NatsRegistrator(Registrator["Msg"]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ):
+    ) -> Union[
+        "BatchPullStreamSubscriber",
+        "ConcurrentCoreSubscriber",
+        "ConcurrentPullStreamSubscriber",
+        "ConcurrentPushStreamSubscriber",
+        "CoreSubscriber",
+        "KeyValueWatchSubscriber",
+        "ObjStoreWatchSubscriber",
+        "PullStreamSubscriber",
+        "PushStreamSubscriber",
+    ]:
         """Creates NATS subscriber object.
 
         You can use it as a handler decorator `@broker.subscriber(...)`.
         """
         stream = self._stream_builder.create(stream)
 
-        subscriber = super().subscriber(
-            create_subscriber(
-                subject=subject,
-                queue=queue,
-                stream=stream,
-                pull_sub=PullSub.validate(pull_sub),
-                kv_watch=KvWatch.validate(kv_watch),
-                obj_watch=ObjWatch.validate(obj_watch),
-                max_workers=max_workers,
-                # extra args
-                pending_msgs_limit=pending_msgs_limit,
-                pending_bytes_limit=pending_bytes_limit,
-                max_msgs=max_msgs,
-                durable=durable,
-                config=config,
-                ordered_consumer=ordered_consumer,
-                idle_heartbeat=idle_heartbeat,
-                flow_control=flow_control,
-                deliver_policy=deliver_policy,
-                headers_only=headers_only,
-                inbox_prefix=inbox_prefix,
-                ack_first=ack_first,
-                # subscriber args
-                ack_policy=ack_policy,
-                no_ack=no_ack,
-                no_reply=no_reply,
-                broker_config=self.config,
-                # AsyncAPI
-                title_=title,
-                description_=description,
-                include_in_schema=include_in_schema,
-            ),
+        subscriber = create_subscriber(
+            subject=subject,
+            queue=queue,
+            stream=stream,
+            pull_sub=PullSub.validate(pull_sub),
+            kv_watch=KvWatch.validate(kv_watch),
+            obj_watch=ObjWatch.validate(obj_watch),
+            max_workers=max_workers,
+            # extra args
+            pending_msgs_limit=pending_msgs_limit,
+            pending_bytes_limit=pending_bytes_limit,
+            max_msgs=max_msgs,
+            durable=durable,
+            config=config,
+            ordered_consumer=ordered_consumer,
+            idle_heartbeat=idle_heartbeat,
+            flow_control=flow_control,
+            deliver_policy=deliver_policy,
+            headers_only=headers_only,
+            inbox_prefix=inbox_prefix,
+            ack_first=ack_first,
+            # subscriber args
+            ack_policy=ack_policy,
+            no_ack=no_ack,
+            no_reply=no_reply,
+            broker_config=cast("NatsBrokerConfig", self.config),
+            # AsyncAPI
+            title_=title,
+            description_=description,
+            include_in_schema=include_in_schema,
         )
+
+        super().subscriber(subscriber)
 
         if stream and subscriber.subject:
             stream.add_subject(subscriber.subject)
@@ -325,28 +344,25 @@ class NatsRegistrator(Registrator["Msg"]):
         """
         stream = self._stream_builder.create(stream)
 
-        publisher = cast(
-            "LogicPublisher",
-            super().publisher(
-                publisher=create_publisher(
-                    subject=subject,
-                    headers=headers,
-                    # Core
-                    reply_to=reply_to,
-                    # JS
-                    timeout=timeout,
-                    stream=stream,
-                    # Specific
-                    broker_config=self.config,
-                    middlewares=middlewares,
-                    # AsyncAPI
-                    title_=title,
-                    description_=description,
-                    schema_=schema,
-                    include_in_schema=include_in_schema,
-                ),
-            ),
+        publisher = create_publisher(
+            subject=subject,
+            headers=headers,
+            # Core
+            reply_to=reply_to,
+            # JS
+            timeout=timeout,
+            stream=stream,
+            # Specific
+            broker_config=cast("NatsBrokerConfig", self.config),
+            middlewares=middlewares,
+            # AsyncAPI
+            title_=title,
+            description_=description,
+            schema_=schema,
+            include_in_schema=include_in_schema,
         )
+
+        super().publisher(publisher)
 
         if stream and publisher.subject:
             stream.add_subject(publisher.subject)
@@ -354,9 +370,9 @@ class NatsRegistrator(Registrator["Msg"]):
         return publisher
 
     @override
-    def include_router(
+    def include_router(  # type: ignore[override]
         self,
-        router: "NatsRegistrator",  # type: ignore[override]
+        router: "NatsRegistrator",
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),

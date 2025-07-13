@@ -2,7 +2,7 @@ import re
 from collections.abc import Callable, Generator, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -61,10 +61,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
     @staticmethod
     def create_publisher_fake_subscriber(
         broker: KafkaBroker,
-        publisher: "LogicPublisher[Any, Any]",
+        publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: LogicSubscriber[Any] | None = None
         for handler in broker.subscribers:
+            handler = cast("LogicSubscriber[Any]", handler)
             if _is_handler_matches(handler, publisher.topic, publisher.partition):
                 sub = handler
                 break
@@ -120,7 +121,7 @@ class FakeProducer(AioKafkaFastProducer):
         self._parser = resolve_custom_func(broker._parser, default.parse_message)
         self._decoder = resolve_custom_func(broker._decoder, default.decode_message)
 
-    def __bool__(self) -> None:
+    def __bool__(self) -> bool:
         return True
 
     @property
@@ -128,10 +129,7 @@ class FakeProducer(AioKafkaFastProducer):
         return False
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> None:
+    async def publish(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a message to the Kafka broker."""
         incoming = build_message(
             message=cmd.body,
@@ -146,7 +144,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
@@ -157,10 +155,7 @@ class FakeProducer(AioKafkaFastProducer):
             await self._execute_handler(msg_to_send, cmd.destination, handler)
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "KafkaPublishCommand",
-    ) -> "ConsumerRecord":
+    async def request(self, cmd: "KafkaPublishCommand") -> "ConsumerRecord":
         incoming = build_message(
             message=cmd.body,
             topic=cmd.destination,
@@ -173,7 +168,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
@@ -188,13 +183,14 @@ class FakeProducer(AioKafkaFastProducer):
 
         raise SubscriberNotFound
 
+    @override
     async def publish_batch(
         self,
         cmd: "KafkaPublishCommand",
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
         for handler in _find_handler(
-            self.broker.subscribers,
+            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):

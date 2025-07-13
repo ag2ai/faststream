@@ -15,7 +15,7 @@ import warnings
 
 warnings.filterwarnings("default", category=ImportWarning, module="faststream")
 
-from faststream._internal.cli.main import cli
+from faststream._internal.cli.main import cli  # noqa: E402
 
 if __name__ == "__main__":
     cli(prog_name="faststream")

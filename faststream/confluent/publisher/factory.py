@@ -17,7 +17,7 @@ def create_publisher(
     *,
     autoflush: bool,
     batch: bool,
-    key: bytes | None,
+    key: bytes | str | None,
     topic: str,
     partition: int | None,
     headers: dict[str, str] | None,

@@ -25,4 +25,4 @@ class TestLogger(ConfluentTestcaseConfig):
             consumer_logger = sub.consumer.logger_state.logger.logger
             assert consumer_logger == test_logger
 
-        await broker.close()
+        await broker.stop()

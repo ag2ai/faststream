@@ -1,7 +1,6 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
-from nats.aio.msg import Msg
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -11,30 +10,33 @@ from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.endpoint.publisher import PublisherSpecification
+    from faststream._internal.producer import ProducerProto
     from faststream._internal.types import PublisherMiddleware
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
-    from faststream.nats.publisher.producer import NatsFastProducer, NatsJSFastProducer
     from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
 
     from .config import NatsPublisherConfig
 
 
-class LogicPublisher(PublisherUsecase[Msg]):
+class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
 
     _outer_config: "NatsBrokerConfig"
 
     def __init__(
-        self, config: "NatsPublisherConfig", specification: "PublisherSpecification"
+        self,
+        config: "NatsPublisherConfig",
+        specification: "PublisherSpecification[Any, Any]",
     ) -> None:
         """Initialize NATS publisher object."""
         super().__init__(config, specification)
 
         self._subject = config.subject
         self.stream = config.stream
-        self.timeout = config.timeout
+        self.timeout = config.timeout or 0.5
         self.headers = config.headers or {}
         self.reply_to = config.reply_to
 
@@ -52,7 +54,7 @@ class LogicPublisher(PublisherUsecase[Msg]):
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
-    ) -> None: ...
+    ) -> Optional["PubAck"]: ...
 
     @overload
     async def publish(
@@ -113,13 +115,21 @@ class LogicPublisher(PublisherUsecase[Msg]):
             timeout=timeout or self.timeout,
             _publish_type=PublishType.PUBLISH,
         )
-        return await self._basic_publish(cmd, _extra_middlewares=())
 
-    @property
-    def _producer(self) -> Union["NatsFastProducer", "NatsJSFastProducer"]:
-        if self.stream:
-            return self._outer_config.js_producer
-        return self._outer_config.producer
+        response: PubAck | None
+        if cmd.stream:
+            response = cast(
+                "PubAck",
+                await self._basic_publish(
+                    cmd, producer=self._outer_config.js_producer, _extra_middlewares=()
+                ),
+            )
+        else:
+            response = await self._basic_publish(
+                cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            )
+
+        return response
 
     @override
     async def _publish(
@@ -139,7 +149,14 @@ class LogicPublisher(PublisherUsecase[Msg]):
             cmd.stream = self.stream.name
             cmd.timeout = self.timeout
 
-        return await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        if cmd.stream:
+            producer: ProducerProto[Any] = self._outer_config.js_producer
+        else:
+            producer = self._outer_config.producer
+
+        await self._basic_publish(
+            cmd, producer=producer, _extra_middlewares=_extra_middlewares
+        )
 
     @override
     async def request(
@@ -148,15 +165,13 @@ class LogicPublisher(PublisherUsecase[Msg]):
         subject: str = "",
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
+        stream: str | None = None,
         timeout: float = 0.5,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
 
         If out subscriber listens subject by stream, you should setup the same **stream** explicitly.
         Another way you will reseave confirmation frame as a response.
-
-        Note:
-            To setup **stream** option, please use `__init__` method.
 
         Args:
             message:
@@ -172,6 +187,8 @@ class LogicPublisher(PublisherUsecase[Msg]):
             correlation_id:
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.
+            stream:
+                This allows to make RPC calls over JetStream subjects.
             timeout:
                 Timeout to send message to NATS.
 
@@ -184,9 +201,14 @@ class LogicPublisher(PublisherUsecase[Msg]):
             headers=self.headers | (headers or {}),
             timeout=timeout or self.timeout,
             correlation_id=correlation_id or gen_cor_id(),
-            stream=getattr(self.stream, "name", None),
+            stream=stream or getattr(self.stream, "name", None),
             _publish_type=PublishType.REQUEST,
         )
 
-        msg: NatsMessage = await self._basic_request(cmd)
+        if cmd.stream:
+            producer: ProducerProto[Any] = self._outer_config.js_producer
+        else:
+            producer = self._outer_config.producer
+
+        msg: NatsMessage = await self._basic_request(cmd, producer=producer)
         return msg

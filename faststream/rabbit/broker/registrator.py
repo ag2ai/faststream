@@ -1,12 +1,14 @@
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+from aio_pika import IncomingMessage
 from typing_extensions import override
 
-from faststream._internal.broker.abc_broker import Registrator
+from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.publisher.factory import create_publisher
 from faststream.rabbit.publisher.options import PublishKwargs
 from faststream.rabbit.schemas import (
@@ -17,7 +19,6 @@ from faststream.rabbit.schemas import (
 from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
@@ -28,18 +29,13 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.subscriber import RabbitSubscriber
 
 
-class RabbitRegistrator(Registrator["IncomingMessage"]):
+class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
-
-    config: "RabbitBrokerConfig"
-    _subscribers: list["RabbitSubscriber"]
-    _publishers: list["RabbitPublisher"]
 
     @override
     def subscriber(  # type: ignore[override]
@@ -93,16 +89,14 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
             no_ack=no_ack,
             no_reply=no_reply,
             # broker args
-            config=self.config,
+            config=cast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
             description_=description,
             include_in_schema=include_in_schema,
         )
 
-        subscriber = super().subscriber(subscriber)
-
-        subscriber = cast("RabbitSubscriber", subscriber)
+        super().subscriber(subscriber)
 
         return subscriber.add_call(
             parser_=parser,
@@ -197,7 +191,7 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
             # publisher args
             middlewares=middlewares,
             # broker args
-            config=self.config,
+            config=cast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
             description_=description,
@@ -205,9 +199,9 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
             include_in_schema=include_in_schema,
         )
 
-        publisher = super().publisher(publisher)
+        super().publisher(publisher)
 
-        return cast("RabbitPublisher", publisher)
+        return publisher
 
     @override
     def include_router(
@@ -216,7 +210,7 @@ class RabbitRegistrator(Registrator["IncomingMessage"]):
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
+        middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RabbitRegistrator):

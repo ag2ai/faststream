@@ -526,7 +526,7 @@ class RouterTestcase(
 
         pub1 = router1.publishers[0]
         pub2 = router2.publishers[0]
-        assert pub1._producer is pub2._producer
+        assert pub1._outer_config.producer is pub2._outer_config.producer
 
 
 @pytest.mark.asyncio()

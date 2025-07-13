@@ -19,7 +19,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import Doc, overload, override
+from typing_extensions import Doc, deprecated, overload, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -50,12 +50,12 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.abc_broker import Registrator
+    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
     )
-    from faststream.redis.message import BaseMessage, RedisMessage
+    from faststream.redis.message import RedisMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -88,9 +88,6 @@ class RedisBroker(
     BrokerUsecase[UnifyRedisDict, "Redis[bytes]"],
 ):
     """Redis broker."""
-
-    url: str
-    _producer: "RedisFastProducer"
 
     def __init__(
         self,
@@ -134,11 +131,11 @@ class RedisBroker(
             Doc("Dependencies to apply to all broker subscribers."),
         ] = (),
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[BaseMessage]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         routers: Annotated[
-            Sequence["Registrator[BaseMessage]"],
+            Sequence["Registrator[UnifyRedisDict]"],
             Doc("Routers to apply to broker."),
         ] = (),
         # AsyncAPI args
@@ -258,17 +255,32 @@ class RedisBroker(
     @override
     async def _connect(self) -> "Redis[bytes]":
         await self.config.connect()
-        return self.config.connection.client
+        return self.config.broker_config.connection.client
 
+    async def stop(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await super().stop(exc_type, exc_val, exc_tb)
+        await self.config.disconnect()
+        self._connection = None
+
+    @deprecated(
+        "Deprecated in **FastStream 0.5.44**. "
+        "Please, use `stop` method instead. "
+        "Method `close` will be removed in **FastStream 0.7.0**.",
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
     async def close(
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        await super().close(exc_type, exc_val, exc_tb)
-        await self.config.disconnect()
-        self._connection = None
+        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         await self.connect()
@@ -357,7 +369,10 @@ class RedisBroker(
             pipeline=pipeline,
         )
 
-        return await super()._basic_publish(cmd, producer=self.config.producer)
+        result: int | bytes = await super()._basic_publish(
+            cmd, producer=self.config.producer
+        )
+        return result
 
     @override
     async def request(  # type: ignore[override]
@@ -388,7 +403,8 @@ class RedisBroker(
         )
         return msg
 
-    async def publish_batch(
+    @override
+    async def publish_batch(  # type: ignore[override]
         self,
         *messages: "SendableMessage",
         list: str,
@@ -420,7 +436,10 @@ class RedisBroker(
             pipeline=pipeline,
         )
 
-        return await self._basic_publish_batch(cmd, producer=self.config.producer)
+        result: int = await self._basic_publish_batch(
+            cmd, producer=self.config.producer
+        )
+        return result
 
     @override
     async def ping(self, timeout: float | None = 3) -> bool:

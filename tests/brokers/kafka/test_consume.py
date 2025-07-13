@@ -11,7 +11,7 @@ from aiokafka.structs import RecordMetadata
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage
 from faststream.kafka import KafkaBroker, KafkaMessage, TopicPartition
-from faststream.kafka.listener import _LoggingListener
+from faststream.kafka.helpers.rebalance_listener import _LoggingListener
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 

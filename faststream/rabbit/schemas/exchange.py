@@ -65,7 +65,7 @@ class RabbitExchange(NameRequired):
                 "https://www.rabbitmq.com/tutorials/amqp-concepts#exchanges"
                 "\n"
                 "Or in the FastStream one: "
-                "https://faststream.airt.ai/latest/rabbit/examples/",
+                "https://faststream.ag2.ai/latest/rabbit/examples/"
             ),
         ] = ExchangeType.DIRECT,
         durable: Annotated[

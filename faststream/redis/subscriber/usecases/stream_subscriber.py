@@ -1,11 +1,6 @@
 import math
 from collections.abc import AsyncIterator, Awaitable, Callable
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 from redis.exceptions import ResponseError
 from typing_extensions import override
@@ -27,13 +22,13 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from anyio import Event
 
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
-    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 
 TopicName: TypeAlias = bytes
@@ -44,7 +39,7 @@ class _StreamHandlerMixin(LogicSubscriber):
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
         super().__init__(config, specification, calls)
@@ -217,7 +212,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:
+    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # type: ignore[override]
         assert self._client, "You should start subscriber at first."  # nosec B101
         assert (  # nosec B101
             not self.calls
@@ -263,7 +258,7 @@ class StreamSubscriber(_StreamHandlerMixin):
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
         parser = RedisStreamParser()
@@ -311,7 +306,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
     def __init__(
         self,
         config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
+        specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
         parser = RedisBatchStreamParser()
@@ -349,12 +344,12 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
 
 
 class StreamConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage"],
+    ConcurrentMixin["BrokerStreamMessage[Any]"],
     StreamSubscriber,
 ):
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
 
-    async def consume_one(self, msg: "BrokerStreamMessage") -> None:
+    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
         await self._put_msg(msg)

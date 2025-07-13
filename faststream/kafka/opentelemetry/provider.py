@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Union, cast
 from opentelemetry.semconv.trace import SpanAttributes
 
 from faststream._internal.types import MsgType
+from faststream.kafka.response import KafkaPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 
@@ -11,12 +12,13 @@ if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
     from faststream._internal.basic_types import AnyDict
-    from faststream.kafka.response import KafkaPublishCommand
     from faststream.message import StreamMessage
     from faststream.response import PublishCommand
 
 
-class BaseKafkaTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
+class BaseKafkaTelemetrySettingsProvider(
+    TelemetrySettingsProvider[MsgType, KafkaPublishCommand]
+):
     __slots__ = ("messaging_system",)
 
     def __init__(self) -> None:

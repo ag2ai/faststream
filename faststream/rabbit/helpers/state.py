@@ -1,28 +1,26 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
     from aio_pika import RobustConnection
-    from typing_extensions import ReadOnly
 
 
 class ConnectionState(Protocol):
-    connection: "ReadOnly[RobustConnection]"
+    @property
+    def connection(self) -> "RobustConnection": ...
 
 
-class EmptyConnectionState(ConnectionState):
+class EmptyConnectionState:
     __slots__ = ()
-
-    error_msg = "You should connect broker first."
 
     @property
     def connection(self) -> "RobustConnection":
-        raise IncorrectState(self.error_msg)
+        msg = "You should connect broker first."
+        raise IncorrectState(msg)
 
 
-class ConnectedState(ConnectionState):
-    __slots__ = ("connection",)
-
-    def __init__(self, connection: "RobustConnection") -> None:
-        self.connection = connection
+@dataclass(slots=True)
+class ConnectedState:
+    connection: "RobustConnection"

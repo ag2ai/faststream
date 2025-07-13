@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.publisher import BasePublisherProto
+    from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig
-    from faststream.nats.subscriber.specification import NatsSubscriberSpecification
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
@@ -36,8 +36,8 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     def __init__(
         self,
         config: "NatsSubscriberConfig",
-        specification: "NatsSubscriberSpecification",
-        calls: "CallsCollection",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[MsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
 
@@ -81,9 +81,9 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self._post_start()
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
-        await super().close()
+        await super().stop()
 
         if self.subscription is not None:
             await self.subscription.unsubscribe()
@@ -125,7 +125,7 @@ class DefaultSubscriber(LogicSubscriber[MsgType]):
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",
-    ) -> Iterable["BasePublisherProto"]:
+    ) -> Iterable["PublisherProto"]:
         """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
         return (
             NatsFakePublisher(

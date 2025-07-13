@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-    from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.endpoint.publisher import PublisherUsecase
     from faststream._internal.proto import NameRequired
     from faststream._internal.types import BrokerMiddleware
     from faststream.message import StreamMessage
@@ -239,7 +239,7 @@ class StreamRouter(
         **broker_kwargs: Any,
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
-        "HandlerCallWrapper[MsgType, P_HandlerParams, T_HandlerReturn]",
+        "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
     ]:
         """A function decorator for subscribing to a message queue."""
         dependencies = (*self.dependencies, *dependencies)
@@ -250,7 +250,7 @@ class StreamRouter(
             **broker_kwargs,
         )
 
-        sub._call_decorators = (  # type: ignore[attr-defined]
+        sub._call_decorators = (
             self._subscriber_compatibility_wrapper(
                 dependencies=dependencies,
                 response_model=response_model,
@@ -314,7 +314,7 @@ class StreamRouter(
                         await h(app)
 
                 finally:
-                    await self.broker.close()
+                    await self.broker.stop()
 
         return start_broker_lifespan  # type: ignore[return-value]
 
@@ -379,7 +379,7 @@ class StreamRouter(
         return func
 
     @abstractmethod
-    def publisher(self) -> "PublisherProto[MsgType]":
+    def publisher(self) -> "PublisherUsecase":
         """Create Publisher object."""
         raise NotImplementedError
 
@@ -460,7 +460,7 @@ class StreamRouter(
         """Includes a router in the API."""
         if isinstance(router, BrokerRouter):
             for sub in router.subscribers:
-                sub._call_decorators = (  # type: ignore[attr-defined]
+                sub._call_decorators = (
                     self._subscriber_compatibility_wrapper(),
                     *sub._call_decorators,
                 )

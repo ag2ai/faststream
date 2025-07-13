@@ -5,7 +5,7 @@ from faststream._internal.configs import (
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
-from faststream.middlewares.acknowledgement.conf import AckPolicy
+from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 

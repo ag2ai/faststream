@@ -251,6 +251,7 @@ def _run_imported_app(
 def publish(
     ctx: typer.Context,
     app: str = APP_ARGUMENT,
+    app_dir: str = APP_DIR_OPTION,
     message: str = typer.Argument(
         ...,
         help="JSON Message string to publish.",
@@ -269,6 +270,9 @@ def publish(
     These are parsed and passed to the broker's publish method.
     """
     app, extra = parse_cli_args(app, *ctx.args)
+
+    if app_dir:  # pragma: no branch
+        sys.path.insert(0, app_dir)
 
     publish_extra: AnyDict = extra.copy()
     if "timeout" in publish_extra:

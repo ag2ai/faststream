@@ -44,7 +44,7 @@ orjson: Any
 ujson: Any
 
 try:
-    import orjson
+    import orjson  # type: ignore[no-redef]
 except ImportError:
     orjson = None
 

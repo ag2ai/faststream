@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterator, Mapping
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from unittest import mock
 from unittest.mock import AsyncMock
 
@@ -77,6 +77,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     ) -> tuple["RabbitSubscriber", bool]:
         sub: RabbitSubscriber | None = None
         for handler in broker.subscribers:
+            handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
                 publisher.routing(),
@@ -206,7 +207,7 @@ class FakeProducer(AioPikaFastProducer):
         )
 
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         cmd: "RabbitPublishCommand",
     ) -> None:
@@ -224,6 +225,7 @@ class FakeProducer(AioPikaFastProducer):
 
         called = False
         for handler in self.broker.subscribers:  # pragma: no branch
+            handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
                 incoming.routing_key,
@@ -237,7 +239,7 @@ class FakeProducer(AioPikaFastProducer):
             raise SubscriberNotFound
 
     @override
-    async def request(  # type: ignore[override]
+    async def request(
         self,
         cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
@@ -252,6 +254,7 @@ class FakeProducer(AioPikaFastProducer):
         )
 
         for handler in self.broker.subscribers:  # pragma: no branch
+            handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
                 incoming.routing_key,

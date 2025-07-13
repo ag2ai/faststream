@@ -1,12 +1,14 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream._internal.endpoint.publisher import (
+    PublisherSpecification,
+    PublisherUsecase,
+)
 from faststream.message import gen_cor_id
-from faststream.redis.message import UnifyRedisDict
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -20,24 +22,15 @@ if TYPE_CHECKING:
     from faststream.response import PublishCommand
 
     from .config import RedisPublisherConfig
-    from .producer import RedisFastProducer
-    from .specification import (
-        ChannelPublisherSpecification,
-        ListPublisherSpecification,
-        RedisPublisherSpecification,
-        StreamPublisherSpecification,
-    )
 
 
-class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
+class LogicPublisher(PublisherUsecase):
     """A class to represent a Redis publisher."""
-
-    _producer: "RedisFastProducer"
 
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        specification: "RedisPublisherSpecification",
+        specification: "PublisherSpecification[Any, Any]",
     ) -> None:
         super().__init__(config, specification)
 
@@ -53,7 +46,7 @@ class ChannelPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        specification: "ChannelPublisherSpecification",
+        specification: "PublisherSpecification[Any, Any]",
         *,
         channel: "PubSub",
     ) -> None:
@@ -93,7 +86,10 @@ class ChannelPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
         )
-        return await self._basic_publish(cmd, _extra_middlewares=())
+        result: int = await self._basic_publish(
+            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+        )
+        return result
 
     @override
     async def _publish(
@@ -110,7 +106,11 @@ class ChannelPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
     @override
     async def request(
@@ -131,7 +131,9 @@ class ChannelPublisher(LogicPublisher):
             timeout=timeout,
         )
 
-        msg: RedisMessage = await self._basic_request(cmd)
+        msg: RedisMessage = await self._basic_request(
+            cmd, producer=self._outer_config.producer
+        )
         return msg
 
 
@@ -139,7 +141,7 @@ class ListPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        specification: "ListPublisherSpecification",
+        specification: "PublisherSpecification[Any, Any]",
         *,
         list: "ListSub",
     ) -> None:
@@ -180,7 +182,10 @@ class ListPublisher(LogicPublisher):
             pipeline=pipeline,
         )
 
-        return await self._basic_publish(cmd, _extra_middlewares=())
+        result: int = await self._basic_publish(
+            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+        )
+        return result
 
     @override
     async def _publish(
@@ -197,7 +202,11 @@ class ListPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
     @override
     async def request(
@@ -218,7 +227,9 @@ class ListPublisher(LogicPublisher):
             timeout=timeout,
         )
 
-        msg: RedisMessage = await self._basic_request(cmd)
+        msg: RedisMessage = await self._basic_request(
+            cmd, producer=self._outer_config.producer
+        )
         return msg
 
 
@@ -243,10 +254,13 @@ class ListBatchPublisher(ListPublisher):
             pipeline=pipeline,
         )
 
-        return await self._basic_publish_batch(cmd, _extra_middlewares=())
+        result: int = await self._basic_publish_batch(
+            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+        )
+        return result
 
     @override
-    async def _publish(  # type: ignore[override]
+    async def _publish(
         self,
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
@@ -260,14 +274,18 @@ class ListBatchPublisher(ListPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish_batch(cmd, _extra_middlewares=_extra_middlewares)
+        await self._basic_publish_batch(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
 
 class StreamPublisher(LogicPublisher):
     def __init__(
         self,
         config: "RedisPublisherConfig",
-        specification: "StreamPublisherSpecification",
+        specification: "PublisherSpecification[Any, Any]",
         *,
         stream: "StreamSub",
     ) -> None:
@@ -309,7 +327,10 @@ class StreamPublisher(LogicPublisher):
             pipeline=pipeline,
         )
 
-        return await self._basic_publish(cmd, _extra_middlewares=())
+        result: bytes = await self._basic_publish(
+            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+        )
+        return result
 
     @override
     async def _publish(
@@ -327,7 +348,11 @@ class StreamPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
         cmd.maxlen = self.stream.maxlen
 
-        await self._basic_publish(cmd, _extra_middlewares=_extra_middlewares)
+        await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
     @override
     async def request(
@@ -350,5 +375,7 @@ class StreamPublisher(LogicPublisher):
             timeout=timeout,
         )
 
-        msg: RedisMessage = await self._basic_request(cmd)
+        msg: RedisMessage = await self._basic_request(
+            cmd, producer=self._outer_config.producer
+        )
         return msg

@@ -21,25 +21,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pre-commit-check:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    env:
-      SKIP: "docs"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: extractions/setup-just@v2
-      - name: Set $PY environment variable
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ hashFiles('.pre-commit-config.yaml') }}
-      - uses: pre-commit/action@v3.0.1
-
   test-basic:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -295,7 +276,7 @@ jobs:
           uv pip install --system --group test-core ".[cli,rabbit]"
       - name: Test
         run: >
-          coverage run -m pytest 
+          coverage run -m pytest
           -vv -m "not rabbit"
           tests/brokers/rabbit/test_test_client.py
 
@@ -515,7 +496,6 @@ jobs:
     if: always()
 
     needs:
-      - pre-commit-check
       - coverage-combine
       - test-macos-latest
       - test-windows-latest

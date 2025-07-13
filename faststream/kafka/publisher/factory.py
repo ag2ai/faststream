@@ -33,7 +33,7 @@ def create_publisher(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-):
+) -> BatchPublisher | DefaultPublisher:
     publisher_config = KafkaPublisherConfig(
         key=key,
         topic=topic,
@@ -60,7 +60,9 @@ def create_publisher(
             msg = "You can't setup `key` with batch publisher"
             raise SetupError(msg)
 
-        publisher = BatchPublisher(publisher_config, specification)
+        publisher: BatchPublisher | DefaultPublisher = BatchPublisher(
+            publisher_config, specification
+        )
         publish_method = "_basic_publish_batch"
 
     else:

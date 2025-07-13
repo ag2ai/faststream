@@ -25,4 +25,4 @@ class TestConnection(BrokerConnectionTestcase):
             ),
         )
         assert await broker.connect()
-        await broker.close()
+        await broker.stop()

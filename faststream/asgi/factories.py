@@ -64,7 +64,7 @@ class AsyncAPIRoute:
         expand_message_examples: bool = True,
         asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
         asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
-    ) -> "ASGIApp":
+    ) -> None:
         self.path = path
 
         self.description = description

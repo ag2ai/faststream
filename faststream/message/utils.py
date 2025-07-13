@@ -70,6 +70,7 @@ def encode_message(
             serializer.encode(msg),
             ContentTypes.JSON.value,
         )
+
     return (
         json_dumps(msg),
         ContentTypes.JSON.value,

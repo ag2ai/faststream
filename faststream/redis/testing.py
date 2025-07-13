@@ -69,6 +69,7 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
         for handler in broker.subscribers:  # pragma: no branch
+            handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
                     sub = handler
@@ -119,10 +120,7 @@ class FakeProducer(RedisFastProducer):
         )
 
     @override
-    async def publish(
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> None:
+    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
         body = build_message(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -135,6 +133,7 @@ class FakeProducer(RedisFastProducer):
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
         for handler in self.broker.subscribers:  # pragma: no branch
+            handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -145,11 +144,10 @@ class FakeProducer(RedisFastProducer):
 
                     await self._execute_handler(msg, handler)
 
+        return 0
+
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> "PubSubMessage":
+    async def request(self, cmd: "RedisPublishCommand") -> "PubSubMessage":
         body = build_message(
             message=cmd.body,
             correlation_id=cmd.correlation_id or gen_cor_id(),
@@ -160,6 +158,7 @@ class FakeProducer(RedisFastProducer):
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
         for handler in self.broker.subscribers:  # pragma: no branch
+            handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -173,10 +172,8 @@ class FakeProducer(RedisFastProducer):
 
         raise SubscriberNotFound
 
-    async def publish_batch(
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> None:
+    @override
+    async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         data_to_send = [
             build_message(
                 m,
@@ -187,16 +184,19 @@ class FakeProducer(RedisFastProducer):
         ]
 
         visitor = ListVisitor()
-        for handler in self.broker.subscribers:  # pragma: no branch)
+        for handler in self.broker.subscribers:  # pragma: no branch
+            handler = cast("LogicSubscriber", handler)
             if visitor.visit(list=cmd.destination, sub=handler):
                 casted_handler = cast("_ListHandlerMixin", handler)
 
                 if casted_handler.list_sub.batch:
                     msg = visitor.get_message(
-                        cmd.destination, data_to_send, casted_handler
+                        channel=cmd.destination, body=data_to_send, sub=casted_handler
                     )
 
                     await self._execute_handler(msg, handler)
+
+        return 0
 
     async def _execute_handler(
         self,

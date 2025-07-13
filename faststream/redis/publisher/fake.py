@@ -13,7 +13,7 @@ class RedisFakePublisher(FakePublisher):
 
     def __init__(
         self,
-        producer: "ProducerProto",
+        producer: "ProducerProto[RedisPublishCommand]",
         channel: str,
     ) -> None:
         super().__init__(producer=producer)

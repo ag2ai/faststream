@@ -8,9 +8,6 @@ if TYPE_CHECKING:
 
 
 class BrokerState:
-    stream: "JetStreamContext"
-    connection: "Client"
-
     def __init__(self) -> None:
         self._connected = False
 

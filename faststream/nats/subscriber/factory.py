@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional, TypedDict
 
 from nats.aio.subscription import (
     DEFAULT_SUB_PENDING_BYTES_LIMIT,
@@ -12,6 +12,7 @@ from nats.js.client import (
 )
 
 from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -36,6 +37,12 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
+
+
+class SharedOptions(TypedDict):
+    config: NatsSubscriberConfig
+    specification: SubscriberSpecification[Any, Any]
+    calls: CallsCollection[Any]
 
 
 def create_subscriber(
@@ -170,7 +177,7 @@ def create_subscriber(
         _no_ack=no_ack,
     )
 
-    calls = CallsCollection()
+    calls = CallsCollection[Any]()
 
     specification_config = NatsSubscriberSpecificationConfig(
         subject=subject,
@@ -192,7 +199,7 @@ def create_subscriber(
         specification_config=specification_config,
     )
 
-    subscriber_options = {
+    subscriber_options: SharedOptions = {
         "config": subscriber_config,
         "specification": specification,
         "calls": calls,
@@ -337,7 +344,7 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
             msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
             raise SetupError(msg)
 
-        no_ack = AckPolicy.DO_NOTHING if no_ack else EMPTY
+        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
 
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.REJECT_ON_ERROR

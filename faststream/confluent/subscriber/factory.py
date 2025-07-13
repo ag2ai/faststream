@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -66,7 +66,7 @@ def create_subscriber(
         _no_ack=no_ack,
     )
 
-    calls = CallsCollection()
+    calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
         _outer_config=config,

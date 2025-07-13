@@ -4,13 +4,13 @@ from typing import (
     Any,
 )
 
+from faststream._internal.configs import BrokerConfigType
 from faststream._internal.types import MsgType
 
-from .abc_broker import Registrator
+from .registrator import Registrator
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict
-    from faststream._internal.configs import BrokerConfig
 
 
 class ArgsContainer:
@@ -52,13 +52,13 @@ class SubscriberRoute(ArgsContainer):
         super().__init__(*args, **kwargs)
 
 
-class BrokerRouter(Registrator[MsgType]):
+class BrokerRouter(Registrator[MsgType, BrokerConfigType]):
     """A generic class representing a broker router."""
 
     def __init__(
         self,
         *,
-        config: "BrokerConfig",
+        config: BrokerConfigType,
         handlers: Iterable[SubscriberRoute],
         routers: Sequence["Registrator[MsgType]"],
     ) -> None:

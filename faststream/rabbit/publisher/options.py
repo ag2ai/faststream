@@ -12,10 +12,8 @@ class PublishOptions(TypedDict, total=False):
     timeout: "TimeoutType"
 
 
-class MessageOptions(TypedDict, total=False):
+class BasicMessageOptions(TypedDict, total=False):
     persist: bool
-    reply_to: str | None
-    headers: Optional["HeadersType"]
     content_type: str | None
     content_encoding: str | None
     priority: int | None
@@ -25,14 +23,13 @@ class MessageOptions(TypedDict, total=False):
     message_type: str | None
     user_id: str | None
     app_id: str | None
+
+
+class MessageOptions(BasicMessageOptions, total=False):
+    reply_to: str | None
+    headers: Optional["HeadersType"]
     correlation_id: str | None
-
-
-class RequestPublishKwargs(MessageOptions, PublishOptions, total=False):
-    """Typed dict to annotate RabbitMQ requesters."""
 
 
 class PublishKwargs(MessageOptions, PublishOptions, total=False):
     """Typed dict to annotate RabbitMQ publishers."""
-
-    reply_to: str | None

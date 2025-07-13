@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from faststream.redis.configs import ConnectionState
 
 
-class RedisFastProducer(ProducerProto):
+class RedisFastProducer(ProducerProto[RedisPublishCommand]):
     """A class to represent a Redis producer."""
 
     _decoder: "AsyncCallable"
@@ -43,10 +43,7 @@ class RedisFastProducer(ProducerProto):
         )
 
     @override
-    async def publish(  # type: ignore[override]
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> int | bytes:
+    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
         msg = RawMessage.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -58,10 +55,7 @@ class RedisFastProducer(ProducerProto):
         return await self.__publish(msg, cmd)
 
     @override
-    async def request(  # type: ignore[override]
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> "Any":
+    async def request(self, cmd: "RedisPublishCommand") -> "Any":
         nuid = NUID()
         reply_to = str(nuid.next(), "utf-8")
         psub = self._connection.client.pubsub()
@@ -99,10 +93,7 @@ class RedisFastProducer(ProducerProto):
         return response_msg
 
     @override
-    async def publish_batch(
-        self,
-        cmd: "RedisPublishCommand",
-    ) -> int:
+    async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         batch = [
             RawMessage.encode(
                 message=msg,

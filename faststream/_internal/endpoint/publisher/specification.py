@@ -13,7 +13,6 @@ from typing_extensions import (
 from faststream._internal.configs import (
     BrokerConfig,
     PublisherSpecificationConfig,
-    SubscriberSpecificationConfig,
 )
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
 T_SpecificationConfig = TypeVar313(
     "T_SpecificationConfig",
     bound=PublisherSpecificationConfig,
-    default=SubscriberSpecificationConfig,
+    default=PublisherSpecificationConfig,
 )
 T_BrokerConfig = TypeVar313("T_BrokerConfig", bound=BrokerConfig, default=BrokerConfig)
 
@@ -47,7 +46,9 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
     @property
     def include_in_schema(self) -> bool:
-        return self._outer_config.include_in_schema and self.config.include_in_schema
+        return bool(
+            self._outer_config.include_in_schema and self.config.include_in_schema
+        )
 
     def get_payloads(self) -> list[tuple["AnyDict", str]]:
         payloads: list[tuple[AnyDict, str]] = []
@@ -75,9 +76,12 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
                     serializer_cls=di_state._serializer,
                 )
 
-                response_type = next(
-                    iter(call_model.serializer.response_option.values())
-                ).field_type
+                if call_model.serializer:
+                    response_type = next(
+                        iter(call_model.serializer.response_option.values())
+                    ).field_type
+                else:
+                    response_type = None
 
                 if response_type is not None and response_type is not Parameter.empty:
                     body = get_model_schema(

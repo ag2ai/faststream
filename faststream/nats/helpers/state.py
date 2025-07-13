@@ -2,7 +2,6 @@ from typing import Protocol, TypeVar
 
 from nats.aio.client import Client
 from nats.js import JetStreamContext
-from typing_extensions import ReadOnly
 
 from faststream.exceptions import IncorrectState
 
@@ -10,7 +9,7 @@ ClientT = TypeVar("ClientT", Client, JetStreamContext)
 
 
 class ConnectionState(Protocol[ClientT]):
-    connection: ReadOnly[ClientT]
+    connection: ClientT
 
 
 class EmptyConnectionState(ConnectionState[ClientT]):
@@ -20,9 +19,13 @@ class EmptyConnectionState(ConnectionState[ClientT]):
     def connection(self) -> ClientT:
         raise IncorrectState
 
+    @connection.setter
+    def connection(self, v: ClientT) -> None:
+        raise IncorrectState
+
 
 class ConnectedState(ConnectionState[ClientT]):
     __slots__ = ("connection",)
 
     def __init__(self, connection: ClientT) -> None:
-        self.connection = connection
+        self.connection: ClientT = connection

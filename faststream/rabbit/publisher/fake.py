@@ -13,7 +13,7 @@ class RabbitFakePublisher(FakePublisher):
 
     def __init__(
         self,
-        producer: "ProducerProto",
+        producer: "ProducerProto[RabbitPublishCommand]",
         routing_key: str,
         app_id: str | None,
     ) -> None:

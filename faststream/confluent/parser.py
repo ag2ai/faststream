@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from faststream.message import decode_message
+from faststream.message import StreamMessage, decode_message
 
 from .message import FAKE_CONSUMER, KafkaMessage
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import DecodedMessage
 
-    from .message import ConsumerProtocol, StreamMessage
+    from .message import ConsumerProtocol
 
 
 class AsyncConfluentParser:

@@ -48,28 +48,41 @@ class AsyncAPI(SpecificationFactory):
         return self
 
     def to_specification(self) -> Specification:
-        options = {
-            "title": self.title,
-            "app_version": self.version,
-            "schema_version": self.schema_version,
-            "description": self.description,
-            "terms_of_service": self.terms_of_service,
-            "contact": self.contact,
-            "license": self.license,
-            "identifier": self.identifier,
-            "tags": self.tags,
-            "external_docs": self.external_docs,
-        }
-
         if self.schema_version.startswith("3."):
-            from .v3_0_0 import get_app_schema
+            from .v3_0_0 import get_app_schema as schema_3_0
 
-            return get_app_schema(self.brokers[0], **options)
+            return schema_3_0(
+                self.brokers[0],
+                title=self.title,
+                app_version=self.version,
+                schema_version=self.schema_version,
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license=self.license,
+                identifier=self.identifier,
+                tags=self.tags,
+                external_docs=self.external_docs,
+                http_handlers=self.http_handlers,
+            )
 
         if self.schema_version.startswith("2.6."):
-            from .v2_6_0 import get_app_schema
+            from .v2_6_0 import get_app_schema as schema_2_6
 
-            return get_app_schema(self.brokers[0], **options)
+            return schema_2_6(
+                self.brokers[0],
+                title=self.title,
+                app_version=self.version,
+                schema_version=self.schema_version,
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license=self.license,
+                identifier=self.identifier,
+                tags=self.tags,
+                external_docs=self.external_docs,
+                http_handlers=self.http_handlers,
+            )
 
         msg = f"Unsupported schema version: {self.schema_version}"
         raise NotImplementedError(msg)

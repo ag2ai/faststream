@@ -12,6 +12,42 @@ hide:
 ---
 
 # Release Notes
+## 0.5.45
+
+### What's Changed
+* ci: polish workflows by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2331](https://github.com/ag2ai/faststream/pull/2331){.external-link target="_blank"}
+* Update Release Notes for main by [@davorrunje](https://github.com/davorrunje){.external-link target="_blank"} in [#2337](https://github.com/ag2ai/faststream/pull/2337){.external-link target="_blank"}
+* Markdown Code Blocks Auto Set Language by [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} in [#2339](https://github.com/ag2ai/faststream/pull/2339){.external-link target="_blank"}
+* Change docs by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2343](https://github.com/ag2ai/faststream/pull/2343){.external-link target="_blank"}
+* chore(deps): bump the pip group with 5 updates by [@dependabot](https://github.com/dependabot){.external-link target="_blank"} in [#2344](https://github.com/ag2ai/faststream/pull/2344){.external-link target="_blank"}
+* ci: fix jobs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2338](https://github.com/ag2ai/faststream/pull/2338){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.44...0.5.45](https://github.com/ag2ai/faststream/compare/0.5.44...0.5.45){.external-link target="_blank"}
+
+## 0.5.44
+
+### What's Changed
+
+* Cli tests by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2295](https://github.com/ag2ai/faststream/pull/2295){.external-link target="_blank"}
+* feature #2091: AsyncAPI HTTP support by [@aligeromachine](https://github.com/aligeromachine){.external-link target="_blank"} in [#2301](https://github.com/ag2ai/faststream/pull/2301){.external-link target="_blank"}
+* add try/finally to ensure we exit on close error by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2304](https://github.com/ag2ai/faststream/pull/2304){.external-link target="_blank"}
+* docs: fix EmailStr duplication in API Reference by [@AliakseiYafremau](https://github.com/AliakseiYafremau){.external-link target="_blank"} in [#2308](https://github.com/ag2ai/faststream/pull/2308){.external-link target="_blank"}
+* Rewrite AsyncAPI docs and log file config tests by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2302](https://github.com/ag2ai/faststream/pull/2302){.external-link target="_blank"}
+* Add logging kafka errors by [@spataphore1337](https://github.com/spataphore1337){.external-link target="_blank"} in [#2318](https://github.com/ag2ai/faststream/pull/2318){.external-link target="_blank"}
+* Add aiokafka error handling by [@spataphore1337](https://github.com/spataphore1337){.external-link target="_blank"} in [#2319](https://github.com/ag2ai/faststream/pull/2319){.external-link target="_blank"}
+* feat: add a manual action for deploying from gh-pages branch by [@Tapeline](https://github.com/Tapeline){.external-link target="_blank"} in [#2325](https://github.com/ag2ai/faststream/pull/2325){.external-link target="_blank"}
+* Gh pages manual trigger fix by [@Tapeline](https://github.com/Tapeline){.external-link target="_blank"} in [#2326](https://github.com/ag2ai/faststream/pull/2326){.external-link target="_blank"}
+* feat: add CODEOWNERS by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#2330](https://github.com/ag2ai/faststream/pull/2330){.external-link target="_blank"}
+* introduce stop method on broker and subscriber and deprecate close by [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} in [#2328](https://github.com/ag2ai/faststream/pull/2328){.external-link target="_blank"}
+* fix: add injection extra options in lifespan by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2335](https://github.com/ag2ai/faststream/pull/2335){.external-link target="_blank"}
+
+### New Contributors
+* [@aligeromachine](https://github.com/aligeromachine){.external-link target="_blank"} made their first contribution in [#2301](https://github.com/ag2ai/faststream/pull/2301){.external-link target="_blank"}
+* [@AliakseiYafremau](https://github.com/AliakseiYafremau){.external-link target="_blank"} made their first contribution in [#2308](https://github.com/ag2ai/faststream/pull/2308){.external-link target="_blank"}
+* [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} made their first contribution in [#2328](https://github.com/ag2ai/faststream/pull/2328){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.43...0.5.44](https://github.com/ag2ai/faststream/compare/0.5.43...0.5.44){.external-link target="_blank"}
+
 ## 0.5.43
 
 ### What's Changed

@@ -13,7 +13,7 @@ class KafkaFakePublisher(FakePublisher):
 
     def __init__(
         self,
-        producer: "ProducerProto",
+        producer: "ProducerProto[KafkaPublishCommand]",
         topic: str,
     ) -> None:
         super().__init__(producer=producer)

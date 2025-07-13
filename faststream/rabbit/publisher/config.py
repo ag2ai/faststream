@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from faststream._internal.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
-from faststream.rabbit.configs.base import RabbitConfig, RabbitEndpointConfig
+from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
 
 if TYPE_CHECKING:
     from .options import PublishKwargs
@@ -21,6 +21,8 @@ class RabbitPublisherSpecificationConfig(
 
 
 @dataclass(kw_only=True)
-class RabbitPublisherConfig(RabbitEndpointConfig, PublisherUsecaseConfig):
+class RabbitPublisherConfig(RabbitConfig, PublisherUsecaseConfig):
+    _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
+
     routing_key: str
     message_kwargs: "PublishKwargs"

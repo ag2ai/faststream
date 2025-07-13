@@ -98,7 +98,7 @@ class RedisPublishCommand(BatchPublishCommand):
         channel: str | None = None,
         list: str | None = None,
         stream: str | None = None,
-    ) -> str:
+    ) -> None:
         if channel is not None:
             self.destination_type = DestinationType.Channel
             self.destination = channel

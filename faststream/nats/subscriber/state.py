@@ -11,8 +11,12 @@ if TYPE_CHECKING:
 
 
 class SubscriberState(Protocol):
-    client: "Client"
-    js: "JetStreamContext"
+    @property
+    def client(self) -> "Client": ...
+
+    @property
+    def js(self) -> "JetStreamContext": ...
+
     kv_declarer: "KVBucketDeclarer"
     os_declarer: "OSBucketDeclarer"
 
@@ -33,9 +37,19 @@ class EmptySubscriberState(SubscriberState):
         msg = "KeyValue is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 
+    @kv_declarer.setter
+    def kv_declarer(self, v: "KVBucketDeclarer") -> None:
+        msg = "Connection is not available yet. Please, setup the subscriber first."
+        raise IncorrectState(msg)
+
     @property
     def os_declarer(self) -> "OSBucketDeclarer":
         msg = "ObjectStorage is not available yet. Please, setup the subscriber first."
+        raise IncorrectState(msg)
+
+    @os_declarer.setter
+    def os_declarer(self, v: "OSBucketDeclarer") -> None:
+        msg = "Connection is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 
 

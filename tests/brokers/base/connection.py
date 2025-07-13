@@ -16,10 +16,10 @@ class BrokerConnectionTestcase:
         return await broker.ping(timeout=5.0)
 
     @pytest.mark.asyncio()
-    async def test_close_before_start(self) -> None:
+    async def test_stop_before_start(self) -> None:
         br = self.broker()
         assert br._connection is None
-        await br.close()
+        await br.stop()
         assert not br.running
 
     @pytest.mark.asyncio()
@@ -28,4 +28,4 @@ class BrokerConnectionTestcase:
         broker = self.broker(**kwargs)
         await broker.connect()
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()
