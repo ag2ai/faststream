@@ -12,6 +12,17 @@ hide:
 ---
 
 # Release Notes
+## 0.5.46
+
+### What's Changed
+
+* fix overlapping patterns by [@xgemx](https://github.com/xgemx){.external-link target="_blank"} in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+### New Contributors
+* [@xgemx](https://github.com/xgemx){.external-link target="_blank"} made their first contribution in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.45...0.5.46](https://github.com/ag2ai/faststream/compare/0.5.45...0.5.46){.external-link target="_blank"}
+
 ## 0.5.45
 
 ### What's Changed
