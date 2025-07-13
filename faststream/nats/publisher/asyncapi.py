@@ -24,7 +24,7 @@ class AsyncAPIPublisher(LogicPublisher):
     """A class to represent a NATS publisher."""
 
     def get_name(self) -> str:
-        return f"{self.subject}:Publisher"
+        return f"{self.clear_subject}:Publisher"
 
     def get_schema(self) -> Dict[str, Channel]:
         payloads = self.get_payloads()
