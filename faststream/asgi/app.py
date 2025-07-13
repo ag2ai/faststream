@@ -7,13 +7,12 @@ from typing import (
     Any,
     AsyncIterator,
     Dict,
+    Literal,
     Optional,
     Sequence,
     Tuple,
     Union,
 )
-
-import anyio
 
 from faststream._compat import HAS_UVICORN, uvicorn
 from faststream._internal.application import Application
@@ -182,17 +181,13 @@ class AsgiFastStream(Application):
         await server.serve()
 
     @asynccontextmanager
-    async def start_lifespan_context(self) -> AsyncIterator[None]:
-        async with anyio.create_task_group() as tg, self.lifespan_context(
-            **self._run_extra_options
-        ):
-            tg.start_soon(self._startup, self._log_level, self._run_extra_options)
-
+    async def start_lifespan_context(self) -> AsyncIterator[Literal[True]]:
+        async with self.lifespan_context(**self._run_extra_options):
             try:
-                yield
+                await self._startup(self._log_level, self._run_extra_options)
+                yield True
             finally:
                 await self._shutdown()
-                tg.cancel_scope.cancel()
 
     async def lifespan(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         """Handle ASGI lifespan messages to start and shutdown the app."""
@@ -200,9 +195,8 @@ class AsgiFastStream(Application):
         await receive()  # handle `lifespan.startup` event
 
         try:
-            async with self.start_lifespan_context():
+            async with self.start_lifespan_context() as started:
                 await send({"type": "lifespan.startup.complete"})
-                started = True
                 await receive()  # handle `lifespan.shutdown` event
 
         except BaseException:
