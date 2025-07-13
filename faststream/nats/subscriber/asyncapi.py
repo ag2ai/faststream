@@ -29,7 +29,7 @@ class AsyncAPISubscriber(LogicSubscriber[Any, Any]):
     """A class to represent a NATS handler."""
 
     def get_name(self) -> str:
-        return f"{self.subject}:{self.call_name}"
+        return f"{self.clear_subject}:{self.call_name}"
 
     def get_schema(self) -> Dict[str, Channel]:
         payloads = self.get_payloads()
