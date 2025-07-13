@@ -9,10 +9,8 @@ from typing import (
     TypeVar,
 )
 
-import anyio
 from typing_extensions import ParamSpec
 
-from faststream._compat import ExceptionGroup
 from faststream._internal.application import Application
 from faststream.asgi.app import AsgiFastStream
 from faststream.cli.supervisors.utils import set_exit
@@ -42,15 +40,9 @@ class FastStream(Application):
         async with catch_startup_validation_error(), self.lifespan_context(
             **(run_extra_options or {})
         ):
-            try:
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(self._startup, log_level, run_extra_options)
-                    await self._main_loop(sleep_time)
-                    await self._shutdown(log_level)
-                    tg.cancel_scope.cancel()
-            except ExceptionGroup as e:
-                for ex in e.exceptions:
-                    raise ex from None
+            await self._startup(log_level, run_extra_options)
+            await self._main_loop(sleep_time)
+            await self._shutdown(log_level)
 
     def as_asgi(
         self,

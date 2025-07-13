@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -96,61 +95,3 @@ class AsgiTestcase:
                 response = client.get("/test")
                 assert response.status_code == 200
                 assert response.text == "test"
-
-    @pytest.mark.asyncio
-    async def test_lifespan_startup_failure(self):
-        @asynccontextmanager
-        async def lifespan():
-            raise RuntimeError("Lifespan failure")
-            yield
-
-        broker = self.get_broker()
-        app = AsgiFastStream(broker, lifespan=lifespan)
-
-        async with self.get_test_broker(broker):
-            with pytest.raises(RuntimeError, match="Lifespan failure"):
-                with TestClient(app):
-                    pass
-
-    @pytest.mark.asyncio
-    async def test_lifespan_shutdown_failure(self):
-        @asynccontextmanager
-        async def lifespan():
-            yield
-            raise RuntimeError("Lifespan failure")
-
-        broker = self.get_broker()
-        app = AsgiFastStream(broker, lifespan=lifespan)
-
-        async with self.get_test_broker(broker):
-            with pytest.raises(RuntimeError, match="Lifespan failure"):
-                with TestClient(app):
-                    pass
-
-    @pytest.mark.asyncio
-    async def test_on_startup_failure(self):
-        broker = self.get_broker()
-        app = AsgiFastStream(broker)
-
-        @app.on_startup
-        async def on_startup():
-            raise RuntimeError("Startup failure")
-
-        async with self.get_test_broker(broker):
-            with pytest.raises(RuntimeError, match="Startup failure"):
-                with TestClient(app):
-                    pass
-
-    @pytest.mark.asyncio
-    async def test_on_shutdown_failure(self):
-        broker = self.get_broker()
-        app = AsgiFastStream(broker)
-
-        @app.on_shutdown
-        async def on_shutdown():
-            raise RuntimeError("Shutdown failure")
-
-        async with self.get_test_broker(broker):
-            with pytest.raises(RuntimeError, match="Shutdown failure"):
-                with TestClient(app):
-                    pass

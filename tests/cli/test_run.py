@@ -350,3 +350,75 @@ def test_run_as_asgi_with_log_config(
     stderr = cli_thread.process.stderr.read()
 
     assert "Current log level is 42" in stderr
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@pytest.mark.parametrize(
+    ("failure_type"),
+    [
+        pytest.param(
+            "startup",
+            id="startup hook failure",
+        ),
+        pytest.param(
+            "shutdown",
+            id="shutdown hook failure",
+        ),
+        pytest.param(
+            "lifespan_start",
+            id="lifespan start failure",
+        ),
+        pytest.param(
+            "lifespan_shutdown",
+            id="lifespan shutdown failure",
+        ),
+    ],
+)
+def test_run_asgi_exception_lifespan(
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
+    failure_type: str,
+) -> None:
+    app_code = f"""
+    from contextlib import asynccontextmanager
+
+    from faststream import FastStream
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker()
+
+    @asynccontextmanager
+    async def lifespan():
+        if "{failure_type}" == "lifespan_start":
+            raise ValueError("Failure during {failure_type}")
+        yield
+        if "{failure_type}" == "lifespan_shutdown":
+            raise ValueError("Failure during {failure_type}")
+
+    app = FastStream(broker, lifespan=lifespan).as_asgi()
+
+    @app.on_startup
+    async def start():
+        if "{failure_type}" == "startup":
+            raise ValueError("Failure during {failure_type}")
+
+    @app.on_shutdown
+    async def shutdown():
+        if "{failure_type}" == "shutdown":
+            raise ValueError("Failure during {failure_type}")
+    """
+    with generate_template(app_code) as app_path, faststream_cli(
+        ["faststream", "run", f"{app_path.stem}:app"],
+    ) as cli_thread:
+        pass
+
+    assert cli_thread.process
+    stderr = cli_thread.process.stderr.read()
+    assert f'ValueError("Failure during {failure_type}")' in stderr
+    if failure_type in ("startup", "lifespan_start"):
+        # this comes from uvicorn and only is logged when "lifespan.startup.failed" event is send
+        assert "Application startup failed. Exiting." in stderr
+    elif failure_type in ("shutdown", "lifespan_shutdown"):
+        # this comes from uvicorn and only is logged when "lifespan.shutdown.failed" event is send
+        assert "Application shutdown failed. Exiting." in stderr
