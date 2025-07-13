@@ -19,6 +19,7 @@ from typing_extensions import Annotated, Doc, override
 from faststream.broker.message import SourceType, gen_cor_id
 from faststream.broker.publisher.usecase import PublisherUsecase
 from faststream.exceptions import NOT_CONNECTED_YET
+from faststream.nats.schemas.js_stream import compile_nats_wildcard
 from faststream.utils.functions import return_input
 
 if TYPE_CHECKING:
@@ -67,6 +68,12 @@ class LogicPublisher(PublisherUsecase[Msg]):
         self.timeout = timeout
         self.headers = headers
         self.reply_to = reply_to
+
+    @property
+    def clear_subject(self) -> str:
+        """Compile `test.{name}` to `test.*` subject."""
+        _, path = compile_nats_wildcard(self.subject)
+        return path
 
     def __hash__(self) -> int:
         return hash(self.subject)
