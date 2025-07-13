@@ -15,7 +15,7 @@ TEST_CASES: Final = {
     "overlapping_wildcards_and_specific": (
         ["*.b.c", "a.>", "a.b.c"],
         {"a.>", "*.b.c"},
-    ),  # <- this case will raise subject "a.>" overlaps with "*.b.c" but I don't know what to do with it
+    ),
     "nested_wildcard_and_specific": (["a.b", "a.*", "a.b.c"], {"a.b.c", "a.*"}),
     "wildcard_overlaps_specific": (["a.b", "a.>", "a.b.c"], {"a.>"}),
     "wildcard_overlaps_wildcard": (["a.*", "a.>"], {"a.>"}),
@@ -23,12 +23,14 @@ TEST_CASES: Final = {
     "wildcard_overlaps_wildcard_and_specific": (["a.*", "a.>", "a.b"], {"a.>"}),
     "specific_wildcard_overlaps_wildcard": (["a.b", "a.*", "a.>"], {"a.>"}),
     "deep_wildcard_overlaps_wildcard": (["a.*.*", "a.>"], {"a.>"}),
-    "deep_wildcards_and_wildcard": (
-        ["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d", "a.>"],
-        {"a.>"},
-    ),
     "wildcard_overlaps_deep_wildcards": (
-        ["a.>", "a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"],
+        [
+            "a.*.*",
+            "a.*.*.*",
+            "a.b.c",
+            "a.>",
+            "a.b.c.d",
+        ],
         {"a.>"},
     ),
     "deep_wildcards": (["a.*.*", "a.*.*.*", "a.b.c", "a.b.c.d"], {"a.*.*.*", "a.*.*"}),

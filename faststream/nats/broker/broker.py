@@ -1,5 +1,6 @@
 import logging
 import warnings
+from itertools import zip_longest
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -217,40 +218,6 @@ if TYPE_CHECKING:
             Optional[float],
             Doc("Max duration to wait for a forced flush to occur."),
         ]
-
-
-def is_covered(subject: str, pattern: str) -> bool:
-    subject_parts: Final = subject.split(".")
-    pattern_parts: Final = pattern.split(".")
-
-    for i, pattern_part in enumerate(pattern_parts):
-        if pattern_part == "*":
-            if subject_parts[i] == ">":
-                return False
-            continue
-        if pattern_part == ">" and i == len(pattern_parts) - 1:
-            return True
-        if subject_parts[i] != pattern_part:
-            return False
-
-    return len(subject_parts) == len(pattern_parts)
-
-
-def filter_overlapped_subjects(subjects: List[str]) -> List[str]:
-    filtered_subjects: Final[List[str]] = []
-    for subject in subjects:
-        need_to_add = True
-        for filtered_subject_position in range(len(filtered_subjects)):
-            if is_covered(subject, filtered_subjects[filtered_subject_position]):
-                need_to_add = False
-                break
-            if is_covered(filtered_subjects[filtered_subject_position], subject):
-                need_to_add = False
-                filtered_subjects[filtered_subject_position] = subject
-                continue
-        if need_to_add:
-            filtered_subjects.append(subject)
-    return filtered_subjects
 
 
 class NatsBroker(
@@ -1072,3 +1039,44 @@ class NatsBroker(
                 await anyio.sleep(sleep_time)
 
         return False
+
+
+def is_covered(subject: str, pattern: str) -> bool:
+    subject_parts: Final = subject.split(".")
+    pattern_parts: Final = pattern.split(".")
+    total_parts = len(pattern_parts)
+
+    for i, (subject_part, pattern_part) in enumerate(
+        zip_longest(
+            subject_parts,
+            pattern_parts,
+            fillvalue=None,
+        )
+    ):
+        if pattern_part == "*":
+            if subject_part == ">":
+                return False
+            continue
+        if pattern_part == ">" and i == total_parts - 1:
+            return True
+        if subject_part != pattern_part:
+            return False
+
+    return len(subject_parts) == total_parts
+
+
+def filter_overlapped_subjects(subjects: Iterable[str]) -> List[str]:
+    filtered_subjects: List[str] = []
+    for subject in subjects:
+        need_to_add = True
+        for filtered_subject_position in range(len(filtered_subjects)):
+            if is_covered(subject, filtered_subjects[filtered_subject_position]):
+                need_to_add = False
+                break
+            if is_covered(filtered_subjects[filtered_subject_position], subject):
+                need_to_add = False
+                filtered_subjects[filtered_subject_position] = subject
+                continue
+        if need_to_add:
+            filtered_subjects.append(subject)
+    return filtered_subjects
