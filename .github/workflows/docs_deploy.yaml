@@ -63,7 +63,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: gh-pages
-          file_pattern: "docs/site/**"
           push_options: "--force"  # force push to stay with clear gh-pages branch history
           commit_message: "docs: deploy docs"
           commit_user_name: faststream-actions[bot]
