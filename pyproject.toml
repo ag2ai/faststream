@@ -122,10 +122,10 @@ types = [
 
 lint = [
     "faststream[types]",
-    "ruff==0.12.2",
+    "ruff==0.12.3",
     "bandit==1.8.6; python_version >= '3.9'",
     "bandit==1.7.10; python_version < '3.9'",
-    "semgrep==1.128.0; python_version >= '3.9'",
+    "semgrep==1.128.1; python_version >= '3.9'",
     "semgrep==1.99.0; python_version < '3.9'",
     "codespell==2.4.1",
 ]
@@ -143,7 +143,7 @@ test-core = [
 
 testing = [
     "faststream[test-core]",
-    "fastapi==0.115.14",
+    "fastapi==0.116.1",
     "pydantic-settings>=2.0.0,<3.0.0",
     "httpx==0.28.1",
     "PyYAML==6.0.2",
