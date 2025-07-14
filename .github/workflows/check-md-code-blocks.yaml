@@ -2,6 +2,7 @@ name: Auto-fix Markdown code blocks
 
 permissions:
   issues: write
+  discussions: write
   pull-requests: write
 
 on:
@@ -9,11 +10,13 @@ on:
     types:
       - opened
       - edited
-  pull_request:
+  discussion:
+    types:
+      - created
+      - edited
+  pull_request_target:
     types:
       - opened
-      - edited
-      - synchronize
 
 jobs:
   fix-md-code-blocks:
