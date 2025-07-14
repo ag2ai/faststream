@@ -47,7 +47,7 @@ def test_run_asgi(
     from faststream.asgi import AsgiResponse, get
     from faststream.nats import NatsBroker, TestNatsBroker
 
-    broker = NatsBroker(max_reconnect_attempts=1)
+    broker = NatsBroker()
 
 
     @get
