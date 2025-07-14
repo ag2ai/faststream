@@ -15,12 +15,11 @@ def test_run(
     generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
 ) -> None:
     app_code = """
+    from unittest.mock import AsyncMock
+
     from faststream import FastStream
-    from faststream.nats import NatsBroker
 
-    broker = NatsBroker()
-
-    app = FastStream(broker)
+    app = FastStream(AsyncMock())
     """
     with generate_template(app_code) as app_path, faststream_cli(
         [
@@ -42,12 +41,14 @@ def test_run_asgi(
 ) -> None:
     app_code = """
     import json
+    from contextlib import asynccontextmanager
 
     from faststream import FastStream
-    from faststream.nats import NatsBroker
     from faststream.asgi import AsgiResponse, get
+    from faststream.nats import NatsBroker, TestNatsBroker
 
-    broker = NatsBroker()
+    broker = NatsBroker(max_reconnect_attempts=1)
+
 
     @get
     async def liveness_ping(scope):
@@ -56,18 +57,31 @@ def test_run_asgi(
 
     CONTEXT = {}
 
+
     @get
     async def context(scope):
         return AsgiResponse(json.dumps(CONTEXT).encode(), status_code=200)
 
 
-    app = FastStream(broker).as_asgi(
-        asgi_routes=[
-            ("/liveness", liveness_ping),
-            ("/context", context)
-        ],
+    # must use broker implementation to generate the docs
+    # but cannot connect to it, hence we patch it
+    test_broker = TestNatsBroker(broker)
+
+
+    @asynccontextmanager
+    async def lifespan():
+        async with test_broker:
+            yield
+
+
+    app = FastStream(
+        broker,
+        lifespan=lifespan,
+    ).as_asgi(
+        asgi_routes=[("/liveness", liveness_ping), ("/context", context)],
         asyncapi_path="/docs",
     )
+
 
     @app.on_startup
     async def start(test: int, port: int):
@@ -113,16 +127,15 @@ def test_run_as_asgi_with_single_worker(
     generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
 ) -> None:
     app_code = """
-    from faststream.asgi import AsgiFastStream, AsgiResponse, get
-    from faststream.nats import NatsBroker
+    from unittest.mock import AsyncMock
 
-    broker = NatsBroker()
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
 
     @get
     async def liveness_ping(scope):
         return AsgiResponse(b"hello world", status_code=200)
 
-    app = AsgiFastStream(broker, asgi_routes=[
+    app = AsgiFastStream(AsyncMock(), asgi_routes=[
         ("/liveness", liveness_ping),
     ])
     """
@@ -148,12 +161,11 @@ def test_run_as_asgi_with_many_workers(
     workers: int,
 ) -> None:
     app_code = """
+    from unittest.mock import AsyncMock
+
     from faststream.asgi import AsgiFastStream
-    from faststream.nats import NatsBroker
 
-    broker = NatsBroker()
-
-    app = AsgiFastStream(broker)
+    app = AsgiFastStream(AsyncMock())
     """
 
     with generate_template(app_code) as app_path, faststream_cli(
@@ -194,14 +206,12 @@ def test_run_as_asgi_mp_with_log_level(
 ) -> None:
     app_code = """
     import logging
+    from unittest.mock import AsyncMock
 
     from faststream.asgi import AsgiFastStream
     from faststream.log.logging import logger
-    from faststream.nats import NatsBroker
 
-    broker = NatsBroker()
-
-    app = AsgiFastStream(broker)
+    app = AsgiFastStream(AsyncMock())
 
     @app.on_startup
     def print_log_level():
@@ -233,17 +243,16 @@ def test_run_as_factory(
     generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
 ) -> None:
     app_code = """
-    from faststream.asgi import AsgiFastStream, AsgiResponse, get
-    from faststream.nats import NatsBroker
+    from unittest.mock import AsyncMock
 
-    broker = NatsBroker()
+    from faststream.asgi import AsgiFastStream, AsgiResponse, get
 
     @get
     async def liveness_ping(scope):
         return AsgiResponse(b"hello world", status_code=200)
 
     def app_factory():
-        return AsgiFastStream(broker, asgi_routes=[
+        return AsgiFastStream(AsyncMock(), asgi_routes=[
             ("/liveness", liveness_ping),
         ])
     """
@@ -319,14 +328,12 @@ def test_run_as_asgi_with_log_config(
 ) -> None:
     app_code = """
     import logging
+    from unittest.mock import AsyncMock
 
     from faststream.asgi import AsgiFastStream
     from faststream.log.logging import logger
-    from faststream.nats import NatsBroker
 
-    broker = NatsBroker()
-
-    app = AsgiFastStream(broker)
+    app = AsgiFastStream(AsyncMock())
 
     @app.on_startup
     def print_log_level():
