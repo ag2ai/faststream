@@ -175,8 +175,8 @@ class LogicSubscriber(
 
         await super().start()
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self._queue_obj is not None:
             if self._consumer_tag is not None:  # pragma: no branch

@@ -50,7 +50,7 @@ class TestRouter(FastAPITestcase):
             port=settings.port,
         )
         await broker._connection.ping()
-        await broker.close()
+        await broker.stop()
 
     async def test_batch_real(
         self,

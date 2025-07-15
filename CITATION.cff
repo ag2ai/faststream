@@ -39,7 +39,7 @@ authors:
     email: support@ag2.ai
     website: 'https://ag2.ai'
 repository-code: 'https://github.com/ag2/faststream'
-url: 'https://faststream.airt.ai/'
+url: 'https://faststream.ag2.ai/'
 repository-artifact: 'https://pypistats.org/packages/faststream'
 abstract: >
   FastStream simplifies the process of writing producers and

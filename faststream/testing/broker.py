@@ -103,7 +103,7 @@ class TestBroker(Generic[Broker]):
             wraps=partial(self._fake_connect, broker),
         ), mock.patch.object(
             broker,
-            "close",
+            "stop",
         ), mock.patch.object(
             broker,
             "_connection",
@@ -116,6 +116,9 @@ class TestBroker(Generic[Broker]):
             broker,
             "ping",
             return_value=True,
+        ), mock.patch.object(
+            broker,  # TODO: remove it in 0.7
+            "close",  # patch stop to save compatibility
         ):
             yield
 

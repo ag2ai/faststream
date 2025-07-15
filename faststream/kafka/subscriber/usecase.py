@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from itertools import chain
 from typing import (
@@ -15,7 +16,7 @@ from typing import (
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
-from aiokafka.errors import ConsumerStoppedError, KafkaError
+from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
 from faststream.broker.publisher.fake import FakePublisher
@@ -170,8 +171,8 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
         if self.calls:
             self.add_task(self._run_consume_loop(self.consumer))
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.consumer is not None:
             await self.consumer.stop()
@@ -232,8 +233,18 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            # pragma: no cover
-            except KafkaError:  # noqa: PERF203
+            except UnsupportedCodecError as e:  # noqa: PERF203
+                self._log(
+                    logging.ERROR,
+                    "There is no suitable compression library available. Please refer to the Kafka "
+                    "documentation for more information - "
+                    "https://aiokafka.readthedocs.io/en/stable/#installation",
+                    exc_info=e,
+                )
+                await anyio.sleep(15)
+
+            except KafkaError as e:
+                self._log(logging.ERROR, "Kafka error occurred", exc_info=e)
                 if connected:
                     connected = False
                 await anyio.sleep(5)
@@ -606,7 +617,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
             for consumer in self.consumer_subgroup:
                 self.add_task(self._run_consume_loop(consumer))
 
-    async def close(self) -> None:
+    async def stop(self) -> None:
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
@@ -614,7 +625,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
             self.consumer_subgroup = []
 
-        await super().close()
+        await super().stop()
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
         assert consumer, "You should setup subscriber at first."  # nosec B101

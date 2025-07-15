@@ -25,7 +25,7 @@ class TestConnection(BrokerConnectionTestcase):
             ),
         )
         assert await broker.connect()
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_connect_handover_config_to_connect(self, settings):
@@ -38,10 +38,10 @@ class TestConnection(BrokerConnectionTestcase):
                 password=settings.password,
             ),
         )
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_connect_handover_config_to_connect_override_init(self, settings):
         broker = self.broker("fake-url")  # will be ignored
         assert await broker.connect(url=settings.url)
-        await broker.close()
+        await broker.stop()

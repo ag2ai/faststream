@@ -201,7 +201,7 @@ async def test_shutdown_lifespan_after_broker_stopped(
         await async_mock.before()
         assert not async_mock.broker_stop.called
 
-    with patch.object(app.broker, "close", async_mock.broker_stop):
+    with patch.object(app.broker, "stop", async_mock.broker_stop):
         await app.stop()
 
     async_mock.broker_stop.assert_called_once()
@@ -214,7 +214,7 @@ async def test_running(async_mock, app: FastStream):
     app.exit()
 
     with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
-        app.broker, "close", async_mock.broker_stopped
+        app.broker, "stop", async_mock.broker_stopped
     ):
         await app.run()
 
@@ -246,7 +246,7 @@ async def test_running_lifespan_contextmanager(async_mock, mock: Mock, app: Fast
     app.exit()
 
     with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
-        app.broker, "close", async_mock.broker_stopped
+        app.broker, "stop", async_mock.broker_stopped
     ):
         await app.run(run_extra_options={"env": "test"})
 
@@ -323,7 +323,7 @@ async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream):
     app = FastStream(app.broker, lifespan=lifespan)
 
     with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
-        app.broker, "close", async_mock.broker_stopped
+        app.broker, "stop", async_mock.broker_stopped
     ):
         async with TestApp(app, {"env": "test"}):
             pass
@@ -344,7 +344,7 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream):
     app = FastStream(app.broker, lifespan=lifespan)
 
     with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
-        app.broker, "close", async_mock.broker_stopped
+        app.broker, "stop", async_mock.broker_stopped
     ), TestApp(app, {"env": "test"}):
         pass
 
@@ -358,7 +358,7 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream):
 @pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 async def test_stop_with_sigint(async_mock, app: FastStream):
     with patch.object(app.broker, "start", async_mock.broker_run_sigint), patch.object(
-        app.broker, "close", async_mock.broker_stopped_sigint
+        app.broker, "stop", async_mock.broker_stopped_sigint
     ):
         async with anyio.create_task_group() as tg:
             tg.start_soon(app.run)
@@ -372,7 +372,7 @@ async def test_stop_with_sigint(async_mock, app: FastStream):
 @pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
 async def test_stop_with_sigterm(async_mock, app: FastStream):
     with patch.object(app.broker, "start", async_mock.broker_run_sigterm), patch.object(
-        app.broker, "close", async_mock.broker_stopped_sigterm
+        app.broker, "stop", async_mock.broker_stopped_sigterm
     ):
         async with anyio.create_task_group() as tg:
             tg.start_soon(app.run)
@@ -397,7 +397,7 @@ async def test_run_asgi(async_mock: AsyncMock, app: FastStream):
     assert asgi_app.routes == asgi_routes
 
     with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
-        app.broker, "close", async_mock.broker_stopped
+        app.broker, "stop", async_mock.broker_stopped
     ):
         async with anyio.create_task_group() as tg:
             tg.start_soon(app.run)

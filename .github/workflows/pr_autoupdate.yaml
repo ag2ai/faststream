@@ -1,4 +1,4 @@
-name: Run linting, update API References and commit changes
+name: Run linters
 
 on:
   pull_request_target:
@@ -21,21 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.head_ref }}
+
       - uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Set $PY environment variable
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
-        # should install with `-e`
         run: |
           set -ux
           uv pip install --system -e .[dev]
@@ -45,10 +49,10 @@ jobs:
         with:
           extra_args: --hook-stage manual --all-files
 
-      - name: Run build docs
-        run: bash scripts/build-docs.sh
-
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          commit_message: "docs: generate API References"
+          commit_message: "chore: apply autofixes"
+          commit_user_name: faststream-actions[bot]
+          commit_user_email: faststream-actions[bot]@users.noreply.github.com
+          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>

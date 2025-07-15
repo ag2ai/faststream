@@ -68,6 +68,7 @@ pytest tests
 
 In your project, you'll find some *pytest marks*:
 
+* **confluent**
 * **slow**
 * **rabbit**
 * **kafka**

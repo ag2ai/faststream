@@ -335,7 +335,7 @@ class StreamRouter(
                         await h(app)
 
                 finally:
-                    await self.broker.close()
+                    await self.broker.stop()
 
         return start_broker_lifespan
 

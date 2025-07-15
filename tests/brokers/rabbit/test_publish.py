@@ -33,7 +33,7 @@ class TestPublish(BrokerPublishTestcase):
             event.set()
             mock(m)
 
-        with pytest.warns(DeprecationWarning):
+        with pytest.warns(DeprecationWarning):  # noqa: PT030
 
             @pub_broker.subscriber(queue, reply_config=ReplyConfig(persist=True))
             async def handler(m):

@@ -71,7 +71,7 @@
 
 ## Features
 
-[**FastStream**](https://faststream.airt.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
+[**FastStream**](https://faststream.ag2.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
 parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
@@ -96,7 +96,7 @@ That's **FastStream** in a nutshell—easy, efficient, and powerful. Whether you
 
 ---
 
-**Documentation**: <a href="https://faststream.airt.ai/latest/" target="_blank">https://faststream.airt.ai/latest/</a>
+**Documentation**: <a href="https://faststream.ag2.ai/latest/" target="_blank">https://faststream.ag2.ai/latest/</a>
 
 ---
 
@@ -251,7 +251,7 @@ And multiprocessing horizontal scaling feature as well:
 faststream run basic:app --workers 3
 ```
 
-You can learn more about **CLI** features [here](https://faststream.airt.ai/latest/getting-started/cli/)
+You can learn more about **CLI** features [here](https://faststream.ag2.ai/latest/getting-started/cli/)
 
 ---
 
@@ -307,7 +307,7 @@ async def start_broker(app):
     await broker.start()
 
 async def stop_broker(app):
-    await broker.close()
+    await broker.stop()
 
 async def hello(request):
     return web.Response(text="Hello, world")
@@ -347,7 +347,7 @@ app = FastAPI()
 app.include_router(router)
 ```
 
-More integration features can be found [here](https://faststream.airt.ai/latest/getting-started/integrations/fastapi/)
+More integration features can be found [here](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/)
 
 ---
 

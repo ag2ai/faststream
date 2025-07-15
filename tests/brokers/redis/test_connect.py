@@ -32,11 +32,11 @@ class TestConnection(BrokerConnectionTestcase):
             port=settings.port,
         )
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()
 
     @pytest.mark.asyncio
     async def test_connect_merge_args_and_kwargs_native(self, settings):
         broker = self.broker("fake-url")  # will be ignored
         await broker.connect(url=settings.url)
         assert await self.ping(broker)
-        await broker.close()
+        await broker.stop()

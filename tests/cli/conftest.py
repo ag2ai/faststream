@@ -45,6 +45,13 @@ def app(broker):
     return FastStream(broker)
 
 
+@pytest.fixture
+def faststream_tmp_path(tmp_path: "Path"):
+    faststream_tmp = tmp_path / "faststream_templates"
+    faststream_tmp.mkdir(exist_ok=True)
+    return faststream_tmp
+
+
 class GenerateTemplateFactory(Protocol):
     def __call__(
         self, code: str, filename: str = "temp_app.py"
@@ -53,16 +60,13 @@ class GenerateTemplateFactory(Protocol):
 
 @pytest.fixture
 def generate_template(
-    tmp_path: "Path",
+    faststream_tmp_path: "Path",
 ) -> GenerateTemplateFactory:
     @contextmanager
     def factory(
         code: str, filename: str = "temp_app.py"
     ) -> Generator["Path", None, None]:
-        temp_dir = tmp_path / "faststream_templates"
-        temp_dir.mkdir(exist_ok=True)
-
-        file_path: Path = temp_dir / filename
+        file_path: Path = faststream_tmp_path / filename
         cleaned_code = dedent(code).strip()
 
         file_path.write_text(cleaned_code)
@@ -91,11 +95,11 @@ class FastStreamCLIFactory(Protocol):
 
 
 @pytest.fixture
-def faststream_cli(tmp_path: "Path") -> FastStreamCLIFactory:
+def faststream_cli(faststream_tmp_path: "Path") -> FastStreamCLIFactory:
     @contextmanager
     def factory(
         cmd: List[str],
-        wait_time: float = 1.5,
+        wait_time: float = 2.0,
         extra_env: Optional[Dict[str, str]] = None,
     ) -> Generator[CliThread, None, None]:
         class RealCLIThread(threading.Thread):
@@ -126,8 +130,15 @@ def faststream_cli(tmp_path: "Path") -> FastStreamCLIFactory:
 
         extra_env = extra_env or {}
         env = os.environ.copy()
-        env.update(**extra_env)
-        cli = RealCLIThread(cmd, extra_env)
+        if extra_env:
+            env.update(**extra_env)
+        env.update(
+            **{
+                "PATH": f"{faststream_tmp_path}:{os.environ['PATH']}",
+                "PYTHONPATH": str(faststream_tmp_path),
+            }
+        )
+        cli = RealCLIThread(cmd, env)
         cli.start()
         time.sleep(wait_time)
 

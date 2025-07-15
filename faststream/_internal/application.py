@@ -185,7 +185,7 @@ class Application(ABC, AsyncAPIApplication):
             await func()
 
         if self.broker is not None:
-            await self.broker.close()
+            await self.broker.stop()
 
         for func in self._after_shutdown_calling:
             await func()

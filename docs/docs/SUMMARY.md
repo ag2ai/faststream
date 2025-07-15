@@ -758,6 +758,8 @@ search:
                     - [NatsBroker](api/faststream/nats/broker/NatsBroker.md)
                     - broker
                         - [NatsBroker](api/faststream/nats/broker/broker/NatsBroker.md)
+                        - [filter_overlapped_subjects](api/faststream/nats/broker/broker/filter_overlapped_subjects.md)
+                        - [is_covered](api/faststream/nats/broker/broker/is_covered.md)
                     - logging
                         - [NatsLoggingBroker](api/faststream/nats/broker/logging/NatsLoggingBroker.md)
                     - registrator

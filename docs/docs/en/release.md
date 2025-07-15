@@ -12,6 +12,37 @@ hide:
 ---
 
 # Release Notes
+## 0.5.47
+
+### What's Changed
+* fix: correct NATS pattern AsyncAPI render by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2354](https://github.com/ag2ai/faststream/pull/2354){.external-link target="_blank"}
+
+
+**Full Changelog**: [#0.5.46...0.5.47](https://github.com/ag2ai/faststream/compare/0.5.46...0.5.47){.external-link target="_blank"}
+
+## 0.5.46
+
+### What's Changed
+
+* fix overlapping patterns by [@xgemx](https://github.com/xgemx){.external-link target="_blank"} in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+### New Contributors
+* [@xgemx](https://github.com/xgemx){.external-link target="_blank"} made their first contribution in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.45...0.5.46](https://github.com/ag2ai/faststream/compare/0.5.45...0.5.46){.external-link target="_blank"}
+
+## 0.5.45
+
+### What's Changed
+* ci: polish workflows by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2331](https://github.com/ag2ai/faststream/pull/2331){.external-link target="_blank"}
+* Update Release Notes for main by [@davorrunje](https://github.com/davorrunje){.external-link target="_blank"} in [#2337](https://github.com/ag2ai/faststream/pull/2337){.external-link target="_blank"}
+* Markdown Code Blocks Auto Set Language by [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} in [#2339](https://github.com/ag2ai/faststream/pull/2339){.external-link target="_blank"}
+* Change docs by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2343](https://github.com/ag2ai/faststream/pull/2343){.external-link target="_blank"}
+* chore(deps): bump the pip group with 5 updates by [@dependabot](https://github.com/dependabot){.external-link target="_blank"} in [#2344](https://github.com/ag2ai/faststream/pull/2344){.external-link target="_blank"}
+* ci: fix jobs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2338](https://github.com/ag2ai/faststream/pull/2338){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.44...0.5.45](https://github.com/ag2ai/faststream/compare/0.5.44...0.5.45){.external-link target="_blank"}
+
 ## 0.5.44
 
 ### What's Changed

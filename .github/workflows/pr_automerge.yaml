@@ -1,4 +1,4 @@
-name: Dependabot automerge
+name: Automerge
 
 on:
   pull_request_target:
@@ -7,7 +7,7 @@ jobs:
   automerge:
     name: Enable pull request automerge
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'faststream-actions[bot]'
 
     steps:
       - uses: alexwilson/enable-github-automerge-action@2.0.0
@@ -19,7 +19,7 @@ jobs:
     name: Automatically approve pull request
     needs: [automerge]
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'faststream-actions[bot]'
 
     steps:
       - uses: hmarr/auto-approve-action@v4

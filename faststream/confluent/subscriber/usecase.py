@@ -154,8 +154,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         if self.calls:
             self.add_task(self._consume())
 
-    async def close(self) -> None:
-        await super().close()
+    async def stop(self) -> None:
+        await super().stop()
 
         if self.consumer is not None:
             await self.consumer.stop()
