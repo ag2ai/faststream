@@ -202,7 +202,7 @@ class RouterTestcase(
         async def handler(m):
             event.set()
 
-        publisher = router.publisher(response_topic)
+        publisher = router.publisher(queue)
         pub_broker.include_router(router, prefix="test_")
 
         async with pub_broker:
