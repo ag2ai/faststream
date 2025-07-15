@@ -198,11 +198,18 @@ class RouterTestcase(
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        @pub_broker.subscriber(f"test_{queue}")
+        response_topic = f"{queue}_response"
+        publisher = router.publisher(response_topic)
+
+        @router.subscriber(queue)
+        @publisher
         async def handler(m):
+            return "response"
+
+        @pub_broker.subscriber(f"test_{response_topic}")
+        def response_handler(m):
             event.set()
 
-        publisher = router.publisher(queue)
         pub_broker.include_router(router, prefix="test_")
 
         async with pub_broker:
@@ -210,7 +217,7 @@ class RouterTestcase(
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(publisher.publish("hello")),
+                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
