@@ -105,7 +105,6 @@ def test_single_worker(
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_many_workers(
     generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
 ) -> None:
@@ -121,7 +120,12 @@ def test_many_workers(
     with (
         generate_template(app_code) as app_path,
         faststream_cli(
-            "faststream", "run", f"{app_path.stem}:app", "--workers", str(workers)
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            str(workers),
+            wait_time=4.0,
         ) as cli_thread,
     ):
         process = psutil.Process(pid=cli_thread.process.pid)
