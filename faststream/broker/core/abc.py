@@ -116,7 +116,7 @@ class ABCBroker(Generic[MsgType]):
                 self._subscribers = {**self._subscribers, key: h}
 
         for p in router._publishers.values():
-            h.add_prefix("".join((self.prefix, prefix)))
+            p.add_prefix("".join((self.prefix, prefix)))
 
             if (key := hash(p)) not in self._publishers:
                 if include_in_schema is None:
