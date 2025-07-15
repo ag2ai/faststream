@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting</title>
+    <noscript>
+        <meta http-equiv="refresh" content="1; url=latest/" />
+    </noscript>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HDTMP5FFHP"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-HDTMP5FFHP');
+    </script>
+
+    <script>
+        window.onload = function () {
+            const urlSearchParams = new URLSearchParams(window.location.search);
+            const existingReferrer = urlSearchParams.get('utm_referrer') || "";
+
+            // Use the referrer if valid, otherwise use the existingReferrer
+            const referrer = document.referrer;
+            const isReferrerValid = referrer && !referrer.includes("faststream.ag2.ai");
+            const validReferrer = isReferrerValid ? referrer : existingReferrer;
+
+            if (validReferrer) {
+                urlSearchParams.set('utm_referrer', validReferrer);
+            }
+
+            // Update the search parameters with the new utm_referrer
+            const newGetParams = urlSearchParams.toString();
+
+            // Construct the redirect URL with the updated query parameters
+            const redirectURL = "latest/" + (newGetParams ? `?${newGetParams}` : "") + window.location.hash;
+
+            window.location.replace(redirectURL);
+        };
+    </script>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="FastStream" />
+    <meta property="og:description" content="FastStream Python messaging framework documentation" />
+    <meta property="og:url" content="https://faststream.ag2.ai/latest/" />
+    <meta property="og:image" content="https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FastStream" />
+    <meta name="twitter:description" content="FastStream Python messaging framework documentation" />
+    <meta name="twitter:image" content="https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream" />
+</head>
+
+<body>
+    Redirecting to <a href="latest/">latest/</a>...  <!-- nosemgrep -->
+</body>
+
+</html>
