@@ -48,14 +48,14 @@ jobs:
             mike set-default --allow-empty -F mkdocs.yml latest
 
             # Doc commits are large, keep only the last one
-            git checkout --ours gh-pages
+            git checkout gh-pages
             git reset --soft HEAD~3
           else
             cd docs
             mike deploy -F mkdocs.yml --update-aliases $VERSION
 
             # Doc commits are large, keep only the last one
-            git checkout --ours gh-pages
+            git checkout gh-pages
             git reset --soft HEAD~2
           fi
 

@@ -52,7 +52,7 @@ jobs:
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          commit_message: "docs: generate API References"
+          commit_message: "chore: apply autofixes"
           commit_user_name: faststream-actions[bot]
           commit_user_email: faststream-actions[bot]@users.noreply.github.com
           commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>
