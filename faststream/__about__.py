@@ -3,3 +3,6 @@
 __version__ = "0.5.47"
 
 SERVICE_NAME = f"faststream-{__version__}"
+
+
+
