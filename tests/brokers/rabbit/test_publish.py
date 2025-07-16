@@ -6,7 +6,7 @@ import pytest
 from dirty_equals import IsNow
 
 from faststream import Context
-from faststream.rabbit import RabbitBroker, RabbitResponse, ReplyConfig, RabbitExchange
+from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitResponse, ReplyConfig
 from faststream.rabbit.publisher.producer import AioPikaFastProducer
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
