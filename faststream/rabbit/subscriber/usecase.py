@@ -227,17 +227,15 @@ class LogicSubscriber(
         if self._producer is None:
             return ()
 
-        publish_kwargs = {
-            **self.reply_config,
-            "app_id": self.app_id
-        }
+        publish_kwargs = {**self.reply_config, "app_id": self.app_id}
 
         if REPLY_TO_QUEUE_EXCHANGE_DELIMETER in message.reply_to:
-            queue_name, exchange_name = tuple(message.reply_to.split(REPLY_TO_QUEUE_EXCHANGE_DELIMETER))
-            publish_kwargs.update({
-                "routing_key": queue_name,
-                "exchange": exchange_name
-            })
+            queue_name, exchange_name = tuple(
+                message.reply_to.split(REPLY_TO_QUEUE_EXCHANGE_DELIMETER)
+            )
+            publish_kwargs.update(
+                {"routing_key": queue_name, "exchange": exchange_name}
+            )
         else:
             publish_kwargs["routing_key"] = message.reply_to
 

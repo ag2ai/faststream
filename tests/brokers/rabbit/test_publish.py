@@ -187,7 +187,9 @@ class TestPublish(BrokerPublishTestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br.publish("Hello!", queue, reply_to=queue + "reply|reply_exchange")
+                        br.publish(
+                            "Hello!", queue, reply_to=queue + "reply|reply_exchange"
+                        )
                     ),
                     asyncio.create_task(event.wait()),
                 ),
