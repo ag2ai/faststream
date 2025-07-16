@@ -22,3 +22,6 @@ class ExchangeType(str, Enum):
     X_DELAYED_MESSAGE = "x-delayed-message"
     X_CONSISTENT_HASH = "x-consistent-hash"
     X_MODULUS_HASH = "x-modulus-hash"
+
+
+REPLY_TO_QUEUE_EXCHANGE_DELIMETER = "|"

@@ -6,7 +6,7 @@ import pytest
 from dirty_equals import IsNow
 
 from faststream import Context
-from faststream.rabbit import RabbitBroker, RabbitResponse, ReplyConfig
+from faststream.rabbit import RabbitBroker, RabbitResponse, ReplyConfig, RabbitExchange
 from faststream.rabbit.publisher.producer import AioPikaFastProducer
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
@@ -159,3 +159,40 @@ class TestPublish(BrokerPublishTestcase):
         mock.assert_called_once_with(
             body=b"", timestamp=IsNow(delta=3, tz=dt.timezone.utc)
         )
+
+    @pytest.mark.asyncio
+    async def test_reply_to_with_exchange(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: Mock,
+    ):
+        pub_broker = self.get_broker(apply_types=True)
+        exchange = RabbitExchange(name="reply_exchange")
+
+        @pub_broker.subscriber(queue=queue + "reply", exchange=exchange)
+        async def reply_handler(m):
+            event.set()
+            mock(m)
+
+        args2, kwargs2 = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args2, **kwargs2)
+        async def handler(m):
+            return m
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        br.publish("Hello!", queue, reply_to=queue + "reply|reply_exchange")
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_with("Hello!")

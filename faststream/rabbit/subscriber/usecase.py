@@ -18,6 +18,7 @@ from faststream.broker.utils import process_msg
 from faststream.exceptions import SetupError
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.schemas import BaseRMQInformation
+from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMETER
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
@@ -226,14 +227,24 @@ class LogicSubscriber(
         if self._producer is None:
             return ()
 
+        publish_kwargs = {
+            **self.reply_config,
+            "app_id": self.app_id
+        }
+
+        if REPLY_TO_QUEUE_EXCHANGE_DELIMETER in message.reply_to:
+            queue_name, exchange_name = tuple(message.reply_to.split(REPLY_TO_QUEUE_EXCHANGE_DELIMETER))
+            publish_kwargs.update({
+                "routing_key": queue_name,
+                "exchange": exchange_name
+            })
+        else:
+            publish_kwargs["routing_key"] = message.reply_to
+
         return (
             FakePublisher(
                 self._producer.publish,
-                publish_kwargs={
-                    **self.reply_config,
-                    "routing_key": message.reply_to,
-                    "app_id": self.app_id,
-                },
+                publish_kwargs=publish_kwargs,
             ),
         )
 
