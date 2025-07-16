@@ -1,8 +1,7 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
-
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, Annotated
 from aio_pika import IncomingMessage
-from typing_extensions import override
+from typing_extensions import override, deprecated
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -118,7 +117,13 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         reply_to: str | None = None,
         priority: int | None = None,
         # specific
-        middlewares: Sequence["PublisherMiddleware"] = (),
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,

@@ -438,7 +438,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -546,7 +552,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -604,7 +616,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args

@@ -262,7 +262,13 @@ class KafkaRoute(SubscriberRoute):
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
             middlewares: Subscriber middlewares to wrap incoming message processing.
+                .. deprecated:: 0.6.0
+                    This option was deprecated in 0.6.0. Use router-level middlewares instead.
+                    Scheduled to remove in 0.7.0
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
+                .. deprecated:: 0.6.0
+                    This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**.
+                    Scheduled to remove in 0.7.0
             ack_policy: Acknowledgement policy.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title: AsyncAPI subscriber object title.
