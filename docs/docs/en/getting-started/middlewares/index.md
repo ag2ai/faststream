@@ -85,7 +85,7 @@ The middleware execution follows a specific sequence during message processing:
 1. **on_receive** - This function is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
 3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](../subscription/index.md) - If the filter passes, the flow continues. Otherwise, it stops here.
+4. [**consume_scope**](../subscription/index.md){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
 5. [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
 6. **Handler** - Executes the message handling function
 7. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
@@ -105,14 +105,14 @@ The middleware execution follows a specific sequence during message processing:
     from faststream import BaseMiddleware
     from faststream.response import PublishCommand
 
-        class DefaultPublishMiddleware(BaseMiddleware):
-            @override
-            async def publish_scope(
-                self,
-                call_next: Callable[[PublishCommand], Awaitable[Any]],
-                cmd: PublishCommand,
-            ) -> Any:
-                return await super().publish_scope(call_next, cmd)
+    class DefaultPublishMiddleware(BaseMiddleware):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[PublishCommand], Awaitable[Any]],
+            cmd: PublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
     ```
 
 === "Kafka"
@@ -122,14 +122,14 @@ The middleware execution follows a specific sequence during message processing:
     from faststream import BaseMiddleware
     from faststream.kafka.response import KafkaPublishCommand
 
-        class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
-            @override
-            async def publish_scope(
-                self,
-                call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
-                cmd: KafkaPublishCommand,
-            ) -> Any:
-                return await super().publish_scope(call_next, cmd)
+    class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
+            cmd: KafkaPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
     ```
 
 === "RabbitMQ"
@@ -139,14 +139,14 @@ The middleware execution follows a specific sequence during message processing:
     from faststream import BaseMiddleware
     from faststream.rabbit.response import RabbitPublishCommand
 
-        class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
-            @override
-            async def publish_scope(
-                self,
-                call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
-                cmd: RabbitPublishCommand,
-            ) -> Any:
-                return await super().publish_scope(call_next, cmd)
+    class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
+            cmd: RabbitPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
     ```
 
 === "NATS"
@@ -156,14 +156,14 @@ The middleware execution follows a specific sequence during message processing:
     from faststream import BaseMiddleware
     from faststream.nats.response import NatsPublishCommand
 
-        class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
-            @override
-            async def publish_scope(
-                self,
-                call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
-                cmd: NatsPublishCommand,
-            ) -> Any:
-                return await super().publish_scope(call_next, cmd)
+    class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
+            cmd: NatsPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
     ```
 
 === "Redis"
@@ -173,14 +173,14 @@ The middleware execution follows a specific sequence during message processing:
     from faststream import BaseMiddleware
     from faststream.redis.response import RedisPublishCommand
 
-        class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
-            @override
-            async def publish_scope(
-                self,
-                call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
-                cmd: RedisPublishCommand,
-            ) -> Any:
-                return await super().publish_scope(call_next, cmd)
+    class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
+            cmd: RedisPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
     ```
 
 ## Context Access
