@@ -12,6 +12,7 @@ from tests.marks import (
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @require_aiokafka
 async def test_broker_context_kafka() -> None:
     from docs.docs_src.getting_started.publishing.kafka.broker_context import (

@@ -26,6 +26,7 @@ class BaseCase:
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @require_aiokafka
 class TestKafka(BaseCase):
     @pytest.fixture(scope="class")

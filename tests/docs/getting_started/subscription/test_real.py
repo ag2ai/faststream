@@ -10,6 +10,7 @@ from tests.marks import (
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @require_aiokafka
 async def test_handle_kafka() -> None:
@@ -21,6 +22,7 @@ async def test_handle_kafka() -> None:
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @require_aiokafka
 async def test_validate_kafka() -> None:

@@ -19,6 +19,7 @@ from .basic import KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
     async def test_consume_by_pattern(
@@ -554,6 +555,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.asyncio()
 @pytest.mark.slow()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("partitions", "warning"),
@@ -604,6 +606,7 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
 @pytest.mark.asyncio()
 @pytest.mark.slow()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestListener(KafkaTestcaseConfig):
     async def test_sync_listener(
         self,

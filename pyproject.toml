@@ -190,7 +190,16 @@ minversion = "7.0"
 timeout = 30
 addopts = "-q -m 'not slow'"
 testpaths = ["tests"]
-markers = ["rabbit", "kafka", "confluent", "nats", "redis", "slow", "all"]
+markers = [
+    "rabbit",
+    "kafka",
+    "confluent",
+    "nats",
+    "redis",
+    "slow",
+    "all",
+    "connected",
+]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
