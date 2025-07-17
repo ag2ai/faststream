@@ -36,9 +36,9 @@ from .registrator import KafkaRegistrator
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import (
         LoggerProto,
         SendableMessage,

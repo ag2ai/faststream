@@ -5,15 +5,14 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from fast_depends import Provider
 from fast_depends.core import CallModel, build_call_model
-
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import Decorator
     from faststream.message import StreamMessage
 

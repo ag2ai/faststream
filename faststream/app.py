@@ -9,9 +9,9 @@ from typing import (
 )
 
 import anyio
-from fast_depends import Provider
 from typing_extensions import ParamSpec
 
+from fast_depends import Provider
 from faststream._internal._compat import ExceptionGroup
 from faststream._internal.application import Application
 from faststream._internal.basic_types import Lifespan, LoggerProto

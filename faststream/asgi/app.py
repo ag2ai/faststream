@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
-from fast_depends import Provider
 
+from fast_depends import Provider
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY

@@ -17,7 +17,6 @@ from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
-
     from faststream._internal.basic_types import AsyncFuncAny, Decorator
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper

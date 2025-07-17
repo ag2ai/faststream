@@ -7,9 +7,9 @@ from typing import (
     Optional,
 )
 
-from fast_depends import Provider
 from typing_extensions import Self, deprecated
 
+from fast_depends import Provider
 from faststream._internal.configs import BrokerConfigType
 from faststream._internal.types import (
     BrokerMiddleware,

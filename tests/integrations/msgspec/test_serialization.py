@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import msgspec
 import pytest
-from fast_depends.msgspec import MsgSpecSerializer
 
+from fast_depends.msgspec import MsgSpecSerializer
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.testing.broker import TestBroker
 from faststream.confluent import (

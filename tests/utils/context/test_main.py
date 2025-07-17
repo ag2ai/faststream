@@ -1,6 +1,6 @@
 import pytest
-from fast_depends import ValidationError
 
+from fast_depends import ValidationError
 from faststream import Context, ContextRepo
 from faststream._internal.utils import apply_types
 

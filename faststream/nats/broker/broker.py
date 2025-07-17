@@ -50,7 +50,6 @@ from .registrator import NatsRegistrator
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from nats.aio.client import (
         Callback,
@@ -64,6 +63,7 @@ if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
     from typing_extensions import TypedDict
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import (
         LoggerProto,
         SendableMessage,

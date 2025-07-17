@@ -11,10 +11,10 @@ from typing import (
     Union,
 )
 
-from fast_depends.dependencies import Dependant
 from fastapi.routing import run_endpoint_function, serialize_response
 from starlette.requests import Request
 
+from fast_depends.dependencies import Dependant
 from faststream._internal.context import Context, ContextRepo
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError

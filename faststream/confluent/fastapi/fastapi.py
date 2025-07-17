@@ -414,7 +414,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated("""
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -477,7 +483,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated("""
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -528,7 +540,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated("""
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -592,7 +610,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated("""
+            This option is deprecated and will be removed in 0.7.0 release.
+            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
+            """),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),

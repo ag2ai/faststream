@@ -1,7 +1,6 @@
 from typing import Annotated, Any, TypeVar
 
 from fast_depends.library import CustomField
-
 from faststream._internal.basic_types import AnyDict
 
 

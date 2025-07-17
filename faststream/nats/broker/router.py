@@ -22,9 +22,9 @@ from faststream.nats.configs import NatsBrokerConfig
 from .registrator import NatsRegistrator
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Dependant
     from nats.aio.msg import Msg
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
