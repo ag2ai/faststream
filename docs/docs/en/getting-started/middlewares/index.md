@@ -68,55 +68,78 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#middlewares-flow).
 
-**Middlewares** can be used Broker or [Router](../routers/index.md){.internal-link}. For example:
+**Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope. For example:
 
 ```python
-broker = Broker(middlewares=[MyMiddleware])
+broker = Broker(middlewares=[MyMiddleware])  # global scope
 # Or
-router = BrokerRouter(middlewares=[MyMiddleware])
+router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
 ```
 
 ## Middlewares Flow
 
 ![flow](./middlewares-flow.svg){ width=300 height=100 }
 
-### What is on the diagram?
+The middleware execution follows a specific sequence during message processing:
 
-#### on_recieve
-
-- explain
-- explain
-
-#### parser
-
-- explain
-- explain
+1. **on_receive** - Called first for every incoming message, regardless of whether it will be processed
+2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
+3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on subscriber filter parameters
+4. [**consume_scope**](../subscription/index.md) - Executed only if the filter passes; otherwise, the flow stops here
+5. [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data
+6. **HANDLER** - Executes the actual message handler function
+7. [**publish_scope**](../publishing/decorator.md){.internal-link} - Called for each `@publisher` decorator (if there are 4 publishers, it's called 4 times)
+8. **after_processed** - Final cleanup and post-processing stage
 
 ## More about the publish_scope
 
 **Publisher middlewares** affect all ways of publishing something, including the `#!python broker.publish` call.
 If you want to intercept the publishing process, you will need to use the `publish_scope` method.
 
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from faststream import BaseMiddleware
-from faststream.response import PublishCommand
+=== "Default"
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from faststream import BaseMiddleware
+    from faststream.response import PublishCommand
 
-class MyMiddleware(BaseMiddleware):
-async def publish_scope(
-self,
-call_next: Callable[[PublishCommand], Awaitable[Any]],
-cmd: PublishCommand,
-) -> Any:
-return await super().publish_scope(call_next, cmd)
+    class MyMiddleware(BaseMiddleware):
+        async def publish_scope(
+            self,
+            call_next: Callable[[PublishCommand], Awaitable[Any]],
+            cmd: PublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
 
-broker = Broker(middlewares=[MyMiddleware])
-```
+=== "AIOKafka"
+    `python linenums="1" hl_lines="7 9"
+        {!> docs_src/getting_started/publishing/kafka/object.py !}
+    `
 
-This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
+=== "Confluent"
+    `python linenums="1" hl_lines="7 9"
+        {!> docs_src/getting_started/publishing/confluent/object.py !}
+    `
 
-!!! note
-If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
+=== "RabbitMQ"
+    `python linenums="1" hl_lines="7 9"
+        {!> docs_src/getting_started/publishing/rabbit/object.py !}
+    `
+
+=== "NATS"
+    `python linenums="1" hl_lines="7 9"
+        {!> docs_src/getting_started/publishing/nats/object.py !}
+    `
+
+=== "Redis"
+    `python linenums="1" hl_lines="7 9"
+        {!> docs_src/getting_started/publishing/redis/object.py !}
+    `
+
+1. This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
+2. If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
+
+3. `PublishCommand` - this is default, you can also use NatsPublishCommand for nats, RabbitPublishCommand for rabbit, RedisPublishCommand for redis and KafkaPublishCommand for kafka.
 
 ## Context Access
 
@@ -126,8 +149,7 @@ Middlewares can access the [Context](../context/index.md){.internal-link} for al
 from faststream import BaseMiddleware
 
 class ContextMiddleware(BaseMiddleware):
-    # Context is also available for the following methods:
-    # on_receive, after_processed and publish_scope.
+    # Context is also available in the on_receive, consume_scope, publish_scope, and after_processed methods.
     async def consume_scope(
         self,
         call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
@@ -171,8 +193,3 @@ class RetryMiddleware(BaseMiddleware):
                 await asyncio.sleep(2**attempt)  # Exponential backoff
         return None
 ```
-
-## Facts
-
-1. Please always call the `#!python super()` method at the end of your function. This is important for proper error handling.
-2. The `msg` option always has the already decoded body. To prevent the default `#!python json.loads(...)` call, you should use a [custom decoder](../serialization/decoder.md){.internal-link} instead.
