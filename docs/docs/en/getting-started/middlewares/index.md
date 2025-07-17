@@ -10,18 +10,18 @@ search:
 
 # Middlewares
 
-**Middlewares** are a powerful tool that allows you to add extra logic to any part of the message processing pipeline.
+**Middlewares** are a powerful tool that allow you to add additional logic to any part of the message processing pipeline.
 
-This way, you can significantly enhance your **FastStream** application with features such as:
+This way, you can significantly improve your **FastStream** experience with features such as:
 
-- Integration with various logging and metrics systems
+- Integration with various logging and monitoring systems
 - Application-level message serialization logic
-- Extensive publication of messages with additional information
-- And numerous other capabilities
+- Extensive publishing of messages with additional information
+- And many other features
 
-**Middlewares** have several methods that can be overridden. You can choose to implement some or all of these methods.
+**Middlewares** have several methods that you can override. You can choose whether to implement some or all of these methods.
 
-You need to import only the BaseMiddleware, as it contains all the necessary methods. All available methods can be overridden:
+You only need to import the BaseMiddleware as it contains all the necessary methods. Any available methods can be overridden.
 
 ```python linenums="1" hl_lines="10 16 25 34"
 from types import TracebackType
@@ -78,31 +78,35 @@ router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
 
 ## Middlewares Flow
 
-![flow](./middlewares-flow.svg){ width=300 height=100 }
-
 The middleware execution follows a specific sequence during message processing:
 
-1. **on_receive** - Called first for every incoming message, regardless of whether it will be processed
+![flow](./middlewares-flow.svg){ width=300 height=100 }
+
+1. **on_receive** - This function is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
-3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on subscriber filter parameters
-4. [**consume_scope**](../subscription/index.md) - Executed only if the filter passes; otherwise, the flow stops here
-5. [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data
-6. **HANDLER** - Executes the actual message handler function
-7. [**publish_scope**](../publishing/decorator.md){.internal-link} - Called for each `@publisher` decorator (if there are 4 publishers, it's called 4 times)
-8. **after_processed** - Final cleanup and post-processing stage
+3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
+4. [**consume_scope**](../subscription/index.md) - If the filter passes, the flow continues. Otherwise, it stops here.
+5. [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
+6. **Handler** - Executes the message handling function
+7. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
+8. **after_processed** - Final cleanup and post-processing stage.
 
-## More about the publish_scope
+## More about the **publish_scope**
 
-**Publisher middlewares** affect all ways of publishing something, including the `#!python broker.publish` call.
-If you want to intercept the publishing process, you will need to use the `publish_scope` method.
+1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
+2. This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
+3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
+4. If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
 === "Default"
-    ```python linenums="1"
-    from typing import Any, Awaitable, Callable
-    from faststream import BaseMiddleware
-    from faststream.response import PublishCommand
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.response import PublishCommand
 
-    class MyMiddleware(BaseMiddleware):
+    class DefaultPublishMiddleware(BaseMiddleware):
+        @override
         async def publish_scope(
             self,
             call_next: Callable[[PublishCommand], Awaitable[Any]],
@@ -111,35 +115,73 @@ If you want to intercept the publishing process, you will need to use the `publi
             return await super().publish_scope(call_next, cmd)
     ```
 
-=== "AIOKafka"
-    `python linenums="1" hl_lines="7 9"
-        {!> docs_src/getting_started/publishing/kafka/object.py !}
-    `
+=== "Kafka"
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.kafka.response import KafkaPublishCommand
 
-=== "Confluent"
-    `python linenums="1" hl_lines="7 9"
-        {!> docs_src/getting_started/publishing/confluent/object.py !}
-    `
+    class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
+            cmd: KafkaPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
 
 === "RabbitMQ"
-    `python linenums="1" hl_lines="7 9"
-        {!> docs_src/getting_started/publishing/rabbit/object.py !}
-    `
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.rabbit.response import RabbitPublishCommand
+
+    class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
+            cmd: RabbitPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
 
 === "NATS"
-    `python linenums="1" hl_lines="7 9"
-        {!> docs_src/getting_started/publishing/nats/object.py !}
-    `
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.nats.response import NatsPublishCommand
+
+    class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
+            cmd: NatsPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
 
 === "Redis"
-    `python linenums="1" hl_lines="7 9"
-        {!> docs_src/getting_started/publishing/redis/object.py !}
-    `
+```python linenums="1"
+from typing import Any, Awaitable, Callable
+from typing_extensions import override
+from faststream import BaseMiddleware
+from faststream.redis.response import RedisPublishCommand
 
-1. This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
-2. If you are using `publish_batch` somewhere in your app, your publisher middleware should consume `#!python *cmds` option additional
-
-3. `PublishCommand` - this is default, you can also use NatsPublishCommand for nats, RabbitPublishCommand for rabbit, RedisPublishCommand for redis and KafkaPublishCommand for kafka.
+    class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
+        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
+            cmd: RedisPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
 
 ## Context Access
 
@@ -193,3 +235,18 @@ class RetryMiddleware(BaseMiddleware):
                 await asyncio.sleep(2**attempt)  # Exponential backoff
         return None
 ```
+
+1. **consume_scope** makes calls before the [**decoding stage**](#middlewares-flow), which means there is no deserialized message.
+
+## Summary
+
+Middlewares provide a powerful way to extend FastStream's message processing pipeline at specific stages. Key points to remember:
+
+1. [**Order of execution matters**](#middlewares-flow) - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → `after_processed`.
+2. [**Conditional Execution**](../subscription/filtering.md){.internal-link} - If a message fails to pass the filter, `consume_scope` and subsequent stages will be skipped.
+3. **Multiple publish calls** - The `publish_scope` function is executed once for each `@publisher` decorator in your handler.
+4. **Always call super()** - This ensures proper error handling and maintains the middleware chain.
+5. [**Context Access**](../context/index.md){.internal-link} - All middleware methods have access to the FastStream context for shared state management.
+6. [**Broker-specific extensions**](#more-about-the-publishscope) - Use typed publish commands (KafkaPublishCommand, RabbitPublishCommand, etc.) to provide specific functionality for different brokers.
+
+Choose the right middleware method based on your specific needs: `on_receive` to handle all incoming messages, `consume_scope` to process data, `publish_scope` to send outgoing messages, and `after_processed` to perform cleanup tasks.
