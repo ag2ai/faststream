@@ -204,10 +204,14 @@ exch_headers = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.HE
 reqular_queue = RabbitQueue("test-reqular-queue", auto_delete=True)
 
 routing_key_queue = RabbitQueue(
-    "test-routing-key-queue", auto_delete=True, routing_key="*.info"
+    "test-routing-key-queue",
+    auto_delete=True,
+    routing_key="*.info",
 )
 one_key_queue = RabbitQueue(
-    "test-one-key-queue", auto_delete=True, bind_arguments={"key": 1}
+    "test-one-key-queue",
+    auto_delete=True,
+    bind_arguments={"key": 1},
 )
 any_keys_queue = RabbitQueue(
     "test-any-keys-queue",

@@ -10,7 +10,7 @@ app = FastStream(broker)
 
 class Data(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 prepared_publisher = broker.publisher("input_data")

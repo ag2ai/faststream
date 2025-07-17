@@ -168,7 +168,7 @@ def test_extra() -> None:
         "asyncapi": "2.6.0",
         "id": "some-unique-uuid",
         "tags": [
-            {"name": "some-tag", "description": "experimental", "x-field": "extra"}
+            {"name": "some-tag", "description": "experimental", "x-field": "extra"},
         ],
         "externalDocs": {"url": "https://extra-docs.py/", "x-field": "extra"},
     })

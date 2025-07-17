@@ -39,7 +39,7 @@ class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Mes
 
 
 class BatchConfluentMetricsSettingsProvider(
-    BaseConfluentMetricsSettingsProvider[tuple["Message", ...]]
+    BaseConfluentMetricsSettingsProvider[tuple["Message", ...]],
 ):
     def get_consume_attrs_from_message(
         self,

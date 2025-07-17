@@ -12,6 +12,25 @@ hide:
 ---
 
 # Release Notes
+## 0.5.47
+
+### What's Changed
+* fix: correct NATS pattern AsyncAPI render by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2354](https://github.com/ag2ai/faststream/pull/2354){.external-link target="_blank"}
+
+
+**Full Changelog**: [#0.5.46...0.5.47](https://github.com/ag2ai/faststream/compare/0.5.46...0.5.47){.external-link target="_blank"}
+
+## 0.5.46
+
+### What's Changed
+
+* fix overlapping patterns by [@xgemx](https://github.com/xgemx){.external-link target="_blank"} in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+### New Contributors
+* [@xgemx](https://github.com/xgemx){.external-link target="_blank"} made their first contribution in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.45...0.5.46](https://github.com/ag2ai/faststream/compare/0.5.45...0.5.46){.external-link target="_blank"}
+
 ## 0.5.45
 
 ### What's Changed
@@ -62,7 +81,7 @@ hide:
 * fix (depends): removed SetupError if correct fastapi.Depends is included to annotation by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2280](https://github.com/ag2ai/faststream/pull/2280){.external-link target="_blank"}
 * Improve license badge by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2241](https://github.com/ag2ai/faststream/pull/2241){.external-link target="_blank"}
 * chore: use stricter mypy settings by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2243](https://github.com/ag2ai/faststream/pull/2243){.external-link target="_blank"}
-* docs: alwayse use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
+* docs: always use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
 * docs: better highlight first example by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2245](https://github.com/ag2ai/faststream/pull/2245){.external-link target="_blank"}
 * docs: add more links to readme by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2246](https://github.com/ag2ai/faststream/pull/2246){.external-link target="_blank"}
 * docs: Improve README code examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2247](https://github.com/ag2ai/faststream/pull/2247){.external-link target="_blank"}
@@ -1184,7 +1203,7 @@ You can find more information about it in the official [**aiokafka** doc](https:
 ```python
 from faststream import NatsBroker, PullSub
 
-broker = NastBroker()
+broker = NatsBroker()
 
 @broker.subscriber(
     "logs.{level}",

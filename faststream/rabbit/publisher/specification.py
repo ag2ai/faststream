@@ -17,7 +17,7 @@ from .config import RabbitPublisherSpecificationConfig
 
 
 class RabbitPublisherSpecification(
-    PublisherSpecification[RabbitBrokerConfig, RabbitPublisherSpecificationConfig]
+    PublisherSpecification[RabbitBrokerConfig, RabbitPublisherSpecificationConfig],
 ):
     @property
     def name(self) -> str:

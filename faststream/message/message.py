@@ -59,7 +59,8 @@ class StreamMessage(Generic[MsgType]):
         # Setup later
         self.__decoder: AsyncCallable | None = None
         self.__decoded_caches: dict[
-            Any, Any
+            Any,
+            Any,
         ] = {}  # Cache values between filters and tests
 
     def set_decoder(self, decoder: "AsyncCallable") -> None:

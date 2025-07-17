@@ -61,7 +61,8 @@ def create_publisher(
             raise SetupError(msg)
 
         publisher: BatchPublisher | DefaultPublisher = BatchPublisher(
-            publisher_config, specification
+            publisher_config,
+            specification,
         )
         publish_method = "_basic_publish_batch"
 
@@ -71,7 +72,8 @@ def create_publisher(
 
     if autoflush:
         default_publish: Callable[..., Awaitable[Any | None]] = getattr(
-            publisher, publish_method
+            publisher,
+            publish_method,
         )
 
         @wraps(default_publish)

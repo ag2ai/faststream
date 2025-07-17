@@ -19,11 +19,11 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
 
 !!! tip "Pros and Cons"
 
-    :material-checkbox-marked:{.checked_mark} **AsyncAPI support** - [**```AsyncAPI```**](../asyncapi/export.md#section{.css-styles}) is a specification for describing asynchronous APIs used in messaging applications. This method supports this standard.
+    :material-checkbox-marked:{.checked_mark} **AsyncAPI support** - [`AsyncAPI`](../asyncapi/export.md) is a specification for describing asynchronous APIs used in messaging applications. This method supports the specification render.
 
-    :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [**```Testing```**](./test.md#section{.css-styles}) support.
+    :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [`Testing`](./test.md) support.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [**```Context```**](../context/index.md#section{.css-styles}), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :material-checkbox-marked:{.checked_mark} **Reusable** - This method is reusable.
 

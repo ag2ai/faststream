@@ -123,7 +123,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
 
 class ConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"], LogicSubscriber
+    ConcurrentMixin["BrokerStreamMessage[Any]"],
+    LogicSubscriber,
 ):
     def __init__(
         self,

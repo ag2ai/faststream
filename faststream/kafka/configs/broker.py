@@ -42,14 +42,16 @@ class KafkaBrokerConfig(BrokerConfig):
         await self.producer.connect(producer, serializer=self.fd_config._serializer)
 
         admin_options, _ = filter_by_dict(
-            AdminClientConnectionParams, connection_kwargs
+            AdminClientConnectionParams,
+            connection_kwargs,
         )
 
         self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(**admin_options)
         await self._admin_client.start()
 
         consumer_options, _ = filter_by_dict(
-            ConsumerConnectionParams, connection_kwargs
+            ConsumerConnectionParams,
+            connection_kwargs,
         )
         self.builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 

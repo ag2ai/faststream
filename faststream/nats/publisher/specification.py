@@ -8,7 +8,7 @@ from .config import NatsPublisherSpecificationConfig
 
 
 class NatsPublisherSpecification(
-    PublisherSpecification[NatsBrokerConfig, NatsPublisherSpecificationConfig]
+    PublisherSpecification[NatsBrokerConfig, NatsPublisherSpecificationConfig],
 ):
     @property
     def subject(self) -> str:

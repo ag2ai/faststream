@@ -38,7 +38,7 @@ class ConsumerBuilder:
 @dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
     connection_config: "ConfluentFastConfig" = field(
-        default_factory=ConfluentFastConfig
+        default_factory=ConfluentFastConfig,
     )
 
     admin: "AdminService" = field(default_factory=AdminService)
@@ -46,7 +46,7 @@ class KafkaBrokerConfig(BrokerConfig):
 
     builder: Callable[..., AsyncConfluentConsumer] = field(init=False)
     producer: "AsyncConfluentFastProducer" = field(
-        default_factory=FakeConfluentFastProducer
+        default_factory=FakeConfluentFastProducer,
     )
 
     def __post_init__(self) -> None:

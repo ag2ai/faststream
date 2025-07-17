@@ -51,5 +51,5 @@ async def send_messages():
     await broker.publish(exchange=exch, headers={"key": 2})  # handlers: 3
     await broker.publish(exchange=exch, headers={"key2": 2})  # handlers: 3
     await broker.publish(
-        exchange=exch, headers={"key": 2, "key2": 2.0}
+        exchange=exch, headers={"key": 2, "key2": 2.0},
     )  # handlers: 3, 4

@@ -8,7 +8,7 @@ from .config import KafkaSubscriberSpecificationConfig
 
 
 class KafkaSubscriberSpecification(
-    SubscriberSpecification[KafkaBrokerConfig, KafkaSubscriberSpecificationConfig]
+    SubscriberSpecification[KafkaBrokerConfig, KafkaSubscriberSpecificationConfig],
 ):
     @property
     def topics(self) -> list[str]:

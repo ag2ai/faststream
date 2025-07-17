@@ -28,15 +28,15 @@ class SecurityTestcase:
                             "protocol": "kafka-secure",
                             "protocolVersion": "auto",
                             "security": [],
-                        })
-                    })
+                        }),
+                    }),
                 }),
                 id="BaseSecurity",
             ),
             pytest.param(
                 SASLPlaintext(
                     username="admin",
-                    password="password",  # pragma: allowlist secret
+                    password="password",
                     use_ssl=True,
                 ),
                 IsPartialDict({
@@ -44,12 +44,12 @@ class SecurityTestcase:
                         "development": IsPartialDict({
                             "protocol": "kafka-secure",
                             "security": [{"user-password": []}],
-                        })
+                        }),
                     }),
                     "components": IsPartialDict({
                         "securitySchemes": {
                             "user-password": {"type": "userPassword"},
-                        }
+                        },
                     }),
                 }),
                 id="SASLPlaintext",
@@ -57,7 +57,7 @@ class SecurityTestcase:
             pytest.param(
                 SASLScram256(
                     username="admin",
-                    password="password",  # pragma: allowlist secret
+                    password="password",
                     use_ssl=True,
                 ),
                 IsPartialDict({
@@ -65,12 +65,12 @@ class SecurityTestcase:
                         "development": IsPartialDict({
                             "protocol": "kafka-secure",
                             "security": [{"scram256": []}],
-                        })
+                        }),
                     }),
                     "components": IsPartialDict({
                         "securitySchemes": {
                             "scram256": {"type": "scramSha256"},
-                        }
+                        },
                     }),
                 }),
                 id="SASLScram256",
@@ -78,7 +78,7 @@ class SecurityTestcase:
             pytest.param(
                 SASLScram512(
                     username="admin",
-                    password="password",  # pragma: allowlist secret
+                    password="password",
                     use_ssl=True,
                 ),
                 IsPartialDict({
@@ -86,12 +86,12 @@ class SecurityTestcase:
                         "development": IsPartialDict({
                             "protocol": "kafka-secure",
                             "security": [{"scram512": []}],
-                        })
+                        }),
                     }),
                     "components": IsPartialDict({
                         "securitySchemes": {
                             "scram512": {"type": "scramSha512"},
-                        }
+                        },
                     }),
                 }),
                 id="SASLScram512",
@@ -103,12 +103,12 @@ class SecurityTestcase:
                         "development": IsPartialDict({
                             "protocol": "kafka-secure",
                             "security": [{"oauthbearer": []}],
-                        })
+                        }),
                     }),
                     "components": IsPartialDict({
                         "securitySchemes": {
-                            "oauthbearer": {"type": "oauth2", "$ref": ""}
-                        }
+                            "oauthbearer": {"type": "oauth2", "$ref": ""},
+                        },
                     }),
                 }),
                 id="SASLOAuthBearer",
@@ -120,10 +120,10 @@ class SecurityTestcase:
                         "development": IsPartialDict({
                             "protocol": "kafka-secure",
                             "security": [{"gssapi": []}],
-                        })
+                        }),
                     }),
                     "components": IsPartialDict({
-                        "securitySchemes": {"gssapi": {"type": "gssapi"}}
+                        "securitySchemes": {"gssapi": {"type": "gssapi"}},
                     }),
                 }),
                 id="SASLGSSAPI",
@@ -131,7 +131,9 @@ class SecurityTestcase:
         ),
     )
     def test_security_schema(
-        self, security: BaseSecurity, schema: dict[str, str]
+        self,
+        security: BaseSecurity,
+        schema: dict[str, str],
     ) -> None:
         broker = KafkaBroker(security=security)
         generated_schema = self.get_schema(broker)

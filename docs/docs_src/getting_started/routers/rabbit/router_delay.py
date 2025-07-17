@@ -19,9 +19,9 @@ router = RabbitRouter(
             "test-queue",
             publishers=(
                 RabbitPublisher("outer-queue"),
-            )
+            ),
         ),
-    )
+    ),
 )
 
 broker.include_router(router)

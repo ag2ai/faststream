@@ -31,7 +31,7 @@ class TestArguments(ArgumentsTestcase):
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
         assert schema["channels"][key]["bindings"] == {
-            "kafka": {"bindingVersion": "0.4.0", "topic": "topic_name"}
+            "kafka": {"bindingVersion": "0.4.0", "topic": "topic_name"},
         }
 
     def test_subscriber_with_multi_topics_partitions(self) -> None:

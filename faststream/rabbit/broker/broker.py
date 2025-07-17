@@ -75,9 +75,7 @@ class RabbitBroker(
 
     def __init__(
         self,
-        url: Union[
-            str, "URL", None
-        ] = "amqp://guest:guest@localhost:5672/",  # pragma: allowlist secret
+        url: Union[str, "URL", None] = "amqp://guest:guest@localhost:5672/",
         *,
         host: str | None = None,
         port: int | None = None,
@@ -372,7 +370,8 @@ class RabbitBroker(
         )
 
         result: aiormq.abc.ConfirmationFrameType | None = await super()._basic_publish(
-            cmd, producer=self._producer
+            cmd,
+            producer=self._producer,
         )
         return result
 

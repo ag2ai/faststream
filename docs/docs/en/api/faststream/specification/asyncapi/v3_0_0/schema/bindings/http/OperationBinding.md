@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.rabbit.schemas.proto.BaseRMQInformation
+::: faststream.specification.asyncapi.v3_0_0.schema.bindings.http.OperationBinding

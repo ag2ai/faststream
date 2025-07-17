@@ -41,7 +41,7 @@ class BrokerConfig:
             self.include_in_schema is not None
             or self.broker_middlewares
             or self.broker_dependencies
-            or self.prefix
+            or self.prefix,
         )
 
     def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:

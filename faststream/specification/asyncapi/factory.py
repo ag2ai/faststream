@@ -32,17 +32,22 @@ class AsyncAPI(SpecificationFactory):
 
     brokers: list["BrokerUsecase[Any, Any]"] = field(default_factory=list, init=False)
     http_handlers: list[tuple[str, "HttpHandler"]] = field(
-        default_factory=list, init=False
+        default_factory=list,
+        init=False,
     )
 
     def add_broker(
-        self, broker: "BrokerUsecase[Any, Any]", /
+        self,
+        broker: "BrokerUsecase[Any, Any]",
+        /,
     ) -> "SpecificationFactory":
         self.brokers.append(broker)
         return self
 
     def add_http_route(
-        self, path: str, handler: "HttpHandler"
+        self,
+        path: str,
+        handler: "HttpHandler",
     ) -> "SpecificationFactory":
         self.http_handlers.append((path, handler))
         return self

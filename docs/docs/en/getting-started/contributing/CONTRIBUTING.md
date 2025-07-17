@@ -16,9 +16,7 @@ After cloning the project, you'll need to set up the development environment. He
 
 Install justfile on your system:
 
-```bash
-brew install justfile
-```
+https://just.systems/man/en/prerequisites.html
 
 View all available commands:
 
@@ -26,43 +24,27 @@ View all available commands:
 just
 ```
 
+## Install uv
+
+Install uv on your system:
+
+https://docs.astral.sh/uv/getting-started/installation/
+
 ## Init development environment
 
-Build Python and create a virtual environment:
+Build faststream image and install all dependencies:
 
 ```bash
 just init
 ```
 
-By default, this builds Python 3.8. If you need another version, pass it as an argument to the just command:
+By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
 
 ```bash
 just init 3.11.5
 ```
 
 To check available Python versions, refer to the pyproject.toml file in the project root.
-
-## Activate the Environment
-
-Activate the new environment with
-
-For Unix-based systems:
-
-```bash
-source ./venv/bin/activate
-```
-
-For Windows (PowerShell):
-
-```bash
-.\venv\Scripts\Activate.ps1
-```
-
-Install and configure pre-commit:
-
-```bash
-just pre-commit-install
-```
 
 ## Run all Dependencies
 
@@ -82,10 +64,16 @@ just down
 
 ## Running Tests
 
-To run tests, use:
+To run fast tests, use:
 
 ```bash
 just test
+```
+
+To run all tests with brokers connections, use:
+
+```bash
+just test-all
 ```
 
 To run tests with coverage:
@@ -93,9 +81,29 @@ To run tests with coverage:
 ```bash
 just coverage-test
 ```
+If you need test only specific folder or broker:
+
+```bash
+just test tests/brokers/kafka
+# or
+just test-all tests/brokers/kafka
+# or
+just coverage-test tests/brokers/kafka
+```
+
+If you need some pytest arguments:
+
+```bash
+just test -vv
+# or
+just test tests/brokers/kafka -vv
+# or
+just test "-vv -s"
+```
 
 In your project, some tests are grouped under specific pytest marks:
 
+* **confluent**
 * **slow**
 * **rabbit**
 * **kafka**
@@ -103,18 +111,16 @@ In your project, some tests are grouped under specific pytest marks:
 * **redis**
 * **all**
 
-By default, will execute "all" tests. You can specify marks to include or exclude tests:
+By default, "just test" will execute "not slow and not kafka and not confluent and not redis and not rabbit and not nats" tests.
+"just test-all" will execute tests with mark "all".
+You can specify marks to include or exclude tests:
 
 ```bash
-just test kafka
+just test tests/ -vv "not kafka and not rabbit"
 # or
-just test rabbit
-# or
-just test 'not confluent'
-# or
-just test 'not confluent and not nats'
-# or
-just coverage-test kafka
+just test . -vv "not kafka and not rabbit"
+# or if you no need pytest arguments
+just test . "" "not kafka and not rabbit"
 ```
 
 ## Linter
@@ -124,19 +130,64 @@ Run all linters:
 ```bash
 just linter
 ```
+This command run ruff check, ruff format.
+
+To use specific command
+```bash
+just ruff-check
+# or
+just ruff-format
+```
 
 ## Static analysis
 
-Run static analysis tools:
+To run mypy, please use the following command.
 
 ```bash
-just static-analysis
+just mypy
 ```
 
 ## Pre-commit
 
-Run pre-commit checks:
+Run pre-commit:
 
 ```bash
 just pre-commit
+# or
+just pre-commit-all
 ```
+
+## Docs
+
+Build docs:
+
+```bash
+just docs-build
+```
+
+Run docs:
+
+```bash
+just docs-serve
+```
+
+To run full version of the documentation (including API Reference) type the command:
+
+```bash
+just docs-serve --full
+```
+
+## Commits
+
+Please, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to name your commits and PR's.
+
+* **build**: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+* **ci**: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+* **docs**: Documentation only changes
+* **feat**: A new feature
+* **fix**: A bug fix
+* **perf**: A code change that improves performance
+* **refactor**: A code change that neither fixes a bug nor adds a feature
+* **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+* **test**: Adding missing tests or correcting existing tests
+* **chore** Miscellaneous commits e.g. modifying .gitignore, ...

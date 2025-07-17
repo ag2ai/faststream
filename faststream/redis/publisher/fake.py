@@ -20,7 +20,8 @@ class RedisFakePublisher(FakePublisher):
         self.channel = channel
 
     def patch_command(
-        self, cmd: Union["PublishCommand", "RedisPublishCommand"]
+        self,
+        cmd: Union["PublishCommand", "RedisPublishCommand"],
     ) -> "RedisPublishCommand":
         cmd = super().patch_command(cmd)
         real_cmd = RedisPublishCommand.from_cmd(cmd)

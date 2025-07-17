@@ -12,7 +12,9 @@ if TYPE_CHECKING:
 
 
 def build_virtual_host(
-    url: Union[str, "URL", None], virtualhost: str | None, path: str
+    url: Union[str, "URL", None],
+    virtualhost: str | None,
+    path: str,
 ) -> str:
     if (not url and not virtualhost) or virtualhost == "/":
         return ""

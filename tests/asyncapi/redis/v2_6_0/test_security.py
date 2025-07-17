@@ -14,10 +14,7 @@ def test_base_security_schema() -> None:
 
     broker = RedisBroker("rediss://localhost:6379/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["rediss://localhost:6379/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["rediss://localhost:6379/"]
 
     schema = get_2_6_0_schema(broker)
 
@@ -44,15 +41,12 @@ def test_plaintext_security_schema() -> None:
     security = SASLPlaintext(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RedisBroker("redis://localhost:6379/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["redis://localhost:6379/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["redis://localhost:6379/"]
 
     schema = get_2_6_0_schema(broker)
 
@@ -80,15 +74,12 @@ def test_plaintext_security_schema() -> None:
 def test_plaintext_security_schema_without_ssl() -> None:
     security = SASLPlaintext(
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RedisBroker("redis://localhost:6379/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["redis://localhost:6379/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["redis://localhost:6379/"]
 
     schema = get_2_6_0_schema(broker)
 

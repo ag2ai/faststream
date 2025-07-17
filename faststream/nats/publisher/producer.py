@@ -33,7 +33,9 @@ if TYPE_CHECKING:
 
 class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     def connect(
-        self, connection: Any, serializer: Optional["SerializerProto"]
+        self,
+        connection: Any,
+        serializer: Optional["SerializerProto"],
     ) -> None: ...
 
     def disconnect(self) -> None: ...
@@ -69,7 +71,9 @@ class NatsFastProducerImpl(NatsFastProducer):
         self.__state: ConnectionState[Client] = EmptyConnectionState()
 
     def connect(
-        self, connection: "Client", serializer: Optional["SerializerProto"]
+        self,
+        connection: "Client",
+        serializer: Optional["SerializerProto"],
     ) -> None:
         self.serializer = serializer
         self.__state = ConnectedState(connection)
@@ -131,7 +135,9 @@ class NatsJSFastProducer(NatsFastProducer):
         self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 
     def connect(
-        self, connection: "JetStreamContext", serializer: Optional["SerializerProto"]
+        self,
+        connection: "JetStreamContext",
+        serializer: Optional["SerializerProto"],
     ) -> None:
         self.serializer = serializer
         self.__state = ConnectedState(connection)
@@ -163,7 +169,9 @@ class NatsJSFastProducer(NatsFastProducer):
         reply_to = self.__state.connection._nc.new_inbox()
         future: asyncio.Future[Msg] = asyncio.Future()
         sub = await self.__state.connection._nc.subscribe(
-            reply_to, future=future, max_msgs=1
+            reply_to,
+            future=future,
+            max_msgs=1,
         )
         await sub.unsubscribe(limit=1)
 

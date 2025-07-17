@@ -255,7 +255,9 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
-            queue, group_id="test", ack_policy=AckPolicy.DO_NOTHING
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.DO_NOTHING,
         )
 
         @consume_broker.subscriber(*args, **kwargs)

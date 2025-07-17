@@ -7,7 +7,7 @@ from faststream.redis import RedisBroker, TestRedisBroker
 
 class Data(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 

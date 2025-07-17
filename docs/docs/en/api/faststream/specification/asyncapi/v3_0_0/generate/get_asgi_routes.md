@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.rabbit.configs.base.RabbitEndpointConfig
+::: faststream.specification.asyncapi.v3_0_0.generate.get_asgi_routes

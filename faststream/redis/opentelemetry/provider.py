@@ -31,7 +31,7 @@ class RedisTelemetrySettingsProvider(TelemetrySettingsProvider["AnyDict"]):
 
         if cast("str", msg.raw_message.get("type", "")).startswith("b"):
             attrs[SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT] = len(
-                msg.raw_message["data"]
+                msg.raw_message["data"],
             )
 
         return attrs

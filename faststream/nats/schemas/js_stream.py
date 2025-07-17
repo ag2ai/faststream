@@ -52,7 +52,7 @@ class JStream(NameRequired):
             Optional["RetentionPolicy"],
             Doc(
                 "Retention policy for stream to use. Default is Limits, which will delete messages only in case of "
-                "resource depletion, if 'DiscardPolicy.OLD' used. In case of 'DisardPolicy.NEW', stream will answer "
+                "resource depletion, if 'DiscardPolicy.OLD' used. In case of 'DiscardPolicy.NEW', stream will answer "
                 "error for any write request. If 'RetentionPolicy.Interest' is used, message will be deleted as soon "
                 "as all active consumers will consume that message. Note: consumers should be bounded to stream! If "
                 "no consumers bound, all messages will be deleted, including new messages! If "
@@ -124,7 +124,7 @@ class JStream(NameRequired):
             bool,
             Doc(
                 "Should stream acknowledge writes or not. Without acks publisher can't determine, does message "
-                "received by stream or not."
+                "received by stream or not.",
             ),
         ] = False,
         template_owner: str | None = None,
@@ -190,9 +190,10 @@ class JStream(NameRequired):
     ) -> None:
         super().__init__(name)
 
-        subjects = subjects or []
+        self.subjects: list[str] = []
+        for subject in subjects or []:
+            self.add_subject(subject)
 
-        self.subjects = subjects
         self.declare = declare
 
         self.config = StreamConfig(
@@ -228,30 +229,40 @@ class JStream(NameRequired):
         """Add subject to stream params."""
         _, subject = compile_nats_wildcard(subject)
 
-        if not any(is_subject_match_wildcard(subject, x) for x in self.subjects):
-            self.subjects.append(subject)
+        new_subjects = []
+        for old_subject in self.subjects:
+            if is_subject_match_wildcard(subject, old_subject):
+                return
+
+            if not is_subject_match_wildcard(old_subject, subject):
+                new_subjects.append(old_subject)
+
+        new_subjects.append(subject)
+        self.subjects = new_subjects
 
 
-def is_subject_match_wildcard(subject: str, wildcard: str) -> bool:
-    """Check is subject suite for the wildcard pattern."""
-    if subject == wildcard:
-        return True
+def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
+    subject_parts = subject.split(".")
+    pattern_parts = pattern.split(".")
+    total_parts = len(pattern_parts)
 
-    call = True
-
-    for current, base in zip_longest(
-        subject.split("."),
-        wildcard.split("."),
-        fillvalue=None,
+    for i, (subject_part, pattern_part) in enumerate(
+        zip_longest(
+            subject_parts,
+            pattern_parts,
+            fillvalue=None,
+        ),
     ):
-        if base == ">":
-            break
+        if pattern_part == "*":
+            if subject_part == ">":
+                return False
+            continue
+        if pattern_part == ">" and i == total_parts - 1:
+            return True
+        if subject_part != pattern_part:
+            return False
 
-        if base not in {"*", current}:
-            call = False
-            break
-
-    return call
+    return len(subject_parts) == total_parts
 
 
 def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:

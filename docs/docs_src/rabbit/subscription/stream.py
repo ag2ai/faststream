@@ -7,7 +7,7 @@ app = FastStream(broker)
 queue = RabbitQueue(
     name="test-stream",
     durable=True,
-    queue_type=QueueType.STREAM
+    queue_type=QueueType.STREAM,
 )
 
 

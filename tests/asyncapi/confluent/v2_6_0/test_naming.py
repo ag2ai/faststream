@@ -30,7 +30,7 @@ class TestNaming(NamingTestCase):
                     "bindings": {"kafka": {"topic": "test", "bindingVersion": "0.4.0"}},
                     "publish": {
                         "message": {
-                            "$ref": "#/components/messages/test:Handle:Message"
+                            "$ref": "#/components/messages/test:Handle:Message",
                         },
                     },
                 },

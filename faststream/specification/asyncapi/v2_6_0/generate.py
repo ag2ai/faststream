@@ -197,8 +197,8 @@ def get_asgi_routes(
                     operationId=asgi_app.unique_id,
                     bindings=OperationBinding(
                         http=http_bindings.OperationBinding(
-                            method=", ".join(asgi_app.methods)
-                        )
+                            method=", ".join(asgi_app.methods),
+                        ),
                     ),
                     message=None,
                 ),
@@ -233,11 +233,13 @@ def _resolve_msg_payloads(
             if formatted_payload_title not in payloads:
                 payloads[formatted_payload_title] = p
             one_of_list.append(
-                Reference(**{"$ref": f"#/components/schemas/{formatted_payload_title}"})
+                Reference(**{
+                    "$ref": f"#/components/schemas/{formatted_payload_title}",
+                }),
             )
 
     elif one_of is not None:
-        # Descriminator case
+        # Discriminator case
         for p in one_of:
             p_value = next(iter(p.values()))
             p_title = p_value.split("/")[-1]

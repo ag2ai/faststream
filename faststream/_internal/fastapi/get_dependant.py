@@ -129,7 +129,7 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
             )
 
     dependant.model = create_model(  # type: ignore[attr-defined]
-        getattr(call, "__name__", type(call).__name__)
+        getattr(call, "__name__", type(call).__name__),
     )
 
     dependant.custom_fields = {}  # type: ignore[attr-defined]

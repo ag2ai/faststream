@@ -47,7 +47,8 @@ async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
 
 @pytest.mark.asyncio()
 async def test_declare_nested_exchange_cash_nested(
-    async_mock: AsyncMock, queue: str
+    async_mock: AsyncMock,
+    queue: str,
 ) -> None:
     declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
 

@@ -44,7 +44,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         self.max_workers = max_workers
 
         self.send_stream, self.receive_stream = anyio.create_memory_object_stream(
-            max_buffer_size=max_workers
+            max_buffer_size=max_workers,
         )
         self.limiter = anyio.Semaphore(max_workers)
 

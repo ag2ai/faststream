@@ -19,7 +19,9 @@ def exchange(queue):
 
 @pytest.mark.rabbit()
 class TestPrometheus(
-    RabbitPrometheusSettings, LocalPrometheusTestcase, LocalRPCPrometheusTestcase
+    RabbitPrometheusSettings,
+    LocalPrometheusTestcase,
+    LocalRPCPrometheusTestcase,
 ):
     pass
 

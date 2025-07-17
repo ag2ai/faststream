@@ -29,7 +29,7 @@ class TestNaming(NamingTestCase):
                     "servers": ["development"],
                     "publish": {
                         "message": {
-                            "$ref": "#/components/messages/test:Handle:Message"
+                            "$ref": "#/components/messages/test:Handle:Message",
                         },
                     },
                 },

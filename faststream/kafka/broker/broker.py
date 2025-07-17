@@ -388,7 +388,8 @@ class KafkaBroker(
         )
 
         consumer_options, _ = filter_by_dict(
-            ConsumerConnectionParams, connection_params
+            ConsumerConnectionParams,
+            connection_params,
         )
         builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
@@ -614,7 +615,8 @@ class KafkaBroker(
         )
 
         msg: KafkaMessage = await super()._basic_request(
-            cmd, producer=self.config.producer
+            cmd,
+            producer=self.config.producer,
         )
         return msg
 

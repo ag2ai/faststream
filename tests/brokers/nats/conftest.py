@@ -7,7 +7,7 @@ from faststream.nats import JStream, NatsRouter
 
 @dataclass
 class Settings:
-    url: str = "nats://localhost:4222"  # pragma: allowlist secret
+    url: str = "nats://localhost:4222"
 
 
 @pytest.fixture(scope="session")

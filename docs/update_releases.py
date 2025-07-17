@@ -59,9 +59,9 @@ def collect_already_published_versions(text: str) -> List[str]:
     return data
 
 
-def update_release_notes(realease_notes_path: Path):
+def update_release_notes(release_notes_path: Path):
     # Get the changelog from the RELEASE.md file
-    changelog = realease_notes_path.read_text()
+    changelog = release_notes_path.read_text()
 
     metablock, lines = find_metablock(changelog.splitlines())
     metablock = "\n".join(metablock)
@@ -81,7 +81,7 @@ def update_release_notes(realease_notes_path: Path):
         changelog = version_changelog + changelog
 
     # Update the RELEASE.md file with the latest version and changelog
-    realease_notes_path.write_text(
+    release_notes_path.write_text(
         (
             metablock
             + "\n\n"

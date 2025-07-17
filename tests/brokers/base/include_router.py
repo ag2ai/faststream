@@ -75,7 +75,10 @@ class IncludeTestcase(BaseTestcaseConfig):
         ),
     )
     def test_router_include_in_schema(
-        self, include_router: bool | None, include: bool, result: bool
+        self,
+        include_router: bool | None,
+        include: bool,
+        result: bool,
     ) -> None:
         broker = self.get_broker()
         router = self.get_router(include_in_schema=include_router)

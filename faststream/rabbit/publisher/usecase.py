@@ -47,7 +47,8 @@ class RabbitPublisher(PublisherUsecase):
         self.timeout = config.message_kwargs.pop("timeout", None)
 
         message_options, _ = filter_by_dict(
-            BasicMessageOptions, dict(config.message_kwargs)
+            BasicMessageOptions,
+            dict(config.message_kwargs),
         )
         self._message_options = message_options
 
@@ -170,6 +171,7 @@ class RabbitPublisher(PublisherUsecase):
         )
 
         msg: RabbitMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg

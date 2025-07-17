@@ -65,7 +65,7 @@ class RabbitExchange(NameRequired):
                 "https://www.rabbitmq.com/tutorials/amqp-concepts#exchanges"
                 "\n"
                 "Or in the FastStream one: "
-                "https://faststream.ag2.ai/latest/rabbit/examples/"
+                "https://faststream.ag2.ai/latest/rabbit/examples/",
             ),
         ] = ExchangeType.DIRECT,
         durable: Annotated[
@@ -82,7 +82,7 @@ class RabbitExchange(NameRequired):
             Doc(
                 "Whether to exchange automatically or just connect to it. "
                 "If you want to connect to an existing exchange, set this to `False`. "
-                "Copy of `passive` aio-pike option."
+                "Copy of `passive` aio-pike option.",
             ),
         ] = True,
         arguments: Annotated[

@@ -33,6 +33,6 @@ def test_handler_customization() -> None:
         "servers": ["development"],
         "bindings": {"kafka": {"topic": "output_data", "bindingVersion": "0.4.0"}},
         "subscribe": {
-            "message": {"$ref": "#/components/messages/output_data:Produce:Message"}
+            "message": {"$ref": "#/components/messages/output_data:Produce:Message"},
         },
     }

@@ -125,7 +125,8 @@ class RequestsTestcase(BaseTestcaseConfig):
         assert await response.decode() == "x" * 2 * 2 * 2 * 2
 
     async def test_broker_publisher_request_respect_middleware(
-        self, queue: str
+        self,
+        queue: str,
     ) -> None:
         broker = self.get_broker(middlewares=(self.get_middleware(),))
 
@@ -148,7 +149,8 @@ class RequestsTestcase(BaseTestcaseConfig):
         assert await response.decode() == "x" * 2 * 2 * 2 * 2
 
     async def test_router_publisher_request_respect_middleware(
-        self, queue: str
+        self,
+        queue: str,
     ) -> None:
         router = self.get_router(middlewares=(self.get_middleware(),))
 

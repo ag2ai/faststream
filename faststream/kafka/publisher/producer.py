@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     async def connect(
-        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+        self,
+        producer: "AIOKafkaProducer",
+        serializer: Optional["SerializerProto"],
     ) -> None: ...
 
     async def disconnect(self) -> None: ...
@@ -43,12 +45,14 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
 
     @abstractmethod
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     @abstractmethod
     async def publish_batch(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     async def request(self, cmd: "KafkaPublishCommand") -> Any:
@@ -73,7 +77,9 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         self._decoder = resolve_custom_func(decoder, default.decode_message)
 
     async def connect(
-        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+        self,
+        producer: "AIOKafkaProducer",
+        serializer: Optional["SerializerProto"],
     ) -> None:
         self.serializer = serializer
         await producer.start()
@@ -95,7 +101,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
     @override
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body, serializer=self.serializer)
@@ -120,7 +127,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
     @override
     async def publish_batch(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a batch of messages to a topic."""
         batch = self._producer.producer.create_batch()
@@ -159,7 +167,9 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
 class FakeAioKafkaFastProducer(AioKafkaFastProducer):
     async def connect(
-        self, producer: "AIOKafkaProducer", serializer: Optional["SerializerProto"]
+        self,
+        producer: "AIOKafkaProducer",
+        serializer: Optional["SerializerProto"],
     ) -> None:
         raise NotImplementedError
 
@@ -177,11 +187,13 @@ class FakeAioKafkaFastProducer(AioKafkaFastProducer):
         raise NotImplementedError
 
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         raise NotImplementedError
 
     async def publish_batch(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         raise NotImplementedError

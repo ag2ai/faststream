@@ -128,7 +128,8 @@ class KafkaRoute(SubscriberRoute):
         session_timeout_ms: int = 10 * 1000,
         heartbeat_interval_ms: int = 3 * 1000,
         isolation_level: Literal[
-            "read_uncommitted", "read_committed"
+            "read_uncommitted",
+            "read_committed",
         ] = "read_uncommitted",
         batch: bool = False,
         max_records: int | None = None,
@@ -247,14 +248,14 @@ class KafkaRoute(SubscriberRoute):
 
                 Messages will always be returned in offset order. Hence, in
                 `read_committed` mode, batch consumer will only return
-                messages up to the last stable offset (LSO), which is the one less
+                messages up to the last stable offset (ALSO), which is the one less
                 than the offset of the first open transaction. In particular any
                 messages appearing after messages belonging to ongoing transactions
                 will be withheld until the relevant transaction has been completed.
                 As a result, `read_committed` consumers will not be able to read up
                 to the high watermark when there are in flight transactions.
                 Further, when in `read_committed` the seek_to_end method will
-                return the LSO. See method docs below.
+                return the ALSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.

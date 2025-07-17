@@ -52,7 +52,8 @@ class Contact(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, contact: SpecContact | ContactDict | AnyDict | None
+        cls,
+        contact: SpecContact | ContactDict | AnyDict | None,
     ) -> Self | AnyDict | None:
         if contact is None:
             return None

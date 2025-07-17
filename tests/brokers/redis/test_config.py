@@ -7,21 +7,24 @@ from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 def test_channel_sub() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(), channel_sub=PubSub("test_channel")
+        _outer_config=MagicMock(),
+        channel_sub=PubSub("test_channel"),
     )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
 def test_list_sub() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(), list_sub=ListSub("test_list")
+        _outer_config=MagicMock(),
+        list_sub=ListSub("test_list"),
     )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
 def test_stream_sub() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(), stream_sub=StreamSub("test_stream")
+        _outer_config=MagicMock(),
+        stream_sub=StreamSub("test_stream"),
     )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 

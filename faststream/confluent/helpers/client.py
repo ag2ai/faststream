@@ -100,7 +100,8 @@ class AsyncConfluentProducer:
         def ack_callback(err: Any, msg: Message | None) -> None:
             if err or (msg is not None and (err := msg.error())):
                 loop.call_soon_threadsafe(
-                    result_future.set_exception, KafkaException(err)
+                    result_future.set_exception,
+                    KafkaException(err),
                 )
             else:
                 loop.call_soon_threadsafe(result_future.set_result, msg)
@@ -270,7 +271,9 @@ class AsyncConfluentConsumer:
 
         if self.topics:
             await run_in_executor(
-                self._thread_pool, self.consumer.subscribe, topics=self.topics
+                self._thread_pool,
+                self.consumer.subscribe,
+                topics=self.topics,
             )
 
         elif self.partitions:
@@ -287,7 +290,9 @@ class AsyncConfluentConsumer:
     async def commit(self, asynchronous: bool = True) -> None:
         """Commits the offsets of all messages returned by the last poll operation."""
         await run_in_executor(
-            self._thread_pool, self.consumer.commit, asynchronous=asynchronous
+            self._thread_pool,
+            self.consumer.commit,
+            asynchronous=asynchronous,
         )
 
     async def stop(self) -> None:
@@ -347,7 +352,9 @@ class AsyncConfluentConsumer:
             offset=offset,
         )
         await run_in_executor(
-            self._thread_pool, self.consumer.seek, topic_partition.to_confluent()
+            self._thread_pool,
+            self.consumer.seek,
+            topic_partition.to_confluent(),
         )
 
 

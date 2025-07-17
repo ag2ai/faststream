@@ -222,7 +222,8 @@ class ListBatchSubscriber(_ListHandlerMixin):
 
 
 class ListConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"], ListSubscriber
+    ConcurrentMixin["BrokerStreamMessage[Any]"],
+    ListSubscriber,
 ):
     async def start(self) -> None:
         await super().start()

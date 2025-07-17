@@ -219,7 +219,9 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
 
         @consume_broker.subscriber(*args, **kwargs)
         async def handler(
-            m: Foo, dep: int = Depends(dependency), broker=Context()
+            m: Foo,
+            dep: int = Depends(dependency),
+            broker=Context(),
         ) -> None:
             mock(m, dep, broker)
             event.set()

@@ -25,7 +25,7 @@ async def test_base_security() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [],
-                "url": "amqps://guest:guest@localhost:5672/",  # pragma: allowlist secret
+                "url": "amqps://guest:guest@localhost:5672/",
             },
         },
     }
@@ -41,25 +41,22 @@ async def test_plaintext_security() -> None:
             pass
 
     schema = get_2_6_0_schema(broker)
-    assert (
-        schema
-        == {
-            "asyncapi": "2.6.0",
-            "channels": {},
-            "components": {
-                "messages": {},
-                "schemas": {},
-                "securitySchemes": {"user-password": {"type": "userPassword"}},
+    assert schema == {
+        "asyncapi": "2.6.0",
+        "channels": {},
+        "components": {
+            "messages": {},
+            "schemas": {},
+            "securitySchemes": {"user-password": {"type": "userPassword"}},
+        },
+        "defaultContentType": "application/json",
+        "info": {"title": "FastStream", "version": "0.1.0"},
+        "servers": {
+            "development": {
+                "protocol": "amqps",
+                "protocolVersion": "0.9.1",
+                "security": [{"user-password": []}],
+                "url": "amqps://admin:password@localhost:5672/",
             },
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "protocol": "amqps",
-                    "protocolVersion": "0.9.1",
-                    "security": [{"user-password": []}],
-                    "url": "amqps://admin:password@localhost:5672/",  # pragma: allowlist secret
-                },
-            },
-        }
-    )
+        },
+    }

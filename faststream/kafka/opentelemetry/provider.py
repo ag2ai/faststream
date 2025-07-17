@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class BaseKafkaTelemetrySettingsProvider(
-    TelemetrySettingsProvider[MsgType, KafkaPublishCommand]
+    TelemetrySettingsProvider[MsgType, KafkaPublishCommand],
 ):
     __slots__ = ("messaging_system",)
 

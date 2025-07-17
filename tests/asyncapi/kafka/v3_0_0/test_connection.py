@@ -66,7 +66,7 @@ def test_custom() -> None:
         KafkaBroker(
             ["kafka:9092", "kafka:9093"],
             specification_url=["kafka:9094", "kafka:9095"],
-        )
+        ),
     )
 
     assert schema == {

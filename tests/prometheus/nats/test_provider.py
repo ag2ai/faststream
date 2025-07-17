@@ -15,7 +15,7 @@ from .basic import BatchNatsPrometheusSettings, NatsPrometheusSettings
 
 
 class LocalBaseNatsMetricsSettingsProviderTestcase(
-    LocalMetricsSettingsProviderTestcase
+    LocalMetricsSettingsProviderTestcase,
 ):
     def test_get_publish_destination_name_from_cmd(self, queue: str) -> None:
         expected_destination_name = queue
@@ -28,7 +28,8 @@ class LocalBaseNatsMetricsSettingsProviderTestcase(
 
 
 class TestNatsMetricsSettingsProvider(
-    NatsPrometheusSettings, LocalBaseNatsMetricsSettingsProviderTestcase
+    NatsPrometheusSettings,
+    LocalBaseNatsMetricsSettingsProviderTestcase,
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = b"Hello"
@@ -46,7 +47,8 @@ class TestNatsMetricsSettingsProvider(
 
 
 class TestBatchNatsMetricsSettingsProvider(
-    BatchNatsPrometheusSettings, LocalBaseNatsMetricsSettingsProviderTestcase
+    BatchNatsPrometheusSettings,
+    LocalBaseNatsMetricsSettingsProviderTestcase,
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = b"Hello"

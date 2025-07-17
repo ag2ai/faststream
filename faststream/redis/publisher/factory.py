@@ -64,14 +64,18 @@ def create_publisher(
     specification: RedisPublisherSpecification
     if (channel := PubSub.validate(channel)) is not None:
         specification = ChannelPublisherSpecification(
-            config, specification_config, channel
+            config,
+            specification_config,
+            channel,
         )
 
         return ChannelPublisher(publisher_config, specification, channel=channel)
 
     if (stream := StreamSub.validate(stream)) is not None:
         specification = StreamPublisherSpecification(
-            config, specification_config, stream
+            config,
+            specification_config,
+            stream,
         )
 
         return StreamPublisher(publisher_config, specification, stream=stream)

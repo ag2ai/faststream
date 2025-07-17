@@ -76,7 +76,8 @@ def test_run(
 @pytest.mark.slow()
 @skip_windows
 def test_single_worker(
-    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse
@@ -107,7 +108,8 @@ def test_single_worker(
 @skip_windows
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_many_workers(
-    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream
@@ -121,7 +123,11 @@ def test_many_workers(
     with (
         generate_template(app_code) as app_path,
         faststream_cli(
-            "faststream", "run", f"{app_path.stem}:app", "--workers", str(workers)
+            "faststream",
+            "run",
+            f"{app_path.stem}:app",
+            "--workers",
+            str(workers),
         ) as cli_thread,
     ):
         process = psutil.Process(pid=cli_thread.process.pid)
@@ -131,7 +137,8 @@ def test_many_workers(
 @pytest.mark.slow()
 @skip_windows
 def test_factory(
-    generate_template: GenerateTemplateFactory, faststream_cli: FastStreamCLIFactory
+    generate_template: GenerateTemplateFactory,
+    faststream_cli: FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse, get

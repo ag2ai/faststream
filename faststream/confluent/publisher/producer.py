@@ -47,7 +47,8 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     @override
     @abstractmethod
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None": ...
 
     @override
@@ -79,7 +80,8 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
 
     @override
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         raise NotImplementedError
 
@@ -127,7 +129,8 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
     @override
     async def publish(
-        self, cmd: "KafkaPublishCommand"
+        self,
+        cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         message, content_type = encode_message(cmd.body, serializer=self.serializer)

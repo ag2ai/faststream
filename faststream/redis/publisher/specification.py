@@ -9,7 +9,7 @@ from .config import RedisPublisherSpecificationConfig
 
 
 class RedisPublisherSpecification(
-    PublisherSpecification[RedisBrokerConfig, RedisPublisherSpecificationConfig]
+    PublisherSpecification[RedisBrokerConfig, RedisPublisherSpecificationConfig],
 ):
     def get_schema(self) -> dict[str, PublisherSpec]:
         payloads = self.get_payloads()

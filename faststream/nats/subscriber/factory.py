@@ -26,12 +26,14 @@ from .usecases import (
     ConcurrentPushStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
+    LogicSubscriber,
     ObjStoreWatchSubscriber,
     PullStreamSubscriber,
     PushStreamSubscriber,
 )
 
 if TYPE_CHECKING:
+    from nats.aio.msg import Msg
     from nats.js import api
 
     from faststream._internal.basic_types import AnyDict
@@ -79,17 +81,7 @@ def create_subscriber(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> (
-    BatchPullStreamSubscriber
-    | ConcurrentCoreSubscriber
-    | ConcurrentPullStreamSubscriber
-    | ConcurrentPushStreamSubscriber
-    | CoreSubscriber
-    | KeyValueWatchSubscriber
-    | ObjStoreWatchSubscriber
-    | PullStreamSubscriber
-    | PushStreamSubscriber
-):
+) -> "LogicSubscriber[Msg]":
     _validate_input_for_misconfigure(
         subject=subject,
         queue=queue,
@@ -492,7 +484,7 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
     # JS PushSub
     elif durable is not None:
         warnings.warn(
-            message="The JetStream Push consumer with the `durable` option can't be scaled horizontally across multiple instances. You probably wanted to use the `queue` option instead. Also, we strongly recommend using the Jetstream PullSubsriber with the `durable` option as the default.",
+            message="The JetStream Push consumer with the `durable` option can't be scaled horizontally across multiple instances. You probably wanted to use the `queue` option instead. Also, we strongly recommend using the Jetstream PullSubscriber with the `durable` option as the default.",
             category=RuntimeWarning,
             stacklevel=4,
         )

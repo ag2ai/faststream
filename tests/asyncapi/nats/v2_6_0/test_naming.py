@@ -32,7 +32,7 @@ class TestNaming(NamingTestCase):
                     },
                     "publish": {
                         "message": {
-                            "$ref": "#/components/messages/test:Handle:Message"
+                            "$ref": "#/components/messages/test:Handle:Message",
                         },
                     },
                 },

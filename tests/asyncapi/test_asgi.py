@@ -36,15 +36,17 @@ def test_asgi_v2_6_0() -> None:
             "description": "test description",
             "subscribe": {
                 "bindings": {
-                    "http": {"method": "GET, HEAD", "bindingVersion": "0.1.0"}
+                    "http": {"method": "GET, HEAD", "bindingVersion": "0.1.0"},
                 },
                 "tags": [{"name": "test"}],
             },
         },
         "/test2": {
             "subscribe": {
-                "bindings": {"http": {"method": "GET, HEAD", "bindingVersion": "0.1.0"}}
-            }
+                "bindings": {
+                    "http": {"method": "GET, HEAD", "bindingVersion": "0.1.0"},
+                },
+            },
         },
     }
 

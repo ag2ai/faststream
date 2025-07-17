@@ -50,7 +50,8 @@ class ExternalDocs(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, docs: SpecDocs | ExternalDocsDict | AnyDict | None
+        cls,
+        docs: SpecDocs | ExternalDocsDict | AnyDict | None,
     ) -> Self | AnyDict | None:
         if docs is None:
             return None

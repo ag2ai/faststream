@@ -47,7 +47,9 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
             mock.assert_called_once_with(name="john", id=2)
 
     async def test_router_path_with_prefix(
-        self, event: asyncio.Event, mock: MagicMock
+        self,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
@@ -72,7 +74,9 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
             mock.assert_called_once_with(name="john", id=2)
 
     async def test_router_delay_handler_path(
-        self, event: asyncio.Event, mock: MagicMock
+        self,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
         router = self.get_router()

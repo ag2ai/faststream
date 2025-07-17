@@ -15,7 +15,8 @@ class AsyncAPI260Factory:
 
 def get_2_6_0_spec(broker: BrokerUsecase[Any, Any], **kwargs: Any) -> Specification:
     return FastStream(
-        broker, specification=AsyncAPI(schema_version="2.6.0", **kwargs)
+        broker,
+        specification=AsyncAPI(schema_version="2.6.0", **kwargs),
     ).schema.to_specification()
 
 

@@ -32,7 +32,8 @@ Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
 
 @contextmanager
 def change_producer(
-    config: "BrokerConfig", producer: "ProducerProto[Any]"
+    config: "BrokerConfig",
+    producer: "ProducerProto[Any]",
 ) -> Generator[None, None, None]:
     old_producer, config.producer = config.producer, producer
     yield

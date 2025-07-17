@@ -11,7 +11,7 @@ def test_base() -> None:
             protocol_version="0.9.0",
             description="Test description",
             tags=(Tag(name="some-tag", description="experimental"),),
-        )
+        ),
     )
 
     assert schema == {
@@ -27,7 +27,7 @@ def test_base() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.0",
                 "tags": [{"description": "experimental", "name": "some-tag"}],
-                "host": "guest:guest@localhost:5673",  # pragma: allowlist secret
+                "host": "guest:guest@localhost:5673",
                 "pathname": "/",
             },
         },
@@ -36,22 +36,19 @@ def test_base() -> None:
 
 def test_kwargs() -> None:
     broker = RabbitBroker(
-        "amqp://guest:guest@localhost:5672/?heartbeat=300",  # pragma: allowlist secret
+        "amqp://guest:guest@localhost:5672/?heartbeat=300",
         host="127.0.0.1",
     )
 
-    assert (
-        broker.specification.url
-        == [
-            "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300"
-        ]  # pragma: allowlist secret
-    )
+    assert broker.specification.url == [
+        "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300",
+    ]
 
 
 def test_custom() -> None:
     broker = RabbitBroker(
         "amqps://localhost",
-        specification_url="amqp://guest:guest@127.0.0.1:5672/vh",  # pragma: allowlist secret
+        specification_url="amqp://guest:guest@127.0.0.1:5672/vh",
     )
 
     broker.publisher("test")
@@ -123,8 +120,8 @@ def test_custom() -> None:
             "development": {
                 "protocol": "amqp",
                 "protocolVersion": "0.9.1",
-                "host": "guest:guest@127.0.0.1:5672",  # pragma: allowlist secret
-                "pathname": "/vh",  # pragma: allowlist secret
+                "host": "guest:guest@127.0.0.1:5672",
+                "pathname": "/vh",
             },
         },
     }

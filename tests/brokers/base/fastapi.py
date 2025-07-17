@@ -56,7 +56,10 @@ class FastAPITestcase(BaseTestcaseConfig):
         mock.assert_called_with("hi")
 
     async def test_background(
-        self, mock: Mock, queue: str, event: asyncio.Event
+        self,
+        mock: Mock,
+        queue: str,
+        event: asyncio.Event,
     ) -> None:
         router = self.router_class()
 
@@ -102,7 +105,7 @@ class FastAPITestcase(BaseTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        router.broker.publish("", queue, headers={"1": "1"})
+                        router.broker.publish("", queue, headers={"1": "1"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -113,7 +116,10 @@ class FastAPITestcase(BaseTestcaseConfig):
         mock.assert_called_with(True)
 
     async def test_context_annotated(
-        self, mock: Mock, queue: str, event: asyncio.Event
+        self,
+        mock: Mock,
+        queue: str,
+        event: asyncio.Event,
     ) -> None:
         router = self.router_class()
         context = router.context
@@ -134,7 +140,7 @@ class FastAPITestcase(BaseTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        router.broker.publish("", queue, headers={"1": "1"})
+                        router.broker.publish("", queue, headers={"1": "1"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),

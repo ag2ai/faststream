@@ -36,7 +36,8 @@ def test_set_broker(broker: RabbitBroker, app_without_broker: FastStream) -> Non
 
 @pytest.mark.asyncio()
 async def test_set_broker_in_on_startup_hook(
-    app_without_broker: FastStream, broker: RabbitBroker
+    app_without_broker: FastStream,
+    broker: RabbitBroker,
 ) -> None:
     def add_broker() -> None:
         app_without_broker.set_broker(broker)

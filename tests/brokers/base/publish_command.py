@@ -13,7 +13,7 @@ from faststream.response.response import (
 class BasePublishCommandTestcase:
     publish_command_cls: type[PublishCommand]
 
-    def test_simple_reponse(self) -> None:
+    def test_simple_response(self) -> None:
         response = ensure_response(1)
         cmd = self.publish_command_cls.from_cmd(response.as_publish_command())
         assert cmd.body == 1
@@ -38,7 +38,9 @@ class BatchPublishCommandTestcase(BasePublishCommandTestcase):
             pytest.param(b"", (b"",), id="Empty Bytes Response"),
             pytest.param([1, 2, 3], (1, 2, 3), id="Sequence Data"),
             pytest.param(
-                [0, 1, 2], (0, 1, 2), id="Sequence Data with False first element"
+                [0, 1, 2],
+                (0, 1, 2),
+                id="Sequence Data with False first element",
             ),
         ),
     )
@@ -53,7 +55,8 @@ class BatchPublishCommandTestcase(BasePublishCommandTestcase):
     def test_batch_bodies_setter(self) -> None:
         response = ensure_response(None)
         cmd = self.publish_command_cls.from_cmd(
-            response.as_publish_command(), batch=True
+            response.as_publish_command(),
+            batch=True,
         )
         cmd.batch_bodies = (1, 2, 3)
 
@@ -64,7 +67,8 @@ class BatchPublishCommandTestcase(BasePublishCommandTestcase):
     def test_batch_bodies_empty_setter(self) -> None:
         response = ensure_response((1, 2, 3))
         cmd = self.publish_command_cls.from_cmd(
-            response.as_publish_command(), batch=True
+            response.as_publish_command(),
+            batch=True,
         )
         cmd.batch_bodies = ()
 

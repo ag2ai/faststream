@@ -38,7 +38,7 @@ def test_fastapi_security_schema() -> None:
         "protocol": "amqp",
         "protocolVersion": "0.9.1",
         "security": [{"user-password": []}],
-        "url": "amqp://user:pass@localhost:5672/",  # pragma: allowlist secret
+        "url": "amqp://user:pass@localhost:5672/",
     }
     assert schema["components"]["securitySchemes"] == {
         "user-password": {"type": "userPassword"},

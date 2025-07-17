@@ -62,7 +62,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
 
         with ExitStack() as es:
             es.enter_context(
-                change_producer(broker.config.broker_config, fake_producer)
+                change_producer(broker.config.broker_config, fake_producer),
             )
             yield
 

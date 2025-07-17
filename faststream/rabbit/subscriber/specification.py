@@ -16,7 +16,7 @@ from .config import RabbitSubscriberSpecificationConfig
 
 
 class RabbitSubscriberSpecification(
-    SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig]
+    SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig],
 ):
     @property
     def name(self) -> str:

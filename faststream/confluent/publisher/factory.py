@@ -67,7 +67,8 @@ def create_publisher(
 
     if autoflush:
         default_publish: Callable[..., Awaitable[Any | None]] = getattr(
-            publisher, publish_method
+            publisher,
+            publish_method,
         )
 
         @wraps(default_publish)

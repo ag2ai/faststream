@@ -10,7 +10,7 @@ from faststream.middlewares import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.factory import PublisherType, create_publisher
-from faststream.redis.subscriber.factory import SubsciberType, create_subscriber
+from faststream.redis.subscriber.factory import SubscriberType, create_subscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -53,7 +53,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         parser: Annotated[
             Optional["CustomCallable"],
             Doc(
-                "Parser to map original **redis.ResponseT (Union[Awaitable[Any], Any])** Msg to FastStream one."
+                "Parser to map original **redis.ResponseT (Union[Awaitable[Any], Any])** Msg to FastStream one.",
             ),
         ] = None,
         decoder: Annotated[
@@ -64,7 +64,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -73,7 +73,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -103,7 +103,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> SubsciberType:
+    ) -> SubscriberType:
         subscriber = create_subscriber(
             channel=channel,
             list=list,
@@ -160,7 +160,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),

@@ -10,12 +10,12 @@ from faststream.rabbit import (
 
 @dataclass
 class Settings:
-    url: str = "amqp://guest:guest@localhost:5672/"  # pragma: allowlist secret
+    url: str = "amqp://guest:guest@localhost:5672/"
 
     host: str = "localhost"
     port: int = 5672
     login: str = "guest"
-    password: str = "guest"  # pragma: allowlist secret
+    password: str = "guest"
 
     queue: str = "test_queue"
 

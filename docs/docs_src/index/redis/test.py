@@ -8,10 +8,12 @@ from faststream.redis import TestRedisBroker
 @pytest.mark.asyncio
 async def test_correct() -> None:
     async with TestRedisBroker(broker) as br:
-        await br.publish({
-            "user": "John",
-            "user_id": 1,
-        }, "in-channel")
+        await br.publish(
+            {
+                "user": "John",
+                "user_id": 1,
+            }, "in-channel",
+        )
 
 @pytest.mark.asyncio
 async def test_invalid() -> None:

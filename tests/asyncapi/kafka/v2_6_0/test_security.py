@@ -91,7 +91,7 @@ def test_plaintext_security_schema() -> None:
     security = SASLPlaintext(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = KafkaBroker("localhost:9092", security=security)
@@ -119,7 +119,7 @@ def test_scram256_security_schema() -> None:
     security = SASLScram256(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = KafkaBroker("localhost:9092", security=security)
@@ -145,7 +145,7 @@ def test_scram512_security_schema() -> None:
     security = SASLScram512(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = KafkaBroker("localhost:9092", security=security)
@@ -186,7 +186,7 @@ def test_oauthbearer_security_schema() -> None:
         {"oauthbearer": []},
     ]
     sasl_oauthbearer_security_schema["components"]["securitySchemes"] = {
-        "oauthbearer": {"type": "oauth2", "$ref": ""}
+        "oauthbearer": {"type": "oauth2", "$ref": ""},
     }
 
     assert schema == sasl_oauthbearer_security_schema

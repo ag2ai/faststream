@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.rabbit.publisher.options.RequestPublishKwargs
+::: faststream.nats.subscriber.ConcurrentCoreSubscriber

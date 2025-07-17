@@ -116,7 +116,8 @@ class LogicPublisher(PublisherUsecase):
         )
 
         msg: KafkaMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg
 
@@ -227,7 +228,9 @@ class DefaultPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
         )
         return await self._basic_publish(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
 
     @override
@@ -405,7 +408,9 @@ class BatchPublisher(LogicPublisher):
         )
 
         return await self._basic_publish_batch(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
 
     @override

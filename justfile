@@ -35,23 +35,23 @@ down:
 
 [doc("Run fast tests")]
 [group("tests")]
-test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+test +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "not slow and not kafka and not confluent and not redis and not rabbit and not nats"
 
 [doc("Run all tests")]
 [group("tests")]
-test-all path="tests/" params="" marks="all":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+test-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "all"
 
 [doc("Run fast tests with coverage")]
 [group("tests")]
-test-coverage path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+test-coverage +param="tests/":
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'not slow and not kafka and not confluent and not redis and not rabbit and not nats' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
-test-coverage-all path="tests/" params="" marks="all":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+test-coverage-all +param="tests/":
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'all' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 
 # Docs
@@ -60,34 +60,45 @@ test-coverage-all path="tests/" params="" marks="all":
 docs-build:
   cd docs && uv run python docs.py build
 
+[doc("Build API Reference")]
+[group("docs")]
+docs-build-api:
+  cd docs && uv run python docs.py build-api-docs
+
+[doc("Update release notes")]
+[group("docs")]
+docs-update-release-notes:
+  cd docs && uv run python docs.py update-release-notes
+
 [doc("Serve docs")]
 [group("docs")]
-docs-serve:
-  cd docs && uv run python docs.py live 8000 --fast
-
+docs-serve params="":
+  cd docs && uv run python docs.py live 8000 {{params}}
 
 # Linter
-[doc("Ruff check")]
-[group("linter")]
-ruff-check *params:
-  uv run ruff check --exit-non-zero-on-fix {{params}}
-
 [doc("Ruff format")]
 [group("linter")]
 ruff-format *params:
-  uv run ruff format {{params}}
+  uv run --active ruff format {{params}}
 
-[doc("Codespell check")]
+[doc("Ruff check")]
 [group("linter")]
-codespell:
-  uv run codespell
+ruff-check *params:
+  uv run --active ruff check --exit-non-zero-on-fix {{params}}
+
+_codespell:
+  uv run --active codespell -L Dependant,dependant --skip "./docs/site"
+
+[doc("Check typos")]
+[group("linter")]
+typos: _codespell
+  uv run pre-commit run --all-files typos
 
 alias lint := linter
 
 [doc("Linter run")]
 [group("linter")]
-linter: ruff-format ruff-check codespell
-
+linter: ruff-format ruff-check _codespell
 
 # Static analysis
 [doc("Mypy check")]
@@ -103,12 +114,16 @@ bandit:
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  uv run semgrep scan --config auto --error
+  uv run semgrep scan --config auto --error --skip-unknown-extensions faststream
 
 [doc("Static analysis check")]
 [group("static analysis")]
 static-analysis: mypy bandit semgrep
 
+[doc("Install pre-commit hooks")]
+[group("pre-commit")]
+pre-commit-install:
+  uv run pre-commit install
 
 [doc("Pre-commit modified files")]
 [group("pre-commit")]
@@ -119,7 +134,6 @@ pre-commit:
 [group("pre-commit")]
 pre-commit-all:
   uv run pre-commit run --all-files
-
 
 # Kafka
 [doc("Run kafka container")]
@@ -139,10 +153,12 @@ kafka-logs:
 
 [doc("Run kafka tests")]
 [group("kafka")]
+[group("tests")]
 test-kafka: (test "tests/brokers/kafka")
 
 [doc("Run confluent tests")]
 [group("kafka")]
+[group("tests")]
 test-confluent: (test "tests/brokers/confluent")
 
 
@@ -164,6 +180,7 @@ rabbit-logs:
 
 [doc("Run rabbitmq tests")]
 [group("rabbitmq")]
+[group("tests")]
 test-rabbit: (test "tests/brokers/rabbit")
 
 
@@ -185,6 +202,7 @@ redis-logs:
 
 [doc("Run redis tests")]
 [group("redis")]
+[group("tests")]
 test-redis: (test "tests/brokers/redis")
 
 
@@ -206,4 +224,5 @@ nats-logs:
 
 [doc("Run nats tests")]
 [group("nats")]
-test-nats *params: (test "tests/brokers/nats")
+[group("tests")]
+test-nats: (test "tests/brokers/nats")

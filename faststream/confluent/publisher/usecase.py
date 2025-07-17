@@ -68,7 +68,8 @@ class LogicPublisher(PublisherUsecase):
         )
 
         msg: KafkaMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg
 
@@ -146,7 +147,9 @@ class DefaultPublisher(LogicPublisher):
         msg: (
             asyncio.Future[Message | None] | Message | None
         ) = await self._basic_publish(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
         return msg
 
@@ -225,7 +228,9 @@ class BatchPublisher(LogicPublisher):
         )
 
         await self._basic_publish_batch(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
 
     @override

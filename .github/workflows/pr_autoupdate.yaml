@@ -1,4 +1,4 @@
-name: Run linting, update API References
+name: Run linters
 
 on:
   pull_request_target:
@@ -13,7 +13,6 @@ concurrency:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   check-linting-and-docs-changes:
@@ -45,18 +44,16 @@ jobs:
           set -ux
           uv pip install --system --group dev -e .
 
-      - uses: pre-commit/action@v3.0.1
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
         continue-on-error: true
         with:
           extra_args: --hook-stage manual --all-files
 
-      - name: Run build docs
-        run: cd docs && python docs.py build
-
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          commit_message: "docs: generate API References"
+          commit_message: "chore: apply autofixes"
           commit_user_name: faststream-actions[bot]
           commit_user_email: faststream-actions[bot]@users.noreply.github.com
           commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>

@@ -178,7 +178,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         dependencies: Iterable["Dependant"] = (),
@@ -196,7 +196,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         dependencies: Iterable["Dependant"] = (),
@@ -217,7 +217,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         dependencies: Iterable["Dependant"] = (),
@@ -309,7 +309,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
                 if message is not None:
                     stack.enter_context(
-                        context.scope("log_context", self.get_log_context(message))
+                        context.scope("log_context", self.get_log_context(message)),
                     )
                     stack.enter_context(context.scope("message", message))
 
@@ -392,7 +392,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     @abstractmethod
     def _make_response_publisher(
-        self, message: "StreamMessage[MsgType]"
+        self,
+        message: "StreamMessage[MsgType]",
     ) -> Iterable["PublisherProto"]:
         raise NotImplementedError
 

@@ -37,7 +37,7 @@ class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRec
 
 
 class BatchKafkaMetricsSettingsProvider(
-    BaseKafkaMetricsSettingsProvider[tuple["ConsumerRecord", ...]]
+    BaseKafkaMetricsSettingsProvider[tuple["ConsumerRecord", ...]],
 ):
     def get_consume_attrs_from_message(
         self,

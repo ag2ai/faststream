@@ -3,7 +3,7 @@ from faststream.security import SASLScram512
 
 security = SASLScram512(
     username="admin",
-    password="password",  # pragma: allowlist secret
+    password="password",
     use_ssl=True,
 )
 

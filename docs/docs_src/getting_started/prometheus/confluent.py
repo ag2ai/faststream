@@ -8,6 +8,6 @@ registry = CollectorRegistry()
 broker = KafkaBroker(
     middlewares=(
         KafkaPrometheusMiddleware(registry=registry),
-    )
+    ),
 )
 app = FastStream(broker)

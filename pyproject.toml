@@ -241,7 +241,4 @@ omit = [
 ]
 
 [tool.bandit]
-
-[tool.codespell]
-skip = "./venv*,./docs/site/*,./htmlcov"
-ignore-words = ".codespell-whitelist.txt"
+skips = ["B101"]

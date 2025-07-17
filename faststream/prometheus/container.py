@@ -105,7 +105,7 @@ class MetricsContainer:
         self.received_processed_messages_duration_seconds = cast(
             "Histogram",
             self._get_registered_metric(
-                received_processed_messages_duration_seconds_name
+                received_processed_messages_duration_seconds_name,
             ),
         ) or Histogram(
             name=received_processed_messages_duration_seconds_name,
@@ -120,7 +120,7 @@ class MetricsContainer:
         self.received_processed_messages_exceptions_total = cast(
             "Counter",
             self._get_registered_metric(
-                received_processed_messages_exceptions_total_name
+                received_processed_messages_exceptions_total_name,
             ),
         ) or Counter(
             name=received_processed_messages_exceptions_total_name,

@@ -32,7 +32,9 @@ class AcknowledgementMiddleware:
         self.logger = logger
 
     def __call__(
-        self, msg: Any | None, context: "ContextRepo"
+        self,
+        msg: Any | None,
+        context: "ContextRepo",
     ) -> "_AcknowledgementMiddleware":
         return _AcknowledgementMiddleware(
             msg,

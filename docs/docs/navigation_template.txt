@@ -104,7 +104,7 @@ search:
     - [Message Information](nats/message.md)
     - [How-To](howto/nats/index.md)
         - [DynaConf](howto/nats/dynaconf.md)
-        - [In-Progess](howto/nats/in-progress.md)
+        - [In-Progress](howto/nats/in-progress.md)
 - [Redis](redis/index.md)
     - [Pub/Sub](redis/pubsub/index.md)
         - [Subscription](redis/pubsub/subscription.md)

@@ -46,7 +46,9 @@ class BaseReload:
 
     def startup(self) -> None:
         logger.info(
-            "Started reloader process [%s] using %s", self.pid, self.reloader_name
+            "Started reloader process [%s] using %s",
+            self.pid,
+            self.reloader_name,
         )
         self._process = self.start_process()
 

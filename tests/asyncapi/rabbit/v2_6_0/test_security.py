@@ -14,10 +14,7 @@ def test_base_security_schema() -> None:
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqps://guest:guest@localhost:5672/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqps://guest:guest@localhost:5672/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_2_6_0_schema(broker)
@@ -33,7 +30,7 @@ def test_base_security_schema() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [],
-                "url": "amqps://guest:guest@localhost:5672/",  # pragma: allowlist secret
+                "url": "amqps://guest:guest@localhost:5672/",
             },
         },
     }
@@ -45,77 +42,65 @@ def test_plaintext_security_schema() -> None:
     security = SASLPlaintext(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RabbitBroker("amqp://guest:guest@localhost/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqps://admin:password@localhost:5671/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqps://admin:password@localhost:5671/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_2_6_0_schema(broker)
 
-    assert (
-        schema
-        == {
-            "asyncapi": "2.6.0",
-            "channels": {},
-            "components": {
-                "messages": {},
-                "schemas": {},
-                "securitySchemes": {"user-password": {"type": "userPassword"}},
+    assert schema == {
+        "asyncapi": "2.6.0",
+        "channels": {},
+        "components": {
+            "messages": {},
+            "schemas": {},
+            "securitySchemes": {"user-password": {"type": "userPassword"}},
+        },
+        "defaultContentType": "application/json",
+        "info": {"title": "FastStream", "version": "0.1.0"},
+        "servers": {
+            "development": {
+                "protocol": "amqps",
+                "protocolVersion": "0.9.1",
+                "security": [{"user-password": []}],
+                "url": "amqps://admin:password@localhost:5671/",
             },
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "protocol": "amqps",
-                    "protocolVersion": "0.9.1",
-                    "security": [{"user-password": []}],
-                    "url": "amqps://admin:password@localhost:5671/",  # pragma: allowlist secret
-                },
-            },
-        }
-    )
+        },
+    }
 
 
 def test_plaintext_security_schema_without_ssl() -> None:
     security = SASLPlaintext(
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqp://admin:password@localhost:5672/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqp://admin:password@localhost:5672/"]
 
     schema = get_2_6_0_schema(broker)
 
-    assert (
-        schema
-        == {
-            "asyncapi": "2.6.0",
-            "channels": {},
-            "components": {
-                "messages": {},
-                "schemas": {},
-                "securitySchemes": {"user-password": {"type": "userPassword"}},
+    assert schema == {
+        "asyncapi": "2.6.0",
+        "channels": {},
+        "components": {
+            "messages": {},
+            "schemas": {},
+            "securitySchemes": {"user-password": {"type": "userPassword"}},
+        },
+        "defaultContentType": "application/json",
+        "info": {"title": "FastStream", "version": "0.1.0"},
+        "servers": {
+            "development": {
+                "protocol": "amqp",
+                "protocolVersion": "0.9.1",
+                "security": [{"user-password": []}],
+                "url": "amqp://admin:password@localhost:5672/",
             },
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "protocol": "amqp",
-                    "protocolVersion": "0.9.1",
-                    "security": [{"user-password": []}],
-                    "url": "amqp://admin:password@localhost:5672/",  # pragma: allowlist secret
-                },
-            },
-        }
-    )
+        },
+    }

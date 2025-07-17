@@ -8,7 +8,7 @@ from .config import KafkaPublisherSpecificationConfig
 
 
 class KafkaPublisherSpecification(
-    PublisherSpecification[KafkaBrokerConfig, KafkaPublisherSpecificationConfig]
+    PublisherSpecification[KafkaBrokerConfig, KafkaPublisherSpecificationConfig],
 ):
     @property
     def topic(self) -> str:
@@ -39,7 +39,7 @@ class KafkaPublisherSpecification(
                         topic=self.topic,
                         partitions=None,
                         replicas=None,
-                    )
+                    ),
                 ),
             ),
         }

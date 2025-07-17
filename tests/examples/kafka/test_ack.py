@@ -11,7 +11,9 @@ from tests.tools import spy_decorator
 @pytest.mark.asyncio()
 async def test_ack() -> None:
     with patch.object(
-        KafkaAckableMessage, "ack", spy_decorator(KafkaAckableMessage.ack)
+        KafkaAckableMessage,
+        "ack",
+        spy_decorator(KafkaAckableMessage.ack),
     ) as m:
         async with TestKafkaBroker(broker), TestApp(app):
             m.mock.assert_called_once()

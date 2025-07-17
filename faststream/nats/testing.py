@@ -31,7 +31,8 @@ __all__ = ("TestNatsBroker",)
 
 @contextmanager
 def change_producer(
-    config: "ConfigComposition[NatsBrokerConfig]", producer: "NatsFastProducer"
+    config: "ConfigComposition[NatsBrokerConfig]",
+    producer: "NatsFastProducer",
 ) -> Generator[None, None, None]:
     old_producer, config.broker_config.producer = (
         config.broker_config.producer,

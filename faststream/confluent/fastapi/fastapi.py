@@ -83,7 +83,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
         partitioner: str
         | Callable[
-            [bytes, list[Partition], list[Partition]], Partition
+            [bytes, list[Partition], list[Partition]],
+            Partition,
         ] = "consistent_random",
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
@@ -132,7 +133,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         deprecated: bool | None = None,
         include_in_schema: bool = True,
         generate_unique_id_function: Callable[["APIRoute"], str] = Default(
-            generate_unique_id
+            generate_unique_id,
         ),
     ) -> None:
         """Initialize the KafkaRouter.
@@ -421,7 +422,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         session_timeout_ms: int = 10 * 1000,
         heartbeat_interval_ms: int = 3 * 1000,
         isolation_level: Literal[
-            "read_uncommitted", "read_committed"
+            "read_uncommitted",
+            "read_committed",
         ] = "read_uncommitted",
         batch: Literal[False] = False,
         max_records: int | None = None,
@@ -433,7 +435,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         no_ack: bool = EMPTY,
@@ -477,7 +479,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         session_timeout_ms: int = 10 * 1000,
         heartbeat_interval_ms: int = 3 * 1000,
         isolation_level: Literal[
-            "read_uncommitted", "read_committed"
+            "read_uncommitted",
+            "read_committed",
         ] = "read_uncommitted",
         batch: Literal[True],
         max_records: int | None = None,
@@ -489,7 +492,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # Specification args
@@ -527,7 +530,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         session_timeout_ms: int = 10 * 1000,
         heartbeat_interval_ms: int = 3 * 1000,
         isolation_level: Literal[
-            "read_uncommitted", "read_committed"
+            "read_uncommitted",
+            "read_committed",
         ] = "read_uncommitted",
         batch: bool = False,
         max_records: int | None = None,
@@ -539,7 +543,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         no_ack: bool = EMPTY,
@@ -558,7 +562,9 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
     ) -> Union[
-        "BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"
+        "BatchSubscriber",
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
     ]: ...
 
     @override
@@ -582,7 +588,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         session_timeout_ms: int = 10 * 1000,
         heartbeat_interval_ms: int = 3 * 1000,
         isolation_level: Literal[
-            "read_uncommitted", "read_committed"
+            "read_uncommitted",
+            "read_committed",
         ] = "read_uncommitted",
         batch: bool = False,
         max_records: int | None = None,
@@ -594,7 +601,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         no_ack: bool = EMPTY,
@@ -713,14 +720,14 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
 
                 Messages will always be returned in offset order. Hence, in
                 `read_committed` mode, batch consumer will only return
-                messages up to the last stable offset (LSO), which is the one less
+                messages up to the last stable offset (ALSO), which is the one less
                 than the offset of the first open transaction. In particular any
                 messages appearing after messages belonging to ongoing transactions
                 will be withheld until the relevant transaction has been completed.
                 As a result, `read_committed` consumers will not be able to read up
                 to the high watermark when there are in flight transactions.
                 Further, when in `read_committed` the seek_to_end method will
-                return the LSO. See method docs below.
+                return the ALSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
@@ -879,7 +886,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # Specification args
@@ -904,7 +911,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # Specification args
@@ -929,7 +936,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # Specification args
@@ -954,7 +961,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # Specification args

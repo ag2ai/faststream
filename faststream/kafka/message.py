@@ -69,7 +69,7 @@ class KafkaAckableMessage(
             "ConsumerRecord",
             tuple["ConsumerRecord", ...],
         ]
-    ]
+    ],
 ):
     def __init__(
         self,

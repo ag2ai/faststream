@@ -26,17 +26,7 @@ if TYPE_CHECKING:
     )
     from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
-    from faststream.nats.subscriber.usecases import (
-        BatchPullStreamSubscriber,
-        ConcurrentCoreSubscriber,
-        ConcurrentPullStreamSubscriber,
-        ConcurrentPushStreamSubscriber,
-        CoreSubscriber,
-        KeyValueWatchSubscriber,
-        ObjStoreWatchSubscriber,
-        PullStreamSubscriber,
-        PushStreamSubscriber,
-    )
+    from faststream.nats.subscriber.usecases import LogicSubscriber
 
 
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
@@ -133,7 +123,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         ] = None,
         obj_watch: Annotated[
             Union[bool, "ObjWatch"],
-            Doc("ObjecStore watch parameters container."),
+            Doc("ObjectStore watch parameters container."),
         ] = False,
         inbox_prefix: Annotated[
             bytes,
@@ -173,7 +163,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             Sequence["SubscriberMiddleware[NatsMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -186,7 +176,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -212,17 +202,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> Union[
-        "BatchPullStreamSubscriber",
-        "ConcurrentCoreSubscriber",
-        "ConcurrentPullStreamSubscriber",
-        "ConcurrentPushStreamSubscriber",
-        "CoreSubscriber",
-        "KeyValueWatchSubscriber",
-        "ObjStoreWatchSubscriber",
-        "PullStreamSubscriber",
-        "PushStreamSubscriber",
-    ]:
+    ) -> "LogicSubscriber[Msg]":
         """Creates NATS subscriber object.
 
         You can use it as a handler decorator `@broker.subscriber(...)`.
@@ -310,7 +290,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),

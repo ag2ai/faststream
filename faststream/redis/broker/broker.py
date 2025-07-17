@@ -370,7 +370,8 @@ class RedisBroker(
         )
 
         result: int | bytes = await super()._basic_publish(
-            cmd, producer=self.config.producer
+            cmd,
+            producer=self.config.producer,
         )
         return result
 
@@ -399,7 +400,8 @@ class RedisBroker(
             _publish_type=PublishType.REQUEST,
         )
         msg: RedisMessage = await super()._basic_request(
-            cmd, producer=self.config.producer
+            cmd,
+            producer=self.config.producer,
         )
         return msg
 
@@ -437,7 +439,8 @@ class RedisBroker(
         )
 
         result: int = await self._basic_publish_batch(
-            cmd, producer=self.config.producer
+            cmd,
+            producer=self.config.producer,
         )
         return result
 

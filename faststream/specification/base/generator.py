@@ -13,13 +13,17 @@ if TYPE_CHECKING:
 class SpecificationFactory(Protocol):
     @abstractmethod
     def add_broker(
-        self, broker: "BrokerUsecase[Any, Any]", /
+        self,
+        broker: "BrokerUsecase[Any, Any]",
+        /,
     ) -> "SpecificationFactory":
         raise NotImplementedError
 
     @abstractmethod
     def add_http_route(
-        self, path: str, handler: "HttpHandler"
+        self,
+        path: str,
+        handler: "HttpHandler",
     ) -> "SpecificationFactory":
         raise NotImplementedError
 

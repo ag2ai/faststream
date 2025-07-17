@@ -180,7 +180,7 @@ def get_broker_channels(
             operations[f"{channel_key}Subscribe"] = Operation.from_sub(
                 messages=[
                     Reference(**{
-                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}"
+                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
                     })
                     for msg_name in channel_obj.messages
                 ],
@@ -204,7 +204,7 @@ def get_broker_channels(
             operations[channel_key] = Operation.from_pub(
                 messages=[
                     Reference(**{
-                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}"
+                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
                     })
                     for msg_name in channel_obj.messages
                 ],
@@ -242,7 +242,7 @@ def get_asgi_routes(
                     http=http_bindings.OperationBinding(
                         method=_get_http_binding_method(asgi_app.methods),
                         bindingVersion="0.3.0",
-                    )
+                    ),
                 ),
             )
             operations[channel_name] = operation

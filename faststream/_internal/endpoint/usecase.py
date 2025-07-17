@@ -17,7 +17,8 @@ class Endpoint:
         self._outer_config = config
 
     def __call__(
-        self, func: Callable[P_HandlerParams, T_HandlerReturn]
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
     ) -> HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]:
         handler: HandlerCallWrapper[P_HandlerParams, T_HandlerReturn] = (
             ensure_call_wrapper(func)

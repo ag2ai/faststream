@@ -95,7 +95,7 @@ class KafkaPublisher(ArgsContainer):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
@@ -407,14 +407,14 @@ class KafkaRoute(SubscriberRoute):
 
             Messages will always be returned in offset order. Hence, in
             `read_committed` mode, batch consumer will only return
-            messages up to the last stable offset (LSO), which is the one less
+            messages up to the last stable offset (ALSO), which is the one less
             than the offset of the first open transaction. In particular any
             messages appearing after messages belonging to ongoing transactions
             will be withheld until the relevant transaction has been completed.
             As a result, `read_committed` consumers will not be able to read up
             to the high watermark when there are in flight transactions.
             Further, when in `read_committed` the seek_to_end method will
-            return the LSO. See method docs below.
+            return the ALSO. See method docs below.
             """,
             ),
         ] = "read_uncommitted",
@@ -494,7 +494,7 @@ class KafkaRoute(SubscriberRoute):
             Sequence["SubscriberMiddleware[KafkaMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -503,7 +503,7 @@ class KafkaRoute(SubscriberRoute):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,

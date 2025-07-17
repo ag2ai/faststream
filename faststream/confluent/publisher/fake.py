@@ -20,7 +20,8 @@ class KafkaFakePublisher(FakePublisher):
         self.topic = topic
 
     def patch_command(
-        self, cmd: Union["PublishCommand", "KafkaPublishCommand"]
+        self,
+        cmd: Union["PublishCommand", "KafkaPublishCommand"],
     ) -> "KafkaPublishCommand":
         cmd = super().patch_command(cmd)
         real_cmd = KafkaPublishCommand.from_cmd(cmd)

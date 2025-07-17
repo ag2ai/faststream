@@ -31,7 +31,9 @@ class ProducerProto(Protocol[PublishCommandType_contra]):
 
 class ProducerFactory(Protocol):
     def __call__(
-        self, parser: "AsyncCallable", decoder: "AsyncCallable"
+        self,
+        parser: "AsyncCallable",
+        decoder: "AsyncCallable",
     ) -> ProducerProto: ...
 
 

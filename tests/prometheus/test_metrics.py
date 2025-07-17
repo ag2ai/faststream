@@ -81,7 +81,9 @@ class TestCaseMetrics:
         )
 
         manager.add_received_message(
-            amount=messages_amount, broker=broker, handler=queue
+            amount=messages_amount,
+            broker=broker,
+            handler=queue,
         )
 
         metric_values = manager._container.received_messages_total.collect()
@@ -160,7 +162,9 @@ class TestCaseMetrics:
         )
 
         manager.add_received_message_in_process(
-            amount=messages_amount, broker=broker, handler=queue
+            amount=messages_amount,
+            broker=broker,
+            handler=queue,
         )
 
         metric_values = manager._container.received_messages_in_process.collect()
@@ -189,10 +193,14 @@ class TestCaseMetrics:
         )
 
         manager.add_received_message_in_process(
-            amount=messages_amount, broker=broker, handler=queue
+            amount=messages_amount,
+            broker=broker,
+            handler=queue,
         )
         manager.remove_received_message_in_process(
-            amount=1, broker=broker, handler=queue
+            amount=1,
+            broker=broker,
+            handler=queue,
         )
 
         metric_values = manager._container.received_messages_in_process.collect()

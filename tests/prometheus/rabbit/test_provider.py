@@ -30,7 +30,8 @@ class TestRabbitMetricsSettingsProvider(
             "messages_count": 1,
         }
         message = SimpleNamespace(
-            body=body, raw_message=SimpleNamespace(exchange=exchange, routing_key=queue)
+            body=body,
+            raw_message=SimpleNamespace(exchange=exchange, routing_key=queue),
         )
 
         provider = self.get_settings_provider()
@@ -52,7 +53,8 @@ class TestRabbitMetricsSettingsProvider(
     ) -> None:
         expected_destination_name = f"{exchange or 'default'}.{queue}"
         command = SimpleNamespace(
-            exchange=SimpleNamespace(name=exchange), destination=queue
+            exchange=SimpleNamespace(name=exchange),
+            destination=queue,
         )
 
         provider = self.get_settings_provider()

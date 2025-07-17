@@ -82,12 +82,18 @@ def create_subscriber(
 
     if batch:
         return BatchSubscriber(
-            subscriber_config, specification, calls, max_records=max_records
+            subscriber_config,
+            specification,
+            calls,
+            max_records=max_records,
         )
 
     if max_workers > 1:
         return ConcurrentDefaultSubscriber(
-            subscriber_config, specification, calls, max_workers=max_workers
+            subscriber_config,
+            specification,
+            calls,
+            max_workers=max_workers,
         )
 
     return DefaultSubscriber(subscriber_config, specification, calls)

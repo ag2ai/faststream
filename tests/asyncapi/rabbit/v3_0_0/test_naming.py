@@ -47,7 +47,7 @@ class TestNaming(NamingTestCase):
             "info": {"title": "FastStream", "version": "0.1.0"},
             "servers": {
                 "development": {
-                    "host": "guest:guest@localhost:5672",  # pragma: allowlist secret
+                    "host": "guest:guest@localhost:5672",
                     "pathname": "/",
                     "protocol": "amqp",
                     "protocolVersion": "0.9.1",

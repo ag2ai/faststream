@@ -68,6 +68,6 @@ class FastAPITestCase:
                             "protocolVersion": "1.1.1",
                             "tags": [{"name": "test"}],
                             "url": IsStr(),
-                        }
+                        },
                     },
                 }

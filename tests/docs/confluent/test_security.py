@@ -8,7 +8,7 @@ async def test_base_security() -> None:
     from docs.docs_src.confluent.security.basic import broker as basic_broker
 
     assert basic_broker.config.connection_config.producer_config == IsPartialDict({
-        "security.protocol": "ssl"
+        "security.protocol": "ssl",
     })
 
 
@@ -22,7 +22,7 @@ async def test_scram256() -> None:
     assert scram256_broker.config.connection_config.producer_config == IsPartialDict({
         "sasl.mechanism": "SCRAM-SHA-256",
         "sasl.username": "admin",
-        "sasl.password": "password",  # pragma: allowlist secret
+        "sasl.password": "password",
         "security.protocol": "sasl_ssl",
     })
 
@@ -37,7 +37,7 @@ async def test_scram512() -> None:
     assert scram512_broker.config.connection_config.producer_config == IsPartialDict({
         "sasl.mechanism": "SCRAM-SHA-512",
         "sasl.username": "admin",
-        "sasl.password": "password",  # pragma: allowlist secret
+        "sasl.password": "password",
         "security.protocol": "sasl_ssl",
     })
 
@@ -54,7 +54,7 @@ async def test_plaintext() -> None:
     assert producer_config == IsPartialDict({
         "sasl.mechanism": "PLAIN",
         "sasl.username": "admin",
-        "sasl.password": "password",  # pragma: allowlist secret
+        "sasl.password": "password",
         "security.protocol": "sasl_ssl",
     })
 

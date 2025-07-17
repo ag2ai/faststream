@@ -21,6 +21,7 @@ from .usecases import (
     ListBatchSubscriber,
     ListConcurrentSubscriber,
     ListSubscriber,
+    LogicSubscriber,
     StreamBatchSubscriber,
     StreamConcurrentSubscriber,
     StreamSubscriber,
@@ -29,16 +30,7 @@ from .usecases import (
 if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
-SubsciberType: TypeAlias = (
-    ChannelSubscriber
-    | StreamBatchSubscriber
-    | StreamSubscriber
-    | ListBatchSubscriber
-    | ListSubscriber
-    | ChannelConcurrentSubscriber
-    | ListConcurrentSubscriber
-    | StreamConcurrentSubscriber
-)
+SubscriberType: TypeAlias = LogicSubscriber
 
 
 def create_subscriber(
@@ -56,7 +48,7 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
     max_workers: int = 1,
-) -> SubsciberType:
+) -> SubscriberType:
     _validate_input_for_misconfigure(
         channel=channel,
         list=list,
@@ -106,7 +98,10 @@ def create_subscriber(
 
     if subscriber_config.stream_sub:
         specification = StreamSubscriberSpecification(
-            config, specification_config, calls, stream_sub=subscriber_config.stream_sub
+            config,
+            specification_config,
+            calls,
+            stream_sub=subscriber_config.stream_sub,
         )
 
         if subscriber_config.stream_sub.batch:
@@ -124,7 +119,10 @@ def create_subscriber(
 
     if subscriber_config.list_sub:
         specification = ListSubscriberSpecification(
-            config, specification_config, calls, list_sub=subscriber_config.list_sub
+            config,
+            specification_config,
+            calls,
+            list_sub=subscriber_config.list_sub,
         )
 
         if subscriber_config.list_sub.batch:

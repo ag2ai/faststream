@@ -192,7 +192,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
-            queue, ack_policy=AckPolicy.DO_NOTHING
+            queue,
+            ack_policy=AckPolicy.DO_NOTHING,
         )
 
         @consume_broker.subscriber(*args, **kwargs)
@@ -205,7 +206,9 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
             # Check, that Core Subscriber doesn't call Acknowledgement automatically
             with patch.object(
-                StreamMessage, "ack", spy_decorator(StreamMessage.ack)
+                StreamMessage,
+                "ack",
+                spy_decorator(StreamMessage.ack),
             ) as m:
                 await asyncio.wait(
                     (
@@ -372,7 +375,9 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, stream=stream, ack_policy=AckPolicy.DO_NOTHING
+            queue,
+            stream=stream,
+            ack_policy=AckPolicy.DO_NOTHING,
         )
         async def handler(msg: NatsMessage) -> None:
             event.set()

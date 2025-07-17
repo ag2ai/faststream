@@ -8,7 +8,7 @@ app = FastStream(broker)
 
 
 class Settings(BaseSettings):
-    host: str = "amqp://guest:guest@localhost:5672/" # pragma: allowlist secret
+    host: str = "amqp://guest:guest@localhost:5672/"
 
 
 @app.on_startup

@@ -44,7 +44,7 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     @property
     def include_in_schema(self) -> bool:
         return bool(
-            self._outer_config.include_in_schema and self.config.include_in_schema
+            self._outer_config.include_in_schema and self.config.include_in_schema,
         )
 
     @property
@@ -66,7 +66,8 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
                 raise SetupError(msg)
 
             body = parse_handler_params(
-                h.dependant, prefix=f"{self.config.title_ or call_name}:Message"
+                h.dependant,
+                prefix=f"{self.config.title_ or call_name}:Message",
             )
             payloads.append((body, to_camelcase(h.name)))
 

@@ -11,24 +11,22 @@ from faststream.rabbit.utils import build_url
     (
         pytest.param(
             {},
-            URL("amqp://guest:guest@localhost:5672/"),  # pragma: allowlist secret
+            URL("amqp://guest:guest@localhost:5672/"),
             id="blank params use defaults",
         ),
         pytest.param(
             {"ssl": True},
-            URL("amqps://guest:guest@localhost:5672/"),  # pragma: allowlist secret
+            URL("amqps://guest:guest@localhost:5672/"),
             id="ssl affects protocol",
         ),
         pytest.param(
             {"url": "fake", "virtualhost": "/", "host": "host"},
-            URL("amqp://guest:guest@host:5672/"),  # pragma: allowlist secret
+            URL("amqp://guest:guest@host:5672/"),
             id="kwargs overrides url",
         ),
         pytest.param(
-            {"virtualhost": "//test"},  # pragma: allowlist secret
-            URL(
-                "amqp://guest:guest@localhost:5672//test"  # pragma: allowlist secret
-            ),
+            {"virtualhost": "//test"},
+            URL("amqp://guest:guest@localhost:5672//test"),
             id="exotic virtualhost",
         ),
     ),

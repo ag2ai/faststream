@@ -8,4 +8,4 @@ search:
   boost: 0.5
 ---
 
-::: faststream.middlewares.acknowledgement.conf.AckPolicy
+::: faststream.specification.asyncapi.v2_6_0.schema.bindings.http.OperationBinding

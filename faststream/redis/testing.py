@@ -54,7 +54,7 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         with ExitStack() as es:
             es.enter_context(
-                change_producer(broker.config.broker_config, fake_producer)
+                change_producer(broker.config.broker_config, fake_producer),
             )
             yield
 
@@ -129,7 +129,7 @@ class FakeProducer(RedisFastProducer):
             serializer=self.broker.config.fd_config._serializer,
         )
 
-        destination = _make_destionation_kwargs(cmd)
+        destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
         for handler in self.broker.subscribers:  # pragma: no branch
@@ -154,7 +154,7 @@ class FakeProducer(RedisFastProducer):
             headers=cmd.headers,
         )
 
-        destination = _make_destionation_kwargs(cmd)
+        destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
         for handler in self.broker.subscribers:  # pragma: no branch
@@ -191,7 +191,9 @@ class FakeProducer(RedisFastProducer):
 
                 if casted_handler.list_sub.batch:
                     msg = visitor.get_message(
-                        channel=cmd.destination, body=data_to_send, sub=casted_handler
+                        channel=cmd.destination,
+                        body=data_to_send,
+                        sub=casted_handler,
                     )
 
                     await self._execute_handler(msg, handler)
@@ -371,7 +373,7 @@ class _DestinationKwargs(TypedDict, total=False):
     stream: str
 
 
-def _make_destionation_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
+def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
     destination: _DestinationKwargs = {}
     if cmd.destination_type is DestinationType.Channel:
         destination["channel"] = cmd.destination

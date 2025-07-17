@@ -176,7 +176,7 @@ class StreamRouter(
         )
 
         self.fastapi_config = FastAPIConfig(
-            dependency_overrides_provider=dependency_overrides_provider
+            dependency_overrides_provider=dependency_overrides_provider,
         )
 
         if self.include_in_schema:
@@ -391,7 +391,8 @@ class StreamRouter(
         def download_app_json_schema() -> Response:
             return Response(
                 content=json.dumps(
-                    self.schema.to_specification().to_jsonable(), indent=2
+                    self.schema.to_specification().to_jsonable(),
+                    indent=2,
                 ),
                 headers={"Content-Type": "application/octet-stream"},
             )

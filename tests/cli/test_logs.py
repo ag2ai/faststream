@@ -99,7 +99,8 @@ def test_run_as_asgi_with_log_config(
     with (
         generate_template(app_code) as app_path,
         generate_template(
-            log_config, filename=log_config_file_name
+            log_config,
+            filename=log_config_file_name,
         ) as log_config_file_path,
         faststream_cli(
             "faststream",

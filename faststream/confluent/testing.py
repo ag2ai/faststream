@@ -39,7 +39,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
 
         with ExitStack() as es:
             es.enter_context(
-                change_producer(broker.config.broker_config, fake_producer)
+                change_producer(broker.config.broker_config, fake_producer),
             )
             yield
 
@@ -192,7 +192,9 @@ class FakeProducer(AsyncConfluentFastProducer):
 
             with anyio.fail_after(cmd.timeout):
                 return await self._execute_handler(
-                    msg_to_send, cmd.destination, handler
+                    msg_to_send,
+                    cmd.destination,
+                    handler,
                 )
 
         raise SubscriberNotFound

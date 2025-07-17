@@ -16,7 +16,7 @@ class KafkaPrometheusMiddleware(
     PrometheusMiddleware[
         KafkaPublishCommand,
         Message | Sequence[Message],
-    ]
+    ],
 ):
     def __init__(
         self,

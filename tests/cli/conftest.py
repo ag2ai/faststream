@@ -48,7 +48,9 @@ def faststream_tmp_path(tmp_path: "Path"):
 
 class GenerateTemplateFactory(Protocol):
     def __call__(
-        self, code: str, filename: str = "temp_app.py"
+        self,
+        code: str,
+        filename: str = "temp_app.py",
     ) -> AbstractContextManager[Path]: ...
 
 
@@ -58,7 +60,8 @@ def generate_template(
 ) -> GenerateTemplateFactory:
     @contextmanager
     def factory(
-        code: str, filename: str = "temp_app.py"
+        code: str,
+        filename: str = "temp_app.py",
     ) -> Generator["Path", None, None]:
         file_path: Path = faststream_tmp_path / filename
         cleaned_code = dedent(code).strip()

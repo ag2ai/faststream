@@ -51,7 +51,7 @@ async def test_scram256() -> None:
             call_kwargs = {}
             call_kwargs["sasl_mechanism"] = "SCRAM-SHA-256"
             call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
+            call_kwargs["sasl_plain_password"] = "password"
             call_kwargs["security_protocol"] = "SASL_SSL"
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
@@ -73,7 +73,7 @@ async def test_scram512() -> None:
             call_kwargs = {}
             call_kwargs["sasl_mechanism"] = "SCRAM-SHA-512"
             call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
+            call_kwargs["sasl_plain_password"] = "password"
             call_kwargs["security_protocol"] = "SASL_SSL"
 
             assert call_kwargs.items() <= producer_call_kwargs.items()
@@ -95,7 +95,7 @@ async def test_plaintext() -> None:
             call_kwargs = {}
             call_kwargs["sasl_mechanism"] = "PLAIN"
             call_kwargs["sasl_plain_username"] = "admin"
-            call_kwargs["sasl_plain_password"] = "password"  # pragma: allowlist secret
+            call_kwargs["sasl_plain_password"] = "password"
             call_kwargs["security_protocol"] = "SASL_SSL"
 
             assert call_kwargs.items() <= producer_call_kwargs.items()

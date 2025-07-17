@@ -11,7 +11,7 @@ def test_base() -> None:
             protocol_version="0.9.0",
             description="Test description",
             tags=(Tag(name="some-tag", description="experimental"),),
-        )
+        ),
     )
     assert schema == {
         "asyncapi": "2.6.0",
@@ -60,7 +60,7 @@ def test_custom() -> None:
         KafkaBroker(
             ["kafka:9092", "kafka:9093"],
             specification_url=["kafka:9094", "kafka:9095"],
-        )
+        ),
     )
 
     assert schema == {

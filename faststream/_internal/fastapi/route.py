@@ -112,7 +112,8 @@ def wrap_callable_to_fastapi_compatible(
 
     parsed_callable = build_faststream_to_fastapi_parser(
         dependent=get_fastapi_native_dependant(
-            user_callable, dependencies=list(dependencies)
+            user_callable,
+            dependencies=list(dependencies),
         ),
         fastapi_config=fastapi_config,
         response_field=response_field,

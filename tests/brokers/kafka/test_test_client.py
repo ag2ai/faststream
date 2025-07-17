@@ -46,7 +46,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             m.mock.assert_called_once_with("hello")
 
-    async def test_partition_missmatch(
+    async def test_partition_mismatch(
         self,
         queue: str,
     ) -> None:

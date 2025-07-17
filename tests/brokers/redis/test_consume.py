@@ -774,12 +774,14 @@ class TestConsumeStream(RedisTestcaseConfig):
 
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_and_delete_acked(
-        self, queue: str, event: asyncio.Event
+        self,
+        queue: str,
+        event: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            stream=StreamSub(queue, group="group", consumer=queue)
+            stream=StreamSub(queue, group="group", consumer=queue),
         )
         async def handler(msg: RedisStreamMessage) -> None:
             event.set()
@@ -805,7 +807,9 @@ class TestConsumeStream(RedisTestcaseConfig):
             )
 
     async def test_consume_and_delete_nacked(
-        self, queue: str, event: asyncio.Event
+        self,
+        queue: str,
+        event: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 

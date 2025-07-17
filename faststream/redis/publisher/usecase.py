@@ -87,7 +87,9 @@ class ChannelPublisher(LogicPublisher):
             pipeline=pipeline,
         )
         result: int = await self._basic_publish(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
         return result
 
@@ -132,7 +134,8 @@ class ChannelPublisher(LogicPublisher):
         )
 
         msg: RedisMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg
 
@@ -183,7 +186,9 @@ class ListPublisher(LogicPublisher):
         )
 
         result: int = await self._basic_publish(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
         return result
 
@@ -228,7 +233,8 @@ class ListPublisher(LogicPublisher):
         )
 
         msg: RedisMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg
 
@@ -255,7 +261,9 @@ class ListBatchPublisher(ListPublisher):
         )
 
         result: int = await self._basic_publish_batch(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
         return result
 
@@ -328,7 +336,9 @@ class StreamPublisher(LogicPublisher):
         )
 
         result: bytes = await self._basic_publish(
-            cmd, producer=self._outer_config.producer, _extra_middlewares=()
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
         )
         return result
 
@@ -376,6 +386,7 @@ class StreamPublisher(LogicPublisher):
         )
 
         msg: RedisMessage = await self._basic_request(
-            cmd, producer=self._outer_config.producer
+            cmd,
+            producer=self._outer_config.producer,
         )
         return msg

@@ -29,7 +29,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.subscriber import RabbitSubscriber
 
@@ -51,7 +50,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[RabbitMessage]"] = (),
+        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
         no_reply: bool = False,
         # AsyncAPI information
         title: str | None = None,

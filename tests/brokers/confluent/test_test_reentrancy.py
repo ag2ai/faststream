@@ -75,7 +75,7 @@ async def _test_with_temp_subscriber() -> None:
     reason=(
         "Failed due `on_output_data` subscriber creates inside test and doesn't removed after "
         "https://github.com/ag2ai/faststream/issues/556"
-    )
+    ),
 )
 async def test_with_temp_subscriber() -> None:
     await _test_with_temp_subscriber()

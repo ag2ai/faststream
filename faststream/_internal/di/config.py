@@ -87,11 +87,14 @@ class FastDependsConfig:
                 wrapped_call = wrapper(func=wrapped_call, model=dependent)
 
             wrapped_call = _unwrap_message_to_fast_depends_decorator(
-                wrapped_call, dependent
+                wrapped_call,
+                dependent,
             )
 
         return BuiltDependant(
-            original_call=call, wrapped_call=wrapped_call, dependent=dependent
+            original_call=call,
+            wrapped_call=wrapped_call,
+            dependent=dependent,
         )
 
 

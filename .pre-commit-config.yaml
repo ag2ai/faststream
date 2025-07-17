@@ -1,0 +1,89 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+    -   id: conventional-pre-commit
+        stages: [commit-msg]
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: mixed-line-ending
+    -   id: check-case-conflict
+    -   id: check-ast
+    -   id: check-toml
+    -   id: check-yaml
+        exclude: 'docs/mkdocs.yml'
+    -   id: check-added-large-files
+        exclude: |
+            (?x)^(
+                docs/docs/SUMMARY.md|
+                docs/docs/en/api/.meta.yml
+            )$
+    -   id: end-of-file-fixer
+        exclude: |
+            (?x)^(
+                docs/docs/SUMMARY.md|
+                docs/docs/en/api/.meta.yml
+            )$
+
+-   repo: https://github.com/crate-ci/typos
+    rev: v1.30.3
+    hooks:
+      - id: typos
+
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        args: [
+            '--exclude-files', 'docs/docs_src',
+            '--exclude-files', 'tests/asyncapi',
+            '--exclude-files', 'test_security.py',
+            '--exclude-files', 'tests/brokers/rabbit/test_url_builder.py',
+            '--exclude-files', 'docs/docs/en/release.md',
+            '--exclude-lines', 'postgresql://user:password@postgres/postgres',
+            '--exclude-lines', 'amqp://guest:guest@localhost:5672/',
+        ]
+        exclude: package.lock.json
+
+-   repo: local
+    hooks:
+    -   id: lint
+        name: Linter
+        entry: just lint
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
+    -   id: mypy
+        name: Mypy
+        entry: just mypy
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
+    -   id: bandit
+        name: bandit
+        entry: just bandit
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
+    -   id: semgrep
+        name: semgrep
+        language: python
+        entry: just semgrep
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false

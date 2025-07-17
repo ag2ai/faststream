@@ -8,7 +8,7 @@ from .config import NatsSubscriberSpecificationConfig
 
 
 class NatsSubscriberSpecification(
-    SubscriberSpecification[NatsBrokerConfig, NatsSubscriberSpecificationConfig]
+    SubscriberSpecification[NatsBrokerConfig, NatsSubscriberSpecificationConfig],
 ):
     @property
     def subject(self) -> str:

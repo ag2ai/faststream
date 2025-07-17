@@ -14,10 +14,7 @@ def test_base_security_schema() -> None:
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqps://guest:guest@localhost:5672/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqps://guest:guest@localhost:5672/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_3_0_0_schema(broker)
@@ -34,7 +31,7 @@ def test_base_security_schema() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [],
-                "host": "guest:guest@localhost:5672",  # pragma: allowlist secret
+                "host": "guest:guest@localhost:5672",
                 "pathname": "/",
             },
         },
@@ -47,15 +44,12 @@ def test_plaintext_security_schema() -> None:
     security = SASLPlaintext(
         ssl_context=ssl_context,
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RabbitBroker("amqp://guest:guest@localhost/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqps://admin:password@localhost:5671/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqps://admin:password@localhost:5671/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_3_0_0_schema(broker)
@@ -76,7 +70,7 @@ def test_plaintext_security_schema() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [{"user-password": []}],
-                "host": "admin:password@localhost:5671",  # pragma: allowlist secret
+                "host": "admin:password@localhost:5671",
                 "pathname": "/",
             },
         },
@@ -86,15 +80,12 @@ def test_plaintext_security_schema() -> None:
 def test_plaintext_security_schema_without_ssl() -> None:
     security = SASLPlaintext(
         username="admin",
-        password="password",  # pragma: allowlist secret
+        password="password",
     )
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert (
-        broker.specification.url
-        == ["amqp://admin:password@localhost:5672/"]  # pragma: allowlist secret
-    )  # pragma: allowlist secret
+    assert broker.specification.url == ["amqp://admin:password@localhost:5672/"]
 
     schema = get_3_0_0_schema(broker)
 
@@ -114,8 +105,8 @@ def test_plaintext_security_schema_without_ssl() -> None:
                 "protocol": "amqp",
                 "protocolVersion": "0.9.1",
                 "security": [{"user-password": []}],
-                "host": "admin:password@localhost:5672",  # pragma: allowlist secret
-                "pathname": "/",  # pragma: allowlist secret
+                "host": "admin:password@localhost:5672",
+                "pathname": "/",
             },
         },
     }

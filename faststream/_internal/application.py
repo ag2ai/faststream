@@ -300,7 +300,7 @@ class Application(StartAbleApplication):
                 to_async(func),
                 serializer_cls=self.config._serializer,
                 context__=self.context,
-            )
+            ),
         )
         return func
 
@@ -314,7 +314,7 @@ class Application(StartAbleApplication):
                 to_async(func),
                 serializer_cls=self.config._serializer,
                 context__=self.context,
-            )
+            ),
         )
         return func
 
@@ -328,7 +328,7 @@ class Application(StartAbleApplication):
                 to_async(func),
                 serializer_cls=self.config._serializer,
                 context__=self.context,
-            )
+            ),
         )
         return func
 
@@ -342,6 +342,6 @@ class Application(StartAbleApplication):
                 to_async(func),
                 serializer_cls=self.config._serializer,
                 context__=self.context,
-            )
+            ),
         )
         return func

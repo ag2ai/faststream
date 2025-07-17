@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 class RedisSubscriberSpecification(
-    SubscriberSpecification[RedisBrokerConfig, RedisSubscriberSpecificationConfig]
+    SubscriberSpecification[RedisBrokerConfig, RedisSubscriberSpecificationConfig],
 ):
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()

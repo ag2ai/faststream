@@ -124,7 +124,8 @@ def gen(
 
     _, app_obj = import_from_string(app, is_factory=is_factory)
     schema_factory = cast(
-        "SpecificationFactory | None", getattr(app_obj, "schema", None)
+        "SpecificationFactory | None",
+        getattr(app_obj, "schema", None),
     )
     if not schema_factory:
         msg = f"{app_obj} doesn't have `schema` attribute"
@@ -171,7 +172,8 @@ def _parse_and_serve(
     if ":" in docs:
         _, app_obj = import_from_string(docs, is_factory=is_factory)
         schema_factory = cast(
-            "SpecificationFactory | None", getattr(app_obj, "schema", None)
+            "SpecificationFactory | None",
+            getattr(app_obj, "schema", None),
         )
         if not schema_factory:
             msg = f"{app_obj} doesn't have `schema` attribute"

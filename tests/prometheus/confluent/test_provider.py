@@ -27,7 +27,8 @@ class LocalBaseConfluentMetricsSettingsProviderTestcase(
 
 
 class TestKafkaMetricsSettingsProvider(
-    ConfluentPrometheusSettings, LocalBaseConfluentMetricsSettingsProviderTestcase
+    ConfluentPrometheusSettings,
+    LocalBaseConfluentMetricsSettingsProviderTestcase,
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = b"Hello"
@@ -38,7 +39,8 @@ class TestKafkaMetricsSettingsProvider(
         }
 
         message = SimpleNamespace(
-            body=body, raw_message=SimpleNamespace(topic=lambda: queue)
+            body=body,
+            raw_message=SimpleNamespace(topic=lambda: queue),
         )
 
         provider = self.get_settings_provider()
@@ -48,7 +50,8 @@ class TestKafkaMetricsSettingsProvider(
 
 
 class TestBatchConfluentMetricsSettingsProvider(
-    BatchConfluentPrometheusSettings, LocalBaseConfluentMetricsSettingsProviderTestcase
+    BatchConfluentPrometheusSettings,
+    LocalBaseConfluentMetricsSettingsProviderTestcase,
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = [b"Hi ", b"again, ", b"FastStream!"]

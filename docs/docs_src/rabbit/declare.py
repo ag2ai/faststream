@@ -16,12 +16,12 @@ async def declare_smth():
         RabbitExchange(
             name="some-exchange",
             type=ExchangeType.FANOUT,
-        )
+        ),
     )
 
     await broker.declare_queue(
         RabbitQueue(
             name="some-queue",
             durable=True,
-        )
+        ),
     )

@@ -12,7 +12,7 @@ from faststream.rabbit import RabbitBroker
 
 
 class Settings(BaseSettings):
-    url: str = "amqp://guest:guest@localhost:5672"
+    url: str = "amqp://guest:guest@localhost:5672/"
     queue: str = "test_q"
 
 
@@ -23,12 +23,12 @@ app = FastStream(broker)
 
 
 @broker.subscriber(settings.queue)
-async def handle(msg, logger: Logger):
+async def handle(msg: str, logger: Logger) -> None:
     logger.info(msg)
 
 
 @app.after_startup
-async def test():
+async def test() -> None:
     await broker.publish("Hello!", settings.queue)
 
 

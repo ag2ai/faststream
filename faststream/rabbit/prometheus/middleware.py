@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class RabbitPrometheusMiddleware(
-    PrometheusMiddleware[RabbitPublishCommand, IncomingMessage]
+    PrometheusMiddleware[RabbitPublishCommand, IncomingMessage],
 ):
     def __init__(
         self,

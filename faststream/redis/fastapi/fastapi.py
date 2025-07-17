@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     )
     from faststream.redis.message import UnifyRedisMessage
     from faststream.redis.publisher.factory import PublisherType
-    from faststream.redis.subscriber.factory import SubsciberType
+    from faststream.redis.subscriber.factory import SubscriberType
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -457,7 +457,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
@@ -466,7 +466,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
@@ -619,9 +619,9 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             int,
             Doc("Number of workers to process messages concurrently."),
         ] = 1,
-    ) -> "SubsciberType":
+    ) -> "SubscriberType":
         return cast(
-            "SubsciberType",
+            "SubscriberType",
             super().subscriber(
                 channel=channel,
                 max_workers=max_workers,
@@ -678,7 +678,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0"
+                "Scheduled to remove in 0.7.0",
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),

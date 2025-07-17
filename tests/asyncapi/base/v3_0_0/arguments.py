@@ -489,7 +489,7 @@ class FastAPICompatible(AsyncAPI300Factory):
             }, v
 
     @pydantic_v2
-    def test_descriminator(self) -> None:
+    def test_discriminator(self) -> None:
         class Sub2(pydantic.BaseModel):
             type: Literal["sub2"]
 
@@ -535,7 +535,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"].get("Handle:Message:Payload")
 
-        descriminator_payload = IsPartialDict({
+        discriminator_payload = IsPartialDict({
             "discriminator": "type",
             "oneOf": [
                 {"$ref": "#/components/schemas/Sub2"},
@@ -551,16 +551,16 @@ class FastAPICompatible(AsyncAPI300Factory):
                     "anyOf": [
                         {"$ref": "#/components/schemas/Sub2"},
                         {"$ref": "#/components/schemas/Sub"},
-                    ]
+                    ],
                 })
-                | descriminator_payload
+                | discriminator_payload
             ), payload
 
         else:
-            assert payload == descriminator_payload
+            assert payload == discriminator_payload
 
     @pydantic_v2
-    def test_nested_descriminator(self) -> None:
+    def test_nested_discriminator(self) -> None:
         class Sub2(pydantic.BaseModel):
             type: Literal["sub2"]
 
@@ -660,7 +660,9 @@ class ArgumentsTestcase(FastAPICompatible):
 
         @broker.subscriber("test")
         async def handle(
-            id: int, user: str | None = None, message=Context()
+            id: int,
+            user: str | None = None,
+            message=Context(),
         ) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()

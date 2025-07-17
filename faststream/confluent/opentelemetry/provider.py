@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class BaseConfluentTelemetrySettingsProvider(
-    TelemetrySettingsProvider[MsgType, KafkaPublishCommand]
+    TelemetrySettingsProvider[MsgType, KafkaPublishCommand],
 ):
     __slots__ = ("messaging_system",)
 
@@ -86,7 +86,7 @@ class BatchConfluentTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
             SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
-                bytearray().join(cast("Sequence[bytes]", msg.body))
+                bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition(),
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic(),

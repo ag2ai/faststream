@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class BaseRedisMetricsSettingsProvider(
-    MetricsSettingsProvider["AnyDict", RedisPublishCommand]
+    MetricsSettingsProvider["AnyDict", RedisPublishCommand],
 ):
     __slots__ = ("messaging_system",)
 

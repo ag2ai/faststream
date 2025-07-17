@@ -36,7 +36,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
             await broker.start()
             tasks = (
                 asyncio.create_task(
-                    broker.publish_batch("hello", "world", topic=queue)
+                    broker.publish_batch("hello", "world", topic=queue),
                 ),
                 asyncio.create_task(event.wait()),
             )

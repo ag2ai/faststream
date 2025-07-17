@@ -153,7 +153,10 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             batch_record_metadata_future = await br.publish_batch(
-                1, "hi", topic=queue, no_confirm=True
+                1,
+                "hi",
+                topic=queue,
+                no_confirm=True,
             )
             record_metadata_future = await br.publish("", topic=queue, no_confirm=True)
             assert isinstance(batch_record_metadata_future, asyncio.Future)
@@ -161,7 +164,9 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_raise_buffer_overflow_exception(
-        self, queue: str, mock: MagicMock
+        self,
+        queue: str,
+        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(max_batch_size=16)
 

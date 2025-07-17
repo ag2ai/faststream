@@ -27,7 +27,9 @@ class PatchedWatchReloader(WatchReloader):
 def test_base(generate_template: GenerateTemplateFactory) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
-            target=exit, args=(), reload_dirs=[str(file_path.parent)]
+            target=exit,
+            args=(),
+            reload_dirs=[str(file_path.parent)],
         )
 
         processor._args = (processor.pid,)
@@ -43,7 +45,9 @@ def test_base(generate_template: GenerateTemplateFactory) -> None:
 def test_restart(mock: MagicMock, generate_template: GenerateTemplateFactory) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
-            target=touch_file, args=(file_path,), reload_dirs=[file_path.parent]
+            target=touch_file,
+            args=(file_path,),
+            reload_dirs=[file_path.parent],
         )
 
         mock.side_effect = lambda: exit(processor.pid)

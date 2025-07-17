@@ -176,11 +176,11 @@ class FilterNaming(BaseNaming):
         schema = self.get_spec(broker).to_jsonable()
 
         assert list(schema["channels"].keys()) == [
-            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]")
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
         assert list(schema["components"]["messages"].keys()) == [
-            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:Message")
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:Message"),
         ]
 
         assert list(schema["components"]["schemas"].keys()) == [
@@ -202,11 +202,11 @@ class FilterNaming(BaseNaming):
         schema = self.get_spec(broker).to_jsonable()
 
         assert list(schema["channels"].keys()) == [
-            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]")
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
         assert list(schema["components"]["messages"].keys()) == [
-            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:Message")
+            IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:Message"),
         ]
 
         assert list(schema["components"]["schemas"].keys()) == [

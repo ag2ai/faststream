@@ -267,13 +267,17 @@ StreamQueueSpecificArgs = TypedDict(
 
 
 class ClassicQueueArgs(
-    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, ClassicQueueSpecificArgs
+    CommonQueueArgs,
+    SharedClassicAndQuorumQueueArgs,
+    ClassicQueueSpecificArgs,
 ):
     """rabbitmq-server/deps/rabbit/src/rabbit_classic_queue.erl."""
 
 
 class QuorumQueueArgs(
-    CommonQueueArgs, SharedClassicAndQuorumQueueArgs, QuorumQueueSpecificArgs
+    CommonQueueArgs,
+    SharedClassicAndQuorumQueueArgs,
+    QuorumQueueSpecificArgs,
 ):
     """rabbitmq-server/deps/rabbit/src/rabbit_quorum_queue.erl."""
 

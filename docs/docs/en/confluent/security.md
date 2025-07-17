@@ -44,12 +44,12 @@ This chapter discusses the security options available in **FastStream** and how 
 
 === "SCRAM256"
     ```python linenums="1"
-    {!> docs_src/confluent/security/sasl_scram256.py [ln:1-6.25,7-] !}
+    {!> docs_src/confluent/security/sasl_scram256.py !}
     ```
 
 === "SCRAM512"
     ```python linenums="1"
-    {!> docs_src/confluent/security/sasl_scram512.py [ln:1-6.25,7-] !}
+    {!> docs_src/confluent/security/sasl_scram512.py !}
     ```
 
 ### 4. SASLOAuthBearer Object with SSL/TLS
@@ -70,7 +70,7 @@ This chapter discusses the security options available in **FastStream** and how 
 **Usage:**
 
 ```python linenums="1"
-{!> docs_src/confluent/security/sasl_gssapi.py [ln:1-10.25,11-] !}
+{!> docs_src/confluent/security/sasl_gssapi.py !}
 ```
 
 ### 6. Other security related usecases
@@ -80,15 +80,5 @@ This chapter discusses the security options available in **FastStream** and how 
 **Usage:**
 
 ```python linenums="1"
-from faststream.confluent import KafkaBroker
-from faststream.security import SASLPlaintext
-
-security = SASLPlaintext(
-    username="admin",
-    password="password",
-)
-
-config = {"ssl.ca.location": "~/my_certs/CRT_cacerts.pem"}
-
-broker = KafkaBroker("localhost:9092", security=security, config=config)
+{! docs_src/confluent/security/custom_config.py !}
 ```

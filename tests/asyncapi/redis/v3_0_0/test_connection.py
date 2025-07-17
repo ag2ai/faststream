@@ -11,7 +11,7 @@ def test_base() -> None:
             protocol_version="0.9.0",
             description="Test description",
             tags=(Tag(name="some-tag", description="experimental"),),
-        )
+        ),
     )
 
     assert schema == {

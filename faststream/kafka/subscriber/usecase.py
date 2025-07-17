@@ -245,7 +245,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         else:
             topics = (f"{p.topic}-{p.partition}" for p in self.partitions)
 
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        return topics
 
     @staticmethod
     def build_log_context(
@@ -338,7 +338,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         self.max_records = max_records
 
     async def get_msg(
-        self, consumer: "AIOKafkaConsumer"
+        self,
+        consumer: "AIOKafkaConsumer",
     ) -> tuple["ConsumerRecord", ...]:
         assert consumer, "You should setup subscriber at first."  # nosec B101
 

@@ -20,7 +20,7 @@ from .basic import BatchRedisPrometheusSettings, RedisPrometheusSettings
 
 
 class LocalBaseRedisMetricsSettingsProviderTestcase(
-    LocalMetricsSettingsProviderTestcase
+    LocalMetricsSettingsProviderTestcase,
 ):
     def test_get_publish_destination_name_from_cmd(self, queue: str) -> None:
         expected_destination_name = queue
@@ -33,7 +33,8 @@ class LocalBaseRedisMetricsSettingsProviderTestcase(
 
 
 class TestRedisMetricsSettingsProvider(
-    RedisPrometheusSettings, LocalBaseRedisMetricsSettingsProviderTestcase
+    RedisPrometheusSettings,
+    LocalBaseRedisMetricsSettingsProviderTestcase,
 ):
     @pytest.mark.parametrize(
         "destination",

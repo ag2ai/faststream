@@ -10,16 +10,16 @@ publisher = broker.publisher("response-queue")
 
 @publisher
 @broker.subscriber("test-queue")
-async def handle(msg, logger: Logger):
+async def handle(msg: str, logger: Logger) -> str:
     logger.info(msg)
     return "Response"
 
 
 @broker.subscriber("response-queue")
-async def handle_response(msg, logger: Logger):
+async def handle_response(msg: str, logger: Logger) -> None:
     logger.info("Process response: %s", msg)
 
 
 @app.after_startup
-async def test_publishing():
+async def test_publishing() -> None:
     await broker.publish("Hello!", "test-queue")

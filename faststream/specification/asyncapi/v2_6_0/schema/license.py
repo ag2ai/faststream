@@ -53,7 +53,8 @@ class License(BaseModel):
 
     @classmethod
     def from_spec(
-        cls, license: SpecLicense | LicenseDict | AnyDict | None
+        cls,
+        license: SpecLicense | LicenseDict | AnyDict | None,
     ) -> Self | AnyDict | None:
         if license is None:
             return None

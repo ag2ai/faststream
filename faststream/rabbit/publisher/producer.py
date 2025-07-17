@@ -63,7 +63,8 @@ class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
 
     @abstractmethod
     async def publish(
-        self, cmd: "RabbitPublishCommand"
+        self,
+        cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]: ...
 
     @abstractmethod
@@ -87,7 +88,8 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
 
     @override
     async def publish(
-        self, cmd: "RabbitPublishCommand"
+        self,
+        cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         raise NotImplementedError
 
@@ -131,7 +133,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
 
     @override
     async def publish(
-        self, cmd: "RabbitPublishCommand"
+        self,
+        cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         return await self._publish(
             message=cmd.body,

@@ -256,7 +256,10 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_publish_batch_with_pipeline(
-        self, event: asyncio.Event, queue: str, mock: MagicMock
+        self,
+        event: asyncio.Event,
+        queue: str,
+        mock: MagicMock,
     ) -> None:
         broker = self.get_broker(apply_types=True)
 

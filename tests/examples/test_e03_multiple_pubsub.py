@@ -6,7 +6,7 @@ from tests.marks import require_aiopika
 @pytest.mark.asyncio()
 @require_aiopika
 async def test_example() -> None:
-    from examples.e03_miltiple_pubsub import (
+    from examples.e03_multiple_pubsub import (
         app,
         broker,
         handle,

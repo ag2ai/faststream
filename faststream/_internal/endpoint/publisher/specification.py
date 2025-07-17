@@ -47,7 +47,7 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     @property
     def include_in_schema(self) -> bool:
         return bool(
-            self._outer_config.include_in_schema and self.config.include_in_schema
+            self._outer_config.include_in_schema and self.config.include_in_schema,
         )
 
     def get_payloads(self) -> list[tuple["AnyDict", str]]:
@@ -78,7 +78,7 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
                 if call_model.serializer:
                     response_type = next(
-                        iter(call_model.serializer.response_option.values())
+                        iter(call_model.serializer.response_option.values()),
                     ).field_type
                 else:
                     response_type = None

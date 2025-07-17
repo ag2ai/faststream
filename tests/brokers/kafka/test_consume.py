@@ -122,7 +122,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, group_id="test", ack_policy=AckPolicy.REJECT_ON_ERROR
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -188,7 +190,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, group_id="test", ack_policy=AckPolicy.REJECT_ON_ERROR
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
             await msg.ack()
@@ -229,7 +233,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, group_id="test", ack_policy=AckPolicy.REJECT_ON_ERROR
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -270,7 +276,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, group_id="test", ack_policy=AckPolicy.REJECT_ON_ERROR
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
             await msg.nack()
@@ -311,7 +319,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
-            queue, group_id="test", ack_policy=AckPolicy.DO_NOTHING
+            queue,
+            group_id="test",
+            ack_policy=AckPolicy.DO_NOTHING,
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -360,7 +370,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b"")
+                        br._producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -389,7 +399,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b"")
+                        br._producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -519,18 +529,20 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await broker.start()
 
             with patch.object(
-                AIOKafkaConsumer, "commit", spy_decorator(AIOKafkaConsumer.commit)
+                AIOKafkaConsumer,
+                "commit",
+                spy_decorator(AIOKafkaConsumer.commit),
             ) as mock:
                 await asyncio.wait(
                     (
                         asyncio.create_task(
-                            broker.publish("hello1", queue, partition=0)
+                            broker.publish("hello1", queue, partition=0),
                         ),
                         asyncio.create_task(
-                            broker.publish("hello3", queue, partition=0)
+                            broker.publish("hello3", queue, partition=0),
                         ),
                         asyncio.create_task(
-                            broker.publish("hello2", queue, partition=1)
+                            broker.publish("hello2", queue, partition=1),
                         ),
                         asyncio.create_task(asyncio.sleep(1)),
                     ),

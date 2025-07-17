@@ -185,7 +185,7 @@ class FilterNaming(BaseNaming):
 
         assert list(schema["components"]["messages"].keys()) == [
             IsStr(
-                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage"
+                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage",
             ),
         ]
 
@@ -213,7 +213,7 @@ class FilterNaming(BaseNaming):
 
         assert list(schema["components"]["messages"].keys()) == [
             IsStr(
-                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage"
+                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage",
             ),
         ]
 

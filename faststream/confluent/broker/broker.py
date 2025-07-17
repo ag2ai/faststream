@@ -82,7 +82,8 @@ class KafkaBroker(
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
         partitioner: str
         | Callable[
-            [bytes, list[Partition], list[Partition]], Partition
+            [bytes, list[Partition], list[Partition]],
+            Partition,
         ] = "consistent_random",
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
@@ -431,7 +432,8 @@ class KafkaBroker(
         )
 
         msg: KafkaMessage = await super()._basic_request(
-            cmd, producer=self.config.producer
+            cmd,
+            producer=self.config.producer,
         )
         return msg
 

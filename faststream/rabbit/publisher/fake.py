@@ -22,7 +22,8 @@ class RabbitFakePublisher(FakePublisher):
         self.app_id = app_id
 
     def patch_command(
-        self, cmd: Union["PublishCommand", "RabbitPublishCommand"]
+        self,
+        cmd: Union["PublishCommand", "RabbitPublishCommand"],
     ) -> "RabbitPublishCommand":
         cmd = super().patch_command(cmd)
         real_cmd = RabbitPublishCommand.from_cmd(cmd)
