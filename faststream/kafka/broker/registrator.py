@@ -125,7 +125,7 @@ class KafkaRegistrator(
     def subscriber(
         self,
         *topics: str,
-        batch: bool = False,
+        batch: Literal[True],
         group_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
@@ -583,7 +583,8 @@ class KafkaRegistrator(
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        batch: bool = False,
+        batch: Literal[False] = False,
+        # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -591,6 +592,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
+        # Specification args
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -607,7 +609,8 @@ class KafkaRegistrator(
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        batch: bool = False,
+        batch: Literal[True],
+        # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -632,6 +635,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -639,6 +643,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
+        # Specification args
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -659,6 +664,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -666,6 +672,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
+        # Specification args
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
