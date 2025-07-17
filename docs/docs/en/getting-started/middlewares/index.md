@@ -99,88 +99,88 @@ The middleware execution follows a specific sequence during message processing:
 4. If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
 === "Default"
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from typing_extensions import override
-from faststream import BaseMiddleware
-from faststream.response import PublishCommand
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from typing_extensions import override
+    from faststream import BaseMiddleware
+    from faststream.response import PublishCommand
 
-    class DefaultPublishMiddleware(BaseMiddleware):
-        @override
-        async def publish_scope(
-            self,
-            call_next: Callable[[PublishCommand], Awaitable[Any]],
-            cmd: PublishCommand,
-        ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+        class DefaultPublishMiddleware(BaseMiddleware):
+            @override
+            async def publish_scope(
+                self,
+                call_next: Callable[[PublishCommand], Awaitable[Any]],
+                cmd: PublishCommand,
+            ) -> Any:
+                return await super().publish_scope(call_next, cmd)
     ```
 
 === "Kafka"
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from typing_extensions import override
-from faststream import BaseMiddleware
-from faststream.kafka.response import KafkaPublishCommand
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from typing_extensions import override
+    from faststream import BaseMiddleware
+    from faststream.kafka.response import KafkaPublishCommand
 
-    class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
-        @override
-        async def publish_scope(
-            self,
-            call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
-            cmd: KafkaPublishCommand,
-        ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+        class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
+            @override
+            async def publish_scope(
+                self,
+                call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
+                cmd: KafkaPublishCommand,
+            ) -> Any:
+                return await super().publish_scope(call_next, cmd)
     ```
 
 === "RabbitMQ"
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from typing_extensions import override
-from faststream import BaseMiddleware
-from faststream.rabbit.response import RabbitPublishCommand
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from typing_extensions import override
+    from faststream import BaseMiddleware
+    from faststream.rabbit.response import RabbitPublishCommand
 
-    class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
-        @override
-        async def publish_scope(
-            self,
-            call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
-            cmd: RabbitPublishCommand,
-        ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+        class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
+            @override
+            async def publish_scope(
+                self,
+                call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
+                cmd: RabbitPublishCommand,
+            ) -> Any:
+                return await super().publish_scope(call_next, cmd)
     ```
 
 === "NATS"
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from typing_extensions import override
-from faststream import BaseMiddleware
-from faststream.nats.response import NatsPublishCommand
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from typing_extensions import override
+    from faststream import BaseMiddleware
+    from faststream.nats.response import NatsPublishCommand
 
-    class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
-        @override
-        async def publish_scope(
-            self,
-            call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
-            cmd: NatsPublishCommand,
-        ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+        class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
+            @override
+            async def publish_scope(
+                self,
+                call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
+                cmd: NatsPublishCommand,
+            ) -> Any:
+                return await super().publish_scope(call_next, cmd)
     ```
 
 === "Redis"
-```python linenums="1"
-from typing import Any, Awaitable, Callable
-from typing_extensions import override
-from faststream import BaseMiddleware
-from faststream.redis.response import RedisPublishCommand
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+    from typing_extensions import override
+    from faststream import BaseMiddleware
+    from faststream.redis.response import RedisPublishCommand
 
-    class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
-        @override
-        async def publish_scope(
-            self,
-            call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
-            cmd: RedisPublishCommand,
-        ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+        class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
+            @override
+            async def publish_scope(
+                self,
+                call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
+                cmd: RedisPublishCommand,
+            ) -> Any:
+                return await super().publish_scope(call_next, cmd)
     ```
 
 ## Context Access
