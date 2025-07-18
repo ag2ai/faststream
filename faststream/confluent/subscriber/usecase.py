@@ -105,10 +105,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         *,
         timeout: float = 5.0,
     ) -> "StreamMessage[MsgType] | None":
-        assert self.consumer, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self.consumer, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
@@ -125,10 +125,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
-        assert self.consumer, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert self.consumer, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         timeout = 5.0
         while True:
@@ -171,7 +171,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         raise NotImplementedError
 
     async def _consume(self) -> None:
-        assert self.consumer, "You should start subscriber at first."  # nosec B101
+        assert self.consumer, "You should start subscriber at first."
 
         connected = True
         while self.running:
@@ -228,7 +228,7 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         super().__init__(config, specification, calls)
 
     async def get_msg(self) -> Optional["Message"]:
-        assert self.consumer, "You should setup subscriber at first."  # nosec B101
+        assert self.consumer, "You should setup subscriber at first."
         return await self.consumer.getone(timeout=self.polling_interval)
 
     def get_log_context(
@@ -272,7 +272,7 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         self.max_records = max_records
 
     async def get_msg(self) -> tuple["Message", ...] | None:
-        assert self.consumer, "You should setup subscriber at first."  # nosec B101
+        assert self.consumer, "You should setup subscriber at first."
         return (
             await self.consumer.getmany(
                 timeout=self.polling_interval,

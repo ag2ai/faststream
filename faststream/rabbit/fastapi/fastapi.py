@@ -9,6 +9,7 @@ from typing import (
     cast,
 )
 
+from aio_pika import IncomingMessage
 from fastapi.datastructures import Default
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
@@ -21,15 +22,11 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.broker.broker import RabbitBroker as RB
-from faststream.rabbit.schemas import (
-    RabbitExchange,
-    RabbitQueue,
-)
+from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
     from enum import Enum
 
-    from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType, SSLOptions, TimeoutType
     from fastapi import params
     from fastapi.types import IncEx
@@ -45,7 +42,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.schemas import Channel
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -54,7 +50,7 @@ if TYPE_CHECKING:
     from faststream.specification.schema.extra import Tag, TagDict
 
 
-class RabbitRouter(StreamRouter["IncomingMessage"]):
+class RabbitRouter(StreamRouter[IncomingMessage]):
     """A class to represent a RabbitMQ router for incoming messages."""
 
     broker_class = RB
@@ -124,7 +120,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Custom parser object."),
         ] = None,
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[IncomingMessage]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         # AsyncAPI args
@@ -479,7 +475,7 @@ class RabbitRouter(StreamRouter["IncomingMessage"]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[RabbitMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",

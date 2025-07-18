@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Iterable, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -134,11 +134,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         *,
         timeout: float = 5.0,
     ) -> "StreamMessage[MsgType] | None":
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
-        assert self.consumer, "You should start subscriber at first."  # nosec B101
+        assert self.consumer, "You should start subscriber at first."
 
         raw_messages = await self.consumer.getmany(
             timeout_ms=timeout * 1000,
@@ -163,10 +163,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
-        assert self.consumer, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self.consumer, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         async for raw_message in self.consumer:
             context = self._outer_config.fd_config.context
@@ -196,7 +196,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         raise NotImplementedError
 
     async def _run_consume_loop(self, consumer: "AIOKafkaConsumer") -> None:
-        assert consumer, "You should start subscriber at first."  # nosec B101
+        assert consumer, "You should start subscriber at first."
 
         connected = True
         while self.running:
@@ -237,13 +237,13 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     @property
     def topic_names(self) -> list[str]:
         if self.pattern:
-            topics: Iterable[str] = [self.pattern]
+            topics = [self.pattern]
 
         elif self.topics:
             topics = self.topics
 
         else:
-            topics = (f"{p.topic}-{p.partition}" for p in self.partitions)
+            topics = [f"{p.topic}-{p.partition}" for p in self.partitions]
 
         return topics
 
@@ -287,7 +287,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         super().__init__(config, specification, calls)
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
-        assert consumer, "You should setup subscriber at first."  # nosec B101
+        assert consumer, "You should setup subscriber at first."
         return await consumer.getone()
 
     def get_log_context(
@@ -341,7 +341,7 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         self,
         consumer: "AIOKafkaConsumer",
     ) -> tuple["ConsumerRecord", ...]:
-        assert consumer, "You should setup subscriber at first."  # nosec B101
+        assert consumer, "You should setup subscriber at first."
 
         messages = await consumer.getmany(
             timeout_ms=self.batch_timeout_ms,
@@ -451,7 +451,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
         await super().stop()
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
-        assert consumer, "You should setup subscriber at first."  # nosec B101
+        assert consumer, "You should setup subscriber at first."
         message = await consumer.getone()
         message.consumer = consumer
         return cast("KafkaRawMessage", message)

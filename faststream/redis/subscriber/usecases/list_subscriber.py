@@ -42,7 +42,7 @@ class _ListHandlerMixin(LogicSubscriber):
         calls: "CallsCollection[Any]",
     ) -> None:
         super().__init__(config, specification, calls)
-        assert config.list_sub  # nosec B101
+        assert config.list_sub
         self._list_sub = config.list_sub
 
     @property
@@ -74,7 +74,7 @@ class _ListHandlerMixin(LogicSubscriber):
         if self.tasks:
             return
 
-        assert self._client, "You should setup subscriber at first."  # nosec B101
+        assert self._client, "You should setup subscriber at first."
 
         await super().start(self._client)
 
@@ -84,10 +84,10 @@ class _ListHandlerMixin(LogicSubscriber):
         *,
         timeout: float = 5.0,
     ) -> "RedisListMessage | None":
-        assert self._client, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self._client, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         sleep_interval = timeout / 10
         raw_message = None
@@ -121,10 +121,10 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:  # type: ignore[override]
-        assert self._client, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert self._client, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         timeout = 5
         sleep_interval = timeout / 10

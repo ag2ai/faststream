@@ -16,6 +16,7 @@ from .usecase import (
     ChannelPublisher,
     ListBatchPublisher,
     ListPublisher,
+    LogicPublisher,
     StreamPublisher,
 )
 
@@ -25,9 +26,7 @@ if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
 
 
-PublisherType: TypeAlias = (
-    ChannelPublisher | StreamPublisher | ListPublisher | ListBatchPublisher
-)
+PublisherType: TypeAlias = LogicPublisher
 
 
 def create_publisher(
@@ -62,30 +61,32 @@ def create_publisher(
     )
 
     specification: RedisPublisherSpecification
-    if (channel := PubSub.validate(channel)) is not None:
+    if channel_sub := PubSub.validate(channel):
         specification = ChannelPublisherSpecification(
             config,
             specification_config,
-            channel,
+            channel_sub,
         )
 
-        return ChannelPublisher(publisher_config, specification, channel=channel)
+        return ChannelPublisher(publisher_config, specification, channel=channel_sub)
 
-    if (stream := StreamSub.validate(stream)) is not None:
+    if stream_sub := StreamSub.validate(stream):
         specification = StreamPublisherSpecification(
             config,
             specification_config,
-            stream,
+            stream_sub,
         )
 
-        return StreamPublisher(publisher_config, specification, stream=stream)
+        return StreamPublisher(publisher_config, specification, stream=stream_sub)
 
-    if (list := ListSub.validate(list)) is not None:
-        specification = ListPublisherSpecification(config, specification_config, list)
+    if list_sub := ListSub.validate(list):
+        specification = ListPublisherSpecification(
+            config, specification_config, list_sub
+        )
 
-        if list.batch:
-            return ListBatchPublisher(publisher_config, specification, list=list)
+        if list_sub.batch:
+            return ListBatchPublisher(publisher_config, specification, list=list_sub)
 
-        return ListPublisher(publisher_config, specification, list=list)
+        return ListPublisher(publisher_config, specification, list=list_sub)
 
     raise SetupError(INCORRECT_SETUP_MSG)

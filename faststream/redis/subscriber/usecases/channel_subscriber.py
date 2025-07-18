@@ -40,7 +40,7 @@ class ChannelSubscriber(LogicSubscriber):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        assert config.channel_sub  # nosec B101
+        assert config.channel_sub
         parser = RedisPubSubParser(pattern=config.channel_sub.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
@@ -67,7 +67,7 @@ class ChannelSubscriber(LogicSubscriber):
         if self.subscription:
             return
 
-        assert self._client, "You should setup subscriber at first."  # nosec B101
+        assert self._client, "You should setup subscriber at first."
 
         self.subscription = psub = self._client.pubsub()
 
@@ -92,10 +92,10 @@ class ChannelSubscriber(LogicSubscriber):
         *,
         timeout: float = 5.0,
     ) -> "RedisMessage | None":
-        assert self.subscription, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self.subscription, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         sleep_interval = timeout / 10
 
@@ -119,10 +119,10 @@ class ChannelSubscriber(LogicSubscriber):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
-        assert self.subscription, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert self.subscription, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         timeout = 5
         sleep_interval = timeout / 10

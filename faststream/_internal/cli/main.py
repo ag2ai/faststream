@@ -281,7 +281,7 @@ def publish(
     try:
         _, app_obj = import_from_string(app, is_factory=is_factory)
 
-        assert isinstance(app_obj, FastStream), app_obj  # nosec B101
+        assert isinstance(app_obj, FastStream), app_obj
 
         if not app_obj.broker:
             msg = "Broker instance not found in the app."

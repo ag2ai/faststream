@@ -642,7 +642,7 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[Message | tuple[Message, ...]]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):

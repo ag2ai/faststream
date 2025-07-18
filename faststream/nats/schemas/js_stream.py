@@ -1,4 +1,5 @@
-from itertools import zip_longest
+from collections import UserList
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Annotated, Optional
 
 from nats.js.api import DiscardPolicy, StreamConfig
@@ -26,7 +27,6 @@ class JStream(NameRequired):
         "config",
         "declare",
         "name",
-        "subjects",
     )
 
     def __init__(
@@ -190,11 +190,8 @@ class JStream(NameRequired):
     ) -> None:
         super().__init__(name)
 
-        self.subjects: list[str] = []
-        for subject in subjects or []:
-            self.add_subject(subject)
-
         self.declare = declare
+        self.subjects = SubjectsCollection(subjects)
 
         self.config = StreamConfig(
             name=name,
@@ -222,15 +219,24 @@ class JStream(NameRequired):
             republish=republish,
             allow_direct=allow_direct,
             mirror_direct=mirror_direct,
-            subjects=[],  # use self.subjects in declaration
+            subjects=[],  # use subjects from builder in declaration
         )
 
-    def add_subject(self, subject: str) -> None:
-        """Add subject to stream params."""
+
+class SubjectsCollection(UserList[str]):
+    def __init__(self, initlist: Iterable[str] | None = None, /) -> None:
+        super().__init__(())
+        self.extend(initlist or ())
+
+    def extend(self, subjects: Iterable[str], /) -> None:
+        for subj in subjects:
+            self.append(subj)
+
+    def append(self, subject: str, /) -> None:
         _, subject = compile_nats_wildcard(subject)
 
         new_subjects = []
-        for old_subject in self.subjects:
+        for old_subject in self.data:
             if is_subject_match_wildcard(subject, old_subject):
                 return
 
@@ -238,34 +244,33 @@ class JStream(NameRequired):
                 new_subjects.append(old_subject)
 
         new_subjects.append(subject)
-        self.subjects = new_subjects
+        self.data = new_subjects
 
 
 def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
     subject_parts = subject.split(".")
     pattern_parts = pattern.split(".")
-    total_parts = len(pattern_parts)
 
-    for i, (subject_part, pattern_part) in enumerate(
-        zip_longest(
-            subject_parts,
-            pattern_parts,
-            fillvalue=None,
-        ),
+    for subject_part, pattern_part in zip(
+        subject_parts,
+        pattern_parts,
+        strict=False,
     ):
+        if pattern_part == ">":
+            return True
+
         if pattern_part == "*":
             if subject_part == ">":
                 return False
-            continue
-        if pattern_part == ">" and i == total_parts - 1:
-            return True
-        if subject_part != pattern_part:
+
+        elif subject_part != pattern_part:
             return False
 
-    return len(subject_parts) == total_parts
+    return len(subject_parts) == len(pattern_parts)
 
 
 def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:
+    """Compile `logs.{user}.>` to regex and `logs.*.>` subject."""
     return compile_path(
         pattern,
         replace_symbol="*",

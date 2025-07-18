@@ -58,9 +58,9 @@ class ObjStoreWatchSubscriber(
 
     @override
     async def get_one(self, *, timeout: float = 5) -> Optional["NatsObjMessage"]:
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
@@ -101,9 +101,9 @@ class ObjStoreWatchSubscriber(
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
@@ -162,7 +162,7 @@ class ObjStoreWatchSubscriber(
         self.add_task(self.__consume_watch())
 
     async def __consume_watch(self) -> None:
-        assert self.bucket, "You should call `create_subscription` at first."  # nosec B101
+        assert self.bucket, "You should call `create_subscription` at first."
 
         # Should be created inside task to avoid nats-py lock
         obj_watch = await self.bucket.watch(

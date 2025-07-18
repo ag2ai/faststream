@@ -81,7 +81,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser (Optional[CustomCallable], optional): Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder (Optional[CustomCallable], optional): Function to decode FastStream msg bytes body to python objects.
-            middlewares (Sequence[SubscriberMiddleware[RabbitMessage]], optional): Subscriber middlewares to wrap incoming message processing.
+            middlewares (Sequence[SubscriberMiddleware[Any]], optional): Subscriber middlewares to wrap incoming message processing.
             no_reply (bool, optional): Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title (Optional[str], optional): AsyncAPI subscriber object title.
             description (Optional[str], optional): AsyncAPI subscriber object description. Uses decorated docstring as default.
@@ -227,7 +227,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[IncomingMessage]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RabbitRegistrator):

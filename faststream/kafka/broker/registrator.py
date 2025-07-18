@@ -34,7 +34,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.kafka.message import KafkaMessage
     from faststream.kafka.publisher.usecase import (
         BatchPublisher,
         DefaultPublisher,
@@ -100,7 +99,7 @@ class KafkaRegistrator(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -166,7 +165,7 @@ class KafkaRegistrator(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -232,7 +231,7 @@ class KafkaRegistrator(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -301,7 +300,7 @@ class KafkaRegistrator(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -751,9 +750,7 @@ class KafkaRegistrator(
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence[
-            "BrokerMiddleware[ConsumerRecord | tuple[ConsumerRecord, ...]]"
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, KafkaRegistrator):

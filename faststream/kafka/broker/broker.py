@@ -314,7 +314,7 @@ class KafkaBroker(
                 Custom parser object.
             dependencies (Iterable[Dependant]):
                 Dependencies to apply to all broker subscribers.
-            middlewares (Sequence[BrokerMiddleware]):
+            middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
                 Middlewares to apply to all broker publishers/subscribers.
             routers (Sequence[Registrator]):
                 Routers to apply to broker.

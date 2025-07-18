@@ -125,10 +125,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         timeout: float = 5.0,
         no_ack: bool = True,
     ) -> "RabbitMessage | None":
-        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self._queue_obj, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         sleep_interval = timeout / 10
 
@@ -160,10 +160,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
-        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator method if subscriber has registered handlers."
+        assert self._queue_obj, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use iterator method if subscriber has registered handlers."
+        )
 
         context = self._outer_config.fd_config.context
 

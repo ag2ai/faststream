@@ -327,7 +327,7 @@ class ConfluentFastConfig:
     ) -> None:
         self.config = parse_security(security) | (config or {})
 
-        shared_config = {
+        shared_config: dict[str, Any] = {
             "bootstrap_servers": bootstrap_servers,
             "client_id": client_id,
             "allow_auto_create_topics": allow_auto_create_topics,

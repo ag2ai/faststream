@@ -12,7 +12,12 @@ from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.helpers import StreamBuilder
 from faststream.nats.publisher.factory import create_publisher
-from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
+from faststream.nats.schemas import (
+    JStream,
+    KvWatch,
+    ObjWatch,
+    PullSub,
+)
 from faststream.nats.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
@@ -23,7 +28,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.subscriber.usecases import LogicSubscriber
 
@@ -159,7 +163,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[NatsMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -201,7 +205,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             bool,
             Doc("Whetever to include operation in AsyncAPI schema or not."),
         ] = True,
-    ) -> "LogicSubscriber[Msg]":
+    ) -> "LogicSubscriber[Any]":
         """Creates NATS subscriber object.
 
         You can use it as a handler decorator `@broker.subscriber(...)`.
@@ -242,8 +246,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().subscriber(subscriber)
 
-        if stream and subscriber.subject:
-            stream.add_subject(subscriber.subject)
+        self._stream_builder.add_subject(stream, subscriber.subject)
 
         return subscriber.add_call(
             parser_=parser,
@@ -343,8 +346,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().publisher(publisher)
 
-        if stream and publisher.subject:
-            stream.add_subject(publisher.subject)
+        self._stream_builder.add_subject(stream, publisher.subject)
 
         return publisher
 
@@ -355,7 +357,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[Msg]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, NatsRegistrator):
@@ -365,22 +367,12 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             )
             raise SetupError(msg)
 
-        sub_streams = router._stream_builder.objects.copy()
+        for stream, subjects in router._stream_builder.objects.values():
+            for subj in subjects:
+                router_subject = f"{self.config.prefix}{prefix}{subj}"
+                self._stream_builder.add_subject(stream, router_subject)
 
-        sub_router_subjects = [sub.subject for sub in router.subscribers]
-
-        for stream in sub_streams.values():
-            new_subjects = []
-            for subj in stream.subjects:
-                if subj in sub_router_subjects:
-                    new_subjects.append(f"{self.config.prefix}{subj}")
-                else:
-                    new_subjects.append(subj)
-            stream.subjects = new_subjects
-
-        self._stream_builder.objects.update(sub_streams)
-
-        return super().include_router(
+        super().include_router(
             router,
             prefix=prefix,
             dependencies=dependencies,

@@ -183,13 +183,13 @@ class TestBroker(Generic[Broker]):
                 publisher.set_test(mock=mock, with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
-                    assert h.handler.mock  # nosec B101
+                    assert h.handler.mock
                     h.handler.mock.side_effect = mock
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock  # nosec B101
+                assert handler.mock
                 publisher.set_test(mock=handler.mock, with_fake=True)
 
         patch_broker_calls(broker)

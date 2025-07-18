@@ -131,9 +131,9 @@ class StreamRouter(
         schema_url: str | None = "/asyncapi",
         **connection_kwars: Any,
     ) -> None:
-        assert (  # nosec B101
-            self.broker_class
-        ), "You should specify `broker_class` at your implementation"
+        assert self.broker_class, (
+            "You should specify `broker_class` at your implementation"
+        )
 
         broker = self.broker_class(
             *connection_args,

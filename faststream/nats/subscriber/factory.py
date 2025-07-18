@@ -33,7 +33,6 @@ from .usecases import (
 )
 
 if TYPE_CHECKING:
-    from nats.aio.msg import Msg
     from nats.js import api
 
     from faststream._internal.basic_types import AnyDict
@@ -81,7 +80,7 @@ def create_subscriber(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> "LogicSubscriber[Msg]":
+) -> "LogicSubscriber[Any]":
     _validate_input_for_misconfigure(
         subject=subject,
         queue=queue,

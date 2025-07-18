@@ -57,7 +57,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.nats.subscriber.usecases import (
@@ -224,7 +223,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Custom parser object."),
         ] = None,
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg]"],
+            Sequence["BrokerMiddleware[Msg, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         # AsyncAPI args
@@ -680,7 +679,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[NatsMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",

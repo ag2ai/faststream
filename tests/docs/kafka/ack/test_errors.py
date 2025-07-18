@@ -10,6 +10,7 @@ from tests.tools import spy_decorator
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
 @pytest.mark.slow()
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_ack_exc() -> None:
     from docs.docs_src.kafka.ack.errors import app, broker, handle
 

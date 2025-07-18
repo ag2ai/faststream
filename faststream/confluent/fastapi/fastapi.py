@@ -95,12 +95,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
-        middlewares: Sequence[
-            Union[
-                "BrokerMiddleware[Message]",
-                "BrokerMiddleware[tuple[Message, ...]]",
-            ]
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         # Specification args
         specification: Optional["SpecificationFactory"] = None,
         security: Optional["BaseSecurity"] = None,

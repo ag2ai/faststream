@@ -35,23 +35,23 @@ down:
 
 [doc("Run fast tests")]
 [group("tests")]
-test path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+test +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "not slow and not kafka and not confluent and not redis and not rabbit and not nats"
 
 [doc("Run all tests")]
 [group("tests")]
-test-all path="tests/" params="" marks="all":
-  docker compose exec faststream uv run pytest {{path}} -m "{{marks}}" {{params}}
+test-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "all"
 
 [doc("Run fast tests with coverage")]
 [group("tests")]
-test-coverage path="tests/" params="" marks="not slow and not kafka and not confluent and not redis and not rabbit and not nats":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+test-coverage +param="tests/":
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'not slow and not kafka and not confluent and not redis and not rabbit and not nats' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
-test-coverage-all path="tests/" params="" marks="all":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{path}} -m '{{marks}}' {{params}} && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+test-coverage-all +param="tests/":
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'all' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 
 # Docs

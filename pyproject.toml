@@ -117,7 +117,6 @@ lint = [
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
-    "confluent-kafka-stubs; python_version >= '3.11'",
 ]
 
 test-core = [

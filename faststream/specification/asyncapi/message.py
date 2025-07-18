@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from inspect import isclass
-from typing import TYPE_CHECKING, Optional, overload
+from typing import TYPE_CHECKING, Optional, cast, overload
 
 from pydantic import BaseModel, create_model
 
@@ -18,13 +18,14 @@ if TYPE_CHECKING:
 
 def parse_handler_params(call: "CallModel", prefix: str = "") -> AnyDict:
     """Parses the handler parameters."""
-    model = getattr(call, "serializer", call).model
-    assert model  # nosec B101
+    model_container = getattr(call, "serializer", call)
+    model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
+    assert model
 
     body = get_model_schema(
         create_model(
             model.__name__,
-            **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},
+            **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},  # type: ignore[call-overload]
         ),
         prefix=prefix,
         exclude=tuple(call.custom_fields.keys()),

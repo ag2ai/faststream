@@ -77,9 +77,9 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         message: "StreamMessage[Any]",
     ) -> Any:
         """Calls the wrapped function with the given message."""
-        assert self._wrapped_call, "You should use `set_wrapped` first"  # nosec B101
+        assert self._wrapped_call, "You should use `set_wrapped` first"
         if self.is_test:
-            assert self.mock  # nosec B101
+            assert self.mock
             self.mock(await message.decode())
         return await self._wrapped_call(message)
 
@@ -101,9 +101,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     async def wait_call(self, timeout: float | None = None) -> None:
         """Waits for a call with an optional timeout."""
-        assert (  # nosec B101
-            self.future is not None
-        ), "You can use this method only with TestClient"
+        assert self.future is not None, "You can use this method only with TestClient"
         with anyio.fail_after(timeout):
             await self.future
 

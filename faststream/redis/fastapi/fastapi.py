@@ -45,7 +45,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.redis.message import UnifyRedisMessage
     from faststream.redis.publisher.factory import PublisherType
     from faststream.redis.subscriber.factory import SubscriberType
     from faststream.security import BaseSecurity
@@ -97,7 +96,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Doc("Custom parser object."),
         ] = None,
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[UnifyRedisDict]"],
+            Sequence["BrokerMiddleware[Any, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         # AsyncAPI args
@@ -454,7 +453,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",

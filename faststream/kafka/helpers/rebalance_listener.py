@@ -36,7 +36,7 @@ def make_logging_listener(
     )
 
 
-class _LoggingListener(ConsumerRebalanceListener):
+class _LoggingListener(ConsumerRebalanceListener):  # type: ignore[misc]
     _log_unassigned_consumer_delay_seconds = 60 * 2
 
     def __init__(
@@ -90,7 +90,7 @@ class _LoggingListener(ConsumerRebalanceListener):
             self._log_unassigned_consumer_task = None
 
 
-class _LoggingListenerFacade(ConsumerRebalanceListener):
+class _LoggingListenerFacade(ConsumerRebalanceListener):  # type: ignore[misc]
     def __init__(
         self,
         *,

@@ -405,15 +405,6 @@ wheels = [
 ]
 
 [[package]]
-name = "confluent-kafka-stubs"
-version = "0.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/02/46/625923d25442ce981139ee702ce1cb2e2d0829fdcb1b27d9e6c480150d2c/confluent_kafka_stubs-0.0.3.tar.gz", hash = "sha256:97597a28eba0293982d746e66b3229fd8399eb10b8423596a2eeba33b1dd7d9f", size = 8735, upload-time = "2023-06-12T15:43:44.685Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/1a/609237e2484af10ab3ca2c7b0840dc416bc597689fb4333297e472469c24/confluent_kafka_stubs-0.0.3-py3-none-any.whl", hash = "sha256:a9154e5f6bfbcf644f6e9c133dfc180995afbec965e1fc0a371901ee963fa2ec", size = 9450, upload-time = "2023-06-12T15:43:43.324Z" },
-]
-
-[[package]]
 name = "coverage"
 version = "7.9.1"
 source = { registry = "https://pypi.org/simple" }
@@ -726,7 +717,6 @@ dev = [
     { name = "bandit" },
     { name = "cairosvg" },
     { name = "codespell" },
-    { name = "confluent-kafka-stubs", marker = "python_full_version >= '3.11'" },
     { name = "coverage", extra = ["toml"] },
     { name = "detect-secrets" },
     { name = "dirty-equals" },
@@ -785,7 +775,6 @@ docs = [
 lint = [
     { name = "bandit" },
     { name = "codespell" },
-    { name = "confluent-kafka-stubs", marker = "python_full_version >= '3.11'" },
     { name = "mypy" },
     { name = "ruff" },
     { name = "semgrep" },
@@ -850,7 +839,6 @@ dev = [
     { name = "bandit", specifier = "==1.8.5" },
     { name = "cairosvg" },
     { name = "codespell", specifier = "==2.4.1" },
-    { name = "confluent-kafka-stubs", marker = "python_full_version >= '3.11'" },
     { name = "coverage", extras = ["toml"], specifier = "==7.9.1" },
     { name = "detect-secrets", specifier = "==1.5.0" },
     { name = "dirty-equals", specifier = "==0.9.0" },
@@ -910,7 +898,6 @@ docs = [
 lint = [
     { name = "bandit", specifier = "==1.8.5" },
     { name = "codespell", specifier = "==2.4.1" },
-    { name = "confluent-kafka-stubs", marker = "python_full_version >= '3.11'" },
     { name = "mypy", specifier = "==1.16.0" },
     { name = "ruff", specifier = "==0.12.1" },
     { name = "semgrep", specifier = "==1.127.1" },

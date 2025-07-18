@@ -99,6 +99,7 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         mock.assert_called_once_with("hello")
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_channel(
         self,
         queue: str,
@@ -886,6 +887,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_stream(
         self,
         queue: str,

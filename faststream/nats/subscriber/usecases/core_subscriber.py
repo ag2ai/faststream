@@ -50,9 +50,9 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         *,
         timeout: float = 5.0,
     ) -> "NatsMessage | None":
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         if self._fetch_sub is None:
             fetch_sub = self._fetch_sub = await self.connection.subscribe(
@@ -82,9 +82,9 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         if self._fetch_sub is None:
             fetch_sub = self._fetch_sub = await self.connection.subscribe(

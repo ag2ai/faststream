@@ -186,7 +186,8 @@ class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
         broker = self.get_broker()
         broker.include_router(router)
 
-        assert set(stream.subjects) == {
+        _, subjects = broker._stream_builder.get(stream)
+        assert set(subjects) == {
             "user.registered",
             "user.client.1",
             "user.client.2",
