@@ -15,6 +15,7 @@ from tests.tools import spy_decorator
 from .basic import NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_concurrent_subscriber(

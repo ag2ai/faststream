@@ -14,6 +14,7 @@ from tests.tools import spy_decorator
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
     """A class to represent a test Kafka broker."""

@@ -14,6 +14,7 @@ from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 from .basic import RedisMemoryTestcaseConfig, RedisTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestRouter(RedisTestcaseConfig, RouterTestcase):
     route_class = RedisRoute

@@ -25,6 +25,7 @@ class RedisRequestsTestcase(RequestsTestcase):
         return Mid
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestRealRequests(RedisTestcaseConfig, RedisRequestsTestcase):
     pass

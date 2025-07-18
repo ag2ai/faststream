@@ -10,6 +10,7 @@ from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 from .basic import RedisMemoryTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestRouter(FastAPITestcase):
     router_class = StreamRouter

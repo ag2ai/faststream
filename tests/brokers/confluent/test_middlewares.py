@@ -13,11 +13,13 @@ class TestMiddlewaresOrder(ConfluentMemoryTestcaseConfig, MiddlewaresOrderTestca
     pass
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestMiddlewares(ConfluentTestcaseConfig, MiddlewareTestcase):
     pass
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestExceptionMiddlewares(ConfluentTestcaseConfig, ExceptionMiddlewareTestcase):
     pass

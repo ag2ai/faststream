@@ -10,6 +10,7 @@ from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 from .basic import RabbitMemoryTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestRouter(FastAPITestcase):
     router_class = StreamRouter

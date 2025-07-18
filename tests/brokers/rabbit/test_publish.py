@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.response import RabbitPublishCommand
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()

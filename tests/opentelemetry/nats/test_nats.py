@@ -21,6 +21,7 @@ def stream(queue):
     return JStream(queue)
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestTelemetry(LocalTelemetryTestcase):
     messaging_system = "nats"
@@ -91,6 +92,7 @@ class TestTelemetry(LocalTelemetryTestcase):
         mock.assert_called_once_with(["hi"])
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestPublishWithTelemetry(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:
@@ -101,6 +103,7 @@ class TestPublishWithTelemetry(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestConsumeWithTelemetry(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:

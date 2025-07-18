@@ -22,6 +22,7 @@ class RabbitRequestsTestcase(RequestsTestcase):
         return Mid
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestRealRequests(RabbitTestcaseConfig, RabbitRequestsTestcase):
     pass

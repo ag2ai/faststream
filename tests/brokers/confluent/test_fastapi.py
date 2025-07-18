@@ -10,6 +10,7 @@ from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter

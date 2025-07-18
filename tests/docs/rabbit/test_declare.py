@@ -3,6 +3,7 @@ import pytest
 from faststream import TestApp
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_declare() -> None:

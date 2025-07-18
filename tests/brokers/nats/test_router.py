@@ -15,6 +15,7 @@ from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestRouter(NatsTestcaseConfig, RouterTestcase):
     route_class = NatsRoute

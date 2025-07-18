@@ -36,6 +36,7 @@ async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_with_real_broker() -> None:

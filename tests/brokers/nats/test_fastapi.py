@@ -10,6 +10,7 @@ from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestRouter(NatsTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter

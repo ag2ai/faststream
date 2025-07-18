@@ -20,6 +20,7 @@ from tests.brokers.confluent.basic import ConfluentTestcaseConfig
 from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "kafka"

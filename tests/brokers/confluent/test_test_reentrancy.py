@@ -47,6 +47,7 @@ async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)

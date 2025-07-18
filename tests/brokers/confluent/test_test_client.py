@@ -41,6 +41,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
                 mocked.mock.assert_called_once()
 
     @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
         queue: str,
@@ -173,6 +174,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         assert len(routes) == 2
 
     @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue) -> None:
         routes = []
 
@@ -278,14 +280,17 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert subscriber2.mock.call_count == 0
 
     @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
     @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
     @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
         self,
         queue: str,

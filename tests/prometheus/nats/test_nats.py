@@ -19,6 +19,7 @@ def stream(queue):
     return JStream(queue)
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
     async def test_metrics(
@@ -63,6 +64,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestPrometheus(
     NatsPrometheusSettings,
@@ -71,6 +73,7 @@ class TestPrometheus(
 ): ...
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestPublishWithPrometheus(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:
@@ -81,6 +84,7 @@ class TestPublishWithPrometheus(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestConsumeWithPrometheus(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:

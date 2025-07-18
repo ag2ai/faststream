@@ -8,6 +8,7 @@ from tests.brokers.base.connection import BrokerConnectionTestcase
 from .conftest import Settings
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_correct_config_merging(queue: str) -> None:
@@ -74,6 +75,7 @@ def test_correct_config_with_dict() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker

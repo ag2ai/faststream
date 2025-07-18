@@ -12,6 +12,7 @@ def confluent_basic_project() -> str:
     return "docs.docs_src.confluent.basic.basic:app"
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 def test_run_cmd(
     runner: CliRunner,
