@@ -1,9 +1,12 @@
+import pytest
+
 from typing import Any
 
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 from tests.asgi.testcase import AsgiTestcase
 
 
+@pytest.mark.kafka()
 class TestKafkaAsgi(AsgiTestcase):
     def get_broker(self, **kwargs: Any) -> KafkaBroker:
         return KafkaBroker(**kwargs)

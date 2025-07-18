@@ -44,6 +44,7 @@ class TestKafkaRouter(FastAPITestcase):
         mock.assert_called_with(["hi"])
 
 
+@pytest.mark.kafka()
 class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter

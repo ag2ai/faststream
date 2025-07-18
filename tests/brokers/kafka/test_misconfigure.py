@@ -13,6 +13,7 @@ from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
 
 
+@pytest.mark.kafka()
 @pytest.mark.parametrize(
     ("args", "kwargs"),
     (
@@ -69,6 +70,7 @@ def test_wrong_destination(args: list[str], kwargs: dict[str, Any]) -> None:
         KafkaBroker().subscriber(*args, **kwargs)
 
 
+@pytest.mark.kafka()
 def test_deprecated_options(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -85,6 +87,7 @@ def test_deprecated_options(queue: str) -> None:
         broker.subscriber(queue, group_id="test", no_ack=True)
 
 
+@pytest.mark.kafka()
 def test_deprecated_conflicts_actual(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -95,6 +98,7 @@ def test_deprecated_conflicts_actual(queue: str) -> None:
         broker.subscriber(queue, no_ack=False, ack_policy=AckPolicy.ACK)
 
 
+@pytest.mark.kafka()
 def test_max_workers_configuration(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -112,6 +116,7 @@ def test_max_workers_configuration(queue: str) -> None:
         )
 
 
+@pytest.mark.kafka()
 def test_use_only_kafka_router() -> None:
     broker = KafkaBroker()
     router = NatsRouter()

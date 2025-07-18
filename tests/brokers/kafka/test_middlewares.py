@@ -9,6 +9,7 @@ from tests.brokers.base.middlewares import (
 from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
 
 
+@pytest.mark.kafka()
 class TestMiddlewaresOrder(KafkaMemoryTestcaseConfig, MiddlewaresOrderTestcase):
     pass
 

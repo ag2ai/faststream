@@ -14,6 +14,7 @@ from tests.tools import spy_decorator
 from .basic import KafkaMemoryTestcaseConfig
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_partition_match(
@@ -129,7 +130,6 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             publisher.flush.assert_awaited_once()
 
-    @pytest.mark.kafka()
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
@@ -222,7 +222,6 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.kafka()
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
         routes = []
@@ -324,17 +323,14 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert subscriber1.mock.call_count == 1
             assert subscriber2.mock.call_count == 0
 
-    @pytest.mark.kafka()
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
-    @pytest.mark.kafka()
     @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.kafka()
     @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
         self,
