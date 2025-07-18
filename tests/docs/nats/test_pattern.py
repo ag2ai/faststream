@@ -3,6 +3,7 @@ import pytest
 from faststream.nats import TestApp, TestNatsBroker
 
 
+@pytest.mark.nats()
 @pytest.mark.asyncio()
 async def test_pattern() -> None:
     from docs.docs_src.nats.pattern import (

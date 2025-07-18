@@ -153,6 +153,7 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
         assert event.is_set()
 
 
+@pytest.mark.nats()
 class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher

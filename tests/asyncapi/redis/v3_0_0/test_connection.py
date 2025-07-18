@@ -1,8 +1,11 @@
+import pytest
+
 from faststream.redis import RedisBroker
 from faststream.specification import Tag
 from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
+@pytest.mark.redis()
 def test_base() -> None:
     schema = get_3_0_0_schema(
         RedisBroker(
@@ -34,6 +37,7 @@ def test_base() -> None:
     }, schema
 
 
+@pytest.mark.redis()
 def test_custom() -> None:
     schema = get_3_0_0_schema(
         RedisBroker(

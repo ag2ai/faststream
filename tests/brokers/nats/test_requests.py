@@ -76,5 +76,6 @@ class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
     pass
 
 
+@pytest.mark.nats()
 class TestRequestTestClient(NatsMemoryTestcaseConfig, NatsRequestsTestcase):
     pass

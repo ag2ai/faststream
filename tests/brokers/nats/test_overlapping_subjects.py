@@ -74,6 +74,7 @@ TEST_CASES = {
 }
 
 
+@pytest.mark.nats()
 @pytest.mark.parametrize(
     ("subjects", "expected"),
     TEST_CASES.values(),

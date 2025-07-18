@@ -9,6 +9,7 @@ from tests.brokers.base.middlewares import (
 from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 
+@pytest.mark.rabbit()
 class TestMiddlewaresOrder(RabbitMemoryTestcaseConfig, MiddlewaresOrderTestcase):
     pass
 

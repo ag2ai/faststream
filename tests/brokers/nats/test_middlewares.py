@@ -9,6 +9,7 @@ from tests.brokers.base.middlewares import (
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
+@pytest.mark.nats()
 class TestMiddlewaresOrder(NatsMemoryTestcaseConfig, MiddlewaresOrderTestcase):
     pass
 

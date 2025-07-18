@@ -31,5 +31,6 @@ class TestRealRequests(RedisTestcaseConfig, RedisRequestsTestcase):
     pass
 
 
+@pytest.mark.redis()
 class TestRequestTestClient(RedisMemoryTestcaseConfig, RedisRequestsTestcase):
     pass

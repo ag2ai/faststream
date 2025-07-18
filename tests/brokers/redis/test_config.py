@@ -1,3 +1,5 @@
+import pytest
+
 from unittest.mock import MagicMock
 
 from faststream import AckPolicy
@@ -5,6 +7,7 @@ from faststream.redis import ListSub, PubSub, StreamSub
 from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
+@pytest.mark.redis()
 def test_channel_sub() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -13,6 +16,7 @@ def test_channel_sub() -> None:
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
+@pytest.mark.redis()
 def test_list_sub() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -21,6 +25,7 @@ def test_list_sub() -> None:
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
+@pytest.mark.redis()
 def test_stream_sub() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -29,6 +34,7 @@ def test_stream_sub() -> None:
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
+@pytest.mark.redis()
 def test_stream_with_group() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -41,6 +47,7 @@ def test_stream_with_group() -> None:
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
+@pytest.mark.redis()
 def test_custom_ack() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -54,6 +61,7 @@ def test_custom_ack() -> None:
     assert config.ack_policy is AckPolicy.ACK
 
 
+@pytest.mark.redis()
 def test_stream_sub_with_no_ack_group() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
@@ -67,6 +75,7 @@ def test_stream_sub_with_no_ack_group() -> None:
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
+@pytest.mark.redis()
 def test_no_ack() -> None:
     config = RedisSubscriberConfig(_outer_config=MagicMock(), _no_ack=True)
     assert config.ack_policy is AckPolicy.DO_NOTHING

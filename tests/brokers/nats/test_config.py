@@ -1,8 +1,11 @@
+import pytest
+
 from faststream import AckPolicy
 from faststream.nats import ConsumerConfig
 from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
+@pytest.mark.nats()
 def test_default() -> None:
     config = NatsSubscriberConfig(
         subject="test_subject",
@@ -12,6 +15,7 @@ def test_default() -> None:
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
+@pytest.mark.nats()
 def test_no_ack() -> None:
     config = NatsSubscriberConfig(
         subject="test_subject",
@@ -22,6 +26,7 @@ def test_no_ack() -> None:
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 
+@pytest.mark.nats()
 def test_ack_first() -> None:
     config = NatsSubscriberConfig(
         subject="test_subject",
@@ -32,6 +37,7 @@ def test_ack_first() -> None:
     assert config.ack_policy is AckPolicy.ACK_FIRST
 
 
+@pytest.mark.nats()
 def test_custom_ack() -> None:
     config = NatsSubscriberConfig(
         subject="test_subject",

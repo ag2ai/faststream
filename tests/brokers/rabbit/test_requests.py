@@ -28,6 +28,7 @@ class TestRealRequests(RabbitTestcaseConfig, RabbitRequestsTestcase):
     pass
 
 
+@pytest.mark.rabbit()
 @pytest.mark.asyncio()
 class TestRequestTestClient(RabbitMemoryTestcaseConfig, RabbitRequestsTestcase):
     pass

@@ -14,6 +14,7 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 from .basic import NatsMemoryTestcaseConfig
 
 
+@pytest.mark.nats()
 @pytest.mark.asyncio()
 class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
     @pytest.mark.asyncio()
@@ -44,7 +45,6 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("Hi!", queue, stream="test")
             assert not m.mock.called
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
@@ -69,7 +69,6 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert event.is_set()
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_inbox_prefix_with_real(
         self,
@@ -103,7 +102,6 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue) -> None:
         routes = []
@@ -243,17 +241,14 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish(2, f"{queue}.a")
             subscriber.mock.assert_called_once_with(2)
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.nats()
     @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
         self,

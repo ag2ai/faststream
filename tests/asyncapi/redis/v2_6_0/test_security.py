@@ -1,3 +1,5 @@
+import pytest
+
 import ssl
 
 from faststream.redis import RedisBroker
@@ -8,6 +10,7 @@ from faststream.security import (
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
+@pytest.mark.redis()
 def test_base_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = BaseSecurity(ssl_context=ssl_context)
@@ -35,6 +38,7 @@ def test_base_security_schema() -> None:
     }
 
 
+@pytest.mark.redis()
 def test_plaintext_security_schema() -> None:
     ssl_context = ssl.create_default_context()
 
@@ -71,6 +75,7 @@ def test_plaintext_security_schema() -> None:
     }
 
 
+@pytest.mark.redis()
 def test_plaintext_security_schema_without_ssl() -> None:
     security = SASLPlaintext(
         username="admin",

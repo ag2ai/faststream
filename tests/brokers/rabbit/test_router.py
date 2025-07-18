@@ -204,6 +204,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
             assert event.is_set()
 
 
+@pytest.mark.rabbit()
 class TestRouterLocal(RabbitMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RabbitRoute
     publisher_class = RabbitPublisher

@@ -56,6 +56,7 @@ class TestRouter(FastAPITestcase):
         mock.assert_called_once_with(msg="hello", name="john")
 
 
+@pytest.mark.rabbit()
 @pytest.mark.asyncio()
 class TestRouterLocal(RabbitMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
