@@ -24,4 +24,4 @@ class ExchangeType(str, Enum):
     X_MODULUS_HASH = "x-modulus-hash"
 
 
-REPLY_TO_QUEUE_EXCHANGE_DELIMETER = "|"
+REPLY_TO_QUEUE_EXCHANGE_DELIMITER = "|"

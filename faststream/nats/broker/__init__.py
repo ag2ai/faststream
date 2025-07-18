@@ -1,3 +1,4 @@
-from faststream.nats.broker.broker import NatsBroker
+from .broker import NatsBroker
+from .router import NatsPublisher, NatsRoute, NatsRouter
 
-__all__ = ("NatsBroker",)
+__all__ = ("NatsBroker", "NatsPublisher", "NatsRoute", "NatsRouter")

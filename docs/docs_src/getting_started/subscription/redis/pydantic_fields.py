@@ -10,10 +10,10 @@ app = FastStream(broker)
 @broker.subscriber("test-channel")
 async def handle(
     name: str = Field(
-        ..., examples=["John"], description="Registered user name"
+        ..., examples=["John"], description="Registered user name",
     ),
     user_id: NonNegativeInt = Field(
-        ..., examples=[1], description="Registered user id"
+        ..., examples=[1], description="Registered user id",
     ),
 ):
     assert name == "John"

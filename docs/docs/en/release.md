@@ -81,7 +81,7 @@ hide:
 * fix (depends): removed SetupError if correct fastapi.Depends is included to annotation by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2280](https://github.com/ag2ai/faststream/pull/2280){.external-link target="_blank"}
 * Improve license badge by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2241](https://github.com/ag2ai/faststream/pull/2241){.external-link target="_blank"}
 * chore: use stricter mypy settings by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2243](https://github.com/ag2ai/faststream/pull/2243){.external-link target="_blank"}
-* docs: alwayse use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
+* docs: always use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
 * docs: better highlight first example by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2245](https://github.com/ag2ai/faststream/pull/2245){.external-link target="_blank"}
 * docs: add more links to readme by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2246](https://github.com/ag2ai/faststream/pull/2246){.external-link target="_blank"}
 * docs: Improve README code examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2247](https://github.com/ag2ai/faststream/pull/2247){.external-link target="_blank"}
@@ -342,7 +342,7 @@ Also, thanks to [@Sehat1137](https://github.com/Sehat1137){.external-link target
 Well, you (community) made a new breathtaken release for us!
 Thanks to all of this release contributors.
 
-Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"}. He promores a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
+Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} . He promotes a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
 
 ```python
 from faststream.kafka import KafkaBroker
@@ -1203,7 +1203,7 @@ You can find more information about it in the official [**aiokafka** doc](https:
 ```python
 from faststream import NatsBroker, PullSub
 
-broker = NastBroker()
+broker = NatsBroker()
 
 @broker.subscriber(
     "logs.{level}",

@@ -14,12 +14,12 @@ publisher2 = broker.publisher("test-resp2")
 @publisher1
 @publisher2
 @broker.subscriber("test")
-async def handle():
+async def handle() -> str:
     return "response"
 
 
 @pytest.mark.asyncio()
-async def test_handle():
+async def test_handle() -> None:
     async with TestRabbitBroker(broker) as br:
         await br.publish({"msg": "test"}, "test")
 

@@ -7,9 +7,9 @@ from faststream.nats import NatsBroker
 from tests.tools import spy_decorator
 
 
-@pytest.mark.asyncio
-@pytest.mark.nats
-async def test_kv_storage_cache():
+@pytest.mark.asyncio()
+@pytest.mark.nats()
+async def test_kv_storage_cache() -> None:
     broker = NatsBroker()
     await broker.connect()
     with patch.object(
@@ -19,5 +19,5 @@ async def test_kv_storage_cache():
     ) as m:
         await broker.key_value("test")
         await broker.key_value("test")
-        assert broker._kv_declarer.buckets["test"]
+        assert broker.config.kv_declarer.buckets["test"]
         m.mock.assert_called_once()

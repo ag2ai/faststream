@@ -46,7 +46,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const displayNameElement = document.querySelector(
         `.testimonialAnchor_iYyG.${profileName} .testimonialUserInfo_th5k h6`
       );
-      // nosemgrep: javascript.browser.security.insecure-document-method.insecure-document-method
       displayNameElement.innerHTML = result[profileName]["data"]["subreddit"][
         "display_name_prefixed"
       ].replace("u/", "");
@@ -54,7 +53,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const profileNameElement = document.querySelector(
         `.testimonialAnchor_iYyG.${profileName} .testimonialUserInfo_th5k p`
       );
-      // nosemgrep: javascript.browser.security.insecure-document-method.insecure-document-method
       profileNameElement.innerHTML =
         result[profileName]["data"]["subreddit"]["display_name_prefixed"];
     }

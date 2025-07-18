@@ -1,3 +1,5 @@
+from faststream._internal.testing.app import TestApp
+
 try:
     from nats.js.api import (
         AckPolicy,
@@ -14,16 +16,16 @@ try:
         StreamSource,
     )
 
-    from faststream.testing.app import TestApp
-
     from .annotations import NatsMessage
-    from .broker.broker import NatsBroker
-    from .response import NatsResponse
-    from .router import NatsPublisher, NatsRoute, NatsRouter
-    from .schemas import JStream, KvWatch, ObjWatch, PullSub
+    from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
+    from .response import NatsPublishCommand, NatsResponse
+    from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub
     from .testing import TestNatsBroker
 
 except ImportError as e:
+    if "'nats'" not in e.msg:
+        raise
+
     from faststream.exceptions import INSTALL_FASTSTREAM_NATS
 
     raise ImportError(INSTALL_FASTSTREAM_NATS) from e
@@ -31,7 +33,6 @@ except ImportError as e:
 
 __all__ = (
     "AckPolicy",
-    # Nats imports
     "ConsumerConfig",
     "DeliverPolicy",
     "DiscardPolicy",
@@ -40,12 +41,14 @@ __all__ = (
     "KvWatch",
     "NatsBroker",
     "NatsMessage",
+    "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",
     "NatsRoute",
     "NatsRouter",
     "ObjWatch",
     "Placement",
+    "PubAck",
     "PullSub",
     "RePublish",
     "ReplayPolicy",

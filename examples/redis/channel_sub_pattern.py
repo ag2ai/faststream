@@ -17,7 +17,7 @@ async def handle_test(msg: str, logger: Logger):
 
 @app.after_startup
 async def t():
-    # publish to hanle_logs
+    # publish to handle_logs
     await broker.publish("Hi!", "logs.info")
-    # publish to hanle_test
+    # publish to handle_test
     await broker.publish("Hi!", "test.smth")

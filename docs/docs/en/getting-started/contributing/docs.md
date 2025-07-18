@@ -42,7 +42,7 @@ Enough:
     ```
 4. Install documentation dependencies
     ```bash
-    pip install ".[devdocs]"
+    pip install --group devdocs -e .
     ```
 5. Go to the `docs/` directory
 6. Start the local documentation server

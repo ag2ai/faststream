@@ -6,7 +6,7 @@ from faststream.confluent import KafkaBroker
 
 class DataBasic(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 
