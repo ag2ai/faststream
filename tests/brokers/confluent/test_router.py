@@ -16,6 +16,7 @@ class TestRouter(ConfluentTestcaseConfig, RouterTestcase):
     publisher_class = KafkaPublisher
 
 
+@pytest.mark.confluent()
 class TestRouterLocal(ConfluentMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher

@@ -43,6 +43,7 @@ async def test_correct_config_merging(queue: str) -> None:
         assert subscriber_config == expected_config
 
 
+@pytest.mark.confluent()
 def test_correct_config_with_dict() -> None:
     broker = KafkaBroker(
         config={

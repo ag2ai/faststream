@@ -8,6 +8,7 @@ from docs.docs_src.confluent.batch_consuming_pydantic.app import (
 from faststream.confluent import TestKafkaBroker
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_me() -> None:
     async with TestKafkaBroker(broker):

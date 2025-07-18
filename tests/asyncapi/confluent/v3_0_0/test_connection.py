@@ -1,8 +1,11 @@
+import pytest
+
 from faststream.confluent import KafkaBroker
 from faststream.specification import Tag
 from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
+@pytest.mark.confluent()
 def test_base() -> None:
     schema = get_3_0_0_schema(
         KafkaBroker(
@@ -34,6 +37,7 @@ def test_base() -> None:
     }
 
 
+@pytest.mark.confluent()
 def test_multi() -> None:
     schema = get_3_0_0_schema(
         KafkaBroker(["kafka:9092", "kafka:9093"]),
@@ -63,6 +67,7 @@ def test_multi() -> None:
     }
 
 
+@pytest.mark.confluent()
 def test_custom() -> None:
     schema = get_3_0_0_schema(
         KafkaBroker(

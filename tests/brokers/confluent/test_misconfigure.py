@@ -8,6 +8,7 @@ from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 
 
+@pytest.mark.confluent()
 def test_max_workers_with_manual(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -19,6 +20,7 @@ def test_max_workers_with_manual(queue: str) -> None:
         broker.subscriber(queue, max_workers=3, auto_commit=False)
 
 
+@pytest.mark.confluent()
 def test_max_workers_with_ack_policy(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -29,6 +31,7 @@ def test_max_workers_with_ack_policy(queue: str) -> None:
         broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR)
 
 
+@pytest.mark.confluent()
 def test_deprecated_options(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -45,6 +48,7 @@ def test_deprecated_options(queue: str) -> None:
         broker.subscriber(queue, group_id="test", no_ack=True)
 
 
+@pytest.mark.confluent()
 def test_deprecated_conflicts_actual(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -55,6 +59,7 @@ def test_deprecated_conflicts_actual(queue: str) -> None:
         broker.subscriber(queue, no_ack=False, ack_policy=AckPolicy.ACK)
 
 
+@pytest.mark.confluent()
 def test_manual_ack_policy_without_group(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -64,6 +69,7 @@ def test_manual_ack_policy_without_group(queue: str) -> None:
         broker.subscriber(queue, ack_policy=AckPolicy.DO_NOTHING)
 
 
+@pytest.mark.confluent()
 def test_manual_commit_without_group(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -74,6 +80,7 @@ def test_manual_commit_without_group(queue: str) -> None:
         broker.subscriber(queue, auto_commit=False)
 
 
+@pytest.mark.confluent()
 def test_wrong_destination(queue: str) -> None:
     broker = KafkaBroker()
 
@@ -84,6 +91,7 @@ def test_wrong_destination(queue: str) -> None:
         broker.subscriber(queue, partitions=[TopicPartition(queue, 1)])
 
 
+@pytest.mark.confluent()
 def test_use_only_confluent_router() -> None:
     broker = KafkaBroker()
     router = NatsRouter()

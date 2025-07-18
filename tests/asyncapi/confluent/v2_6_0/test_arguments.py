@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.confluent import KafkaBroker, TopicPartition
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
+@pytest.mark.confluent()
 class TestArguments(ArgumentsTestcase):
     broker_class = KafkaBroker
 

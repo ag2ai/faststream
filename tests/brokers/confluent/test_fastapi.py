@@ -46,6 +46,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
         mock.assert_called_with(["hi"])
 
 
+@pytest.mark.confluent()
 class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter

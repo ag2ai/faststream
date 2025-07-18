@@ -9,6 +9,7 @@ from tests.brokers.base.middlewares import (
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
 
 
+@pytest.mark.confluent()
 class TestMiddlewaresOrder(ConfluentMemoryTestcaseConfig, MiddlewaresOrderTestcase):
     pass
 
