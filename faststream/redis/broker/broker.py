@@ -32,6 +32,7 @@ from faststream.broker.message import gen_cor_id
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.redis.broker.logging import RedisLoggingBroker
 from faststream.redis.broker.registrator import RedisRegistrator
+from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.security import parse_security
 from faststream.types import EMPTY
@@ -139,6 +140,10 @@ class RedisBroker(
             Sequence["BrokerMiddleware[BaseMessage]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
+        message_format: Annotated[
+            Type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = JSONMessageFormat,
         # AsyncAPI args
         security: Annotated[
             Optional["BaseSecurity"],
@@ -202,6 +207,15 @@ class RedisBroker(
         ] = (),
     ) -> None:
         self._producer = None
+
+        if message_format == JSONMessageFormat:
+            warnings.warn(
+                "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
+                "Instead, use BinaryMessageFormatV1 when initializing broker",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+        self.message_format = message_format
 
         if asyncapi_url is None:
             asyncapi_url = url
@@ -348,6 +362,7 @@ class RedisBroker(
             connection=client,
             parser=self._parser,
             decoder=self._decoder,
+            message_format=self.message_format,
         )
         return client
 
@@ -377,6 +392,7 @@ class RedisBroker(
         return {
             **super()._subscriber_setup_extra,
             "connection": self._connection,
+            "message_format": self.message_format,
         }
 
     @override

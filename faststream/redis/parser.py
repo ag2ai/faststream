@@ -1,3 +1,6 @@
+import enum
+from abc import ABC, abstractmethod
+from struct import pack, unpack
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,7 +29,7 @@ from faststream.redis.message import (
     RedisStreamMessage,
     bDATA_KEY,
 )
-from faststream.types import AnyDict, DecodedMessage, SendableMessage
+from faststream.types import EMPTY, AnyDict, DecodedMessage, SendableMessage
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -37,7 +40,71 @@ if TYPE_CHECKING:
 MsgType = TypeVar("MsgType", bound=Mapping[str, Any])
 
 
-class RawMessage:
+class FastStreamMessageVersion(int, enum.Enum):
+    v1 = 1
+
+
+class BinaryWriter:
+    def __init__(self) -> None:
+        self.data = bytearray()
+
+    def write(self, data: bytes) -> None:
+        self.data.extend(data)
+
+    def write_short(self, number: int) -> None:
+        int_bytes = pack(">H", number)
+        self.write(int_bytes)
+
+    def write_int(self, number: int) -> None:
+        int_bytes = pack(">I", number)
+        self.write(int_bytes)
+
+    def write_string(self, data: Union[str, bytes]) -> None:
+        str_len = len(data)
+        self.write_short(str_len)
+        if isinstance(data, bytes):
+            self.write(data)
+        else:
+            self.write(data.encode())
+
+    def get_bytes(self) -> bytes:
+        return bytes(self.data)
+
+
+class BinaryReader:
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+        self.offset = 0
+
+    def read_until(self, offset: int) -> bytes:
+        data = self.data[self.offset : self.offset + offset]
+        self.offset += offset
+        return data
+
+    def shift_offset_to(self, offset: int) -> None:
+        self.offset = offset
+
+    def read_short(self) -> int:
+        data = unpack(">H", self.data[self.offset : self.offset + 2])[0]
+        self.offset += 2
+        return int(data)
+
+    def read_int(self) -> int:
+        data = unpack(">I", self.data[self.offset : self.offset + 4])[0]
+        self.offset += 4
+        return int(data)
+
+    def read_string(self) -> str:
+        str_len = self.read_short()
+        data = self.data[self.offset : self.offset + str_len]
+        self.offset += str_len
+        return data.decode()
+
+    def read_bytes(self) -> bytes:
+        return self.data[self.offset :]
+
+
+class MessageFormat(ABC):
     """A class to represent a raw Redis message."""
 
     __slots__ = (
@@ -61,7 +128,7 @@ class RawMessage:
         reply_to: Optional[str],
         headers: Optional["AnyDict"],
         correlation_id: str,
-    ) -> "RawMessage":
+    ) -> "MessageFormat":
         payload, content_type = encode_message(message)
 
         headers_to_send = {
@@ -83,6 +150,27 @@ class RawMessage:
         )
 
     @classmethod
+    @abstractmethod
+    def encode(
+        cls,
+        *,
+        message: Union[Sequence["SendableMessage"], "SendableMessage"],
+        reply_to: Optional[str],
+        headers: Optional["AnyDict"],
+        correlation_id: str,
+    ) -> bytes:
+        raise NotImplementedError()
+
+    @classmethod
+    @abstractmethod
+    def parse(cls, data: bytes) -> Tuple[bytes, "AnyDict"]:
+        raise NotImplementedError()
+
+
+class JSONMessageFormat(MessageFormat):
+    """Message format to encode into JSON and parse it."""
+
+    @classmethod
     def encode(
         cls,
         *,
@@ -97,7 +185,6 @@ class RawMessage:
             headers=headers,
             correlation_id=correlation_id,
         )
-
         return dump_json(
             {
                 "data": msg.data,
@@ -105,21 +192,91 @@ class RawMessage:
             }
         )
 
-    @staticmethod
-    def parse(data: bytes) -> Tuple[bytes, "AnyDict"]:
+    @classmethod
+    def parse(cls, data: bytes) -> Tuple[bytes, "AnyDict"]:
         headers: AnyDict
-
         try:
-            # FastStream message format
             parsed_data = json_loads(data)
             data = parsed_data["data"].encode()
             headers = parsed_data["headers"]
-
         except Exception:
             # Raw Redis message format
             data = data
             headers = {}
+        return data, headers
 
+
+class BinaryMessageFormatV1(MessageFormat):
+    """Message format to encode into binary and parse it."""
+
+    IDENTITY_HEADER = (
+        b"\x89BIN\x0d\x0a\x1a\x0a"  # to avoid confusion with other formats
+    )
+
+    @classmethod
+    def encode(
+        cls,
+        *,
+        message: Union[Sequence["SendableMessage"], "SendableMessage"],
+        reply_to: Optional[str],
+        headers: Optional["AnyDict"],
+        correlation_id: str,
+    ) -> bytes:
+        msg = cls.build(
+            message=message,
+            reply_to=reply_to,
+            headers=headers,
+            correlation_id=correlation_id,
+        )
+        headers_writer = BinaryWriter()
+        for key, value in msg.headers.items():
+            headers_writer.write_string(key)
+            headers_writer.write_string(value)
+
+        headers_len = len(headers_writer.data)
+        writer = BinaryWriter()
+        writer.write(cls.IDENTITY_HEADER)
+        writer.write_short(FastStreamMessageVersion.v1.value)
+        headers_start = len(writer.data) + 8
+        data_start = 2 + headers_start + headers_len
+        writer.write_int(headers_start)
+        writer.write_int(data_start)
+        writer.write_short(len(msg.headers.items()))
+        writer.write(headers_writer.get_bytes())
+        writer.write(msg.data)
+        return writer.get_bytes()
+
+    @classmethod
+    def parse(cls, data: bytes) -> Tuple[bytes, "AnyDict"]:
+        headers: AnyDict
+        try:
+            reader = BinaryReader(data)
+            headers = {}
+            magic_header = reader.read_until(len(cls.IDENTITY_HEADER))
+            message_version = reader.read_short()
+            if (
+                magic_header == cls.IDENTITY_HEADER
+                and message_version == FastStreamMessageVersion.v1.value
+            ):
+                headers_start = reader.read_int()
+                data_start = reader.read_int()
+                reader.shift_offset_to(headers_start)
+                header_count = reader.read_short()
+                for _ in range(header_count):
+                    key = reader.read_string()
+                    value = reader.read_string()
+                    headers[key] = value
+
+                reader.shift_offset_to(data_start)
+                data = reader.read_bytes()
+            else:
+                parsed_data = json_loads(data)
+                data = parsed_data["data"].encode()
+                headers = parsed_data["headers"]
+        except Exception:
+            # Raw Redis message format
+            data = data
+            headers = {}
         return data, headers
 
 
@@ -128,9 +285,11 @@ class SimpleParser:
 
     def __init__(
         self,
+        message_format: Type["MessageFormat"] = EMPTY,
         pattern: Optional["Pattern[str]"] = None,
     ) -> None:
         self.pattern = pattern
+        self.message_format = message_format
 
     async def parse_message(
         self,
@@ -156,7 +315,7 @@ class SimpleParser:
         self,
         message: Mapping[str, Any],
     ) -> Tuple[bytes, "AnyDict", List["AnyDict"]]:
-        return (*RawMessage.parse(message["data"]), [])
+        return (*self.message_format.parse(message["data"]), [])
 
     def get_path(self, message: Mapping[str, Any]) -> "AnyDict":
         if (
@@ -195,7 +354,7 @@ class RedisBatchListParser(SimpleParser):
         batch_headers: List[AnyDict] = []
 
         for x in message["data"]:
-            msg_data, msg_headers = _decode_batch_body_item(x)
+            msg_data, msg_headers = _decode_batch_body_item(x, self.message_format)
             body.append(msg_data)
             batch_headers.append(msg_headers)
 
@@ -219,7 +378,7 @@ class RedisStreamParser(SimpleParser):
         cls, message: Mapping[str, Any]
     ) -> Tuple[bytes, "AnyDict", List["AnyDict"]]:
         data = message["data"]
-        return (*RawMessage.parse(data.get(bDATA_KEY) or dump_json(data)), [])
+        return (*JSONMessageFormat.parse(data.get(bDATA_KEY) or dump_json(data)), [])
 
 
 class RedisBatchStreamParser(SimpleParser):
@@ -233,7 +392,9 @@ class RedisBatchStreamParser(SimpleParser):
         batch_headers: List[AnyDict] = []
 
         for x in message["data"]:
-            msg_data, msg_headers = _decode_batch_body_item(x.get(bDATA_KEY, x))
+            msg_data, msg_headers = _decode_batch_body_item(
+                x.get(bDATA_KEY, x), self.message_format
+            )
             body.append(msg_data)
             batch_headers.append(msg_headers)
 
@@ -249,8 +410,10 @@ class RedisBatchStreamParser(SimpleParser):
         )
 
 
-def _decode_batch_body_item(msg_content: bytes) -> Tuple[Any, "AnyDict"]:
-    msg_body, headers = RawMessage.parse(msg_content)
+def _decode_batch_body_item(
+    msg_content: bytes, message_format: Type["MessageFormat"]
+) -> Tuple[Any, "AnyDict"]:
+    msg_body, headers = message_format.parse(msg_content)
     try:
         return json_loads(msg_body), headers
     except Exception:

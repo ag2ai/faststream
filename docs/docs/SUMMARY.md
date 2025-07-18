@@ -122,6 +122,7 @@ search:
     - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
+	- [Message Format](redis/message_format.md)
 - [Reference - Code API](api/index.md)
     - Public API
         - faststream
@@ -205,6 +206,8 @@ search:
                 - [TestApp](public_api/faststream/rabbit/TestApp.md)
                 - [TestRabbitBroker](public_api/faststream/rabbit/TestRabbitBroker.md)
             - redis
+                - [BinaryMessageFormatV1](public_api/faststream/redis/BinaryMessageFormatV1.md)
+                - [JSONMessageFormat](public_api/faststream/redis/JSONMessageFormat.md)
                 - [ListSub](public_api/faststream/redis/ListSub.md)
                 - [PubSub](public_api/faststream/redis/PubSub.md)
                 - [RedisBroker](public_api/faststream/redis/RedisBroker.md)
@@ -1016,6 +1019,8 @@ search:
                     - [build_virtual_host](api/faststream/rabbit/utils/build_virtual_host.md)
                     - [is_routing_exchange](api/faststream/rabbit/utils/is_routing_exchange.md)
             - redis
+                - [BinaryMessageFormatV1](api/faststream/redis/BinaryMessageFormatV1.md)
+                - [JSONMessageFormat](api/faststream/redis/JSONMessageFormat.md)
                 - [ListSub](api/faststream/redis/ListSub.md)
                 - [PubSub](api/faststream/redis/PubSub.md)
                 - [RedisBroker](api/faststream/redis/RedisBroker.md)
@@ -1062,7 +1067,12 @@ search:
                     - provider
                         - [RedisTelemetrySettingsProvider](api/faststream/redis/opentelemetry/provider/RedisTelemetrySettingsProvider.md)
                 - parser
-                    - [RawMessage](api/faststream/redis/parser/RawMessage.md)
+                    - [BinaryMessageFormatV1](api/faststream/redis/parser/BinaryMessageFormatV1.md)
+                    - [BinaryReader](api/faststream/redis/parser/BinaryReader.md)
+                    - [BinaryWriter](api/faststream/redis/parser/BinaryWriter.md)
+                    - [FastStreamMessageVersion](api/faststream/redis/parser/FastStreamMessageVersion.md)
+                    - [JSONMessageFormat](api/faststream/redis/parser/JSONMessageFormat.md)
+                    - [MessageFormat](api/faststream/redis/parser/MessageFormat.md)
                     - [RedisBatchListParser](api/faststream/redis/parser/RedisBatchListParser.md)
                     - [RedisBatchStreamParser](api/faststream/redis/parser/RedisBatchStreamParser.md)
                     - [RedisListParser](api/faststream/redis/parser/RedisListParser.md)
