@@ -22,9 +22,9 @@ from faststream.nats.configs import NatsBrokerConfig
 from .registrator import NatsRegistrator
 
 if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
     from nats.aio.msg import Msg
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -230,10 +230,8 @@ class NatsRoute(SubscriberRoute):
             bool,
             Doc("Whether to `ack` message at start of consuming or not."),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         stream: Annotated[

@@ -22,6 +22,7 @@ from faststream.nats.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -139,10 +140,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             bool,
             Doc("Whether to `ack` message at start of consuming or not."),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         stream: Annotated[

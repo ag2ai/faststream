@@ -206,6 +206,34 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    async def test_include_publisher_with_prefix(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        broker = self.get_broker()
+
+        args2, kwargs2 = self.get_subscriber_params(f"test_{queue}")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handler(m: Any) -> None:
+            event.set()
+
+        router = self.get_router()
+        publisher = router.publisher(queue)
+        broker.include_router(router, prefix="test_")
+
+        async with broker:
+            await broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(publisher.publish("hello")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
     async def test_manual_publisher(
         self,
         queue: str,

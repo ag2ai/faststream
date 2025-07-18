@@ -23,6 +23,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.redis.broker.broker import RedisBroker as RB
@@ -150,6 +151,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
                 "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
             ),
         ] = "/asyncapi",
+        context: ContextRepo | None = None,
         # FastAPI args
         prefix: Annotated[
             str,
@@ -390,6 +392,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             client_name=client_name,
             schema_url=schema_url,
             setup_state=setup_state,
+            context=context,
             # logger options
             logger=logger,
             log_level=log_level,

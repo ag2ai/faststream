@@ -39,12 +39,12 @@ from .registrator import RedisRegistrator
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from redis.asyncio.client import Pipeline, Redis
     from redis.asyncio.connection import BaseParser
     from typing_extensions import TypedDict
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import (
         AnyDict,
         LoggerProto,

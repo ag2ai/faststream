@@ -35,6 +35,7 @@ from .utils import MultiLock, default_filter
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import AnyDict, Decorator
     from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper

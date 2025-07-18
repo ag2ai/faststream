@@ -10,6 +10,8 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
+from faststream.rabbit.schemas import RabbitExchange
+from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITER
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import RabbitQueue
 
     from .config import RabbitSubscriberConfig
 
@@ -186,13 +188,25 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         message: "StreamMessage[Any]",
     ) -> Sequence["PublisherProto"]:
-        return (
-            RabbitFakePublisher(
+        if REPLY_TO_QUEUE_EXCHANGE_DELIMITER in message.reply_to:
+            queue_name, exchange_name = message.reply_to.split(
+                REPLY_TO_QUEUE_EXCHANGE_DELIMITER, 2
+            )
+            publisher = RabbitFakePublisher(
                 self._outer_config.producer,
-                routing_key=message.reply_to,
                 app_id=self.app_id,
-            ),
-        )
+                routing_key=queue_name,
+                exchange=RabbitExchange.validate(exchange_name),
+            )
+        else:
+            publisher = RabbitFakePublisher(
+                self._outer_config.producer,
+                app_id=self.app_id,
+                routing_key=message.reply_to,
+                exchange=RabbitExchange(),
+            )
+
+        return (publisher,)
 
     @staticmethod
     def build_log_context(

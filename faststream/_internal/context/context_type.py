@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from fast_depends.library import CustomField
+
 from faststream._internal.basic_types import AnyDict
 from faststream._internal.constants import EMPTY
 

@@ -49,10 +49,10 @@ if TYPE_CHECKING:
         RobustQueue,
     )
     from aio_pika.abc import DateType, HeadersType, SSLOptions, TimeoutType
+    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from yarl import URL
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (

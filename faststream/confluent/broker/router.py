@@ -16,8 +16,8 @@ from .registrator import KafkaRegistrator
 
 if TYPE_CHECKING:
     from confluent_kafka import Message
-
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -121,10 +121,10 @@ class KafkaRoute(SubscriberRoute):
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
         auto_commit: Annotated[
             bool,
-            deprecated("""
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """),
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
         ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,

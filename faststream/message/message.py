@@ -45,7 +45,7 @@ class StreamMessage(Generic[MsgType]):
         self.body = body
         self.reply_to = reply_to
         self.content_type = content_type
-        self._source_type = source_type
+        self.source_type = source_type
 
         self.headers = headers or {}
         self.batch_headers = batch_headers or []

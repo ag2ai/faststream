@@ -15,6 +15,7 @@ from faststream._internal.types import BrokerMiddleware, MsgType
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.endpoint.publisher import PublisherUsecase
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
 

@@ -50,6 +50,7 @@ from .registrator import NatsRegistrator
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from nats.aio.client import (
         Callback,
@@ -63,7 +64,6 @@ if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
     from typing_extensions import TypedDict
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import (
         LoggerProto,
         SendableMessage,
@@ -838,9 +838,7 @@ class NatsBroker(
 
         [1] https://nats-io.github.io/nats.py/modules.html#nats.aio.client.Client.new_inbox
         """
-        assert self._connection
-
-        return self._connection.new_inbox()
+        return self.connection.new_inbox()
 
     @override
     async def ping(self, timeout: float | None) -> bool:
@@ -860,3 +858,7 @@ class NatsBroker(
                 await anyio.sleep(sleep_time)
 
         return False
+
+    @property
+    def connection(self) -> "Client":
+        return self.config.broker_config.connection_state.connection

@@ -17,6 +17,7 @@ from .registrator import RedisRegistrator
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import AnyDict, SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (

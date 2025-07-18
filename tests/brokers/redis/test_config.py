@@ -2,6 +2,8 @@ import pytest
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from faststream import AckPolicy
 from faststream.redis import ListSub, PubSub, StreamSub
 from faststream.redis.subscriber.config import RedisSubscriberConfig
@@ -63,15 +65,19 @@ def test_custom_ack() -> None:
 
 @pytest.mark.redis()
 def test_stream_sub_with_no_ack_group() -> None:
-    config = RedisSubscriberConfig(
-        _outer_config=MagicMock(),
-        stream_sub=StreamSub(
-            "test_stream",
-            group="test_group",
-            consumer="test_consumer",
-            no_ack=True,
-        ),
-    )
+    with pytest.warns(
+        RuntimeWarning,
+        match="`no_ack` is not supported by consumer group with last_id other than `>`",
+    ):
+        config = RedisSubscriberConfig(
+            _outer_config=MagicMock(),
+            stream_sub=StreamSub(
+                "test_stream",
+                group="test_group",
+                consumer="test_consumer",
+                no_ack=True,
+            ),
+        )
     assert config.ack_policy is AckPolicy.DO_NOTHING
 
 

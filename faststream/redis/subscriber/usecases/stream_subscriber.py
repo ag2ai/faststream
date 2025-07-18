@@ -63,7 +63,6 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def _consume(self, *args: Any, start_signal: "Event") -> None:
-        assert self._client, "You should setup subscriber at first."
         if await self._client.ping():
             start_signal.set()
         await super()._consume(*args, start_signal=start_signal)
@@ -72,8 +71,6 @@ class _StreamHandlerMixin(LogicSubscriber):
     async def start(self) -> None:
         if self.tasks:
             return
-
-        assert self._client, "You should setup subscriber at first."
 
         client = self._client
 
@@ -104,10 +101,11 @@ class _StreamHandlerMixin(LogicSubscriber):
         ]
 
         if stream.group and stream.consumer:
+            group_create_id = "$" if self.last_id == ">" else self.last_id
             try:
                 await client.xgroup_create(
                     name=stream.name,
-                    id=self.last_id,
+                    id=group_create_id,
                     groupname=stream.group,
                     mkstream=True,
                 )
@@ -135,7 +133,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 return client.xreadgroup(
                     groupname=stream.group,
                     consumername=stream.consumer,
-                    streams={stream.name: ">"},
+                    streams={stream.name: stream.last_id},
                     count=stream.max_records,
                     block=stream.polling_interval,
                     noack=stream.no_ack,
@@ -174,7 +172,6 @@ class _StreamHandlerMixin(LogicSubscriber):
         *,
         timeout: float = 5.0,
     ) -> "RedisStreamMessage | None":
-        assert self._client, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -213,7 +210,6 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # type: ignore[override]
-        assert self._client, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )

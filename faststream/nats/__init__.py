@@ -18,7 +18,7 @@ try:
 
     from .annotations import NatsMessage
     from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
-    from .response import NatsResponse
+    from .response import NatsPublishCommand, NatsResponse
     from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub
     from .testing import TestNatsBroker
 
@@ -33,7 +33,6 @@ except ImportError as e:
 
 __all__ = (
     "AckPolicy",
-    # Nats imports
     "ConsumerConfig",
     "DeliverPolicy",
     "DiscardPolicy",
@@ -42,6 +41,7 @@ __all__ = (
     "KvWatch",
     "NatsBroker",
     "NatsMessage",
+    "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",
     "NatsRoute",

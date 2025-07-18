@@ -74,8 +74,6 @@ class _ListHandlerMixin(LogicSubscriber):
         if self.tasks:
             return
 
-        assert self._client, "You should setup subscriber at first."
-
         await super().start(self._client)
 
     @override
@@ -84,7 +82,6 @@ class _ListHandlerMixin(LogicSubscriber):
         *,
         timeout: float = 5.0,
     ) -> "RedisListMessage | None":
-        assert self._client, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -121,7 +118,6 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:  # type: ignore[override]
-        assert self._client, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )

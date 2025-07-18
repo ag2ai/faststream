@@ -16,6 +16,7 @@ from faststream.exceptions import SetupError
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import Decorator
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.publisher import PublisherProto
