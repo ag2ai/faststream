@@ -4,6 +4,7 @@ from faststream import TestApp
 from faststream.nats import TestNatsBroker
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)

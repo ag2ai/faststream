@@ -1,3 +1,5 @@
+import pytest
+
 from faststream.nats import JStream, NatsBroker, NatsRouter
 from tests.brokers.base.include_router import (
     IncludePublisherTestcase,
@@ -7,14 +9,17 @@ from tests.brokers.base.include_router import (
 from .basic import NatsTestcaseConfig
 
 
+@pytest.mark.nats()
 class TestSubscriber(NatsTestcaseConfig, IncludeSubscriberTestcase):
     pass
 
 
+@pytest.mark.nats()
 class TestPublisher(NatsTestcaseConfig, IncludePublisherTestcase):
     pass
 
 
+@pytest.mark.nats()
 def test_included_stream_subjects_respects_prefix() -> None:
     stream = JStream("stream", subjects=["useless"])
 

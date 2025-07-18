@@ -6,6 +6,7 @@ from faststream.confluent import TestApp, TestKafkaBroker
 from faststream.confluent.message import KafkaMessage
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_ack_exc(mock: MagicMock) -> None:
     from docs.docs_src.confluent.ack.errors import app, broker

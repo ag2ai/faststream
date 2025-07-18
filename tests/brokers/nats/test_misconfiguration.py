@@ -6,6 +6,7 @@ from faststream.nats.broker.broker import NatsBroker
 from faststream.rabbit import RabbitRouter
 
 
+@pytest.mark.nats()
 def test_use_only_nats_router() -> None:
     broker = NatsBroker()
     router = RabbitRouter()

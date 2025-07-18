@@ -17,6 +17,7 @@ def exchange(queue):
     return RabbitExchange(name=queue)
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestPrometheus(
     RabbitPrometheusSettings,
@@ -26,6 +27,7 @@ class TestPrometheus(
     pass
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestPublishWithPrometheus(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
@@ -36,6 +38,7 @@ class TestPublishWithPrometheus(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestConsumeWithPrometheus(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:

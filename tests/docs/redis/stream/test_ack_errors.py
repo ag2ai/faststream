@@ -7,6 +7,7 @@ from faststream.redis import TestApp, TestRedisBroker
 from tests.tools import spy_decorator
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 async def test_stream_ack() -> None:

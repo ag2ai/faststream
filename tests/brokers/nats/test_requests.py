@@ -70,10 +70,12 @@ class NatsRequestsTestcase(RequestsTestcase):
         assert response.correlation_id == "1"
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
     pass
 
 
+@pytest.mark.nats()
 class TestRequestTestClient(NatsMemoryTestcaseConfig, NatsRequestsTestcase):
     pass

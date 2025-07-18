@@ -2,6 +2,7 @@ import pytest
 from dirty_equals import IsPartialDict
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_base_security() -> None:
@@ -12,6 +13,7 @@ async def test_base_security() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_scram256() -> None:
@@ -27,6 +29,7 @@ async def test_scram256() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_scram512() -> None:
@@ -42,6 +45,7 @@ async def test_scram512() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_plaintext() -> None:
@@ -59,6 +63,7 @@ async def test_plaintext() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_oathbearer() -> None:
@@ -74,6 +79,7 @@ async def test_oathbearer() -> None:
     })
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_gssapi() -> None:

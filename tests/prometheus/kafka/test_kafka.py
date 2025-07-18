@@ -14,6 +14,7 @@ from .basic import BatchKafkaPrometheusSettings, KafkaPrometheusSettings
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase):
     async def test_metrics(
         self,
@@ -55,10 +56,12 @@ class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase)
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestPrometheus(KafkaPrometheusSettings, LocalPrometheusTestcase): ...
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestPublishWithPrometheus(TestPublish):
     def get_broker(
         self,
@@ -73,6 +76,7 @@ class TestPublishWithPrometheus(TestPublish):
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestConsumeWithPrometheus(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs):
         return KafkaBroker(

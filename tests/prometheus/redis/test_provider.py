@@ -32,6 +32,7 @@ class LocalBaseRedisMetricsSettingsProviderTestcase(
         assert destination_name == expected_destination_name
 
 
+@pytest.mark.redis()
 class TestRedisMetricsSettingsProvider(
     RedisPrometheusSettings,
     LocalBaseRedisMetricsSettingsProviderTestcase,
@@ -65,6 +66,7 @@ class TestRedisMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.redis()
 class TestBatchRedisMetricsSettingsProvider(
     BatchRedisPrometheusSettings,
     LocalBaseRedisMetricsSettingsProviderTestcase,
@@ -104,6 +106,7 @@ class TestBatchRedisMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.redis()
 @pytest.mark.parametrize(
     ("msg", "expected_provider"),
     (

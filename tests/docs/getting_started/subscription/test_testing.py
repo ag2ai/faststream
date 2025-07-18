@@ -10,6 +10,7 @@ from tests.marks import (
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @require_aiokafka
 async def test_handle_kafka() -> None:
@@ -21,6 +22,7 @@ async def test_handle_kafka() -> None:
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @require_aiokafka
 async def test_validate_kafka() -> None:
@@ -31,6 +33,7 @@ async def test_validate_kafka() -> None:
     await test_validation_error_k()
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 @require_confluent
@@ -42,6 +45,7 @@ async def test_handle_confluent() -> None:
     await test_handle_confluent()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @require_confluent
@@ -53,6 +57,7 @@ async def test_validate_confluent() -> None:
     await test_validation_error_confluent()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 @require_aiopika
@@ -64,6 +69,7 @@ async def test_handle_rabbit() -> None:
     await test_handle_r()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 @require_aiopika
@@ -75,6 +81,7 @@ async def test_validate_rabbit() -> None:
     await test_validation_error_r()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 @require_nats
@@ -86,6 +93,7 @@ async def test_handle_nats() -> None:
     await test_handle_n()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 @require_nats
@@ -97,6 +105,7 @@ async def test_validate_nats() -> None:
     await test_validation_error_n()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 @require_redis
@@ -108,6 +117,7 @@ async def test_handle_redis() -> None:
     await test_handle_rd()
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 @require_redis

@@ -18,6 +18,7 @@ from tests.tools import spy_decorator
 from .basic import RedisTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
@@ -138,6 +139,7 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         assert mock.call_count == 2, mock.call_count
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeList(RedisTestcaseConfig):
@@ -464,6 +466,7 @@ class TestConsumeList(RedisTestcaseConfig):
                     break
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeStream(RedisTestcaseConfig):

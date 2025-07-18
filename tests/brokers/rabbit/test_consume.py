@@ -15,6 +15,7 @@ from tests.tools import spy_decorator
 from .basic import RabbitTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()

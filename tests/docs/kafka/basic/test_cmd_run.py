@@ -10,6 +10,7 @@ from faststream.app import FastStream
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 def test_run_cmd(
     runner: CliRunner,
     mock: MagicMock,

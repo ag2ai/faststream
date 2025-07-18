@@ -17,6 +17,7 @@ class Mid(BaseMiddleware):
         return await call_next(msg)
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 class TestRequestTestClient(KafkaMemoryTestcaseConfig, RequestsTestcase):
     def get_middleware(self, **kwargs: Any):

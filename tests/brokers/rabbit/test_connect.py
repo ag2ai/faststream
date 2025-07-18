@@ -5,6 +5,7 @@ from faststream.security import SASLPlaintext
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestConnection(BrokerConnectionTestcase):
     broker: type[RabbitBroker] = RabbitBroker

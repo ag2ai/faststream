@@ -65,6 +65,7 @@ async def test_nats_path() -> None:
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 @require_nats

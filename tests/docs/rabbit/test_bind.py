@@ -7,6 +7,7 @@ from faststream import TestApp
 from tests.marks import require_aiopika
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 @require_aiopika

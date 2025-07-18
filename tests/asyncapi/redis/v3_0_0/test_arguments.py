@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.redis import RedisBroker, StreamSub
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
+@pytest.mark.redis()
 class TestArguments(ArgumentsTestcase):
     broker_class = RedisBroker
 

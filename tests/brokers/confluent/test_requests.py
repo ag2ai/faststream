@@ -17,6 +17,7 @@ class Mid(BaseMiddleware):
         return await call_next(msg)
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 class TestRequestTestClient(ConfluentMemoryTestcaseConfig, RequestsTestcase):
     def get_middleware(self, **kwargs: Any):

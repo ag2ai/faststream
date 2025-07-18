@@ -22,6 +22,7 @@ from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestTelemetry(LocalTelemetryTestcase):
     messaging_system = "kafka"
     include_messages_counters = True
@@ -268,6 +269,7 @@ class TestTelemetry(LocalTelemetryTestcase):
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestPublishWithTelemetry(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
         return KafkaBroker(
@@ -278,6 +280,7 @@ class TestPublishWithTelemetry(TestPublish):
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestConsumeWithTelemetry(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
         return KafkaBroker(

@@ -41,12 +41,14 @@ async def _test_with_broker(with_real: bool) -> None:
         on_output_data.mock.assert_called_once_with(2)
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
     await _test_with_broker(False)
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
@@ -70,6 +72,7 @@ async def _test_with_temp_subscriber() -> None:
         on_output_data.mock.assert_called_once_with(2)
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 @pytest.mark.skip(
     reason=(

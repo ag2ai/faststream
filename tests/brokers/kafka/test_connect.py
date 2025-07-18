@@ -9,6 +9,7 @@ from .conftest import Settings
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker
 

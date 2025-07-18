@@ -10,6 +10,7 @@ from tests.brokers.base.publish import BrokerPublishTestcase
 from .basic import NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
     """Test publish method of NATS broker."""

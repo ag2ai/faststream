@@ -6,5 +6,6 @@ from .basic import KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestCustomParser(KafkaTestcaseConfig, CustomParserTestcase):
     pass

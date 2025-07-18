@@ -14,6 +14,7 @@ from tests.prometheus.basic import LocalPrometheusTestcase, LocalRPCPrometheusTe
 from .basic import BatchRedisPrometheusSettings, RedisPrometheusSettings
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase):
     async def test_metrics(
@@ -54,6 +55,7 @@ class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase)
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestPrometheus(
     RedisPrometheusSettings,
@@ -62,6 +64,7 @@ class TestPrometheus(
 ): ...
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestPublishWithPrometheus(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
@@ -72,6 +75,7 @@ class TestPublishWithPrometheus(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestConsumeWithPrometheus(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:

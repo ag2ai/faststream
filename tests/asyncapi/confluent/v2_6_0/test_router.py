@@ -1,3 +1,5 @@
+import pytest
+
 from typing import Any
 
 from faststream._internal.broker import BrokerUsecase
@@ -8,6 +10,7 @@ from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase
 
 
+@pytest.mark.confluent()
 class TestRouter(RouterTestcase):
     broker_class = KafkaBroker
     router_class = KafkaRouter
@@ -69,6 +72,7 @@ class TestRouter(RouterTestcase):
         }
 
 
+@pytest.mark.confluent()
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = KafkaRouter
 
@@ -76,6 +80,7 @@ class TestRouterArguments(ArgumentsTestcase):
         return super().get_spec(KafkaBroker(routers=[broker]))
 
 
+@pytest.mark.confluent()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 

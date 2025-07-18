@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.confluent import KafkaBroker
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
+@pytest.mark.confluent()
 class TestArguments(PublisherTestcase):
     broker_class = KafkaBroker
 

@@ -1,6 +1,9 @@
+import pytest
+
 from faststream.rabbit import RabbitQueue
 
 
+@pytest.mark.rabbit()
 def test_same_queue() -> None:
     assert (
         len({
@@ -11,6 +14,7 @@ def test_same_queue() -> None:
     )
 
 
+@pytest.mark.rabbit()
 def test_different_queue_routing_key() -> None:
     assert (
         len({

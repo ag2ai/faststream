@@ -10,6 +10,7 @@ from docs.docs_src.kafka.publish_batch.app import (
 from faststream.kafka import TestKafkaBroker
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_batch_publish_decorator() -> None:
     async with TestKafkaBroker(broker):
@@ -21,6 +22,7 @@ async def test_batch_publish_decorator() -> None:
         )
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_batch_publish_call() -> None:
     async with TestKafkaBroker(broker):

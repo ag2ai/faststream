@@ -13,6 +13,7 @@ from .basic import KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()

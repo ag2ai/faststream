@@ -10,11 +10,13 @@ from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestRouter(KafkaTestcaseConfig, RouterTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher
 
 
+@pytest.mark.kafka()
 class TestRouterLocal(KafkaMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher

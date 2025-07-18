@@ -14,6 +14,7 @@ from tests.prometheus.basic import LocalPrometheusTestcase
 from .basic import BatchConfluentPrometheusSettings, ConfluentPrometheusSettings
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestcase):
     async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
@@ -50,11 +51,13 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestPrometheus(ConfluentPrometheusSettings, LocalPrometheusTestcase):
     pass
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestPublishWithPrometheus(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
@@ -65,6 +68,7 @@ class TestPublishWithPrometheus(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConsumeWithPrometheus(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:

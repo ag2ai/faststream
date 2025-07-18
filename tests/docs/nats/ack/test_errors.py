@@ -7,6 +7,7 @@ from faststream.nats import TestApp, TestNatsBroker
 from tests.tools import spy_decorator
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 async def test_ack_exc() -> None:

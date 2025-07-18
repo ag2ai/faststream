@@ -1,9 +1,12 @@
+import pytest
+
 from unittest.mock import MagicMock
 
 from faststream import AckPolicy
 from faststream.rabbit.subscriber.config import RabbitSubscriberConfig
 
 
+@pytest.mark.rabbit()
 def test_default() -> None:
     config = RabbitSubscriberConfig(
         _outer_config=MagicMock(),
@@ -14,6 +17,7 @@ def test_default() -> None:
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
+@pytest.mark.rabbit()
 def test_ack_first() -> None:
     config = RabbitSubscriberConfig(
         _outer_config=MagicMock(),
@@ -26,6 +30,7 @@ def test_ack_first() -> None:
     assert config.ack_first
 
 
+@pytest.mark.rabbit()
 def test_custom_ack() -> None:
     config = RabbitSubscriberConfig(
         _outer_config=MagicMock(),
@@ -37,6 +42,7 @@ def test_custom_ack() -> None:
     assert config.ack_policy is AckPolicy.ACK
 
 
+@pytest.mark.rabbit()
 def test_no_ack() -> None:
     config = RabbitSubscriberConfig(
         _outer_config=MagicMock(),

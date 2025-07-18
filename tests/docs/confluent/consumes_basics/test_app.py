@@ -8,6 +8,7 @@ from docs.docs_src.confluent.consumes_basics.app import (
 from faststream.confluent import TestKafkaBroker
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_base_app() -> None:
     async with TestKafkaBroker(broker):

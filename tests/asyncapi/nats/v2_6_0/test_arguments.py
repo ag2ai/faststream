@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.nats import NatsBroker
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
+@pytest.mark.nats()
 class TestArguments(ArgumentsTestcase):
     broker_class = NatsBroker
 

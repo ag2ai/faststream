@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.kafka import KafkaBroker
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 
 
+@pytest.mark.kafka()
 class TestNaming(NamingTestCase):
     broker_class = KafkaBroker
 

@@ -10,6 +10,7 @@ from tests.brokers.base.publish import BrokerPublishTestcase
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()

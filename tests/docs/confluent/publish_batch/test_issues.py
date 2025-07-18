@@ -16,6 +16,7 @@ async def handle(msg: str) -> list[int]:
 app = FastStream(broker)
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_base_app() -> None:
     async with TestKafkaBroker(broker):

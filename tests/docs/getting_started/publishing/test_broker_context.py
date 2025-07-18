@@ -12,6 +12,7 @@ from tests.marks import (
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @require_aiokafka
 async def test_broker_context_kafka() -> None:
     from docs.docs_src.getting_started.publishing.kafka.broker_context import (
@@ -26,6 +27,7 @@ async def test_broker_context_kafka() -> None:
         handle.mock.assert_called_once_with("Hi!")
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 @require_confluent
@@ -43,6 +45,7 @@ async def test_broker_context_confluent() -> None:
         handle.mock.assert_called_once_with("Hi!")
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 @require_nats
@@ -59,6 +62,7 @@ async def test_broker_context_nats() -> None:
         handle.mock.assert_called_once_with("Hi!")
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 @require_aiopika
@@ -75,6 +79,7 @@ async def test_broker_context_rabbit() -> None:
         handle.mock.assert_called_once_with("Hi!")
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 @require_redis

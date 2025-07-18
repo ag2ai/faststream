@@ -1,8 +1,11 @@
+import pytest
+
 from faststream.kafka.response import KafkaPublishCommand, KafkaResponse
 from faststream.response import ensure_response
 from tests.brokers.base.publish_command import BatchPublishCommandTestcase
 
 
+@pytest.mark.kafka()
 class TestPublishCommand(BatchPublishCommandTestcase):
     publish_command_cls = KafkaPublishCommand
 

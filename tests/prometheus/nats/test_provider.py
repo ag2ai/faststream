@@ -27,6 +27,7 @@ class LocalBaseNatsMetricsSettingsProviderTestcase(
         assert destination_name == expected_destination_name
 
 
+@pytest.mark.nats()
 class TestNatsMetricsSettingsProvider(
     NatsPrometheusSettings,
     LocalBaseNatsMetricsSettingsProviderTestcase,
@@ -46,6 +47,7 @@ class TestNatsMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.nats()
 class TestBatchNatsMetricsSettingsProvider(
     BatchNatsPrometheusSettings,
     LocalBaseNatsMetricsSettingsProviderTestcase,
@@ -69,6 +71,7 @@ class TestBatchNatsMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.nats()
 @pytest.mark.parametrize(
     ("msg", "expected_provider"),
     (

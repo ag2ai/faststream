@@ -22,6 +22,7 @@ def patch_aio_consumer_and_producer() -> tuple[MagicMock, MagicMock]:
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 async def test_base_security() -> None:
     from docs.docs_src.kafka.security.basic import broker as basic_broker
 
@@ -39,6 +40,7 @@ async def test_base_security() -> None:
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 async def test_scram256() -> None:
     from docs.docs_src.kafka.security.sasl_scram256 import (
         broker as scram256_broker,
@@ -61,6 +63,7 @@ async def test_scram256() -> None:
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 async def test_scram512() -> None:
     from docs.docs_src.kafka.security.sasl_scram512 import (
         broker as scram512_broker,
@@ -83,6 +86,7 @@ async def test_scram512() -> None:
 
 @pytest.mark.asyncio()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 async def test_plaintext() -> None:
     from docs.docs_src.kafka.security.plaintext import (
         broker as plaintext_broker,
@@ -104,6 +108,7 @@ async def test_plaintext() -> None:
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 async def test_gssapi() -> None:
     from docs.docs_src.kafka.security.sasl_gssapi import (

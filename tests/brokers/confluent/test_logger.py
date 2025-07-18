@@ -5,6 +5,7 @@ import pytest
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestLogger(ConfluentTestcaseConfig):
     """A class to represent a test Kafka broker."""

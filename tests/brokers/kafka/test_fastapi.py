@@ -11,6 +11,7 @@ from .basic import KafkaMemoryTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestKafkaRouter(FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
@@ -43,6 +44,7 @@ class TestKafkaRouter(FastAPITestcase):
         mock.assert_called_with(["hi"])
 
 
+@pytest.mark.kafka()
 class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter

@@ -9,6 +9,7 @@ from docs.docs_src.kafka.publish_example.app import (
 from faststream.kafka import TestKafkaBroker
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_base_app() -> None:
     async with TestKafkaBroker(broker):

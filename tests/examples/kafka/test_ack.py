@@ -8,6 +8,7 @@ from faststream.kafka.message import KafkaAckableMessage
 from tests.tools import spy_decorator
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_ack() -> None:
     with patch.object(

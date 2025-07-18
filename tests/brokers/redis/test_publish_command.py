@@ -1,8 +1,11 @@
+import pytest
+
 from faststream.redis.response import RedisPublishCommand, RedisResponse
 from faststream.response import ensure_response
 from tests.brokers.base.publish_command import BatchPublishCommandTestcase
 
 
+@pytest.mark.redis()
 class TestPublishCommand(BatchPublishCommandTestcase):
     publish_command_cls = RedisPublishCommand
 

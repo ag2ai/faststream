@@ -3,6 +3,7 @@ import pytest
 from faststream.nats import TestApp, TestNatsBroker
 
 
+@pytest.mark.nats()
 @pytest.mark.asyncio()
 async def test_basic() -> None:
     from docs.docs_src.nats.js.pull_sub import app, broker, handle

@@ -5,6 +5,7 @@ import pytest
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_bind_to(queue: str) -> None:

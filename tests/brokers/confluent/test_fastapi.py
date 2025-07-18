@@ -10,6 +10,7 @@ from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
@@ -45,6 +46,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
         mock.assert_called_with(["hi"])
 
 
+@pytest.mark.confluent()
 class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
