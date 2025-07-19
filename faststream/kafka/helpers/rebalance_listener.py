@@ -68,7 +68,7 @@ class _LoggingListener(ConsumerRebalanceListener):  # type: ignore[misc]
         self.logger.log(
             logging.INFO,
             f"Consumer {self.consumer._coordinator.member_id} assigned to partitions: "
-            f"{assigned}",
+            f"({', '.join(str(tp) for tp in assigned)})",
             extra=self.log_extra,
         )
 
