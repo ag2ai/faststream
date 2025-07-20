@@ -73,7 +73,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
     ) -> None:
         broker = self.get_broker(apply_types=True)
 
-        @broker.subscriber(queue, group_id=f"{queue}1", ack_policy=AckPolicy.DO_NOTHING)
+        @broker.subscriber(queue, group_id=f"{queue}1", ack_policy=AckPolicy.MANUAL)
         async def m(msg: KafkaMessage) -> None:
             await msg.nack()
 

@@ -84,7 +84,7 @@ def create_subscriber(
             channel=subscriber_config.channel_sub,
         )
 
-        subscriber_config._ack_policy = AckPolicy.DO_NOTHING
+        subscriber_config._ack_policy = AckPolicy.MANUAL
 
         if max_workers > 1:
             return ChannelConcurrentSubscriber(
@@ -154,7 +154,7 @@ def _validate_input_for_misconfigure(
 
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )

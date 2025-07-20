@@ -133,7 +133,7 @@ def create_subscriber(
             # JS Push Subscriber
             if ack_first or ack_policy is AckPolicy.ACK_FIRST:
                 manual_ack = False
-                ack_policy = AckPolicy.DO_NOTHING
+                ack_policy = AckPolicy.MANUAL
             else:
                 manual_ack = True
 
@@ -294,10 +294,10 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
                 stacklevel=4,
             )
 
-        elif stream is None and ack_policy is not AckPolicy.DO_NOTHING:
+        elif stream is None and ack_policy is not AckPolicy.MANUAL:
             warnings.warn(
                 (
-                    "Core subscriber supports only `ack_policy=AckPolicy.DO_NOTHING` option for very specific cases. "
+                    "Core subscriber supports only `ack_policy=AckPolicy.MANUAL` option for very specific cases. "
                     "If you are using different option, probably, you should use JetStream Subscriber instead."
                 ),
                 RuntimeWarning,
@@ -326,7 +326,7 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
 
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )
@@ -335,7 +335,7 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
             msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
             raise SetupError(msg)
 
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
+        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
 
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.REJECT_ON_ERROR

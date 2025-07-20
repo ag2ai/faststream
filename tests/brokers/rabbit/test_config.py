@@ -26,7 +26,7 @@ def test_ack_first() -> None:
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
-    assert config.ack_policy is AckPolicy.DO_NOTHING
+    assert config.ack_policy is AckPolicy.MANUAL
     assert config.ack_first
 
 
@@ -51,5 +51,5 @@ def test_no_ack() -> None:
         _no_ack=True,
     )
 
-    assert config.ack_policy is AckPolicy.DO_NOTHING
+    assert config.ack_policy is AckPolicy.MANUAL
     assert not config.ack_first

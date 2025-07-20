@@ -44,7 +44,7 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 | `ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack after success.                                          | Ack sent anyway;<br/>message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
 | `REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it;<br/>otherwise, ack.                                             | Ack after success. | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
 | `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redelivers; Kafka commits as fallback.        |
-| `DO_NOTHING`      | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | | |
+| `MANUAL`      | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | | |
 
 ---
 
@@ -54,7 +54,7 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 - Use `ACK` if you want the message to be acknowledged, regardless of success or failure.
 - Use `REJECT_ON_ERROR` to permanently discard messages on failure.
 - Use `NACK_ON_ERROR` to retry messages in case of failure.
-- Use `DO_NOTHING` to fully manually control message acknowledgment (for example, calling `#!python message.ack()` yourself).
+- Use `MANUAL` to fully manually control message acknowledgment (for example, calling `#!python message.ack()` yourself).
 
 ---
 
@@ -84,7 +84,7 @@ from faststream.kafka import KafkaBroker
 broker = KafkaBroker()
 app = FastStream(broker)
 
-@broker.subscriber("events", ack_policy=AckPolicy.DO_NOTHING)
+@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
 async def handle_event(msg: str) -> None:
     try:
         # do_smth(msg)

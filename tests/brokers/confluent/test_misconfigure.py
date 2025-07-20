@@ -63,10 +63,10 @@ def test_deprecated_conflicts_actual(queue: str) -> None:
 def test_manual_ack_policy_without_group(queue: str) -> None:
     broker = KafkaBroker()
 
-    broker.subscriber(queue, group_id="test", ack_policy=AckPolicy.DO_NOTHING)
+    broker.subscriber(queue, group_id="test", ack_policy=AckPolicy.MANUAL)
 
     with pytest.raises(SetupError):
-        broker.subscriber(queue, ack_policy=AckPolicy.DO_NOTHING)
+        broker.subscriber(queue, ack_policy=AckPolicy.MANUAL)
 
 
 @pytest.mark.confluent()

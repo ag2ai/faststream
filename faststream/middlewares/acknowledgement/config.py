@@ -14,5 +14,5 @@ class AckPolicy(str, Enum):
     NACK_ON_ERROR = "nack_on_error"
     """Nack message on unhandled exceptions."""
 
-    DO_NOTHING = "do_nothing"
+    MANUAL = "manual"
     """Disable default FastStream Acknowledgement logic. User should confirm all actions manually."""

@@ -27,16 +27,16 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
     @property
     def ack_policy(self) -> AckPolicy:
         if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self.list_sub:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self.channel_sub:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self.stream_sub and (self.stream_sub.no_ack or not self.stream_sub.group):
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self._ack_policy is EMPTY:
             return AckPolicy.REJECT_ON_ERROR

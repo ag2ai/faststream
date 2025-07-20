@@ -36,7 +36,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     ) -> None:
         parser = NatsParser(
             pattern=config.subject,
-            is_ack_disabled=config.ack_policy is not AckPolicy.DO_NOTHING,
+            is_ack_disabled=config.ack_policy is not AckPolicy.MANUAL,
         )
         config.parser = parser.parse_message
         config.decoder = parser.decode_message

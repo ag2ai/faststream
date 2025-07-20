@@ -399,7 +399,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             exchange=exchange,
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: RabbitMessage) -> None:
             event.set()

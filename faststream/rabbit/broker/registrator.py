@@ -47,7 +47,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         no_ack: Annotated[
             bool,
             deprecated(
-                "Deprecated in 0.6.0, use `ack_policy=AckPolicy.DO_NOTHING` instead."
+                "Deprecated in 0.6.0, use `ack_policy=AckPolicy.MANUAL` instead."
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,

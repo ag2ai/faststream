@@ -267,7 +267,7 @@ class NatsRoute(SubscriberRoute):
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,

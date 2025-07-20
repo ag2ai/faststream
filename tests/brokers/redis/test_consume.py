@@ -819,7 +819,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue),
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: RedisStreamMessage) -> None:
             assert not msg.committed

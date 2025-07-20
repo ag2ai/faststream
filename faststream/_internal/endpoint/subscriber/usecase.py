@@ -362,7 +362,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
         logger_state = self._outer_config.logger
 
-        if self.ack_policy is AckPolicy.DO_NOTHING:
+        if self.ack_policy is AckPolicy.MANUAL:
             broker_middlewares = (
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,

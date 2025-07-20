@@ -123,7 +123,7 @@ def _validate_input_for_misconfigure(
 
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )
@@ -132,7 +132,7 @@ def _validate_input_for_misconfigure(
             msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
             raise SetupError(msg)
 
-        ack_policy = AckPolicy.DO_NOTHING if no_ack else EMPTY
+        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
 
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.ACK_FIRST
