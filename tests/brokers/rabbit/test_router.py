@@ -205,6 +205,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
 
 
 @pytest.mark.rabbit()
+@pytest.mark.connected()
 class TestRouterLocal(RabbitMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RabbitRoute
     publisher_class = RabbitPublisher

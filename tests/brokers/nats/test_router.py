@@ -154,6 +154,7 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
 
 @pytest.mark.nats()
+@pytest.mark.connected()
 class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher

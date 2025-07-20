@@ -17,6 +17,7 @@ class TestRouter(KafkaTestcaseConfig, RouterTestcase):
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestRouterLocal(KafkaMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher
