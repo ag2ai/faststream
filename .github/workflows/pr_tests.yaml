@@ -124,7 +124,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,kafka]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
@@ -196,7 +196,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,confluent]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
@@ -268,7 +268,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,rabbit]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
@@ -329,7 +329,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,nats]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
@@ -390,7 +390,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,redis]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
