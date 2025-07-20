@@ -298,6 +298,7 @@ class RedisBroker(
         list: str | None = None,
         stream: None = None,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int: ...
 
     @overload
@@ -312,6 +313,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes: ...
 
     @override
