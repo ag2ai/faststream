@@ -12,7 +12,5 @@ async def handle(msg: str):
 
 @app.after_startup
 async def test():
-    async with RabbitBroker(
-        "amqp://guest:guest@localhost:5672/" # pragma: allowlist secret
-    ) as br:
+    async with RabbitBroker("amqp://guest:guest@localhost:5672/") as br:
         await br.publish("Hi!", queue="test-queue")

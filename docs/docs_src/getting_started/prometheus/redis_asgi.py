@@ -8,11 +8,11 @@ registry = CollectorRegistry()
 broker = RedisBroker(
     middlewares=(
         RedisPrometheusMiddleware(registry=registry),
-    )
+    ),
 )
 app = AsgiFastStream(
     broker,
     asgi_routes=[
         ("/metrics", make_asgi_app(registry)),
-    ]
+    ],
 )

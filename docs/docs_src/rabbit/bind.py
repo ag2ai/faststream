@@ -24,14 +24,14 @@ some_exchange = RabbitExchange(
 @app.after_startup
 async def bind_queue_exchange():
     queue: aio_pika.RobustQueue = await broker.declare_queue(
-        some_queue
+        some_queue,
     )
 
     exchange: aio_pika.RobustExchange = await broker.declare_exchange(
-        some_exchange
+        some_exchange,
     )
 
     await queue.bind(
         exchange=exchange,
-        routing_key=queue.name  # Optional parameter
+        routing_key=queue.name,  # Optional parameter
     )

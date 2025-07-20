@@ -1,6 +1,6 @@
 from aio_pika import IncomingMessage
 
-from faststream.broker.message import StreamMessage
+from faststream.message import StreamMessage
 
 
 class RabbitMessage(StreamMessage[IncomingMessage]):

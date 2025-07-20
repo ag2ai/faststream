@@ -10,7 +10,7 @@ async def handle(
     msg: str,
     secret_str: str = Context(),
 ):
-    assert secret_str == "my-perfect-secret" # pragma: allowlist secret
+    assert secret_str == "my-perfect-secret"
 
 
 @app.on_startup

@@ -1,29 +1,26 @@
 from dataclasses import dataclass
 
 import pytest
-import pytest_asyncio
 
 from faststream.rabbit import (
-    RabbitBroker,
     RabbitExchange,
     RabbitRouter,
-    TestRabbitBroker,
 )
 
 
 @dataclass
 class Settings:
-    url = "amqp://guest:guest@localhost:5672/"  # pragma: allowlist secret
+    url: str = "amqp://guest:guest@localhost:5672/"
 
-    host = "localhost"
-    port = 5672
-    login = "guest"
-    password = "guest"  # pragma: allowlist secret
+    host: str = "localhost"
+    port: int = 5672
+    login: str = "guest"
+    password: str = "guest"
 
-    queue = "test_queue"
+    queue: str = "test_queue"
 
 
-@pytest.fixture
+@pytest.fixture()
 def exchange(queue):
     return RabbitExchange(name=queue)
 
@@ -33,27 +30,6 @@ def settings():
     return Settings()
 
 
-@pytest.fixture
+@pytest.fixture()
 def router():
     return RabbitRouter()
-
-
-@pytest_asyncio.fixture()
-async def broker(settings):
-    broker = RabbitBroker(settings.url, apply_types=False)
-    async with broker:
-        yield broker
-
-
-@pytest_asyncio.fixture()
-async def full_broker(settings):
-    broker = RabbitBroker(settings.url)
-    async with broker:
-        yield broker
-
-
-@pytest_asyncio.fixture()
-async def test_broker():
-    broker = RabbitBroker()
-    async with TestRabbitBroker(broker) as br:
-        yield br

@@ -31,7 +31,7 @@ You can specify the topic to send by its name.
 2. Publish a message using the `publish` method
 
     ```python linenums="1"
-    {!> docs_src/confluent/raw_publish/example.py [ln:25.9,26.7,27.9,28.9,29.9,30.9] !}
+    {!> docs_src/confluent/raw_publish/example.py [ln:25-30] !}
     ```
 
 This is the most basic way of using the KafkaBroker to publish a message.

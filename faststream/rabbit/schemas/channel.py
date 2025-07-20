@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class Channel:
     """Channel class that represents a RabbitMQ channel."""
 
-    prefetch_count: Optional[int] = None
+    prefetch_count: int | None = None
     """Limit the number of unacknowledged messages on a channel
     https://www.rabbitmq.com/docs/consumer-prefetch
     """
@@ -16,7 +15,7 @@ class Channel:
     https://www.rabbitmq.com/docs/consumer-prefetch#sharing-the-limit
     """
 
-    channel_number: Optional[int] = None
+    channel_number: int | None = None
     """Specify the channel number explicit."""
 
     publisher_confirms: bool = True

@@ -1,5 +1,6 @@
+from collections.abc import Awaitable, Callable
 from types import TracebackType
-from typing import Any, Awaitable, Callable, Optional, Type
+from typing import Any
 
 from faststream import BaseMiddleware, FastStream
 from faststream.rabbit import RabbitBroker, RabbitMessage
@@ -12,9 +13,9 @@ class TopLevelMiddleware(BaseMiddleware):
 
     async def after_processed(
         self,
-        exc_type: Optional[Type[BaseException]] = None,
-        exc_val: Optional[BaseException] = None,
-        exc_tb: Optional[TracebackType] = None,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: TracebackType | None = None,
     ) -> bool:
         print("highlevel middleware out")
         return await super().after_processed(exc_type, exc_val, exc_tb)
@@ -25,7 +26,7 @@ async def subscriber_middleware(
     msg: RabbitMessage,
 ) -> Any:
     print(f"call handler middleware with body: {msg}")
-    msg._decoded_body = "fake message"
+    msg.body = b"fake message"
     result = await call_next(msg)
     print("handler middleware out")
     return result
@@ -39,10 +40,10 @@ app = FastStream(broker)
 
 
 @broker.subscriber("test", middlewares=(subscriber_middleware,))
-async def handle(msg):
+async def handle(msg: str) -> None:
     assert msg == "fake message"
 
 
 @app.after_startup
-async def test_publish():
+async def test_publish() -> None:
     await broker.publish("message", "test")

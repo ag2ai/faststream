@@ -89,7 +89,7 @@ To use it, you just need to replace your `*` with `{variable-name}` and use `Pat
 
 ```python hl_lines="7 11 16"
 from faststream import Path
-from faststream import RabbitQueue, RabbitExchane, ExchangeType
+from faststream import RabbitQueue, RabbitExchange, ExchangeType
 
 @broker.subscriber(
     RabbitQueue(

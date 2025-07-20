@@ -6,11 +6,11 @@ from faststream.redis import RedisBroker
 
 class Data(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 
-broker = RedisBroker("localhost:6379")
+broker = RedisBroker("redis://localhost:6379")
 app = FastStream(broker)
 
 

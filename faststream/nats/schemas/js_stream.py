@@ -1,11 +1,12 @@
-from itertools import zip_longest
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from collections import UserList
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Annotated, Optional
 
 from nats.js.api import DiscardPolicy, StreamConfig
-from typing_extensions import Annotated, Doc
+from typing_extensions import Doc
 
-from faststream.broker.schemas import NameRequired
-from faststream.utils.path import compile_path
+from faststream._internal.proto import NameRequired
+from faststream._internal.utils.path import compile_path
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -26,7 +27,6 @@ class JStream(NameRequired):
         "config",
         "declare",
         "name",
-        "subjects",
     )
 
     def __init__(
@@ -36,23 +36,23 @@ class JStream(NameRequired):
             Doc("Stream name to work with."),
         ],
         description: Annotated[
-            Optional[str],
+            str | None,
             Doc("Stream description if needed."),
         ] = None,
         subjects: Annotated[
-            Optional[List[str]],
+            list[str] | None,
             Doc(
                 "Subjects, used by stream to grab messages from them. Any message sent by NATS Core will be consumed "
                 "by stream. Also, stream acknowledge message publisher with message, sent on reply subject of "
                 "publisher. Can be single string or list of them. Dots separate tokens of subjects, every token may "
-                "be matched with exact same token or wildcards."
+                "be matched with exact same token or wildcards.",
             ),
         ] = None,
         retention: Annotated[
             Optional["RetentionPolicy"],
             Doc(
                 "Retention policy for stream to use. Default is Limits, which will delete messages only in case of "
-                "resource depletion, if 'DiscardPolicy.OLD' used. In case of 'DisardPolicy.NEW', stream will answer "
+                "resource depletion, if 'DiscardPolicy.OLD' used. In case of 'DiscardPolicy.NEW', stream will answer "
                 "error for any write request. If 'RetentionPolicy.Interest' is used, message will be deleted as soon "
                 "as all active consumers will consume that message. Note: consumers should be bounded to stream! If "
                 "no consumers bound, all messages will be deleted, including new messages! If "
@@ -60,24 +60,25 @@ class JStream(NameRequired):
                 "which guarantees message to be consumed only once. Since message acked, it will be deleted from the "
                 "stream immediately. Note: Message will be deleted only if limit is reached or message acked "
                 "successfully. Message that reached MaxDelivery limit will remain in the stream and should be "
-                "manually deleted! Note: All policies will be responsive to Limits."
+                "manually deleted! Note: All policies will be responsive to Limits.",
             ),
         ] = None,
         max_consumers: Annotated[
-            Optional[int], Doc("Max number of consumers to be bound with this stream.")
+            int | None,
+            Doc("Max number of consumers to be bound with this stream."),
         ] = None,
         max_msgs: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Max number of messages to be stored in the stream. Stream can automatically delete old messages or "
-                "stop receiving new messages, look for 'DiscardPolicy'"
+                "stop receiving new messages, look for 'DiscardPolicy'",
             ),
         ] = None,
         max_bytes: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Max bytes of all messages to be stored in the stream. Stream can automatically delete old messages or "
-                "stop receiving new messages, look for 'DiscardPolicy'"
+                "stop receiving new messages, look for 'DiscardPolicy'",
             ),
         ] = None,
         discard: Annotated[
@@ -85,72 +86,72 @@ class JStream(NameRequired):
             Doc("Determines stream behavior on messages in case of retention exceeds."),
         ] = DiscardPolicy.OLD,
         max_age: Annotated[
-            Optional[float],
+            float | None,
             Doc(
                 "TTL in seconds for messages. Since message arrive, TTL begun. As soon as TTL exceeds, message will be "
-                "deleted."
+                "deleted.",
             ),
         ] = None,  # in seconds
         max_msgs_per_subject: Annotated[
             int,
             Doc(
-                "Limit message count per every unique subject. Stream index subjects to it's pretty fast tho.-"
+                "Limit message count per every unique subject. Stream index subjects to it's pretty fast tho.-",
             ),
         ] = -1,
         max_msg_size: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Limit message size to be received. Note: the whole message can't be larger than NATS Core message "
-                "limit."
+                "limit.",
             ),
         ] = -1,
         storage: Annotated[
             Optional["StorageType"],
             Doc(
                 "Storage type, disk or memory. Disk is more durable, memory is faster. Memory can be better choice "
-                "for systems, where new value overrides previous."
+                "for systems, where new value overrides previous.",
             ),
         ] = None,
         num_replicas: Annotated[
-            Optional[int],
+            int | None,
             Doc(
                 "Replicas of stream to be used. All replicas create RAFT group with leader. In case of losing lesser "
                 "than half, cluster will be available to reads and writes. In case of losing slightly more than half, "
-                "cluster may be available but for reads only."
+                "cluster may be available but for reads only.",
             ),
         ] = None,
         no_ack: Annotated[
             bool,
             Doc(
                 "Should stream acknowledge writes or not. Without acks publisher can't determine, does message "
-                "received by stream or not."
+                "received by stream or not.",
             ),
         ] = False,
-        template_owner: Optional[str] = None,
+        template_owner: str | None = None,
         duplicate_window: Annotated[
             float,
             Doc(
                 "A TTL for keys in implicit TTL-based hashmap of stream. That hashmap allows to early drop duplicate "
                 "messages. Essential feature for idempotent writes. Note: disabled by default. Look for 'Nats-Msg-Id' "
-                "in NATS documentation for more information."
+                "in NATS documentation for more information.",
             ),
         ] = 0,
         placement: Annotated[
             Optional["Placement"],
             Doc(
-                "NATS Cluster for stream to be deployed in. Value is name of that cluster."
+                "NATS Cluster for stream to be deployed in. Value is name of that cluster.",
             ),
         ] = None,
         mirror: Annotated[
             Optional["StreamSource"],
             Doc(
-                "Should stream be read-only replica of another stream, if so, value is name of that stream."
+                "Should stream be read-only replica of another stream, if so, value is name of that stream.",
             ),
         ] = None,
         sources: Annotated[
-            Optional[List["StreamSource"]],
+            list["StreamSource"] | None,
             Doc(
-                "Should stream mux multiple streams into single one, if so, values is names of those streams."
+                "Should stream mux multiple streams into single one, if so, values is names of those streams.",
             ),
         ] = None,
         sealed: Annotated[
@@ -174,11 +175,11 @@ class JStream(NameRequired):
             Doc("Should be messages, received by stream, send to additional subject."),
         ] = None,
         allow_direct: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Should direct requests be allowed. Note: you can get stale data."),
         ] = None,
         mirror_direct: Annotated[
-            Optional[bool],
+            bool | None,
             Doc("Should direct mirror requests be allowed"),
         ] = None,
         # custom
@@ -189,10 +190,9 @@ class JStream(NameRequired):
     ) -> None:
         super().__init__(name)
 
-        subjects = subjects or []
-
-        self.subjects = subjects
         self.declare = declare
+        self.subjects = SubjectsCollection(subjects)
+
         self.config = StreamConfig(
             name=name,
             description=description,
@@ -219,40 +219,58 @@ class JStream(NameRequired):
             republish=republish,
             allow_direct=allow_direct,
             mirror_direct=mirror_direct,
-            subjects=[],  # use self.subjects in declaration
+            subjects=[],  # use subjects from builder in declaration
         )
 
-    def add_subject(self, subject: str) -> None:
-        """Add subject to stream params."""
+
+class SubjectsCollection(UserList[str]):
+    def __init__(self, initlist: Iterable[str] | None = None, /) -> None:
+        super().__init__(())
+        self.extend(initlist or ())
+
+    def extend(self, subjects: Iterable[str], /) -> None:
+        for subj in subjects:
+            self.append(subj)
+
+    def append(self, subject: str, /) -> None:
         _, subject = compile_nats_wildcard(subject)
 
-        if not any(is_subject_match_wildcard(subject, x) for x in self.subjects):
-            self.subjects.append(subject)
+        new_subjects = []
+        for old_subject in self.data:
+            if is_subject_match_wildcard(subject, old_subject):
+                return
+
+            if not is_subject_match_wildcard(old_subject, subject):
+                new_subjects.append(old_subject)
+
+        new_subjects.append(subject)
+        self.data = new_subjects
 
 
-def is_subject_match_wildcard(subject: str, wildcard: str) -> bool:
-    """Check is subject suite for the wildcard pattern."""
-    if subject == wildcard:
-        return True
+def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
+    subject_parts = subject.split(".")
+    pattern_parts = pattern.split(".")
 
-    call = True
-
-    for current, base in zip_longest(
-        subject.split("."),
-        wildcard.split("."),
-        fillvalue=None,
+    for subject_part, pattern_part in zip(
+        subject_parts,
+        pattern_parts,
+        strict=False,
     ):
-        if base == ">":
-            break
+        if pattern_part == ">":
+            return True
 
-        if base != "*" and current != base:
-            call = False
-            break
+        if pattern_part == "*":
+            if subject_part == ">":
+                return False
 
-    return call
+        elif subject_part != pattern_part:
+            return False
+
+    return len(subject_parts) == len(pattern_parts)
 
 
-def compile_nats_wildcard(pattern: str) -> Tuple[Optional["Pattern[str]"], str]:
+def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:
+    """Compile `logs.{user}.>` to regex and `logs.*.>` subject."""
     return compile_path(
         pattern,
         replace_symbol="*",

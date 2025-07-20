@@ -26,10 +26,18 @@ jobs:
         with:
           key: ${{ github.ref }}
           path: .cache
-      - run: |
+      - name: Install dependencies
+        run: |
           set -ux
-          uv pip install --system -e .[dev]
+          uv pip install --system --group dev -e .
           uv pip uninstall --system email-validator # This is to fix broken link in docs
+      - name: Install Just
+        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff
+        with:
+          just-version: 1.14.0
+
+      - name: Build API Reference
+        run: just docs-build-api
 
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
       - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
@@ -41,7 +49,8 @@ jobs:
           git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
           git config --local user.name "faststream-actions[bot]"
 
-      - run: |
+      - name: Build docs
+        run: |
           if [ "$IS_RC" == "False" ]; then
             cd docs
             mike deploy -F mkdocs.yml --update-aliases $VERSION latest

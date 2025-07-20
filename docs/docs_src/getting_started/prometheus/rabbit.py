@@ -8,6 +8,6 @@ registry = CollectorRegistry()
 broker = RabbitBroker(
     middlewares=(
         RabbitPrometheusMiddleware(registry=registry),
-    )
+    ),
 )
 app = FastStream(broker)

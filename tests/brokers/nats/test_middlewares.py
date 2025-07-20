@@ -1,25 +1,23 @@
 import pytest
 
-from faststream.nats import NatsBroker, TestNatsBroker
 from tests.brokers.base.middlewares import (
     ExceptionMiddlewareTestcase,
     MiddlewareTestcase,
     MiddlewaresOrderTestcase,
 )
 
-
-@pytest.mark.nats
-class TestMiddlewares(MiddlewareTestcase):
-    broker_class = NatsBroker
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
-@pytest.mark.nats
-class TestExceptionMiddlewares(ExceptionMiddlewareTestcase):
-    broker_class = NatsBroker
+class TestMiddlewaresOrder(NatsMemoryTestcaseConfig, MiddlewaresOrderTestcase):
+    pass
 
 
-class TestMiddlewaresOrder(MiddlewaresOrderTestcase):
-    broker_class = NatsBroker
+@pytest.mark.nats()
+class TestMiddlewares(NatsTestcaseConfig, MiddlewareTestcase):
+    pass
 
-    def patch_broker(self, broker: NatsBroker) -> TestNatsBroker:
-        return TestNatsBroker(broker)
+
+@pytest.mark.nats()
+class TestExceptionMiddlewares(NatsTestcaseConfig, ExceptionMiddlewareTestcase):
+    pass

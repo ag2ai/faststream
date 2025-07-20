@@ -8,6 +8,6 @@ registry = CollectorRegistry()
 broker = NatsBroker(
     middlewares=(
         NatsPrometheusMiddleware(registry=registry),
-    )
+    ),
 )
 app = FastStream(broker)

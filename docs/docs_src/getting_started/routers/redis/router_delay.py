@@ -19,9 +19,9 @@ router = RedisRouter(
             "test-channel",
             publishers=(
                 RedisPublisher("outer-channel"),
-            )
+            ),
         ),
-    )
+    ),
 )
 
 broker.include_router(router)

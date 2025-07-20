@@ -12,12 +12,12 @@ app = FastStream(broker)
 async def handle(
     name: Annotated[
         str,
-        Field(..., examples=["John"], description="Registered user name")
+        Field(..., examples=["John"], description="Registered user name"),
     ],
     user_id: Annotated[
         NonNegativeInt,
         Field(..., examples=[1], description="Registered user id"),
-    ]
+    ],
 ):
     assert name == "John"
     assert user_id == 1

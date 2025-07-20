@@ -21,7 +21,7 @@ router = KafkaRouter(
                 KafkaPublisher("outer-topic"),
             ),
         ),
-    )
+    ),
 )
 
 broker.include_router(router)

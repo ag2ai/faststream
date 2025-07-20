@@ -1,10 +1,8 @@
-from typing import List, Union
-
 from nats.aio.msg import Msg
 from nats.js.api import ObjectInfo
 from nats.js.kv import KeyValue
 
-from faststream.broker.message import StreamMessage
+from faststream.message import StreamMessage
 
 
 class NatsMessage(StreamMessage[Msg]):
@@ -24,7 +22,7 @@ class NatsMessage(StreamMessage[Msg]):
 
     async def nack(
         self,
-        delay: Union[int, float, None] = None,
+        delay: float | None = None,
     ) -> None:
         if not self.raw_message._ackd:
             await self.raw_message.nak(delay=delay)
@@ -40,7 +38,7 @@ class NatsMessage(StreamMessage[Msg]):
             await self.raw_message.in_progress()
 
 
-class NatsBatchMessage(StreamMessage[List[Msg]]):
+class NatsBatchMessage(StreamMessage[list[Msg]]):
     """A class to represent a NATS batch message."""
 
     async def ack(self) -> None:
@@ -54,7 +52,7 @@ class NatsBatchMessage(StreamMessage[List[Msg]]):
 
     async def nack(
         self,
-        delay: Union[int, float, None] = None,
+        delay: float | None = None,
     ) -> None:
         for m in filter(
             lambda m: not m._ackd,
