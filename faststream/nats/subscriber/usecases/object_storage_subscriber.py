@@ -162,8 +162,6 @@ class ObjStoreWatchSubscriber(
         self.add_task(self.__consume_watch())
 
     async def __consume_watch(self) -> None:
-        assert self.bucket, "You should call `create_subscription` at first."
-
         # Should be created inside task to avoid nats-py lock
         obj_watch = await self.bucket.watch(
             ignore_deletes=self.obj_watch.ignore_deletes,

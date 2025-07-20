@@ -30,6 +30,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
@@ -276,6 +277,7 @@ class NatsRouter(StreamRouter["Msg"]):
                 "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
             ),
         ] = "/asyncapi",
+        context: ContextRepo | None = None,
         # FastAPI args
         prefix: Annotated[
             str,
@@ -537,6 +539,7 @@ class NatsRouter(StreamRouter["Msg"]):
             specification_tags=specification_tags,
             schema_url=schema_url,
             setup_state=setup_state,
+            context=context,
             # FastAPI kwargs
             prefix=prefix,
             tags=tags,
@@ -655,10 +658,8 @@ class NatsRouter(StreamRouter["Msg"]):
             bool,
             Doc("Whether to `ack` message at start of consuming or not."),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         stream: Annotated[

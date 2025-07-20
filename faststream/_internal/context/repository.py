@@ -11,18 +11,15 @@ from faststream.exceptions import ContextError
 class ContextRepo:
     """A class to represent a context repository."""
 
-    _global_context: AnyDict
-    _scope_context: dict[str, ContextVar[Any]]
-
-    def __init__(self) -> None:
+    def __init__(self, initial: AnyDict | None = None, /) -> None:
         """Initialize the class.
 
         Attributes:
             _global_context : a dictionary representing the global context
             _scope_context : a dictionary representing the scope context
         """
-        self._global_context = {"context": self}
-        self._scope_context = {}
+        self._global_context: AnyDict = {"context": self} | (initial or {})
+        self._scope_context: dict[str, ContextVar[Any]] = {}
 
     @property
     def context(self) -> AnyDict:

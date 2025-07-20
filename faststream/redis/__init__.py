@@ -3,7 +3,7 @@ from faststream._internal.testing.app import TestApp
 try:
     from .annotations import Pipeline, Redis, RedisMessage, RedisStreamMessage
     from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
-    from .response import RedisResponse
+    from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
     from .testing import TestRedisBroker
 
@@ -22,6 +22,7 @@ __all__ = (
     "Redis",
     "RedisBroker",
     "RedisMessage",
+    "RedisPublishCommand",
     "RedisPublisher",
     "RedisResponse",
     "RedisRoute",

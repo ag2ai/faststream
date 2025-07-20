@@ -44,10 +44,10 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
+    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from typing_extensions import TypedDict
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import (
         LoggerProto,
         SendableMessage,

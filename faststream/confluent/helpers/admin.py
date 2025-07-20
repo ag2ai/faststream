@@ -24,10 +24,15 @@ class AdminService:
     async def disconnect(self) -> None:
         self.admin_client = None
 
-    def create_topics(self, topics: list[str]) -> list[CreateResult]:
-        assert self.admin_client is not None
+    @property
+    def client(self) -> AdminClient:
+        assert self.admin_client is not None, (
+            "Admin client was not connected. Please, connect the broker first."
+        )
+        return self.admin_client
 
-        create_result = self.admin_client.create_topics(
+    def create_topics(self, topics: list[str]) -> list[CreateResult]:
+        create_result = self.client.create_topics(
             [
                 NewTopic(topic, num_partitions=1, replication_factor=1)
                 for topic in topics

@@ -14,6 +14,7 @@ from faststream.redis.subscriber.factory import SubscriberType, create_subscribe
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
         BrokerMiddleware,

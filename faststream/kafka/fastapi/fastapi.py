@@ -25,6 +25,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.kafka.broker.broker import KafkaBroker as KB
 from faststream.middlewares import AckPolicy
@@ -327,6 +328,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 "Specification schema url. You should set this option to `None` to disable Specification routes at all.",
             ),
         ] = "/asyncapi",
+        context: ContextRepo | None = None,
         # FastAPI args
         prefix: Annotated[
             str,
@@ -572,6 +574,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             middlewares=middlewares,
             schema_url=schema_url,
             setup_state=setup_state,
+            context=context,
             # Logging args
             logger=logger,
             log_level=log_level,
@@ -704,10 +707,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             """,
             ),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         auto_commit_interval_ms: Annotated[
@@ -1205,10 +1206,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             """,
             ),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         auto_commit_interval_ms: Annotated[
@@ -1706,10 +1705,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             """,
             ),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         auto_commit_interval_ms: Annotated[
@@ -2210,10 +2207,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             """,
             ),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         auto_commit_interval_ms: Annotated[

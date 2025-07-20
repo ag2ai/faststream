@@ -67,8 +67,6 @@ class ChannelSubscriber(LogicSubscriber):
         if self.subscription:
             return
 
-        assert self._client, "You should setup subscriber at first."
-
         self.subscription = psub = self._client.pubsub()
 
         if self.channel.pattern:

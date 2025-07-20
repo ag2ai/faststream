@@ -26,8 +26,8 @@ if TYPE_CHECKING:
     from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
-
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -58,72 +58,6 @@ class KafkaRegistrator(
     def subscriber(
         self,
         *topics: str,
-        batch: bool = False,
-        group_id: str | None = None,
-        key_deserializer: Callable[[bytes], Any] | None = None,
-        value_deserializer: Callable[[bytes], Any] | None = None,
-        fetch_max_bytes: int = 50 * 1024 * 1024,
-        fetch_min_bytes: int = 1,
-        fetch_max_wait_ms: int = 500,
-        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
-        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated("""
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """),
-        ] = EMPTY,
-        auto_commit_interval_ms: int = 5 * 1000,
-        check_crcs: bool = True,
-        partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
-            RoundRobinPartitionAssignor,
-        ),
-        max_poll_interval_ms: int = 5 * 60 * 1000,
-        rebalance_timeout_ms: int | None = None,
-        session_timeout_ms: int = 10 * 1000,
-        heartbeat_interval_ms: int = 3 * 1000,
-        consumer_timeout_ms: int = 200,
-        max_poll_records: int | None = None,
-        exclude_internal_topics: bool = True,
-        isolation_level: Literal[
-            "read_uncommitted", "read_committed"
-        ] = "read_uncommitted",
-        batch_timeout_ms: int = 200,
-        max_records: int | None = None,
-        listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
-        partitions: Collection["TopicPartition"] = (),
-        # broker args
-        dependencies: Iterable["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "DefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        *topics: str,
         batch: Literal[True],
         group_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -135,10 +69,10 @@ class KafkaRegistrator(
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
         auto_commit: Annotated[
             bool,
-            deprecated("""
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """),
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
         ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
@@ -167,7 +101,7 @@ class KafkaRegistrator(
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
@@ -178,6 +112,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: int = 1,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -190,7 +125,7 @@ class KafkaRegistrator(
     def subscriber(
         self,
         *topics: str,
-        batch: bool = False,
+        batch: Literal[False] = False,
         group_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
@@ -201,10 +136,10 @@ class KafkaRegistrator(
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
         auto_commit: Annotated[
             bool,
-            deprecated("""
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """),
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
         ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
@@ -233,7 +168,7 @@ class KafkaRegistrator(
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
@@ -244,6 +179,78 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: int = 1,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # Specification args
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Union[
+        "DefaultSubscriber",
+        "ConcurrentDefaultSubscriber",
+        "ConcurrentBetweenPartitionsSubscriber",
+    ]: ...
+
+    @overload
+    def subscriber(
+        self,
+        *topics: str,
+        batch: bool = False,
+        group_id: str | None = None,
+        key_deserializer: Callable[[bytes], Any] | None = None,
+        value_deserializer: Callable[[bytes], Any] | None = None,
+        fetch_max_bytes: int = 50 * 1024 * 1024,
+        fetch_min_bytes: int = 1,
+        fetch_max_wait_ms: int = 500,
+        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
+        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        auto_commit_interval_ms: int = 5 * 1000,
+        check_crcs: bool = True,
+        partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
+            RoundRobinPartitionAssignor,
+        ),
+        max_poll_interval_ms: int = 5 * 60 * 1000,
+        rebalance_timeout_ms: int | None = None,
+        session_timeout_ms: int = 10 * 1000,
+        heartbeat_interval_ms: int = 3 * 1000,
+        consumer_timeout_ms: int = 200,
+        max_poll_records: int | None = None,
+        exclude_internal_topics: bool = True,
+        isolation_level: Literal[
+            "read_uncommitted", "read_committed"
+        ] = "read_uncommitted",
+        batch_timeout_ms: int = 200,
+        max_records: int | None = None,
+        listener: Optional["ConsumerRebalanceListener"] = None,
+        pattern: str | None = None,
+        partitions: Collection["TopicPartition"] = (),
+        # broker args
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = 1,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -253,6 +260,8 @@ class KafkaRegistrator(
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
+        "ConcurrentDefaultSubscriber",
+        "ConcurrentBetweenPartitionsSubscriber",
     ]: ...
 
     @override
@@ -270,10 +279,10 @@ class KafkaRegistrator(
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
         auto_commit: Annotated[
             bool,
-            deprecated("""
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """),
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
         ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
@@ -302,11 +311,10 @@ class KafkaRegistrator(
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        max_workers: int = 1,
         no_ack: Annotated[
             bool,
             deprecated(
@@ -314,6 +322,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: int = 1,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args

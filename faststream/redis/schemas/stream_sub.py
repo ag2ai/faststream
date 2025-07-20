@@ -1,3 +1,4 @@
+import warnings
 from copy import deepcopy
 
 from faststream._internal.proto import NameRequired
@@ -22,7 +23,7 @@ class StreamSub(NameRequired):
     def __init__(
         self,
         stream: str,
-        polling_interval: int | None = 100,
+        polling_interval: int | None = None,
         group: str | None = None,
         consumer: str | None = None,
         batch: bool = False,
@@ -35,14 +36,37 @@ class StreamSub(NameRequired):
             msg = "You should specify `group` and `consumer` both"
             raise SetupError(msg)
 
+        if group and consumer:
+            if last_id != ">":
+                if polling_interval:
+                    warnings.warn(
+                        message="`polling_interval` is not supported by consumer group with last_id other than `>`",
+                        category=RuntimeWarning,
+                        stacklevel=1,
+                    )
+
+                if no_ack:
+                    warnings.warn(
+                        message="`no_ack` is not supported by consumer group with last_id other than `>`",
+                        category=RuntimeWarning,
+                        stacklevel=1,
+                    )
+
+            elif no_ack:
+                warnings.warn(
+                    message="`no_ack` has no effect with consumer group",
+                    category=RuntimeWarning,
+                    stacklevel=1,
+                )
+
         if last_id is None:
-            last_id = "$"
+            last_id = ">" if group and consumer else "$"
 
         super().__init__(stream)
 
         self.group = group
         self.consumer = consumer
-        self.polling_interval = polling_interval
+        self.polling_interval = polling_interval or 100
         self.batch = batch
         self.no_ack = no_ack
         self.last_id = last_id

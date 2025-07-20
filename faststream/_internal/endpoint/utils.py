@@ -40,7 +40,7 @@ async def process_msg(
             return_msg = partial(m.consume_scope, return_msg)
 
         parsed_msg = await parser(msg)
-        parsed_msg._source_type = source_type
+        parsed_msg.source_type = source_type
         parsed_msg.set_decoder(decoder)
         return await return_msg(parsed_msg)
 

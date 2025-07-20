@@ -25,8 +25,8 @@ if TYPE_CHECKING:
     from aiokafka import ConsumerRecord, TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
-
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -133,10 +133,8 @@ class KafkaRoute(SubscriberRoute):
         auto_commit: Annotated[
             bool,
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,

@@ -20,8 +20,8 @@ from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
-
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
         BrokerMiddleware,
