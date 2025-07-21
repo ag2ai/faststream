@@ -1,8 +1,8 @@
 import warnings
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
 
-from typing_extensions import override
+from typing_extensions import TypeAlias, override
 
 from faststream.asyncapi.schema import (
     Channel,

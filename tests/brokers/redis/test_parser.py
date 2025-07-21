@@ -1,4 +1,5 @@
 import asyncio
+from typing import Type
 from unittest.mock import MagicMock
 
 import pytest
@@ -92,7 +93,7 @@ class TestFormats:
         queue: str,
         event: asyncio.Event,
         mock: MagicMock,
-        message_format: type[MessageFormat],
+        message_format: Type[MessageFormat],
         message: bytes,
     ) -> None:
         broker = RedisBroker(apply_types=False, message_format=JSONMessageFormat)
@@ -129,7 +130,7 @@ class TestFormats:
         queue: str,
         event: asyncio.Event,
         mock: MagicMock,
-        message_format: type[MessageFormat],
+        message_format: Type[MessageFormat],
         message: bytes,
     ) -> None:
         broker = RedisBroker(apply_types=False, message_format=message_format)
@@ -162,9 +163,14 @@ class TestFormats:
         event: asyncio.Event,
         mock: MagicMock,
     ) -> None:
-        broker = RedisBroker(apply_types=False, message_format=BinaryMessageFormatV1)  # will be ignored
+        broker = RedisBroker(
+            apply_types=False, message_format=BinaryMessageFormatV1
+        )  # will be ignored
 
-        with pytest.warns(DeprecationWarning, match="JSONMessageFormat has been deprecated"):  # noqa: PT031
+        with pytest.warns(  # noqa: PT031
+            DeprecationWarning, match="JSONMessageFormat has been deprecated"
+        ):
+
             @broker.subscriber(queue, message_format=JSONMessageFormat)
             async def resp(msg):
                 mock(msg)
@@ -187,7 +193,9 @@ class TestFormats:
     async def test_parse_json_with_binary_format(
         self, queue: str, event: asyncio.Event, mock: MagicMock
     ) -> None:
-        with pytest.warns(DeprecationWarning, match="JSONMessageFormat has been deprecated"):
+        with pytest.warns(
+            DeprecationWarning, match="JSONMessageFormat has been deprecated"
+        ):
             broker = RedisBroker(apply_types=False, message_format=JSONMessageFormat)
 
         @broker.subscriber(queue, message_format=BinaryMessageFormatV1)
@@ -200,7 +208,9 @@ class TestFormats:
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, "hello world")),
+                    asyncio.create_task(
+                        broker._connection.publish(queue, "hello world")
+                    ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -211,7 +221,7 @@ class TestFormats:
 @pytest.mark.asyncio
 class TestTestBrokerFormats:
     @pytest.mark.parametrize(("msg_format"), [JSONMessageFormat, BinaryMessageFormatV1])
-    async def test_formats(self, queue: str, msg_format: type["MessageFormat"]) -> None:
+    async def test_formats(self, queue: str, msg_format: Type["MessageFormat"]) -> None:
         broker = RedisBroker(apply_types=False, message_format=msg_format)
 
         @broker.subscriber(queue, message_format=msg_format)
@@ -222,7 +232,9 @@ class TestTestBrokerFormats:
             handler.mock.assert_called_once_with("hello")
 
     async def test_parse_json_with_binary_format(self, queue: str) -> None:
-        with pytest.warns(DeprecationWarning, match="JSONMessageFormat has been deprecated"):
+        with pytest.warns(
+            DeprecationWarning, match="JSONMessageFormat has been deprecated"
+        ):
             broker = RedisBroker(apply_types=False, message_format=JSONMessageFormat)
 
         @broker.subscriber(queue, message_format=BinaryMessageFormatV1)

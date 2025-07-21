@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Type
 
 import anyio
 from typing_extensions import override
@@ -34,7 +34,7 @@ class RedisFastProducer(ProducerProto):
         connection: "Redis[bytes]",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        message_format: type["MessageFormat"] = JSONMessageFormat,
+        message_format: Type["MessageFormat"] = JSONMessageFormat,
     ) -> None:
         self._connection = connection
         self.message_format = message_format
@@ -65,7 +65,7 @@ class RedisFastProducer(ProducerProto):
         rpc_timeout: Optional[float] = 30.0,
         raise_timeout: bool = False,
         pipeline: Optional["Pipeline[bytes]"] = None,
-        message_format: Optional[type["MessageFormat"]] = None,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> Optional[Any]:
         if not any((channel, list, stream)):
             raise SetupError(INCORRECT_SETUP_MSG)
@@ -148,7 +148,7 @@ class RedisFastProducer(ProducerProto):
         maxlen: Optional[int] = None,
         headers: Optional["AnyDict"] = None,
         timeout: Optional[float] = 30.0,
-        message_format: Optional[type["MessageFormat"]] = None,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> "Any":
         if not any((channel, list, stream)):
             raise SetupError(INCORRECT_SETUP_MSG)
@@ -206,7 +206,7 @@ class RedisFastProducer(ProducerProto):
         correlation_id: str,
         headers: Optional["AnyDict"] = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
-        message_format: Optional[type["MessageFormat"]] = None,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> None:
         mf = message_format or self.message_format
         batch = (
