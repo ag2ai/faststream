@@ -1,6 +1,5 @@
 import warnings
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, Union
 
 from typing_extensions import TypeAlias, override
 
