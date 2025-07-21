@@ -395,6 +395,13 @@ class RedisBroker(
             "message_format": self.message_format,
         }
 
+    @property
+    def _publisher_setup_extra(self) -> "AnyDict":
+        return {
+            **super()._publisher_setup_extra,
+            "message_format": self.message_format,
+        }
+
     @override
     async def publish(  # type: ignore[override]
         self,

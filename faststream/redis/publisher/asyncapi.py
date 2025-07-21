@@ -1,6 +1,8 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
+import warnings
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeAlias, Union
 
-from typing_extensions import TypeAlias, override
+from typing_extensions import override
 
 from faststream.asyncapi.schema import (
     Channel,
@@ -12,6 +14,7 @@ from faststream.asyncapi.schema import (
 from faststream.asyncapi.schema.bindings import redis
 from faststream.asyncapi.utils import resolve_payloads
 from faststream.exceptions import SetupError
+from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.publisher.usecase import (
     ChannelPublisher,
     ListBatchPublisher,
@@ -70,6 +73,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
         reply_to: str,
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         middlewares: Sequence["PublisherMiddleware"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         title_: Optional[str],
         description_: Optional[str],
@@ -77,6 +81,14 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
         include_in_schema: bool,
     ) -> PublisherType:
         validate_options(channel=channel, list=list, stream=stream)
+
+        if message_format == JSONMessageFormat:
+            warnings.warn(
+                "JSONMessageFormat has been deprecated and will be removed in version 0.7.0 "
+                "Instead, use BinaryMessageFormatV1 when creating publisher",
+                category=DeprecationWarning,
+                stacklevel=3,
+            )
 
         if (channel := PubSub.validate(channel)) is not None:
             return AsyncAPIChannelPublisher(
@@ -86,6 +98,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                 reply_to=reply_to,
                 broker_middlewares=broker_middlewares,
                 middlewares=middlewares,
+                message_format=message_format,
                 # AsyncAPI args
                 title_=title_,
                 description_=description_,
@@ -93,7 +106,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                 include_in_schema=include_in_schema,
             )
 
-        elif (stream := StreamSub.validate(stream)) is not None:
+        if (stream := StreamSub.validate(stream)) is not None:
             return AsyncAPIStreamPublisher(
                 stream=stream,
                 # basic args
@@ -101,6 +114,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                 reply_to=reply_to,
                 broker_middlewares=broker_middlewares,
                 middlewares=middlewares,
+                message_format=message_format,
                 # AsyncAPI args
                 title_=title_,
                 description_=description_,
@@ -108,7 +122,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                 include_in_schema=include_in_schema,
             )
 
-        elif (list := ListSub.validate(list)) is not None:
+        if (list := ListSub.validate(list)) is not None:
             if list.batch:
                 return AsyncAPIListBatchPublisher(
                     list=list,
@@ -117,6 +131,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                     reply_to=reply_to,
                     broker_middlewares=broker_middlewares,
                     middlewares=middlewares,
+                    message_format=message_format,
                     # AsyncAPI args
                     title_=title_,
                     description_=description_,
@@ -131,6 +146,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                     reply_to=reply_to,
                     broker_middlewares=broker_middlewares,
                     middlewares=middlewares,
+                    message_format=message_format,
                     # AsyncAPI args
                     title_=title_,
                     description_=description_,
@@ -138,8 +154,7 @@ class AsyncAPIPublisher(LogicPublisher, RedisAsyncAPIProtocol):
                     include_in_schema=include_in_schema,
                 )
 
-        else:
-            raise SetupError(INCORRECT_SETUP_MSG)
+        raise SetupError(INCORRECT_SETUP_MSG)
 
 
 class AsyncAPIChannelPublisher(ChannelPublisher, AsyncAPIPublisher):

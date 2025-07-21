@@ -191,6 +191,10 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
             Sequence["PublisherMiddleware"],
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
+        message_format: Annotated[
+            Type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = EMPTY,
         # AsyncAPI information
         title: Annotated[
             Optional[str],
@@ -228,6 +232,7 @@ class RedisRegistrator(ABCBroker[UnifyRedisDict]):
                     stream=stream,
                     headers=headers,
                     reply_to=reply_to,
+                    message_format=message_format,
                     # Specific
                     broker_middlewares=self._middlewares,
                     middlewares=middlewares,

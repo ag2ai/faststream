@@ -131,6 +131,7 @@ class FakeProducer(RedisFastProducer):
         rpc_timeout: Optional[float] = 30.0,
         raise_timeout: bool = False,
         pipeline: Optional["Pipeline[bytes]"] = None,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> Optional[Any]:
         if rpc and reply_to:
             raise WRONG_PUBLISH_ARGS
@@ -139,7 +140,7 @@ class FakeProducer(RedisFastProducer):
 
         body = build_message(
             message=message,
-            message_format=self.message_format,
+            message_format=(message_format or self.message_format),
             reply_to=reply_to,
             correlation_id=correlation_id,
             headers=headers,
@@ -176,12 +177,13 @@ class FakeProducer(RedisFastProducer):
         maxlen: Optional[int] = None,
         headers: Optional["AnyDict"] = None,
         timeout: Optional[float] = 30.0,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> "PubSubMessage":
         correlation_id = correlation_id or gen_cor_id()
 
         body = build_message(
             message=message,
-            message_format=self.message_format,
+            message_format=(message_format or self.message_format),
             correlation_id=correlation_id,
             headers=headers,
         )
@@ -210,11 +212,12 @@ class FakeProducer(RedisFastProducer):
         headers: Optional["AnyDict"] = None,
         correlation_id: Optional[str] = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
+        message_format: Optional[Type["MessageFormat"]] = None,
     ) -> None:
         data_to_send = [
             build_message(
                 m,
-                message_format=self.message_format,
+                message_format=(message_format or self.message_format),
                 correlation_id=correlation_id or gen_cor_id(),
                 headers=headers,
             )

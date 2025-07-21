@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Type, Union
 from typing_extensions import TypeAlias
 
 from faststream.exceptions import SetupError
+from faststream.redis.parser import JSONMessageFormat
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 from faststream.redis.subscriber.asyncapi import (
@@ -13,7 +14,6 @@ from faststream.redis.subscriber.asyncapi import (
     AsyncAPIStreamBatchSubscriber,
     AsyncAPIStreamSubscriber,
 )
-from faststream.types import EMPTY
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Depends
@@ -50,13 +50,14 @@ def create_subscriber(
 ) -> SubsciberType:
     validate_options(channel=channel, list=list, stream=stream)
 
-    if message_format == EMPTY:
+    if message_format == JSONMessageFormat:
         warnings.warn(
-            "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
+            "JSONMessageFormat has been deprecated and will be removed in version 0.7.0 "
             "Instead, use BinaryMessageFormatV1 when creating subscriber",
             category=DeprecationWarning,
             stacklevel=3,
         )
+
     if (channel_sub := PubSub.validate(channel)) is not None:
         return AsyncAPIChannelSubscriber(
             channel=channel_sub,

@@ -3,7 +3,16 @@ from contextlib import AsyncExitStack
 from copy import deepcopy
 from functools import partial
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Iterable, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Iterable,
+    Optional,
+    Sequence,
+    Type,
+)
 
 from typing_extensions import Annotated, Doc, deprecated, override
 
@@ -12,13 +21,16 @@ from faststream.broker.publisher.usecase import PublisherUsecase
 from faststream.exceptions import NOT_CONNECTED_YET
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
+from faststream.types import EMPTY
 from faststream.utils.functions import return_input
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
+    from faststream.broker.publisher.proto import ProducerProto
     from faststream.broker.types import BrokerMiddleware, PublisherMiddleware
     from faststream.redis.message import RedisMessage
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.producer import RedisFastProducer
     from faststream.types import AnyDict, AsyncFunc, SendableMessage
 
@@ -36,6 +48,7 @@ class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
         # Publisher args
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         middlewares: Sequence["PublisherMiddleware"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI args
         schema_: Optional[Any],
         title_: Optional[str],
@@ -52,14 +65,28 @@ class LogicPublisher(PublisherUsecase[UnifyRedisDict]):
             include_in_schema=include_in_schema,
         )
 
+        self.message_format = message_format
+
         self.reply_to = reply_to
         self.headers = headers
 
         self._producer = None
 
+    @override
+    def setup(  # type: ignore[override]
+        self,
+        *,
+        producer: Optional["ProducerProto"],
+        message_format: Type["MessageFormat"],
+    ) -> None:
+        super().setup(producer=producer)
+
+        if self.message_format is EMPTY:
+            self.message_format = message_format
+
     @abstractmethod
     def subscriber_property(self, *, name_only: bool) -> "AnyDict":
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class ChannelPublisher(LogicPublisher):
@@ -72,6 +99,7 @@ class ChannelPublisher(LogicPublisher):
         # Regular publisher options
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         middlewares: Sequence["PublisherMiddleware"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI options
         schema_: Optional[Any],
         title_: Optional[str],
@@ -83,6 +111,7 @@ class ChannelPublisher(LogicPublisher):
             headers=headers,
             broker_middlewares=broker_middlewares,
             middlewares=middlewares,
+            message_format=message_format,
             schema_=schema_,
             title_=title_,
             description_=description_,
@@ -209,6 +238,7 @@ class ChannelPublisher(LogicPublisher):
             rpc=rpc,
             rpc_timeout=rpc_timeout,
             raise_timeout=raise_timeout,
+            message_format=self.message_format,
         )
 
     @override
@@ -267,6 +297,7 @@ class ChannelPublisher(LogicPublisher):
         published_msg = await request(
             message,
             **kwargs,
+            message_format=self.message_format,
         )
 
         async with AsyncExitStack() as stack:
@@ -294,6 +325,7 @@ class ListPublisher(LogicPublisher):
         # Regular publisher options
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         middlewares: Sequence["PublisherMiddleware"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI options
         schema_: Optional[Any],
         title_: Optional[str],
@@ -305,6 +337,7 @@ class ListPublisher(LogicPublisher):
             headers=headers,
             broker_middlewares=broker_middlewares,
             middlewares=middlewares,
+            message_format=message_format,
             schema_=schema_,
             title_=title_,
             description_=description_,
@@ -430,6 +463,7 @@ class ListPublisher(LogicPublisher):
             rpc=rpc,
             rpc_timeout=rpc_timeout,
             raise_timeout=raise_timeout,
+            message_format=self.message_format,
         )
 
     @override
@@ -489,6 +523,7 @@ class ListPublisher(LogicPublisher):
         published_msg = await request(
             message,
             **kwargs,
+            message_format=self.message_format,
         )
 
         async with AsyncExitStack() as stack:
@@ -563,6 +598,7 @@ class ListBatchPublisher(ListPublisher):
             correlation_id=correlation_id,
             headers=headers or self.headers,
             pipeline=pipeline,
+            message_format=self.message_format,
         )
 
 
@@ -576,6 +612,7 @@ class StreamPublisher(LogicPublisher):
         # Regular publisher options
         broker_middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"],
         middlewares: Sequence["PublisherMiddleware"],
+        message_format: Type["MessageFormat"],
         # AsyncAPI options
         schema_: Optional[Any],
         title_: Optional[str],
@@ -587,6 +624,7 @@ class StreamPublisher(LogicPublisher):
             headers=headers,
             broker_middlewares=broker_middlewares,
             middlewares=middlewares,
+            message_format=message_format,
             schema_=schema_,
             title_=title_,
             description_=description_,
@@ -721,6 +759,7 @@ class StreamPublisher(LogicPublisher):
             rpc=rpc,
             rpc_timeout=rpc_timeout,
             raise_timeout=raise_timeout,
+            message_format=self.message_format,
         )
 
     @override
@@ -787,6 +826,7 @@ class StreamPublisher(LogicPublisher):
         published_msg = await request(
             message,
             **kwargs,
+            message_format=self.message_format,
         )
 
         async with AsyncExitStack() as stack:
