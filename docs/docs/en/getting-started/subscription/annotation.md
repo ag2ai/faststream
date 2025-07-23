@@ -93,3 +93,74 @@ For this reason, **FastStream** supports per-argument message serialization: you
 
 !!! tip
     By default **FastStream** uses `json.loads` to decode and `json.dumps` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"}, just install it and framework will use it automatically.
+
+### Serialization details
+
+#### Simple message 
+
+If you expect to consume simple message like `b"1"` or `b"any_string"`, using the single argument as a function annotation. 
+
+In this case your argument name has no matter cuz it is a total message body. 
+
+See the examples below:
+
+``` python
+async def handler(body: int): ...
+    # waits any int-serializable simple message like b"1"
+```
+
+``` python
+async def handler(body: str): ...
+    # waits any str-serializable simple message like b"any_string"
+```
+
+#### JSON-like message
+
+If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs. 
+
+In this case your message will be unpacked and serailized by various fields
+
+See the examples below:
+
+``` python
+async def handler(name: str, id: int): ...
+    # waits for { "name": "John", "id": 1, ... }
+```
+
+To consume single JSON, you should create a single-field pydantic model and use it for annotation.
+
+``` python
+class User(BaseModel):
+    name: str
+
+async def handler(body: User): ...
+    # waits for { "name": "John" }
+```
+
+
+### Partial body consuming
+
+If you don't need to use all the fields, you can simply specify the fields you want to use, and the other will be ignored. See the example below:
+
+``` python hl_lines="17 18 19"
+from faststream import FastStream
+from faststream.kafka import KafkaBroker
+
+broker = KafkaBroker()
+app = FastStream(broker)
+
+@broker.subscriber("test")
+async def handle(name: str, age: int):
+    print(f"{name=}, {age=}")
+
+@app.after_startup
+async def t():
+    await broker.publish({
+        "name": "John",
+        "age": 25,
+        "useless": {
+            "nested": "useless"
+        }
+    }, topic="test")
+
+```
