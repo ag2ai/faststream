@@ -96,11 +96,11 @@ For this reason, **FastStream** supports per-argument message serialization: you
 
 ### Serialization details
 
-#### Simple message 
+#### Simple message
 
-If you expect to consume simple message like `b"1"` or `b"any_string"`, using the single argument as a function annotation. 
+If you expect to consume simple message like `b"1"` or `b"any_string"`, using the single argument as a function annotation.
 
-In this case your argument name has no matter cuz it is a total message body. 
+In this case your argument name has no matter cuz it is a total message body.
 
 See the examples below:
 
@@ -116,7 +116,7 @@ async def handler(body: str): ...
 
 #### JSON-like message
 
-If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs. 
+If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs.
 
 In this case your message will be unpacked and serailized by various fields
 
