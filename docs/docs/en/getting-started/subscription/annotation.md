@@ -138,7 +138,7 @@ async def handler(body: User): ...
 ```
 
 
-### Partial body consuming
+#### Partial body consuming
 
 If you don't need to use all the fields, you can simply specify the fields you want to use, and the other will be ignored. See the example below:
 
