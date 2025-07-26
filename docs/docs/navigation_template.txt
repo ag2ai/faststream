@@ -8,6 +8,7 @@ search:
     - [Subscription and Serialization](getting-started/subscription/index.md)
         - [Annotation Serialization](getting-started/subscription/annotation.md)
         - [Pydantic Serialization](getting-started/subscription/pydantic.md)
+        - [Msgspec Serialization](getting-started/subscription/msgspec.md)
         - [Filtering](getting-started/subscription/filtering.md)
         - [Testing](getting-started/subscription/test.md)
     - [Publishing](getting-started/publishing/index.md)
