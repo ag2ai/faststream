@@ -134,6 +134,48 @@ def main(request: Request):
     broker = request.state.broker
 ```
 
+Also, you can access the broker from a DI Context. 
+
+=== "AIOKafka"
+    ``` python
+    from faststream.kafka.fastapi import KafkaBroker
+
+    @router.get("/")
+    async def handler(broker: KafkaBroker): ...
+    ```
+
+=== "Confluent"
+    ``` python
+    from faststream.confluent.fastapi import KafkaBroker
+
+    @router.get("/")
+    async def handler(broker: KafkaBroker): ...
+    ```
+
+=== "RabbitMQ"
+    ``` python hl_lines="8"
+    from faststream.rabbit.fastapi import RabbitBroker
+
+    @router.get("/")
+    async def handler(broker: RabbitBroker): ...
+    ```
+
+=== "NATS"
+    ``` python
+    from faststream.nats.fastapi import NatsBroker
+
+    @router.get("/")
+    async def handler(broker: NatsBroker): ...
+    ```
+
+=== "Redis"
+    ``` python
+    from faststream.redis.fastapi import RedisBroker
+
+    @router.get("/")
+    async def handler(broker: RedisBroker): ...
+    ```
+
 ## `@after_startup`
 
 The `FastStream` application has the `#!python @after_startup` hook, which allows you to perform operations with your message broker after the connection is established. This can be extremely convenient for managing your brokers' objects and/or sending messages. This hook is also available for your **FastAPI StreamRouter**
