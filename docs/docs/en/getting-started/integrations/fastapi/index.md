@@ -134,7 +134,7 @@ def main(request: Request):
     broker = request.state.broker
 ```
 
-Also, you can access the broker from a DI Context. 
+Also, you can access the broker from a DI Context.
 
 === "AIOKafka"
     ``` python
