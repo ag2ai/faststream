@@ -9,6 +9,7 @@ import pytest
 
 from faststream import FastStream, TestApp
 from faststream._compat import IS_WINDOWS
+from faststream.asgi.app import AsgiFastStream
 from faststream.log import logger
 from faststream.rabbit.testing import TestRabbitBroker
 
@@ -404,6 +405,73 @@ async def test_run_asgi(async_mock: AsyncMock, app: FastStream):
             tg.start_soon(_kill, signal.SIGINT)
 
     async_mock.broker_run.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(IS_WINDOWS, reason="does not run on windows")
+@pytest.mark.parametrize(
+    ("failure_type"),
+    [
+        pytest.param(
+            "startup",
+            id="startup hook failure",
+        ),
+        pytest.param(
+            "shutdown",
+            id="shutdown hook failure",
+        ),
+        pytest.param(
+            "lifespan_start",
+            id="lifespan start failure",
+        ),
+        pytest.param(
+            "lifespan_shutdown",
+            id="lifespan shutdown failure",
+        ),
+    ],
+)
+async def test_lifespan_exceptions(failure_type: str, async_mock: AsyncMock, broker):
+    @asynccontextmanager
+    async def lifespan():
+        if f"{failure_type}" == "lifespan_start":
+            raise ValueError(f"Failure during {failure_type}")
+        yield
+        if f"{failure_type}" == "lifespan_shutdown":
+            raise ValueError(f"Failure during {failure_type}")
+
+    app = AsgiFastStream(broker, lifespan=lifespan)
+
+    @app.on_startup
+    async def start():
+        if f"{failure_type}" == "startup":
+            raise ValueError(f"Failure during {failure_type}")
+
+    @app.on_shutdown
+    async def shutdown():
+        if f"{failure_type}" == "shutdown":
+            raise ValueError(f"Failure during {failure_type}")
+
+    # use uvicorn directly instead of app.run since access to the server instance is needed
+    with patch.object(app.broker, "start", async_mock.broker_run), patch.object(
+        app.broker, "stop", async_mock.broker_stopped
+    ):
+        import uvicorn
+
+        server = uvicorn.Server(uvicorn.Config(app=app))
+        try:
+            # if startup succeeds, serve blocks forever in main loop. Hence, we cancel the task
+            # but need to handle the shutdown manually as cancelling does not trigger the shutdown.
+            with anyio.fail_after(0.1):
+                await server.serve()
+        except TimeoutError:
+            await server.shutdown()
+
+    assert server.lifespan.should_exit is True
+    assert server.lifespan.error_occured is True
+    if failure_type in ["startup", "lifespan_start"]:
+        assert server.lifespan.startup_failed is True
+    if failure_type in ["shutdown", "lifespan_shutdown"]:
+        assert server.lifespan.shutdown_failed is True
 
 
 async def _kill(sig):
