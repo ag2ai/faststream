@@ -1,6 +1,8 @@
+from typing import Any
 from collections.abc import Awaitable, Callable
 
 import prometheus_client
+from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
@@ -13,6 +15,7 @@ from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
+from faststream.redis.publisher.factory import PublisherType
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -285,3 +288,59 @@ Broker(middlewares=[otlp_middleware])
 prometheus_middleware = RedisPrometheusMiddleware(registry=prometheus_client.REGISTRY)
 Broker().add_middleware(prometheus_middleware)
 Broker(middlewares=[prometheus_middleware])
+
+
+async def check_response_type() -> None:
+    broker = Broker()
+
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, Message)
+
+    publisher = broker.publisher("test")
+    publisher_response = await publisher.request(None)
+    assert_type(publisher_response, Message)
+    
+async def check_publish_type(OptionalStream: None | str = "test") -> None:
+    broker = Broker()
+
+    publish_with_confirm = await broker.publish(None)
+    assert_type(publish_with_confirm, int)
+
+    publish_without_confirm = await broker.publish(None, stream="test")
+    assert_type(publish_without_confirm, bytes)
+
+    publish_confirm_bool = await broker.publish(None, stream=OptionalStream)
+    assert_type(publish_confirm_bool, int | bytes)
+
+async def check_publisher_publish_type() -> None:
+    broker = Broker()
+
+    publisher = broker.publisher("test")
+    assert_type(publisher, PublisherType)
+
+    publish_with_confirm = await publisher.publish(None)
+    assert_type(publish_with_confirm, Any | None)
+
+
+async def check_publish_batch_type() -> None:
+    broker = Broker()
+
+    publish_with_confirm = await broker.publish_batch(None, list="test")
+    assert_type(publish_with_confirm, int)
+
+
+async def check_subscriber_get_one_type() -> None:
+    broker = Broker()
+    
+    subscriber = broker.subscriber()
+    message = await subscriber.get_one()
+    
+    assert_type(message, Message | None)
+
+
+async def check_subscriber_msg_type() -> None:
+    broker = Broker()
+    subscriber = broker.subscriber(channel="test")
+    
+    async for msg in subscriber:
+        assert_type(msg, Message)
