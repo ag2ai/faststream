@@ -24,7 +24,7 @@ async def test_decorator_kafka() -> None:
     async with TestKafkaBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")
         handle_next.mock.assert_called_once_with("Hi!")
-        next(iter(broker._publishers)).mock.assert_called_once_with("Hi!")
+        next(iter(broker.publishers)).mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -41,7 +41,7 @@ async def test_decorator_confluent() -> None:
     async with TestConfluentKafkaBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")
         handle_next.mock.assert_called_once_with("Hi!")
-        next(iter(broker._publishers)).mock.assert_called_once_with("Hi!")
+        next(iter(broker.publishers)).mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -58,7 +58,7 @@ async def test_decorator_rabbit() -> None:
     async with TestRabbitBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")
         handle_next.mock.assert_called_once_with("Hi!")
-        next(iter(broker._publishers)).mock.assert_called_once_with("Hi!")
+        next(iter(broker.publishers)).mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -75,7 +75,7 @@ async def test_decorator_nats() -> None:
     async with TestNatsBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")
         handle_next.mock.assert_called_once_with("Hi!")
-        next(iter(broker._publishers)).mock.assert_called_once_with("Hi!")
+        next(iter(broker.publishers)).mock.assert_called_once_with("Hi!")
 
 
 @pytest.mark.asyncio()
@@ -92,4 +92,4 @@ async def test_decorator_redis() -> None:
     async with TestRedisBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")
         handle_next.mock.assert_called_once_with("Hi!")
-        next(iter(broker._publishers)).mock.assert_called_once_with("Hi!")
+        next(iter(broker.publishers)).mock.assert_called_once_with("Hi!")

@@ -135,7 +135,7 @@ You can also host your **AsyncAPI** documentation in the same process, by runnin
 
 Just create an `AsgiFastStream` object with a special option:
 
-```python linenums="1" hl_lines="11"
+```python linenums="1" hl_lines="10"
 from faststream.nats import NatsBroker
 from faststream.asgi import AsgiFastStream
 from faststream.specification import AsyncAPI
@@ -155,11 +155,10 @@ Now, your **AsyncAPI HTML** representation can be found by the `/docs` url.
 
 You may also use regular `FastStream` application object for similar result.
 
-```python linenums="1" hl_lines="2 14"
+```python linenums="1" hl_lines="2 12"
 from faststream import FastStream
 from faststream.nats import NatsBroker
 from faststream.specification import AsyncAPI
-from faststream.asgi import make_ping_asgi, AsgiResponse
 from faststream.asgi import make_ping_asgi, AsgiResponse
 
 broker = NatsBroker()

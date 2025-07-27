@@ -26,6 +26,7 @@ class LocalBaseKafkaMetricsSettingsProviderTestcase(
         assert destination_name == expected_destination_name
 
 
+@pytest.mark.kafka()
 class TestKafkaMetricsSettingsProvider(
     KafkaPrometheusSettings,
     LocalBaseKafkaMetricsSettingsProviderTestcase,
@@ -46,6 +47,7 @@ class TestKafkaMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.kafka()
 class TestBatchKafkaMetricsSettingsProvider(
     BatchKafkaPrometheusSettings,
     LocalBaseKafkaMetricsSettingsProviderTestcase,
@@ -70,6 +72,7 @@ class TestBatchKafkaMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+@pytest.mark.kafka()
 @pytest.mark.parametrize(
     ("msg", "expected_provider"),
     (

@@ -3,48 +3,50 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream._internal.utils.nuid import NUID
 from faststream.redis.message import DATA_KEY
-from faststream.redis.parser import RawMessage, RedisPubSubParser
+from faststream.redis.parser import RedisPubSubParser, SimpleParserConfig
 from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.types import AsyncCallable, CustomCallable
+    from faststream._internal.types import CustomCallable
     from faststream.redis.configs import ConnectionState
+    from faststream.redis.parser import MessageFormat
 
 
 class RedisFastProducer(ProducerProto[RedisPublishCommand]):
     """A class to represent a Redis producer."""
 
-    _decoder: "AsyncCallable"
-    _parser: "AsyncCallable"
+    _decoder: "ParserComposition"
+    _parser: "ParserComposition"
 
     def __init__(
         self,
         connection: "ConnectionState",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        message_format: type["MessageFormat"],
     ) -> None:
         self._connection = connection
         self.serializer: SerializerProto | None = None
 
-        default = RedisPubSubParser()
-        self._parser = resolve_custom_func(
+        default = RedisPubSubParser(SimpleParserConfig(message_format))
+        self._parser = ParserComposition(
             parser,
             default.parse_message,
         )
-        self._decoder = resolve_custom_func(
+        self._decoder = ParserComposition(
             decoder,
             default.decode_message,
         )
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        msg = RawMessage.encode(
+        msg = cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
             headers=cmd.headers,
@@ -61,7 +63,7 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         psub = self._connection.client.pubsub()
         await psub.subscribe(reply_to)
 
-        msg = RawMessage.encode(
+        msg = cmd.message_format.encode(
             message=cmd.body,
             reply_to=reply_to,
             headers=cmd.headers,
@@ -95,7 +97,7 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
     @override
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         batch = [
-            RawMessage.encode(
+            cmd.message_format.encode(
                 message=msg,
                 correlation_id=cmd.correlation_id or "",
                 reply_to=cmd.reply_to,

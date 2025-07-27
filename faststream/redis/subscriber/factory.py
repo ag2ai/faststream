@@ -5,6 +5,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -43,6 +44,7 @@ def create_subscriber(
     no_ack: bool,
     config: "RedisBrokerConfig",
     no_reply: bool = False,
+    message_format: type["MessageFormat"] | None,
     # AsyncAPI args
     title_: str | None = None,
     description_: str | None = None,
@@ -56,6 +58,7 @@ def create_subscriber(
         ack_policy=ack_policy,
         no_ack=no_ack,
         max_workers=max_workers,
+        message_format=message_format,
     )
 
     subscriber_config = RedisSubscriberConfig(
@@ -65,6 +68,7 @@ def create_subscriber(
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
+        _message_format=message_format,
     )
 
     specification_config = RedisSubscriberSpecificationConfig(
@@ -84,7 +88,7 @@ def create_subscriber(
             channel=subscriber_config.channel_sub,
         )
 
-        subscriber_config._ack_policy = AckPolicy.DO_NOTHING
+        subscriber_config._ack_policy = AckPolicy.MANUAL
 
         if max_workers > 1:
             return ChannelConcurrentSubscriber(
@@ -149,12 +153,21 @@ def _validate_input_for_misconfigure(
     ack_policy: AckPolicy,
     no_ack: bool,
     max_workers: int,
+    message_format: type["MessageFormat"] | None,
 ) -> None:
     validate_options(channel=channel, list=list, stream=stream)
 
+    if message_format == JSONMessageFormat:
+        warnings.warn(
+            "JSONMessageFormat has been deprecated and will be removed in version 0.7.0. "
+            "Instead, use BinaryMessageFormatV1 when creating subscriber.",
+            category=DeprecationWarning,
+            stacklevel=4,
+        )
+
     if no_ack is not EMPTY:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.DO_NOTHING`. Scheduled to remove in 0.7.0",
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
             category=DeprecationWarning,
             stacklevel=4,
         )

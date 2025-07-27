@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit.fastapi import RabbitRouter
 from faststream.rabbit.testing import TestRabbitBroker
@@ -11,6 +13,7 @@ from tests.asyncapi.base.v3_0_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
+@pytest.mark.rabbit()
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     broker_class = RabbitRouter
     router_class = RabbitRouter
@@ -20,6 +23,7 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
         return super().get_spec(broker.broker)
 
 
+@pytest.mark.rabbit()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RabbitRouter
 
@@ -27,6 +31,7 @@ class TestRouterPublisher(PublisherTestcase):
         return super().get_spec(broker.broker)
 
 
+@pytest.mark.rabbit()
 def test_fastapi_security_schema() -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 

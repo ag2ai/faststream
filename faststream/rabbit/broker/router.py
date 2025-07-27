@@ -27,7 +27,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import (
         RabbitExchange,
         RabbitQueue,
@@ -233,7 +232,7 @@ class RabbitRoute(SubscriberRoute):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[RabbitMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -244,7 +243,7 @@ class RabbitRoute(SubscriberRoute):
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,

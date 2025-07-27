@@ -1,10 +1,11 @@
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.payload_info import (
-    asyncapi,
+    app,
 )
 
 
 def test_payload_customization() -> None:
-    schema = asyncapi.to_jsonable()
+    app.schema.schema_version = "2.6.0"
+    schema = app.schema.to_specification().to_jsonable()
 
     assert schema["components"]["schemas"] == {
         "DataBasic": {

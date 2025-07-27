@@ -13,9 +13,6 @@ on:
     types:
       - checks_requested
 
-env:
-  ALL_PYTEST_MARKERS: "not nats and not kafka and not confluent and not rabbit and not redis"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -58,7 +55,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          -vv -m "(slow and not connected) or not connected"
         env:
           COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
           CONTEXT: ${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
@@ -89,7 +86,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          -vv -m "(slow and not connected) or not connected"
 
   test-windows-latest:
     if: github.event.pull_request.draft == false
@@ -110,7 +107,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and (${{env.ALL_PYTEST_MARKERS}})) or (${{env.ALL_PYTEST_MARKERS}})"
+          -vv -m "(slow and not connected) or not connected"
 
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
@@ -127,12 +124,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,kafka]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "not kafka"
-          tests/brokers/kafka/test_test_client.py
+          -vv -m "kafka and not connected"
 
   test-kafka-real:
     if: github.event.pull_request.draft == false
@@ -173,7 +169,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and kafka) or kafka"
+          -vv -m "(slow and kafka and connected) or (kafka and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.kafka-py
           CONTEXT: kafka-py
@@ -200,12 +196,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,confluent]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "not confluent"
-          tests/brokers/confluent/test_test_client.py
+          -vv -m "confluent and not connected"
 
   test-confluent-real:
     if: github.event.pull_request.draft == false
@@ -246,7 +241,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and confluent) or confluent"
+          -vv -m "(slow and confluent and connected) or (confluent and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.confluent-py
           CONTEXT: confluent-py
@@ -273,12 +268,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,rabbit]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "not rabbit"
-          tests/brokers/rabbit/test_test_client.py
+          -vv -m "rabbit and not connected"
 
   test-rabbit-real:
     if: github.event.pull_request.draft == false
@@ -308,7 +302,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and rabbit) or rabbit"
+          -vv -m "(slow and rabbit and connected) or (rabbit and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.rabbit-py
           CONTEXT: rabbit-py
@@ -335,12 +329,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,nats]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "not nats"
-          tests/brokers/nats/test_test_client.py
+          -vv -m "nats and not connected"
 
   test-nats-real:
     if: github.event.pull_request.draft == false
@@ -370,7 +363,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and nats) or nats"
+          -vv -m "(slow and nats and connected) or (nats and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.nats-py
           CONTEXT: nats-py
@@ -397,12 +390,11 @@ jobs:
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          uv pip install --system --group test-core ".[cli,redis]"
+          uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "not redis"
-          tests/brokers/redis/test_test_client.py
+          -vv -m "redis and not connected"
 
   test-redis-real:
     if: github.event.pull_request.draft == false
@@ -432,7 +424,7 @@ jobs:
       - name: Test
         run: >
           coverage run -m pytest
-          -vv -m "(slow and redis) or redis"
+          -vv -m "(slow and redis and connected) or (redis and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.redis-py
           CONTEXT: redis-py

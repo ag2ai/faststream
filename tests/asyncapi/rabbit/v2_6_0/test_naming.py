@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.rabbit import RabbitBroker
 from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
 
 
+@pytest.mark.rabbit()
 class TestNaming(NamingTestCase):
     broker_class: type[RabbitBroker] = RabbitBroker
 

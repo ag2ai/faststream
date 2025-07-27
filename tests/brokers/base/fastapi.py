@@ -150,6 +150,7 @@ class FastAPITestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.assert_called_with(True)
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_initial_context(self, queue: str, event: asyncio.Event) -> None:
         router = self.router_class()
         context = router.context

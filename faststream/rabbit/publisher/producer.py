@@ -9,7 +9,7 @@ from typing import (
 import anyio
 from typing_extensions import Unpack, override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.rabbit.parser import AioPikaParser
@@ -117,8 +117,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self.serializer: SerializerProto | None = None
 
         default_parser = AioPikaParser()
-        self._parser = resolve_custom_func(parser, default_parser.parse_message)
-        self._decoder = resolve_custom_func(decoder, default_parser.decode_message)
+        self._parser = ParserComposition(parser, default_parser.parse_message)
+        self._decoder = ParserComposition(decoder, default_parser.decode_message)
 
     def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
         """Lock initialization.

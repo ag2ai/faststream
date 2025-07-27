@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from faststream.specification.base import Specification, SpecificationFactory
@@ -8,40 +7,49 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyDict, AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
     from faststream.asgi.handlers import HttpHandler
-    from faststream.specification.schema import (
-        Contact,
-        ExternalDocs,
-        License,
-        Tag,
-    )
+    from faststream.specification.schema import Contact, ExternalDocs, License, Tag
 
 
-@dataclass
 class AsyncAPI(SpecificationFactory):
-    title: str = "FastStream"
-    version: str = "0.1.0"
-    description: str | None = None
-    terms_of_service: Optional["AnyHttpUrl"] = None
-    license: Union["License", "AnyDict"] | None = None
-    contact: Union["Contact", "AnyDict"] | None = None
-    tags: Sequence[Union["Tag", "AnyDict"]] = ()
-    external_docs: Union["ExternalDocs", "AnyDict"] | None = None
-    identifier: str | None = None
+    def __init__(
+        self,
+        broker: Optional["BrokerUsecase[Any, Any]"] = None,
+        /,
+        title: str = "FastStream",
+        version: str = "0.1.0",
+        description: str | None = None,
+        terms_of_service: Optional["AnyHttpUrl"] = None,
+        license: Union["License", "AnyDict"] | None = None,
+        contact: Union["Contact", "AnyDict"] | None = None,
+        tags: Sequence[Union["Tag", "AnyDict"]] = (),
+        external_docs: Union["ExternalDocs", "AnyDict"] | None = None,
+        identifier: str | None = None,
+        schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0",
+    ) -> None:
+        self.title = title
+        self.version = version
+        self.description = description
+        self.terms_of_service = terms_of_service
+        self.license = license
+        self.contact = contact
+        self.tags = tags
+        self.external_docs = external_docs
+        self.identifier = identifier
+        self.schema_version = schema_version
 
-    schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0"
+        self.brokers: list[BrokerUsecase[Any, Any]] = []
+        if broker:
+            self.add_broker(broker)
 
-    brokers: list["BrokerUsecase[Any, Any]"] = field(default_factory=list, init=False)
-    http_handlers: list[tuple[str, "HttpHandler"]] = field(
-        default_factory=list,
-        init=False,
-    )
+        self.http_handlers: list[tuple[str, HttpHandler]] = []
 
     def add_broker(
         self,
         broker: "BrokerUsecase[Any, Any]",
         /,
     ) -> "SpecificationFactory":
-        self.brokers.append(broker)
+        if broker not in self.brokers:
+            self.brokers.append(broker)
         return self
 
     def add_http_route(

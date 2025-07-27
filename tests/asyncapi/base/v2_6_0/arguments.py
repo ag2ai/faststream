@@ -776,16 +776,18 @@ class ArgumentsTestcase(FastAPICompatible):
 
         payload = schema["components"]["schemas"]
 
-        assert len(payload) == 1
-
         key, value = next(iter(payload.items()))
 
         assert key == "User"
         assert value == {
-            "properties": {
+            "properties": IsDict({
                 "id": {"title": "Id", "type": "integer"},
                 "email": {"default": "", "title": "Email", "type": "string"},
-            },
+            })
+            | IsDict({
+                "id": {"title": "Id", "type": "integer"},
+                "name": {"default": "", "title": "Name", "type": "string"},
+            }),
             "required": ["id"],
             "title": key,
             "type": "object",

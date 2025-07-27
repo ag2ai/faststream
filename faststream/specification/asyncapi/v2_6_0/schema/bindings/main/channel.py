@@ -52,9 +52,7 @@ class ChannelBinding(BaseModel):
         if binding is None:
             return None
 
-        if binding.amqp and (
-            amqp := amqp_bindings.ChannelBinding.from_sub(binding.amqp)
-        ):
+        if binding.amqp and (amqp := amqp_bindings.ChannelBinding.from_sub(binding.amqp)):
             return cls(amqp=amqp)
 
         if binding.kafka and (
@@ -62,9 +60,7 @@ class ChannelBinding(BaseModel):
         ):
             return cls(kafka=kafka)
 
-        if binding.nats and (
-            nats := nats_bindings.ChannelBinding.from_sub(binding.nats)
-        ):
+        if binding.nats and (nats := nats_bindings.ChannelBinding.from_sub(binding.nats)):
             return cls(nats=nats)
 
         if binding.redis and (
@@ -90,9 +86,7 @@ class ChannelBinding(BaseModel):
         if binding is None:
             return None
 
-        if binding.amqp and (
-            amqp := amqp_bindings.ChannelBinding.from_pub(binding.amqp)
-        ):
+        if binding.amqp and (amqp := amqp_bindings.ChannelBinding.from_pub(binding.amqp)):
             return cls(amqp=amqp)
 
         if binding.kafka and (
@@ -100,9 +94,7 @@ class ChannelBinding(BaseModel):
         ):
             return cls(kafka=kafka)
 
-        if binding.nats and (
-            nats := nats_bindings.ChannelBinding.from_pub(binding.nats)
-        ):
+        if binding.nats and (nats := nats_bindings.ChannelBinding.from_pub(binding.nats)):
             return cls(nats=nats)
 
         if binding.redis and (

@@ -14,6 +14,7 @@ from tests.tools import spy_decorator
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.confluent()
 class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
     """A class to represent a test Kafka broker."""
@@ -257,7 +258,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
 
         @consume_broker.subscriber(*args, **kwargs)

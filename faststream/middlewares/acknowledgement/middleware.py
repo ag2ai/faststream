@@ -54,7 +54,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         logger: "LoggerState",
         context: "ContextRepo",
         extra_options: "AnyDict",
-        # can't be created with AckPolicy.DO_NOTHING
+        # can't be created with AckPolicy.MANUAL
         ack_policy: AckPolicy,
     ) -> None:
         super().__init__(msg, context=context)

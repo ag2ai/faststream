@@ -265,7 +265,7 @@ def _resolve_msg_payloads(
     else:
         m.payload["oneOf"] = one_of_list
 
-    assert m.title  # nosec B101
+    assert m.title
     message_title = clear_key(m.title)
     messages[message_title] = m
     return Reference(**{"$ref": f"#/components/messages/{message_title}"})

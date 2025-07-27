@@ -1,3 +1,4 @@
+import pytest
 from dirty_equals import IsPartialDict
 
 from faststream.kafka import KafkaBroker
@@ -5,6 +6,7 @@ from faststream.specification import Contact, ExternalDocs, License, Tag
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
+@pytest.mark.kafka()
 def test_base() -> None:
     schema = get_2_6_0_schema(KafkaBroker())
     assert schema == {
@@ -23,6 +25,7 @@ def test_base() -> None:
     }
 
 
+@pytest.mark.kafka()
 def test_with_name() -> None:
     schema = get_2_6_0_schema(
         KafkaBroker(),
@@ -51,6 +54,7 @@ def test_with_name() -> None:
     }
 
 
+@pytest.mark.kafka()
 def test_full() -> None:
     schema = get_2_6_0_schema(
         KafkaBroker(),
@@ -93,6 +97,7 @@ def test_full() -> None:
     }
 
 
+@pytest.mark.kafka()
 def test_full_dict() -> None:
     schema = get_2_6_0_schema(
         KafkaBroker(),
@@ -135,6 +140,7 @@ def test_full_dict() -> None:
     }
 
 
+@pytest.mark.kafka()
 def test_extra() -> None:
     schema = get_2_6_0_schema(
         KafkaBroker(),

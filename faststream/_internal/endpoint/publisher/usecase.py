@@ -46,7 +46,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.middlewares = config.middlewares
 
         self._fake_handler = False
-        self.mock: MagicMock | None = None
+        self.mock = MagicMock()
 
     async def start(self) -> None:
         pass
@@ -64,7 +64,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
         self._fake_handler = False
-        self.mock = None
+        self.mock.reset_mock()
 
     def __call__(
         self,

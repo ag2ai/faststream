@@ -1,8 +1,11 @@
+import pytest
+
 from faststream.rabbit import RabbitBroker
 from faststream.specification import Tag
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
+@pytest.mark.rabbit()
 def test_base() -> None:
     schema = get_2_6_0_schema(
         RabbitBroker(
@@ -32,6 +35,7 @@ def test_base() -> None:
     }
 
 
+@pytest.mark.rabbit()
 def test_kwargs() -> None:
     broker = RabbitBroker(
         "amqp://guest:guest@localhost:5672/?heartbeat=300",
@@ -43,13 +47,14 @@ def test_kwargs() -> None:
     ]
 
 
+@pytest.mark.rabbit()
 def test_custom() -> None:
     broker = RabbitBroker(
         "amqps://localhost",
         specification_url="amqp://guest:guest@127.0.0.1:5672/vh",
     )
 
-    broker.publisher("test")
+    pub = broker.publisher("test")  # noqa: F841
     schema = get_2_6_0_schema(broker)
 
     assert schema == {

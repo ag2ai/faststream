@@ -1,4 +1,5 @@
 import logging
+import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -27,6 +28,11 @@ from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
 from faststream.redis.configs import ConnectionState, RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
+from faststream.redis.parser import (
+    BinaryMessageFormatV1,
+    JSONMessageFormat,
+    MessageFormat,
+)
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.redis.security import parse_security
@@ -138,6 +144,10 @@ class RedisBroker(
             Sequence["Registrator[UnifyRedisDict]"],
             Doc("Routers to apply to broker."),
         ] = (),
+        message_format: Annotated[
+            type["MessageFormat"],
+            Doc("What format to use when parsing messages"),
+        ] = BinaryMessageFormatV1,
         # AsyncAPI args
         security: Annotated[
             Optional["BaseSecurity"],
@@ -181,6 +191,16 @@ class RedisBroker(
         ] = True,
         serializer: Optional["SerializerProto"] = EMPTY,
     ) -> None:
+        if message_format == JSONMessageFormat:
+            warnings.warn(
+                "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
+                "Instead, use BinaryMessageFormatV1 when initializing broker",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+
+        self.message_format = message_format
+
         if specification_url is None:
             specification_url = url
 
@@ -222,7 +242,9 @@ class RedisBroker(
                     connection=connection_state,
                     parser=parser,
                     decoder=decoder,
+                    message_format=self.message_format,
                 ),
+                message_format=self.message_format,
                 # both args
                 broker_middlewares=middlewares,
                 broker_parser=parser,
@@ -298,6 +320,7 @@ class RedisBroker(
         list: str | None = None,
         stream: None = None,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int: ...
 
     @overload
@@ -312,6 +335,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str,
         maxlen: int | None = None,
+        pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes: ...
 
     @override
@@ -365,8 +389,9 @@ class RedisBroker(
             maxlen=maxlen,
             reply_to=reply_to,
             headers=headers,
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.message_format,
         )
 
         result: int | bytes = await super()._basic_publish(
@@ -398,6 +423,7 @@ class RedisBroker(
             headers=headers,
             timeout=timeout,
             _publish_type=PublishType.REQUEST,
+            message_format=self.message_format,
         )
         msg: RedisMessage = await super()._basic_request(
             cmd,
@@ -434,8 +460,9 @@ class RedisBroker(
             reply_to=reply_to,
             headers=headers,
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.message_format,
         )
 
         result: int = await self._basic_publish_batch(

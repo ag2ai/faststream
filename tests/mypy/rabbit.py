@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable
 
 import prometheus_client
 from aio_pika import IncomingMessage
+from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRouter
@@ -279,3 +280,14 @@ RabbitBroker(middlewares=[otlp_middleware])
 prometheus_middleware = RabbitPrometheusMiddleware(registry=prometheus_client.REGISTRY)
 RabbitBroker().add_middleware(prometheus_middleware)
 RabbitBroker(middlewares=[prometheus_middleware])
+
+
+async def check_response_type() -> None:
+    broker = RabbitBroker()
+
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, RabbitMessage)
+
+    publisher = broker.publisher("test")
+    publisher_response = await publisher.request(None, "test")
+    assert_type(publisher_response, RabbitMessage)

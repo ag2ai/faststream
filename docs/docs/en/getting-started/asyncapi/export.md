@@ -18,7 +18,7 @@ Here's an example Python application using **FastStream** that consumes data fro
 topic, increments the value, and outputs the data to another topic.
 Save it in a file called `basic.py`.
 
-```python title="basic.py"
+```python title="basic.py" linenums="1" hl_lines="5 15"
 {! docs_src/kafka/basic/basic.py!}
 ```
 

@@ -1,12 +1,13 @@
 from dirty_equals import IsPartialDict
 
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.custom_handler import (
-    asyncapi,
+    app,
 )
 
 
 def test_handler_customization() -> None:
-    schema = asyncapi.to_jsonable()
+    app.schema.schema_version = "2.6.0"
+    schema = app.schema.to_specification().to_jsonable()
 
     (subscriber_key, subscriber_value), (publisher_key, publisher_value) = schema[
         "channels"

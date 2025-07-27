@@ -206,6 +206,34 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    async def test_include_publisher_with_prefix(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        broker = self.get_broker()
+
+        args2, kwargs2 = self.get_subscriber_params(f"test_{queue}")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handler(m: Any) -> None:
+            event.set()
+
+        router = self.get_router()
+        publisher = router.publisher(queue)
+        broker.include_router(router, prefix="test_")
+
+        async with broker:
+            await broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(publisher.publish("hello")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
     async def test_manual_publisher(
         self,
         queue: str,
@@ -513,19 +541,19 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_correct_include_router_with_same_name(self) -> None:
+    async def test_include_passes_producer_to_router(self) -> None:
         pub_broker = self.get_broker()
 
         router1 = self.get_router()
         router2 = self.get_router()
 
-        router1.publisher("l3")
-        router2.publisher("l3")
+        pub1 = router1.publisher("l3")
+        pub2 = router2.publisher("l3")
+
+        assert pub1._outer_config.producer is not pub2._outer_config.producer
 
         pub_broker.include_routers(router2, router1)
 
-        pub1 = router1.publishers[0]
-        pub2 = router2.publishers[0]
         assert pub1._outer_config.producer is pub2._outer_config.producer
 
 

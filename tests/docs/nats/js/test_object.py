@@ -4,6 +4,7 @@ from faststream import TestApp
 from faststream.nats import TestNatsBroker
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 async def test_basic() -> None:

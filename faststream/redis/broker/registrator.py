@@ -22,7 +22,7 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.redis.message import UnifyRedisMessage
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
@@ -61,7 +61,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[UnifyRedisMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -72,7 +72,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
@@ -83,6 +83,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
                 "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
             ),
         ] = False,
+        message_format: Annotated[
+            type["MessageFormat"] | None,
+            Doc("What format to use when parsing messages"),
+        ] = None,
         # AsyncAPI information
         title: Annotated[
             str | None,
@@ -113,6 +117,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             no_ack=no_ack,
             no_reply=no_reply,
             ack_policy=ack_policy,
+            message_format=message_format,
             config=cast("RedisBrokerConfig", self.config),
             # AsyncAPI
             title_=title,
@@ -164,6 +169,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
             Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
+        message_format: Annotated[
+            type["MessageFormat"] | None,
+            Doc("What format to use when parsing messages"),
+        ] = None,
         # AsyncAPI information
         title: Annotated[
             str | None,
@@ -201,6 +210,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             # Specific
             config=cast("RedisBrokerConfig", self.config),
             middlewares=middlewares,
+            message_format=message_format,
             # AsyncAPI
             title_=title,
             description_=description,
@@ -217,7 +227,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[UnifyRedisDict]"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RedisRegistrator):

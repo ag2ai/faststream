@@ -47,7 +47,9 @@ class LoggerState:
         self.logger: LoggerObject = NotSetLoggerObject()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(log_level={self.log_level}, logger={self.logger})"
+        return (
+            f"{self.__class__.__name__}(log_level={self.log_level}, logger={self.logger})"
+        )
 
     def set_level(self, level: int) -> None:
         self.log_level = level

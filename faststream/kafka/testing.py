@@ -9,7 +9,7 @@ import anyio
 from aiokafka import ConsumerRecord
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.kafka import TopicPartition
@@ -118,8 +118,8 @@ class FakeProducer(AioKafkaFastProducer):
             regex=None,
         )
 
-        self._parser = resolve_custom_func(broker._parser, default.parse_message)
-        self._decoder = resolve_custom_func(broker._decoder, default.decode_message)
+        self._parser = ParserComposition(broker._parser, default.parse_message)
+        self._decoder = ParserComposition(broker._decoder, default.decode_message)
 
     def __bool__(self) -> bool:
         return True
@@ -148,9 +148,7 @@ class FakeProducer(AioKafkaFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = (
-                [incoming] if isinstance(handler, BatchSubscriber) else incoming
-            )
+            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
 
             await self._execute_handler(msg_to_send, cmd.destination, handler)
 
@@ -172,9 +170,7 @@ class FakeProducer(AioKafkaFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = (
-                [incoming] if isinstance(handler, BatchSubscriber) else incoming
-            )
+            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
 
             with anyio.fail_after(cmd.timeout):
                 return await self._execute_handler(

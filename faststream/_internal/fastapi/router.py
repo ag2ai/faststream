@@ -30,6 +30,7 @@ from starlette.routing import BaseRoute, _DefaultLifespan
 
 from faststream._internal.application import StartAbleApplication
 from faststream._internal.broker import BrokerRouter
+from faststream._internal.context import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
 from faststream._internal.types import (
     MsgType,
@@ -82,11 +83,7 @@ class _BackgroundMiddleware(BaseMiddleware):
         return await super().after_processed(exc_type, exc_val, exc_tb)
 
 
-class StreamRouter(
-    APIRouter,
-    StartAbleApplication,
-    Generic[MsgType],
-):
+class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
     """A class to route streams."""
 
     broker_class: type["BrokerUsecase[MsgType, Any]"]
@@ -104,6 +101,7 @@ class StreamRouter(
     def __init__(
         self,
         *connection_args: Any,
+        context: ContextRepo | None,
         middlewares: Sequence["BrokerMiddleware[MsgType]"] = (),
         prefix: str = "",
         tags: list[str | Enum] | None = None,
@@ -131,10 +129,6 @@ class StreamRouter(
         schema_url: str | None = "/asyncapi",
         **connection_kwars: Any,
     ) -> None:
-        assert (  # nosec B101
-            self.broker_class
-        ), "You should specify `broker_class` at your implementation"
-
         broker = self.broker_class(
             *connection_args,
             middlewares=(
@@ -149,7 +143,9 @@ class StreamRouter(
 
         self._init_setupable_(
             broker,
-            config=FastDependsConfig(get_dependent=get_fastapi_dependant),
+            config=FastDependsConfig(
+                get_dependent=get_fastapi_dependant, context=context or ContextRepo()
+            ),
             specification=specification,
         )
 

@@ -44,6 +44,11 @@ jobs:
           set -ux
           uv pip install --system --group dev -e .
 
+      - name: Install Just
+        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff
+        with:
+          just-version: 1.15.0
+
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
         continue-on-error: true

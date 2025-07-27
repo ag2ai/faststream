@@ -8,6 +8,7 @@ from tests.brokers.base.connection import BrokerConnectionTestcase
 from .conftest import Settings
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestConnection(BrokerConnectionTestcase):
     broker = RedisBroker

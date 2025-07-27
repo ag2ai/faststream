@@ -1,7 +1,10 @@
+import pytest
+
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 
 
+@pytest.mark.rabbit()
 class TestArguments(PublisherTestcase):
     broker_class = RabbitBroker
 

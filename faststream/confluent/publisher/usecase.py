@@ -144,9 +144,7 @@ class DefaultPublisher(LogicPublisher):
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,
         )
-        msg: (
-            asyncio.Future[Message | None] | Message | None
-        ) = await self._basic_publish(
+        msg: asyncio.Future[Message | None] | Message | None = await self._basic_publish(
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),

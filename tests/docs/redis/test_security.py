@@ -27,6 +27,7 @@ def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
         pass
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 async def test_base_security() -> None:
@@ -56,6 +57,7 @@ async def test_base_security() -> None:
         }
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 async def test_plaintext_security() -> None:

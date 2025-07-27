@@ -21,6 +21,7 @@ from tests.brokers.redis.test_publish import TestPublish
 from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestTelemetry(LocalTelemetryTestcase):
     messaging_system = "redis"
@@ -222,6 +223,7 @@ class TestTelemetry(LocalTelemetryTestcase):
         mock.assert_called_once_with(["buy", "hi"])
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestPublishWithTelemetry(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
@@ -232,6 +234,7 @@ class TestPublishWithTelemetry(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestConsumeWithTelemetry(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
@@ -242,6 +245,7 @@ class TestConsumeWithTelemetry(TestConsume):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestConsumeListWithTelemetry(TestConsumeList):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
@@ -252,6 +256,7 @@ class TestConsumeListWithTelemetry(TestConsumeList):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 class TestConsumeStreamWithTelemetry(TestConsumeStream):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:

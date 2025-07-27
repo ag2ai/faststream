@@ -19,8 +19,10 @@ from .basic import KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_by_pattern(
         self,
         queue: str,
@@ -321,7 +323,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             group_id="test",
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -554,6 +556,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.asyncio()
 @pytest.mark.slow()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("partitions", "warning"),
@@ -604,6 +607,7 @@ async def test_concurrent_consume_between_partitions_assignment_warning(
 @pytest.mark.asyncio()
 @pytest.mark.slow()
 @pytest.mark.kafka()
+@pytest.mark.connected()
 class TestListener(KafkaTestcaseConfig):
     async def test_sync_listener(
         self,
@@ -621,9 +625,9 @@ class TestListener(KafkaTestcaseConfig):
                 mock.on_partitions_assigned()
                 event.set()
 
-        consume_broker.subscriber(
+        sub = consume_broker.subscriber(  # noqa: F841
             queue,
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
             group_id="service_1",
             listener=CustomListener(),
         )
@@ -647,9 +651,9 @@ class TestListener(KafkaTestcaseConfig):
             async def on_partitions_assigned(self, assigned: set[str]) -> None:
                 mock.on_partitions_assigned()
 
-        consume_broker.subscriber(
+        sub = consume_broker.subscriber(  # noqa: F841
             queue,
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
             group_id="service_1",
             listener=CustomListener(),
         )

@@ -11,7 +11,7 @@ from pamqp import commands as spec
 from pamqp.header import ContentHeader
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
@@ -200,8 +200,8 @@ class FakeProducer(AioPikaFastProducer):
         self.broker = broker
 
         default_parser = AioPikaParser()
-        self._parser = resolve_custom_func(broker._parser, default_parser.parse_message)
-        self._decoder = resolve_custom_func(
+        self._parser = ParserComposition(broker._parser, default_parser.parse_message)
+        self._decoder = ParserComposition(
             broker._decoder,
             default_parser.decode_message,
         )

@@ -12,6 +12,8 @@ from faststream.message import gen_cor_id
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
+from .producer import RedisFastProducer
+
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
@@ -34,8 +36,24 @@ class LogicPublisher(PublisherUsecase):
     ) -> None:
         super().__init__(config, specification)
 
+        self.config = config
+
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
+
+        self.producer = self.config._outer_config.producer
+
+    async def start(self) -> None:
+        await super().start()
+
+        broker_producer = self.config._outer_config.producer
+
+        self.producer = RedisFastProducer(
+            connection=self.config._outer_config.connection,
+            parser=broker_producer._parser.custom_func,
+            decoder=broker_producer._decoder.custom_func,
+            message_format=self.config.message_format,
+        )
 
     @abstractmethod
     def subscriber_property(self, *, name_only: bool) -> "AnyDict":
@@ -83,12 +101,13 @@ class ChannelPublisher(LogicPublisher):
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.config.message_format,
         )
         result: int = await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=(),
         )
         return result
@@ -101,7 +120,7 @@ class ChannelPublisher(LogicPublisher):
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
-        cmd = RedisPublishCommand.from_cmd(cmd)
+        cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
 
         cmd.set_destination(channel=self.channel.name)
 
@@ -110,7 +129,7 @@ class ChannelPublisher(LogicPublisher):
 
         await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=_extra_middlewares,
         )
 
@@ -129,13 +148,14 @@ class ChannelPublisher(LogicPublisher):
             channel=channel or self.channel.name,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.REQUEST,
             timeout=timeout,
+            _publish_type=PublishType.REQUEST,
+            message_format=self.config.message_format,
         )
 
         msg: RedisMessage = await self._basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
         )
         return msg
 
@@ -181,13 +201,14 @@ class ListPublisher(LogicPublisher):
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.config.message_format,
         )
 
         result: int = await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=(),
         )
         return result
@@ -200,7 +221,7 @@ class ListPublisher(LogicPublisher):
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
-        cmd = RedisPublishCommand.from_cmd(cmd)
+        cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
 
         cmd.set_destination(list=self.list.name)
 
@@ -209,7 +230,7 @@ class ListPublisher(LogicPublisher):
 
         await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=_extra_middlewares,
         )
 
@@ -228,13 +249,14 @@ class ListPublisher(LogicPublisher):
             list=list or self.list.name,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.REQUEST,
             timeout=timeout,
+            _publish_type=PublishType.REQUEST,
+            message_format=self.config.message_format,
         )
 
         msg: RedisMessage = await self._basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
         )
         return msg
 
@@ -256,13 +278,14 @@ class ListBatchPublisher(ListPublisher):
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.config.message_format,
         )
 
         result: int = await self._basic_publish_batch(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=(),
         )
         return result
@@ -275,7 +298,9 @@ class ListBatchPublisher(ListPublisher):
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
-        cmd = RedisPublishCommand.from_cmd(cmd, batch=True)
+        cmd = RedisPublishCommand.from_cmd(
+            cmd, batch=True, message_format=self.config.message_format
+        )
 
         cmd.set_destination(list=self.list.name)
 
@@ -284,7 +309,7 @@ class ListBatchPublisher(ListPublisher):
 
         await self._basic_publish_batch(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=_extra_middlewares,
         )
 
@@ -331,13 +356,14 @@ class StreamPublisher(LogicPublisher):
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             maxlen=maxlen or self.stream.maxlen,
-            _publish_type=PublishType.PUBLISH,
             pipeline=pipeline,
+            _publish_type=PublishType.PUBLISH,
+            message_format=self.config.message_format,
         )
 
         result: bytes = await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=(),
         )
         return result
@@ -350,7 +376,7 @@ class StreamPublisher(LogicPublisher):
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
-        cmd = RedisPublishCommand.from_cmd(cmd)
+        cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
 
         cmd.set_destination(stream=self.stream.name)
 
@@ -360,7 +386,7 @@ class StreamPublisher(LogicPublisher):
 
         await self._basic_publish(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
             _extra_middlewares=_extra_middlewares,
         )
 
@@ -380,13 +406,14 @@ class StreamPublisher(LogicPublisher):
             stream=stream or self.stream.name,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
-            _publish_type=PublishType.REQUEST,
             maxlen=maxlen or self.stream.maxlen,
             timeout=timeout,
+            _publish_type=PublishType.REQUEST,
+            message_format=self.config.message_format,
         )
 
         msg: RedisMessage = await self._basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.producer,
         )
         return msg

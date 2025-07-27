@@ -22,6 +22,7 @@ from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.confluent.broker import KafkaBroker as KB
 from faststream.middlewares import AckPolicy
@@ -95,12 +96,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
-        middlewares: Sequence[
-            Union[
-                "BrokerMiddleware[Message]",
-                "BrokerMiddleware[tuple[Message, ...]]",
-            ]
-        ] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         # Specification args
         specification: Optional["SpecificationFactory"] = None,
         security: Optional["BaseSecurity"] = None,
@@ -114,6 +110,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         log_level: int = logging.INFO,
         # StreamRouter options
         setup_state: bool = True,
+        context: ContextRepo | None = None,
         schema_url: str | None = "/asyncapi",
         # FastAPI args
         prefix: str = "",
@@ -231,6 +228,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             protocol_version: Specification server protocol version.
             description: Specification server description.
             specification_tags: Specification server tags.
+            context: faststream.ContextRepo object to store application injections.
             logger: User specified logger to pass into Context and log service messages.
             log_level: Service messages log level.
             setup_state: Whether to add broker to app scope in lifespan.
@@ -370,6 +368,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             middlewares=middlewares,
             schema_url=schema_url,
             setup_state=setup_state,
+            context=context,
             # logger options
             logger=logger,
             log_level=log_level,
@@ -414,7 +413,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -438,7 +443,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -471,7 +482,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -522,7 +539,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -546,7 +569,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -580,7 +609,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: bool = EMPTY,
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -604,7 +639,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_ack: bool = EMPTY,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args

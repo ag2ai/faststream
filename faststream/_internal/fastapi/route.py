@@ -144,7 +144,7 @@ def build_faststream_to_fastapi_parser(
     response_model_exclude_none: bool,
 ) -> Callable[["NativeMessage[Any]"], Awaitable[Any]]:
     """Creates a session for handling requests."""
-    assert dependent.call  # nosec B101
+    assert dependent.call
 
     consume = make_fastapi_execution(
         dependent=dependent,

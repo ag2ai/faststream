@@ -13,12 +13,10 @@ from tests.tools import spy_decorator
 from .basic import ConfluentMemoryTestcaseConfig
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
-    async def test_message_nack_seek(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(
@@ -40,11 +38,8 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
                 m.mock.assert_called_once_with("hello")
                 mocked.mock.assert_called_once()
 
-    @pytest.mark.confluent()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
+    @pytest.mark.connected()
+    async def test_with_real_testclient(self, queue: str) -> None:
         event = asyncio.Event()
 
         broker = self.get_broker()
@@ -132,10 +127,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish_batch("hello", topic=queue)
             m.mock.assert_called_once_with(["hello"])
 
-    async def test_batch_publisher_mock(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True)
@@ -150,7 +142,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 
-    async def test_respect_middleware(self, queue):
+    async def test_respect_middleware(self, queue: str) -> None:
         routes = []
 
         class Middleware(BaseMiddleware):
@@ -172,8 +164,8 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.confluent()
-    async def test_real_respect_middleware(self, queue) -> None:
+    @pytest.mark.connected()
+    async def test_real_respect_middleware(self, queue: str) -> None:
         routes = []
 
         class Middleware(BaseMiddleware):
@@ -201,10 +193,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    async def test_multiple_subscribers_different_groups(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_multiple_subscribers_different_groups(self, queue: str) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
@@ -220,10 +209,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert subscriber1.mock.call_count == 1
             assert subscriber2.mock.call_count == 1
 
-    async def test_multiple_subscribers_same_group(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_multiple_subscribers_same_group(self, queue: str) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
@@ -236,12 +222,11 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.start()
             await br.publish("", queue)
 
-            assert subscriber1.mock.call_count == 1
-            assert subscriber2.mock.call_count == 0
+            # we can't guarantee the order of calls
+            assert {subscriber1.mock.call_count, subscriber2.mock.call_count} == {1, 0}
 
     async def test_multiple_batch_subscriber_with_different_group(
-        self,
-        queue: str,
+        self, queue: str
     ) -> None:
         broker = self.get_broker()
 
@@ -258,10 +243,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert subscriber1.mock.call_count == 1
             assert subscriber2.mock.call_count == 1
 
-    async def test_multiple_batch_subscriber_with_same_group(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_multiple_batch_subscriber_with_same_group(self, queue: str) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True, group_id="group1")
@@ -274,20 +256,19 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.start()
             await br.publish("", queue)
 
-            assert subscriber1.mock.call_count == 1
-            assert subscriber2.mock.call_count == 0
+            # we can't guarantee the order of calls
+            assert {subscriber1.mock.call_count, subscriber2.mock.call_count} == {1, 0}
 
-    @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
-    @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.confluent()
+    @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
-        self,
-        queue: str,
+        self, queue: str
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)

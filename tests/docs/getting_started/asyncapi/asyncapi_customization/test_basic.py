@@ -2,6 +2,7 @@ from docs.docs_src.getting_started.asyncapi.asyncapi_customization.basic import 
 
 
 def test_basic_customization() -> None:
+    app.schema.schema_version = "2.6.0"
     schema = app.schema.to_specification().to_jsonable()
 
     assert schema == {

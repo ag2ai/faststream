@@ -10,6 +10,8 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
+from faststream.rabbit.schemas import RabbitExchange
+from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITER
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import RabbitQueue
 
     from .config import RabbitSubscriberConfig
 
@@ -125,10 +127,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         timeout: float = 5.0,
         no_ack: bool = True,
     ) -> "RabbitMessage | None":
-        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert self._queue_obj, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         sleep_interval = timeout / 10
 
@@ -160,10 +162,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
-        assert self._queue_obj, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator method if subscriber has registered handlers."
+        assert self._queue_obj, "You should start subscriber at first."
+        assert not self.calls, (
+            "You can't use iterator method if subscriber has registered handlers."
+        )
 
         context = self._outer_config.fd_config.context
 
@@ -174,8 +176,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 msg: RabbitMessage = await process_msg(  # type: ignore[assignment]
                     msg=raw_message,
                     middlewares=(
-                        m(raw_message, context=context)
-                        for m in self._broker_middlewares
+                        m(raw_message, context=context) for m in self._broker_middlewares
                     ),
                     parser=self._parser,
                     decoder=self._decoder,
@@ -186,13 +187,25 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         message: "StreamMessage[Any]",
     ) -> Sequence["PublisherProto"]:
-        return (
-            RabbitFakePublisher(
+        if REPLY_TO_QUEUE_EXCHANGE_DELIMITER in message.reply_to:
+            queue_name, exchange_name = message.reply_to.split(
+                REPLY_TO_QUEUE_EXCHANGE_DELIMITER, 2
+            )
+            publisher = RabbitFakePublisher(
                 self._outer_config.producer,
-                routing_key=message.reply_to,
                 app_id=self.app_id,
-            ),
-        )
+                routing_key=queue_name,
+                exchange=RabbitExchange.validate(exchange_name),
+            )
+        else:
+            publisher = RabbitFakePublisher(
+                self._outer_config.producer,
+                app_id=self.app_id,
+                routing_key=message.reply_to,
+                exchange=RabbitExchange(),
+            )
+
+        return (publisher,)
 
     @staticmethod
     def build_log_context(

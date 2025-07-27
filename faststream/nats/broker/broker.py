@@ -69,10 +69,7 @@ if TYPE_CHECKING:
         SendableMessage,
     )
     from faststream._internal.broker.registrator import Registrator
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck
@@ -552,14 +549,14 @@ class NatsBroker(
 
         stream_context = self.config.connection_state.stream
 
-        for stream in filter(
-            lambda x: x.declare,
+        for stream, subjects in filter(
+            lambda x: x[0].declare,
             self._stream_builder.objects.values(),
         ):
             try:
                 await stream_context.add_stream(
                     config=stream.config,
-                    subjects=stream.subjects,
+                    subjects=list(subjects),
                 )
 
             except BadRequestError as e:  # noqa: PERF203
@@ -583,8 +580,9 @@ class NatsBroker(
                     logger_state.log(str(e), logging.WARNING, log_context)
 
                     for subject in old_config.subjects or ():
-                        stream.add_subject(subject)
+                        subjects.append(subject)
 
+                    stream.config.subjects = list(subjects)
                     await stream_context.update_stream(config=stream.config)
 
                 else:  # pragma: no cover
@@ -732,9 +730,7 @@ class NatsBroker(
             _publish_type=PublishType.REQUEST,
         )
 
-        producer = (
-            self.config.js_producer if stream is not None else self.config.producer
-        )
+        producer = self.config.js_producer if stream is not None else self.config.producer
 
         msg: NatsMessage = await super()._basic_request(cmd, producer=producer)
         return msg
@@ -840,9 +836,7 @@ class NatsBroker(
 
         [1] https://nats-io.github.io/nats.py/modules.html#nats.aio.client.Client.new_inbox
         """
-        assert self._connection  # nosec B101
-
-        return self._connection.new_inbox()
+        return self.connection.new_inbox()
 
     @override
     async def ping(self, timeout: float | None) -> bool:
@@ -862,3 +856,7 @@ class NatsBroker(
                 await anyio.sleep(sleep_time)
 
         return False
+
+    @property
+    def connection(self) -> "Client":
+        return self.config.broker_config.connection_state.connection

@@ -40,7 +40,7 @@ async def process_msg(
             return_msg = partial(m.consume_scope, return_msg)
 
         parsed_msg = await parser(msg)
-        parsed_msg._source_type = source_type
+        parsed_msg.source_type = source_type
         parsed_msg.set_decoder(decoder)
         return await return_msg(parsed_msg)
 
@@ -48,18 +48,28 @@ async def process_msg(
     raise AssertionError(error_msg)
 
 
-def resolve_custom_func(
-    custom_func: Optional["CustomCallable"],
-    default_func: "AsyncCallable",
-) -> "AsyncCallable":
-    """Resolve a custom parser/decoder with default one."""
-    if custom_func is None:
-        return default_func
+class ParserComposition:
+    def __init__(
+        self,
+        custom_func: Optional["CustomCallable"],
+        default_func: "AsyncCallable",
+    ) -> None:
+        self.custom_func = custom_func
+        self.default_func = default_func
 
-    original_params = inspect.signature(custom_func).parameters
+        if custom_func is None:
+            self.wrapped_func = default_func
+        else:
+            original_params = inspect.signature(custom_func).parameters
 
-    if len(original_params) == 1:
-        return to_async(cast("SyncCallable | AsyncCallable", custom_func))
+            if len(original_params) == 1:
+                self.wrapped_func = to_async(
+                    cast("SyncCallable | AsyncCallable", custom_func)
+                )
 
-    name = tuple(original_params.items())[1][0]
-    return partial(to_async(custom_func), **{name: default_func})
+            else:
+                name = tuple(original_params.items())[1][0]
+                self.wrapped_func = partial(to_async(custom_func), **{name: default_func})
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.wrapped_func(*args, **kwargs)

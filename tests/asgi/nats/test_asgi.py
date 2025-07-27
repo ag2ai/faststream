@@ -1,9 +1,12 @@
 from typing import Any
 
+import pytest
+
 from faststream.nats import NatsBroker, TestNatsBroker
 from tests.asgi.testcase import AsgiTestcase
 
 
+@pytest.mark.nats()
 class TestNatsAsgi(AsgiTestcase):
     def get_broker(self, **kwargs: Any) -> NatsBroker:
         return NatsBroker(**kwargs)

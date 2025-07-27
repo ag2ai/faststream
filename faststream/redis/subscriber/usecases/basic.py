@@ -38,6 +38,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     _outer_config: "RedisBrokerConfig"
 
+    def __init__(
+        self,
+        config: "RedisSubscriberConfig",
+        specification: "SubscriberSpecification[Any, Any]",
+        calls: "CallsCollection[Any]",
+    ) -> None:
+        super().__init__(config, specification, calls)
+        self.config = config
+
     @property
     def _client(self) -> "Redis[bytes]":
         return self._outer_config.connection.client
@@ -50,6 +59,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             RedisFakePublisher(
                 self._outer_config.producer,
                 channel=message.reply_to,
+                message_format=self.config.message_format,
             ),
         )
 

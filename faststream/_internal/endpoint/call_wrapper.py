@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import Decorator
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream.message import StreamMessage
 
 
@@ -35,17 +36,20 @@ def ensure_call_wrapper(
 class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
-    mock: MagicMock | None
     future: Optional["asyncio.Future[Any]"]
-    is_test: bool
-
     _wrapped_call: Callable[..., Awaitable[Any]] | None
     _original_call: Callable[P_HandlerParams, T_HandlerReturn]
+
     _publishers: list["PublisherProto[Any]"]
+
+    # we have to store subscribers here
+    # to protect them from garbage collection
+    _subscribers: list["SubscriberUsecase[Any]"]
 
     __slots__ = (
         "_original_call",
         "_publishers",
+        "_subscribers",
         "_wrapped_call",
         "future",
         "is_test",
@@ -59,9 +63,11 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         """Initialize a handler."""
         self._original_call = call
         self._wrapped_call = None
-        self._publishers = []
 
-        self.mock = None
+        self._publishers = []
+        self._subscribers = []
+
+        self.mock = MagicMock()
         self.future = None
         self.is_test = False
 
@@ -78,9 +84,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         message: "StreamMessage[Any]",
     ) -> Any:
         """Calls the wrapped function with the given message."""
-        assert self._wrapped_call, "You should use `set_wrapped` first"  # nosec B101
+        assert self._wrapped_call, "You should use `set_wrapped` first"
         if self.is_test:
-            assert self.mock  # nosec B101
             self.mock(await message.decode())
         return await self._wrapped_call(message)
 
@@ -102,21 +107,18 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     async def wait_call(self, timeout: float | None = None) -> None:
         """Waits for a call with an optional timeout."""
-        assert (  # nosec B101
-            self.future is not None
-        ), "You can use this method only with TestClient"
+        assert self.future is not None, "You can use this method only with TestClient"
         with anyio.fail_after(timeout):
             await self.future
 
     def set_test(self) -> None:
         self.is_test = True
-        if self.mock is None:
-            self.mock = MagicMock()
+        self.mock.reset_mock()
         self.refresh(with_mock=True)
 
     def reset_test(self) -> None:
         self.is_test = False
-        self.mock = None
+        self.mock.reset_mock()
         self.future = None
 
     def trigger(

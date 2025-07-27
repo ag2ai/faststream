@@ -44,7 +44,7 @@ class _StreamHandlerMixin(LogicSubscriber):
     ) -> None:
         super().__init__(config, specification, calls)
 
-        assert config.stream_sub  # nosec B101
+        assert config.stream_sub
         self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
 
@@ -63,7 +63,6 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def _consume(self, *args: Any, start_signal: "Event") -> None:
-        assert self._client, "You should setup subscriber at first."  # nosec B101
         if await self._client.ping():
             start_signal.set()
         await super()._consume(*args, start_signal=start_signal)
@@ -72,8 +71,6 @@ class _StreamHandlerMixin(LogicSubscriber):
     async def start(self) -> None:
         if self.tasks:
             return
-
-        assert self._client, "You should setup subscriber at first."  # nosec B101
 
         client = self._client
 
@@ -104,10 +101,11 @@ class _StreamHandlerMixin(LogicSubscriber):
         ]
 
         if stream.group and stream.consumer:
+            group_create_id = "$" if self.last_id == ">" else self.last_id
             try:
                 await client.xgroup_create(
                     name=stream.name,
-                    id=self.last_id,
+                    id=group_create_id,
                     groupname=stream.group,
                     mkstream=True,
                 )
@@ -135,7 +133,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 return client.xreadgroup(
                     groupname=stream.group,
                     consumername=stream.consumer,
-                    streams={stream.name: ">"},
+                    streams={stream.name: stream.last_id},
                     count=stream.max_records,
                     block=stream.polling_interval,
                     noack=stream.no_ack,
@@ -174,10 +172,9 @@ class _StreamHandlerMixin(LogicSubscriber):
         *,
         timeout: float = 5.0,
     ) -> "RedisStreamMessage | None":
-        assert self._client, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         stream_message = await self._client.xread(
             {self.stream_sub.name: self.last_id},
@@ -213,10 +210,9 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # type: ignore[override]
-        assert self._client, "You should start subscriber at first."  # nosec B101
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         timeout = 5
         while True:
@@ -261,7 +257,7 @@ class StreamSubscriber(_StreamHandlerMixin):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        parser = RedisStreamParser()
+        parser = RedisStreamParser(config)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
@@ -309,7 +305,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        parser = RedisBatchStreamParser()
+        parser = RedisBatchStreamParser(config)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)

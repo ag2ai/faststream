@@ -17,6 +17,7 @@ from faststream._internal.application import Application
 from faststream._internal.basic_types import Lifespan, LoggerProto
 from faststream._internal.cli.supervisors.utils import set_exit
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.asgi.app import AsgiFastStream
@@ -55,12 +56,14 @@ class FastStream(Application):
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
+        context: ContextRepo | None = None,
     ) -> None:
         super().__init__(
             broker,
             logger=logger,
             config=FastDependsConfig(
                 provider=provider or Provider(),
+                context=context or ContextRepo(),
                 serializer=serializer,
             ),
             lifespan=lifespan,

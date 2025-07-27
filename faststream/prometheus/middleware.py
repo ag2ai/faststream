@@ -94,7 +94,7 @@ class BasePrometheusMiddleware(
         call_next: "AsyncFuncAny",
         msg: "StreamMessage[AnyMsg]",
     ) -> Any:
-        if self._settings_provider is None or msg._source_type is SourceType.RESPONSE:
+        if self._settings_provider is None or msg.source_type is SourceType.RESPONSE:
             return await call_next(msg)
 
         messaging_system = self._settings_provider.messaging_system
@@ -176,8 +176,8 @@ class BasePrometheusMiddleware(
         if self._settings_provider is None or cmd.publish_type is PublishType.REPLY:
             return await call_next(cmd)
 
-        destination_name = (
-            self._settings_provider.get_publish_destination_name_from_cmd(cmd)
+        destination_name = self._settings_provider.get_publish_destination_name_from_cmd(
+            cmd
         )
         messaging_system = self._settings_provider.messaging_system
 

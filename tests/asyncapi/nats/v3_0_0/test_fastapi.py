@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from faststream._internal.broker import BrokerUsecase
 from faststream.nats import TestNatsBroker
 from faststream.nats.fastapi import NatsRouter
@@ -9,6 +11,7 @@ from tests.asyncapi.base.v3_0_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
+@pytest.mark.nats()
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     broker_class = NatsRouter
     router_class = NatsRouter
@@ -18,6 +21,7 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
         return super().get_spec(broker.broker)
 
 
+@pytest.mark.nats()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = NatsRouter
 

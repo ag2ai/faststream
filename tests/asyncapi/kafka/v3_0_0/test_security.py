@@ -1,6 +1,8 @@
 import ssl
 from copy import deepcopy
 
+import pytest
+
 from faststream.kafka import KafkaBroker
 from faststream.security import (
     SASLGSSAPI,
@@ -89,6 +91,7 @@ basic_schema = {
 }
 
 
+@pytest.mark.kafka()
 def test_base_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = BaseSecurity(ssl_context=ssl_context)
@@ -105,6 +108,7 @@ def test_base_security_schema() -> None:
     assert schema == basic_schema
 
 
+@pytest.mark.kafka()
 def test_plaintext_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = SASLPlaintext(
@@ -133,6 +137,7 @@ def test_plaintext_security_schema() -> None:
     assert schema == plaintext_security_schema
 
 
+@pytest.mark.kafka()
 def test_scram256_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = SASLScram256(
@@ -159,6 +164,7 @@ def test_scram256_security_schema() -> None:
     assert schema == sasl256_security_schema
 
 
+@pytest.mark.kafka()
 def test_scram512_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = SASLScram512(
@@ -185,6 +191,7 @@ def test_scram512_security_schema() -> None:
     assert schema == sasl512_security_schema
 
 
+@pytest.mark.kafka()
 def test_oauthbearer_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = SASLOAuthBearer(
@@ -211,6 +218,7 @@ def test_oauthbearer_security_schema() -> None:
     assert schema == sasl_oauthbearer_security_schema
 
 
+@pytest.mark.kafka()
 def test_gssapi_security_schema() -> None:
     ssl_context = ssl.create_default_context()
     security = SASLGSSAPI(

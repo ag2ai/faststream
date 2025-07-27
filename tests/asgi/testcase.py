@@ -2,6 +2,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from starlette.applications import Starlette
+from starlette.routing import Mount
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -9,6 +11,7 @@ from faststream.asgi import (
     AsgiFastStream,
     AsgiResponse,
     get,
+    make_asyncapi_asgi,
     make_ping_asgi,
 )
 from faststream.asgi.types import Scope
@@ -106,3 +109,13 @@ class AsgiTestcase:
                 response = client.get("/test")
                 assert response.status_code == 200
                 assert response.text == "test"
+
+    def test_asyncapi_pure_asgi(self) -> None:
+        broker = self.get_broker()
+
+        app = Starlette(routes=[Mount("/", make_asyncapi_asgi(AsyncAPI(broker)))])
+
+        with TestClient(app) as client:
+            response = client.get("/")
+            assert response.status_code == 200
+            assert response.text.strip().startswith("<!DOCTYPE html>")

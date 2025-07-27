@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
@@ -73,8 +73,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
-        self._parser = resolve_custom_func(parser, default.parse_message)
-        self._decoder = resolve_custom_func(decoder, default.decode_message)
+        self._parser = ParserComposition(parser, default.parse_message)
+        self._decoder = ParserComposition(decoder, default.decode_message)
 
     async def connect(
         self,

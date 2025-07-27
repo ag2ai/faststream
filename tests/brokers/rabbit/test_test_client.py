@@ -18,9 +18,10 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 from .basic import RabbitMemoryTestcaseConfig
 
 
+@pytest.mark.rabbit()
 @pytest.mark.asyncio()
 class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
-    @pytest.mark.rabbit()
+    @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
         queue: str,
@@ -127,7 +128,7 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.rabbit()
+    @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
         routes = []
 
@@ -152,15 +153,15 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.rabbit()
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
-    @pytest.mark.rabbit()
+    @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.rabbit()
+    @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
         self,
         queue: str,
@@ -227,6 +228,7 @@ all_keys_queue = RabbitQueue(
 broker = RabbitBroker()
 
 
+@pytest.mark.rabbit()
 @pytest.mark.parametrize(
     (
         "queue",
@@ -335,6 +337,5 @@ def test_in_memory_routing(
 ) -> None:
     subscriber = broker.subscriber(queue, exchange)
     assert (
-        _is_handler_matches(subscriber, routing_key, headers, exchange)
-        is expected_result
+        _is_handler_matches(subscriber, routing_key, headers, exchange) is expected_result
     )

@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from faststream._internal.broker import BrokerUsecase
 from faststream.redis import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
 from faststream.specification import Specification
@@ -8,6 +10,7 @@ from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v3_0_0.router import RouterTestcase
 
 
+@pytest.mark.redis()
 class TestRouter(RouterTestcase):
     broker_class = RedisBroker
     router_class = RedisRouter
@@ -86,6 +89,7 @@ class TestRouter(RouterTestcase):
         }
 
 
+@pytest.mark.redis()
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RedisRouter
 
@@ -93,6 +97,7 @@ class TestRouterArguments(ArgumentsTestcase):
         return super().get_spec(RedisBroker(routers=[broker]))
 
 
+@pytest.mark.redis()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RedisRouter
 

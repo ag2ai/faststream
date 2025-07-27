@@ -22,11 +22,13 @@ class RabbitRequestsTestcase(RequestsTestcase):
         return Mid
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestRealRequests(RabbitTestcaseConfig, RabbitRequestsTestcase):
     pass
 
 
+@pytest.mark.rabbit()
 @pytest.mark.asyncio()
 class TestRequestTestClient(RabbitMemoryTestcaseConfig, RabbitRequestsTestcase):
     pass

@@ -30,7 +30,7 @@ class BaseCase:
             await br.publish({"name": "John", "user_id": 1}, "test")
             handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
 
-        assert handle.mock is None
+        assert not handle.mock.called  # mock is reset
 
     async def test_validation_error(self, setup: Setup) -> None:
         broker, handle, test_class = setup

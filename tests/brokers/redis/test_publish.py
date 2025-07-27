@@ -13,6 +13,7 @@ from tests.tools import spy_decorator
 from .basic import RedisTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):

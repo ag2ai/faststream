@@ -24,9 +24,7 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
 
-GeneralExceptionHandler: TypeAlias = (
-    Callable[..., None] | Callable[..., Awaitable[None]]
-)
+GeneralExceptionHandler: TypeAlias = Callable[..., None] | Callable[..., Awaitable[None]]
 PublishingExceptionHandler: TypeAlias = Callable[..., Any]
 
 CastedGeneralExceptionHandler: TypeAlias = Callable[..., Awaitable[None]]
@@ -54,8 +52,7 @@ class ExceptionMiddleware:
     def __init__(
         self,
         handlers: dict[type[Exception], GeneralExceptionHandler] | None = None,
-        publish_handlers: dict[type[Exception], PublishingExceptionHandler]
-        | None = None,
+        publish_handlers: dict[type[Exception], PublishingExceptionHandler] | None = None,
     ) -> None:
         self._handlers: CastedHandlers = [
             (IgnoredException, ignore_handler),

@@ -3,13 +3,7 @@ from abc import abstractmethod
 from collections.abc import AsyncGenerator, Generator, Iterator
 from contextlib import AbstractContextManager, asynccontextmanager, contextmanager
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Optional,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -22,18 +16,20 @@ from faststream._internal.utils.functions import FakeContext
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.configs import BrokerConfig
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
-    from faststream._internal.producer import ProducerProto
 
 
 Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
 
 
+class _ProducerContains(Protocol):
+    producer: Any
+
+
 @contextmanager
 def change_producer(
-    config: "BrokerConfig",
-    producer: "ProducerProto[Any]",
+    config: _ProducerContains,
+    producer: Any,
 ) -> Generator[None, None, None]:
     old_producer, config.producer = config.producer, producer
     yield
@@ -183,13 +179,13 @@ class TestBroker(Generic[Broker]):
                 publisher.set_test(mock=mock, with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
-                    assert h.handler.mock  # nosec B101
+                    assert h.handler.mock
                     h.handler.mock.side_effect = mock
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock  # nosec B101
+                assert handler.mock
                 publisher.set_test(mock=handler.mock, with_fake=True)
 
         patch_broker_calls(broker)
@@ -208,9 +204,6 @@ class TestBroker(Generic[Broker]):
             if getattr(p, "_fake_handler", None):
                 p.reset_test()
 
-        self.broker._subscribers = [
-            sub for sub in self.broker._subscribers if sub not in self._fake_subscribers
-        ]
         self._fake_subscribers.clear()
 
         for sub in broker.subscribers:

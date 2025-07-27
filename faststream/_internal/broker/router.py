@@ -67,10 +67,15 @@ class BrokerRouter(Registrator[MsgType, BrokerConfigType]):
             routers=routers,
         )
 
+        # protect handlers from gc
+        self._handlers = []
+
         for h in handlers:
             call = h.call
 
             for p in h.publishers:
                 call = self.publisher(*p.args, **p.kwargs)(call)
 
-            self.subscriber(*h.args, **h.kwargs)(call)
+            call = self.subscriber(*h.args, **h.kwargs)(call)
+
+            self._handlers.append(call)

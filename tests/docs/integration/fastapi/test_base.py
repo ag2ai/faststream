@@ -24,7 +24,7 @@ async def test_fastapi_kafka_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br._publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
             {"response": "Hello, Kafka!"},
         )
 
@@ -43,7 +43,7 @@ async def test_fastapi_confluent_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br._publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
             {"response": "Hello, Kafka!"},
         )
 
@@ -62,7 +62,7 @@ async def test_fastapi_rabbit_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br._publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
             {"response": "Hello, Rabbit!"},
         )
 
@@ -81,7 +81,7 @@ async def test_fastapi_nats_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br._publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
             {"response": "Hello, NATS!"},
         )
 
@@ -100,6 +100,6 @@ async def test_fastapi_redis_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br._publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
             {"response": "Hello, Redis!"},
         )

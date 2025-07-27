@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from typing_extensions import override
 
 from faststream.exceptions import SetupError
+from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.response.publish_type import PublishType
 from faststream.response.response import BatchPublishCommand, PublishCommand, Response
@@ -28,6 +29,7 @@ class RedisResponse(Response):
         headers: Optional["AnyDict"] = None,
         correlation_id: str | None = None,
         maxlen: int | None = None,
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(
             body=body,
@@ -35,6 +37,7 @@ class RedisResponse(Response):
             correlation_id=correlation_id,
         )
         self.maxlen = maxlen
+        self.message_format = message_format
 
     @override
     def as_publish_command(self) -> "RedisPublishCommand":
@@ -43,9 +46,9 @@ class RedisResponse(Response):
             headers=self.headers,
             correlation_id=self.correlation_id,
             _publish_type=PublishType.PUBLISH,
-            # Kafka specific
-            channel="fake-channel",  # it will be replaced by reply-sender
             maxlen=self.maxlen,
+            message_format=self.message_format,
+            channel="fake-channel",  # it will be replaced by reply-sender
         )
 
 
@@ -67,6 +70,7 @@ class RedisPublishCommand(BatchPublishCommand):
         reply_to: str = "",
         timeout: float | None = 30.0,
         pipeline: Optional["Pipeline[bytes]"] = None,
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(
             message,
@@ -79,6 +83,8 @@ class RedisPublishCommand(BatchPublishCommand):
         )
 
         self.pipeline = pipeline
+
+        self.message_format = message_format
 
         self.set_destination(
             channel=channel,
@@ -117,6 +123,7 @@ class RedisPublishCommand(BatchPublishCommand):
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
         batch: bool = False,
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> "RedisPublishCommand":
         if isinstance(cmd, RedisPublishCommand):
             # NOTE: Should return a copy probably.
@@ -131,5 +138,6 @@ class RedisPublishCommand(BatchPublishCommand):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
+            message_format=message_format,
             _publish_type=cmd.publish_type,
         )

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
@@ -103,8 +103,8 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()
-        self._parser = resolve_custom_func(parser, default.parse_message)
-        self._decoder = resolve_custom_func(decoder, default.decode_message)
+        self._parser = ParserComposition(parser, default.parse_message)
+        self._decoder = ParserComposition(decoder, default.decode_message)
 
     def connect(
         self,

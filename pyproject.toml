@@ -56,7 +56,7 @@ version = "0.6.0rc0"
 
 dependencies = [
     "anyio>=3.7.1,<5",
-    "fast-depends[pydantic]>=3.0.0a10,<4.0.0",
+    "fast-depends[pydantic]>=3.0.0a11,<4.0.0",
     "typing-extensions>=4.8.0",
 ]
 
@@ -117,7 +117,6 @@ lint = [
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
-    "confluent-kafka-stubs; python_version >= '3.11'",
 ]
 
 test-core = [
@@ -140,6 +139,8 @@ testing = [
     "uvicorn>=0.34.3; python_version >= '3.9'",
     "uvicorn==0.33.0; python_version < '3.9'",
     "psutil==7.0.0",
+    "prometheus-client>=0.20.0,<0.30.0",
+    "opentelemetry-sdk>=1.24.0,<2.0.0",
 ]
 
 dev = [
@@ -191,7 +192,16 @@ minversion = "7.0"
 timeout = 30
 addopts = "-q -m 'not slow'"
 testpaths = ["tests"]
-markers = ["rabbit", "kafka", "confluent", "nats", "redis", "slow", "all"]
+markers = [
+    "rabbit",
+    "kafka",
+    "confluent",
+    "nats",
+    "redis",
+    "slow",
+    "connected",
+    "all",
+]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]

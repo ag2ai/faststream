@@ -13,6 +13,7 @@ from faststream._internal.utils import apply_types, to_async
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
+    from fast_depends.use import InjectWrapper
 
     from faststream._internal.basic_types import Decorator
     from faststream.message import StreamMessage
@@ -83,7 +84,9 @@ class FastDependsConfig:
             )
 
             if self.use_fastdepends:
-                wrapper = apply_types(None, context__=self.context)
+                wrapper: InjectWrapper[..., Any] = apply_types(
+                    None, context__=self.context
+                )
                 wrapped_call = wrapper(func=wrapped_call, model=dependent)
 
             wrapped_call = _unwrap_message_to_fast_depends_decorator(

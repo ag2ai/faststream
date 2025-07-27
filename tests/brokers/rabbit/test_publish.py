@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.response import RabbitPublishCommand
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
@@ -161,3 +162,39 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
             "body": b"",
             "timestamp": IsNow(delta=dt.timedelta(seconds=10), tz=dt.timezone.utc),
         }
+
+    @pytest.mark.asyncio()
+    async def test_reply_to_with_exchange(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        pub_broker = self.get_broker()
+
+        @pub_broker.subscriber(queue)
+        async def handler(m):
+            return m
+
+        @pub_broker.subscriber(queue=queue + "reply", exchange="reply_exchange")
+        async def reply_handler(m):
+            event.set()
+            mock(m)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        br.publish(
+                            "Hello!", queue, reply_to=queue + "reply|reply_exchange"
+                        )
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_with("Hello!")

@@ -11,15 +11,15 @@ class Settings:
 
 
 @pytest.fixture(scope="session")
-def settings():
+def settings() -> Settings:
     return Settings()
 
 
 @pytest.fixture()
-def stream(queue):
+def stream(queue: str) -> JStream:
     return JStream(queue)
 
 
 @pytest.fixture()
-def router():
+def router() -> NatsRouter:
     return NatsRouter()

@@ -61,7 +61,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
-    ) -> Optional["PubAck"]: ...
+    ) -> None: ...
 
     @overload
     async def publish(

@@ -4,6 +4,7 @@ from aiormq.exceptions import AMQPConnectionError
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_base_security() -> None:
@@ -31,6 +32,7 @@ async def test_base_security() -> None:
     }
 
 
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_plaintext_security() -> None:

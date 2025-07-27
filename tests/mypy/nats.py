@@ -2,9 +2,10 @@ from collections.abc import Awaitable, Callable
 
 import prometheus_client
 from nats.aio.msg import Msg
+from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter
+from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter, PubAck
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
@@ -279,3 +280,29 @@ NatsBroker(middlewares=[otlp_middleware])
 prometheus_middleware = NatsPrometheusMiddleware(registry=prometheus_client.REGISTRY)
 NatsBroker().add_middleware(prometheus_middleware)
 NatsBroker(middlewares=[prometheus_middleware])
+
+
+async def check_response_type() -> None:
+    broker = NatsBroker()
+
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, NatsMessage)
+
+    publisher = broker.publisher("test")
+    assert_type(await publisher.request(None, "test"), NatsMessage)
+
+
+async def check_publish_type() -> None:
+    broker = NatsBroker()
+
+    assert_type(await broker.publish(None, "test"), None)
+    assert_type(await broker.publish(None, "test", stream="stream"), PubAck)
+
+
+async def check_publisher_publish_type() -> None:
+    broker = NatsBroker()
+
+    publisher = broker.publisher("test")
+
+    assert_type(await publisher.publish(None, "test"), None)
+    assert_type(await publisher.publish(None, "test", stream="stream"), PubAck)

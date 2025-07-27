@@ -6,7 +6,7 @@ import anyio
 import nats
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import resolve_custom_func
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message import encode_message
@@ -65,8 +65,8 @@ class NatsFastProducerImpl(NatsFastProducer):
         self.serializer: SerializerProto | None = None
 
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self._parser = resolve_custom_func(parser, default.parse_message)
-        self._decoder = resolve_custom_func(decoder, default.decode_message)
+        self._parser = ParserComposition(parser, default.parse_message)
+        self._decoder = ParserComposition(decoder, default.decode_message)
 
         self.__state: ConnectionState[Client] = EmptyConnectionState()
 
@@ -129,8 +129,8 @@ class NatsJSFastProducer(NatsFastProducer):
         self.serializer: SerializerProto | None = None
 
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self._parser = resolve_custom_func(parser, default.parse_message)
-        self._decoder = resolve_custom_func(decoder, default.decode_message)
+        self._parser = ParserComposition(parser, default.parse_message)
+        self._decoder = ParserComposition(decoder, default.decode_message)
 
         self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 

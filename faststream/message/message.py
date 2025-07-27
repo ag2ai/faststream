@@ -45,7 +45,7 @@ class StreamMessage(Generic[MsgType]):
         self.body = body
         self.reply_to = reply_to
         self.content_type = content_type
-        self._source_type = source_type
+        self.source_type = source_type
 
         self.headers = headers or {}
         self.batch_headers = batch_headers or []
@@ -95,7 +95,7 @@ class StreamMessage(Generic[MsgType]):
         Returns a cache after first usage. To prevent such behavior, please call
         `message.clear_cache()` after `message.body` changes.
         """
-        assert self.__decoder, "You should call `set_decoder()` method first."  # nosec B101
+        assert self.__decoder, "You should call `set_decoder()` method first."
 
         if (result := self.__decoded_caches.get(self.__decoder)) is None:
             result = self.__decoded_caches[self.__decoder] = await self.__decoder(self)

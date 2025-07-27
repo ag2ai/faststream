@@ -16,6 +16,17 @@ class AsgiResponse:
         self.body = body
         self.raw_headers = _get_response_headers(body, headers, status_code)
 
+    def __repr__(self) -> str:
+        inner = [f"status_code={self.status_code}"]
+        if (ln := len(self.body)) > 100:
+            inner.append(
+                f"body={self.body[:100]!r}".rstrip(" \\n'") + f" ...' ({ln} bytes)"
+            )
+        else:
+            inner.append(f"body={self.body!r}")
+        inner.append(f"headers={self.raw_headers}")
+        return f"{self.__class__.__name__}({', '.join(inner)})"
+
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         prefix = "websocket." if (scope["type"] == "websocket") else ""
         await send(
@@ -44,8 +55,7 @@ def _get_response_headers(
 
     else:
         raw_headers = [
-            (k.lower().encode("latin-1"), v.encode("latin-1"))
-            for k, v in headers.items()
+            (k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in headers.items()
         ]
         keys = [h[0] for h in raw_headers]
         populate_content_length = b"content-length" not in keys

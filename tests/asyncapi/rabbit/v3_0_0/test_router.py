@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit import (
     RabbitBroker,
@@ -14,6 +16,7 @@ from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v3_0_0.router import RouterTestcase
 
 
+@pytest.mark.rabbit()
 class TestRouter(RouterTestcase):
     broker_class = RabbitBroker
     router_class = RabbitRouter
@@ -107,6 +110,7 @@ class TestRouter(RouterTestcase):
         }, schema
 
 
+@pytest.mark.rabbit()
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RabbitRouter
 
@@ -114,6 +118,7 @@ class TestRouterArguments(ArgumentsTestcase):
         return super().get_spec(RabbitBroker(routers=[broker]))
 
 
+@pytest.mark.rabbit()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RabbitRouter
 

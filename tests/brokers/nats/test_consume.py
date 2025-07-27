@@ -15,6 +15,7 @@ from tests.tools import spy_decorator
 from .basic import NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_concurrent_subscriber(
@@ -193,7 +194,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
 
         @consume_broker.subscriber(*args, **kwargs)
@@ -377,7 +378,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             stream=stream,
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: NatsMessage) -> None:
             event.set()

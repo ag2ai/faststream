@@ -16,6 +16,7 @@ from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestRouter(RabbitTestcaseConfig, RouterTestcase):
     route_class = RabbitRoute
@@ -203,6 +204,8 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
             assert event.is_set()
 
 
+@pytest.mark.rabbit()
+@pytest.mark.connected()
 class TestRouterLocal(RabbitMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RabbitRoute
     publisher_class = RabbitPublisher

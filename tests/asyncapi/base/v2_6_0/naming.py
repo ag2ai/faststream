@@ -1,6 +1,6 @@
 from typing import Any
 
-from dirty_equals import Contains, IsStr
+from dirty_equals import Contains, HasLen, IsStr
 from pydantic import create_model
 
 from faststream._internal.broker import BrokerUsecase
@@ -60,15 +60,15 @@ class SubscriberNaming(BaseNaming):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert list(schema["channels"].keys()) == [
+        assert list(schema["channels"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated"),
             IsStr(regex=r"test2[\w:]*:HandleUserCreated"),
-        ]
+        ) & HasLen(2)
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated:Message"),
             IsStr(regex=r"test2[\w:]*:HandleUserCreated:Message"),
-        ]
+        ) & HasLen(2)
 
         assert list(schema["components"]["schemas"].keys()) == [
             "HandleUserCreated:Message:Payload",
@@ -93,7 +93,7 @@ class SubscriberNaming(BaseNaming):
     def test_subscriber_naming_default(self) -> None:
         broker = self.broker_class()
 
-        broker.subscriber("test")
+        sub = broker.subscriber("test")  # noqa: F841
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -112,7 +112,7 @@ class SubscriberNaming(BaseNaming):
     def test_subscriber_naming_default_with_title(self) -> None:
         broker = self.broker_class()
 
-        broker.subscriber("test", title="custom")
+        sub = broker.subscriber("test", title="custom")  # noqa: F841
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -134,27 +134,27 @@ class SubscriberNaming(BaseNaming):
         @broker.subscriber("test")
         async def handle_user_created(msg: str) -> None: ...
 
-        broker.subscriber("test2")
-        broker.subscriber("test3")
+        sub1 = broker.subscriber("test2")  # noqa: F841
+        sub2 = broker.subscriber("test3")  # noqa: F841
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert list(schema["channels"].keys()) == [
+        assert list(schema["channels"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated"),
             IsStr(regex=r"test2[\w:]*:Subscriber"),
             IsStr(regex=r"test3[\w:]*:Subscriber"),
-        ]
+        ) & HasLen(3)
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated:Message"),
             IsStr(regex=r"test2[\w:]*:Subscriber:Message"),
             IsStr(regex=r"test3[\w:]*:Subscriber:Message"),
-        ]
+        ) & HasLen(3)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
             "Subscriber:Message:Payload",
-        ]
+        ) & HasLen(2)
 
         assert schema["components"]["schemas"]["Subscriber:Message:Payload"] == {
             "title": "Subscriber:Message:Payload",
@@ -337,19 +337,19 @@ class PublisherNaming(BaseNaming):
         assert names == Contains(
             IsStr(regex=r"test2[\w:]*:Publisher"),
             IsStr(regex=r"test[\w:]*:Publisher"),
-        ), names
+        ) & HasLen(2), names
 
         messages = list(schema["components"]["messages"].keys())
         assert messages == Contains(
             IsStr(regex=r"test2[\w:]*:Publisher:Message"),
             IsStr(regex=r"test[\w:]*:Publisher:Message"),
-        ), messages
+        ) & HasLen(2), messages
 
         payloads = list(schema["components"]["schemas"].keys())
         assert payloads == Contains(
             IsStr(regex=r"test2[\w:]*:Publisher:Message:Payload"),
             IsStr(regex=r"test[\w:]*:Publisher:Message:Payload"),
-        ), payloads
+        ) & HasLen(2), payloads
 
     def test_multi_publisher_usages(self) -> None:
         broker = self.broker_class()

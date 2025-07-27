@@ -102,7 +102,7 @@ class PublisherTestcase(AsyncAPI300Factory):
     def test_with_schema(self) -> None:
         broker = self.broker_class()
 
-        broker.publisher("test", title="Custom", schema=int)
+        pub = broker.publisher("test", title="Custom", schema=int)  # noqa: F841
 
         schema = self.get_spec(broker).to_jsonable()
 

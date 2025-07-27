@@ -9,6 +9,7 @@ from docs.docs_src.kafka.publish_with_partition_key.app import (
 from faststream.kafka import TestKafkaBroker
 
 
+@pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_app() -> None:
     async with TestKafkaBroker(broker):
@@ -18,6 +19,7 @@ async def test_app() -> None:
         to_output_data.mock.assert_called_once_with(dict(Data(data=1.2)))
 
 
+@pytest.mark.kafka()
 @pytest.mark.skip("we are not checking the key")
 @pytest.mark.asyncio()
 async def test_keys() -> None:

@@ -1,4 +1,5 @@
 import asyncio
+import gc
 from abc import abstractmethod
 from unittest.mock import Mock
 
@@ -21,16 +22,18 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         @broker.subscriber("test")
         async def handler1(msg) -> None: ...
 
-        broker.publisher("test2")
-        broker.publisher("test")
+        # protect publishers from gc
+        pub1 = broker.publisher("test2")  # noqa: F841
+        pub2 = broker.publisher("test")  # noqa: F841
 
-        assert len(broker._subscribers) == 1
+        assert len(broker.subscribers) == 1, len(broker.subscribers)
 
         test_client = self.patch_broker(broker)
         async with test_client as br:
-            assert len(br._subscribers) == 2
+            assert len(br.subscribers) == 2, len(broker.subscribers)
 
-        assert len(broker._subscribers) == 1
+        gc.collect()
+        assert len(broker.subscribers) == 1, len(broker.subscribers)
 
     @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
@@ -86,7 +89,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         async with self.patch_broker(test_broker) as br:
             await br.start()
 
-            assert len(br._subscribers) == 2
+            assert len(br.subscribers) == 2
 
             await br.publish("hello", queue)
             publisher.mock.assert_called_with("response")

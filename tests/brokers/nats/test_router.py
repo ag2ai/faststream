@@ -15,6 +15,7 @@ from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.nats()
 class TestRouter(NatsTestcaseConfig, RouterTestcase):
     route_class = NatsRoute
@@ -152,6 +153,8 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
         assert event.is_set()
 
 
+@pytest.mark.nats()
+@pytest.mark.connected()
 class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher
@@ -186,7 +189,8 @@ class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
         broker = self.get_broker()
         broker.include_router(router)
 
-        assert set(stream.subjects) == {
+        _, subjects = broker._stream_builder.get(stream)
+        assert set(subjects) == {
             "user.registered",
             "user.client.1",
             "user.client.2",

@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from dirty_equals import IsPartialDict
 
 from faststream._internal.broker import BrokerUsecase
@@ -16,6 +17,7 @@ from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase
 
 
+@pytest.mark.rabbit()
 class TestRouter(RouterTestcase):
     broker_class = RabbitBroker
     router_class = RabbitRouter
@@ -67,6 +69,7 @@ class TestRouter(RouterTestcase):
         }), schema["channels"]
 
 
+@pytest.mark.rabbit()
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RabbitRouter
 
@@ -74,6 +77,7 @@ class TestRouterArguments(ArgumentsTestcase):
         return super().get_spec(RabbitBroker(routers=[broker]))
 
 
+@pytest.mark.rabbit()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RabbitRouter
 

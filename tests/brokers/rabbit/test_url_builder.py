@@ -6,6 +6,7 @@ from yarl import URL
 from faststream.rabbit.utils import build_url
 
 
+@pytest.mark.rabbit()
 @pytest.mark.parametrize(
     ("url_kwargs", "expected_url"),
     (

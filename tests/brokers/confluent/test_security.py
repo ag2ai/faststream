@@ -20,6 +20,7 @@ def patch_aio_consumer_and_producer() -> tuple[MagicMock, MagicMock]:
         pass
 
 
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_base_security_pass_ssl_context() -> None:
     import ssl

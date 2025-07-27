@@ -53,9 +53,9 @@ class KeyValueWatchSubscriber(
         *,
         timeout: float = 5,
     ) -> Optional["NatsKvMessage"]:
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             bucket = await self._outer_config.kv_declarer.create_key_value(
@@ -97,9 +97,9 @@ class KeyValueWatchSubscriber(
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsKvMessage"]:  # type: ignore[override]
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             bucket = await self._outer_config.kv_declarer.create_key_value(
@@ -170,7 +170,7 @@ class KeyValueWatchSubscriber(
         self.add_task(self.__consume_watch())
 
     async def __consume_watch(self) -> None:
-        assert self.subscription, "You should call `create_subscription` at first."  # nosec B101
+        assert self.subscription, "You should call `create_subscription` at first."
 
         key_watcher = self.subscription.obj
 

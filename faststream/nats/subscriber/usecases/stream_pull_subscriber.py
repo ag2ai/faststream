@@ -72,7 +72,7 @@ class PullStreamSubscriber(
         cb: Callable[["Msg"], Awaitable["SendableMessage"]],
     ) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
-        assert self.subscription  # nosec B101
+        assert self.subscription
 
         while self.running:  # pragma: no branch
             messages = []
@@ -137,9 +137,9 @@ class BatchPullStreamSubscriber(
         *,
         timeout: float = 5,
     ) -> Optional["NatsMessage"]:
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use `get_one` method if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
@@ -174,9 +174,9 @@ class BatchPullStreamSubscriber(
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
-        assert (  # nosec B101
-            not self.calls
-        ), "You can't use iterator if subscriber has registered handlers."
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
@@ -197,8 +197,7 @@ class BatchPullStreamSubscriber(
                 await process_msg(
                     msg=raw_message,
                     middlewares=(
-                        m(raw_message, context=context)
-                        for m in self._broker_middlewares
+                        m(raw_message, context=context) for m in self._broker_middlewares
                     ),
                     parser=self._parser,
                     decoder=self._decoder,
@@ -220,7 +219,7 @@ class BatchPullStreamSubscriber(
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
-        assert self.subscription, "You should call `create_subscription` at first."  # nosec B101
+        assert self.subscription, "You should call `create_subscription` at first."
 
         while self.running:  # pragma: no branch
             with suppress(TimeoutError, ConnectionClosedError):

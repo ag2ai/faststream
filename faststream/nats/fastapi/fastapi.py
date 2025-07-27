@@ -30,6 +30,7 @@ from typing_extensions import Doc, deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.nats.message import NatsMessage
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.nats.subscriber.usecases import (
@@ -224,7 +224,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Custom parser object."),
         ] = None,
         middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg]"],
+            Sequence["BrokerMiddleware[Msg, Any]"],
             Doc("Middlewares to apply to all broker publishers/subscribers."),
         ] = (),
         # AsyncAPI args
@@ -277,6 +277,7 @@ class NatsRouter(StreamRouter["Msg"]):
                 "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
             ),
         ] = "/asyncapi",
+        context: ContextRepo | None = None,
         # FastAPI args
         prefix: Annotated[
             str,
@@ -538,6 +539,7 @@ class NatsRouter(StreamRouter["Msg"]):
             specification_tags=specification_tags,
             schema_url=schema_url,
             setup_state=setup_state,
+            context=context,
             # FastAPI kwargs
             prefix=prefix,
             tags=tags,
@@ -656,10 +658,8 @@ class NatsRouter(StreamRouter["Msg"]):
             bool,
             Doc("Whether to `ack` message at start of consuming or not."),
             deprecated(
-                """
-            This option is deprecated and will be removed in 0.7.0 release.
-            Please, use `ack_policy=AckPolicy.ACK_FIRST` instead.
-            """,
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
         stream: Annotated[
@@ -680,7 +680,7 @@ class NatsRouter(StreamRouter["Msg"]):
             Doc("Function to decode FastStream msg bytes body to python objects."),
         ] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[NatsMessage]"],
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
@@ -695,7 +695,7 @@ class NatsRouter(StreamRouter["Msg"]):
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.DO_NOTHING**. "
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,

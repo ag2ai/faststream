@@ -38,14 +38,14 @@ class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
     @property
     def ack_policy(self) -> AckPolicy:
         if (policy := self.__ack_policy) is AckPolicy.ACK_FIRST:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         return policy
 
     @property
     def __ack_policy(self) -> AckPolicy:
         if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self._ack_policy is EMPTY:
             return AckPolicy.REJECT_ON_ERROR

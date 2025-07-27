@@ -5,6 +5,7 @@ from faststream._internal.configs import BrokerConfig
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.producer import RedisFastProducer
 
     from .state import ConnectionState
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 class RedisBrokerConfig(BrokerConfig):
     producer: "RedisFastProducer"
     connection: "ConnectionState"
+
+    message_format: type["MessageFormat"]
 
     async def connect(self) -> None:
         self.producer.connect(self.fd_config._serializer)

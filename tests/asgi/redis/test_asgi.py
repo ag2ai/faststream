@@ -1,9 +1,12 @@
 from typing import Any
 
+import pytest
+
 from faststream.redis import RedisBroker, TestRedisBroker
 from tests.asgi.testcase import AsgiTestcase
 
 
+@pytest.mark.redis()
 class TestRedisAsgi(AsgiTestcase):
     def get_broker(self, **kwargs: Any) -> RedisBroker:
         return RedisBroker(**kwargs)

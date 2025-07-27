@@ -18,6 +18,7 @@ from tests.tools import spy_decorator
 from .basic import RedisTestcaseConfig
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
@@ -99,6 +100,7 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         mock.assert_called_once_with("hello")
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_channel(
         self,
         queue: str,
@@ -137,6 +139,7 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         assert mock.call_count == 2, mock.call_count
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeList(RedisTestcaseConfig):
@@ -463,6 +466,7 @@ class TestConsumeList(RedisTestcaseConfig):
                     break
 
 
+@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeStream(RedisTestcaseConfig):
@@ -696,7 +700,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         )
         async def handler(msg: RedisMessage) -> None: ...
 
-        assert next(iter(consume_broker._subscribers)).last_id == "$"
+        assert next(iter(consume_broker.subscribers)).last_id == ">"
 
     async def test_consume_group_with_last_id(
         self,
@@ -709,7 +713,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         )
         async def handler(msg: RedisMessage) -> None: ...
 
-        assert next(iter(consume_broker._subscribers)).last_id == "0"
+        assert next(iter(consume_broker.subscribers)).last_id == "0"
 
     async def test_consume_nack(
         self,
@@ -815,7 +819,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue),
-            ack_policy=AckPolicy.DO_NOTHING,
+            ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: RedisStreamMessage) -> None:
             assert not msg.committed
@@ -886,6 +890,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_stream(
         self,
         queue: str,

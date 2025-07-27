@@ -75,9 +75,7 @@ def _try_import_app(module: Path, app: str) -> object:
 
     except FileNotFoundError as e:
         typer.echo(e, err=True)
-        msg = (
-            "Please, input module like [python_file:docs_object] or [module:attribute]"
-        )
+        msg = "Please, input module like [python_file:docs_object] or [module:attribute]"
         raise typer.BadParameter(
             msg,
         ) from e

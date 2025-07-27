@@ -166,6 +166,21 @@ class DefaultPublisher(LogicPublisher):
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: bytes | Any | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
+
     @override
     async def publish(
         self,
@@ -354,6 +369,19 @@ class BatchPublisher(LogicPublisher):
         correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
+
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        reply_to: str = "",
+        correlation_id: str | None = None,
+        no_confirm: bool = False,
+    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     @override
     async def publish(

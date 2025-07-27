@@ -35,7 +35,7 @@ class NatsSubscriberConfig(SubscriberUsecaseConfig):
     @property
     def ack_policy(self) -> AckPolicy:
         if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.DO_NOTHING
+            return AckPolicy.MANUAL
 
         if self._ack_first is not EMPTY and self._ack_first:
             return AckPolicy.ACK_FIRST

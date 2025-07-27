@@ -20,6 +20,7 @@ def exchange(queue):
     return RabbitExchange(name=queue)
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestTelemetry(LocalTelemetryTestcase):
     messaging_system = "rabbitmq"
@@ -66,6 +67,7 @@ class TestTelemetry(LocalTelemetryTestcase):
             assert span.parent.span_id == parent_span_id
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestPublishWithTelemetry(TestPublish):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
@@ -76,6 +78,7 @@ class TestPublishWithTelemetry(TestPublish):
         )
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestConsumeWithTelemetry(TestConsume):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:

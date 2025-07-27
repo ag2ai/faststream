@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from faststream._internal.broker import BrokerUsecase
 from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
@@ -11,6 +13,7 @@ from tests.asyncapi.base.v2_6_0.fastapi import FastAPITestCase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 
 
+@pytest.mark.confluent()
 class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     broker_class = KafkaRouter
     router_class = KafkaRouter
@@ -20,6 +23,7 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
         return super().get_spec(broker.broker)
 
 
+@pytest.mark.confluent()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
@@ -27,6 +31,7 @@ class TestRouterPublisher(PublisherTestcase):
         return super().get_spec(broker.broker)
 
 
+@pytest.mark.confluent()
 def test_fastapi_security_schema() -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 

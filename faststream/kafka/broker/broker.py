@@ -314,7 +314,7 @@ class KafkaBroker(
                 Custom parser object.
             dependencies (Iterable[Dependant]):
                 Dependencies to apply to all broker subscribers.
-            middlewares (Sequence[BrokerMiddleware]):
+            middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
                 Middlewares to apply to all broker publishers/subscribers.
             routers (Sequence[Registrator]):
                 Routers to apply to broker.
@@ -497,6 +497,21 @@ class KafkaBroker(
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: bytes | Any | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: bool = False,
+    ) -> asyncio.Future[RecordMetadata] | RecordMetadata: ...
+
     @override
     async def publish(
         self,
@@ -646,6 +661,7 @@ class KafkaBroker(
         no_confirm: Literal[False] = False,
     ) -> "RecordMetadata": ...
 
+    @overload
     async def publish_batch(
         self,
         *messages: "SendableMessage",
@@ -656,7 +672,19 @@ class KafkaBroker(
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+    ) -> asyncio.Future[RecordMetadata] | RecordMetadata: ...
+
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        topic: str = "",
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        reply_to: str = "",
+        correlation_id: str | None = None,
+        no_confirm: bool = False,
+    ) -> asyncio.Future[RecordMetadata] | RecordMetadata:
         """Publish a message batch as a single request to broker.
 
         Args:

@@ -36,7 +36,7 @@ down:
 [doc("Run fast tests")]
 [group("tests")]
 test +param="tests/":
-  docker compose exec faststream uv run pytest {{param}} -m "not slow and not kafka and not confluent and not redis and not rabbit and not nats"
+  docker compose exec faststream uv run pytest {{param}} -m "not slow and not connected"
 
 [doc("Run all tests")]
 [group("tests")]
@@ -46,7 +46,7 @@ test-all +param="tests/":
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage +param="tests/":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'not slow and not kafka and not confluent and not redis and not rabbit and not nats' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'not slow and not connected' && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
@@ -151,15 +151,29 @@ kafka-stop:
 kafka-logs:
   docker compose logs -f kafka
 
-[doc("Run kafka tests")]
+[doc("Run kafka memory tests")]
 [group("kafka")]
 [group("tests")]
-test-kafka: (test "tests/brokers/kafka")
+test-kafka +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "kafka and not connected and not slow"
 
-[doc("Run confluent tests")]
+[doc("Run kafka all tests")]
 [group("kafka")]
 [group("tests")]
-test-confluent: (test "tests/brokers/confluent")
+test-kafka-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "kafka or (kafka and slow)"
+
+[doc("Run confluent memory tests")]
+[group("kafka")]
+[group("tests")]
+test-confluent +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "confluent and not connected and not slow"
+
+[doc("Run confluent all tests")]
+[group("confluent")]
+[group("tests")]
+test-confluent-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "confluent or (confluent and slow)"
 
 
 # RabbitMQ
@@ -178,10 +192,17 @@ rabbit-stop:
 rabbit-logs:
   docker compose logs -f rabbitmq
 
-[doc("Run rabbitmq tests")]
+[doc("Run rabbitmq memory tests")]
 [group("rabbitmq")]
 [group("tests")]
-test-rabbit: (test "tests/brokers/rabbit")
+test-rabbit +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "rabbit and not connected and not slow"
+
+[doc("Run rabbitmq all tests")]
+[group("rabbitmq")]
+[group("tests")]
+test-rabbit-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "rabbit or (rabbit and slow)"
 
 
 # Redis
@@ -200,10 +221,17 @@ redis-stop:
 redis-logs:
   docker compose logs -f redis
 
-[doc("Run redis tests")]
+[doc("Run redis memory tests")]
 [group("redis")]
 [group("tests")]
-test-redis: (test "tests/brokers/redis")
+test-redis +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "redis and not connected and not slow"
+
+[doc("Run redis all tests")]
+[group("redis")]
+[group("tests")]
+test-redis-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "redis or (redis and slow)"
 
 
 # Nats
@@ -222,7 +250,14 @@ nats-stop:
 nats-logs:
   docker compose logs -f nats
 
-[doc("Run nats tests")]
+[doc("Run nats memory tests")]
 [group("nats")]
 [group("tests")]
-test-nats: (test "tests/brokers/nats")
+test-nats +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "nats and not connected and not slow"
+
+[doc("Run nats all tests")]
+[group("nats")]
+[group("tests")]
+test-nats-all +param="tests/":
+  docker compose exec faststream uv run pytest {{param}} -m "nats or (nats and slow)"

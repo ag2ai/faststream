@@ -10,9 +10,10 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 from .basic import RedisMemoryTestcaseConfig
 
 
+@pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
-    @pytest.mark.redis()
+    @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
         queue: str,
@@ -58,7 +59,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
-    @pytest.mark.redis()
+    @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
         routes = []
 
@@ -209,15 +210,15 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             with pytest.raises(ValueError):  # noqa: PT011
                 await br.publish("hello")
 
-    @pytest.mark.redis()
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
-    @pytest.mark.redis()
+    @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
         await super().test_broker_with_real_doesnt_get_patched()
 
-    @pytest.mark.redis()
+    @pytest.mark.connected()
     async def test_broker_with_real_patches_publishers_and_subscribers(
         self,
         queue: str,

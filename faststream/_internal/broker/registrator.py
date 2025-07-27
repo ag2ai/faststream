@@ -1,16 +1,9 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-)
+from typing import TYPE_CHECKING, Any, Generic
+from weakref import WeakSet
 
-from faststream._internal.configs import (
-    BrokerConfig,
-    BrokerConfigType,
-    ConfigComposition,
-)
+from faststream._internal.configs import BrokerConfig, BrokerConfigType, ConfigComposition
 from faststream._internal.types import BrokerMiddleware, MsgType
 
 if TYPE_CHECKING:
@@ -37,19 +30,19 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
 
         self.config: ConfigComposition[BrokerConfigType] = ConfigComposition(config)
 
-        self._subscribers: list[SubscriberUsecase[MsgType]] = []
-        self._publishers: list[PublisherUsecase] = []
+        self._subscribers: WeakSet[SubscriberUsecase[MsgType]] = WeakSet()
+        self._publishers: WeakSet[PublisherUsecase] = WeakSet()
         self.routers: list[Registrator[MsgType, Any]] = []
 
         self.include_routers(*routers)
 
     @property
     def subscribers(self) -> list["SubscriberUsecase[MsgType]"]:
-        return self._subscribers + [sub for r in self.routers for sub in r.subscribers]
+        return [*self._subscribers, *(sub for r in self.routers for sub in r.subscribers)]
 
     @property
     def publishers(self) -> list["PublisherUsecase"]:
-        return self._publishers + [pub for r in self.routers for pub in r.publishers]
+        return [*self._publishers, *(pub for r in self.routers for pub in r.publishers)]
 
     def add_middleware(self, middleware: "BrokerMiddleware[Any, Any]") -> None:
         """Append BrokerMiddleware to the end of middlewares list.
@@ -70,7 +63,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self,
         subscriber: "SubscriberUsecase[MsgType]",
     ) -> "SubscriberUsecase[MsgType]":
-        self._subscribers.append(subscriber)
+        self._subscribers.add(subscriber)
         return subscriber
 
     @abstractmethod
@@ -78,7 +71,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self,
         publisher: "PublisherUsecase",
     ) -> "PublisherUsecase":
-        self._publishers.append(publisher)
+        self._publishers.add(publisher)
         return publisher
 
     def include_router(
