@@ -69,6 +69,50 @@ use it to declare any `get`, `post`, `put` and other HTTP methods. For example, 
 
 ## Accessing the Broker Object
 
+The recommended way to access the broker is through the Context feature:
+
+=== "AIOKafka"
+    ``` python
+    from faststream.kafka.fastapi import KafkaBroker
+
+    @router.get("/")
+    async def handler(broker: KafkaBroker): ...
+    ```
+
+=== "Confluent"
+    ``` python
+    from faststream.confluent.fastapi import KafkaBroker
+
+    @router.get("/")
+    async def handler(broker: KafkaBroker): ...
+    ```
+
+=== "RabbitMQ"
+    ``` python hl_lines="8"
+    from faststream.rabbit.fastapi import RabbitBroker
+
+    @router.get("/")
+    async def handler(broker: RabbitBroker): ...
+    ```
+
+=== "NATS"
+    ``` python
+    from faststream.nats.fastapi import NatsBroker
+
+    @router.get("/")
+    async def handler(broker: NatsBroker): ...
+    ```
+
+=== "Redis"
+    ``` python
+    from faststream.redis.fastapi import RedisBroker
+
+    @router.get("/")
+    async def handler(broker: RedisBroker): ...
+    ```
+
+However, there are a few alternative methods you can use if you prefer.
+
 Inside each router, there is a broker. You can easily access it if you need to send a message to MQ:
 
 === "AIOKafka"
@@ -133,48 +177,6 @@ from fastapi import Request
 def main(request: Request):
     broker = request.state.broker
 ```
-
-Also, you can access the broker from a DI Context.
-
-=== "AIOKafka"
-    ``` python
-    from faststream.kafka.fastapi import KafkaBroker
-
-    @router.get("/")
-    async def handler(broker: KafkaBroker): ...
-    ```
-
-=== "Confluent"
-    ``` python
-    from faststream.confluent.fastapi import KafkaBroker
-
-    @router.get("/")
-    async def handler(broker: KafkaBroker): ...
-    ```
-
-=== "RabbitMQ"
-    ``` python hl_lines="8"
-    from faststream.rabbit.fastapi import RabbitBroker
-
-    @router.get("/")
-    async def handler(broker: RabbitBroker): ...
-    ```
-
-=== "NATS"
-    ``` python
-    from faststream.nats.fastapi import NatsBroker
-
-    @router.get("/")
-    async def handler(broker: NatsBroker): ...
-    ```
-
-=== "Redis"
-    ``` python
-    from faststream.redis.fastapi import RedisBroker
-
-    @router.get("/")
-    async def handler(broker: RedisBroker): ...
-    ```
 
 ## `@after_startup`
 
