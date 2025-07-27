@@ -1,5 +1,5 @@
-from typing import Any
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import prometheus_client
 from typing_extensions import assert_type
@@ -299,8 +299,9 @@ async def check_response_type() -> None:
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None)
     assert_type(publisher_response, Message)
-    
-async def check_publish_type(OptionalStream: None | str = "test") -> None:
+
+
+async def check_publish_type(optional_stream: str | None = "test") -> None:
     broker = Broker()
 
     publish_with_confirm = await broker.publish(None)
@@ -309,8 +310,9 @@ async def check_publish_type(OptionalStream: None | str = "test") -> None:
     publish_without_confirm = await broker.publish(None, stream="test")
     assert_type(publish_without_confirm, bytes)
 
-    publish_confirm_bool = await broker.publish(None, stream=OptionalStream)
+    publish_confirm_bool = await broker.publish(None, stream=optional_stream)
     assert_type(publish_confirm_bool, int | bytes)
+
 
 async def check_publisher_publish_type() -> None:
     broker = Broker()
@@ -331,16 +333,16 @@ async def check_publish_batch_type() -> None:
 
 async def check_subscriber_get_one_type() -> None:
     broker = Broker()
-    
+
     subscriber = broker.subscriber()
     message = await subscriber.get_one()
-    
+
     assert_type(message, Message | None)
 
 
 async def check_subscriber_msg_type() -> None:
     broker = Broker()
     subscriber = broker.subscriber(channel="test")
-    
+
     async for msg in subscriber:
         assert_type(msg, Message)
