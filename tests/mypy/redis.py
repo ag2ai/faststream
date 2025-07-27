@@ -16,6 +16,8 @@ from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
 from faststream.redis.publisher.factory import PublisherType
+from faststream.redis import ListSub
+from faststream.redis.publisher.usecase import ChannelPublisher, ListPublisher, ListBatchPublisher, StreamPublisher
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -313,15 +315,29 @@ async def check_publish_type(optional_stream: str | None = "test") -> None:
     publish_confirm_bool = await broker.publish(None, stream=optional_stream)
     assert_type(publish_confirm_bool, int | bytes)
 
-
-async def check_publisher_publish_type() -> None:
+async def check_broker_channel_publisher_type() -> None:
     broker = Broker()
+    publisher = broker.publisher(channel="test")
+    
+    assert_type(publisher, ChannelPublisher)
 
-    publisher = broker.publisher("test")
-    assert_type(publisher, PublisherType)
+async def check_broker_list_publisher_type() -> None:
+    broker = Broker()
+    pubilsher = broker.publisher(None, list="test")
+    
+    assert_type(pubilsher, ListPublisher)
 
-    publish_with_confirm = await publisher.publish(None)
-    assert_type(publish_with_confirm, Any | None)
+async def check_broker_list_batch_type() -> None:
+    broker = Broker()
+    publisher = broker.publisher(None, list=ListSub("test", batch=True))
+    
+    assert_type(publisher, ListBatchPublisher)
+    
+async def check_broker_stream_publisher() -> None:
+    broker = Broker()
+    publisher = broker.publisher(stream="stream")
+    
+    assert_type(publisher, StreamPublisher)
 
 
 async def check_publish_batch_type() -> None:
