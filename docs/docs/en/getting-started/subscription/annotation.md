@@ -118,7 +118,7 @@ async def handler(body: str): ...
 
 If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs.
 
-In this case your message will be unpacked and serailized by various fields
+In this case your message will be unpacked and serialized by various fields
 
 See the examples below:
 
