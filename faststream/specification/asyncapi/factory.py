@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 from faststream.specification.base import Specification, SpecificationFactory
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict, AnyHttpUrl
+    from faststream._internal.basic_types import AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
     from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema import Contact, ExternalDocs, License, Tag
@@ -19,10 +19,10 @@ class AsyncAPI(SpecificationFactory):
         version: str = "0.1.0",
         description: str | None = None,
         terms_of_service: Optional["AnyHttpUrl"] = None,
-        license: Union["License", "AnyDict"] | None = None,
-        contact: Union["Contact", "AnyDict"] | None = None,
-        tags: Sequence[Union["Tag", "AnyDict"]] = (),
-        external_docs: Union["ExternalDocs", "AnyDict"] | None = None,
+        license: Union["License", "dict[str, Any]"] | None = None,
+        contact: Union["Contact", "dict[str, Any]"] | None = None,
+        tags: Sequence[Union["Tag", "dict[str, Any]"]] = (),
+        external_docs: Union["ExternalDocs", "dict[str, Any]"] | None = None,
         identifier: str | None = None,
         schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0",
     ) -> None:

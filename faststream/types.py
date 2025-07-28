@@ -1,6 +1,5 @@
 from faststream._internal.basic_types import (
     AnyCallable,
-    AnyDict,
     AsyncFunc,
     AsyncFuncAny,
     Lifespan,
@@ -19,7 +18,6 @@ from faststream._internal.types import (
 
 __all__ = [
     "AnyCallable",
-    "AnyDict",
     "AsyncFunc",
     "AsyncFuncAny",
     "BrokerMiddleware",

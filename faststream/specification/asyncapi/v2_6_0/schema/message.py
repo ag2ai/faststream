@@ -1,8 +1,9 @@
+from typing import Any
+
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.tag import Tag
 from faststream.specification.schema.message import Message as SpecMessage
 
@@ -53,7 +54,7 @@ class Message(BaseModel):
     correlationId: CorrelationId | None = None
     contentType: str | None = None
 
-    payload: AnyDict
+    payload: dict[str, Any]
     # TODO:
     # headers
     # schemaFormat
@@ -61,7 +62,7 @@ class Message(BaseModel):
     # examples
     # traits
 
-    tags: list[Tag | AnyDict] | None = None
+    tags: list[Tag | dict[str, Any]] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}

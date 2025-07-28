@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
 
 from typing_extensions import Doc, override
 
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.proto import NameRequired
 from faststream.rabbit.schemas.constants import ExchangeType
 
@@ -86,7 +85,7 @@ class RabbitExchange(NameRequired):
             ),
         ] = True,
         arguments: Annotated[
-            AnyDict | None,
+            dict[str, Any] | None,
             Doc(
                 "Exchange declarationg arguments. "
                 "You can find usage example in the official RabbitMQ documentation: "
@@ -110,7 +109,7 @@ class RabbitExchange(NameRequired):
             ),
         ] = None,
         bind_arguments: Annotated[
-            AnyDict | None,
+            dict[str, Any] | None,
             Doc("Exchange-exchange binding options."),
         ] = None,
         routing_key: Annotated[

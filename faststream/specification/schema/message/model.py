@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-
-from faststream._internal.basic_types import AnyDict
+from typing import Any
 
 
 @dataclass
 class Message:
-    payload: AnyDict  # JSON Schema
+    payload: dict[str, Any]  # JSON Schema
 
     title: str | None

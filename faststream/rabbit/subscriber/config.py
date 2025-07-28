@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
@@ -10,7 +10,6 @@ from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.rabbit.schemas import Channel
 
 
@@ -26,7 +25,7 @@ class RabbitSubscriberSpecificationConfig(
 class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
     _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
 
-    consume_args: Optional["AnyDict"] = None
+    consume_args: dict[str, Any] | None = None
     channel: Optional["Channel"] = None
 
     _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)

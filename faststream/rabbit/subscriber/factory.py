@@ -13,7 +13,6 @@ from .specification import RabbitSubscriberSpecification
 from .usecase import RabbitSubscriber
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.middlewares import AckPolicy
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
@@ -23,7 +22,7 @@ def create_subscriber(
     *,
     queue: "RabbitQueue",
     exchange: "RabbitExchange",
-    consume_args: Optional["AnyDict"],
+    consume_args: dict[str, Any] | None,
     channel: Optional["Channel"],
     # Subscriber args
     no_reply: bool,

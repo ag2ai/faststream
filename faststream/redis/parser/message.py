@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream.message import encode_message
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
 
 
 class MessageFormat(ABC):
@@ -21,7 +21,7 @@ class MessageFormat(ABC):
     def __init__(
         self,
         data: bytes,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
     ) -> None:
         self.data = data
         self.headers = headers or {}
@@ -32,7 +32,7 @@ class MessageFormat(ABC):
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
         reply_to: str | None,
-        headers: Optional["AnyDict"],
+        headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
     ) -> "MessageFormat":
@@ -63,7 +63,7 @@ class MessageFormat(ABC):
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
         reply_to: str | None,
-        headers: Optional["AnyDict"],
+        headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
     ) -> bytes:
@@ -71,5 +71,5 @@ class MessageFormat(ABC):
 
     @classmethod
     @abstractmethod
-    def parse(cls, data: bytes) -> tuple[bytes, "AnyDict"]:
+    def parse(cls, data: bytes) -> tuple[bytes, dict[str, Any]]:
         raise NotImplementedError

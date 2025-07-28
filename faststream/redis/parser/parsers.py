@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 from faststream._internal._compat import dump_json, json_loads
-from faststream._internal.basic_types import AnyDict, DecodedMessage
+from faststream._internal.basic_types import DecodedMessage
 from faststream._internal.constants import EMPTY, ContentTypes
 from faststream.message import decode_message, gen_cor_id
 from faststream.redis.message import (
@@ -67,10 +67,10 @@ class SimpleParser:
     def _parse_data(
         self,
         message: Mapping[str, Any],
-    ) -> tuple[bytes, "AnyDict", list["AnyDict"]]:
+    ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         return (*self.config.message_format.parse(message["data"]), [])
 
-    def get_path(self, message: Mapping[str, Any]) -> "AnyDict":
+    def get_path(self, message: Mapping[str, Any]) -> dict[str, Any]:
         if (
             (path_re := self.pattern)
             and message.get("pattern")
@@ -101,9 +101,9 @@ class RedisBatchListParser(SimpleParser):
     def _parse_data(
         self,
         message: Mapping[str, Any],
-    ) -> tuple[bytes, "AnyDict", list["AnyDict"]]:
+    ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         body: list[Any] = []
-        batch_headers: list[AnyDict] = []
+        batch_headers: list[dict[str, Any]] = []
 
         for x in message["data"]:
             msg_data, msg_headers = _decode_batch_body_item(x, self.config.message_format)
@@ -128,7 +128,7 @@ class RedisStreamParser(SimpleParser):
     def _parse_data(
         self,
         message: Mapping[str, Any],
-    ) -> tuple[bytes, "AnyDict", list["AnyDict"]]:
+    ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         data = message["data"]
         return (
             *self.config.message_format.parse(data.get(bDATA_KEY) or dump_json(data)),
@@ -142,9 +142,9 @@ class RedisBatchStreamParser(SimpleParser):
     def _parse_data(
         self,
         message: Mapping[str, Any],
-    ) -> tuple[bytes, "AnyDict", list["AnyDict"]]:
+    ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         body: list[Any] = []
-        batch_headers: list[AnyDict] = []
+        batch_headers: list[dict[str, Any]] = []
 
         for x in message["data"]:
             msg_data, msg_headers = _decode_batch_body_item(
@@ -169,7 +169,7 @@ class RedisBatchStreamParser(SimpleParser):
 
 def _decode_batch_body_item(
     msg_content: bytes, message_format: type["MessageFormat"]
-) -> tuple[Any, "AnyDict"]:
+) -> tuple[Any, dict[str, Any]]:
     msg_body, headers = message_format.parse(msg_content)
     try:
         return json_loads(msg_body), headers

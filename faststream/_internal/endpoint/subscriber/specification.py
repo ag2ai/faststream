@@ -1,9 +1,5 @@
 from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-)
+from typing import TYPE_CHECKING, Any, Generic
 
 from typing_extensions import (
     TypeVar as TypeVar313,
@@ -15,7 +11,6 @@ from faststream.specification.asyncapi.message import parse_handler_params
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
@@ -55,8 +50,8 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     def call_name(self) -> str:
         return self.calls.name or "Subscriber"
 
-    def get_payloads(self) -> list[tuple["AnyDict", str]]:
-        payloads: list[tuple[AnyDict, str]] = []
+    def get_payloads(self) -> list[tuple["dict[str, Any]", str]]:
+        payloads: list[tuple[dict[str, Any], str]] = []
 
         call_name = self.call_name
 

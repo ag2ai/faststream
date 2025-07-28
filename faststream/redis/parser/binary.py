@@ -1,7 +1,7 @@
 import enum
 from collections.abc import Sequence
 from struct import pack, unpack
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal._compat import json_loads
 
@@ -10,7 +10,7 @@ from .message import MessageFormat
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
 
 
 class FastStreamMessageVersion(int, enum.Enum):
@@ -28,7 +28,7 @@ class BinaryMessageFormatV1(MessageFormat):
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
         reply_to: str | None,
-        headers: Optional["AnyDict"],
+        headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
     ) -> bytes:
@@ -58,8 +58,8 @@ class BinaryMessageFormatV1(MessageFormat):
         return writer.get_bytes()
 
     @classmethod
-    def parse(cls, data: bytes) -> tuple[bytes, "AnyDict"]:
-        headers: AnyDict = {}
+    def parse(cls, data: bytes) -> tuple[bytes, dict[str, Any]]:
+        headers: dict[str, Any] = {}
         final_data: bytes
 
         try:

@@ -17,7 +17,7 @@ from .producer import RedisFastProducer
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
@@ -56,7 +56,7 @@ class LogicPublisher(PublisherUsecase):
         )
 
     @abstractmethod
-    def subscriber_property(self, *, name_only: bool) -> "AnyDict":
+    def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -77,7 +77,7 @@ class ChannelPublisher(LogicPublisher):
         return self._channel.add_prefix(self._outer_config.prefix)
 
     @override
-    def subscriber_property(self, *, name_only: bool) -> "AnyDict":
+    def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
         return {
             "channel": self.channel.name if name_only else self.channel,
             "list": None,
@@ -90,7 +90,7 @@ class ChannelPublisher(LogicPublisher):
         message: "SendableMessage" = None,
         channel: str | None = None,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
         pipeline: Optional["Pipeline[bytes]"] = None,
@@ -140,7 +140,7 @@ class ChannelPublisher(LogicPublisher):
         channel: str | None = None,
         *,
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
@@ -177,7 +177,7 @@ class ListPublisher(LogicPublisher):
         return self._list.add_prefix(self._outer_config.prefix)
 
     @override
-    def subscriber_property(self, *, name_only: bool) -> "AnyDict":
+    def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
         return {
             "channel": None,
             "list": self.list.name if name_only else self.list,
@@ -190,7 +190,7 @@ class ListPublisher(LogicPublisher):
         message: "SendableMessage" = None,
         list: str | None = None,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
         pipeline: Optional["Pipeline[bytes]"] = None,
@@ -241,7 +241,7 @@ class ListPublisher(LogicPublisher):
         list: str | None = None,
         *,
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
@@ -269,7 +269,7 @@ class ListBatchPublisher(ListPublisher):
         list: str,
         correlation_id: str | None = None,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
@@ -330,7 +330,7 @@ class StreamPublisher(LogicPublisher):
         return self._stream.add_prefix(self._outer_config.prefix)
 
     @override
-    def subscriber_property(self, *, name_only: bool) -> "AnyDict":
+    def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
         return {
             "channel": None,
             "list": None,
@@ -343,7 +343,7 @@ class StreamPublisher(LogicPublisher):
         message: "SendableMessage" = None,
         stream: str | None = None,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
         maxlen: int | None = None,
@@ -398,7 +398,7 @@ class StreamPublisher(LogicPublisher):
         *,
         maxlen: int | None = None,
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(

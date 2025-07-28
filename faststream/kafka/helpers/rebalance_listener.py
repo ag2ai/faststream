@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from aiokafka import ConsumerRebalanceListener
 
@@ -9,14 +9,14 @@ from faststream._internal.utils.functions import call_or_await
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer, TopicPartition
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
 
 
 def make_logging_listener(
     *,
     consumer: "AIOKafkaConsumer",
     logger: Optional["LoggerProto"],
-    log_extra: "AnyDict",
+    log_extra: dict[str, Any],
     listener: Optional["ConsumerRebalanceListener"],
 ) -> Optional["ConsumerRebalanceListener"]:
     if logger is None:
@@ -44,7 +44,7 @@ class _LoggingListener(ConsumerRebalanceListener):  # type: ignore[misc]
         *,
         consumer: "AIOKafkaConsumer",
         logger: "LoggerProto",
-        log_extra: "AnyDict",
+        log_extra: dict[str, Any],
     ) -> None:
         self.consumer = consumer
         self.logger = logger

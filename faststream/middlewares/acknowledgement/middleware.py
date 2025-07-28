@@ -14,7 +14,7 @@ from .config import AckPolicy
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.basic_types import AnyDict, AsyncFuncAny
+    from faststream._internal.basic_types import AsyncFuncAny
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.logger import LoggerState
     from faststream.message import StreamMessage
@@ -25,7 +25,7 @@ class AcknowledgementMiddleware:
         self,
         logger: "LoggerState",
         ack_policy: "AckPolicy",
-        extra_options: "AnyDict",
+        extra_options: dict[str, Any],
     ) -> None:
         self.ack_policy = ack_policy
         self.extra_options = extra_options
@@ -53,7 +53,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         *,
         logger: "LoggerState",
         context: "ContextRepo",
-        extra_options: "AnyDict",
+        extra_options: dict[str, Any],
         # can't be created with AckPolicy.MANUAL
         ack_policy: AckPolicy,
     ) -> None:

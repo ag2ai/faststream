@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from .logger_proxy import (
     EmptyLoggerObject,
@@ -15,7 +15,7 @@ from .params_storage import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.context import ContextRepo
 
 
@@ -59,7 +59,7 @@ class LoggerState:
         self,
         message: str,
         log_level: int | None = None,
-        extra: Optional["AnyDict"] = None,
+        extra: dict[str, Any] | None = None,
         exc_info: BaseException | None = None,
     ) -> None:
         self.logger.log(

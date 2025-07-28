@@ -4,10 +4,7 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from time import time
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING, Any
 
 import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
@@ -21,7 +18,6 @@ from . import config as config_module
 if TYPE_CHECKING:
     from typing_extensions import NotRequired, TypedDict
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.logger import LoggerState
 
     from .admin import AdminService
@@ -371,7 +367,7 @@ class BatchBuilder:
 
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""
-        self._builder: list[AnyDict] = []
+        self._builder: list[dict[str, Any]] = []
 
     def append(
         self,

@@ -1,7 +1,4 @@
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
+from typing import Any
 
 
 def to_camelcase(*names: str) -> str:
@@ -9,12 +6,12 @@ def to_camelcase(*names: str) -> str:
 
 
 def resolve_payloads(
-    payloads: list[tuple["AnyDict", str]],
+    payloads: list[tuple["dict[str, Any]", str]],
     extra: str = "",
     served_words: int = 1,
-) -> "AnyDict":
+) -> "dict[str, Any]":
     ln = len(payloads)
-    payload: AnyDict
+    payload: dict[str, Any]
     if ln > 1:
         one_of_payloads = {}
 

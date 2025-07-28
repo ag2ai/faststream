@@ -19,8 +19,8 @@ When dealing with **Redis** broker in **FastStream**, you can easily access mess
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`
 * `#!python decoded_body: Optional[DecodedMessage]`
-* `#!python headers: AnyDict`
-* `#!python path: AnyDict`
+* `#!python headers: dict[str, Any]`
+* `#!python path: dict[str, Any]`
 * `#!python content_type: Optional[str]`
 * `#!python reply_to: str`
 * `#!python message_id: str`
@@ -50,7 +50,7 @@ from faststream import Context
 @broker.subscriber("test-stream")
 async def stream_handler(
     msg: str,
-    headers: AnyDict = Context("message.headers"),
+    headers: dict[str, Any] = Context("message.headers"),
 ):
     print(headers)
 ```

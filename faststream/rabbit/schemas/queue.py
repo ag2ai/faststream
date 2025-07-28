@@ -1,13 +1,6 @@
 from copy import deepcopy
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Literal,
-    Optional,
-    TypedDict,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
@@ -16,8 +9,6 @@ from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
     from aio_pika.abc import TimeoutType
-
-    from faststream._internal.basic_types import AnyDict
 
 
 class QueueType(str, Enum):
@@ -100,7 +91,7 @@ class RabbitQueue(NameRequired):
         arguments: Optional["ClassicQueueArgs"] = None,
         timeout: "TimeoutType" = None,
         robust: bool = True,
-        bind_arguments: Optional["AnyDict"] = None,
+        bind_arguments: dict[str, Any] | None = None,
         routing_key: str = "",
     ) -> None: ...
 
@@ -116,7 +107,7 @@ class RabbitQueue(NameRequired):
         arguments: Optional["QuorumQueueArgs"] = None,
         timeout: "TimeoutType" = None,
         robust: bool = True,
-        bind_arguments: Optional["AnyDict"] = None,
+        bind_arguments: dict[str, Any] | None = None,
         routing_key: str = "",
     ) -> None: ...
 
@@ -132,7 +123,7 @@ class RabbitQueue(NameRequired):
         arguments: Optional["StreamQueueArgs"] = None,
         timeout: "TimeoutType" = None,
         robust: bool = True,
-        bind_arguments: Optional["AnyDict"] = None,
+        bind_arguments: dict[str, Any] | None = None,
         routing_key: str = "",
     ) -> None: ...
 
@@ -148,12 +139,12 @@ class RabbitQueue(NameRequired):
             "QuorumQueueArgs",
             "ClassicQueueArgs",
             "StreamQueueArgs",
-            "AnyDict",
+            dict[str, Any],
             None,
         ] = None,
         timeout: "TimeoutType" = None,
         robust: bool = True,
-        bind_arguments: Optional["AnyDict"] = None,
+        bind_arguments: dict[str, Any] | None = None,
         routing_key: str = "",
     ) -> None:
         """Initialize the RabbitMQ queue.

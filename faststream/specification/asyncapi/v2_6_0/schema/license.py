@@ -1,10 +1,9 @@
-from typing import cast, overload
+from typing import Any, cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.utils.data import filter_by_dict
 from faststream.specification.schema.extra import (
     License as SpecLicense,
@@ -49,13 +48,13 @@ class License(BaseModel):
 
     @overload
     @classmethod
-    def from_spec(cls, license: AnyDict) -> AnyDict: ...
+    def from_spec(cls, license: dict[str, Any]) -> dict[str, Any]: ...
 
     @classmethod
     def from_spec(
         cls,
-        license: SpecLicense | LicenseDict | AnyDict | None,
-    ) -> Self | AnyDict | None:
+        license: SpecLicense | LicenseDict | dict[str, Any] | None,
+    ) -> Self | dict[str, Any] | None:
         if license is None:
             return None
 
@@ -65,7 +64,7 @@ class License(BaseModel):
                 url=license.url,
             )
 
-        license = cast("AnyDict", license)
+        license = cast("dict[str, Any]", license)
         license_data, custom_data = filter_by_dict(LicenseDict, license)
 
         if custom_data:

@@ -1,24 +1,16 @@
 from inspect import Parameter, unwrap
-from typing import (
-    TYPE_CHECKING,
-    Generic,
-)
+from typing import TYPE_CHECKING, Any, Generic
 
 from fast_depends.core import build_call_model
 from fast_depends.pydantic._compat import create_model, get_config_base
-from typing_extensions import (
-    TypeVar as TypeVar313,
-)
+from typing_extensions import TypeVar as TypeVar313
 
-from faststream._internal.configs import (
-    BrokerConfig,
-    PublisherSpecificationConfig,
-)
+from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyCallable, AnyDict
+    from faststream._internal.basic_types import AnyCallable
     from faststream.specification.schema import PublisherSpec
 
 
@@ -50,8 +42,8 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
             self._outer_config.include_in_schema and self.config.include_in_schema,
         )
 
-    def get_payloads(self) -> list[tuple["AnyDict", str]]:
-        payloads: list[tuple[AnyDict, str]] = []
+    def get_payloads(self) -> list[tuple[dict[str, Any], str]]:
+        payloads: list[tuple[dict[str, Any], str]] = []
 
         if self.config.schema_:
             body = get_model_schema(

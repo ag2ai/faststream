@@ -1,11 +1,10 @@
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from opentelemetry import baggage, context
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.message import StreamMessage
 
 _BAGGAGE_PROPAGATOR = W3CBaggagePropagator()
@@ -16,17 +15,17 @@ class Baggage:
 
     def __init__(
         self,
-        payload: "AnyDict",
-        batch_payload: list["AnyDict"] | None = None,
+        payload: dict[str, Any],
+        batch_payload: list[dict[str, Any]] | None = None,
     ) -> None:
         self._baggage = dict(payload)
         self._batch_baggage = [dict(b) for b in batch_payload] if batch_payload else []
 
-    def get_all(self) -> "AnyDict":
+    def get_all(self) -> dict[str, Any]:
         """Get a copy of the current baggage."""
         return self._baggage.copy()
 
-    def get_all_batch(self) -> list["AnyDict"]:
+    def get_all_batch(self) -> list[dict[str, Any]]:
         """Get a copy of all batch baggage if exists."""
         return self._batch_baggage.copy()
 
@@ -46,7 +45,7 @@ class Baggage:
         """Clear the current baggage."""
         self._baggage.clear()
 
-    def to_headers(self, headers: Optional["AnyDict"] = None) -> "AnyDict":
+    def to_headers(self, headers: dict[str, Any] | None = None) -> dict[str, Any]:
         """Convert baggage items to headers format for propagation."""
         current_context = context.get_current()
         if headers is None:
@@ -64,21 +63,21 @@ class Baggage:
         if len(msg.batch_headers) <= 1:
             return cls.from_headers(msg.headers)
 
-        cumulative_baggage: AnyDict = {}
-        batch_baggage: list[AnyDict] = []
+        cumulative_baggage: dict[str, Any] = {}
+        batch_baggage: list[dict[str, Any]] = []
 
         for headers in msg.batch_headers:
             payload = baggage.get_all(_BAGGAGE_PROPAGATOR.extract(headers))
             cumulative_baggage.update(payload)
-            batch_baggage.append(cast("AnyDict", payload))
+            batch_baggage.append(cast("dict[str, Any]", payload))
 
         return cls(cumulative_baggage, batch_baggage)
 
     @classmethod
-    def from_headers(cls, headers: "AnyDict") -> Self:
+    def from_headers(cls, headers: dict[str, Any]) -> Self:
         """Create a Baggage instance from headers."""
         payload = baggage.get_all(_BAGGAGE_PROPAGATOR.extract(headers))
-        return cls(cast("AnyDict", payload))
+        return cls(cast("dict[str, Any]", payload))
 
     def __repr__(self) -> str:
         return self._baggage.__repr__()

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from opentelemetry.semconv.trace import SpanAttributes
 
@@ -9,7 +9,6 @@ from faststream.rabbit.response import RabbitPublishCommand
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage
 
-    from faststream._internal.basic_types import AnyDict
     from faststream.message import StreamMessage
 
 
@@ -24,7 +23,7 @@ class RabbitTelemetrySettingsProvider(
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[IncomingMessage]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
@@ -46,7 +45,7 @@ class RabbitTelemetrySettingsProvider(
     def get_publish_attrs_from_cmd(
         self,
         cmd: "RabbitPublishCommand",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.exchange.name,

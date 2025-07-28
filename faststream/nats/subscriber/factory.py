@@ -35,7 +35,6 @@ from .usecases import (
 if TYPE_CHECKING:
     from nats.js import api
 
-    from faststream._internal.basic_types import AnyDict
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 
@@ -116,7 +115,7 @@ def create_subscriber(
 
     if stream:
         # Both JS Subscribers
-        extra_options: AnyDict = {
+        extra_options: dict[str, Any] = {
             "pending_msgs_limit": pending_msgs_limit or DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
             "pending_bytes_limit": pending_bytes_limit
             or DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,

@@ -1,6 +1,7 @@
+from typing import Any
+
 from pydantic import AnyHttpUrl
 
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.contact import Contact
 from faststream.specification.asyncapi.v2_6_0.schema.license import License
 from faststream.specification.base.info import BaseApplicationInfo
@@ -19,5 +20,5 @@ class ApplicationInfo(BaseApplicationInfo):
     """
 
     termsOfService: AnyHttpUrl | None = None
-    contact: Contact | AnyDict | None = None
-    license: License | AnyDict | None = None
+    contact: Contact | dict[str, Any] | None = None
+    license: License | dict[str, Any] | None = None

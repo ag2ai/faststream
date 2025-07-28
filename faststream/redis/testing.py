@@ -38,7 +38,7 @@ from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandle
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
@@ -237,7 +237,7 @@ def build_message(
     correlation_id: str,
     message_format: type["MessageFormat"],
     reply_to: str = "",
-    headers: Optional["AnyDict"] = None,
+    headers: dict[str, Any] | None = None,
     serializer: Optional["SerializerProto"] = None,
 ) -> bytes:
     return message_format.encode(

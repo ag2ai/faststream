@@ -1,12 +1,7 @@
-from typing import (
-    Union,
-)
+from typing import Any
 
 from pydantic import AnyHttpUrl
 
-from faststream._internal.basic_types import (
-    AnyDict,
-)
 from faststream.specification.asyncapi.v2_6_0.schema import (
     Contact,
     ExternalDocs,
@@ -28,7 +23,7 @@ class ApplicationInfo(BaseApplicationInfo):
     """
 
     termsOfService: AnyHttpUrl | None = None
-    contact: Contact | AnyDict | None = None
-    license: License | AnyDict | None = None
-    tags: list[Union["Tag", "AnyDict"]] | None = None
-    externalDocs: Union["ExternalDocs", "AnyDict"] | None = None
+    contact: Contact | dict[str, Any] | None = None
+    license: License | dict[str, Any] | None = None
+    tags: list[Tag | dict[str, Any]] | None = None
+    externalDocs: ExternalDocs | dict[str, Any] | None = None

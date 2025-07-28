@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from fastapi.dependencies.models import Dependant as FastAPIDependant
     from fastapi.types import IncEx
 
-    from faststream._internal.basic_types import AnyDict
     from faststream.message import StreamMessage as NativeMessage
 
     from .config import FastAPIConfig
@@ -48,18 +47,18 @@ if TYPE_CHECKING:
 class StreamMessage(Request):
     """A class to represent a stream message."""
 
-    scope: "AnyDict"
-    _cookies: "AnyDict"
-    _headers: "AnyDict"  # type: ignore[assignment]
-    _body: Union["AnyDict", list[Any]]  # type: ignore[assignment]
-    _query_params: "AnyDict"  # type: ignore[assignment]
+    scope: "dict[str, Any]"
+    _cookies: "dict[str, Any]"
+    _headers: "dict[str, Any]"  # type: ignore[assignment]
+    _body: Union["dict[str, Any]", list[Any]]  # type: ignore[assignment]
+    _query_params: "dict[str, Any]"  # type: ignore[assignment]
 
     def __init__(
         self,
         *,
-        body: Union["AnyDict", list[Any]],
-        headers: "AnyDict",
-        path: "AnyDict",
+        body: Union["dict[str, Any]", list[Any]],
+        headers: "dict[str, Any]",
+        path: "dict[str, Any]",
     ) -> None:
         """Initialize a class instance."""
         self._headers = headers
@@ -172,7 +171,7 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
-        fastapi_body: AnyDict | list[Any]
+        fastapi_body: dict[str, Any] | list[Any]
         if first_arg is not None:
             if isinstance(body, dict):
                 path = fastapi_body = body or {}

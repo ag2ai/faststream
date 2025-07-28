@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import (
         AnyCallable,
-        AnyDict,
         Lifespan,
         LoggerProto,
         SettingField,
@@ -75,7 +74,7 @@ class CliRunState(ServerState):
         self.server.should_exit = True
 
 
-def cast_uvicorn_params(params: "AnyDict") -> "AnyDict":
+def cast_uvicorn_params(params: dict[str, Any]) -> dict[str, Any]:
     if port := params.get("port"):
         params["port"] = int(port)
     if fd := params.get("fd"):

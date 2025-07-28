@@ -1,10 +1,9 @@
-from typing import cast, overload
+from typing import Any, cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2, EmailStr
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.utils.data import filter_by_dict
 from faststream.specification.schema.extra import (
     Contact as SpecContact,
@@ -48,13 +47,13 @@ class Contact(BaseModel):
 
     @overload
     @classmethod
-    def from_spec(cls, contact: AnyDict) -> AnyDict: ...
+    def from_spec(cls, contact: dict[str, Any]) -> dict[str, Any]: ...
 
     @classmethod
     def from_spec(
         cls,
-        contact: SpecContact | ContactDict | AnyDict | None,
-    ) -> Self | AnyDict | None:
+        contact: SpecContact | ContactDict | dict[str, Any] | None,
+    ) -> Self | dict[str, Any] | None:
         if contact is None:
             return None
 
@@ -65,7 +64,7 @@ class Contact(BaseModel):
                 email=contact.email,
             )
 
-        contact = cast("AnyDict", contact)
+        contact = cast("dict[str, Any]", contact)
         contact_data, custom_data = filter_by_dict(ContactDict, contact)
 
         if custom_data:

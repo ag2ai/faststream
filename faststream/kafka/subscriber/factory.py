@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
 
-    from faststream._internal.basic_types import AnyDict
     from faststream.kafka.configs import KafkaBrokerConfig
 
 
@@ -33,7 +32,7 @@ def create_subscriber(
     group_id: str | None,
     listener: Optional["ConsumerRebalanceListener"],
     pattern: str | None,
-    connection_args: "AnyDict",
+    connection_args: dict[str, Any],
     partitions: Collection["TopicPartition"],
     auto_commit: bool,
     # Subscriber args

@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
@@ -11,7 +11,6 @@ from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.confluent.schemas import TopicPartition
 
 
@@ -29,7 +28,7 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     partitions: Sequence["TopicPartition"] = field(default_factory=list)
     polling_interval: float = 0.1
     group_id: str | None = None
-    connection_data: "AnyDict" = field(default_factory=dict)
+    connection_data: dict[str, Any] = field(default_factory=dict)
 
     _auto_commit: bool = field(default_factory=lambda: EMPTY, repr=False)
     _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)

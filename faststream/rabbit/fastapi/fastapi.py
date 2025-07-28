@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp, Lifespan
     from yarl import URL
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -219,7 +219,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            dict[int | str, "AnyDict"] | None,
+            dict[int | str, dict[str, Any]] | None,
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.
@@ -459,7 +459,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         *,
         channel: Optional["Channel"] = None,
         consume_args: Annotated[
-            Optional["AnyDict"],
+            dict[str, Any] | None,
             Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
         ] = None,
         # broker arguments

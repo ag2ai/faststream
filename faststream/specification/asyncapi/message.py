@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from inspect import isclass
-from typing import TYPE_CHECKING, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 
 from pydantic import BaseModel, create_model
 
@@ -10,13 +10,12 @@ from faststream._internal._compat import (
     get_model_fields,
     model_schema,
 )
-from faststream._internal.basic_types import AnyDict
 
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
 
 
-def parse_handler_params(call: "CallModel", prefix: str = "") -> AnyDict:
+def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     """Parses the handler parameters."""
     model_container = getattr(call, "serializer", call)
     model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
@@ -42,13 +41,13 @@ def get_response_schema(call: None, prefix: str = "") -> None: ...
 
 
 @overload
-def get_response_schema(call: "CallModel", prefix: str = "") -> AnyDict: ...
+def get_response_schema(call: "CallModel", prefix: str = "") -> dict[str, Any]: ...
 
 
 def get_response_schema(
     call: Optional["CallModel"],
     prefix: str = "",
-) -> AnyDict | None:
+) -> dict[str, Any] | None:
     """Get the response schema for a given call."""
     return get_model_schema(
         getattr(
@@ -73,14 +72,14 @@ def get_model_schema(
     call: type[BaseModel],
     prefix: str = "",
     exclude: Sequence[str] = (),
-) -> AnyDict: ...
+) -> dict[str, Any]: ...
 
 
 def get_model_schema(
     call: type[BaseModel] | None,
     prefix: str = "",
     exclude: Sequence[str] = (),
-) -> AnyDict | None:
+) -> dict[str, Any] | None:
     """Get the schema of a model."""
     if call is None:
         return None
@@ -106,7 +105,7 @@ def get_model_schema(
     if model is None:
         model = call
 
-    body: AnyDict = model_schema(model)
+    body: dict[str, Any] = model_schema(model)
     body["properties"] = body.get("properties", {})
     for i in exclude:
         body["properties"].pop(i, None)
@@ -114,13 +113,13 @@ def get_model_schema(
         body["required"] = list(filter(lambda x: x not in exclude, required))
 
     if params_number == 1 and not use_original_model:
-        param_body: AnyDict = body.get("properties", {})
+        param_body: dict[str, Any] = body.get("properties", {})
         param_body = param_body[name]
 
         if defs := body.get(DEF_KEY):
             # single argument with useless reference
             if param_body.get("$ref"):
-                ref_obj: AnyDict = next(iter(defs.values()))
+                ref_obj: dict[str, Any] = next(iter(defs.values()))
                 ref_obj[DEF_KEY] = {
                     k: v for k, v in defs.items() if k != ref_obj.get("title")
                 }

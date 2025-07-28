@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 from faststream.exceptions import SetupError
 from faststream.redis.parser import JSONMessageFormat, MessageFormat
@@ -23,7 +23,6 @@ from .usecase import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.configs import RedisBrokerConfig
 
@@ -36,7 +35,7 @@ def create_publisher(
     channel: Union["PubSub", str, None],
     list: Union["ListSub", str, None],
     stream: Union["StreamSub", str, None],
-    headers: Optional["AnyDict"],
+    headers: dict[str, Any] | None,
     reply_to: str,
     config: "RedisBrokerConfig",
     middlewares: Sequence["PublisherMiddleware"],

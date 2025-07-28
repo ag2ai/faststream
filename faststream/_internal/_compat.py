@@ -13,8 +13,6 @@ from typing import (
 from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
-from faststream._internal.basic_types import AnyDict
-
 IS_WINDOWS = sys.platform in {"win32", "cygwin", "msys"}
 
 __all__ = (
@@ -106,7 +104,7 @@ if PYDANTIC_V2:
     def dump_json(data: Any) -> bytes:
         return json_dumps(model_to_jsonable(data))
 
-    def get_model_fields(model: type[BaseModel]) -> AnyDict:
+    def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
         return model.__pydantic_fields__
 
     def model_to_json(model: BaseModel, **kwargs: Any) -> str:
@@ -119,7 +117,7 @@ if PYDANTIC_V2:
     ) -> ModelVar:
         return model.model_validate_json(data, **kwargs)
 
-    def model_schema(model: type[BaseModel], **kwargs: Any) -> AnyDict:
+    def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
         return model.model_json_schema(**kwargs)
 
 else:
@@ -136,7 +134,7 @@ else:
     def dump_json(data: Any) -> bytes:
         return json_dumps(data, default=pydantic_encoder)
 
-    def get_model_fields(model: type[BaseModel]) -> AnyDict:
+    def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
         return model.__fields__  # type: ignore[return-value]
 
     def model_to_json(model: BaseModel, **kwargs: Any) -> str:
@@ -149,7 +147,7 @@ else:
     ) -> ModelVar:
         return model.parse_raw(data, **kwargs)
 
-    def model_schema(model: type[BaseModel], **kwargs: Any) -> AnyDict:
+    def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
         return model.schema(**kwargs)
 
     def model_to_jsonable(

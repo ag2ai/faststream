@@ -1,14 +1,12 @@
-from typing import TypeVar
-
-from faststream._internal.basic_types import AnyDict
+from typing import Any, TypeVar
 
 TypedDictCls = TypeVar("TypedDictCls")
 
 
 def filter_by_dict(
     typed_dict: type[TypedDictCls],
-    data: AnyDict,
-) -> tuple[TypedDictCls, AnyDict]:
+    data: dict[str, Any],
+) -> tuple[TypedDictCls, dict[str, Any]]:
     annotations = typed_dict.__annotations__
 
     out_data = {}

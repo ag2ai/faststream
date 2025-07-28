@@ -3,10 +3,11 @@
 References: https://github.com/asyncapi/bindings/tree/master/sqs
 """
 
+from typing import Any
+
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.schema.bindings import sqs
 
 
@@ -18,7 +19,7 @@ class ChannelBinding(BaseModel):
         bindingVersion : a string representing the binding version (default: "custom")
     """
 
-    queue: AnyDict
+    queue: dict[str, Any]
     bindingVersion: str = "custom"
 
     @classmethod

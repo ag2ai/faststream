@@ -1,7 +1,8 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.message import Message
 
 
@@ -34,8 +35,8 @@ class Components(BaseModel):
     """
 
     messages: dict[str, Message] | None = None
-    schemas: dict[str, AnyDict] | None = None
-    securitySchemes: dict[str, AnyDict] | None = None
+    schemas: dict[str, dict[str, Any]] | None = None
+    securitySchemes: dict[str, dict[str, Any]] | None = None
     # parameters
     # correlationIds
     # operationTraits

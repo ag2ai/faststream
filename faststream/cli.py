@@ -1,3 +1,3 @@
-from faststream._internal.cli import cli
+from faststream._internal.cli.main import cli
 
 __all__ = ("cli",)

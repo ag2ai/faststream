@@ -51,16 +51,9 @@ if TYPE_CHECKING:
     from redis.asyncio.connection import BaseParser
     from typing_extensions import TypedDict
 
-    from faststream._internal.basic_types import (
-        AnyDict,
-        LoggerProto,
-        SendableMessage,
-    )
+    from faststream._internal.basic_types import LoggerProto, SendableMessage
     from faststream._internal.broker.registrator import Registrator
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.redis.message import RedisMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
@@ -315,7 +308,7 @@ class RedisBroker(
         channel: str | None = None,
         *,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         list: str | None = None,
         stream: None = None,
@@ -330,7 +323,7 @@ class RedisBroker(
         channel: str | None = None,
         *,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         list: str | None = None,
         stream: str,
@@ -345,7 +338,7 @@ class RedisBroker(
         channel: str | None = None,
         *,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         list: str | None = None,
         stream: str | None = None,
@@ -410,7 +403,7 @@ class RedisBroker(
         stream: str | None = None,
         maxlen: int | None = None,
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisMessage":
         cmd = RedisPublishCommand(
@@ -438,7 +431,7 @@ class RedisBroker(
         list: str,
         correlation_id: str | None = None,
         reply_to: str = "",
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int:
         """Publish multiple messages to Redis List by one request.
@@ -500,7 +493,7 @@ def _resolve_url_options(
     *,
     security: Optional["BaseSecurity"],
     **kwargs: Any,
-) -> "AnyDict":
+) -> dict[str, Any]:
     return {
         **dict(parse_url(url)),
         **parse_security(security),

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
-from faststream._internal.basic_types import AnyDict, AnyHttpUrl
 from faststream._internal.constants import ContentTypes
 from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
 from faststream.specification.asyncapi.v3_0_0.schema import (
@@ -29,6 +28,7 @@ from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
 from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
+    from faststream._internal.basic_types import AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
     from faststream.asgi.handlers import HttpHandler
@@ -52,11 +52,11 @@ def get_app_schema(
     schema_version: str,
     description: str | None,
     terms_of_service: Optional["AnyHttpUrl"],
-    contact: Union["SpecContact", "ContactDict", "AnyDict"] | None,
-    license: Union["SpecLicense", "LicenseDict", "AnyDict"] | None,
+    contact: Union["SpecContact", "ContactDict", dict[str, Any]] | None,
+    license: Union["SpecLicense", "LicenseDict", dict[str, Any]] | None,
     identifier: str | None,
-    tags: Sequence[Union["SpecTag", "TagDict", "AnyDict"]] | None,
-    external_docs: Union["SpecDocs", "ExternalDocsDict", "AnyDict"] | None,
+    tags: Sequence[Union["SpecTag", "TagDict", dict[str, Any]]] | None,
+    external_docs: Union["SpecDocs", "ExternalDocsDict", dict[str, Any]] | None,
     http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
@@ -64,7 +64,7 @@ def get_app_schema(
     channels, operations = get_broker_channels(broker)
 
     messages: dict[str, Message] = {}
-    payloads: dict[str, AnyDict] = {}
+    payloads: dict[str, dict[str, Any]] = {}
 
     for channel in channels.values():
         channel.servers = [
@@ -124,11 +124,11 @@ def get_broker_server(
 
     servers = {}
 
-    tags: list[Tag | AnyDict] | None = None
+    tags: list[Tag | dict[str, Any]] | None = None
     if specification.tags:
         tags = [Tag.from_spec(tag) for tag in specification.tags]
 
-    broker_meta: AnyDict = {
+    broker_meta: dict[str, Any] = {
         "protocol": specification.protocol,
         "protocolVersion": specification.protocol_version,
         "description": specification.description,
@@ -257,8 +257,8 @@ def _resolve_msg_payloads(
     message_name: str,
     m: Message,
     channel_name: str,
-    payloads: AnyDict,
-    messages: AnyDict,
+    payloads: dict[str, Any],
+    messages: dict[str, Any],
 ) -> Reference:
     assert isinstance(m.payload, dict)
 
@@ -273,7 +273,7 @@ def _resolve_msg_payloads(
     one_of = m.payload.get("oneOf", None)
     if isinstance(one_of, dict):
         one_of_list = []
-        processed_payloads: dict[str, AnyDict] = {}
+        processed_payloads: dict[str, dict[str, Any]] = {}
         for name, payload in one_of.items():
             processed_payloads[clear_key(name)] = payload
             one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))

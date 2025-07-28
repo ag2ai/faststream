@@ -18,7 +18,7 @@ from .registrator import RedisRegistrator
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -51,7 +51,7 @@ class RedisPublisher(ArgsContainer):
             Doc("Redis Stream object name to send message."),
         ] = None,
         headers: Annotated[
-            Optional["AnyDict"],
+            dict[str, Any] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "Can be overridden by `publish.headers` if specified.",

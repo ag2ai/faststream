@@ -12,7 +12,6 @@ from typing import (
 
 from typing_extensions import ParamSpec
 
-AnyDict: TypeAlias = dict[str, Any]
 AnyHttpUrl: TypeAlias = str
 
 F_Return = TypeVar("F_Return")
@@ -44,7 +43,7 @@ SendableTable: TypeAlias = dict[str, "BaseSendableMessage"]
 class StandardDataclass(Protocol):
     """Protocol to check type is dataclass."""
 
-    __dataclass_fields__: ClassVar[AnyDict]
+    __dataclass_fields__: ClassVar[dict[str, Any]]
 
 
 BaseSendableMessage: TypeAlias = (

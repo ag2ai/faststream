@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from typing import Any
 
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import ContextError
 
@@ -11,18 +10,18 @@ from faststream.exceptions import ContextError
 class ContextRepo:
     """A class to represent a context repository."""
 
-    def __init__(self, initial: AnyDict | None = None, /) -> None:
+    def __init__(self, initial: dict[str, Any] | None = None, /) -> None:
         """Initialize the class.
 
         Attributes:
             _global_context : a dictionary representing the global context
             _scope_context : a dictionary representing the scope context
         """
-        self._global_context: AnyDict = {"context": self} | (initial or {})
+        self._global_context: dict[str, Any] = {"context": self} | (initial or {})
         self._scope_context: dict[str, ContextVar[Any]] = {}
 
     @property
-    def context(self) -> AnyDict:
+    def context(self) -> dict[str, Any]:
         return {
             **self._global_context,
             **{i: j.get() for i, j in self._scope_context.items()},

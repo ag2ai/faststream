@@ -3,10 +3,11 @@
 References: https://github.com/asyncapi/bindings/tree/master/redis
 """
 
+from typing import Any
+
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.schema.bindings import redis
 
 
@@ -18,7 +19,7 @@ class OperationBinding(BaseModel):
         bindingVersion : version of the binding (default is "custom")
     """
 
-    replyTo: AnyDict | None = None
+    replyTo: dict[str, Any] | None = None
     bindingVersion: str = "custom"
 
     @classmethod

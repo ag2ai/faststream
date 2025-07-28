@@ -11,7 +11,6 @@ from uuid import uuid4
 from .source_type import SourceType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import AsyncCallable
 
 # prevent circular imports
@@ -32,10 +31,10 @@ class StreamMessage(Generic[MsgType]):
         raw_message: "MsgType",
         body: bytes | Any,
         *,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        batch_headers: list["AnyDict"] | None = None,
-        path: Optional["AnyDict"] = None,
+        batch_headers: list[dict[str, Any]] | None = None,
+        path: dict[str, Any] | None = None,
         content_type: str | None = None,
         correlation_id: str | None = None,
         message_id: str | None = None,

@@ -9,7 +9,6 @@ from faststream._internal.constants import EMPTY
 from faststream.confluent.security import parse_security
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.security import BaseSecurity
 
 
@@ -361,7 +360,7 @@ class ConfluentFastConfig:
         }
 
     @property
-    def consumer_config(self) -> "AnyDict":
+    def consumer_config(self) -> dict[str, Any]:
         consumer_config = _to_confluent(
             {_ConsumerConfig[k]: v for k, v in self.raw_consumer_config.items()}
             | self.config,
@@ -373,20 +372,20 @@ class ConfluentFastConfig:
         return consumer_config
 
     @property
-    def producer_config(self) -> "AnyDict":
+    def producer_config(self) -> dict[str, Any]:
         return _to_confluent(
             {_ProducerConfig[k]: v for k, v in self.raw_producer_config.items()}
             | self.config,
         )
 
     @property
-    def admin_config(self) -> "AnyDict":
+    def admin_config(self) -> dict[str, Any]:
         return _to_confluent(
             {_AdminConfig[k]: v for k, v in self.raw_admin_config.items()} | self.config,
         )
 
 
-def _to_confluent(config: "AnyDict") -> "AnyDict":
+def _to_confluent(config: dict[str, Any]) -> dict[str, Any]:
     data = config.copy()
 
     for key, enum in (

@@ -1,10 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any
 
 from .publish_type import PublishType
-
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
 
 
 class Response:
@@ -12,7 +9,7 @@ class Response:
         self,
         body: Any,
         *,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
     ) -> None:
         """Initialize a handler."""
@@ -39,7 +36,7 @@ class PublishCommand(Response):
         reply_to: str = "",
         destination: str = "",
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             body,
@@ -60,7 +57,7 @@ class PublishCommand(Response):
 
     def add_headers(
         self,
-        headers: "AnyDict",
+        headers: dict[str, Any],
         *,
         override: bool = True,
     ) -> None:
@@ -87,7 +84,7 @@ class BatchPublishCommand(PublishCommand):
         reply_to: str = "",
         destination: str = "",
         correlation_id: str | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             body,

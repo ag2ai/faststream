@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
@@ -12,7 +12,7 @@ from faststream.response.response import BatchPublishCommand, PublishCommand, Re
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
 
 
 class DestinationType(str, Enum):
@@ -26,7 +26,7 @@ class RedisResponse(Response):
         self,
         body: Optional["SendableMessage"] = None,
         *,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         maxlen: int | None = None,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
@@ -66,7 +66,7 @@ class RedisPublishCommand(BatchPublishCommand):
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         reply_to: str = "",
         timeout: float | None = 30.0,
         pipeline: Optional["Pipeline[bytes]"] = None,

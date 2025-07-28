@@ -1,10 +1,9 @@
-from typing import cast, overload
+from typing import Any, cast, overload
 
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.utils.data import filter_by_dict
 from faststream.specification.asyncapi.v2_6_0.schema.docs import ExternalDocs
 from faststream.specification.schema.extra import (
@@ -45,10 +44,10 @@ class Tag(BaseModel):
 
     @overload
     @classmethod
-    def from_spec(cls, tag: AnyDict) -> AnyDict: ...
+    def from_spec(cls, tag: dict[str, Any]) -> dict[str, Any]: ...
 
     @classmethod
-    def from_spec(cls, tag: SpecTag | TagDict | AnyDict) -> Self | AnyDict:
+    def from_spec(cls, tag: SpecTag | TagDict | dict[str, Any]) -> Self | dict[str, Any]:
         if isinstance(tag, SpecTag):
             return cls(
                 name=tag.name,
@@ -56,7 +55,7 @@ class Tag(BaseModel):
                 externalDocs=ExternalDocs.from_spec(tag.external_docs),
             )
 
-        tag = cast("AnyDict", tag)
+        tag = cast("dict[str, Any]", tag)
         tag_data, custom_data = filter_by_dict(TagDict, tag)
 
         if custom_data:

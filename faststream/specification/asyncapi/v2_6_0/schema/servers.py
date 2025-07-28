@@ -1,7 +1,8 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.tag import Tag
 from faststream.specification.asyncapi.v2_6_0.schema.utils import Reference
 
@@ -53,7 +54,7 @@ class Server(BaseModel):
     protocol: str
     protocolVersion: str | None
     description: str | None = None
-    tags: list[Tag | AnyDict] | None = None
+    tags: list[Tag | dict[str, Any]] | None = None
     security: SecurityRequirement | None = None
 
     variables: dict[str, ServerVariable | Reference] | None = None

@@ -34,7 +34,7 @@ from .utils.logs import (
 from .utils.parser import parse_cli_args
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict, SettingField
+    from faststream._internal.basic_types import SettingField
     from faststream._internal.broker import BrokerUsecase
 
 cli = typer.Typer(pretty_exceptions_short=True)
@@ -274,7 +274,7 @@ def publish(
     if app_dir:  # pragma: no branch
         sys.path.insert(0, app_dir)
 
-    publish_extra: AnyDict = extra.copy()
+    publish_extra: dict[str, Any] = extra.copy()
     if "timeout" in publish_extra:
         publish_extra["timeout"] = float(publish_extra["timeout"])
 
@@ -301,7 +301,7 @@ async def publish_message(
     broker: "BrokerUsecase[Any, Any]",
     rpc: bool,
     message: str,
-    extra: "AnyDict",
+    extra: dict[str, Any],
 ) -> Any:
     with suppress(Exception):
         message = json_loads(message)

@@ -1,10 +1,9 @@
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.specification.schema import Tag, TagDict
 
     from .types import ASGIApp, Receive, Scope, Send, UserApp
@@ -18,7 +17,7 @@ class HttpHandler:
         include_in_schema: bool = True,
         description: str | None = None,
         methods: Sequence[str] | None = None,
-        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
     ) -> None:
         self.func = func
@@ -48,7 +47,7 @@ class GetHandler(HttpHandler):
         *,
         include_in_schema: bool = True,
         description: str | None = None,
-        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
     ) -> None:
         super().__init__(
@@ -67,7 +66,7 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
 ) -> "ASGIApp": ...
 
@@ -78,7 +77,7 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
 ) -> Callable[["UserApp"], "ASGIApp"]: ...
 
@@ -88,7 +87,7 @@ def get(
     *,
     include_in_schema: bool = True,
     description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":

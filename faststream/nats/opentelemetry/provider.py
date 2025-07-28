@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from nats.aio.msg import Msg
 from opentelemetry.semconv.trace import SpanAttributes
@@ -9,7 +9,6 @@ from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.message import StreamMessage
     from faststream.response import PublishCommand
 
@@ -23,7 +22,7 @@ class BaseNatsTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
     def get_publish_attrs_from_cmd(
         self,
         cmd: "PublishCommand",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
@@ -41,7 +40,7 @@ class NatsTelemetrySettingsProvider(BaseNatsTelemetrySettingsProvider["Msg"]):
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[Msg]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
@@ -63,7 +62,7 @@ class NatsBatchTelemetrySettingsProvider(
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[list[Msg]]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,

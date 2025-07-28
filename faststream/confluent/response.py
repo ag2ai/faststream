@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
 
@@ -6,7 +6,7 @@ from faststream.response.publish_type import PublishType
 from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict, SendableMessage
+    from faststream._internal.basic_types import SendableMessage
 
 
 class KafkaResponse(Response):
@@ -14,7 +14,7 @@ class KafkaResponse(Response):
         self,
         body: "SendableMessage",
         *,
-        headers: Optional["AnyDict"] = None,
+        headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         timestamp_ms: int | None = None,
         key: bytes | str | None = None,

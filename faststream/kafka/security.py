@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import Any
 
 from faststream.security import (
     SASLGSSAPI,
@@ -9,11 +9,8 @@ from faststream.security import (
     SASLScram512,
 )
 
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
 
-
-def parse_security(security: BaseSecurity | None) -> "AnyDict":
+def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
     if security is None:
         return {}
     if isinstance(security, SASLPlaintext):
@@ -32,14 +29,14 @@ def parse_security(security: BaseSecurity | None) -> "AnyDict":
     raise NotImplementedError(msg)
 
 
-def _parse_base_security(security: BaseSecurity) -> "AnyDict":
+def _parse_base_security(security: BaseSecurity) -> dict[str, Any]:
     return {
         "security_protocol": "SSL" if security.use_ssl else "PLAINTEXT",
         "ssl_context": security.ssl_context,
     }
 
 
-def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
+def _parse_sasl_plaintext(security: SASLPlaintext) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -49,7 +46,7 @@ def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
     }
 
 
-def _parse_sasl_scram256(security: SASLScram256) -> "AnyDict":
+def _parse_sasl_scram256(security: SASLScram256) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -59,7 +56,7 @@ def _parse_sasl_scram256(security: SASLScram256) -> "AnyDict":
     }
 
 
-def _parse_sasl_scram512(security: SASLScram512) -> "AnyDict":
+def _parse_sasl_scram512(security: SASLScram512) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -69,7 +66,7 @@ def _parse_sasl_scram512(security: SASLScram512) -> "AnyDict":
     }
 
 
-def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> "AnyDict":
+def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -77,7 +74,7 @@ def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> "AnyDict":
     }
 
 
-def _parse_sasl_gssapi(security: SASLGSSAPI) -> "AnyDict":
+def _parse_sasl_gssapi(security: SASLGSSAPI) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,

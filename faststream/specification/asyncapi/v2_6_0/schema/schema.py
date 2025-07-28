@@ -1,6 +1,5 @@
-from typing import Literal
+from typing import Any, Literal
 
-from faststream._internal.basic_types import AnyDict
 from faststream.specification.asyncapi.v2_6_0.schema.channels import Channel
 from faststream.specification.asyncapi.v2_6_0.schema.components import Components
 from faststream.specification.asyncapi.v2_6_0.schema.docs import ExternalDocs
@@ -33,5 +32,5 @@ class ApplicationSchema(BaseApplicationSchema):
     servers: dict[str, Server] | None = None
     channels: dict[str, Channel]
     components: Components | None = None
-    tags: list[Tag | AnyDict] | None = None
-    externalDocs: ExternalDocs | AnyDict | None = None
+    tags: list[Tag | dict[str, Any]] | None = None
+    externalDocs: ExternalDocs | dict[str, Any] | None = None

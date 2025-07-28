@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from fastapi.types import IncEx
     from starlette.types import ASGIApp, Lifespan
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -372,7 +372,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            dict[int | str, "AnyDict"] | None,
+            dict[int | str, dict[str, Any]] | None,
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.

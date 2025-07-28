@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import Tracer, TracerProvider
     from opentelemetry.util.types import Attributes
 
-    from faststream._internal.basic_types import AnyDict, AsyncFunc, AsyncFuncAny
+    from faststream._internal.basic_types import AsyncFunc, AsyncFuncAny
     from faststream._internal.context.repository import ContextRepo
     from faststream.message import StreamMessage
     from faststream.opentelemetry.provider import TelemetrySettingsProvider
@@ -120,7 +120,7 @@ class _MetricsContainer:
 
     def observe_publish(
         self,
-        attrs: "AnyDict",
+        attrs: dict[str, Any],
         duration: float,
         msg_count: int,
     ) -> None:
@@ -138,7 +138,7 @@ class _MetricsContainer:
 
     def observe_consume(
         self,
-        attrs: "AnyDict",
+        attrs: dict[str, Any],
         duration: float,
         msg_count: int,
     ) -> None:
@@ -407,7 +407,7 @@ def _get_msg_links(msg: "StreamMessage[Any]") -> list[Link]:
     return list(links.values())
 
 
-def _get_span_from_headers(headers: "AnyDict") -> Span | None:
+def _get_span_from_headers(headers: dict[str, Any]) -> Span | None:
     trace_context = _TRACE_PROPAGATOR.extract(headers)
     if not len(trace_context):
         return None

@@ -3,7 +3,6 @@ from typing import Any
 
 from fast_depends.library import CustomField
 
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.constants import EMPTY
 
 from .resolve import resolve_context_by_name
@@ -52,7 +51,7 @@ class Context(CustomField):
             required=(default is EMPTY),
         )
 
-    def use(self, /, **kwargs: Any) -> AnyDict:
+    def use(self, /, **kwargs: Any) -> dict[str, Any]:
         """Use the given keyword arguments.
 
         Args:

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
 
@@ -11,7 +11,6 @@ from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
-    from faststream._internal.basic_types import AnyDict
     from faststream.message import StreamMessage
     from faststream.response import PublishCommand
 
@@ -27,8 +26,8 @@ class BaseKafkaTelemetrySettingsProvider(
     def get_publish_attrs_from_cmd(
         self,
         cmd: "KafkaPublishCommand",
-    ) -> "AnyDict":
-        attrs: AnyDict = {
+    ) -> dict[str, Any]:
+        attrs: dict[str, Any] = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
@@ -55,7 +54,7 @@ class KafkaTelemetrySettingsProvider(
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[ConsumerRecord]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         attrs = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
@@ -84,7 +83,7 @@ class BatchKafkaTelemetrySettingsProvider(
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         raw_message = msg.raw_message[0]
 
         return {

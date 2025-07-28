@@ -54,7 +54,6 @@ if TYPE_CHECKING:
     from starlette import routing
     from starlette.types import ASGIApp, AppType, Lifespan
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -95,8 +94,8 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
     title: str
     description: str
     version: str
-    license: Optional["AnyDict"]
-    contact: Optional["AnyDict"]
+    license: dict[str, Any] | None
+    contact: dict[str, Any] | None
 
     def __init__(
         self,
@@ -107,7 +106,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         tags: list[str | Enum] | None = None,
         dependencies: Sequence["params.Depends"] | None = None,
         default_response_class: type["Response"] = Default(JSONResponse),
-        responses: dict[int | str, "AnyDict"] | None = None,
+        responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list["routing.BaseRoute"] | None = None,
         routes: list["routing.BaseRoute"] | None = None,
         redirect_slashes: bool = True,
@@ -446,7 +445,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         tags: list[str | Enum] | None = None,
         dependencies: Sequence["params.Depends"] | None = None,
         default_response_class: type[Response] = Default(JSONResponse),
-        responses: dict[int | str, "AnyDict"] | None = None,
+        responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list["BaseRoute"] | None = None,
         deprecated: bool | None = None,
         include_in_schema: bool = True,

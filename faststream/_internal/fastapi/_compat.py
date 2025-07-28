@@ -6,8 +6,6 @@ from fastapi.dependencies.utils import solve_dependencies
 from starlette.background import BackgroundTasks
 from typing_extensions import Never
 
-from faststream._internal.basic_types import AnyDict
-
 if TYPE_CHECKING:
     from fastapi.dependencies.models import Dependant
     from fastapi.requests import Request
@@ -46,7 +44,7 @@ __all__ = (
 
 @dataclass
 class SolvedDependency:
-    values: AnyDict
+    values: dict[str, Any]
     errors: list[Any]
     background_tasks: BackgroundTasks | None
 
@@ -55,7 +53,7 @@ if FASTAPI_V2:
     from fastapi._compat import _normalize_errors
     from fastapi.exceptions import RequestValidationError
 
-    def raise_fastapi_validation_error(errors: list[Any], body: AnyDict) -> Never:
+    def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
         raise RequestValidationError(_normalize_errors(errors), body=body)
 
 else:
@@ -66,7 +64,7 @@ else:
 
     ROUTER_VALIDATION_ERROR_MODEL = create_model("StreamRoute")
 
-    def raise_fastapi_validation_error(errors: list[Any], body: AnyDict) -> Never:
+    def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
         raise RequestValidationError(errors, ROUTER_VALIDATION_ERROR_MODEL)  # type: ignore[misc]
 
 

@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from starlette.responses import Response
     from starlette.types import ASGIApp, Lifespan
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -195,7 +195,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             ),
         ] = Default(JSONResponse),
         responses: Annotated[
-            dict[int | str, "AnyDict"] | None,
+            dict[int | str, dict[str, Any]] | None,
             Doc(
                 """
                 Additional responses to be shown in OpenAPI.
@@ -666,7 +666,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             Doc("Redis Stream object name to send message."),
         ] = None,
         headers: Annotated[
-            Optional["AnyDict"],
+            dict[str, Any] | None,
             Doc(
                 "Message headers to store metainformation. "
                 "Can be overridden by `publish.headers` if specified.",

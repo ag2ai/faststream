@@ -1,9 +1,7 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from ssl import SSLContext
-
-    from faststream._internal.basic_types import AnyDict
 
 
 class BaseSecurity:
@@ -30,7 +28,7 @@ class BaseSecurity:
         self.use_ssl = use_ssl
         self.ssl_context = ssl_context
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements."""
         return []
 
@@ -68,7 +66,7 @@ class SASLPlaintext(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/PLAINTEXT authentication."""
         return [{"user-password": []}]
 
@@ -106,7 +104,7 @@ class SASLScram256(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/SCRAM-SHA-256 authentication."""
         return [{"scram256": []}]
 
@@ -144,7 +142,7 @@ class SASLScram512(BaseSecurity):
         self.username = username
         self.password = password
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/SCRAM-SHA-512 authentication."""
         return [{"scram512": []}]
 
@@ -161,7 +159,7 @@ class SASLOAuthBearer(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/OAUTHBEARER authentication."""
         return [{"oauthbearer": []}]
 
@@ -178,7 +176,7 @@ class SASLGSSAPI(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
-    def get_requirement(self) -> list["AnyDict"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/GSSAPI authentication."""
         return [{"gssapi": []}]
 

@@ -16,7 +16,6 @@ from .usecase import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.schemas import TopicPartition
 
@@ -29,7 +28,7 @@ def create_subscriber(
     max_records: int | None,
     # Kafka information
     group_id: str | None,
-    connection_data: "AnyDict",
+    connection_data: dict[str, Any],
     auto_commit: bool,
     # Subscriber args
     ack_policy: "AckPolicy",

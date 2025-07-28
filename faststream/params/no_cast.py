@@ -2,8 +2,6 @@ from typing import Annotated, Any, TypeVar
 
 from fast_depends.library import CustomField
 
-from faststream._internal.basic_types import AnyDict
-
 
 class NoCastField(CustomField):
     """A class that represents a custom field without casting.
@@ -18,7 +16,7 @@ class NoCastField(CustomField):
     def __init__(self) -> None:
         super().__init__(cast=False)
 
-    def use(self, **kwargs: Any) -> AnyDict:
+    def use(self, **kwargs: Any) -> dict[str, Any]:
         return kwargs
 
 

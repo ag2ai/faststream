@@ -11,7 +11,6 @@ from .handlers import get
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker import BrokerUsecase
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema import Tag, TagDict
@@ -25,7 +24,7 @@ def make_ping_asgi(
     timeout: float | None = None,
     include_in_schema: bool = True,
     description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
 ) -> "ASGIApp":
     healthy_response = AsgiResponse(b"", 204)
@@ -50,7 +49,7 @@ class AsyncAPIRoute:
         self,
         path: str,
         description: str | None = None,
-        tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+        tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
         include_in_schema: bool = False,
         *,
@@ -112,7 +111,7 @@ class AsyncAPIRoute:
 def make_asyncapi_asgi(
     schema: "SpecificationFactory",
     description: str | None = None,
-    tags: Sequence[Union["Tag", "TagDict", "AnyDict"]] | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
     include_in_schema: bool = True,
     *,

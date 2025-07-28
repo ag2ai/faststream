@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -43,7 +42,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         exchange: Union[str, "RabbitExchange", None] = None,
         *,
         channel: Optional["Channel"] = None,
-        consume_args: Optional["AnyDict"] = None,
+        consume_args: dict[str, Any] | None = None,
         no_ack: Annotated[
             bool,
             deprecated(
@@ -75,7 +74,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             queue (Union[str, RabbitQueue]): RabbitMQ queue to listen. **FastStream** declares and binds queue object to `exchange` automatically by default.
             exchange (Union[str, RabbitExchange, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default.
             channel (Optional[Channel], optional): Channel to use for consuming messages.
-            consume_args (Optional[AnyDict], optional): Extra consumer arguments to use in `queue.consume(...)` method.
+            consume_args (dict[str, Any] | None, optional): Extra consumer arguments to use in `queue.consume(...)` method.
             no_ack (bool, optional): Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
             dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.

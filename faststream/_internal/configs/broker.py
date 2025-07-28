@@ -11,7 +11,6 @@ from faststream._internal.producer import ProducerProto, ProducerUnset
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.types import BrokerMiddleware, CustomCallable
 
 
@@ -31,7 +30,7 @@ class BrokerConfig:
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = None
-    extra_context: "AnyDict" = field(default_factory=dict)
+    extra_context: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
@@ -122,8 +121,8 @@ class ConfigComposition(Generic[BrokerConfigType]):
 
     # merged options
     @property
-    def extra_context(self) -> "AnyDict":
-        context: AnyDict = {}
+    def extra_context(self) -> dict[str, Any]:
+        context: dict[str, Any] = {}
         for c in self.configs:
             context |= c.extra_context
         return context

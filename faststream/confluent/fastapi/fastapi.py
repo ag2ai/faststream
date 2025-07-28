@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from fastapi.types import IncEx
     from starlette.types import ASGIApp, Lifespan
 
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -117,7 +117,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         tags: list[Union[str, "Enum"]] | None = None,
         dependencies: Sequence["params.Depends"] | None = None,
         default_response_class: type["Response"] = Default(JSONResponse),
-        responses: dict[int | str, "AnyDict"] | None = None,
+        responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list[BaseRoute] | None = None,
         routes: list[BaseRoute] | None = None,
         redirect_slashes: bool = True,

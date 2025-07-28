@@ -1,10 +1,9 @@
-from typing import cast, overload
+from typing import Any, cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
 from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.basic_types import AnyDict
 from faststream._internal.utils.data import filter_by_dict
 from faststream.specification.schema.extra import (
     ExternalDocs as SpecDocs,
@@ -46,20 +45,20 @@ class ExternalDocs(BaseModel):
 
     @overload
     @classmethod
-    def from_spec(cls, docs: AnyDict) -> AnyDict: ...
+    def from_spec(cls, docs: dict[str, Any]) -> dict[str, Any]: ...
 
     @classmethod
     def from_spec(
         cls,
-        docs: SpecDocs | ExternalDocsDict | AnyDict | None,
-    ) -> Self | AnyDict | None:
+        docs: SpecDocs | ExternalDocsDict | dict[str, Any] | None,
+    ) -> Self | dict[str, Any] | None:
         if docs is None:
             return None
 
         if isinstance(docs, SpecDocs):
             return cls(url=docs.url, description=docs.description)
 
-        docs = cast("AnyDict", docs)
+        docs = cast("dict[str, Any]", docs)
         docs_data, custom_data = filter_by_dict(ExternalDocsDict, docs)
 
         if custom_data:

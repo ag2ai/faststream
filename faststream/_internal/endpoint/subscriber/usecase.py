@@ -37,7 +37,7 @@ from .utils import MultiLock, default_filter
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict, Decorator
+    from faststream._internal.basic_types import Decorator
     from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -67,7 +67,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
     lock: "AbstractContextManager[Any]"
-    extra_watcher_options: "AnyDict"
+    extra_watcher_options: dict[str, Any]
     graceful_timeout: float | None
 
     def __init__(
@@ -420,7 +420,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self,
         log_level: int | None,
         message: str,
-        extra: Optional["AnyDict"] = None,
+        extra: dict[str, Any] | None = None,
         exc_info: Exception | None = None,
     ) -> None:
         self._outer_config.logger.log(

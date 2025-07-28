@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
@@ -13,8 +13,6 @@ from faststream.middlewares import AckPolicy
 if TYPE_CHECKING:
     from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
-
-    from faststream._internal.basic_types import AnyDict
 
 
 @dataclass(kw_only=True)
@@ -29,7 +27,7 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
 
     topics: Sequence[str] = field(default_factory=list)
     group_id: str | None = None
-    connection_args: "AnyDict" = field(default_factory=dict)
+    connection_args: dict[str, Any] = field(default_factory=dict)
     listener: Optional["ConsumerRebalanceListener"] = None
     pattern: str | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)

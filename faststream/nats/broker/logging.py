@@ -1,15 +1,12 @@
 import logging
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from faststream._internal.logger import (
-    DefaultLoggerStorage,
-    make_logger_state,
-)
+from faststream._internal.logger import DefaultLoggerStorage, make_logger_state
 from faststream._internal.logger.logging import get_broker_logger
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict, LoggerProto
+    from faststream._internal.basic_types import LoggerProto
     from faststream._internal.context import ContextRepo
 
 
@@ -26,7 +23,7 @@ class NatsParamsStorage(DefaultLoggerStorage):
     def set_level(self, level: int) -> None:
         self.logger_log_level = level
 
-    def register_subscriber(self, params: "AnyDict") -> None:
+    def register_subscriber(self, params: dict[str, Any]) -> None:
         self._max_subject_len = max(
             (
                 self._max_subject_len,

@@ -1,16 +1,10 @@
 from collections.abc import Callable, Iterable, Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import Any
 
 from faststream._internal.configs import BrokerConfigType
 from faststream._internal.types import MsgType
 
 from .registrator import Registrator
-
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
 
 
 class ArgsContainer:
@@ -19,7 +13,7 @@ class ArgsContainer:
     __slots__ = ("args", "kwargs")
 
     args: Iterable[Any]
-    kwargs: "AnyDict"
+    kwargs: "dict[str, Any]"
 
     def __init__(
         self,

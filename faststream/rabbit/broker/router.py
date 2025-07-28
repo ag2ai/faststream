@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from aio_pika.message import IncomingMessage
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import AnyDict
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -215,7 +214,7 @@ class RabbitRoute(SubscriberRoute):
             Doc("RabbitMQ publishers to broadcast the handler result."),
         ] = (),
         consume_args: Annotated[
-            Optional["AnyDict"],
+            dict[str, Any] | None,
             Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
         ] = None,
         # broker arguments

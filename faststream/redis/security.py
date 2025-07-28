@@ -1,14 +1,11 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from redis.asyncio.connection import Connection
 
 from faststream.security import BaseSecurity, SASLPlaintext
 
-if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
 
-
-def parse_security(security: BaseSecurity | None) -> "AnyDict":
+def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
     if security is None:
         return {}
 
@@ -22,7 +19,7 @@ def parse_security(security: BaseSecurity | None) -> "AnyDict":
     raise NotImplementedError(msg)
 
 
-def _parse_base_security(security: BaseSecurity) -> "AnyDict":
+def _parse_base_security(security: BaseSecurity) -> dict[str, Any]:
     if security.use_ssl:
 
         class SSLConnection(Connection):
@@ -44,7 +41,7 @@ def _parse_base_security(security: BaseSecurity) -> "AnyDict":
     return {}
 
 
-def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
+def _parse_sasl_plaintext(security: SASLPlaintext) -> dict[str, Any]:
     return {
         **_parse_base_security(security),
         "username": security.username,

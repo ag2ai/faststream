@@ -1,18 +1,14 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any
 
-from faststream.prometheus import (
-    ConsumeAttrs,
-    MetricsSettingsProvider,
-)
+from faststream.prometheus import ConsumeAttrs, MetricsSettingsProvider
 from faststream.redis.response import RedisPublishCommand
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
     from faststream.message.message import StreamMessage
 
 
 class BaseRedisMetricsSettingsProvider(
-    MetricsSettingsProvider["AnyDict", RedisPublishCommand],
+    MetricsSettingsProvider[dict[str, Any], RedisPublishCommand],
 ):
     __slots__ = ("messaging_system",)
 
@@ -29,7 +25,7 @@ class BaseRedisMetricsSettingsProvider(
 class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[AnyDict]",
+        msg: "StreamMessage[dict[str, Any]]",
     ) -> ConsumeAttrs:
         return {
             "destination_name": _get_destination(msg.raw_message),
@@ -41,7 +37,7 @@ class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
 class BatchRedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[AnyDict]",
+        msg: "StreamMessage[dict[str, Any]]",
     ) -> ConsumeAttrs:
         return {
             "destination_name": _get_destination(msg.raw_message),
@@ -51,12 +47,12 @@ class BatchRedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
 
 
 def settings_provider_factory(
-    msg: Optional["AnyDict"],
+    msg: dict[str, Any] | None,
 ) -> RedisMetricsSettingsProvider | BatchRedisMetricsSettingsProvider:
     if msg is not None and msg.get("type", "").startswith("b"):
         return BatchRedisMetricsSettingsProvider()
     return RedisMetricsSettingsProvider()
 
 
-def _get_destination(kwargs: "AnyDict") -> str:
+def _get_destination(kwargs: dict[str, Any]) -> str:
     return kwargs.get("channel") or kwargs.get("list") or kwargs.get("stream") or ""
