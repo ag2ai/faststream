@@ -1,11 +1,11 @@
 from collections.abc import Awaitable, Callable
-from typing import Any
 
 import prometheus_client
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
+    ListSub,
     RedisBroker as Broker,
     RedisMessage as Message,
     RedisRoute as Route,
@@ -15,9 +15,12 @@ from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
-from faststream.redis.publisher.factory import PublisherType
-from faststream.redis import ListSub
-from faststream.redis.publisher.usecase import ChannelPublisher, ListPublisher, ListBatchPublisher, StreamPublisher
+from faststream.redis.publisher.usecase import (
+    ChannelPublisher,
+    ListBatchPublisher,
+    ListPublisher,
+    StreamPublisher,
+)
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -315,11 +318,13 @@ async def check_publish_type(optional_stream: str | None = "test") -> None:
     publish_confirm_bool = await broker.publish(None, stream=optional_stream)
     assert_type(publish_confirm_bool, int | bytes)
 
+
 async def check_broker_channel_publisher_type() -> None:
     broker = Broker()
     publisher = broker.publisher(channel="test")
 
     assert_type(publisher, ChannelPublisher)
+
 
 async def check_broker_list_publisher_type() -> None:
     broker = Broker()
@@ -327,11 +332,13 @@ async def check_broker_list_publisher_type() -> None:
 
     assert_type(publisher, ListPublisher)
 
+
 async def check_broker_list_batch_type() -> None:
     broker = Broker()
     publisher = broker.publisher(None, list=ListSub("test", batch=True))
 
     assert_type(publisher, ListBatchPublisher)
+
 
 async def check_broker_stream_publisher() -> None:
     broker = Broker()
