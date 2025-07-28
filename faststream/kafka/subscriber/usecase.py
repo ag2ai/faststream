@@ -169,7 +169,7 @@ class LogicSubscriber(ABC, TasksMixin, SubscriberUsecase[MsgType]):
         await super().start()
 
         if self.calls:
-            self.add_task(self._run_consume_loop(self.consumer))
+            self.add_task(self._run_consume_loop, (self.consumer,))
 
     async def stop(self) -> None:
         await super().stop()
@@ -615,7 +615,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
         if self.calls:
             for consumer in self.consumer_subgroup:
-                self.add_task(self._run_consume_loop(consumer))
+                self.add_task(self._run_consume_loop, (consumer,))
 
     async def stop(self) -> None:
         if self.consumer_subgroup:

@@ -2,9 +2,14 @@ import asyncio
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Coroutine,
+    Dict,
     Generic,
-    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
 )
 
 import anyio
@@ -20,10 +25,18 @@ if TYPE_CHECKING:
 class TasksMixin(SubscriberUsecase[Any]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.tasks: List[asyncio.Task[Any]] = []
+        self.tasks: Set[asyncio.Task[Any]] = set()
 
-    def add_task(self, coro: Coroutine[Any, Any, Any]) -> None:
-        self.tasks.append(asyncio.create_task(coro))
+    def add_task(
+        self,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: Optional[Tuple[Any]] = None,
+        func_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        args: Union[Tuple[Any], Tuple[()]] = func_args or ()
+        kwargs: Dict[str, Any] = func_kwargs or {}
+        task = asyncio.create_task(func(*args, **kwargs))
+        self.tasks.add(task)
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -33,7 +46,7 @@ class TasksMixin(SubscriberUsecase[Any]):
             if not task.done():
                 task.cancel()
 
-        self.tasks = []
+        self.tasks = set()
 
 
 class ConcurrentMixin(TasksMixin, Generic[MsgType]):
@@ -56,7 +69,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         super().__init__(*args, **kwargs)
 
     def start_consume_task(self) -> None:
-        self.add_task(self._serve_consume_queue())
+        self.add_task(self._serve_consume_queue)
 
     async def _serve_consume_queue(
         self,
