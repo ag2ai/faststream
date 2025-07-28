@@ -10,7 +10,7 @@ import typer
 
 from faststream import FastStream
 from faststream.__about__ import __version__
-from faststream._internal._compat import json_loads
+from faststream._internal._compat import IS_WINDOWS, json_loads
 from faststream._internal.application import Application
 from faststream.asgi import AsgiFastStream
 from faststream.exceptions import INSTALL_WATCHFILES, SetupError, StartupValidationError
@@ -225,7 +225,7 @@ def _run_imported_app(
     if log_config is not None:
         set_log_config(log_config)
 
-    if sys.platform not in {"win32", "cygwin", "cli"}:  # pragma: no cover
+    if not IS_WINDOWS:  # pragma: no cover
         with suppress(ImportError):
             import uvloop
 

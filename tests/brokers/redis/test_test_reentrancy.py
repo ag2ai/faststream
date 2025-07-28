@@ -10,7 +10,7 @@ to_output_data = broker.publisher("output_data")
 
 @to_output_data
 @broker.subscriber("input_data")
-async def on_input_data(msg: int):
+async def on_input_data(msg: int) -> int:
     return msg + 1
 
 
@@ -31,6 +31,7 @@ async def _test_with_broker(with_real: bool) -> None:
 
 
 @pytest.mark.asyncio()
+@pytest.mark.redis()
 async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
     await _test_with_broker(False)
@@ -38,6 +39,7 @@ async def test_with_fake_broker() -> None:
 
 @pytest.mark.asyncio()
 @pytest.mark.redis()
+@pytest.mark.connected()
 async def test_with_real_broker() -> None:
     await _test_with_broker(True)
     await _test_with_broker(True)
@@ -59,6 +61,7 @@ async def _test_with_temp_subscriber() -> None:
 
 
 @pytest.mark.asyncio()
+@pytest.mark.redis()
 async def test_with_temp_subscriber() -> None:
     await _test_with_temp_subscriber()
     await _test_with_temp_subscriber()

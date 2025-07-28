@@ -15,7 +15,7 @@ from pydantic.version import VERSION as PYDANTIC_VERSION
 
 from faststream._internal.basic_types import AnyDict
 
-IS_WINDOWS = sys.platform == "win32" or sys.platform == "cygwin" or sys.platform == "msys"
+IS_WINDOWS = sys.platform in {"win32", "cygwin", "msys"}
 
 __all__ = (
     "HAS_TYPER",

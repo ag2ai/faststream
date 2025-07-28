@@ -18,7 +18,7 @@ to_output_data = broker.publisher(out_topic_name, partition=0)
     partitions=[TopicPartition(first_topic_name, 0)],
     auto_offset_reset="earliest",
 )
-async def on_input_data(msg: int):
+async def on_input_data(msg: int) -> int:
     return msg + 1
 
 
@@ -41,15 +41,15 @@ async def _test_with_broker(with_real: bool) -> None:
         on_output_data.mock.assert_called_once_with(2)
 
 
-@pytest.mark.confluent()
 @pytest.mark.asyncio()
+@pytest.mark.confluent()
 async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
     await _test_with_broker(False)
 
 
-@pytest.mark.connected()
 @pytest.mark.asyncio()
+@pytest.mark.connected()
 @pytest.mark.confluent()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_with_real_broker() -> None:
@@ -75,8 +75,8 @@ async def _test_with_temp_subscriber() -> None:
         on_output_data.mock.assert_called_once_with(2)
 
 
-@pytest.mark.confluent()
 @pytest.mark.asyncio()
+@pytest.mark.confluent()
 async def test_with_temp_subscriber() -> None:
     await _test_with_temp_subscriber()
     await _test_with_temp_subscriber()

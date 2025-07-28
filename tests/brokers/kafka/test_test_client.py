@@ -266,10 +266,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert subscriber1.mock.call_count == 1
             assert subscriber2.mock.call_count == 1
 
-    async def test_multiple_subscribers_same_group(
-        self,
-        queue: str,
-    ) -> None:
+    async def test_multiple_subscribers_same_group(self, queue: str) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
@@ -282,8 +279,8 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.start()
             await br.publish("", queue)
 
-            assert subscriber1.mock.call_count == 1
-            assert subscriber2.mock.call_count == 0
+            # we can't guarantee the order of calls
+            assert {subscriber1.mock.call_count, subscriber2.mock.call_count} == {1, 0}
 
     async def test_multiple_batch_subscriber_with_different_group(
         self,
@@ -320,8 +317,8 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.start()
             await br.publish("", queue)
 
-            assert subscriber1.mock.call_count == 1
-            assert subscriber2.mock.call_count == 0
+            # we can't guarantee the order of calls
+            assert {subscriber1.mock.call_count, subscriber2.mock.call_count} == {1, 0}
 
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:

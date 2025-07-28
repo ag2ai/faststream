@@ -36,10 +36,7 @@ def ensure_call_wrapper(
 class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
-    mock: MagicMock | None
     future: Optional["asyncio.Future[Any]"]
-    is_test: bool
-
     _wrapped_call: Callable[..., Awaitable[Any]] | None
     _original_call: Callable[P_HandlerParams, T_HandlerReturn]
 
@@ -70,7 +67,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         self._publishers = []
         self._subscribers = []
 
-        self.mock = None
+        self.mock = MagicMock()
         self.future = None
         self.is_test = False
 
@@ -89,7 +86,6 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         """Calls the wrapped function with the given message."""
         assert self._wrapped_call, "You should use `set_wrapped` first"
         if self.is_test:
-            assert self.mock
             self.mock(await message.decode())
         return await self._wrapped_call(message)
 
@@ -117,13 +113,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     def set_test(self) -> None:
         self.is_test = True
-        if self.mock is None:
-            self.mock = MagicMock()
+        self.mock.reset_mock()
         self.refresh(with_mock=True)
 
     def reset_test(self) -> None:
         self.is_test = False
-        self.mock = None
+        self.mock.reset_mock()
         self.future = None
 
     def trigger(

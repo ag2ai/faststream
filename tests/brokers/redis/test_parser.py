@@ -39,6 +39,7 @@ class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
         ),
     ),
 )
+@pytest.mark.redis()
 def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
     raw_message = BinaryMessageFormatV1.encode(
         message=input, reply_to=None, headers=None, correlation_id="id"
@@ -59,6 +60,7 @@ def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
         ),
     ),
 )
+@pytest.mark.redis()
 def test_json_message_encode_parse(input: Any, should_be: bytes) -> None:
     raw_message = JSONMessageFormat.encode(
         message=input, reply_to=None, headers=None, correlation_id="id"
@@ -67,6 +69,7 @@ def test_json_message_encode_parse(input: Any, should_be: bytes) -> None:
     assert parsed == should_be
 
 
+@pytest.mark.redis()
 def test_parse_json_with_binary_format() -> None:
     message = b'{"headers": {"correlation_id": 1, "reply_to": "service1", "content-type": "plain/text"}, "data": "hello"}'
     headers_should_be = {
@@ -81,6 +84,7 @@ def test_parse_json_with_binary_format() -> None:
 
 
 @pytest.mark.redis()
+@pytest.mark.connected()
 @pytest.mark.asyncio()
 class TestFormats:
     @pytest.mark.parametrize(
@@ -254,6 +258,7 @@ class TestFormats:
 
 
 @pytest.mark.asyncio()
+@pytest.mark.redis()
 class TestTestBrokerFormats:
     @pytest.mark.parametrize(
         ("msg_format"),
