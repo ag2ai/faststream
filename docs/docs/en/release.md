@@ -12,6 +12,57 @@ hide:
 ---
 
 # Release Notes
+## 0.5.48
+
+### What's Changed
+
+This release is part of the migration to **FastStream 0.6**.
+
+In order to provide great features such as observability and more, **FastStream** requires the inclusion of additional data in your messages. **Redis**, on the other hand, allows for the sending of any type of data within a message. Therefore, with this release, we introduce **FastStream**'s own binary message format, which supports any data type you wish to use and can include additional information.
+
+For more information on the message format, please see the [documentation](https://faststream.ag2.ai/latest/redis/message_format/)
+
+By default, we are still using the JSON message format, but as of version **0.6**, the default will change to the binary format. Therefore, you can prepare your services for this change by manually setting a new protocol.
+
+For whole broker:
+
+```python
+from faststream.redis import RedisBroker, BinaryMessageFormatV1
+
+# JSONMessageFormat using by default, but it will be deprecated in future updates
+broker = RedisBroker(message_format=BinaryMessageFormatV1)
+```
+
+Or for a specifica `subscriber` / `publisher`
+
+```python
+from faststream.redis import RedisBroker, BinaryMessageFormatV1
+
+broker = RedisBroker()
+
+@broker.subscriber(..., message_format=BinaryMessageFormatV1)
+@broker.publisher(..., message_format=BinaryMessageFormatV1)
+async def handler(msg):
+    return msg
+```
+
+Special thanks for @ilya-4real for this great feature!
+
+**FastStream** require a li
+* docs: detach index pages from sections by @Lancetnik in https://github.com/ag2ai/faststream/pull/2358
+* chore: Force push gh-pages by @dolfinus in https://github.com/ag2ai/faststream/pull/2360
+* fix: #2365 respect prefix by publisher in include_router case by @kodsurfer in https://github.com/ag2ai/faststream/pull/2366
+* feature: RMQ reply-to explicit exchange by @vesalius512 in https://github.com/ag2ai/faststream/pull/2368
+* Added the ability to specify any start identifier for the xreadgroup by @powersemmi in https://github.com/ag2ai/faststream/pull/2309
+* feat: (#2061) Redis Binary Format by @ilya-4real in https://github.com/ag2ai/faststream/pull/2287
+
+### New Contributors
+* @kodsurfer made their first contribution in https://github.com/ag2ai/faststream/pull/2366
+* @vesalius512 made their first contribution in https://github.com/ag2ai/faststream/pull/2368
+* @powersemmi made their first contribution in https://github.com/ag2ai/faststream/pull/2309
+
+**Full Changelog**: https://github.com/ag2ai/faststream/compare/0.5.47...0.5.48
+
 ## 0.5.47
 
 ### What's Changed

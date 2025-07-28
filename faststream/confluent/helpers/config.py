@@ -279,6 +279,7 @@ ConfluentConfig = TypedDict(
         "queue.buffering.max.messages": int,
         "queue.buffering.max.kbytes": int,
         "queue.buffering.max.ms": float,
+        "delivery.timeout.ms": int,
         "linger.ms": float,
         "message.send.max.retries": int,
         "retries": int,
