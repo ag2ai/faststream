@@ -318,25 +318,25 @@ async def check_publish_type(optional_stream: str | None = "test") -> None:
 async def check_broker_channel_publisher_type() -> None:
     broker = Broker()
     publisher = broker.publisher(channel="test")
-    
+
     assert_type(publisher, ChannelPublisher)
 
 async def check_broker_list_publisher_type() -> None:
     broker = Broker()
-    pubilsher = broker.publisher(None, list="test")
-    
-    assert_type(pubilsher, ListPublisher)
+    publisher = broker.publisher(None, list="test")
+
+    assert_type(publisher, ListPublisher)
 
 async def check_broker_list_batch_type() -> None:
     broker = Broker()
     publisher = broker.publisher(None, list=ListSub("test", batch=True))
-    
+
     assert_type(publisher, ListBatchPublisher)
-    
+
 async def check_broker_stream_publisher() -> None:
     broker = Broker()
     publisher = broker.publisher(stream="stream")
-    
+
     assert_type(publisher, StreamPublisher)
 
 
