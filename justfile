@@ -261,3 +261,8 @@ test-nats +param="tests/":
 [group("tests")]
 test-nats-all +param="tests/":
   docker compose exec faststream uv run pytest {{param}} -m "nats or (nats and slow)"
+
+[doc("Run benchmarks")]
+[group("benchmarks")]
+bench:
+  cd benchmarks && uv run python bench.py

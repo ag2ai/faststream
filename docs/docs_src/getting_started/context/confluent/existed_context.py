@@ -10,10 +10,8 @@ from faststream.confluent.annotations import (
 broker_object = KafkaBroker("localhost:9092")
 app = FastStream(broker_object)
 
-
 @broker_object.subscriber("test-topic")
 async def handle(
-    msg: str,
     logger=Context(),
     message=Context(),
     broker=Context(),
@@ -22,10 +20,8 @@ async def handle(
     logger.info(message)
     await broker.publish("test", "response")
 
-
 @broker_object.subscriber("response-topic")
 async def handle_response(
-    msg: str,
     logger: Logger,
     message: KafkaMessage,
     context: ContextRepo,

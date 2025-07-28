@@ -1,50 +1,97 @@
 import asyncio
-import logging
+import csv
+import platform
+import sys
 import time
-from typing import Any
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Protocol
 
-from faststream import FastStream
-from faststream.rabbit import RabbitBroker
+import psutil
 
-broker = RabbitBroker(log_level=logging.DEBUG)
-app = FastStream(broker)
-
-EVENTS_PROCESSED = 0
-publisher = broker.publisher("test")
-# For confluent-kafka need to add some args for broker:
-# auto_offset_reset=earliest, partitions=[TopicPartition("test", 0)]  # noqa: ERA001
-# import TopicPartition from faststream.confluent
-subscriber = broker.subscriber()
+from faststream.__about__ import __version__
 
 
-@subscriber
-@publisher
-async def handle(message: Any) -> Any:
-    global EVENTS_PROCESSED  # noqa: PLW0603
-    EVENTS_PROCESSED += 1
-    return message
+class TestCase(Protocol):
+    EVENTS_PROCESSED: int
+    broker_type: str
+    comment: str
+
+    @asynccontextmanager
+    async def start(self) -> AsyncIterator[float]: ...
 
 
-# It is better for the benchmark to work for a longer time.
-# This will allow you to get more accurate results
-async def main() -> None:
-    payload = {
-        "name": "Jo",
-        "age": 39,
-        "fullname": "LongString" * 8,
-        "nes": {
-            "name": "Jo",
-            "age": 22,
-            "fullname": "LongString" * 8
-        }
-    }
-    await broker.start()
-    start_time = time.time()
-    await publisher.publish(payload)
-    await app.run()
-    eps = EVENTS_PROCESSED / (time.time() - start_time)
-    app.logger.log(f"Events per second: {eps}", logging.INFO)
+@dataclass
+class MeasureResult:
+    total_events: int
+    elapsed_time: float
+
+    @property
+    def eps(self) -> float:
+        return self.total_events / self.elapsed_time
+
+
+async def measure(
+    case: TestCase, measure_time: int
+) -> AsyncGenerator[MeasureResult, None]:
+    async with case.start() as start_time:
+        while (elapsed_time := (time.time() - start_time)) < measure_time:
+            yield MeasureResult(case.EVENTS_PROCESSED, elapsed_time)
+            await asyncio.sleep(1.0)
+
+    yield MeasureResult(case.EVENTS_PROCESSED, time.time() - start_time)
+
+
+async def main(case: TestCase, measure_time: int) -> MeasureResult:
+    async for result in measure(case, measure_time):
+        sys.stdout.write(
+            f"\rTotal events: {result.total_events}, elapsed time: "
+            f"{result.elapsed_time:.1f}s ({(measure_time - result.elapsed_time):.1f} left), "
+            f"EPS: {result.eps:.2f}"
+        )
+
+    return result
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    from rabbit_cases.basic import RabbitTestCase
+
+    case: TestCase = RabbitTestCase()
+
+    bench_file = Path(__file__).resolve().parent / "benches.csv"
+
+    final_result = asyncio.run(main(case, 60 * 10))
+
+    print(f"\nTotal events: {final_result.total_events}")
+    print(f"Events per second: {(final_result.eps):.2f}")
+
+    with bench_file.open("a", newline="") as csvfile:
+        writer = csv.writer(csvfile, delimiter=";")
+
+        if csvfile.tell() == 0:
+            writer.writerow([
+                "FastStream Version",
+                "Broker",
+                "Total Events",
+                "Elapsed Time",
+                "Measure Time",
+                "Python Version",
+                "Comments",
+                "Host Memory",
+            ])
+
+        mem = psutil.virtual_memory()
+
+        writer.writerow([
+            __version__,
+            case.broker_type,
+            final_result.total_events,
+            final_result.elapsed_time,
+            datetime.now(tz=timezone.utc).isoformat(),
+            platform.python_version(),
+            case.comment,
+            f"{mem.total / (1024**3):.2f} GB",
+        ])

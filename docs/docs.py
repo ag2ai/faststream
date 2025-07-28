@@ -4,7 +4,6 @@ import os
 import subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import Optional
 
 import mkdocs.commands.build
 import mkdocs.commands.serve

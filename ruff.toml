@@ -11,9 +11,9 @@ target-version = "py310"
 
 include = [
     "faststream/**/*.py",
-    "faststream/**/*.pyi",
     "tests/**/*.py",
     "docs/**/*.py",
+    "benchmarks/**/*.py",
     "pyproject.toml",
 ]
 
@@ -96,6 +96,10 @@ ignore = [
 "faststream/specification/**/*.py" = [
     "ERA001",
     "N815",     # Variable `*` in class scope should not be mixedCase
+]
+
+"benchmarks/**/*.py" = [
+    "T201"
 ]
 
 # FIXME

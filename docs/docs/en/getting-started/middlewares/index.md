@@ -185,9 +185,9 @@ The middleware execution follows a specific sequence during message processing:
 
 ## Context Access
 
-Middlewares can access the [Context](../context/index.md){.internal-link} for all available methods. For example:
+Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
 
-```python linenums="1" hl_lines="8"
+```python linenums="1" hl_lines="11"
 from faststream import BaseMiddleware
 
 class ContextMiddleware(BaseMiddleware):

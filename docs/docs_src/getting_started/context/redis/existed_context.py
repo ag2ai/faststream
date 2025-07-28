@@ -10,10 +10,8 @@ from faststream.redis.annotations import (
 broker_object = RedisBroker("redis://localhost:6379")
 app = FastStream(broker_object)
 
-
 @broker_object.subscriber("test-channel")
 async def handle(
-    msg: str,
     logger=Context(),
     message=Context(),
     broker=Context(),
@@ -22,10 +20,8 @@ async def handle(
     logger.info(message)
     await broker.publish("test", "response")
 
-
 @broker_object.subscriber("response-channel")
 async def handle_response(
-    msg: str,
     logger: Logger,
     message: RedisMessage,
     context: ContextRepo,

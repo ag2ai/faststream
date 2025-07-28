@@ -48,55 +48,55 @@ However, you can set default values if needed.
 By default, context fields are **NOT CAST** to the type specified in their annotation.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="6 10 12"
-    {!> docs_src/getting_started/context/kafka/cast.py [ln:1-12] !}
+    ```python linenums="1" hl_lines="7 12 14"
+    {!> docs_src/getting_started/context/kafka/cast.py [ln:1-14] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="6 10 12"
-    {!> docs_src/getting_started/context/confluent/cast.py [ln:1-12] !}
+    ```python linenums="1" hl_lines="7 12 14"
+    {!> docs_src/getting_started/context/confluent/cast.py [ln:1-14] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="6 10 12"
-    {!> docs_src/getting_started/context/rabbit/cast.py [ln:1-12] !}
+    ```python linenums="1" hl_lines="7 12 14"
+    {!> docs_src/getting_started/context/rabbit/cast.py [ln:1-14] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="6 10 12"
-    {!> docs_src/getting_started/context/nats/cast.py [ln:1-12] !}
+    ```python linenums="1" hl_lines="7 12 14"
+    {!> docs_src/getting_started/context/nats/cast.py [ln:1-14] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="6 10 12"
-    {!> docs_src/getting_started/context/redis/cast.py [ln:1-12] !}
+    ```python linenums="1" hl_lines="7 12 14"
+    {!> docs_src/getting_started/context/redis/cast.py [ln:1-14] !}
     ```
 
 If you require this functionality, you can enable the appropriate flag.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/kafka/cast.py [ln:14-18] !}
+    {!> docs_src/getting_started/context/kafka/cast.py [ln:15-19] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/confluent/cast.py [ln:14-18] !}
+    {!> docs_src/getting_started/context/confluent/cast.py [ln:15-19] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/rabbit/cast.py [ln:14-18] !}
+    {!> docs_src/getting_started/context/rabbit/cast.py [ln:15-19] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/nats/cast.py [ln:14-18] !}
+    {!> docs_src/getting_started/context/nats/cast.py [ln:15-19] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/redis/cast.py [ln:14-18] !}
+    {!> docs_src/getting_started/context/redis/cast.py [ln:15-19] !}
     ```
 
 ## Initial Value
@@ -105,25 +105,25 @@ Also, `Context` provides you with a `initial` option to setup base context value
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6"
-    {!> docs_src/getting_started/context/kafka/initial.py [ln:6-11] !}
+    {!> docs_src/getting_started/context/kafka/initial.py [ln:7-12] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="4 6"
-    {!> docs_src/getting_started/context/confluent/initial.py [ln:6-11] !}
+    {!> docs_src/getting_started/context/confluent/initial.py [ln:7-12] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="4 6"
-    {!> docs_src/getting_started/context/rabbit/initial.py [ln:6-11] !}
+    {!> docs_src/getting_started/context/rabbit/initial.py [ln:7-12] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="4 6"
-    {!> docs_src/getting_started/context/nats/initial.py [ln:6-11] !}
+    {!> docs_src/getting_started/context/nats/initial.py [ln:7-12] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="4 6"
-    {!> docs_src/getting_started/context/redis/initial.py [ln:6-11] !}
+    {!> docs_src/getting_started/context/redis/initial.py [ln:7-12] !}
     ```

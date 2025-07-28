@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 AnyMsg = TypeVar313("AnyMsg", default=Any)
 AnyMsg_contra = TypeVar313("AnyMsg_contra", default=Any, contravariant=True)
 MsgType = TypeVar("MsgType")
-Msg_contra = TypeVar("Msg_contra", contravariant=True)
 StreamMsg = TypeVar("StreamMsg", bound=StreamMessage[Any])
 ConnectionType = TypeVar("ConnectionType")
 PublishCommandType = TypeVar313(
