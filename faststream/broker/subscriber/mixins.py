@@ -16,6 +16,7 @@ import anyio
 
 from faststream.broker.types import MsgType
 
+from ._supervisor import TaskCallbackSupervisor
 from .usecase import SubscriberUsecase
 
 if TYPE_CHECKING:
@@ -36,6 +37,8 @@ class TasksMixin(SubscriberUsecase[Any]):
         args: Union[Tuple[Any], Tuple[()]] = func_args or ()
         kwargs: Dict[str, Any] = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
+        callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
+        task.add_done_callback(callback)
         self.tasks.add(task)
 
     async def stop(self) -> None:
