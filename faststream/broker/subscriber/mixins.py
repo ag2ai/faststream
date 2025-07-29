@@ -33,13 +33,14 @@ class TasksMixin(SubscriberUsecase[Any]):
         func: Callable[..., Coroutine[Any, Any, Any]],
         func_args: Optional[Tuple[Any]] = None,
         func_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    ) -> asyncio.Task[Any]:
         args: Union[Tuple[Any], Tuple[()]] = func_args or ()
         kwargs: Dict[str, Any] = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
         callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
         task.add_done_callback(callback)
         self.tasks.add(task)
+        return task
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
