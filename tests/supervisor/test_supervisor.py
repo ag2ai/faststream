@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_task_failing(subscriber_with_task_mixin, caplog):
+async def test_task_failing(subscriber_with_task_mixin):
     async def failing_task():
         raise ValueError
 
