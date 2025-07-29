@@ -1,8 +1,9 @@
 import asyncio
-from typing import List
-from unittest.mock import Mock
+from typing import Any, List, Mapping
+from unittest.mock import Mock, patch
 
 import pytest
+from confluent_kafka.admin import AdminClient, ConfigResource, NewTopic
 
 from faststream.confluent import KafkaRouter
 from faststream.confluent.fastapi import KafkaRouter as StreamRouter
@@ -44,6 +45,57 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
         assert event.is_set()
         mock.assert_called_with(["hi"])
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},  # AsyncAPIDefaultSubscriber
+            {"max_workers": 2},  # AsyncAPIConcurrentDefaultSubscriber
+            {"batch": True},  # AsyncAPIBatchSubscriber
+        ],
+    )
+    async def test_fastapi_router_real_topic_auto_creation(
+        self, queue: str, config: Mapping[str, Any], kwargs: Mapping[str, Any]
+    ):
+        num_partitions = 2
+        replication_factor = 1
+        router = self.router_class()
+
+        async def handler(msg):
+            return "test"
+
+        args, kwargs = self.get_subscriber_params(
+            queue,
+            **kwargs,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=config,
+        )
+
+        router.subscriber(*args, **kwargs)(handler)
+
+        admin = AdminClient({"bootstrap.servers": "localhost:9092"})
+
+        resources = [ConfigResource("TOPIC", queue)]
+
+        async with router.broker:
+            with patch("faststream.confluent.client.NewTopic", wraps=NewTopic) as mock:
+                await router.broker.start()
+
+                mock.assert_called_once_with(
+                    queue,
+                    num_partitions=num_partitions,
+                    replication_factor=replication_factor,
+                    config=config,
+                )
+
+        futures = admin.describe_configs(resources)
+
+        for f in futures.values():
+            topic_config = f.result()
+            for k, v in topic_config.items():
+                assert v.value.lower() == str(config[k]).lower()
 
 
 class TestRouterLocal(ConfluentTestcaseConfig, FastAPILocalTestcase):

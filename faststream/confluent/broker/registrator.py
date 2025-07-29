@@ -4,6 +4,7 @@ from typing import (
     Dict,
     Iterable,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -82,6 +83,29 @@ class KafkaRegistrator(
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
+            """
+            ),
+        ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
             """
             ),
         ] = None,
@@ -348,7 +372,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         max_workers: Annotated[
             int,
@@ -373,6 +397,29 @@ class KafkaRegistrator(
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
+            """
+            ),
+        ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
             """
             ),
         ] = None,
@@ -639,7 +686,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         max_workers: Annotated[
             int,
@@ -664,6 +711,29 @@ class KafkaRegistrator(
             partition assignment (if enabled), and to use for fetching and
             committing offsets. If `None`, auto-partition assignment (via
             group coordinator) and offset commits are disabled.
+            """
+            ),
+        ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
             """
             ),
         ] = None,
@@ -930,7 +1000,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         max_workers: Annotated[
             int,
@@ -961,6 +1031,29 @@ class KafkaRegistrator(
             """
             ),
         ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
+            """
+            ),
+        ] = None,
         group_instance_id: Annotated[
             Optional[str],
             Doc(
@@ -1224,7 +1317,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         max_workers: Annotated[
             int,
@@ -1238,6 +1331,9 @@ class KafkaRegistrator(
         if not auto_commit and not group_id:
             raise SetupError("You should install `group_id` with manual commit mode")
 
+        if topics_configs is None:
+            topics_configs = {}
+
         subscriber = create_subscriber(
             *topics,
             max_workers=max_workers,
@@ -1246,6 +1342,9 @@ class KafkaRegistrator(
             batch=batch,
             max_records=max_records,
             group_id=group_id,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=topics_configs,
             connection_data={
                 "group_instance_id": group_instance_id,
                 "fetch_max_wait_ms": fetch_max_wait_ms,
@@ -1363,7 +1462,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         autoflush: Annotated[
             bool,
@@ -1441,7 +1540,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         autoflush: Annotated[
             bool,
@@ -1519,7 +1618,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         autoflush: Annotated[
             bool,
@@ -1600,7 +1699,7 @@ class KafkaRegistrator(
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         autoflush: Annotated[
             bool,

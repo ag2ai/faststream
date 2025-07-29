@@ -1,7 +1,9 @@
 import asyncio
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
+from confluent_kafka.admin import AdminClient, ConfigResource, NewTopic
 
 from faststream.confluent import KafkaBroker
 from faststream.confluent.annotations import KafkaMessage
@@ -359,3 +361,54 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},  # AsyncAPIDefaultSubscriber
+            {"max_workers": 2},  # AsyncAPIConcurrentDefaultSubscriber
+            {"batch": True},  # AsyncAPIBatchSubscriber
+        ],
+    )
+    async def test_subscriber_real_topic_auto_creation(
+        self, queue: str, config: Mapping[str, Any], kwargs: Mapping[str, Any]
+    ):
+        num_partitions = 2
+        replication_factor = 1
+        consume_broker = self.get_broker()
+
+        async def handler(msg):
+            return "test"
+
+        args, kwargs = self.get_subscriber_params(
+            queue,
+            **kwargs,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=config,
+        )
+
+        consume_broker.subscriber(*args, **kwargs)(handler)
+
+        admin = AdminClient({"bootstrap.servers": "localhost:9092"})
+
+        resources = [ConfigResource("TOPIC", queue)]
+
+        async with self.patch_broker(consume_broker) as br:
+            with patch("faststream.confluent.client.NewTopic", wraps=NewTopic) as mock:
+                await br.start()
+
+                mock.assert_called_once_with(
+                    queue,
+                    num_partitions=num_partitions,
+                    replication_factor=replication_factor,
+                    config=config,
+                )
+
+        futures = admin.describe_configs(resources)
+
+        for f in futures.values():
+            topic_config = f.result()
+            for k, v in topic_config.items():
+                assert v.value.lower() == str(config[k]).lower()

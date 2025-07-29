@@ -7,6 +7,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -623,6 +624,29 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             """
             ),
         ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
+            """
+            ),
+        ] = None,
         group_instance_id: Annotated[
             Optional[str],
             Doc(
@@ -881,7 +905,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -1028,6 +1052,29 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             """
             ),
         ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
+            """
+            ),
+        ] = None,
         group_instance_id: Annotated[
             Optional[str],
             Doc(
@@ -1272,7 +1319,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -1419,6 +1466,29 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             """
             ),
         ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
+            """
+            ),
+        ] = None,
         group_instance_id: Annotated[
             Optional[str],
             Doc(
@@ -1677,7 +1747,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -1827,6 +1897,29 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             """
             ),
         ] = None,
+        num_partitions: Annotated[
+            int,
+            Doc(
+                "Number of partitions to create for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        replication_factor: Annotated[
+            int,
+            Doc(
+                "Replication factor to use for automatically created topics. Default is 1."
+            ),
+        ] = 1,
+        topics_configs: Annotated[
+            Optional[Mapping[str, Any]],
+            Doc(
+                """
+            Optional additional topic-level"" configurations (e.g., retention.ms, cleanup.policy).
+            Keys should match valid Kafka topic configuration properties.
+            Applies only if broker.allow_auto_create_topics is set to True.
+            See `https://kafka.apache.org/documentation/#topicconfigs`.
+            """
+            ),
+        ] = None,
         group_instance_id: Annotated[
             Optional[str],
             Doc(
@@ -2085,7 +2178,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
         # FastAPI args
         response_model: Annotated[
@@ -2225,6 +2318,9 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
             max_workers=max_workers,
             partitions=partitions,
             group_id=group_id,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=topics_configs,
             group_instance_id=group_instance_id,
             fetch_max_wait_ms=fetch_max_wait_ms,
             fetch_max_bytes=fetch_max_bytes,
@@ -2341,7 +2437,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
     ) -> "AsyncAPIDefaultPublisher": ...
 
@@ -2415,7 +2511,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
     ) -> "AsyncAPIBatchPublisher": ...
 
@@ -2489,7 +2585,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
     ) -> Union[
         "AsyncAPIBatchPublisher",
@@ -2566,7 +2662,7 @@ class KafkaRouter(StreamRouter[Union[Message, Tuple[Message, ...]]]):
         ] = None,
         include_in_schema: Annotated[
             bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
+            Doc("Whether to include operation in AsyncAPI schema or not."),
         ] = True,
     ) -> Union[
         "AsyncAPIBatchPublisher",
