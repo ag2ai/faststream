@@ -1,7 +1,14 @@
 from faststream._internal.testing.app import TestApp
 
 try:
-    from .annotations import Pipeline, Redis, RedisMessage, RedisStreamMessage
+    from .annotations import (
+        Pipeline,
+        Redis,
+        RedisChannelMessage,
+        RedisListMessage,
+        RedisMessage,
+        RedisStreamMessage,
+    )
     from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
     from .parser import BinaryMessageFormatV1, JSONMessageFormat
     from .response import RedisPublishCommand, RedisResponse
@@ -24,6 +31,8 @@ __all__ = (
     "PubSub",
     "Redis",
     "RedisBroker",
+    "RedisChannelMessage",
+    "RedisListMessage",
     "RedisMessage",
     "RedisPublishCommand",
     "RedisPublisher",

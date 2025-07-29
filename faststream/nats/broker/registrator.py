@@ -170,9 +170,9 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
         max_workers: Annotated[
-            int,
+            int | None,
             Doc("Number of workers to process messages concurrently."),
-        ] = 1,
+        ] = None,
         no_ack: Annotated[
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
@@ -218,7 +218,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             pull_sub=PullSub.validate(pull_sub),
             kv_watch=KvWatch.validate(kv_watch),
             obj_watch=ObjWatch.validate(obj_watch),
-            max_workers=max_workers,
+            max_workers=max_workers or 1,
             # extra args
             pending_msgs_limit=pending_msgs_limit,
             pending_bytes_limit=pending_bytes_limit,

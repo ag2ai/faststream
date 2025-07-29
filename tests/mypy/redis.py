@@ -7,9 +7,13 @@ from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     ListSub,
     RedisBroker as Broker,
+    RedisChannelMessage,
+    RedisListMessage,
     RedisMessage as Message,
     RedisRoute as Route,
     RedisRouter as StreamRouter,
+    RedisStreamMessage,
+    StreamSub,
 )
 from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
@@ -295,18 +299,23 @@ Broker().add_middleware(prometheus_middleware)
 Broker(middlewares=[prometheus_middleware])
 
 
-async def check_response_type() -> None:
+async def check_publisher_types() -> None:
     broker = Broker()
 
-    broker_response = await broker.request(None, "test")
-    assert_type(broker_response, Message)
+    p = broker.publisher(channel="test")
+    assert_type(p, ChannelPublisher)
 
-    publisher = broker.publisher("test")
-    publisher_response = await publisher.request(None)
-    assert_type(publisher_response, Message)
+    p1 = broker.publisher(list="test")
+    assert_type(p1, ListPublisher)
+
+    p2 = broker.publisher(list=ListSub("test", batch=True))
+    assert_type(p2, ListBatchPublisher | ListPublisher)
+
+    p3 = broker.publisher(stream="stream")
+    assert_type(p3, StreamPublisher)
 
 
-async def check_publish_type(optional_stream: str | None = "test") -> None:
+async def check_publish_result_type(optional_stream: str | None = "test") -> None:
     broker = Broker()
 
     publish_with_confirm = await broker.publish(None)
@@ -318,54 +327,64 @@ async def check_publish_type(optional_stream: str | None = "test") -> None:
     publish_confirm_bool = await broker.publish(None, stream=optional_stream)
     assert_type(publish_confirm_bool, int | bytes)
 
-
-async def check_broker_channel_publisher_type() -> None:
-    broker = Broker()
-    publisher = broker.publisher(channel="test")
-
-    assert_type(publisher, ChannelPublisher)
-
-
-async def check_broker_list_publisher_type() -> None:
-    broker = Broker()
-    publisher = broker.publisher(None, list="test")
-
-    assert_type(publisher, ListPublisher)
-
-
-async def check_broker_list_batch_type() -> None:
-    broker = Broker()
-    publisher = broker.publisher(None, list=ListSub("test", batch=True))
-
-    assert_type(publisher, ListBatchPublisher)
-
-
-async def check_broker_stream_publisher() -> None:
-    broker = Broker()
-    publisher = broker.publisher(stream="stream")
-
-    assert_type(publisher, StreamPublisher)
-
-
-async def check_publish_batch_type() -> None:
-    broker = Broker()
-
     publish_with_confirm = await broker.publish_batch(None, list="test")
     assert_type(publish_with_confirm, int)
 
 
-async def check_subscriber_get_one_type() -> None:
+async def check_response_type() -> None:
     broker = Broker()
 
-    subscriber = broker.subscriber()
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, RedisChannelMessage)
+
+    p = broker.publisher("test")
+    publisher_response = await p.request(None)
+    assert_type(publisher_response, RedisChannelMessage)
+
+    p1 = broker.publisher(list="test")
+    publisher_response = await p1.request(None)
+    assert_type(publisher_response, RedisChannelMessage)
+
+    p2 = broker.publisher(list=ListSub("test", batch=True))
+    publisher_response = await p2.request(None)
+    assert_type(publisher_response, RedisChannelMessage)
+
+    p3 = broker.publisher(stream="stream")
+    publisher_response = await p3.request(None)
+    assert_type(publisher_response, RedisChannelMessage)
+
+
+async def check_channel_subscriber() -> None:
+    broker = Broker()
+
+    subscriber = broker.subscriber("test")
     message = await subscriber.get_one()
 
-    assert_type(message, Message | None)
-
-
-async def check_subscriber_msg_type() -> None:
-    broker = Broker()
-    subscriber = broker.subscriber(channel="test")
+    assert_type(message, RedisChannelMessage | None)
 
     async for msg in subscriber:
-        assert_type(msg, Message)
+        assert_type(msg, RedisChannelMessage)
+
+
+async def check_stream_subscriber() -> None:
+    broker = Broker()
+
+    subscriber = broker.subscriber(stream=StreamSub("test"))
+    message = await subscriber.get_one()
+
+    assert_type(message, RedisStreamMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, RedisStreamMessage)
+
+
+async def check_list_subscriber() -> None:
+    broker = Broker()
+
+    subscriber = broker.subscriber(list=ListSub("test"))
+    message = await subscriber.get_one()
+
+    assert_type(message, RedisListMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, RedisListMessage)

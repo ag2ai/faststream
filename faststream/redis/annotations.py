@@ -12,7 +12,9 @@ from faststream.annotations import ContextRepo, Logger
 from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import (
-    RedisStreamMessage as RSM,
+    RedisListMessage as Rlm,
+    RedisMessage as Rcm,
+    RedisStreamMessage as Rsm,
     UnifyRedisMessage,
 )
 
@@ -22,7 +24,6 @@ if TYPE_CHECKING:
 else:
     RedisClient = _RedisClient
     RedisPipeline = _RedisPipeline
-
 
 __all__ = (
     "ContextRepo",
@@ -36,7 +37,10 @@ __all__ = (
 )
 
 RedisMessage = Annotated[UnifyRedisMessage, Context("message")]
-RedisStreamMessage = Annotated[RSM, Context("message")]
+RedisChannelMessage = Annotated[Rcm, Context("message")]
+RedisStreamMessage = Annotated[Rsm, Context("message")]
+RedisListMessage = Annotated[Rlm, Context("message")]
+
 RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
 

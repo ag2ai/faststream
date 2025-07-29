@@ -326,7 +326,7 @@ class RedisBroker(
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         list: str | None = None,
-        stream: str,
+        stream: str = ...,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes: ...

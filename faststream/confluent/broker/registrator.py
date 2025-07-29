@@ -223,7 +223,7 @@ class KafkaRegistrator(
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: int = 1,
+        max_workers: int | None = None,
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
@@ -286,7 +286,7 @@ class KafkaRegistrator(
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: int = 1,
+        max_workers: int | None = None,
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
@@ -418,9 +418,11 @@ class KafkaRegistrator(
             Union of DefaultSubscriber, BatchSubscriber, or ConcurrentDefaultSubscriber
                 depending on the configuration.
         """
+        workers = max_workers or 1
+
         subscriber = create_subscriber(
             *topics,
-            max_workers=max_workers,
+            max_workers=workers,
             polling_interval=polling_interval,
             partitions=partitions,
             batch=batch,
@@ -455,7 +457,7 @@ class KafkaRegistrator(
 
         if batch:
             subscriber = cast("BatchSubscriber", subscriber)
-        elif max_workers > 1:
+        elif workers > 1:
             subscriber = cast("ConcurrentDefaultSubscriber", subscriber)
         else:
             subscriber = cast("DefaultSubscriber", subscriber)

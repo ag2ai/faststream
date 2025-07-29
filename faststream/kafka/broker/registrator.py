@@ -112,7 +112,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        max_workers: int = 1,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -179,7 +179,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        max_workers: int = 1,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -250,7 +250,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        max_workers: int = 1,
+        max_workers: int | None = 0,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -322,7 +322,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        max_workers: int = 1,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -521,10 +521,12 @@ class KafkaRegistrator(
             include_in_schema: Whetever to include operation in Specification schema or not.
 
         """
+        workers = max_workers or 1
+
         subscriber = create_subscriber(
             *topics,
             batch=batch,
-            max_workers=max_workers,
+            max_workers=workers,
             batch_timeout_ms=batch_timeout_ms,
             max_records=max_records,
             group_id=group_id,
@@ -576,7 +578,7 @@ class KafkaRegistrator(
         if batch:
             return cast("BatchSubscriber", subscriber)
 
-        if max_workers > 1:
+        if workers > 1:
             if auto_commit:
                 return cast("ConcurrentDefaultSubscriber", subscriber)
             return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
