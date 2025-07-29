@@ -29,12 +29,15 @@ class TaskCallbackSupervisor:
         self.max_attempts = max_attempts
 
     def _register_task(self) -> None:
-        attempts: int = _attempts_counter.get(self.func, 0)
+        attempts: int = _attempts_counter.get(self.func, 1)
         if attempts < self.max_attempts:
             self.subscriber.add_task(self.func, self.args, self.kwargs)  # type: ignore
             _attempts_counter[self.func] = attempts + 1
 
     def __call__(self, task: Task[Any]) -> None:
+        if task.cancelled():
+            return
+
         if exc := task.exception():
             logger = getattr(self.subscriber, "logger", getLogger(__name__))
             logger.error(
