@@ -54,7 +54,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and not connected) or not connected"
         env:
           COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
@@ -85,7 +85,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and not connected) or not connected"
 
   test-windows-latest:
@@ -106,7 +106,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and not connected) or not connected"
 
   test-kafka-smoke:
@@ -127,7 +127,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "kafka and not connected"
 
   test-kafka-real:
@@ -168,7 +168,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and kafka and connected) or (kafka and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.kafka-py
@@ -199,7 +199,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "confluent and not connected"
 
   test-confluent-real:
@@ -240,7 +240,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and confluent and connected) or (confluent and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.confluent-py
@@ -271,7 +271,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "rabbit and not connected"
 
   test-rabbit-real:
@@ -301,7 +301,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and rabbit and connected) or (rabbit and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.rabbit-py
@@ -332,7 +332,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "nats and not connected"
 
   test-nats-real:
@@ -362,7 +362,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and nats and connected) or (nats and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.nats-py
@@ -393,7 +393,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "redis and not connected"
 
   test-redis-real:
@@ -423,7 +423,7 @@ jobs:
       - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest
+          coverage run -m pytest -n auto
           -vv -m "(slow and redis and connected) or (redis and connected)"
         env:
           COVERAGE_FILE: coverage/.coverage.redis-py
