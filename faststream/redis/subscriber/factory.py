@@ -109,7 +109,7 @@ def create_subscriber(
         )
 
         if subscriber_config.stream_sub.batch:
-            # TODO: raise warning if max_workers
+            # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return StreamBatchSubscriber(subscriber_config, specification, calls)
 
         if max_workers > 1:
@@ -131,7 +131,7 @@ def create_subscriber(
         )
 
         if subscriber_config.list_sub.batch:
-            # TODO: raise warning if max_workers
+            # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return ListBatchSubscriber(subscriber_config, specification, calls)
 
         if max_workers > 1:

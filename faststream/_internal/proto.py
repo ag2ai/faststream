@@ -1,8 +1,6 @@
-from typing import Any, TypeVar, overload
+from typing import Any, overload
 
 from typing_extensions import Self
-
-NameRequiredCls = TypeVar("NameRequiredCls", bound="NameRequired")
 
 
 class NameRequired:
@@ -23,26 +21,14 @@ class NameRequired:
 
     @overload
     @classmethod
-    def validate(
-        cls: type[NameRequiredCls],
-        value: str | NameRequiredCls,
-        **kwargs: Any,
-    ) -> NameRequiredCls: ...
+    def validate(cls, value: str | Self, **kwargs: Any) -> Self: ...
 
     @overload
     @classmethod
-    def validate(
-        cls: type[NameRequiredCls],
-        value: None,
-        **kwargs: Any,
-    ) -> None: ...
+    def validate(cls, value: None, **kwargs: Any) -> None: ...
 
     @classmethod
-    def validate(
-        cls,
-        value: str | Self | None,
-        **kwargs: Any,
-    ) -> Self | None:
+    def validate(cls, value: str | Self | None, **kwargs: Any) -> Self | None:
         """Factory to create object."""
         if value is not None and isinstance(value, str):
             value = cls(value, **kwargs)

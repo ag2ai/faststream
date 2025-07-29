@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import Any
 
+from typing_extensions import Self
+
 from .publish_type import PublishType
 
 
@@ -67,10 +69,7 @@ class PublishCommand(Response):
             self.headers = headers | self.headers
 
     @classmethod
-    def from_cmd(
-        cls,
-        cmd: "PublishCommand",
-    ) -> "PublishCommand":
+    def from_cmd(cls, cmd: Self) -> Self:
         raise NotImplementedError
 
 

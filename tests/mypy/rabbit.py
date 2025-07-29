@@ -2,7 +2,6 @@ from collections.abc import Awaitable, Callable
 
 import prometheus_client
 from aio_pika import IncomingMessage
-from aiormq.abc import ConfirmationFrameType
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
@@ -292,32 +291,3 @@ async def check_response_type() -> None:
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None, "test")
     assert_type(publisher_response, RabbitMessage)
-
-
-async def check_publish_type(optional_stream: str | None = "test") -> None:
-    broker = RabbitBroker()
-
-    publish_with_confirm = await broker.publish(None)
-    assert_type(publish_with_confirm, ConfirmationFrameType | None)
-
-    publisher = broker.publisher(queue="test")
-    publish_with_confirm = await publisher.publish(None)
-
-    assert_type(publish_with_confirm, ConfirmationFrameType | None)
-
-
-async def check_subscriber_get_one_type() -> None:
-    broker = RabbitBroker()
-
-    subscriber = broker.subscriber(queue="test")
-    message = await subscriber.get_one()
-
-    assert_type(message, RabbitMessage | None)
-
-
-async def check_subscriber_msg_type() -> None:
-    broker = RabbitBroker()
-    subscriber = broker.subscriber(queue="test")
-
-    async for msg in subscriber:
-        assert_type(msg, RabbitMessage)

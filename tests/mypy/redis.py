@@ -304,15 +304,19 @@ async def check_publisher_types() -> None:
 
     p = broker.publisher(channel="test")
     assert_type(p, ChannelPublisher)
+    assert_type(await p.publish(None), int)
 
     p1 = broker.publisher(list="test")
     assert_type(p1, ListPublisher)
+    assert_type(await p1.publish(None), int)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
     assert_type(p2, ListBatchPublisher | ListPublisher)
+    assert_type(await p2.publish(None), int)
 
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
+    assert_type(await p3.publish(None), bytes)
 
 
 async def check_publish_result_type(optional_stream: str | None = "test") -> None:
@@ -358,8 +362,8 @@ async def check_channel_subscriber() -> None:
     broker = Broker()
 
     subscriber = broker.subscriber("test")
-    message = await subscriber.get_one()
 
+    message = await subscriber.get_one()
     assert_type(message, RedisChannelMessage | None)
 
     async for msg in subscriber:
@@ -370,8 +374,8 @@ async def check_stream_subscriber() -> None:
     broker = Broker()
 
     subscriber = broker.subscriber(stream=StreamSub("test"))
-    message = await subscriber.get_one()
 
+    message = await subscriber.get_one()
     assert_type(message, RedisStreamMessage | None)
 
     async for msg in subscriber:
@@ -382,8 +386,8 @@ async def check_list_subscriber() -> None:
     broker = Broker()
 
     subscriber = broker.subscriber(list=ListSub("test"))
-    message = await subscriber.get_one()
 
+    message = await subscriber.get_one()
     assert_type(message, RedisListMessage | None)
 
     async for msg in subscriber:
