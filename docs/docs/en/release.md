@@ -208,10 +208,10 @@ You can find more details in the documentation: https://faststream.ag2.ai/latest
 1. AsyncAPI3.0 support – now you can choose between `AsyncAPI(schema_version="3.0.0")` (default) and `AsyncAPI(schema_version="2.6.0")` schemas generation
 
 2. [Msgspec](https://github.com/jcrist/msgspec) native support
-    
+
     ```python
     from fast_depends.msgspec import MsgSpecSerializer
-    
+
     broker = Broker(serializer=MsgSpecSerializer())
     ```
 
