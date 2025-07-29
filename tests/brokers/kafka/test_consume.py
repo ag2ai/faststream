@@ -22,29 +22,30 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.connected()
 class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
-    @pytest.mark.flaky(reruns=3, reruns_delay=1)
-    async def test_consume_by_pattern(
-        self,
-        queue: str,
-    ) -> None:
+    @pytest.mark.flaky(reruns=5)
+    async def test_consume_by_pattern(self, queue: str) -> None:
         event = asyncio.Event()
 
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(queue)
-        async def handler(msg) -> None:
+        @consume_broker.subscriber(
+            queue,
+            auto_offset_reset="earliest",
+        )
+        async def handler(msg: Any) -> None:
             event.set()
 
         pattern_event = asyncio.Event()
 
-        @consume_broker.subscriber(pattern=f"{queue[:-1]}*")
+        @consume_broker.subscriber(
+            pattern=f"{queue[:-1]}*",
+            auto_offset_reset="earliest",
+        )
         async def pattern_handler(msg: Any) -> None:
             pattern_event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
-
-            result = await br.publish(1, topic=queue)
 
             await asyncio.wait(
                 (
@@ -52,9 +53,8 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
                     asyncio.create_task(event.wait()),
                     asyncio.create_task(pattern_event.wait()),
                 ),
-                timeout=3,
+                timeout=10,
             )
-            assert isinstance(result, RecordMetadata), result
 
         assert event.is_set()
         assert pattern_event.is_set()

@@ -105,7 +105,7 @@ docs = [
 lint = [
     "ruff==0.12.1",
     "bandit==1.8.5",
-    "semgrep==1.127.1",
+    "semgrep==1.130.0",
     "codespell==2.4.1",
     "mypy==1.16.0",
     # mypy extensions
