@@ -62,7 +62,6 @@ if TYPE_CHECKING:
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.types import AnyDict, Decorator, LoggerProto, SendableMessage
 
-
 ConnectionType = TypeVar("ConnectionType")
 
 
@@ -749,7 +748,7 @@ class PullStreamSubscriber(TasksMixin, _StreamSubscriber):
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self.consume))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
 
     async def _consume_pull(
         self,
@@ -834,7 +833,7 @@ class ConcurrentPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self._put_msg))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
 
 
 class BatchPullStreamSubscriber(
@@ -944,7 +943,7 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull())
+        self.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
@@ -1069,7 +1068,7 @@ class KeyValueWatchSubscriber(
             )
         )
 
-        self.add_task(self._consume_watch())
+        self.add_task(self._consume_watch)
 
     async def _consume_watch(self) -> None:
         assert self.subscription, "You should call `create_subscription` at first."  # nosec B101
@@ -1216,7 +1215,7 @@ class ObjStoreWatchSubscriber(
             declare=self.obj_watch.declare,
         )
 
-        self.add_task(self._consume_watch())
+        self.add_task(self._consume_watch)
 
     async def _consume_watch(self) -> None:
         assert self.bucket, "You should call `create_subscription` at first."  # nosec B101
