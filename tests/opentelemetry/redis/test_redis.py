@@ -12,6 +12,7 @@ from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.redis import ListSub, RedisBroker
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
+from tests.brokers.redis.basic import RedisTestcaseConfig
 from tests.brokers.redis.test_consume import (
     TestConsume,
     TestConsumeList,
@@ -23,13 +24,10 @@ from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestTelemetry(LocalTelemetryTestcase):
+class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
     messaging_system = "redis"
     include_messages_counters = True
     telemetry_middleware_class = RedisTelemetryMiddleware
-
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
-        return RedisBroker(apply_types=apply_types, **kwargs)
 
     async def test_batch(
         self,

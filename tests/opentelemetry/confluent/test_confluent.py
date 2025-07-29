@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +10,6 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind
 
-from faststream.confluent import KafkaBroker
 from faststream.confluent.opentelemetry import KafkaTelemetryMiddleware
 from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
@@ -22,13 +20,10 @@ from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 @pytest.mark.connected()
 @pytest.mark.confluent()
-class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):
+class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
     messaging_system = "kafka"
     include_messages_counters = True
     telemetry_middleware_class = KafkaTelemetryMiddleware
-
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
-        return KafkaBroker(apply_types=apply_types, **kwargs)
 
     def assert_span(
         self,

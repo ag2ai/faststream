@@ -10,6 +10,7 @@ from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 from faststream.opentelemetry.middleware import MessageAction as Action
 from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
+from tests.brokers.rabbit.basic import RabbitTestcaseConfig
 from tests.brokers.rabbit.test_consume import TestConsume
 from tests.brokers.rabbit.test_publish import TestPublish
 from tests.opentelemetry.basic import LocalTelemetryTestcase
@@ -22,13 +23,10 @@ def exchange(queue):
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestTelemetry(LocalTelemetryTestcase):
+class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
     messaging_system = "rabbitmq"
     include_messages_counters = False
     telemetry_middleware_class = RabbitTelemetryMiddleware
-
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
-        return RabbitBroker(apply_types=apply_types, **kwargs)
 
     def destination_name(self, queue: str) -> str:
         return f"default.{queue}"

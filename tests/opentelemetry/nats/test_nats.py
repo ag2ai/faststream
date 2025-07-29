@@ -11,6 +11,7 @@ from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 
 from faststream.nats import JStream, NatsBroker, PullSub
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
+from tests.brokers.nats.basic import NatsTestcaseConfig
 from tests.brokers.nats.test_consume import TestConsume
 from tests.brokers.nats.test_publish import TestPublish
 from tests.opentelemetry.basic import LocalTelemetryTestcase
@@ -23,13 +24,10 @@ def stream(queue):
 
 @pytest.mark.connected()
 @pytest.mark.nats()
-class TestTelemetry(LocalTelemetryTestcase):
+class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
     messaging_system = "nats"
     include_messages_counters = True
     telemetry_middleware_class = NatsTelemetryMiddleware
-
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:
-        return NatsBroker(apply_types=apply_types, **kwargs)
 
     async def test_batch(
         self,

@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiokafka import AIOKafkaConsumer, ConsumerRebalanceListener
 from aiokafka.admin import AIOKafkaAdminClient, NewTopic
-from aiokafka.structs import RecordMetadata
 
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage

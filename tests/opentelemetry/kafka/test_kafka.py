@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,25 +10,20 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind
 
-from faststream.kafka import KafkaBroker
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 from faststream.opentelemetry.middleware import MessageAction as Action
-from tests.brokers.kafka.test_consume import TestConsume
-from tests.brokers.kafka.test_publish import TestPublish
+from tests.brokers.kafka.basic import KafkaTestcaseConfig
 from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
-class TestTelemetry(LocalTelemetryTestcase):
+class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
     messaging_system = "kafka"
     include_messages_counters = True
     telemetry_middleware_class = KafkaTelemetryMiddleware
-
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
-        return KafkaBroker(apply_types=apply_types, **kwargs)
 
     def assert_span(
         self,
@@ -266,25 +260,3 @@ class TestTelemetry(LocalTelemetryTestcase):
 
         assert event.is_set()
         mock.assert_called_once_with(["buy", "hi"])
-
-
-@pytest.mark.kafka()
-@pytest.mark.connected()
-class TestPublishWithTelemetry(TestPublish):
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
-        return KafkaBroker(
-            middlewares=(KafkaTelemetryMiddleware(),),
-            apply_types=apply_types,
-            **kwargs,
-        )
-
-
-@pytest.mark.kafka()
-@pytest.mark.connected()
-class TestConsumeWithTelemetry(TestConsume):
-    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
-        return KafkaBroker(
-            middlewares=(KafkaTelemetryMiddleware(),),
-            apply_types=apply_types,
-            **kwargs,
-        )
