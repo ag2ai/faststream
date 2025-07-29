@@ -31,10 +31,11 @@ jobs:
           set -ux
           uv pip install --system --group dev -e .
           uv pip uninstall --system email-validator # This is to fix broken link in docs
+
       - name: Install Just
-        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff
+        uses: extractions/setup-just@v3
         with:
-          just-version: 1.14.0
+          just-version: 1.42.4
 
       - name: Build API Reference
         run: just docs-build-api
