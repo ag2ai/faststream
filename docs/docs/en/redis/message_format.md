@@ -44,7 +44,8 @@ from faststream import FastStream
 from faststream.redis import RedisBroker
 from faststream.redis.parser import BinaryMessageFormatV1
 
-# JSONMessageFormat can be used instead, but it will be deprecated in future updates
+# BinaryMessageFormatV1, but you can switch it to
+# JSONMessageFormat to be compatible with old FastStream versions
 broker = RedisBroker(message_format=BinaryMessageFormatV1)
 
 app =  FastStream(broker)
@@ -66,7 +67,8 @@ broker = RedisBroker()
 
 app =  FastStream(broker)
 
-# JSONMessageFormat can be used instead, but it will be deprecated in future updates
+# BinaryMessageFormatV1, but you can switch it to
+# JSONMessageFormat to be compatible with old FastStream versions
 @broker.subscriber("queue", message_format=BinaryMessageFormatV1)
 async def message_handler(msg):
     print(msg)
