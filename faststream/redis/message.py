@@ -40,7 +40,7 @@ class UnifyRedisDict(TypedDict):
     pattern: NotRequired[bytes | None]
 
 
-class UnifyRedisMessage(BrokerStreamMessage[UnifyRedisDict]):
+class RedisMessage(BrokerStreamMessage[UnifyRedisDict]):
     pass
 
 
@@ -53,7 +53,7 @@ class PubSubMessage(TypedDict):
     pattern: bytes | None
 
 
-class RedisMessage(BrokerStreamMessage[PubSubMessage]):
+class RedisChannelMessage(BrokerStreamMessage[PubSubMessage]):
     pass
 
 

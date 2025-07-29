@@ -11,7 +11,7 @@ from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.redis.message import (
     PubSubMessage,
-    RedisMessage,
+    RedisChannelMessage,
 )
 from faststream.redis.parser import (
     RedisPubSubParser,
@@ -89,7 +89,7 @@ class ChannelSubscriber(LogicSubscriber):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "RedisMessage | None":
+    ) -> "RedisChannelMessage | None":
         assert self.subscription, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
@@ -105,7 +105,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         context = self._outer_config.fd_config.context
 
-        msg: RedisMessage | None = await process_msg(  # type: ignore[assignment]
+        msg: RedisChannelMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
@@ -116,7 +116,7 @@ class ChannelSubscriber(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisChannelMessage"]:  # type: ignore[override]
         assert self.subscription, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
@@ -139,7 +139,7 @@ class ChannelSubscriber(LogicSubscriber):
             if raw_message is None:
                 continue
 
-            msg: RedisMessage = await process_msg(  # type: ignore[assignment]
+            msg: RedisChannelMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares

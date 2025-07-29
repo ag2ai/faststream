@@ -14,10 +14,10 @@ __all__ = (
     "Logger",
     "Redis",
     "RedisBroker",
-    "RedisMessage",
+    "RedisChannelMessage",
     "RedisRouter",
 )
 
-RedisMessage = Annotated[RM, Context("message")]
+RedisChannelMessage = Annotated[RM, Context("message")]
 RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]

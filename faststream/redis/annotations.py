@@ -12,10 +12,10 @@ from faststream.annotations import ContextRepo, Logger
 from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import (
+    RedisChannelMessage as Rcm,
     RedisListMessage as Rlm,
-    RedisMessage as Rcm,
+    RedisMessage as Rm,
     RedisStreamMessage as Rsm,
-    UnifyRedisMessage,
 )
 
 if TYPE_CHECKING:
@@ -32,11 +32,11 @@ __all__ = (
     "Pipeline",
     "Redis",
     "RedisBroker",
-    "RedisMessage",
+    "RedisChannelMessage",
     "RedisStreamMessage",
 )
 
-RedisMessage = Annotated[UnifyRedisMessage, Context("message")]
+RedisMessage = Annotated[Rm, Context("message")]
 RedisChannelMessage = Annotated[Rcm, Context("message")]
 RedisStreamMessage = Annotated[Rsm, Context("message")]
 RedisListMessage = Annotated[Rlm, Context("message")]

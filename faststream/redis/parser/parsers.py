@@ -9,8 +9,8 @@ from faststream.message import decode_message, gen_cor_id
 from faststream.redis.message import (
     RedisBatchListMessage,
     RedisBatchStreamMessage,
+    RedisChannelMessage,
     RedisListMessage,
-    RedisMessage,
     RedisStreamMessage,
     bDATA_KEY,
 )
@@ -88,7 +88,7 @@ class SimpleParser:
 
 
 class RedisPubSubParser(SimpleParser):
-    msg_class = RedisMessage
+    msg_class = RedisChannelMessage
 
 
 class RedisListParser(SimpleParser):

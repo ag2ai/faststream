@@ -32,6 +32,7 @@ __all__ = (
     "Redis",
     "RedisBroker",
     "RedisChannelMessage",
+    "RedisChannelMessage",
     "RedisListMessage",
     "RedisMessage",
     "RedisPublishCommand",

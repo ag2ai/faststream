@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import LoggerProto, SendableMessage
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import BrokerMiddleware, CustomCallable
-    from faststream.redis.message import RedisMessage
+    from faststream.redis.message import RedisChannelMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -405,7 +405,7 @@ class RedisBroker(
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisMessage":
+    ) -> "RedisChannelMessage":
         cmd = RedisPublishCommand(
             message,
             correlation_id=correlation_id or gen_cor_id(),
@@ -418,7 +418,7 @@ class RedisBroker(
             _publish_type=PublishType.REQUEST,
             message_format=self.message_format,
         )
-        msg: RedisMessage = await super()._basic_request(
+        msg: RedisChannelMessage = await super()._basic_request(
             cmd,
             producer=self.config.producer,
         )

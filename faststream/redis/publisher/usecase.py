@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
-    from faststream.redis.message import RedisMessage
+    from faststream.redis.message import RedisChannelMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.response import PublishCommand
 
@@ -142,7 +142,7 @@ class ChannelPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisMessage":
+    ) -> "RedisChannelMessage":
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -153,7 +153,7 @@ class ChannelPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self._basic_request(
             cmd,
             producer=self.producer,
         )
@@ -243,7 +243,7 @@ class ListPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisMessage":
+    ) -> "RedisChannelMessage":
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -254,7 +254,7 @@ class ListPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self._basic_request(
             cmd,
             producer=self.producer,
         )
@@ -400,7 +400,7 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisMessage":
+    ) -> "RedisChannelMessage":
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
@@ -412,7 +412,7 @@ class StreamPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self._basic_request(
             cmd,
             producer=self.producer,
         )
