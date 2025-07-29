@@ -35,7 +35,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system requests
+          uv pip install --system httpx
 
       - name: Run update_releases.py script
         run: python ./docs/update_releases.py
