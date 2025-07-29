@@ -6,6 +6,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -57,6 +58,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         group_id: Optional[str],
         connection_data: "AnyDict",
         is_manual: bool,
+        num_partitions: int,
+        replication_factor: int,
+        topics_configs: Mapping[str, Any],
         # Subscriber args
         default_parser: "AsyncCallable",
         default_decoder: "AsyncCallable",
@@ -91,6 +95,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.topics = topics
         self.partitions = partitions
         self.is_manual = is_manual
+        self.num_partitions = num_partitions
+        self.replication_factor = replication_factor
+        self.topics_configs = topics_configs
 
         self.consumer = None
         self.polling_interval = polling_interval
@@ -145,6 +152,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             partitions=self.partitions,
             group_id=self.group_id,
             client_id=self.client_id,
+            num_partitions=self.num_partitions,
+            replication_factor=self.replication_factor,
+            topics_configs=self.topics_configs,
             **self.__connection_data,
         )
         await consumer.start()
@@ -277,6 +287,9 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         group_id: Optional[str],
         connection_data: "AnyDict",
         is_manual: bool,
+        num_partitions: int,
+        replication_factor: int,
+        topics_configs: Mapping[str, Any],
         # Subscriber args
         no_ack: bool,
         no_reply: bool,
@@ -295,6 +308,9 @@ class DefaultSubscriber(LogicSubscriber[Message]):
             group_id=group_id,
             connection_data=connection_data,
             is_manual=is_manual,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=topics_configs,
             # subscriber args
             default_parser=AsyncConfluentParser.parse_message,
             default_decoder=AsyncConfluentParser.decode_message,
@@ -341,6 +357,9 @@ class BatchSubscriber(LogicSubscriber[Tuple[Message, ...]]):
         group_id: Optional[str],
         connection_data: "AnyDict",
         is_manual: bool,
+        num_partitions: int,
+        replication_factor: int,
+        topics_configs: Mapping[str, Any],
         # Subscriber args
         no_ack: bool,
         no_reply: bool,
@@ -361,6 +380,9 @@ class BatchSubscriber(LogicSubscriber[Tuple[Message, ...]]):
             group_id=group_id,
             connection_data=connection_data,
             is_manual=is_manual,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=topics_configs,
             # subscriber args
             default_parser=AsyncConfluentParser.parse_message_batch,
             default_decoder=AsyncConfluentParser.decode_message_batch,
@@ -416,6 +438,9 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin[Message], DefaultSubscriber):
         group_id: Optional[str],
         connection_data: "AnyDict",
         is_manual: bool,
+        num_partitions: int,
+        replication_factor: int,
+        topics_configs: Mapping[str, Any],
         # Subscriber args
         max_workers: int,
         no_ack: bool,
@@ -435,6 +460,9 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin[Message], DefaultSubscriber):
             group_id=group_id,
             connection_data=connection_data,
             is_manual=is_manual,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+            topics_configs=topics_configs,
             # subscriber args
             max_workers=max_workers,
             # Propagated args

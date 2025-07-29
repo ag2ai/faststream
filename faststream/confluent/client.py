@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -225,6 +226,9 @@ class AsyncConfluentConsumer:
         bootstrap_servers: Union[str, List[str]] = "localhost",
         client_id: Optional[str] = "confluent-kafka-consumer",
         group_id: Optional[str] = None,
+        num_partitions: int = 1,
+        replication_factor: int = 1,
+        topics_configs: Optional[Mapping[str, Any]] = None,
         group_instance_id: Optional[str] = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 52428800,
@@ -255,7 +259,9 @@ class AsyncConfluentConsumer:
 
         self.topics = list(topics)
         self.partitions = partitions
-
+        self.num_partitions = num_partitions
+        self.replication_factor = replication_factor
+        self.topics_configs = topics_configs
         if not isinstance(partition_assignment_strategy, str):
             partition_assignment_strategy = ",".join(
                 [
@@ -314,7 +320,13 @@ class AsyncConfluentConsumer:
         """Starts the Kafka consumer and subscribes to the specified topics."""
         if self.allow_auto_create_topics:
             await call_or_await(
-                create_topics, self.topics_to_create, self.config, self.logger
+                create_topics,
+                self.topics_to_create,
+                self.config,
+                self.num_partitions,
+                self.replication_factor,
+                self.topics_configs,
+                self.logger,
             )
 
         elif self.logger:
@@ -433,6 +445,9 @@ class BatchBuilder:
 def create_topics(
     topics: List[str],
     config: Dict[str, Optional[Union[str, int, float, bool, Any]]],
+    num_partitions: int,
+    replication_factor: int,
+    topics_configs: Optional[Mapping[str, Any]],
     logger_: Optional["LoggerProto"] = None,
 ) -> None:
     logger_ = logger_ or faststream_logger
@@ -443,7 +458,15 @@ def create_topics(
     )
 
     fs = admin_client.create_topics(
-        [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics]
+        [
+            NewTopic(
+                topic,
+                num_partitions=num_partitions,
+                replication_factor=replication_factor,
+                config=topics_configs if topics_configs is not None else {},
+            )
+            for topic in topics
+        ]
     )
 
     for topic, f in fs.items():
