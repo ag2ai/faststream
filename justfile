@@ -116,6 +116,11 @@ bandit:
 semgrep:
   uv run semgrep scan --config auto --error --skip-unknown-extensions faststream
 
+[doc("Zizmor check")]
+[group("static analysis")]
+zizmor:
+  uv run zizmor .
+
 [doc("Static analysis check")]
 [group("static analysis")]
 static-analysis: mypy bandit semgrep
