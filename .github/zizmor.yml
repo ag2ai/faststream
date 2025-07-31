@@ -3,6 +3,7 @@ rules:
     ignore:
       - check-md-code-blocks.yaml
       - pr_automerge.yaml
+      - pr_autoupdate.yaml
       - pr_labeler.yaml
   github-env:
     ignore:
