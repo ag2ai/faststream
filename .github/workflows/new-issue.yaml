@@ -4,6 +4,9 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  issues: read
+
 jobs:
   notify:
     name: "Telegram notification"

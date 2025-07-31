@@ -17,6 +17,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
 jobs:
   test-basic:
     if: github.event.pull_request.draft == false

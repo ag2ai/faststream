@@ -1,5 +1,12 @@
 rules:
-  # Remove this section after PyPI Trusted Publisher setup
-  use-trusted-publishing:
+  dangerous-triggers:
+    ignore:
+      - check-md-code-blocks.yaml
+      - pr_automerge.yaml
+      - pr_labeler.yaml
+  github-env:
+    ignore:
+      - pr_autoupdate.yaml:39
+  use-trusted-publishing: # Remove this section after PyPI Trusted Publisher setup
     ignore:
       - release_pypi.yaml
