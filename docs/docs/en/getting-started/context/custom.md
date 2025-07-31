@@ -71,7 +71,7 @@ Afterward, you can access your `secret` field in the usual way:
 In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
 
 !!! tip
-    Alternatively you can setup gloval context objects in `FastStream` object constructor:
+    Alternatively you can setup global context objects in `FastStream` object constructor:
 
     ```python
     from faststream import FastStream, ContextRepo
