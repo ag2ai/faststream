@@ -30,4 +30,6 @@ jobs:
           silent: true
 
       - name: Show fix result count
-        run: echo "Fixed ${{ steps.fixer.outputs.fixes }} code blocks"
+        run: echo "Fixed ${STEPS_FIXER_OUTPUTS_FIXES} code blocks"
+        env:
+          STEPS_FIXER_OUTPUTS_FIXES: ${{ steps.fixer.outputs.fixes }}
