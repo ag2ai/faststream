@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from asyncio import CancelledError
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from asyncio import Task
@@ -15,7 +15,17 @@ _attempts_counter: dict[Callable[..., Coroutine[Any, Any, Any]], int] = {}
 
 
 class TaskCallbackSupervisor:
-    __ignored_exceptions: ClassVar = [CancelledError]
+    """Supervisor for asyncio.Task spawned in TaskMixin implemented via task callback."""
+
+    __ignored_exceptions: tuple[type[BaseException], ...] = (CancelledError,)
+
+    __slots__ = (
+        "args",
+        "func",
+        "kwargs",
+        "max_attempts",
+        "subscriber",
+    )
 
     def __init__(
         self,
@@ -42,7 +52,7 @@ class TaskCallbackSupervisor:
         if task.cancelled():
             return
 
-        if (exc := task.exception()) and exc not in self.__ignored_exceptions:
+        if (exc := task.exception()) and not isinstance(exc, self.__ignored_exceptions):
             logger = getattr(self.subscriber, "logger", getLogger(__name__))
             logger.error(
                 f"{task.get_name()} raised an exception, retrying...", exc_info=exc
