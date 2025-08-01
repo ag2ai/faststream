@@ -159,7 +159,7 @@ class ObjStoreWatchSubscriber(
             declare=self.obj_watch.declare,
         )
 
-        self.add_task(self.__consume_watch())
+        self.add_task(self.__consume_watch)
 
     async def __consume_watch(self) -> None:
         # Should be created inside task to avoid nats-py lock

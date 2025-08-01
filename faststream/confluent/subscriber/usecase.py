@@ -90,7 +90,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume())
+            self.add_task(self._consume)
 
     async def stop(self) -> None:
         await super().stop()
@@ -115,7 +115,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         context = self._outer_config.fd_config.context
 
         return await process_msg(
-            msg=raw_message,
+            msg=raw_message,  # type: ignore[arg-type]
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
