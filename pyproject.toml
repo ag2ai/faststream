@@ -107,6 +107,7 @@ lint = [
     "bandit==1.8.5",
     "semgrep==1.130.0",
     "codespell==2.4.1",
+    "zizmor==1.11.0",
     "mypy==1.16.0",
     # mypy extensions
     "types-Deprecated",
