@@ -45,7 +45,7 @@ class AsyncConfluentProducer:
         self.config = config.producer_config
         self.producer = Producer(
             self.config,
-            logger=self.logger_state.logger.logger,
+            logger=self.logger_state.logger.logger,  # type: ignore[call-arg]
         )
 
         self.__running = True
@@ -233,7 +233,7 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
+        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)  # type: ignore[call-arg]
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
@@ -334,7 +334,7 @@ class AsyncConfluentConsumer:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
         raw_messages: list[Message | None] = await run_in_executor(
             self._thread_pool,
-            self.consumer.consume,
+            self.consumer.consume,  # type: ignore[arg-type]
             num_messages=max_records or 10,
             timeout=timeout,
         )
