@@ -11,8 +11,8 @@ from faststream.opentelemetry.middleware import MessageAction as Action
 from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from tests.brokers.rabbit.basic import RabbitTestcaseConfig
-from tests.brokers.rabbit.test_consume import TestConsume
-from tests.brokers.rabbit.test_publish import TestPublish
+from tests.brokers.rabbit.test_consume import TestConsume as ConsumeCase
+from tests.brokers.rabbit.test_publish import TestPublish as PublishCase
 from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
@@ -67,7 +67,7 @@ class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):  # type: igno
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestPublishWithTelemetry(TestPublish):
+class TestPublishWithTelemetry(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
         return RabbitBroker(
             middlewares=(RabbitTelemetryMiddleware(),),
@@ -78,7 +78,7 @@ class TestPublishWithTelemetry(TestPublish):
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestConsumeWithTelemetry(TestConsume):
+class TestConsumeWithTelemetry(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
         return RabbitBroker(
             middlewares=(RabbitTelemetryMiddleware(),),
