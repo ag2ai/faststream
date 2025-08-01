@@ -9,13 +9,11 @@ from tests.marks import skip_windows
 
 def exit(parent_id: int, *args) -> None:  # pragma: no cover
     os.kill(parent_id, signal.SIGINT)
-    raise SyntaxError
 
 
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_base() -> None:
-    processor = Multiprocess(target=exit, args=(), workers=2)
+    processor = Multiprocess(target=exit, args=(), workers=5)
     processor._args = (processor.pid, {})
     processor.run()
 
