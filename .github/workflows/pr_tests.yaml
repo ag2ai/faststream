@@ -87,6 +87,10 @@ jobs:
         run: >
           coverage run -m pytest -n auto
           -vv -m "(slow and not connected) or not connected"
+      - name: Flaky tests v1
+        run: pytest tests/cli/supervisors/test_multiprocess.py::test_base --count 1000
+      - name: Flaky tests v2
+        run: pytest tests/cli/test_worker_id_extra_option.py::test_worker_id_parameter_exists -s -vv -m slow --count 1000
 
   test-windows-latest:
     if: github.event.pull_request.draft == false
