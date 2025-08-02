@@ -7,8 +7,19 @@ from typing_extensions import assert_type
 from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter, PubAck
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
+from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
+from faststream.nats.schemas import PullSub
+from faststream.nats.subscriber.usecases import (
+    BatchPullStreamSubscriber,
+    ConcurrentCoreSubscriber,
+    ConcurrentPullStreamSubscriber,
+    ConcurrentPushStreamSubscriber,
+    KeyValueWatchSubscriber,
+    ObjStoreWatchSubscriber,
+    PullStreamSubscriber,
+)
 
 
 def sync_decoder(msg: NatsMessage) -> DecodedMessage:
@@ -306,3 +317,101 @@ async def check_publisher_publish_type() -> None:
 
     assert_type(await publisher.publish(None, "test"), None)
     assert_type(await publisher.publish(None, "test", stream="stream"), PubAck)
+
+
+async def check_publish_batch_type() -> None:
+    broker = NatsBroker()
+
+    publish_with_confirm = await broker.publish_batch(None, queue="test")
+    assert_type(publish_with_confirm, PubAck)
+
+
+async def check_obj_subscriber() -> None:
+    broker = NatsBroker()
+
+    s1 = broker.subscriber(obj_watch="test")
+    message = await s1.get_one()
+
+    assert_type(s1, ObjStoreWatchSubscriber)
+    assert_type(message, NatsObjMessage | None)
+
+    async for msg in s1:
+        assert_type(msg, NatsObjMessage)
+
+
+async def check_kv_subscriber() -> None:
+    broker = NatsBroker()
+
+    s0 = broker.subscriber(kv_watch="test")
+    message = await s0.get_one()
+
+    assert_type(s0, KeyValueWatchSubscriber)
+    assert_type(message, NatsKvMessage | None)
+
+    async for msg in s0:
+        assert_type(msg, NatsKvMessage)
+
+
+async def check_core_subscriber() -> None:
+    broker = NatsBroker()
+
+    s2 = broker.subscriber(stream=None, max_workers=2)
+    message = await s2.get_one()
+
+    assert_type(s2, ConcurrentCoreSubscriber)
+    assert_type(message, NatsMessage | None)
+
+    async for msg in s2:
+        assert_type(msg, NatsMessage)
+
+
+async def check_concurrent_push_stream_subcriber() -> None:
+    broker = NatsBroker()
+
+    s3 = broker.subscriber(stream=None, max_workers=1)
+    message = await s3.get_one()
+
+    assert_type(s3, ConcurrentPushStreamSubscriber)
+    assert_type(message, NatsMessage | None)
+
+    async for msg in s3:
+        assert_type(msg, NatsMessage)
+
+
+async def check_concurrent_pull_stream_subcriber() -> None:
+    broker = NatsBroker()
+
+    s4 = broker.subscriber(stream="test", max_workers=2, pull_sub="test")
+    message = await s4.get_one()
+
+    assert_type(s4, ConcurrentPullStreamSubscriber)
+    assert_type(message, NatsMessage | None)
+
+    async for msg in s4:
+        assert_type(msg, NatsMessage)
+
+
+async def check_batch_pull_stream_subcriberber() -> None:
+    broker = NatsBroker()
+
+    s5 = broker.subscriber(max_workers=1, pull_sub=PullSub(batch=True))
+    message = await s5.get_one()
+
+    assert_type(s5, BatchPullStreamSubscriber)
+    assert_type(message, NatsMessage | None)
+
+    async for msg in s5:
+        assert_type(msg, NatsMessage)
+
+
+async def check_pull_stream_subcriberber() -> None:
+    broker = NatsBroker()
+
+    s5 = broker.subscriber(max_workers=1, pull_sub="test")
+    message = await s5.get_one()
+
+    assert_type(s5, PullStreamSubscriber)
+    assert_type(message, NatsMessage | None)
+
+    async for msg in s5:
+        assert_type(msg, NatsMessage)
