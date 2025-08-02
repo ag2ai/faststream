@@ -88,7 +88,7 @@ jobs:
           coverage run -m pytest -n auto
           -vv -m "(slow and not connected) or not connected"
       - name: install dep
-        run: uv pip install pytest-repeat
+        run: uv pip install --system pytest-repeat
       - name: Flaky tests v1
         run: pytest tests/cli/supervisors/test_multiprocess.py::test_base --count 1000
       - name: Flaky tests v2
