@@ -1,6 +1,6 @@
 import os
 import signal
-
+import time
 import pytest
 
 from faststream._internal.cli.supervisors.multiprocess import Multiprocess
@@ -8,6 +8,7 @@ from tests.marks import skip_windows
 
 
 def exit(parent_id: int, *args) -> None:  # pragma: no cover
+    time.sleep(0.1)
     os.kill(parent_id, signal.SIGINT)
 
 
