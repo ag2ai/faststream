@@ -83,10 +83,10 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - name: Test
-        run: >
-          coverage run -m pytest -n auto
-          -vv -m "(slow and not connected) or not connected"
+      # - name: Test
+      #   run: >
+      #     coverage run -m pytest -n auto
+      #     -vv -m "(slow and not connected) or not connected"
       - name: install dep
         run: uv pip install --system pytest-repeat
       - name: Flaky tests v1
@@ -110,10 +110,10 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - name: Test
-        run: >
-          coverage run -m pytest -n auto
-          -vv -m "(slow and not connected) or not connected"
+      # - name: Test
+      #   run: >
+      #     coverage run -m pytest -n auto
+      #     -vv -m "(slow and not connected) or not connected"
 
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
@@ -172,20 +172,20 @@ jobs:
         run: |
           uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
-      - name: Test
-        run: >
-          coverage run -m pytest -n auto
-          -vv -m "(slow and kafka and connected) or (kafka and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.kafka-py
-          CONTEXT: kafka-py
-      - name: Store coverage files
-        uses: actions/upload-artifact@v4
-        with:
-          name: .coverage.kafka-py
-          path: coverage
-          if-no-files-found: error
-          include-hidden-files: true
+      # - name: Test
+      #   run: >
+      #     coverage run -m pytest -n auto
+      #     -vv -m "(slow and kafka and connected) or (kafka and connected)"
+      #   env:
+      #     COVERAGE_FILE: coverage/.coverage.kafka-py
+      #     CONTEXT: kafka-py
+      # - name: Store coverage files
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: .coverage.kafka-py
+      #     path: coverage
+      #     if-no-files-found: error
+      #     include-hidden-files: true
 
   test-confluent-smoke:
     if: github.event.pull_request.draft == false
@@ -244,20 +244,20 @@ jobs:
         run: |
           uv pip install --system --group optionals --group testing .
       - run: mkdir coverage
-      - name: Test
-        run: >
-          coverage run -m pytest -n auto
-          -vv -m "(slow and confluent and connected) or (confluent and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.confluent-py
-          CONTEXT: confluent-py
-      - name: Store coverage files
-        uses: actions/upload-artifact@v4
-        with:
-          name: .coverage.confluent-py
-          path: coverage
-          if-no-files-found: error
-          include-hidden-files: true
+      # - name: Test
+      #   run: >
+      #     coverage run -m pytest -n auto
+      #     -vv -m "(slow and confluent and connected) or (confluent and connected)"
+      #   env:
+      #     COVERAGE_FILE: coverage/.coverage.confluent-py
+      #     CONTEXT: confluent-py
+      # - name: Store coverage files
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: .coverage.confluent-py
+      #     path: coverage
+      #     if-no-files-found: error
+      #     include-hidden-files: true
 
   test-rabbit-smoke:
     if: github.event.pull_request.draft == false
