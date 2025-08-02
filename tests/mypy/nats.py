@@ -10,7 +10,7 @@ from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
-from faststream.nats.schemas import PullSub
+from faststream.nats.schemas import PullSub, ObjWatch
 from faststream.nats.subscriber.usecases import (
     BatchPullStreamSubscriber,
     ConcurrentCoreSubscriber,
@@ -329,7 +329,7 @@ async def check_publish_batch_type() -> None:
 async def check_obj_subscriber() -> None:
     broker = NatsBroker()
 
-    s1 = broker.subscriber(obj_watch="test")
+    s1 = broker.subscriber(obj_watch=ObjWatch())
     message = await s1.get_one()
 
     assert_type(s1, ObjStoreWatchSubscriber)
