@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 from asyncio import CancelledError
 from logging import getLogger
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
     from asyncio import Task
@@ -12,6 +13,9 @@ if TYPE_CHECKING:
 
 # stores how many times each coroutine has been retried
 _attempts_counter: dict[Callable[..., Coroutine[Any, Any, Any]], int] = {}
+
+# supervisor can affect some test cases, so it might be useful to have global killswitch
+SUPERVISOR_DISABLING_ENV_NAME: Final[str] = "FASTSTREAM_SUPERVISOR_DISABLED"
 
 
 class TaskCallbackSupervisor:
@@ -48,8 +52,18 @@ class TaskCallbackSupervisor:
             self.subscriber.add_task(self.func, self.args, self.kwargs)
             _attempts_counter[self.func] = attempts + 1
 
+    @property
+    def _is_disabled(self) -> bool:
+        """Checks if supervisor is disabled globally."""
+        try:
+            integer: int = int(os.getenv(SUPERVISOR_DISABLING_ENV_NAME, default="0"))
+        except (ValueError, TypeError):
+            return False
+
+        return bool(integer)
+
     def __call__(self, task: Task[Any]) -> None:
-        if task.cancelled():
+        if task.cancelled() or self._is_disabled:
             return
 
         if (exc := task.exception()) and not isinstance(exc, self.__ignored_exceptions):
