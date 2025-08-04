@@ -58,14 +58,12 @@ jobs:
       - name: Install Pydantic v2
         if: matrix.pydantic-version == 'pydantic-v2'
         run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
-        env:
-          COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
-          CONTEXT: ${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -94,8 +92,17 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.macos-latest
+      - name: Store coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage.macos-latest
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
 
   test-windows-latest:
     if: github.event.pull_request.draft == false
@@ -117,8 +124,17 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.windows-latest
+      - name: Store coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage.windows-latest
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
 
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
@@ -140,7 +156,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "kafka and not connected"
 
   test-kafka-real:
@@ -180,14 +196,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and kafka and connected) or (kafka and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.kafka-py
-          CONTEXT: kafka-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.kafka-py
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -216,7 +230,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "confluent and not connected"
 
   test-confluent-real:
@@ -256,14 +270,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and confluent and connected) or (confluent and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.confluent-py
-          CONTEXT: confluent-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.confluent-py
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -292,7 +304,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "rabbit and not connected"
 
   test-rabbit-real:
@@ -321,14 +333,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and rabbit and connected) or (rabbit and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.rabbit-py
-          CONTEXT: rabbit-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.rabbit-py
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -357,7 +367,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "nats and not connected"
 
   test-nats-real:
@@ -386,14 +396,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and nats and connected) or (nats and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.nats-py
-          CONTEXT: nats-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.nats-py
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -422,7 +430,7 @@ jobs:
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "redis and not connected"
 
   test-redis-real:
@@ -451,14 +459,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto --cov --cov-report=
           -vv -m "(slow and redis and connected) or (redis and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.redis-py
-          CONTEXT: redis-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.redis-py
       - name: Store coverage files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -471,6 +477,8 @@ jobs:
     if: github.event.pull_request.draft == false
     needs:
       - test-basic
+      - test-macos-latest
+      - test-windows-latest
       - test-kafka-real
       - test-confluent-real
       - test-rabbit-real
@@ -497,7 +505,7 @@ jobs:
           merge-multiple: true
 
       - run: |
-          uv pip install --system coverage[toml]
+          uv pip install --system coverage[toml] covdefaults
 
       - run: ls -la coverage
       - run: coverage combine coverage

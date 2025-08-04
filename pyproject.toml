@@ -121,14 +121,15 @@ lint = [
 ]
 
 test-core = [
-    "coverage[toml]==7.9.1",
+    "dirty-equals==0.9.0",
+    "httpx==0.28.1",
     "pytest==8.4.1",
     "pytest-asyncio==1.0.0",
     "pytest-rerunfailures>=15.1",
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.8.0",
-    "dirty-equals==0.9.0",
-    "httpx==0.28.1",
+    "pytest-cov>=6.2.1",
+    "covdefaults>=2.3.0",
 ]
 
 testing = [
@@ -192,7 +193,7 @@ disallow_any_unimported = false
 [tool.pytest.ini_options]
 minversion = "7.0"
 timeout = 30
-addopts = "-q -m 'not slow'"
+addopts = "--strict-markers --strict-config -q -m 'not slow'"
 testpaths = ["tests"]
 markers = [
     "rabbit",
@@ -211,8 +212,16 @@ parallel = true
 branch = true
 concurrency = ["multiprocessing", "thread"]
 source = ["docs/docs_src", "examples", "faststream", "tests"]
-context = '${CONTEXT}'
+plugins = ["covdefaults"]
 omit = ["**/__init__.py", "tests/mypy/*"]
+
+[tool.coverage.paths]
+source = [
+    ".",
+    "/home/runner/work/faststream/faststream/",
+    "/Users/runner/work/faststream/faststream/",
+    "D:\\a\\faststream\\faststream\\",
+]
 
 [tool.coverage.report]
 show_missing = true
@@ -251,6 +260,7 @@ omit = [
     'examples/serialization/msgpack/pack.py',
     'examples/serialization/protobuf/protobuf.py',
 ]
+fail_under = 20
 
 [tool.bandit]
 skips = ["B101"]

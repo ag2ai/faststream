@@ -7,8 +7,8 @@ from prometheus_client import CollectorRegistry
 from faststream import Context
 from faststream.redis import ListSub, RedisBroker
 from faststream.redis.prometheus.middleware import RedisPrometheusMiddleware
-from tests.brokers.redis.test_consume import TestConsume
-from tests.brokers.redis.test_publish import TestPublish
+from tests.brokers.redis.test_consume import TestConsume as ConsumeCase
+from tests.brokers.redis.test_publish import TestPublish as PublishCase
 from tests.prometheus.basic import LocalPrometheusTestcase, LocalRPCPrometheusTestcase
 
 from .basic import BatchRedisPrometheusSettings, RedisPrometheusSettings
@@ -66,7 +66,7 @@ class TestPrometheus(
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestPublishWithPrometheus(TestPublish):
+class TestPublishWithPrometheus(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisPrometheusMiddleware(registry=CollectorRegistry()),),
@@ -77,7 +77,7 @@ class TestPublishWithPrometheus(TestPublish):
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestConsumeWithPrometheus(TestConsume):
+class TestConsumeWithPrometheus(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisPrometheusMiddleware(registry=CollectorRegistry()),),
