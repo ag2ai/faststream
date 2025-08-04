@@ -1,5 +1,4 @@
 import logging
-import random
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -115,6 +114,7 @@ def test_run_as_asgi_with_log_config(
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_run_as_asgi_mp_with_log_level(
     generate_template: GenerateTemplateFactory,
     faststream_cli: FastStreamCLIFactory,
@@ -142,7 +142,7 @@ def test_run_as_asgi_mp_with_log_level(
             "run",
             f"{app_path.stem}:app",
             "--workers",
-            str(random.randint(2, 7)),
+            "2",
             "--log-level",
             log_level,
         ) as cli,

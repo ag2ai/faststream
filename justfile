@@ -46,12 +46,12 @@ test-all +param="tests/":
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage +param="tests/":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'not slow and not connected' -n auto && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream uv run sh -c "pytest {{param}} -m 'not slow and not connected' -n auto --cov --cov-report=term:skip-covered"
 
 [doc("Run all tests with coverage")]
 [group("tests")]
 test-coverage-all +param="tests/":
-  -docker compose exec faststream uv run sh -c "coverage run -m pytest {{param}} -m 'all' -n auto && coverage combine && coverage report --show-missing --skip-covered --sort=cover --precision=2 && rm .coverage*"
+  -docker compose exec faststream uv run sh -c "pytest {{param}} -m 'all' -n auto --cov --cov-report=term:skip-covered"
 
 
 # Docs

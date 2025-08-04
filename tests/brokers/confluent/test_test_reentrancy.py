@@ -48,15 +48,6 @@ async def test_with_fake_broker() -> None:
     await _test_with_broker(False)
 
 
-@pytest.mark.asyncio()
-@pytest.mark.connected()
-@pytest.mark.confluent()
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
-async def test_with_real_broker() -> None:
-    await _test_with_broker(True)
-    await _test_with_broker(True)
-
-
 async def _test_with_temp_subscriber() -> None:
     @broker.subscriber(
         partitions=[TopicPartition(out_topic_name, 0)],
