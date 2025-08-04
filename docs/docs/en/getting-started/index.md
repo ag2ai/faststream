@@ -149,16 +149,30 @@ Enjoy your new development experience!
 
 Also, you can run the `FastStream` application manually, as a regular async function:
 
-```python
-import asyncio
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/kafka_base_run.py!}
+    ```
 
-async def main():
-    app = FastStream(...)
-    await app.run()  # blocking method
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/confluent_base_run.py!}
+    ```
 
-if __name__ == "__main__":
-    asyncio.run(main())
-```
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/rabbit_base_run.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/nats_base_run.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/redis_base_run.py!}
+    ```
 
 ### Other tools integrations
 

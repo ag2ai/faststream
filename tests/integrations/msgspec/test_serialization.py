@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -10,6 +11,7 @@ from faststream._internal.testing.broker import TestBroker
 from faststream.confluent import (
     KafkaBroker as ConfluentBroker,
     TestKafkaBroker as TestConfluentBroker,
+    TopicPartition,
 )
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 from faststream.nats import NatsBroker, TestNatsBroker
@@ -56,11 +58,18 @@ class SimpleModel(msgspec.Struct):
 @pytest.mark.parametrize(
     ("broker_cls", "test_cls"),
     (
-        pytest.param(RabbitBroker, TestRabbitBroker, id="rabbit"),
-        pytest.param(RedisBroker, TestRedisBroker, id="redis"),
-        pytest.param(KafkaBroker, TestKafkaBroker, id="kafka"),
-        pytest.param(NatsBroker, TestNatsBroker, id="nats"),
-        pytest.param(ConfluentBroker, TestConfluentBroker, id="confluent"),
+        pytest.param(
+            RabbitBroker, TestRabbitBroker, id="rabbit", marks=pytest.mark.rabbit()
+        ),
+        pytest.param(RedisBroker, TestRedisBroker, id="redis", marks=pytest.mark.redis()),
+        pytest.param(KafkaBroker, TestKafkaBroker, id="kafka", marks=pytest.mark.kafka()),
+        pytest.param(NatsBroker, TestNatsBroker, id="nats", marks=pytest.mark.nats()),
+        pytest.param(
+            ConfluentBroker,
+            TestConfluentBroker,
+            id="confluent",
+            marks=pytest.mark.confluent(),
+        ),
     ),
 )
 async def test_msgspec_serialize(
@@ -81,3 +90,79 @@ async def test_msgspec_serialize(
         await br.publish(message, "test")
 
     mock.assert_called_with(expected_message)
+
+
+@pytest.mark.asyncio()
+@pytest.mark.connected()
+@pytest.mark.parametrize(
+    "broker_cls",
+    (
+        pytest.param(RabbitBroker, id="rabbit", marks=pytest.mark.rabbit()),
+        pytest.param(RedisBroker, id="redis", marks=pytest.mark.redis()),
+        pytest.param(KafkaBroker, id="kafka", marks=pytest.mark.kafka()),
+        pytest.param(NatsBroker, id="nats", marks=pytest.mark.nats()),
+    ),
+)
+async def test_publisher(
+    mock: MagicMock,
+    queue: str,
+    event: asyncio.Event,
+    broker_cls: type[BrokerUsecase[Any, Any]],
+) -> None:
+    broker = broker_cls(serializer=MsgSpecSerializer())
+    publisher = broker.publisher(queue)
+
+    @broker.subscriber(queue)
+    async def handler(m: SimpleModel) -> None:
+        mock(m)
+        event.set()
+
+    message = SimpleModel(r="hello!")
+
+    async with broker:
+        await broker.start()
+
+        await asyncio.wait(
+            (
+                asyncio.create_task(publisher.publish(message)),
+                asyncio.create_task(event.wait()),
+            ),
+            timeout=3.0,
+        )
+
+    mock.assert_called_with(message)
+
+
+@pytest.mark.confluent()
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+async def test_publisher_confluent(
+    mock: MagicMock,
+    queue: str,
+    event: asyncio.Event,
+) -> None:
+    broker = ConfluentBroker(serializer=MsgSpecSerializer())
+    publisher = broker.publisher(queue)
+
+    @broker.subscriber(
+        partitions=[TopicPartition(topic=queue, partition=0, offset=0)],
+        auto_offset_reset="earliest",
+    )
+    async def handler(m: SimpleModel) -> None:
+        mock(m)
+        event.set()
+
+    message = SimpleModel(r="hello!")
+
+    async with broker:
+        await broker.start()
+
+        await asyncio.wait(
+            (
+                asyncio.create_task(publisher.publish(message)),
+                asyncio.create_task(event.wait()),
+            ),
+            timeout=10,
+        )
+
+    mock.assert_called_with(message)

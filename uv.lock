@@ -405,6 +405,18 @@ wheels = [
 ]
 
 [[package]]
+name = "covdefaults"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "coverage" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/44/ee/9a6f2611f72e4c5657ae5542a510cf4164d2c673687c0ea73bb1cbd85b4d/covdefaults-2.3.0.tar.gz", hash = "sha256:4e99f679f12d792bc62e5510fa3eb59546ed47bd569e36e4fddc4081c9c3ebf7", size = 4835, upload-time = "2023-03-05T16:43:34.779Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/76/4c/823bc951445aa97e5a1b7e337690db3abf85212c8d138e170922e7916ac8/covdefaults-2.3.0-py2.py3-none-any.whl", hash = "sha256:2832961f6ffcfe4b57c338bc3418a3526f495c26fb9c54565409c5532f7c41be", size = 5144, upload-time = "2023-03-05T16:43:33.245Z" },
+]
+
+[[package]]
 name = "coverage"
 version = "7.9.1"
 source = { registry = "https://pypi.org/simple" }
@@ -726,7 +738,7 @@ dev = [
     { name = "bandit" },
     { name = "cairosvg" },
     { name = "codespell" },
-    { name = "coverage", extra = ["toml"] },
+    { name = "covdefaults" },
     { name = "detect-secrets" },
     { name = "dirty-equals" },
     { name = "email-validator" },
@@ -753,6 +765,7 @@ dev = [
     { name = "pydantic-settings" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
@@ -803,17 +816,18 @@ optionals = [
     { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis"] },
 ]
 test-core = [
-    { name = "coverage", extra = ["toml"] },
+    { name = "covdefaults" },
     { name = "dirty-equals" },
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
 ]
 testing = [
-    { name = "coverage", extra = ["toml"] },
+    { name = "covdefaults" },
     { name = "dirty-equals" },
     { name = "email-validator" },
     { name = "fastapi" },
@@ -825,6 +839,7 @@ testing = [
     { name = "pydantic-settings" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
@@ -855,7 +870,7 @@ dev = [
     { name = "bandit", specifier = "==1.8.5" },
     { name = "cairosvg" },
     { name = "codespell", specifier = "==2.4.1" },
-    { name = "coverage", extras = ["toml"], specifier = "==7.9.1" },
+    { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "detect-secrets", specifier = "==1.5.0" },
     { name = "dirty-equals", specifier = "==0.9.0" },
     { name = "email-validator", specifier = "==2.2.0" },
@@ -882,6 +897,7 @@ dev = [
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
     { name = "pytest", specifier = "==8.4.1" },
     { name = "pytest-asyncio", specifier = "==1.0.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
@@ -931,17 +947,18 @@ lint = [
 ]
 optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] }]
 test-core = [
-    { name = "coverage", extras = ["toml"], specifier = "==7.9.1" },
+    { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "dirty-equals", specifier = "==0.9.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "pytest", specifier = "==8.4.1" },
     { name = "pytest-asyncio", specifier = "==1.0.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
 ]
 testing = [
-    { name = "coverage", extras = ["toml"], specifier = "==7.9.1" },
+    { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "dirty-equals", specifier = "==0.9.0" },
     { name = "email-validator", specifier = "==2.2.0" },
     { name = "fastapi", specifier = "==0.115.14" },
@@ -953,6 +970,7 @@ testing = [
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
     { name = "pytest", specifier = "==8.4.1" },
     { name = "pytest-asyncio", specifier = "==1.0.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
@@ -2345,6 +2363,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d0/d4/14f53324cb1a6381bef29d698987625d80052bb33932d8e7cbf9b337b17c/pytest_asyncio-1.0.0.tar.gz", hash = "sha256:d15463d13f4456e1ead2594520216b225a16f781e144f8fdf6c5bb4667c48b3f", size = 46960, upload-time = "2025-05-26T04:54:40.484Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/30/05/ce271016e351fddc8399e546f6e23761967ee09c8c568bbfbecb0c150171/pytest_asyncio-1.0.0-py3-none-any.whl", hash = "sha256:4f024da9f1ef945e680dc68610b52550e36590a67fd31bb3b4943979a1f90ef3", size = 15976, upload-time = "2025-05-26T04:54:39.035Z" },
+]
+
+[[package]]
+name = "pytest-cov"
+version = "6.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "coverage", extra = ["toml"] },
+    { name = "pluggy" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/99/668cade231f434aaa59bbfbf49469068d2ddd945000621d3d165d2e7dd7b/pytest_cov-6.2.1.tar.gz", hash = "sha256:25cc6cc0a5358204b8108ecedc51a9b57b34cc6b8c967cc2c01a4e00d8a67da2", size = 69432, upload-time = "2025-06-12T10:47:47.684Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/16/4ea354101abb1287856baa4af2732be351c7bee728065aed451b678153fd/pytest_cov-6.2.1-py3-none-any.whl", hash = "sha256:f5bc4c23f42f1cdd23c70b1dab1bbaef4fc505ba950d53e0081d0730dd7e86d5", size = 24644, upload-time = "2025-06-12T10:47:45.932Z" },
 ]
 
 [[package]]

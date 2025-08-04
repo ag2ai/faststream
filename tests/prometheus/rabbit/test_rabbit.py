@@ -5,8 +5,8 @@ from prometheus_client import CollectorRegistry
 
 from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.prometheus.middleware import RabbitPrometheusMiddleware
-from tests.brokers.rabbit.test_consume import TestConsume
-from tests.brokers.rabbit.test_publish import TestPublish
+from tests.brokers.rabbit.test_consume import TestConsume as ConsumeCase
+from tests.brokers.rabbit.test_publish import TestPublish as PublishCase
 from tests.prometheus.basic import LocalPrometheusTestcase, LocalRPCPrometheusTestcase
 
 from .basic import RabbitPrometheusSettings
@@ -29,7 +29,7 @@ class TestPrometheus(
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestPublishWithPrometheus(TestPublish):
+class TestPublishWithPrometheus(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
         return RabbitBroker(
             middlewares=(RabbitPrometheusMiddleware(registry=CollectorRegistry()),),
@@ -40,7 +40,7 @@ class TestPublishWithPrometheus(TestPublish):
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestConsumeWithPrometheus(TestConsume):
+class TestConsumeWithPrometheus(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RabbitBroker:
         return RabbitBroker(
             middlewares=(RabbitPrometheusMiddleware(registry=CollectorRegistry()),),

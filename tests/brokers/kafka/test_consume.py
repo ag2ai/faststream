@@ -21,42 +21,30 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.connected()
 class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
-    @pytest.mark.flaky(reruns=5)
-    async def test_consume_by_pattern(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_by_pattern(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
-
-        @consume_broker.subscriber(
-            queue,
-            auto_offset_reset="earliest",
-        )
-        async def handler(msg: Any) -> None:
-            event.set()
-
-        pattern_event = asyncio.Event()
 
         @consume_broker.subscriber(
             pattern=f"{queue[:-1]}*",
             auto_offset_reset="earliest",
         )
         async def pattern_handler(msg: Any) -> None:
-            pattern_event.set()
+            event.set()
 
         async with self.patch_broker(consume_broker) as br:
+            await br.config.admin_client.create_topics([NewTopic(queue, 1, 1)])
+
             await br.start()
 
             await asyncio.wait(
                 (
                     asyncio.create_task(br.publish(1, topic=queue)),
                     asyncio.create_task(event.wait()),
-                    asyncio.create_task(pattern_event.wait()),
                 ),
-                timeout=10,
+                timeout=self.timeout,
             )
 
         assert event.is_set()
-        assert pattern_event.is_set()
 
     @pytest.mark.asyncio()
     async def test_consume_batch(self, queue: str) -> None:
