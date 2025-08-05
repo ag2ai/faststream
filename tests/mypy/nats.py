@@ -10,7 +10,7 @@ from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
-from faststream.nats.schemas import PullSub, ObjWatch
+from faststream.nats.schemas import ObjWatch, PullSub
 from faststream.nats.subscriber.usecases import (
     BatchPullStreamSubscriber,
     ConcurrentCoreSubscriber,

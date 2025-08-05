@@ -61,7 +61,7 @@ def test_restart(mock: MagicMock, generate_template: GenerateTemplateFactory) ->
 def touch_file(file: Path) -> None:
     while True:
         time.sleep(0.1)
-        file.write_text("hello")
+        file.write_text("hello", encoding="utf-8")
 
 
 def exit(parent_id: int) -> None:
