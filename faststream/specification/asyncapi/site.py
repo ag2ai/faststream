@@ -131,7 +131,7 @@ class _Handler(server.BaseHTTPRequestHandler):
             for i, j in parse_qs(urlparse(self.path).query).items()
         }
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         """Serve a GET request."""
         query_dict = self.get_query_params()
 

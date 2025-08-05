@@ -90,7 +90,7 @@ def set_log_level(level: int, app: "Application") -> None:
 
 def _get_json_config(file: Path) -> dict[str, Any] | Any:
     """Parse json config file to dict."""
-    with file.open("r") as config_file:
+    with file.open("r", encoding="utf-8") as config_file:
         return json.load(config_file)
 
 
@@ -102,7 +102,7 @@ def _get_yaml_config(file: Path) -> dict[str, Any] | Any:
         typer.echo(INSTALL_YAML, err=True)
         raise typer.Exit(1) from e
 
-    with file.open("r") as config_file:
+    with file.open("r", encoding="utf-8") as config_file:
         return yaml.safe_load(config_file)
 
 

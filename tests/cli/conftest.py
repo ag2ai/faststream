@@ -66,7 +66,7 @@ def generate_template(
         file_path: Path = faststream_tmp_path / filename
         cleaned_code = dedent(code).strip()
 
-        file_path.write_text(cleaned_code)
+        file_path.write_text(cleaned_code, encoding="utf-8")
 
         try:
             yield file_path
