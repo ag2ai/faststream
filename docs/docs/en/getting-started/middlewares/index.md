@@ -10,19 +10,36 @@ search:
 
 # Middlewares
 
-**Middlewares** are a powerful tool that allow you to add additional logic to any part of the message processing pipeline.
+Middlewares in **FastStream** allow you to process messages before they are handled by your code and after they are processed. This allows you to add common functionality to multiple handlers without having to duplicate code.
 
-This way, you can significantly improve your **FastStream** experience with features such as:
+Middlewares essentially help you keep your business logic separate from technical aspects.
 
-- Integration with various logging and monitoring systems
-- Application-level message serialization logic
-- Extensive publishing of messages with additional information
-- And many other features
+This section provides a list of available middleware and a detailed explanation of how they work, as well as instructions on how to create your own.
 
-**Middlewares** have several methods that you can override. You can choose whether to implement some or all of these methods.
+### Built-in Middlewares
 
-You only need to import the BaseMiddleware as it contains all the necessary methods. Any available methods can be overridden.
+* [Exception Middleware](exception.md){.internal-link} - for centralized exception handling.
 
+<br>
+
+---
+
+## Middlewares Flow
+
+![flow](../../../assets/img/middlewares-flow.svg){ width=300 height=100 }
+
+1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
+2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
+3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
+4. [**consume_scope**](../subscription/index.md){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
+    - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
+    - **Handler** - Executes the message handling function
+5. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
+    - [**publish**](../publishing/index.md){.internal-link} - Executes the publish method
+6. **after_processed** - Final cleanup and post-processing stage.
+
+
+## Full middleware methods
 ```python linenums="1" hl_lines="10 16 25 34"
 from types import TracebackType
 from typing import Any, Awaitable, Callable, Optional
@@ -70,31 +87,10 @@ PayAttention to the order: the methods are executed in this sequence after each 
 
 **Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope. For example:
 
-```python
-broker = Broker(middlewares=[MyMiddleware])  # global scope
-# Or
-router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
-```
-
-## Middlewares Flow
-
-The middleware execution follows a specific sequence during message processing:
-
-![flow](./middlewares-flow.svg){ width=300 height=100 }
-
-1. **on_receive** - This function is called first for every incoming message, regardless of whether the message will be processed.
-2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
-3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](../subscription/index.md){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
-5. [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
-6. **Handler** - Executes the message handling function
-7. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
-8. **after_processed** - Final cleanup and post-processing stage.
-
-## More about the **publish_scope**
+### More about the **publish_scope**
 
 1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
-2. This method consumes the message body and any other options passed to the `publish` function (such as destination headers, etc.).
+2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
 3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
 4. If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
@@ -183,6 +179,12 @@ The middleware execution follows a specific sequence during message processing:
             return await super().publish_scope(call_next, cmd)
     ```
 
+```python
+broker = Broker(middlewares=[MyMiddleware])  # global scope
+# Or
+router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
+```
+
 ## Context Access
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
@@ -203,7 +205,7 @@ class ContextMiddleware(BaseMiddleware):
         return await call_next(msg)
 ```
 
-## Examples
+## Real examples
 
 ### Retry Middleware
 
