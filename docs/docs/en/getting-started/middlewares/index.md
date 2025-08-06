@@ -210,14 +210,12 @@ class ContextMiddleware(BaseMiddleware):
 ```python
 import asyncio
 from typing import Any, Awaitable, Callable, Final
-from typing_extensions import override
 from faststream import BaseMiddleware
 from faststream.message import StreamMessage
 
 class RetryMiddleware(BaseMiddleware):
     MAX_RETRIES: Final[int] = 3
 
-    @override
     async def consume_scope(
         self,
         call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
