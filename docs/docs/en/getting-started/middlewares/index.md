@@ -8,25 +8,22 @@ search:
   boost: 10
 ---
 
-# Middlewares
+# Middlewares introduction
 
-Middlewares in **FastStream** allow you to process messages before they are handled by your code and after they are processed. This allows you to add common functionality to multiple handlers without having to duplicate code.
+Middlewares in **FastStream** allow you to process messages before and after they are handled by your code.
+This allows you to add common functionality to multiple handlers without duplicating code.
 
-Middlewares essentially help you keep your business logic separate from technical aspects.
+Middlewares help keep your business logic separate from the technical aspects of your application.
 
-This section provides a list of available middleware and a detailed explanation of how they work, as well as instructions on how to create your own.
-
-### Built-in Middlewares
-
-* [Exception Middleware](exception.md){.internal-link} - for centralized exception handling.
-
-<br>
+In this section, you will find a list of available middlewares and detailed information about how they work. You can also learn how to create your own middleware.
 
 ---
 
-## Middlewares Flow
+## Basic: Middlewares Flow
 
 ![flow](../../../assets/img/middlewares-flow.svg){ width=300 height=100 }
+
+It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`publish`** - they are service functions, FastStream uses them during event processing. More details below:
 
 1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
@@ -35,17 +32,50 @@ This section provides a list of available middleware and a detailed explanation 
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
 5. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
-    - [**publish**](../publishing/index.md){.internal-link} - Executes the publish method
+    - [**publish**](../publishing/index.md){.internal-link} - The publish_scope calls the publish method, and the result of the handler you return will be used as the argument for sending the message.
 6. **after_processed** - Final cleanup and post-processing stage.
 
+## The most common scenario
+
+```python linenums="1" hl_lines="8 18 23"
+from types import TracebackType
+
+from faststream import BaseMiddleware
+
+
+class MyMiddleware(BaseMiddleware):
+    async def on_receive(self) -> None:
+        # All events are included here, without any filters or other side effects.
+        print(f"Received: {self.msg}")
+        return await super().on_receive()
+
+    async def after_processed(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: TracebackType | None = None,
+    ) -> bool | None:
+        if exc_type:  # Catch the error if it occurred in your handler
+            ...
+        return await super().after_processed(exc_type, exc_val, exc_tb)
+
+
+# You can register them to the broker or router scopes.
+broker = Broker(middlewares=[MyMiddleware])  # global scope
+# Or
+router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
+```
+
+**Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope.
 
 ## Full middleware methods
-```python linenums="1" hl_lines="10 16 25 34"
+
+```python linenums="1" hl_lines="8-9 14-15 23-24 32-33"
 from types import TracebackType
-from typing import Any, Awaitable, Callable, Optional
-from faststream import BaseMiddleware
-from faststream.message import StreamMessage
-from faststream.response import PublishCommand
+from typing import Any, Awaitable, Callable
+
+from faststream import BaseMiddleware, PublishCommand, StreamMessage
+
 
 class MyMiddleware(BaseMiddleware):
     # Use this if you want to add logic when a message is received for the first time,
@@ -78,16 +108,23 @@ class MyMiddleware(BaseMiddleware):
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
-        exc_tb: Optional[TracebackType] = None,
+        exc_tb: TracebackType | None = None,
     ) -> bool | None:
         return await super().after_processed(exc_type, exc_val, exc_tb)
 ```
 
-PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#middlewares-flow).
+PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-**Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope. For example:
+### **Important** information about **`filter`**
 
-### More about the **publish_scope**
+It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
+This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish`, and `after_processed` will not be executed.
+
+### **Important** information about **`consume_scope`**
+
+1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow), which means there is no deserialized message.
+
+### **Important** information about **`publish_scope`**
 
 1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
 2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
@@ -97,12 +134,11 @@ PayAttention to the order: the methods are executed in this sequence after each 
 === "Default"
     ```python linenums="1"
     from typing import Any, Awaitable, Callable
-    from typing_extensions import override
-    from faststream import BaseMiddleware
-    from faststream.response import PublishCommand
+
+    from faststream import BaseMiddleware, PublishCommand
+
 
     class DefaultPublishMiddleware(BaseMiddleware):
-        @override
         async def publish_scope(
             self,
             call_next: Callable[[PublishCommand], Awaitable[Any]],
@@ -111,15 +147,32 @@ PayAttention to the order: the methods are executed in this sequence after each 
             return await super().publish_scope(call_next, cmd)
     ```
 
-=== "Kafka"
+=== "AIOKafka"
     ```python linenums="1"
     from typing import Any, Awaitable, Callable
-    from typing_extensions import override
+
     from faststream import BaseMiddleware
-    from faststream.kafka.response import KafkaPublishCommand
+    from faststream.kafka import KafkaPublishCommand
+
 
     class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
-        @override
+        async def publish_scope(
+            self,
+            call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
+            cmd: KafkaPublishCommand,
+        ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+
+    from faststream import BaseMiddleware
+    from faststream.confluent import KafkaPublishCommand
+
+
+    class KafkaPublishMiddleware(BaseMiddleware[KafkaPublishCommand]):
         async def publish_scope(
             self,
             call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
@@ -131,12 +184,12 @@ PayAttention to the order: the methods are executed in this sequence after each 
 === "RabbitMQ"
     ```python linenums="1"
     from typing import Any, Awaitable, Callable
-    from typing_extensions import override
+
     from faststream import BaseMiddleware
-    from faststream.rabbit.response import RabbitPublishCommand
+    from faststream.rabbit import RabbitPublishCommand
+
 
     class RabbitPublishMiddleware(BaseMiddleware[RabbitPublishCommand]):
-        @override
         async def publish_scope(
             self,
             call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
@@ -148,12 +201,12 @@ PayAttention to the order: the methods are executed in this sequence after each 
 === "NATS"
     ```python linenums="1"
     from typing import Any, Awaitable, Callable
-    from typing_extensions import override
+
     from faststream import BaseMiddleware
-    from faststream.nats.response import NatsPublishCommand
+    from faststream.nats import NatsPublishCommand
+
 
     class NatsPublishMiddleware(BaseMiddleware[NatsPublishCommand]):
-        @override
         async def publish_scope(
             self,
             call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
@@ -165,12 +218,12 @@ PayAttention to the order: the methods are executed in this sequence after each 
 === "Redis"
     ```python linenums="1"
     from typing import Any, Awaitable, Callable
-    from typing_extensions import override
+
     from faststream import BaseMiddleware
-    from faststream.redis.response import RedisPublishCommand
+    from faststream.redis import RedisPublishCommand
+
 
     class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
-        @override
         async def publish_scope(
             self,
             call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
@@ -179,18 +232,17 @@ PayAttention to the order: the methods are executed in this sequence after each 
             return await super().publish_scope(call_next, cmd)
     ```
 
-```python
-broker = Broker(middlewares=[MyMiddleware])  # global scope
-# Or
-router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
-```
-
 ## Context Access
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
 
-```python linenums="1" hl_lines="11"
+```python linenums="1" hl_lines="9"
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from faststream import BaseMiddleware
+from faststream.message import StreamMessage
+
 
 class ContextMiddleware(BaseMiddleware):
     # Context is also available in the on_receive, consume_scope, publish_scope, and after_processed methods.
@@ -199,9 +251,7 @@ class ContextMiddleware(BaseMiddleware):
         call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
         msg: StreamMessage[Any],
     ) -> Any:
-        # Access context
         message_context = self.context.get_local("message")
-        # Your middleware logic here
         return await call_next(msg)
 ```
 
@@ -211,9 +261,12 @@ class ContextMiddleware(BaseMiddleware):
 
 ```python
 import asyncio
-from typing import Any, Awaitable, Callable, Final
+from collections.abc import Awaitable, Callable
+from typing import Any, Final
+
 from faststream import BaseMiddleware
 from faststream.message import StreamMessage
+
 
 class RetryMiddleware(BaseMiddleware):
     MAX_RETRIES: Final[int] = 3
@@ -236,13 +289,11 @@ class RetryMiddleware(BaseMiddleware):
         return None
 ```
 
-1. **consume_scope** makes calls before the [**decoding stage**](#middlewares-flow), which means there is no deserialized message.
-
 ## Summary
 
 Middlewares provide a powerful way to extend FastStream's message processing pipeline at specific stages. Key points to remember:
 
-1. [**Order of execution matters**](#middlewares-flow) - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → `after_processed`.
+1. [**Order of execution matters**](#basic-middlewares-flow) - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → publish → `after_processed`.
 2. [**Conditional Execution**](../subscription/filtering.md){.internal-link} - If a message fails to pass the filter, `consume_scope` and subsequent stages will be skipped.
 3. **Multiple publish calls** - The `publish_scope` function is executed once for each `@publisher` decorator in your handler.
 4. **Always call super()** - This ensures proper error handling and maintains the middleware chain.
