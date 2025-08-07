@@ -38,21 +38,6 @@ uvicorn main:app
 
 It does nothing but launch the app itself as an **ASGI lifespan**.
 
-!!! note
-    If you want to run your app using several workers, you need to use something else than `uvicorn`.
-    ```shell
-    faststream run main:app --workers 4
-    ```
-    ```shell
-    gunicorn -k uvicorn.workers.UvicornWorker main:app --workers=4
-    ```
-    ```shell
-    granian --interface asgi main:app --workers 4
-    ```
-    ```shell
-    hypercorn main:app --workers 4
-    ```
-
 
 ### ASGI Routes
 
@@ -214,17 +199,3 @@ app = FastAPI(lifespan=start_broker)
 app.mount("/health", make_ping_asgi(broker, timeout=5.0))
 app.mount("/asyncapi", make_asyncapi_asgi(asyncapi))
 ```
-
-!!! tip
-    You can also bind to unix domain or a file descriptor. FastStream will bind to “127.0.0.1:8000” by default
-
-    ```shell
-    faststream run main:app --bind unix:/tmp/socket.sock
-    ```
-    ```shell
-    faststream run main:app --bind fd://2
-    ```
-    You can use multiple binds if you want
-    ```shell
-    faststream run main:app --bind 0.0.0.0:8000 '[::]:8000'
-    ```
