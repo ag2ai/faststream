@@ -55,6 +55,6 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [RabbitMQ with Pydantic](https://github.com/airtai/faststream/tree/main/examples/rabbit/pydantic) - Validated message flow
 
 ## About FastStream
-- [LICENSE](https://github.com/ag2ai/faststream/blob/main/LICENSE) - FastStream LICENSE file
-- [README file](https://github.com/ag2ai/faststream/blob/main/README.md) - README.md file
-- [CITATION](https://github.com/ag2ai/faststream/blob/main/CITATION.cff) - CITATION.cff file
+- [LICENSE](https://github.com/ag2ai/faststream/blob/main/LICENSE) - FastStream LICENSE
+- [README file](https://github.com/ag2ai/faststream/blob/main/README.md) - README.md
+- [CITATION](https://github.com/ag2ai/faststream/blob/main/CITATION.cff) - CITATION.cff
