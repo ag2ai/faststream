@@ -1,0 +1,39 @@
+# FastStream
+
+> FastStream is a powerful and easy-to-use Python framework for building asynchronous services interacting with event streams such as Apache Kafka, RabbitMQ, NATS and Redis.
+
+## Tutorial
+
+- [Getting Started](https://faststream.ag2.ai/latest/getting-started/)
+- [Configuration](https://faststream.ag2.ai/latest/getting-started/config/)
+- [Subscription Basics](https://faststream.ag2.ai/latest/getting-started/subscription/)
+- [Publishing Messages](https://faststream.ag2.ai/latest/getting-started/publishing/)
+- [Command Line Interface](https://faststream.ag2.ai/latest/getting-started/cli/)
+- [AsyncAPI Specification](https://faststream.ag2.ai/latest/getting-started/asyncapi/export)
+
+## Brokers
+
+- [Kafka](https://faststream.ag2.ai/latest/kafka/)
+- [RabbitMQ](https://faststream.ag2.ai/latest/rabbit/)
+- [NATS](https://faststream.ag2.ai/latest/nats/)
+- [Redis](https://faststream.ag2.ai/latest/redis/)
+
+## Advanced
+
+- [Context](https://faststream.ag2.ai/latest/getting-started/context/)
+- [Dependencies](https://faststream.ag2.ai/latest/getting-started/dependencies/)
+- [Routers](https://faststream.ag2.ai/latest/getting-started/routers/)
+- [Middlewares](https://faststream.ag2.ai/latest/getting-started/middlewares/)
+- [Lifespan Events](https://faststream.ag2.ai/latest/getting-started/lifespan/)
+- [Filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/)
+- [Scheduling Tasks](https://faststream.ag2.ai/latest/scheduling/)
+
+## Optional
+
+- [Cookiecutter Template](https://faststream.ag2.ai/latest/getting-started/template/)
+- [Django Integration](https://faststream.ag2.ai/latest/getting-started/integrations/django/)
+- [FastAPI Integration](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/)
+- [Logging](https://faststream.ag2.ai/latest/getting-started/observability/logging/)
+- [OpenTelemetry](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/)
+- [Prometheus](https://faststream.ag2.ai/latest/getting-started/observability/prometheus/)
+- [Testing](https://faststream.ag2.ai/latest/getting-started/subscription/test/)
