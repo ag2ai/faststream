@@ -8,7 +8,7 @@ search:
   boost: 10
 ---
 
-# Middlewares introduction
+# 🔗 Middlewares introduction
 
 Middlewares in **FastStream** allow you to process messages before and after they are handled by your code.
 This allows you to add common functionality to multiple handlers without duplicating code.
@@ -19,7 +19,7 @@ In this section, you will find a list of available middlewares and detailed info
 
 ---
 
-## Basic: Middlewares Flow
+## 🌊 Basic: Middlewares Flow
 
 ![flow](../../../assets/img/middlewares-flow.svg){ width=300 height=100 }
 
@@ -35,7 +35,7 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
     - [**publish**](../publishing/index.md){.internal-link} - The publish_scope calls the publish method, and the result of the handler you return will be used as the argument for sending the message.
 6. **after_processed** - Final cleanup and post-processing stage.
 
-## The most common scenario
+## 💡 The most common scenario
 
 ```python linenums="1" hl_lines="8 18 23"
 from types import TracebackType
@@ -68,7 +68,7 @@ router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
 
 **Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope.
 
-## Full middleware methods
+## 🛠️ Full middleware methods
 
 ```python linenums="1" hl_lines="8-9 14-15 23-24 32-33"
 from types import TracebackType
@@ -115,19 +115,19 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-### ❗**Important** information about **`filter`**
+### ❗ **Important** information about **`filter`**
 
 It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
 This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish` and `after_processed` will not be executed.
 
-### ❗**Important** information about **`consume_scope`**
+### ❗ **Important** information about **`consume_scope`**
 
-1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow), `#!pytnon msg: StreamMessage` is a native FastStream Object, which means the message is still serialized..
+1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow). The `#!python msg: StreamMessage` is a native FastStream Object, which means the message is still serialized.
 2. To differentiate between different types of subscribers, you can use `#!python msg.source_type`. It can be one of the following `Enum`:
     - `CONSUME`: Message consumed by basic subscriber flow.
     - `RESPONSE`: RPC response consumed.
 
-### ❗**Important** information about **`publish_scope`**
+### ❗ **Important** information about **`publish_scope`**
 
 1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
 2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
@@ -136,8 +136,9 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
     - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
     - `REPLY`: Response to RPC/Reply-To request.
     - `REQUEST`: RPC request call.
+5. **Batch Publishing**: When you publish multiple messages at once using the `broker.publish_batch(...)` method, the `publish_scope` receives a `BatchPublishCommand` object. This object holds all the messages to be sent in its `cmd.batch_bodies` attribute. This feature is useful for intercepting and modifying the batch publication process.
 
-#### If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
+#### ✨ If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
 === "Default"
     ```python linenums="1"
@@ -152,6 +153,23 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[PublishCommand], Awaitable[Any]],
             cmd: PublishCommand,
         ) -> Any:
+            return await super().publish_scope(call_next, cmd)
+    ```
+
+=== "Batch"
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+
+    from faststream import BaseMiddleware, BatchPublishCommand
+
+
+    class BatchPublishMiddleware(BaseMiddleware[BatchPublishCommand]):
+        async def publish_scope(
+            self,
+            call_next: Callable[[BatchPublishCommand], Awaitable[Any]],
+            cmd: BatchPublishCommand,
+        ) -> Any:
+            # you can access `cmd.batch_bodies` here
             return await super().publish_scope(call_next, cmd)
     ```
 
@@ -240,7 +258,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             return await super().publish_scope(call_next, cmd)
     ```
 
-## Context Access
+## 📦 Context Access
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
 
@@ -263,41 +281,50 @@ class ContextMiddleware(BaseMiddleware):
         return await call_next(msg)
 ```
 
-## Real examples
+## 🚀 Real examples
 
-### Retry Middleware
+### 🔁 Retry Middleware
 
 ```python linenums="1"
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any, Final
 
-from faststream import BaseMiddleware
+from typing_extensions import override
+
+from faststream import BaseMiddleware, FastStream, Logger
 from faststream.message import StreamMessage
+from faststream.redis import RedisBroker
 
 
 class RetryMiddleware(BaseMiddleware):
     MAX_RETRIES: Final[int] = 3
 
+    @override
     async def consume_scope(
         self,
         call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
         msg: StreamMessage[Any],
     ) -> Any:
+        logger: Logger = self.context.get_local("logger")
         for attempt in range(self.MAX_RETRIES + 1):
             try:
                 return await call_next(msg)
-            except Exception as e:
+            except Exception:
                 if attempt == self.MAX_RETRIES:
-                    print(f"Failed after {self.MAX_RETRIES} retries: {e}")
+                    logger.exception("Failed after %s retries: ", self.MAX_RETRIES)
                     raise
 
-                print(f"Attempt {attempt + 1} failed, retrying: {e}")
+                logger.exception("Attempt %s failed, retrying: ", attempt + 1)
                 await asyncio.sleep(2**attempt)  # Exponential backoff
         return None
+
+
+broker = RedisBroker(middlewares=[RetryMiddleware])
+app = FastStream(broker)
 ```
 
-## Summary
+## 📝 Summary
 
 Middlewares provide a powerful way to extend FastStream's message processing pipeline at specific stages. Key points to remember:
 
