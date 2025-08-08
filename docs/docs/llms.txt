@@ -20,34 +20,58 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Object Decorator](https://faststream.ag2.ai/latest/getting-started/publishing/object/) - Publisher as a decorator object
 - [Direct Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/direct/) - Direct publishing with publisher object
 - [Testing](https://faststream.ag2.ai/latest/getting-started/publishing/test/) - Testing message publishing
+
+## Routers
 - [Routers](https://faststream.ag2.ai/latest/getting-started/routers/) - Organize handlers with routers
+
+## Dependencies
 - [Dependencies](https://faststream.ag2.ai/latest/getting-started/dependencies/) - Dependency injection system
+
+## Context
 - [Context](https://faststream.ag2.ai/latest/getting-started/context/) - Context management for handlers
 - [Existing Fields](https://faststream.ag2.ai/latest/getting-started/context/existed/) - Access built-in context fields
 - [Custom Context](https://faststream.ag2.ai/latest/getting-started/context/custom/) - Add custom context data
 - [Fields Access](https://faststream.ag2.ai/latest/getting-started/context/fields/) - Retrieve context values in handlers
 - [Extra Options](https://faststream.ag2.ai/latest/getting-started/context/extra/) - Advanced context configuration
+
+## Custom Serialization
 - [Custom Serialization](https://faststream.ag2.ai/latest/getting-started/serialization/) - Customize message serialization
 - [Parser](https://faststream.ag2.ai/latest/getting-started/serialization/parser/) - Custom message parsing logic
 - [Decoder](https://faststream.ag2.ai/latest/getting-started/serialization/decoder/) - Decode raw message data
 - [Examples](https://faststream.ag2.ai/latest/getting-started/serialization/examples/) - Practical serialization examples
+
+## Lifespan
 - [Lifespan](https://faststream.ag2.ai/latest/getting-started/lifespan/) - Manage application lifecycle
 - [Hooks](https://faststream.ag2.ai/latest/getting-started/lifespan/hooks/) - Startup and shutdown hooks
 - [Context](https://faststream.ag2.ai/latest/getting-started/lifespan/context/) - Share data across lifespan events
 - [Testing](https://faststream.ag2.ai/latest/getting-started/lifespan/test/) - Test lifespan handlers
+
+## Middlewares
 - [Middlewares](https://faststream.ag2.ai/latest/getting-started/middlewares/) - Middleware support for handlers
 - [Exception Middleware](https://faststream.ag2.ai/latest/getting-started/middlewares/exception/) - Handle exceptions globally
+
+## AsyncAPI
 - [AsyncAPI](https://faststream.ag2.ai/latest/getting-started/asyncapi/) - AsyncAPI schema and documentation
 - [Schema Export](https://faststream.ag2.ai/latest/getting-started/asyncapi/export/) - Export AsyncAPI schema as JSON/YAML
 - [Schema Hosting](https://faststream.ag2.ai/latest/getting-started/asyncapi/hosting/) - Serve AsyncAPI docs via web
 - [Customize Information](https://faststream.ag2.ai/latest/getting-started/asyncapi/custom/) - Customize AsyncAPI metadata
+
+## Integrations
 - [Integrations](https://faststream.ag2.ai/latest/getting-started/integrations/) - Framework integrations
 - [HTTP Async Frameworks](https://faststream.ag2.ai/latest/getting-started/integrations/frameworks/) - Integrate with async HTTP frameworks
 - [FastAPI Plugin](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/) - Use FastStream inside FastAPI
 - [Django](https://faststream.ag2.ai/latest/getting-started/integrations/django/) - Integrate with Django projects
+
+## CLI
 - [CLI](https://faststream.ag2.ai/latest/getting-started/cli/) - FastStream command-line interface
-- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/) - Manual message acknowledgment
+
+## Acknowledgement
+- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/) - Manual message acknowledgement
+
+## ASGI
 - [ASGI](https://faststream.ag2.ai/latest/getting-started/asgi/) - Run FastStream as ASGI application
+
+## Observability
 - [Observability](https://faststream.ag2.ai/latest/getting-started/observability/) - Monitoring and observability tools
 - [Healthchecks](https://faststream.ag2.ai/latest/getting-started/observability/healthcheks/) - Health check endpoints
 - [Prometheus](https://faststream.ag2.ai/latest/getting-started/observability/prometheus/) - Expose metrics for Prometheus
@@ -56,8 +80,14 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Baggage](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/baggage/) - Propagate context via baggage
 - [Sentry support](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/sentry/) - Error tracking with Sentry
 - [Logging](https://faststream.ag2.ai/latest/getting-started/observability/logging/) - Structured logging setup
+
+## Config Management
 - [Config Management](https://faststream.ag2.ai/latest/getting-started/config/) - Application configuration management
+
+## Task Scheduling
 - [Task Scheduling](https://faststream.ag2.ai/latest/scheduling/) - Schedule periodic tasks (external link)
+
+## FastStream Project Template
 - [FastStream Project Template](https://faststream.ag2.ai/latest/getting-started/template/) - Generate projects with cookiecutter
 
 ## Kafka
@@ -137,7 +167,7 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Security Configuration](https://faststream.ag2.ai/latest/redis/security/) - Configure SSL, password, and auth
 - [Message Format](https://faststream.ag2.ai/latest/redis/message_format/) - Customize message serialization format
 
-## Reference
+## Reference - Code API
 - [Reference - Code API](https://faststream.ag2.ai/latest/api/) - FastStream Public API Reference
 - [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/) - Public API
 - [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/) - All API
