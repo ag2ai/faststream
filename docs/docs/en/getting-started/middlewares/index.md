@@ -115,21 +115,29 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-### **Important** information about **`filter`**
+### ❗**Important** information about **`filter`**
 
 It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
 This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish`, and `after_processed` will not be executed.
 
-### **Important** information about **`consume_scope`**
+### ❗**Important** information about **`consume_scope`**
 
 1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow), which means there is no deserialized message.
+2. To differentiate between different types of subscribers, you can use `msg.source_type`. It can be one of the following:
+    - `CONSUME`: Message consumed by basic subscriber flow.
+    - `RESPONSE`: RPC response consumed.
 
-### **Important** information about **`publish_scope`**
+### ❗**Important** information about **`publish_scope`**
 
 1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
 2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
 3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
-4. If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
+4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following:
+    - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
+    - `REPLY`: Response to RPC/Reply-To request.
+    - `REQUEST`: RPC request call.
+
+#### If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
 === "Default"
     ```python linenums="1"
