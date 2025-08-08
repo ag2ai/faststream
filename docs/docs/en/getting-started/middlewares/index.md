@@ -118,12 +118,12 @@ PayAttention to the order: the methods are executed in this sequence after each 
 ### ❗**Important** information about **`filter`**
 
 It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
-This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish`, and `after_processed` will not be executed.
+This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish` and `after_processed` will not be executed.
 
 ### ❗**Important** information about **`consume_scope`**
 
-1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow), which means there is no deserialized message.
-2. To differentiate between different types of subscribers, you can use `msg.source_type`. It can be one of the following:
+1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow), `#!pytnon msg: StreamMessage` is a native FastStream Object, which means the message is still serialized..
+2. To differentiate between different types of subscribers, you can use `#!python msg.source_type`. It can be one of the following `Enum`:
     - `CONSUME`: Message consumed by basic subscriber flow.
     - `RESPONSE`: RPC response consumed.
 
@@ -132,7 +132,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
 1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
 2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
 3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
-4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following:
+4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
     - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
     - `REPLY`: Response to RPC/Reply-To request.
     - `REQUEST`: RPC request call.
@@ -267,7 +267,7 @@ class ContextMiddleware(BaseMiddleware):
 
 ### Retry Middleware
 
-```python
+```python linenums="1"
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any, Final
@@ -304,8 +304,8 @@ Middlewares provide a powerful way to extend FastStream's message processing pip
 1. [**Order of execution matters**](#basic-middlewares-flow) - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → publish → `after_processed`.
 2. [**Conditional Execution**](../subscription/filtering.md){.internal-link} - If a message fails to pass the filter, `consume_scope` and subsequent stages will be skipped.
 3. **Multiple publish calls** - The `publish_scope` function is executed once for each `@publisher` decorator in your handler.
-4. **Always call super()** - This ensures proper error handling and maintains the middleware chain.
+4. **Chain Continuation** - To maintain the middleware chain, it is important to always call the super() method or call the next function. This ensures proper error handling and prevents issues with the chain.
 5. [**Context Access**](../context/index.md){.internal-link} - All middleware methods have access to the FastStream context for shared state management.
-6. [**Broker-specific extensions**](#more-about-the-publishscope) - Use typed publish commands (KafkaPublishCommand, RabbitPublishCommand, etc.) to provide specific functionality for different brokers.
+6. [**Broker-specific extensions**](#important-information-about-publish_scope) - Use typed publish commands (KafkaPublishCommand, RabbitPublishCommand, etc.) to provide specific functionality for different brokers.
 
 Choose the right middleware method based on your specific needs: `on_receive` to handle all incoming messages, `consume_scope` to process data, `publish_scope` to send outgoing messages, and `after_processed` to perform cleanup tasks.
