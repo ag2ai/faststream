@@ -4,181 +4,183 @@
 FastStream simplifies the process of writing producers and consumers for message queues, handling all the parsing, networking and documentation generation automatically.
 Making streaming microservices has never been easier. Designed with junior developers in mind, FastStream simplifies your work while keeping the door open for more advanced use cases.
 
-## Subscription and Serialization
-- [Subscription and Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/) - Subscription and Serialization Basics
-- [Annotation Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/annotation/) - Serialization using type annotations
-- [Pydantic Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/pydantic/) - Pydantic-based message parsing
-- [Msgspec Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/) - Msgspec for fast serialization
-- [Filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/) - Filter messages by criteria
-- [Testing](https://faststream.ag2.ai/latest/getting-started/subscription/test/) - Test subscribers and message flow
-- [Dynamic Subscribers](https://faststream.ag2.ai/latest/getting-started/subscription/dynamic/) - Create subscribers at runtime
+
+## Feature
+- [Feature](https://faststream.ag2.ai/latest/faststream/): Effortless event stream integration for your services
+
+## Tutorial
+- [Getting Started](https://faststream.ag2.ai/latest/getting-started/): QUICK START
+- [Subscription and Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/): FastStream provides a Message Broker agnostic way to subscribe to event streams.
+- [Annotation Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/annotation/): As you already know, FastStream serializes your incoming message body according to the function type annotations using Pydantic
+- [Pydantic Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/pydantic/): Besides, FastStream uses your handlers' annotations to collect information about the application schema and generate AsyncAPI schema.
+- [Msgspec Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/):
+- [Filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/): FastStream also allows you to specify the message processing way using message headers, body type or something else. The filter feature enables you to consume various messages with different schemas within a single event stream.
+- [Testing](https://faststream.ag2.ai/latest/getting-started/subscription/test/): Testability is a crucial part of any application, and FastStream provides you with the tools to test your code easily.
+- [Dynamic Subscribers](https://faststream.ag2.ai/latest/getting-started/subscription/dynamic/):
 
 ## Publishing
-- [Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/) - Publishing Basics
-- [Broker Publish](https://faststream.ag2.ai/latest/getting-started/publishing/broker/) - Publish using broker.publish() method
-- [Decorator](https://faststream.ag2.ai/latest/getting-started/publishing/decorator/) - Publisher decorator for handlers
-- [Object Decorator](https://faststream.ag2.ai/latest/getting-started/publishing/object/) - Publisher as a decorator object
-- [Direct Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/direct/) - Direct publishing with publisher object
-- [Testing](https://faststream.ag2.ai/latest/getting-started/publishing/test/) - Testing message publishing
+- [Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/): FastStream is broker-agnostic and easy to use, even as a client in non-FastStream applications.
+- [Broker Publish](https://faststream.ag2.ai/latest/getting-started/publishing/broker/): The easiest way to publish a message is to use a Broker, which allows you to use it as a publisher client in any applications.
+- [Decorator](https://faststream.ag2.ai/latest/getting-started/publishing/decorator/): The second-easiest way to publish messages is through the Publisher Decorator, which supports AsyncAPI and is ideal for quickly building applications, though it lacks full testing features. It creates a structured DataPipeline unit with input and output. The order of Subscriber and Publisher decorators is irrelevant, but @broker.publisher(...) can only be applied to functions already decorated by @broker.subscriber(...).
+- [Object Decorator](https://faststream.ag2.ai/latest/getting-started/publishing/object/): The Publisher Object offers a comprehensive way to publish messages with AsyncAPI support and testability features. It creates a reusable Publisher object and can also function as a decorator. The order of Subscriber and Publisher decorators is irrelevant, but @publisher can only be used with functions already decorated by @broker.subscriber(...).
+- [Direct Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/direct/): The Publisher Object offers a comprehensive way to publish messages, featuring AsyncAPI support and testability. It creates a reusable Publisher object that can be used directly for message publishing.
+- [Testing](https://faststream.ag2.ai/latest/getting-started/publishing/test/): Working with a Publisher object provides testing features such as an in-memory TestClient, local publishing with error propagation, and verification of the incoming message body.
 
 ## Routers
-- [Routers](https://faststream.ag2.ai/latest/getting-started/routers/) - Organize handlers with routers
+- [Routers](https://faststream.ag2.ai/latest/getting-started/routers/): FastStream's Broker Router allows you to split applications into modules, separate business logic from handler registration, and apply decoders, middleware, or dependencies to subscriber groups.
 
 ## Dependencies
-- [Dependencies](https://faststream.ag2.ai/latest/getting-started/dependencies/) - Dependency injection system
+- [Dependencies](https://faststream.ag2.ai/latest/getting-started/dependencies/): FastStream uses the secondary library FastDepends for dependency management. This dependency system is literally borrowed from FastAPI, so if you know how to work with that framework, you'll be comfortable with dependencies in FastStream.
 
 ## Context
-- [Context](https://faststream.ag2.ai/latest/getting-started/context/) - Context management for handlers
-- [Existing Fields](https://faststream.ag2.ai/latest/getting-started/context/existed/) - Access built-in context fields
-- [Custom Context](https://faststream.ag2.ai/latest/getting-started/context/custom/) - Add custom context data
-- [Fields Access](https://faststream.ag2.ai/latest/getting-started/context/fields/) - Retrieve context values in handlers
-- [Extra Options](https://faststream.ag2.ai/latest/getting-started/context/extra/) - Advanced context configuration
+- [Context](https://faststream.ag2.ai/latest/getting-started/context/): FastStreams has its own Dependency Injection container - Context, used to store application runtime objects and variables.
+- [Existing Fields](https://faststream.ag2.ai/latest/getting-started/context/existed/): Context includes global objects such as the current broker, the context itself for custom fields, a logger that tags messages with message_id, and the raw message, while ensuring that the message is local to your current consumer scope through contextlib.ContextVar.
+- [Custom Context](https://faststream.ag2.ai/latest/getting-started/context/custom/): You can also store your own objects in the Global and Local Context.
+- [Fields Access](https://faststream.ag2.ai/latest/getting-started/context/fields/): Sometimes, you may need to use a different name for the argument (not the one under which it is stored in the context) or get access to specific parts of the object. To do this, simply specify the name of what you want to access, and the context will provide you with the object.
+- [Extra Options](https://faststream.ag2.ai/latest/getting-started/context/extra/): Additionally, Context provides you with some extra capabilities for working with containing objects.
 
 ## Custom Serialization
-- [Custom Serialization](https://faststream.ag2.ai/latest/getting-started/serialization/) - Customize message serialization
-- [Parser](https://faststream.ag2.ai/latest/getting-started/serialization/parser/) - Custom message parsing logic
-- [Decoder](https://faststream.ag2.ai/latest/getting-started/serialization/decoder/) - Decode raw message data
-- [Examples](https://faststream.ag2.ai/latest/getting-started/serialization/examples/) - Practical serialization examples
+- [Custom Serialization](https://faststream.ag2.ai/latest/getting-started/serialization/): By default, FastStream uses the JSON format to send and receive messages. However, if you need to handle messages in other formats or with additional serialization steps, such as gzip, lz4, Avro, Protobuf or Msgpack, you can easily modify the serialization logic.
+- [Parser](https://faststream.ag2.ai/latest/getting-started/serialization/parser/): At this stage, FastStream serializes an incoming message from the broker's framework into a general format called StreamMessage. During this stage, the message body remains in the form of raw bytes. StreamMessage is a general representation of a message within FastStream. It contains all the information required for message processing within FastStreams.
+- [Decoder](https://faststream.ag2.ai/latest/getting-started/serialization/decoder/): At this stage, the body of a StreamMessage is transformed into the format that it will take when it enters your handler function. This stage is the one you will need to redefine more often.
+- [Examples](https://faststream.ag2.ai/latest/getting-started/serialization/examples/): Serialization examples with Protobuf, Msgpack and Avro. For data compression you can use  lz4 or zstd for compression algorithms. Also, you can still set a custom decoder at the Broker or Router level.
 
 ## Lifespan
-- [Lifespan](https://faststream.ag2.ai/latest/getting-started/lifespan/) - Manage application lifecycle
-- [Hooks](https://faststream.ag2.ai/latest/getting-started/lifespan/hooks/) - Startup and shutdown hooks
-- [Context](https://faststream.ag2.ai/latest/getting-started/lifespan/context/) - Share data across lifespan events
-- [Testing](https://faststream.ag2.ai/latest/getting-started/lifespan/test/) - Test lifespan handlers
+- [Lifespan](https://faststream.ag2.ai/latest/getting-started/lifespan/): You can define logic to execute before launching the application, which runs once before it starts receiving messages, and also code to terminate processes after the application stops, executing once more after the main application completes. This lifecycle coverage is useful for initializing application settings, establishing database connection pools, or running machine learning models.
+- [Hooks](https://faststream.ag2.ai/latest/getting-started/lifespan/hooks/): If your application uses Pydantic as a settings manager and has multiple .env files (like .env, .env.development, .env.test, .env.production) for different settings, FastStream enables you to switch between them at startup effortlessly by passing optional command-line arguments.
+- [Context](https://faststream.ag2.ai/latest/getting-started/lifespan/context/): You can define startup and shutdown logic using the lifespan parameter of the FastStream app along with a context manager. To illustrate this, you can create an async function lifespan() that utilizes yield.
+- [Testing](https://faststream.ag2.ai/latest/getting-started/lifespan/test/): In most cases, you test your subscriber and publisher functions, but occasionally you may need to trigger lifespan hooks in your tests as well. For this purpose, FastStream provides a special TestApp patcher that functions as a regular async context manager.
 
 ## Middlewares
-- [Middlewares](https://faststream.ag2.ai/latest/getting-started/middlewares/) - Middleware support for handlers
-- [Exception Middleware](https://faststream.ag2.ai/latest/getting-started/middlewares/exception/) - Handle exceptions globally
+- [Middlewares](https://faststream.ag2.ai/latest/getting-started/middlewares/): Middlewares in FastStream are a powerful mechanism for adding logic to any stage of the message processing pipeline, enabling features like integration with logging/metrics systems, application-level message serialization, rich message publishing, and more, with several methods to override for flexibility at the broker, router, or subscriber level.
+- [Exception Middleware](https://faststream.ag2.ai/latest/getting-started/middlewares/exception/): FastStream offers a special ExceptionMiddleware for registering exception processors at the top level of your application, allowing you to create it, register handlers, and add it to the broker, router, or subscribers like regular middleware.
 
 ## AsyncAPI
-- [AsyncAPI](https://faststream.ag2.ai/latest/getting-started/asyncapi/) - AsyncAPI schema and documentation
-- [Schema Export](https://faststream.ag2.ai/latest/getting-started/asyncapi/export/) - Export AsyncAPI schema as JSON/YAML
-- [Schema Hosting](https://faststream.ag2.ai/latest/getting-started/asyncapi/hosting/) - Serve AsyncAPI docs via web
-- [Customize Information](https://faststream.ag2.ai/latest/getting-started/asyncapi/custom/) - Customize AsyncAPI metadata
+- [Schema Export](https://faststream.ag2.ai/latest/getting-started/asyncapi/export/): This guide explains how to generate and serve AsyncAPI documentation for a FastStream application. Below is an example Python application that consumes data from a topic, increments the value, and outputs it to another topic. You can export AsyncAPI schema as JSON/YAML.
+- [Schema Hosting](https://faststream.ag2.ai/latest/getting-started/asyncapi/hosting/): FastStream offers a command to serve AsyncAPI documentation via CLI, requiring an Internet connection to fetch the HTML through CDN.
+- [Customize Information](https://faststream.ag2.ai/latest/getting-started/asyncapi/custom/): This guide explores how to customize AsyncAPI documentation for your FastStream application, including adding custom app info, broker details, handlers, and fine-tuning payload specifics.
 
 ## Integrations
-- [Integrations](https://faststream.ag2.ai/latest/getting-started/integrations/) - Framework integrations
-- [HTTP Async Frameworks](https://faststream.ag2.ai/latest/getting-started/integrations/frameworks/) - Integrate with async HTTP frameworks
-- [FastAPI Plugin](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/) - Use FastStream inside FastAPI
-- [Django](https://faststream.ag2.ai/latest/getting-started/integrations/django/) - Integrate with Django projects
+- [HTTP Async Frameworks](https://faststream.ag2.ai/latest/getting-started/integrations/frameworks/): FastStream brokers are very easy to integrate with any of your applications: it is enough to initialize the broker at startup and close it correctly at the end of your application.
+- [FastAPI Plugin](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/): FastStream can be used as a part of FastAPI. Just import a StreamRouter you need and declare the message handler in the same way as with a regular FastStream application.
+- [Django](https://faststream.ag2.ai/latest/getting-started/integrations/django/): Using FastStream with Django. Django is a high-level Python web framework that promotes rapid development and clean design, allowing developers to focus on building applications without the hassle of web development. In this tutorial, we'll explore how to integrate the FastStream app with a Django application.
 
 ## CLI
-- [CLI](https://faststream.ag2.ai/latest/getting-started/cli/) - FastStream command-line interface
+- [CLI](https://faststream.ag2.ai/latest/getting-started/cli/): FastStream has its own built-in CLI tool for your maximum comfort as a developer.
 
 ## Acknowledgement
-- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/) - Manual message acknowledgement
+- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/):
 
 ## ASGI
-- [ASGI](https://faststream.ag2.ai/latest/getting-started/asgi/) - Run FastStream as ASGI application
+- [ASGI](https://faststream.ag2.ai/latest/getting-started/asgi/): You often need to integrate your application with Prometheus metrics, K8S probes, and other observability features, which requires providing several HTTP endpoints; FastStream offers built-in ASGI support for basic functionality, allowing you to add custom ASGI routes and host AsyncAPI documentation in the same process, while also enabling reuse of the FastStream application object and compatibility with other ASGI frameworks.
 
 ## Observability
-- [Observability](https://faststream.ag2.ai/latest/getting-started/observability/) - Monitoring and observability tools
-- [Healthchecks](https://faststream.ag2.ai/latest/getting-started/observability/healthcheks/) - Health check endpoints
-- [Prometheus](https://faststream.ag2.ai/latest/getting-started/observability/prometheus/) - Expose metrics for Prometheus
-- [OpenTelemetry](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/) - Distributed tracing and telemetry
-- [Tracing](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/tracing/) - Trace message processing
-- [Baggage](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/baggage/) - Propagate context via baggage
-- [Sentry support](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/sentry/) - Error tracking with Sentry
-- [Logging](https://faststream.ag2.ai/latest/getting-started/observability/logging/) - Structured logging setup
+- [Healthchecks](https://faststream.ag2.ai/latest/getting-started/observability/healthcheks/): FastStream implements healthchecks through low-cost HTTP endpoints, allowing you to create liveness probes to detect when to restart a container and readiness probes to determine when a container is ready to accept traffic after completing initial tasks.
+- [Prometheus](https://faststream.ag2.ai/latest/getting-started/observability/prometheus/): Prometheus is an open-source monitoring and alerting toolkit designed for reliability and scalability, enabling users to collect metrics, scrape data from various sources, store it efficiently, and query it in real-time, with a flexible data model and powerful query language that integrates seamlessly with Grafana for monitoring system and application health and performance.
+- [OpenTelemetry](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/): OpenTelemetry is an open-source observability framework that standardizes the collection and export of telemetry data, including traces, metrics, and logs, aiming to simplify integration and standardization across services and make observability a built-in feature of software development.
+- [Tracing](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/tracing/): Tracing is an observability method that tracks request flows through various services in a distributed system, providing insights into service interactions, performance bottlenecks, and errors, resulting in a detailed map of service interactions often visualized as a trace diagram, which helps developers understand application behavior and performance.
+- [Baggage](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/baggage/): OpenTelemetry Baggage is a context propagation mechanism for passing custom metadata across service boundaries, and FastStream offers an abstraction to initialize, propagate, modify, and stop propagating baggage through headers.
+- [Sentry support](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/sentry/): Sentry does not fully support OpenTelemetry due to its own context format, which is incompatible with Python implementations; however, you can export spans to Sentry by launching the OpenTelemetry Collector container, which converts traces to the Sentry format for export based on the specified DSN.
+- [Logging](https://faststream.ag2.ai/latest/getting-started/observability/logging/): For application and access logging, use the broker's access_logger from the application context to log requests, change logging levels via the FastStream CLI, configure logging from a file, and utilize your own loggers since FastStream works with the standard logging.Logger; Structlog can also be integrated as a production-ready logging solution.
 
 ## Config Management
-- [Config Management](https://faststream.ag2.ai/latest/getting-started/config/) - Application configuration management
+- [Config Management](https://faststream.ag2.ai/latest/getting-started/config/): To manage external settings like broker connections or database credentials, it's common to use environment variables, and Pydantic offers a utility for effectively handling these settings through its settings management feature.
 
 ## Task Scheduling
-- [Task Scheduling](https://faststream.ag2.ai/latest/scheduling/) - Schedule periodic tasks (external link)
+- [Task Scheduling](https://faststream.ag2.ai/latest/scheduling/): FastStream is designed for asynchronous service development and supports building distributed event-based systems, but task scheduling conflicts with its core ideology; however, you can integrate scheduling into your FastStream application using additional dependencies like Taskiq, an asynchronous distributed task queue, or other libraries that offer scheduling functionality.
 
 ## FastStream Project Template
-- [FastStream Project Template](https://faststream.ag2.ai/latest/getting-started/template/) - Generate projects with cookiecutter
+- [FastStream Project Template](https://faststream.ag2.ai/latest/getting-started/template/): The Cookiecutter FastStream template is a versatile repository that offers a solid foundation for Python projects, including a basic application, testing infrastructure, linting scripts, and development tools to streamline your development process and maintain high code quality, whether starting a new application or enhancing an existing one.
 
 ## Kafka
-- [Kafka](https://faststream.ag2.ai/latest/kafka/kafka/) - Kafka Integration Overview
-- [AIOKafka](https://faststream.ag2.ai/latest/kafka/) - AIOKafka-based Broker
-- [Subscription](https://faststream.ag2.ai/latest/kafka/Subscriber/) - Subscribe to Kafka topics
-- [Batch Subscriber](https://faststream.ag2.ai/latest/kafka/Subscriber/batch_subscriber/) - Consume messages in batches
-- [Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/) - Publish messages to Kafka
-- [Batch Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/batch_publisher/) - Send multiple messages at once
-- [Publish With Key](https://faststream.ag2.ai/latest/kafka/Publisher/using_a_key/) - Use message keys for partitioning
-- [Acknowledgement](https://faststream.ag2.ai/latest/kafka/ack/) - Manual message acknowledgment
-- [Message Information](https://faststream.ag2.ai/latest/kafka/message/) - Access raw message metadata
-- [Security Configuration](https://faststream.ag2.ai/latest/kafka/security/) - Configure SSL, SASL, and authentication
-- [Confluent](https://faststream.ag2.ai/latest/confluent/) - Confluent Kafka Client Integration
-- [Subscription](https://faststream.ag2.ai/latest/confluent/Subscriber/) - Subscribe using Confluent client
-- [Batch Subscriber](https://faststream.ag2.ai/latest/confluent/Subscriber/batch_subscriber/) - Batch message consumption
-- [Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/) - Publish with Confluent client
-- [Batch Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/batch_publisher/) - Batch publishing support
-- [Publish With Key](https://faststream.ag2.ai/latest/confluent/Publisher/using_a_key/) - Key-based message routing
-- [Acknowledgement](https://faststream.ag2.ai/latest/confluent/ack/) - Commit offsets manually
-- [Message Information](https://faststream.ag2.ai/latest/confluent/message/) - Extract message headers and metadata
-- [Security Configuration](https://faststream.ag2.ai/latest/confluent/security/) - SASL/SSL and Confluent Cloud setup
-- [Additional Configuration](https://faststream.ag2.ai/latest/confluent/additional-configuration/) - Advanced Confluent settings
-- [How-To](https://faststream.ag2.ai/latest/howto/kafka/) - Practical Kafka usage guides
-- [Kafka RPC](https://faststream.ag2.ai/latest/howto/kafka/rpc/) - Implement request-response pattern over Kafka
+- [Kafka](https://faststream.ag2.ai/latest/kafka/kafka/): Kafka Integration Overview
+- [AIOKafka](https://faststream.ag2.ai/latest/kafka/): AIOKafka-based Broker
+- [Subscription](https://faststream.ag2.ai/latest/kafka/Subscriber/): Subscribe to Kafka topics
+- [Batch Subscriber](https://faststream.ag2.ai/latest/kafka/Subscriber/batch_subscriber/): Consume messages in batches
+- [Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/): Publish messages to Kafka
+- [Batch Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/batch_publisher/): Send multiple messages at once
+- [Publish With Key](https://faststream.ag2.ai/latest/kafka/Publisher/using_a_key/): Use message keys for partitioning
+- [Acknowledgement](https://faststream.ag2.ai/latest/kafka/ack/): Manual message acknowledgment
+- [Message Information](https://faststream.ag2.ai/latest/kafka/message/): Access raw message metadata
+- [Security Configuration](https://faststream.ag2.ai/latest/kafka/security/): Configure SSL, SASL, and authentication
+- [Confluent](https://faststream.ag2.ai/latest/confluent/): Confluent Kafka Client Integration
+- [Subscription](https://faststream.ag2.ai/latest/confluent/Subscriber/): Subscribe using Confluent client
+- [Batch Subscriber](https://faststream.ag2.ai/latest/confluent/Subscriber/batch_subscriber/): Batch message consumption
+- [Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/): Publish with Confluent client
+- [Batch Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/batch_publisher/): Batch publishing support
+- [Publish With Key](https://faststream.ag2.ai/latest/confluent/Publisher/using_a_key/): Key-based message routing
+- [Acknowledgement](https://faststream.ag2.ai/latest/confluent/ack/): Commit offsets manually
+- [Message Information](https://faststream.ag2.ai/latest/confluent/message/): Extract message headers and metadata
+- [Security Configuration](https://faststream.ag2.ai/latest/confluent/security/): SASL/SSL and Confluent Cloud setup
+- [Additional Configuration](https://faststream.ag2.ai/latest/confluent/additional-configuration/): Advanced Confluent settings
+- [How-To](https://faststream.ag2.ai/latest/howto/kafka/): Practical Kafka usage guides
+- [Kafka RPC](https://faststream.ag2.ai/latest/howto/kafka/rpc/): Implement request-response pattern over Kafka
 
 ## RabbitMQ
-- [RabbitMQ](https://faststream.ag2.ai/latest/rabbit/) - RabbitMQ Integration Overview
-- [Subscription](https://faststream.ag2.ai/latest/rabbit/examples/) - RabbitMQ Subscription Patterns
-- [Direct](https://faststream.ag2.ai/latest/rabbit/examples/direct/) - Direct exchange: routing by exact key
-- [Fanout](https://faststream.ag2.ai/latest/rabbit/examples/fanout/) - Fanout exchange: broadcast to all queues
-- [Topic](https://faststream.ag2.ai/latest/rabbit/examples/topic/) - Topic exchange: pattern-based routing
-- [Headers](https://faststream.ag2.ai/latest/rabbit/examples/headers/) - Headers exchange: routing by key-value headers
-- [Stream](https://faststream.ag2.ai/latest/rabbit/examples/stream/) - Stream exchange: persistent message streaming
-- [Publishing](https://faststream.ag2.ai/latest/rabbit/publishing/) - Publishing messages to RabbitMQ
-- [RPC](https://faststream.ag2.ai/latest/rabbit/rpc/) - Implement request-response pattern (RPC)
-- [Acknowledgement](https://faststream.ag2.ai/latest/rabbit/ack/) - Manual message acknowledgment control
-- [Declare Queue/Exchange](https://faststream.ag2.ai/latest/rabbit/declare/) - Explicitly declare queues and exchanges
-- [Message Information](https://faststream.ag2.ai/latest/rabbit/message/) - Access message metadata and headers
-- [Security Configuration](https://faststream.ag2.ai/latest/rabbit/security/) - Configure SSL, credentials, and auth
+- [RabbitMQ](https://faststream.ag2.ai/latest/rabbit/): RabbitMQ Integration Overview
+- [Subscription](https://faststream.ag2.ai/latest/rabbit/examples/): RabbitMQ Subscription Patterns
+- [Direct](https://faststream.ag2.ai/latest/rabbit/examples/direct/): Direct exchange: routing by exact key
+- [Fanout](https://faststream.ag2.ai/latest/rabbit/examples/fanout/): Fanout exchange: broadcast to all queues
+- [Topic](https://faststream.ag2.ai/latest/rabbit/examples/topic/): Topic exchange: pattern-based routing
+- [Headers](https://faststream.ag2.ai/latest/rabbit/examples/headers/): Headers exchange: routing by key-value headers
+- [Stream](https://faststream.ag2.ai/latest/rabbit/examples/stream/): Stream exchange: persistent message streaming
+- [Publishing](https://faststream.ag2.ai/latest/rabbit/publishing/): Publishing messages to RabbitMQ
+- [RPC](https://faststream.ag2.ai/latest/rabbit/rpc/): Implement request-response pattern (RPC)
+- [Acknowledgement](https://faststream.ag2.ai/latest/rabbit/ack/): Manual message acknowledgment control
+- [Declare Queue/Exchange](https://faststream.ag2.ai/latest/rabbit/declare/): Explicitly declare queues and exchanges
+- [Message Information](https://faststream.ag2.ai/latest/rabbit/message/): Access message metadata and headers
+- [Security Configuration](https://faststream.ag2.ai/latest/rabbit/security/): Configure SSL, credentials, and auth
 
 ## NATS
-- [NATS](https://faststream.ag2.ai/latest/nats/) - NATS Integration Overview
-- [Subscription](https://faststream.ag2.ai/latest/nats/examples/) - Subscribe to NATS subjects
-- [Direct](https://faststream.ag2.ai/latest/nats/examples/direct/) - Direct subject-based subscription
-- [Pattern](https://faststream.ag2.ai/latest/nats/examples/pattern/) - Wildcard-based topic pattern matching
-- [JetStream](https://faststream.ag2.ai/latest/nats/jetstream/) - NATS JetStream support (persistent streams)
-- [Pull Subscriber](https://faststream.ag2.ai/latest/nats/jetstream/pull/) - Pull-based message consumption
-- [Key-Value Storage](https://faststream.ag2.ai/latest/nats/jetstream/key-value/) - Use JetStream KV store
-- [Object Storage](https://faststream.ag2.ai/latest/nats/jetstream/object/) - Store and retrieve large objects
-- [Acknowledgement](https://faststream.ag2.ai/latest/nats/jetstream/ack/) - Manual message acknowledgment in JetStream
-- [Publishing](https://faststream.ag2.ai/latest/nats/publishing/) - Publishing messages to NATS
-- [RPC](https://faststream.ag2.ai/latest/nats/rpc/) - Request-response pattern over NATS
-- [Message Information](https://faststream.ag2.ai/latest/nats/message/) - Access message metadata and headers
-- [How-To](https://faststream.ag2.ai/latest/howto/nats/) - Practical NATS usage guides
-- [DynaConf](https://faststream.ag2.ai/latest/howto/nats/dynaconf/) - Integrate with DynaConf configuration
-- [In-Progress](https://faststream.ag2.ai/latest/howto/nats/in-progress/) - Track message processing status
+- [NATS](https://faststream.ag2.ai/latest/nats/): NATS Integration Overview
+- [Subscription](https://faststream.ag2.ai/latest/nats/examples/): Subscribe to NATS subjects
+- [Direct](https://faststream.ag2.ai/latest/nats/examples/direct/): Direct subject-based subscription
+- [Pattern](https://faststream.ag2.ai/latest/nats/examples/pattern/): Wildcard-based topic pattern matching
+- [JetStream](https://faststream.ag2.ai/latest/nats/jetstream/): NATS JetStream support (persistent streams)
+- [Pull Subscriber](https://faststream.ag2.ai/latest/nats/jetstream/pull/): Pull-based message consumption
+- [Key-Value Storage](https://faststream.ag2.ai/latest/nats/jetstream/key-value/): Use JetStream KV store
+- [Object Storage](https://faststream.ag2.ai/latest/nats/jetstream/object/): Store and retrieve large objects
+- [Acknowledgement](https://faststream.ag2.ai/latest/nats/jetstream/ack/): Manual message acknowledgment in JetStream
+- [Publishing](https://faststream.ag2.ai/latest/nats/publishing/): Publishing messages to NATS
+- [RPC](https://faststream.ag2.ai/latest/nats/rpc/): Request-response pattern over NATS
+- [Message Information](https://faststream.ag2.ai/latest/nats/message/): Access message metadata and headers
+- [How-To](https://faststream.ag2.ai/latest/howto/nats/): Practical NATS usage guides
+- [DynaConf](https://faststream.ag2.ai/latest/howto/nats/dynaconf/): Integrate with DynaConf configuration
+- [In-Progress](https://faststream.ag2.ai/latest/howto/nats/in-progress/): Track message processing status
 
 ## Redis
-- [Redis](https://faststream.ag2.ai/latest/redis/) - Redis Integration Overview
-- [Pub/Sub](https://faststream.ag2.ai/latest/redis/pubsub/) - Redis Publish-Subscribe pattern
-- [Subscription](https://faststream.ag2.ai/latest/redis/pubsub/subscription/) - Subscribe to Redis Pub/Sub channels
-- [Publishing](https://faststream.ag2.ai/latest/redis/pubsub/publishing/) - Publish messages via Pub/Sub
-- [List](https://faststream.ag2.ai/latest/redis/list/) - Use Redis lists as message queues
-- [Subscription](https://faststream.ag2.ai/latest/redis/list/subscription/) - Consume messages from Redis list
-- [Publishing](https://faststream.ag2.ai/latest/redis/list/publishing/) - Push messages to Redis list
-- [Batching](https://faststream.ag2.ai/latest/redis/list/batch/) - Batch processing for list consumers
-- [Streams](https://faststream.ag2.ai/latest/redis/streams/) - Redis Streams support
-- [Subscription](https://faststream.ag2.ai/latest/redis/streams/subscription/) - Consume from Redis Streams
-- [Publishing](https://faststream.ag2.ai/latest/redis/streams/publishing/) - Append messages to Redis Streams
-- [Groups](https://faststream.ag2.ai/latest/redis/streams/groups/) - Consumer groups for parallel processing
-- [Batching](https://faststream.ag2.ai/latest/redis/streams/batch/) - Batch message consumption from streams
-- [Acknowledgement](https://faststream.ag2.ai/latest/redis/streams/ack/) - Manual acknowledgment in consumer groups
-- [RPC](https://faststream.ag2.ai/latest/redis/rpc/) - Request-response pattern over Redis
-- [Pipeline](https://faststream.ag2.ai/latest/redis/pipeline/) - Use Redis pipelines for optimized operations
-- [Message Information](https://faststream.ag2.ai/latest/redis/message/) - Access raw message metadata and headers
-- [Security Configuration](https://faststream.ag2.ai/latest/redis/security/) - Configure SSL, password, and auth
-- [Message Format](https://faststream.ag2.ai/latest/redis/message_format/) - Customize message serialization format
+- [Redis](https://faststream.ag2.ai/latest/redis/): Redis Integration Overview
+- [Pub/Sub](https://faststream.ag2.ai/latest/redis/pubsub/): Redis Publish-Subscribe pattern
+- [Subscription](https://faststream.ag2.ai/latest/redis/pubsub/subscription/): Subscribe to Redis Pub/Sub channels
+- [Publishing](https://faststream.ag2.ai/latest/redis/pubsub/publishing/): Publish messages via Pub/Sub
+- [List](https://faststream.ag2.ai/latest/redis/list/): Use Redis lists as message queues
+- [Subscription](https://faststream.ag2.ai/latest/redis/list/subscription/): Consume messages from Redis list
+- [Publishing](https://faststream.ag2.ai/latest/redis/list/publishing/): Push messages to Redis list
+- [Batching](https://faststream.ag2.ai/latest/redis/list/batch/): Batch processing for list consumers
+- [Streams](https://faststream.ag2.ai/latest/redis/streams/): Redis Streams support
+- [Subscription](https://faststream.ag2.ai/latest/redis/streams/subscription/): Consume from Redis Streams
+- [Publishing](https://faststream.ag2.ai/latest/redis/streams/publishing/): Append messages to Redis Streams
+- [Groups](https://faststream.ag2.ai/latest/redis/streams/groups/): Consumer groups for parallel processing
+- [Batching](https://faststream.ag2.ai/latest/redis/streams/batch/): Batch message consumption from streams
+- [Acknowledgement](https://faststream.ag2.ai/latest/redis/streams/ack/): Manual acknowledgment in consumer groups
+- [RPC](https://faststream.ag2.ai/latest/redis/rpc/): Request-response pattern over Redis
+- [Pipeline](https://faststream.ag2.ai/latest/redis/pipeline/): Use Redis pipelines for optimized operations
+- [Message Information](https://faststream.ag2.ai/latest/redis/message/): Access raw message metadata and headers
+- [Security Configuration](https://faststream.ag2.ai/latest/redis/security/): Configure SSL, password, and auth
+- [Message Format](https://faststream.ag2.ai/latest/redis/message_format/): Customize message serialization format
 
 ## Reference - Code API
-- [Reference - Code API](https://faststream.ag2.ai/latest/api/) - FastStream Public API Reference
-- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/) - Public API
-- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/) - All API
+- [Reference - Code API](https://faststream.ag2.ai/latest/api/): FastStream Public API Reference
+- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): Public API
+- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): All API
 
 ## FastStream People
-- [FastStream People](https://faststream.ag2.ai/latest/faststream-people/) - Core Team and Contributors
+- [FastStream People](https://faststream.ag2.ai/latest/faststream-people/): Core Team and Contributors
 
 ## Contributing
-- [Contributing](https://faststream.ag2.ai/latest/getting-started/contributing/) - How to contribute to the project
-- [Development](https://faststream.ag2.ai/latest/getting-started/contributing/CONTRIBUTING/) - Setting up dev environment and code contributions
-- [Documentation](https://faststream.ag2.ai/latest/getting-started/contributing/docs/) - Writing and improving documentation
+- [Contributing](https://faststream.ag2.ai/latest/getting-started/contributing/): How to contribute to the project
+- [Development](https://faststream.ag2.ai/latest/getting-started/contributing/CONTRIBUTING/): Setting up dev environment and code contributions
+- [Documentation](https://faststream.ag2.ai/latest/getting-started/contributing/docs/): Writing and improving documentation
 
 ## Release Notes
-- [Release Notes](https://faststream.ag2.ai/latest/release/) - Version history and changelog
+- [Release Notes](https://faststream.ag2.ai/latest/release/): Version history and changelog
