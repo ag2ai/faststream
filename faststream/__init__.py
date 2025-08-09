@@ -7,13 +7,14 @@ from faststream.app import FastStream
 from faststream.message import SourceType, StreamMessage
 from faststream.middlewares import AckPolicy, BaseMiddleware, ExceptionMiddleware
 from faststream.params import Context, Depends, Header, NoCast, Path
-from faststream.response import PublishCommand, PublishType, Response
+from faststream.response import BatchPublishCommand, PublishCommand, PublishType, Response
 from faststream.specification import AsyncAPI
 
 __all__ = (
     "AckPolicy",
     "AsyncAPI",
     "BaseMiddleware",
+    "BatchPublishCommand",
     "Context",
     "ContextRepo",
     "Depends",
