@@ -310,10 +310,10 @@ class RetryMiddleware(BaseMiddleware):
                 return await call_next(msg)
             except Exception:
                 if attempt == self.MAX_RETRIES:
-                    logger.exception("Failed after %s retries: ", self.MAX_RETRIES)
+                    logger.exception("Failed after %s retries.", self.MAX_RETRIES)
                     raise
 
-                logger.exception("Attempt %s failed, retrying: ", attempt + 1)
+                logger.exception("Attempt %s failed, retrying...", attempt + 1)
                 await asyncio.sleep(2**attempt)  # Exponential backoff
         return None
 
