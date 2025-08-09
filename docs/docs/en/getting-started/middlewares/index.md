@@ -266,8 +266,7 @@ Middlewares can access the [Context](../context/){.internal-link} for all availa
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from faststream import BaseMiddleware
-from faststream.message import StreamMessage
+from faststream import BaseMiddleware, StreamMessage
 
 
 class ContextMiddleware(BaseMiddleware):
@@ -292,8 +291,7 @@ from typing import Any, Final
 
 from typing_extensions import override
 
-from faststream import BaseMiddleware, FastStream, Logger
-from faststream.message import StreamMessage
+from faststream import BaseMiddleware, FastStream, Logger, StreamMessage
 from faststream.redis import RedisBroker
 
 
