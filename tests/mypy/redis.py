@@ -26,13 +26,13 @@ from faststream.redis.publisher.usecase import (
     StreamPublisher,
 )
 from faststream.redis.subscriber.usecases import (
-    ChannelSubscriber,
-    ListSubscriber,
     ChannelConcurrentSubscriber,
-    StreamConcurrentSubscriber,
-    ListConcurrentSubscriber,
-    StreamBatchSubscriber,
+    ChannelSubscriber,
     ListBatchSubscriber,
+    ListConcurrentSubscriber,
+    ListSubscriber,
+    StreamBatchSubscriber,
+    StreamConcurrentSubscriber,
     StreamSubscriber,
 )
 

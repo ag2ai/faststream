@@ -17,6 +17,12 @@ from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 from faststream.kafka.publisher import BatchPublisher, DefaultPublisher
+from faststream.kafka.subscriber.usecase import (
+    BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
+)
 
 
 def sync_decoder(msg: KafkaMessage) -> DecodedMessage:
@@ -362,6 +368,22 @@ async def check_publisher_publish_batch_type() -> None:
         None, topic="test", no_confirm=fake_bool()
     )
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+
+
+def check_subscriber_types() -> None:
+    broker = KafkaBroker()
+
+    sub1 = broker.subscriber("test")
+    assert_type(sub1, DefaultSubscriber)
+
+    sub2 = broker.subscriber("test", batch=True)
+    assert_type(sub2, BatchSubscriber)
+
+    sub3 = broker.subscriber("test", max_workers=2)
+    assert_type(sub3, ConcurrentDefaultSubscriber)
+
+    sub4 = broker.subscriber("test", group_id="test", max_workers=2)
+    assert_type(sub4, ConcurrentBetweenPartitionsSubscriber)
 
 
 def fake_bool() -> bool:

@@ -90,7 +90,7 @@ def test_not_bind_arg(args: str):
         pytest.param(["--key", "-value"], {"key": True, "value": True}),
         pytest.param(["-key", "--value"], {"key": True, "value": True}),
         pytest.param(["--ke-y", "value"], {"ke_y": "value"}),
-    )
+    ),
 )
 def test_parse_extra_args(args, expected_extra):
     _, extra = parse_cli_args(*args)

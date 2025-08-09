@@ -181,7 +181,7 @@ class KafkaRoute(SubscriberRoute):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: int = 1,
+        max_workers: int | None = None,
     ) -> None:
         """Initialize KafkaRoute.
 

@@ -2604,7 +2604,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             ),
         ] = False,
         max_workers: Annotated[
-            int,
+            int | None,
             Doc(
                 "Maximum number of messages being processed concurrently. With "
                 "`auto_commit=False` processing is concurrent between partitions and "
@@ -2613,7 +2613,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 "application instances running workers in the same consumer group "
                 "is equal to the number of partitions in the topic.",
             ),
-        ] = 1,
+        ] = None,
     ) -> Union[
         "BatchSubscriber",
         "DefaultSubscriber",
@@ -2670,12 +2670,16 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             response_model_exclude_none=response_model_exclude_none,
         )
 
+        workers = max_workers or 1
+
         if batch:
             return cast("BatchSubscriber", subscriber)
-        if max_workers > 1:
+
+        if workers > 1:
             if auto_commit:
                 return cast("ConcurrentDefaultSubscriber", subscriber)
             return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
+
         return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
