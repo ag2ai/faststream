@@ -25,6 +25,16 @@ from faststream.redis.publisher.usecase import (
     ListPublisher,
     StreamPublisher,
 )
+from faststream.redis.subscriber.usecases import (
+    ChannelSubscriber,
+    ListSubscriber,
+    ChannelConcurrentSubscriber,
+    StreamConcurrentSubscriber,
+    ListConcurrentSubscriber,
+    StreamBatchSubscriber,
+    ListBatchSubscriber,
+    StreamSubscriber,
+)
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -392,3 +402,39 @@ async def check_list_subscriber() -> None:
 
     async for msg in subscriber:
         assert_type(msg, RedisListMessage)
+
+
+def check_channel_subscriber_types() -> None:
+    broker = Broker()
+
+    sub1 = broker.subscriber("test")
+    assert_type(sub1, ChannelSubscriber)
+
+    sub2 = broker.subscriber(channel="test", max_workers=2)
+    assert_type(sub2, ChannelConcurrentSubscriber)
+
+
+def check_stream_subscriber_types() -> None:
+    broker = Broker()
+
+    sub1 = broker.subscriber(stream="test")
+    assert_type(sub1, StreamSubscriber)
+
+    sub2 = broker.subscriber(stream=StreamSub("test"))
+    assert_type(sub2, StreamSubscriber | StreamBatchSubscriber)
+
+    sub3 = broker.subscriber(stream="test", max_workers=2)
+    assert_type(sub3, StreamConcurrentSubscriber)
+
+
+def check_list_subscriber_types() -> None:
+    broker = Broker()
+
+    sub1 = broker.subscriber(list="test")
+    assert_type(sub1, ListSubscriber)
+
+    sub2 = broker.subscriber(list=ListSub("test"))
+    assert_type(sub2, ListSubscriber | ListBatchSubscriber)
+
+    sub3 = broker.subscriber(list="test", max_workers=2)
+    assert_type(sub3, ListConcurrentSubscriber)
