@@ -1,3 +1,4 @@
+---
 # 0.5 - API
 # 2 - Release
 # 3 - Contributing
@@ -7,7 +8,7 @@ search:
   boost: 10
 ---
 
-# 🔗 Middlewares introduction
+# Introduction Middleware
 
 Middlewares in **FastStream** allow you to process messages before and after they are handled by your code.
 This allows you to add common functionality to multiple handlers without duplicating code.
@@ -18,7 +19,7 @@ In this section, you will find a list of available middlewares and detailed info
 
 ---
 
-## 🌊 Basic: Middlewares Flow
+## Basic: Middlewares Flow
 
 ![flow](../../../assets/img/middlewares-flow.svg){ width=300 height=100 }
 
@@ -27,7 +28,7 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
 1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
 3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
+4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. otherwise, the event will be passed to another handler. 
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
 5. [**publish_scope**](#important-information-about-publishscope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
@@ -44,7 +45,7 @@ from faststream import BaseMiddleware
 
 class MyMiddleware(BaseMiddleware):
     async def on_receive(self) -> None:
-        # All events are included here, without any filters or other side effects.
+        # All events are included here, without any other side effects.
         print(f"Received: {self.msg}")
         return await super().on_receive()
 
@@ -114,16 +115,10 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-!!! danger
-    **Important information about `filter`**
-
-    It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
-    This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish` and `after_processed` will not be executed.
-
 !!! note
     **Important information about `consume_scope`**
 
-    The `consume_scope` method is called for each incoming message that passes through the [filter stage](#important-information-about-filter), right before the [decoding stage](#basic-middlewares-flow). This is true for all message consumption methods, making it a crucial part of the process for processing incoming data.
+    The `consume_scope` method is called for each incoming message that passes through the filtering stage, right before the [decoding stage](#basic-middlewares-flow).
 
     Specifically, the `consume_scope` stage is triggered for:
 
@@ -338,11 +333,10 @@ app = FastStream(broker)
 
 Middlewares in **FastStream** offer a powerful mechanism to hook into the message processing lifecycle. Key points to remember:
 
-1.  [**Execution Order is Key**](#basic-middlewares-flow): Middlewares operate in a strict sequence: `on_receive` → `parser` → `filter` → `consume_scope` → `decoder` → `handler` → `publish_scope` → `publish` → `after_processed`. Understanding this flow is crucial for correct implementation.
-2.  [**Filtering is Final**](../subscription/filtering.md){.internal-link}: If a message is rejected by a `filter`, the processing pipeline halts for that message. No further middleware methods (`consume_scope`, `after_processed`, etc.) will be executed.
-3.  **Comprehensive Publishing Hook**: The `publish_scope` method intercepts *all* outgoing messages, whether from a `@publisher` decorator, a direct `#!python broker.publish()/publisher.publish()` call, or an RPC `broker.request()`.
-4.  **Chain of Responsibility**: To ensure the message continues through the processing pipeline, your middleware *must* call the next component. This is typically done by calling `call_next(...)` with the message or command, or by calling the `super()` implementation of the method.
-5.  [**Shared State with Context**](../context/){.internal-link}: All middleware methods have access to the FastStream Context via `#!python self.context`.
-6.  [**Broker-specific extensions**](#if-the-basic-publishcommand-does-not-meet-your-needs-you-can-use-the-extended-option-here-is-an-example): Use typed publish commands (e.g., `KafkaPublishCommand`, `RabbitPublishCommand`) to access and manipulate broker-specific attributes when publishing messages.
+1. [**Order of execution matters**](#basic-middlewares-flow){.internal-link} - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → publish → `after_processed`.
+2. **Comprehensive Publishing Hook**: The `publish_scope` method intercepts all outgoing messages, regardless of whether they are from a `#!python @publisher` decorator, a direct `#!python broker.publish()` or `#!python publisher.publish()` call, or an RPC `#!python broker.request()`.
+3. **Chain of Responsibility**: In order to ensure that the message continues through the processing pipeline, your middleware must call the next component in the chain. This is typically done by calling the `call_next()` method with the message or command as an argument, or by using the `super()` function to call the implementation of the next method in the chain.
+4. [**Shared State with Context**](../context/){.internal-link}: All middleware methods have access to the FastStream context via `#!python self.context`.
+5. [**Broker-specific extensions**](#if-the-basic-publishcommand-does-not-meet-your-needs-you-can-use-the-extended-option-here-is-an-example){.internal-link}: If the basic publish command does not meet your needs, you can use the extended option. Here is an example: Use typed publish commands (`KafkaPublishCommand` and `RabbitPublishCommand`) to access and manipulate broker-specific attributes when publishing messages.
 
 To choose the right method for your needs, think about the stage you want to intervene in: **on_receive** for the initial message arrival, **consume_scope** to wrap the core processing logic, **publish_scope** for outgoing messages, and **after_processed** for post-processing and cleanup.
