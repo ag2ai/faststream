@@ -1,7 +1,5 @@
 from collections.abc import Awaitable, Callable
 
-from faststream.rabbit.publisher.usecase import RabbitPublisher
-from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 import prometheus_client
 from aio_pika import IncomingMessage
 from aiormq.abc import ConfirmationFrameType
@@ -12,6 +10,8 @@ from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRo
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
+from faststream.rabbit.publisher.usecase import RabbitPublisher
+from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:

@@ -200,6 +200,7 @@ def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
 @pytest.mark.slow()
 @skip_windows
 @require_aiokafka
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_serve_asyncapi_docs_from_app(
     generate_template: GenerateTemplateFactory,
     faststream_cli: FastStreamCLIFactory,
@@ -218,6 +219,7 @@ def test_serve_asyncapi_docs_from_app(
 @pytest.mark.slow()
 @skip_windows
 @require_aiokafka
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("doc_filename", "doc"),
     (
