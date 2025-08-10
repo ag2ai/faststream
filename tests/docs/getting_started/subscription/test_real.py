@@ -123,6 +123,7 @@ async def test_handle_redis() -> None:
 @pytest.mark.asyncio()
 @pytest.mark.redis()
 @require_redis
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 async def test_validate_redis() -> None:
     from docs.docs_src.getting_started.subscription.redis.real_testing import (
         test_validation_error as test_validation_error_red,

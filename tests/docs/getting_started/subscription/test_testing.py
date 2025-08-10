@@ -123,7 +123,7 @@ async def test_handle_redis() -> None:
 @require_redis
 async def test_validate_redis() -> None:
     from docs.docs_src.getting_started.subscription.redis.testing import (
-        test_validation_error as test_validation_error_rd,
+        test_validation_error as test_validation_error_red,
     )
 
-    await test_validation_error_rd()
+    await test_validation_error_red()
