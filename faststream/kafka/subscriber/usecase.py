@@ -133,7 +133,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[MsgType] | None":
+    ) -> "KafkaMessage | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -152,7 +152,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         context = self._outer_config.fd_config.context
 
-        return await process_msg(
+        msg: KafkaMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
@@ -160,6 +160,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             parser=self._parser,
             decoder=self._decoder,
         )
+        return msg
 
     @override
     async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]

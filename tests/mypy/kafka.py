@@ -370,6 +370,18 @@ async def check_publisher_publish_batch_type() -> None:
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
 
 
+async def check_subscriber_consume_type() -> None:
+    broker = KafkaBroker()
+
+    subscriber = broker.subscriber("test")
+
+    message = await subscriber.get_one()
+    assert_type(message, KafkaMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, KafkaMessage)
+
+
 def check_subscriber_types() -> None:
     broker = KafkaBroker()
 
