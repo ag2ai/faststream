@@ -1,4 +1,3 @@
----
 # 0.5 - API
 # 2 - Release
 # 3 - Contributing
@@ -28,11 +27,11 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
 1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
 3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](../subscription/index.md){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
+4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues. Otherwise, it stops here.
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
-5. [**publish_scope**](../publishing/decorator.md){.internal-link} - For each `@publisher` decorator, the function is called (if there are 4 publishers, the function will be called 4 times).
-    - [**publish**](../publishing/index.md){.internal-link} - The publish_scope calls the publish method, and the result of the handler you return will be used as the argument for sending the message.
+5. [**publish_scope**](#important-information-about-publishscope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
+    - [**publish**](../publishing/index.md){.internal-link} - The publish_scope calls the publish method, and the result of `consume_scope` will be used as the argument for sending the message.
 6. **after_processed** - Final cleanup and post-processing stage.
 
 ## 💡 The most common scenario
@@ -100,7 +99,7 @@ class MyMiddleware(BaseMiddleware):
         call_next: Callable[[PublishCommand], Awaitable[Any]],
         cmd: PublishCommand,
     ) -> Any:
-        return await super().publish_scope(call_next, cmd)
+        return await call_next(cmd)
 
     # Use this if you want to perform post-processing tasks after message handling has completed,
     # such as cleaning up, logging errors, collecting metrics, or committing transactions.
@@ -115,28 +114,41 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-### ❗ **Important** information about **`filter`**
+!!! danger
+    **Important information about `filter`**
 
-It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
-This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish` and `after_processed` will not be executed.
+    It is important to note that if the event does not pass the filter, the rest of the process will be aborted.
+    This means that the functions `consume_scope`, `decoder`, `handler`, `publish_scope`, `publish` and `after_processed` will not be executed.
 
-### ❗ **Important** information about **`consume_scope`**
+!!! note
+    **Important information about `consume_scope`**
 
-1. **consume_scope** makes calls before the [**decoding stage**](#basic-middlewares-flow). The `#!python msg: StreamMessage` is a native FastStream Object, which means the message is still serialized.
-2. To differentiate between different types of subscribers, you can use `#!python msg.source_type`. It can be one of the following `Enum`:
-    - `CONSUME`: Message consumed by basic subscriber flow.
-    - `RESPONSE`: RPC response consumed.
+    The `consume_scope` method is called for each incoming message that passes through the [filter stage](#important-information-about-filter), right before the [decoding stage](#basic-middlewares-flow). This is true for all message consumption methods, making it a crucial part of the process for processing incoming data.
 
-### ❗ **Important** information about **`publish_scope`**
+    Specifically, the `consume_scope` stage is triggered for:
 
-1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
-2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
-3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
-4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
-    - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
-    - `REPLY`: Response to RPC/Reply-To request.
-    - `REQUEST`: RPC request call.
-5. **Batch Publishing**: When you publish multiple messages at once using the `broker.publish_batch(...)` method, the `publish_scope` receives a `BatchPublishCommand` object. This object holds all the messages to be sent in its `cmd.batch_bodies` attribute. This feature is useful for intercepting and modifying the batch publication process.
+    1.  Messages processed by a decorated handler (`#!python @broker.subscriber(...)`).
+    2.  Messages fetched manually using `#!python subscriber.get_one()` or `#!python async for msg in subscriber:`.
+    3.  RPC responses received after a `#!python broker.request()` call.
+
+    Inside `consume_scope`:
+
+    - The `#!python msg: StreamMessage` object is a native **FastStream** object, and its payload is still serialized.
+    - You can differentiate the origin of the message using `#!python msg.source_type`, which can be:
+        - `CONSUME`: For regular subscribers (points 1 and 2 above).
+        - `RESPONSE`: For RPC responses (point 3 above).
+
+!!! note
+    **Important information about `publish_scope`**
+
+    1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
+    2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
+    3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
+    4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
+        - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
+        - `REPLY`: Response to RPC/Reply-To request.
+        - `REQUEST`: RPC request call.
+    5. **Batch Publishing**: When you publish multiple messages at once using the `broker.publish_batch(...)` method, the `publish_scope` receives a `BatchPublishCommand` object. This object holds all the messages to be sent in its `cmd.batch_bodies` attribute. This feature is useful for intercepting and modifying the batch publication process.
 
 #### ✨ If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
@@ -153,7 +165,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[PublishCommand], Awaitable[Any]],
             cmd: PublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "Batch"
@@ -170,7 +182,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             cmd: BatchPublishCommand,
         ) -> Any:
             # you can access `cmd.batch_bodies` here
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "AIOKafka"
@@ -187,7 +199,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
             cmd: KafkaPublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "Confluent"
@@ -204,7 +216,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[KafkaPublishCommand], Awaitable[Any]],
             cmd: KafkaPublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "RabbitMQ"
@@ -221,7 +233,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
             cmd: RabbitPublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "NATS"
@@ -238,7 +250,7 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[NatsPublishCommand], Awaitable[Any]],
             cmd: NatsPublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 === "Redis"
@@ -255,14 +267,14 @@ This means that the functions `consume_scope`, `decoder`, `handler`, `publish_sc
             call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
             cmd: RedisPublishCommand,
         ) -> Any:
-            return await super().publish_scope(call_next, cmd)
+            return await call_next(cmd)
     ```
 
 ## 📦 Context Access
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
 
-```python linenums="1" hl_lines="9"
+```python linenums="1" hl_lines="8 14"
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -324,13 +336,13 @@ app = FastStream(broker)
 
 ## 📝 Summary
 
-Middlewares provide a powerful way to extend FastStream's message processing pipeline at specific stages. Key points to remember:
+Middlewares in **FastStream** offer a powerful mechanism to hook into the message processing lifecycle. Key points to remember:
 
-1. [**Order of execution matters**](#basic-middlewares-flow) - Methods are called in a specific sequence: `on_receive` → parser → filter → `consume_scope` → decoder → handler → `publish_scope` → publish → `after_processed`.
-2. [**Conditional Execution**](../subscription/filtering.md){.internal-link} - If a message fails to pass the filter, `consume_scope` and subsequent stages will be skipped.
-3. **Multiple publish calls** - The `publish_scope` function is executed once for each `@publisher` decorator in your handler.
-4. **Chain Continuation** - To maintain the middleware chain, it is important to always call the super() method or call the next function. This ensures proper error handling and prevents issues with the chain.
-5. [**Context Access**](../context/index.md){.internal-link} - All middleware methods have access to the FastStream context for shared state management.
-6. [**Broker-specific extensions**](#important-information-about-publish_scope) - Use typed publish commands (KafkaPublishCommand, RabbitPublishCommand, etc.) to provide specific functionality for different brokers.
+1.  [**Execution Order is Key**](#basic-middlewares-flow): Middlewares operate in a strict sequence: `on_receive` → `parser` → `filter` → `consume_scope` → `decoder` → `handler` → `publish_scope` → `publish` → `after_processed`. Understanding this flow is crucial for correct implementation.
+2.  [**Filtering is Final**](../subscription/filtering.md){.internal-link}: If a message is rejected by a `filter`, the processing pipeline halts for that message. No further middleware methods (`consume_scope`, `after_processed`, etc.) will be executed.
+3.  **Comprehensive Publishing Hook**: The `publish_scope` method intercepts *all* outgoing messages, whether from a `@publisher` decorator, a direct `#!python broker.publish()/publisher.publish()` call, or an RPC `broker.request()`.
+4.  **Chain of Responsibility**: To ensure the message continues through the processing pipeline, your middleware *must* call the next component. This is typically done by calling `call_next(...)` with the message or command, or by calling the `super()` implementation of the method.
+5.  [**Shared State with Context**](../context/){.internal-link}: All middleware methods have access to the FastStream Context via `#!python self.context`.
+6.  [**Broker-specific extensions**](#if-the-basic-publishcommand-does-not-meet-your-needs-you-can-use-the-extended-option-here-is-an-example): Use typed publish commands (e.g., `KafkaPublishCommand`, `RabbitPublishCommand`) to access and manipulate broker-specific attributes when publishing messages.
 
-Choose the right middleware method based on your specific needs: `on_receive` to handle all incoming messages, `consume_scope` to process data, `publish_scope` to send outgoing messages, and `after_processed` to perform cleanup tasks.
+To choose the right method for your needs, think about the stage you want to intervene in: **on_receive** for the initial message arrival, **consume_scope** to wrap the core processing logic, **publish_scope** for outgoing messages, and **after_processed** for post-processing and cleanup.
