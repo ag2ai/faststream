@@ -9,14 +9,14 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Feature](https://faststream.ag2.ai/latest/faststream/): Effortless event stream integration for your services
 
 ## Tutorial
-- [Getting Started](https://faststream.ag2.ai/latest/getting-started/): QUICK START
+- [Getting Started](https://faststream.ag2.ai/latest/getting-started/): Quick start to use FastStream
 - [Subscription and Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/): FastStream provides a Message Broker agnostic way to subscribe to event streams.
 - [Annotation Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/annotation/): As you already know, FastStream serializes your incoming message body according to the function type annotations using Pydantic
 - [Pydantic Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/pydantic/): Besides, FastStream uses your handlers' annotations to collect information about the application schema and generate AsyncAPI schema.
-- [Msgspec Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/):
+- [Msgspec Serialization](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/): FastStream supports msgspec as an alternative backend for serialization, which can be used instead of Pydantic.
 - [Filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/): FastStream also allows you to specify the message processing way using message headers, body type or something else. The filter feature enables you to consume various messages with different schemas within a single event stream.
 - [Testing](https://faststream.ag2.ai/latest/getting-started/subscription/test/): Testability is a crucial part of any application, and FastStream provides you with the tools to test your code easily.
-- [Dynamic Subscribers](https://faststream.ag2.ai/latest/getting-started/subscription/dynamic/):
+- [Dynamic Subscribers](https://faststream.ag2.ai/latest/getting-started/subscription/dynamic/): Sometimes, you need to process messages as they arrive without knowing their source at startup. Messages could be sent later via incoming messages, requests, or generated randomly for temporary queue processing. In such cases, you cannot use the regular FastStream @broker.subscriber() decorators.
 
 ## Publishing
 - [Publishing](https://faststream.ag2.ai/latest/getting-started/publishing/): FastStream is broker-agnostic and easy to use, even as a client in non-FastStream applications.
@@ -69,7 +69,7 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [CLI](https://faststream.ag2.ai/latest/getting-started/cli/): FastStream has its own built-in CLI tool for your maximum comfort as a developer.
 
 ## Acknowledgement
-- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/):
+- [Acknowledgement](https://faststream.ag2.ai/latest/getting-started/acknowledgement/): Due to the possibility of unexpected errors during message processing, FastStream provides an ack_policy parameter that allows users to control how messages are handled. This parameter determines when and how messages should be acknowledged or rejected based on the result of the message processing.
 
 ## ASGI
 - [ASGI](https://faststream.ag2.ai/latest/getting-started/asgi/): You often need to integrate your application with Prometheus metrics, K8S probes, and other observability features, which requires providing several HTTP endpoints; FastStream offers built-in ASGI support for basic functionality, allowing you to add custom ASGI routes and host AsyncAPI documentation in the same process, while also enabling reuse of the FastStream application object and compatibility with other ASGI frameworks.
