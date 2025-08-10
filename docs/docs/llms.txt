@@ -93,94 +93,94 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [FastStream Project Template](https://faststream.ag2.ai/latest/getting-started/template/): The Cookiecutter FastStream template is a versatile repository that offers a solid foundation for Python projects, including a basic application, testing infrastructure, linting scripts, and development tools to streamline your development process and maintain high code quality, whether starting a new application or enhancing an existing one.
 
 ## Kafka
-- [Kafka](https://faststream.ag2.ai/latest/kafka/kafka/): Kafka Integration Overview
-- [AIOKafka](https://faststream.ag2.ai/latest/kafka/): AIOKafka-based Broker
-- [Subscription](https://faststream.ag2.ai/latest/kafka/Subscriber/): Subscribe to Kafka topics
-- [Batch Subscriber](https://faststream.ag2.ai/latest/kafka/Subscriber/batch_subscriber/): Consume messages in batches
-- [Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/): Publish messages to Kafka
-- [Batch Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/batch_publisher/): Send multiple messages at once
-- [Publish With Key](https://faststream.ag2.ai/latest/kafka/Publisher/using_a_key/): Use message keys for partitioning
-- [Acknowledgement](https://faststream.ag2.ai/latest/kafka/ack/): Manual message acknowledgment
-- [Message Information](https://faststream.ag2.ai/latest/kafka/message/): Access raw message metadata
-- [Security Configuration](https://faststream.ag2.ai/latest/kafka/security/): Configure SSL, SASL, and authentication
-- [Confluent](https://faststream.ag2.ai/latest/confluent/): Confluent Kafka Client Integration
-- [Subscription](https://faststream.ag2.ai/latest/confluent/Subscriber/): Subscribe using Confluent client
-- [Batch Subscriber](https://faststream.ag2.ai/latest/confluent/Subscriber/batch_subscriber/): Batch message consumption
-- [Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/): Publish with Confluent client
-- [Batch Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/batch_publisher/): Batch publishing support
-- [Publish With Key](https://faststream.ag2.ai/latest/confluent/Publisher/using_a_key/): Key-based message routing
-- [Acknowledgement](https://faststream.ag2.ai/latest/confluent/ack/): Commit offsets manually
-- [Message Information](https://faststream.ag2.ai/latest/confluent/message/): Extract message headers and metadata
-- [Security Configuration](https://faststream.ag2.ai/latest/confluent/security/): SASL/SSL and Confluent Cloud setup
-- [Additional Configuration](https://faststream.ag2.ai/latest/confluent/additional-configuration/): Advanced Confluent settings
-- [How-To](https://faststream.ag2.ai/latest/howto/kafka/): Practical Kafka usage guides
-- [Kafka RPC](https://faststream.ag2.ai/latest/howto/kafka/rpc/): Implement request-response pattern over Kafka
+- [Kafka Routing](https://faststream.ag2.ai/latest/kafka/kafka/): Kafka is an open-source distributed streaming platform developed by the Apache Software Foundation. It is designed to handle high-throughput, fault-tolerant, real-time data streaming.
+- [AIOKafka](https://faststream.ag2.ai/latest/kafka/): The aiokafka library, is an asynchronous Kafka client for Python, built on top of the asyncio framework. It is designed to work seamlessly with asynchronous code, making it suitable for applications with high concurrency requirements.
+- [Subscription](https://faststream.ag2.ai/latest/kafka/Subscriber/): To start consuming from a Kafka topic, simply decorate your consuming function with a @broker.subscriber(...) decorator, passing a string as a topic key.
+- [Batch Subscriber](https://faststream.ag2.ai/latest/kafka/Subscriber/batch_subscriber/): If you want to consume data in batches, the @broker.subscriber(...) decorator makes it possible. By defining your consumed msg object as a list of messages and setting the batch parameter to True, the subscriber will call your consuming function with a batch of messages consumed from a single partition.
+- [Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/): The FastStream KafkaBroker supports all regular publishing use cases, and you can use them without any changes. However, if you wish to further customize the publishing logic, you should take a closer look at specific KafkaBroker parameters.
+- [Batch Publishing](https://faststream.ag2.ai/latest/kafka/Publisher/batch_publisher/): If you need to send your data in batches, the @broker.publisher(...) decorator offers a convenient way to achieve this. To send data in batches using the @broker.publisher(...) decorator, set the batch argument to True when creating your publisher and return a tuple of messages in your producer function.
+- [Publish With Key](https://faststream.ag2.ai/latest/kafka/Publisher/using_a_key/): Partition keys in Apache Kafka determine the appropriate partition for messages, keeping related messages together for order and efficient processing. They also help distribute load across brokers and ensure fault tolerance through data replication. You can specify partition keys using the @KafkaBroker.publisher(...) decorator in FastStream, and this guide will help you use them effectively.
+- [Acknowledgement](https://faststream.ag2.ai/latest/kafka/ack/): Kafka consumers must commit a topic offset when consuming messages. By default, FastStream automatically commits offsets on consumption, following the "at most once" strategy. To use the "at least once" strategy, commit the offset after processing the message by setting a consumer group and disabling the auto_commit option.
+- [Message Information](https://faststream.ag2.ai/latest/kafka/message/): FastStream serializes message bodies for access through function arguments, but you can also access additional attributes like offsets, headers, and metadata via the message object in the Context. This object wraps the native broker library message (e.g., aiokafka.ConsumerRecord for Kafka) and contains essential information.
+- [Security Configuration](https://faststream.ag2.ai/latest/kafka/security/): This chapter covers FastStream's security options, including security objects for brokers that encapsulate configurations and mechanisms, with more planned in the future, such as SASL OAuth.
+- [Confluent](https://faststream.ag2.ai/latest/confluent/): The Confluent Kafka Python library, developed by Confluent (the creators of Apache Kafka), offers a high-level producer and consumer API that integrates seamlessly with the Kafka ecosystem. It includes features like Avro serialization, schema registry integration, and performance tuning options, benefiting from strong support from the Kafka core team for better compatibility and a robust feature set.
+- [Subscription](https://faststream.ag2.ai/latest/confluent/Subscriber/): To start consuming from a Kafka topic, simply decorate your consuming function with a @broker.subscriber(...) decorator, passing a string as a topic key.
+- [Batch Subscriber](https://faststream.ag2.ai/latest/confluent/Subscriber/batch_subscriber/): To consume data in batches, use the @broker.subscriber(...) decorator. Define your consumed message object as a list and set the batch parameter to True. This configuration allows the subscriber to call your consuming function with a batch of messages from a single partition.
+- [Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/): The FastStream KafkaBroker supports all standard publishing use cases without any changes. However, for further customization of the publishing logic, you should explore specific KafkaBroker parameters.
+- [Batch Publishing](https://faststream.ag2.ai/latest/confluent/Publisher/batch_publisher/): To send data in batches using the @broker.publisher(...) decorator, set the batch argument to True when creating your publisher and return a tuple of messages in your producer function to trigger batch transmission to the Kafka broker.
+- [Publish With Key](https://faststream.ag2.ai/latest/confluent/Publisher/using_a_key/): Partition keys are crucial in Apache Kafka for determining the correct message partition, ensuring related messages remain together for order and efficient processing. They also aid in load distribution across brokers, enhance scalability, and provide fault tolerance through data replication. You can specify partition keys with the @KafkaBroker.publisher(...) decorator in FastStream, and this guide will help you use them effectively.
+- [Acknowledgement](https://faststream.ag2.ai/latest/confluent/ack/): Kafka consumers must commit a topic offset when consuming messages. By default, FastStream automatically commits offsets upon consumption, following the "at most once" strategy. To implement the "at least once" strategy, commit the offset after processing the message by setting a consumer group and disabling auto_commit.
+- [Message Information](https://faststream.ag2.ai/latest/confluent/message/): FastStream serializes message bodies for access through function arguments, but you may need to access additional attributes like offsets, headers, or metadata. You can easily access this information through the message object in the Context, which serves as a unified FastStream wrapper around the native broker library message (e.g., confluent_kafka.Message when using the Confluent Python library).
+- [Security Configuration](https://faststream.ag2.ai/latest/confluent/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by using security objects when creating brokers, which encapsulate security-related configurations and mechanisms. Currently supported security objects include (with more planned in the future, such as SASL OAuth).
+- [Additional Configuration](https://faststream.ag2.ai/latest/confluent/additional-configuration/): The confluent-kafka-python package is a Python wrapper around librdkafka, a C/C++ client library for Apache Kafka. It accepts a config dictionary that is passed to librdkafka, which offers numerous configuration properties for the Kafka client. FastStream also allows users to pass a config dictionary to librdkafka for greater customizability.
+- [How-To](https://faststream.ag2.ai/latest/howto/kafka/): Kafka is a complex tool, and the FastStream KafkaBroker API can be challenging in certain cases. While our main documentation covers the primary FastStream and Kafka concepts, this section offers concrete FastStream-Kafka examples that you can use as copy-paste code in your services or as a reference.
+- [Kafka RPC](https://faststream.ag2.ai/latest/howto/kafka/rpc/): Kafka lacks a built-in RPC mechanism or zero-cost topics, but you can emulate this behavior using a messaging pattern. To do this, create a persistent topic to consume the response stream and match responses with requests using a correlation ID. This can be easily implemented with FastStream.
 
 ## RabbitMQ
-- [RabbitMQ](https://faststream.ag2.ai/latest/rabbit/): RabbitMQ Integration Overview
-- [Subscription](https://faststream.ag2.ai/latest/rabbit/examples/): RabbitMQ Subscription Patterns
-- [Direct](https://faststream.ag2.ai/latest/rabbit/examples/direct/): Direct exchange: routing by exact key
-- [Fanout](https://faststream.ag2.ai/latest/rabbit/examples/fanout/): Fanout exchange: broadcast to all queues
-- [Topic](https://faststream.ag2.ai/latest/rabbit/examples/topic/): Topic exchange: pattern-based routing
-- [Headers](https://faststream.ag2.ai/latest/rabbit/examples/headers/): Headers exchange: routing by key-value headers
-- [Stream](https://faststream.ag2.ai/latest/rabbit/examples/stream/): Stream exchange: persistent message streaming
-- [Publishing](https://faststream.ag2.ai/latest/rabbit/publishing/): Publishing messages to RabbitMQ
-- [RPC](https://faststream.ag2.ai/latest/rabbit/rpc/): Implement request-response pattern (RPC)
-- [Acknowledgement](https://faststream.ag2.ai/latest/rabbit/ack/): Manual message acknowledgment control
-- [Declare Queue/Exchange](https://faststream.ag2.ai/latest/rabbit/declare/): Explicitly declare queues and exchanges
-- [Message Information](https://faststream.ag2.ai/latest/rabbit/message/): Access message metadata and headers
-- [Security Configuration](https://faststream.ag2.ai/latest/rabbit/security/): Configure SSL, credentials, and auth
+- [Rabbit Routing](https://faststream.ag2.ai/latest/rabbit/): The advantage of RabbitMQ lies in its ability to configure flexible and complex message routing scenarios. It supports a wide range of routing options, from one queue with one consumer to a queue sourced from multiple inputs, including message prioritization.
+- [Subscription](https://faststream.ag2.ai/latest/rabbit/examples/): Even if you're unfamiliar with RabbitMQ, you can still use FastStream's RabbitBroker. Simply use the @broker.subscriber(...) method with a string as a routing key.
+- [Direct](https://faststream.ag2.ai/latest/rabbit/examples/direct/): The Direct Exchange is the basic way to route messages in RabbitMQ. Its core is very simple: the exchange sends messages to those queues whose routing_key matches the routing_key of the message being sent.
+- [Fanout](https://faststream.ag2.ai/latest/rabbit/examples/fanout/): The Fanout Exchange is a straightforward, though less popular, routing method in RabbitMQ. It sends messages to all queues subscribed to it, disregarding any message arguments. Additionally, if a queue has multiple consumers, messages will be distributed among them as part of the default scaling mechanism.
+- [Topic](https://faststream.ag2.ai/latest/rabbit/examples/topic/): The Topic Exchange is a powerful routing tool in RabbitMQ. It sends messages to queues based on patterns specified during their connection to the exchange and the message's routing key. Additionally, if a queue has multiple consumers, messages will be distributed among them as part of the default scaling mechanism.
+- [Headers](https://faststream.ag2.ai/latest/rabbit/examples/headers/): The Header Exchange is the most complex and flexible routing method in RabbitMQ. It sends messages to queues by matching the queue binding arguments with message headers. Additionally, if a queue has multiple consumers, messages will be distributed among them as part of the default scaling mechanism.
+- [Stream](https://faststream.ag2.ai/latest/rabbit/examples/stream/): RabbitMQ has a Streams feature that is similar to Kafka topics. The main difference is that messages are not deleted after consumption, unlike regular RabbitMQ queues. FastStream also supports this feature!
+- [Publishing](https://faststream.ag2.ai/latest/rabbit/publishing/): FastStream RabbitBroker supports all standard publishing use cases without any changes. However, for further customization of the publishing logic, you should explore specific RabbitBroker parameters in more detail.
+- [RPC](https://faststream.ag2.ai/latest/rabbit/rpc/): FastStream allows you to send a blocking RPC request over RabbitMQ easily. It utilizes the Direct Reply-To feature, eliminating the need to create queues for consuming responses. Simply send a message like a regular one and receive a response synchronously, closely resembling common request syntax.
+- [Acknowledgement](https://faststream.ag2.ai/latest/rabbit/ack/): RabbitMQ has a comprehensive Acknowledgement policy. FastStream typically acknowledges (acks) messages automatically on your behalf; when your function executes successfully, the message is acknowledged, and it is rejected in case of an exception. However, there may be situations where you want to implement a different acknowledgement logic.
+- [Declare Queue/Exchange](https://faststream.ag2.ai/latest/rabbit/declare/): FastStream subscribers automatically declare and validate RabbitMQ exchanges and queues (publishers only declare exchanges), but there are times when you may need to declare them manually. RabbitBroker offers an easy way to accomplish this.
+- [Message Information](https://faststream.ag2.ai/latest/rabbit/message/): FastStream serializes message bodies for access through function arguments, but you may sometimes need access to the message ID, headers, or other meta-information. You can easily obtain this by accessing the message object in the Context.
+- [Security Configuration](https://faststream.ag2.ai/latest/rabbit/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by utilizing security objects when creating brokers, which encapsulate security-related configurations and mechanisms.
 
 ## NATS
-- [NATS](https://faststream.ag2.ai/latest/nats/): NATS Integration Overview
-- [Subscription](https://faststream.ag2.ai/latest/nats/examples/): Subscribe to NATS subjects
-- [Direct](https://faststream.ag2.ai/latest/nats/examples/direct/): Direct subject-based subscription
-- [Pattern](https://faststream.ag2.ai/latest/nats/examples/pattern/): Wildcard-based topic pattern matching
-- [JetStream](https://faststream.ag2.ai/latest/nats/jetstream/): NATS JetStream support (persistent streams)
-- [Pull Subscriber](https://faststream.ag2.ai/latest/nats/jetstream/pull/): Pull-based message consumption
-- [Key-Value Storage](https://faststream.ag2.ai/latest/nats/jetstream/key-value/): Use JetStream KV store
-- [Object Storage](https://faststream.ag2.ai/latest/nats/jetstream/object/): Store and retrieve large objects
-- [Acknowledgement](https://faststream.ag2.ai/latest/nats/jetstream/ack/): Manual message acknowledgment in JetStream
-- [Publishing](https://faststream.ag2.ai/latest/nats/publishing/): Publishing messages to NATS
-- [RPC](https://faststream.ag2.ai/latest/nats/rpc/): Request-response pattern over NATS
-- [Message Information](https://faststream.ag2.ai/latest/nats/message/): Access message metadata and headers
-- [How-To](https://faststream.ag2.ai/latest/howto/nats/): Practical NATS usage guides
-- [DynaConf](https://faststream.ag2.ai/latest/howto/nats/dynaconf/): Integrate with DynaConf configuration
-- [In-Progress](https://faststream.ag2.ai/latest/howto/nats/in-progress/): Track message processing status
+- [NATS](https://faststream.ag2.ai/latest/nats/): NATS is a high-performance, easy-to-use message broker written in Golang. It's an excellent choice for applications that don't require complex routing logic, can handle high loads, scale efficiently, and minimize hardware costs. Additionally, NATS allows for zero-cost creation of new entities (as all subjects are simply routing fields), making it suitable for RPC over MQ use cases.
+- [Subscription](https://faststream.ag2.ai/latest/nats/examples/): NATS examples
+- [Direct](https://faststream.ag2.ai/latest/nats/examples/direct/): The Direct Subject is the basic way to route messages in NATS. Its essence is very simple: a subject sends messages to all consumers subscribed to it.
+- [Pattern](https://faststream.ag2.ai/latest/nats/examples/pattern/): Pattern Subject is a powerful NATS routing engine. This type of subject routes messages to consumers based on the pattern specified when they connect to the subject and a message key.
+- [JetStream](https://faststream.ag2.ai/latest/nats/jetstream/): The default NATS usage is ideal for scenarios where the publisher and consumer are always online and the system can tolerate message loss. However, if you require stricter conditions, such as a message processing confirmation mechanism (ack/nack) and message persistence (accumulating messages in the queue when the consumer is offline), you should use the NATS JetStream extension.
+- [Pull Subscriber](https://faststream.ag2.ai/latest/nats/jetstream/pull/): NATS JetStream offers two ways to consume messages: Push and Pull consumers. The default Push consumer automatically delivers messages, but it increases server load as NATS manages all consumer connections. The NATS team recommends the Pull consumer, where you request messages at intervals.
+- [Key-Value Storage](https://faststream.ag2.ai/latest/nats/jetstream/key-value/): Key-Value storage in NATS JetStream is a high-level interface where each KV key corresponds to a subject, allowing you to put/update objects like publishing messages, retrieve current and historical values, and subscribe to key changes.
+- [Object Storage](https://faststream.ag2.ai/latest/nats/jetstream/object/): Object Storage is similar to Key-Value storage in NATS JetStream, functioning as a high-level interface where each object key corresponds to a subject. The key difference is that Object Storage allows you to store files larger than 1MB (unlike KV), with no maximum size limit, as it stores objects in chunks (each message is an object chunk), enabling the streaming of large objects through NATS.
+- [Acknowledgement](https://faststream.ag2.ai/latest/nats/jetstream/ack/): NATS has a comprehensive Acknowledgement policy. FastStream typically acknowledges (acks) messages automatically; when your function executes successfully, the message is acknowledged, and it is rejected in case of an exception. However, there may be situations where you want to implement different acknowledgement logic.
+- [Publishing](https://faststream.ag2.ai/latest/nats/publishing/): FastStream NatsBroker supports all standard publishing use cases without any changes. However, for further customization of the publishing logic, you should explore specific NatsBroker parameters in more detail.
+- [RPC](https://faststream.ag2.ai/latest/nats/rpc/): NATS allows for zero-cost creation of new subjects, enabling you to set up a dedicated subject consumer for a single response message. This means your request message can be published to one topic while the response is consumed from a temporary subject, allowing you to use regular FastStream RPC syntax in the NATS context as well.
+- [Message Information](https://faststream.ag2.ai/latest/nats/message/): FastStream serializes message bodies for access through function arguments, but you may need to access the message ID, headers, or other meta-information. You can easily obtain this by accessing the message object in the Context.
+- [How-To](https://faststream.ag2.ai/latest/howto/nats/): NATS is a complex tool, and the FastStream NatsBroker API can be challenging in certain cases. While our main documentation covers the primary FastStream and NATS concepts, this section offers concrete FastStream-NATS examples that you can use as copy-paste code in your services or as a reference.
+- [DynaConf](https://faststream.ag2.ai/latest/howto/nats/dynaconf/): As NATS has key-value storage, you can use it as a configuration storage solution. Here is an example of how to use it with FastStream.
+- [In-Progress](https://faststream.ag2.ai/latest/howto/nats/in-progress/): NATS JetStream follows the "at least once" principle, meaning messages will be delivered until they receive an ACK status, even if your handler takes a long time to process the message. This allows you to extend the message processing status with a request.
 
 ## Redis
-- [Redis](https://faststream.ag2.ai/latest/redis/): Redis Integration Overview
-- [Pub/Sub](https://faststream.ag2.ai/latest/redis/pubsub/): Redis Publish-Subscribe pattern
-- [Subscription](https://faststream.ag2.ai/latest/redis/pubsub/subscription/): Subscribe to Redis Pub/Sub channels
-- [Publishing](https://faststream.ag2.ai/latest/redis/pubsub/publishing/): Publish messages via Pub/Sub
-- [List](https://faststream.ag2.ai/latest/redis/list/): Use Redis lists as message queues
-- [Subscription](https://faststream.ag2.ai/latest/redis/list/subscription/): Consume messages from Redis list
-- [Publishing](https://faststream.ag2.ai/latest/redis/list/publishing/): Push messages to Redis list
-- [Batching](https://faststream.ag2.ai/latest/redis/list/batch/): Batch processing for list consumers
-- [Streams](https://faststream.ag2.ai/latest/redis/streams/): Redis Streams support
-- [Subscription](https://faststream.ag2.ai/latest/redis/streams/subscription/): Consume from Redis Streams
-- [Publishing](https://faststream.ag2.ai/latest/redis/streams/publishing/): Append messages to Redis Streams
-- [Groups](https://faststream.ag2.ai/latest/redis/streams/groups/): Consumer groups for parallel processing
-- [Batching](https://faststream.ag2.ai/latest/redis/streams/batch/): Batch message consumption from streams
-- [Acknowledgement](https://faststream.ag2.ai/latest/redis/streams/ack/): Manual acknowledgment in consumer groups
-- [RPC](https://faststream.ag2.ai/latest/redis/rpc/): Request-response pattern over Redis
-- [Pipeline](https://faststream.ag2.ai/latest/redis/pipeline/): Use Redis pipelines for optimized operations
-- [Message Information](https://faststream.ag2.ai/latest/redis/message/): Access raw message metadata and headers
-- [Security Configuration](https://faststream.ag2.ai/latest/redis/security/): Configure SSL, password, and auth
-- [Message Format](https://faststream.ag2.ai/latest/redis/message_format/): Customize message serialization format
+- [Redis](https://faststream.ag2.ai/latest/redis/): Redis is an open-source, in-memory data structure store used as a database, cache, and message broker. It supports various data structures like strings, hashes, lists, and geospatial indexes. Redis offers built-in replication, Lua scripting, LRU eviction, transactions, and high availability through Redis Sentinel and automatic partitioning with Redis Cluster.
+- [Pub/Sub](https://faststream.ag2.ai/latest/redis/pubsub/): Redis Pub/Sub Channels enable messaging between clients using a publish/subscribe (pub/sub) pattern. A Redis channel serves as a medium for transmitting messages, allowing different clients to subscribe to listen for messages while others publish messages to these channels.
+- [Subscription](https://faststream.ag2.ai/latest/redis/pubsub/subscription/): Redis Pub/Sub is the default subscriber type in FastStream, so you can simply create a regular @broker.subscriber("channel_name") with a channel name and it creates a subscriber using Redis Pub/Sub.
+- [Publishing](https://faststream.ag2.ai/latest/redis/pubsub/publishing/): The FastStream RedisBroker supports all standard publishing use cases, similar to the KafkaBroker, enabling easy message publishing to Redis channels. Below, you'll find guidance on utilizing the RedisBroker for publishing messages, including creating publisher objects and using decorators for streamlined workflows.
+- [List](https://faststream.ag2.ai/latest/redis/list/): Redis Lists are ordered collections of strings that function as a simple and flexible data structure. Similar to lists in programming languages, Redis provides commands for various operations, including adding, retrieving, and removing elements from either end. Redis Lists are especially useful for implementing queues, allowing the list to operate as a FIFO (First-In-First-Out) structure.
+- [Subscription](https://faststream.ag2.ai/latest/redis/list/subscription/): To start consuming from a Redis list, simply decorate your consuming function with the @broker.subscriber(...) decorator, passing a string as the list key.
+- [Publishing](https://faststream.ag2.ai/latest/redis/list/publishing/): Using the FastStream library, you can publish data to Redis lists, which function as queues in Redis-based messaging systems. Similar to Redis streams, messages can be published to Redis lists. FastStream employs the @broker.publisher(...) decorator, along with the list's name, to push messages onto the list.
+- [Batching](https://faststream.ag2.ai/latest/redis/list/batch/): To consume data in batches from a Redis list, use the @broker.subscriber(...) decorator. By defining your consumed message object as a list of messages and setting the batch parameter to True within the ListSub object, the subscriber will call your consuming function with a batch of messages. Let's explore how to achieve this with the FastStream library.
+- [Streams](https://faststream.ag2.ai/latest/redis/streams/): Redis Streams, introduced in Redis 5.0, offer a reliable and scalable way to handle data streams, similar to Apache Kafka. They store data in a log structure for multiple clients to consume, providing ordered messages designed for high volume through partitioning.
+- [Subscription](https://faststream.ag2.ai/latest/redis/streams/subscription/): To start consuming from a Redis stream, simply decorate your consuming function with the @broker.subscriber(...) decorator, passing a string as the stream key.
+- [Publishing](https://faststream.ag2.ai/latest/redis/streams/publishing/): To publish messages to a Redis Stream, implement a function that processes the incoming data and applies the @broker.publisher(...) decorator with the Redis stream name. The function will then publish its return value to the specified stream.
+- [Groups](https://faststream.ag2.ai/latest/redis/streams/groups/): Consuming messages from a Redis stream can be done using a Consumer Group, which enables multiple consumers to share the workload of processing messages. This approach also provides message acknowledgment, ensuring that messages are not processed repeatedly.
+- [Batching](https://faststream.ag2.ai/latest/redis/streams/batch/): To consume data in batches from a Redis stream, use the @broker.subscriber(...) decorator, define your consumed message object as a list, and set the batch parameter to True in the StreamSub object. This allows the subscriber to call your function with a batch of messages. Let's see how to do this with the FastStream library.
+- [Acknowledgement](https://faststream.ag2.ai/latest/redis/streams/ack/): When using Redis streams in the FastStream library, it's crucial to manage message acknowledgments to prevent message loss and ensure proper processing. By default, FastStream automatically acknowledges (acks) messages as processed, adhering to the "at most once" processing guarantee.
+- [RPC](https://faststream.ag2.ai/latest/redis/rpc/): FastStream RedisBroker enables powerful Remote Procedure Calls (RPC) using Redis, allowing you to send a message and await a response, effectively creating a synchronous request-response pattern over Redis's asynchronous messaging system. Below is a guide to set up and utilize the Redis RPC publishing feature with FastStream.
+- [Pipeline](https://faststream.ag2.ai/latest/redis/pipeline/): FastStream supports Redis pipelining to optimize performance when publishing multiple messages in a batch. This allows you to queue several Redis operations and execute them in one network round-trip, reducing latency significantly.
+- [Message Information](https://faststream.ag2.ai/latest/redis/message/): In FastStream, messages passed through a Redis broker are serialized and can be interacted with just like function parameters. However, you might occasionally need to access more than just the message content, such as metadata and other attributes.
+- [Security Configuration](https://faststream.ag2.ai/latest/redis/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by utilizing security objects when creating brokers, which encapsulate security-related configurations and mechanisms.
+- [Message Format](https://faststream.ag2.ai/latest/redis/message_format/): To offer features like observability, FastStream includes extra data in your messages. Redis allows sending any type of data within a message, so FastStream uses its own binary format for messages, supporting any data type and additional information you wish to include.
 
 ## Reference - Code API
-- [Reference - Code API](https://faststream.ag2.ai/latest/api/): FastStream Public API Reference
-- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): Public API
-- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): All API
+- [Reference - Code API](https://faststream.ag2.ai/latest/api/): Here’s the reference for the code API, including classes, functions, parameters, attributes, and all FastAPI components you can use in your applications. For a better understanding of FastStream, it's recommended to read the FastStream Tutorial.
+- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): This section contains information about Public FastStream API
+- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): This section contains information about All FastStream API
 
 ## FastStream People
-- [FastStream People](https://faststream.ag2.ai/latest/faststream-people/): Core Team and Contributors
+- [FastStream People](https://faststream.ag2.ai/latest/faststream-people/): FastStream has an amazing community that welcomes people from all backgrounds. The following are the top contributors to FastStream.
 
 ## Contributing
 - [Contributing](https://faststream.ag2.ai/latest/getting-started/contributing/): How to contribute to the project
-- [Development](https://faststream.ag2.ai/latest/getting-started/contributing/CONTRIBUTING/): Setting up dev environment and code contributions
-- [Documentation](https://faststream.ag2.ai/latest/getting-started/contributing/docs/): Writing and improving documentation
+- [Development](https://faststream.ag2.ai/latest/getting-started/contributing/CONTRIBUTING/):  How to  set up dev environment and code contributions
+- [Documentation](https://faststream.ag2.ai/latest/getting-started/contributing/docs/): How to write and improve documentation
 
 ## Release Notes
-- [Release Notes](https://faststream.ag2.ai/latest/release/): Version history and changelog
+- [Release Notes](https://faststream.ag2.ai/latest/release/): FastStream Release Notes and changelog
