@@ -1,9 +1,9 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, Union, cast
 
 from nats.aio.msg import Msg
 from nats.js import api
-from typing_extensions import deprecated, override
+from typing_extensions import deprecated, overload, override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -25,7 +25,18 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.nats.publisher.usecase import LogicPublisher
-    from faststream.nats.subscriber.usecases import LogicSubscriber
+    from faststream.nats.subscriber.usecases import (
+        BatchPullStreamSubscriber,
+        ConcurrentCoreSubscriber,
+        ConcurrentPullStreamSubscriber,
+        ConcurrentPushStreamSubscriber,
+        CoreSubscriber,
+        KeyValueWatchSubscriber,
+        LogicSubscriber,
+        ObjStoreWatchSubscriber,
+        PullStreamSubscriber,
+        PushStreamSubscriber,
+    )
 
 
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
@@ -36,8 +47,530 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().__init__(**kwargs)
 
+    @overload  # type: ignore[override]
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "CoreSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "ConcurrentCoreSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "PushStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "ConcurrentPushStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[True] = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "PullStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[True] = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "ConcurrentPullStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: PullSub = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Union["PullStreamSubscriber", "BatchPullStreamSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: Union[str, "KvWatch"] = ...,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "KeyValueWatchSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Union[Literal[True], "ObjWatch"] = ...,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "ObjStoreWatchSubscriber": ...
+
     @override
-    def subscriber(  # type: ignore[override]
+    def subscriber(
         self,
         subject: str = "",
         queue: str = "",
