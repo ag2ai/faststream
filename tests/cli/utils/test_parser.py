@@ -79,3 +79,19 @@ def test_bind_arg(args: str):
 )
 def test_not_bind_arg(args: str):
     assert is_bind_arg(args) is False
+
+
+@pytest.mark.parametrize(
+    ("args", "expected_extra"),
+    (
+        pytest.param(["--key", "value"], {"key": "value"}),
+        pytest.param(["--key", "va-lue"], {"key": "va-lue"}),
+        pytest.param(["--key", "--value"], {"key": True, "value": True}),
+        pytest.param(["--key", "-value"], {"key": True, "value": True}),
+        pytest.param(["-key", "--value"], {"key": True, "value": True}),
+        pytest.param(["--ke-y", "value"], {"ke_y": "value"}),
+    )
+)
+def test_parse_extra_args(args, expected_extra):
+    _, extra = parse_cli_args(*args)
+    assert extra == expected_extra

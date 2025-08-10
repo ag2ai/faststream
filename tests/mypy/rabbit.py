@@ -10,6 +10,8 @@ from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRo
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
+from faststream.rabbit.publisher.usecase import RabbitPublisher
+from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:
@@ -290,11 +292,13 @@ async def check_response_type() -> None:
     assert_type(broker_response, RabbitMessage)
 
     publisher = broker.publisher("test")
+    assert_type(publisher, RabbitPublisher)
+
     publisher_response = await publisher.request(None, "test")
     assert_type(publisher_response, RabbitMessage)
 
 
-async def check_publish_type(optional_stream: str | None = "test") -> None:
+async def check_publish_result_type(optional_stream: str | None = "test") -> None:
     broker = RabbitBroker()
 
     publish_with_confirm = await broker.publish(None)
@@ -319,5 +323,6 @@ async def check_subscriber_msg_type() -> None:
     broker = RabbitBroker()
     subscriber = broker.subscriber(queue="test")
 
+    assert_type(subscriber, RabbitSubscriber)
     async for msg in subscriber:
         assert_type(msg, RabbitMessage)
