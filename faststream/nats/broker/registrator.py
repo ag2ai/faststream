@@ -569,6 +569,64 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         include_in_schema: bool = True,
     ) -> "ObjStoreWatchSubscriber": ...
 
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Union[bool, "PullSub"] = False,
+        kv_watch: Union[str, "KvWatch", None] = None,
+        obj_watch: Union[bool, "ObjWatch"] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream", None] = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int | None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "LogicSubscriber[Any]": ...
+
     @override
     def subscriber(
         self,

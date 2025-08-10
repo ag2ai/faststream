@@ -28,7 +28,7 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
 1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
 3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. otherwise, the event will be passed to another handler. 
+4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. otherwise, the event will be passed to another handler.
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
 5. [**publish_scope**](#important-information-about-publishscope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
