@@ -115,37 +115,42 @@ class MyMiddleware(BaseMiddleware):
 
 PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
-!!! note
-    **Important information about `consume_scope`**
 
-    The `consume_scope` method is called for each incoming message that passes through the filtering stage, right before the [decoding stage](#basic-middlewares-flow).
+### **Important information about `consume_scope`**
 
-    Specifically, the `consume_scope` stage is triggered for:
+The `consume_scope` method is called for each incoming message that passes through the filtering stage, right before the [decoding stage](#basic-middlewares-flow).
 
-    1.  Messages processed by a decorated handler (`#!python @broker.subscriber(...)`).
-    2.  Messages fetched manually using `#!python subscriber.get_one()` or `#!python async for msg in subscriber:`.
-    3.  RPC responses received after a `#!python broker.request()` call.
+Specifically, the `consume_scope` stage is triggered for:
 
-    Inside `consume_scope`:
+* Messages processed by a decorated handler (`#!python @broker.subscriber(...)`).
+* Messages fetched manually using `#!python subscriber.get_one()` or `#!python async for msg in subscriber:`.
+* RPC responses received after a `#!python broker.request()` call.
 
-    - The `#!python msg: StreamMessage` object is a native **FastStream** object, and its payload is still serialized.
-    - You can differentiate the origin of the message using `#!python msg.source_type`, which can be:
-        - `CONSUME`: For regular subscribers (points 1 and 2 above).
-        - `RESPONSE`: For RPC responses (point 3 above).
+Inside `consume_scope`:
 
-!!! note
-    **Important information about `publish_scope`**
+* The `#!python msg: StreamMessage` object is a native **FastStream** object, and its payload is still serialized.
+* You can differentiate the origin of the message using `#!python msg.source_type`, which can be:
+  * `CONSUME`: For regular subscribers (points 1 and 2 above).
+  * `RESPONSE`: For RPC responses (point 3 above).
 
-    1. If you want to intercept the publishing process, you will need to use the **publish_scope** method.
-    2. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.).
-    3. **publish_scope** affect all ways of publishing something, including the `#!python broker.publish` call.
-    4. To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
-        - `PUBLISH`: Regular `broker/publisher.publish(...)` call.
-        - `REPLY`: Response to RPC/Reply-To request.
-        - `REQUEST`: RPC request call.
-    5. **Batch Publishing**: When you publish multiple messages at once using the `broker.publish_batch(...)` method, the `publish_scope` receives a `BatchPublishCommand` object. This object holds all the messages to be sent in its `cmd.batch_bodies` attribute. This feature is useful for intercepting and modifying the batch publication process.
+### **Important information about `publish_scope`**
 
-#### ✨ If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
+If you want to intercept the publishing process, you will need to use the **publish_scope** method. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.). So, you can patch them any kind you want.
+
+**publish_scope** affect all ways of publishing something, including the `#!python broker.publish(...)` call and reply-to / RPC replies.
+
+To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
+
+* `PUBLISH`: Regular `#!python broker/publisher.publish(...)` call.
+* `REPLY`: Response to RPC/Reply-To request.
+* `REQUEST`: RPC request call.
+
+
+!!! tip "Batch Publishing"
+
+    When you publish multiple messages at once using the `#!python broker.publish_batch(...)` method, the `publish_scope` receives a `BatchPublishCommand` object. This object holds all the messages to be sent in its `cmd.batch_bodies` attribute. This feature is useful for intercepting and modifying the batch publication process.
+
+✨ If the basic PublishCommand does not meet your needs, you can use the extended option. Here is an example:
 
 === "Default"
     ```python linenums="1"
@@ -269,7 +274,7 @@ PayAttention to the order: the methods are executed in this sequence after each 
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:
 
-```python linenums="1" hl_lines="8 14"
+```python linenums="1" hl_lines="13"
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -277,7 +282,6 @@ from faststream import BaseMiddleware, StreamMessage
 
 
 class ContextMiddleware(BaseMiddleware):
-    # Context is also available in the on_receive, consume_scope, publish_scope, and after_processed methods.
     async def consume_scope(
         self,
         call_next: Callable[[StreamMessage[Any]], Awaitable[Any]],
