@@ -128,23 +128,21 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | exception_type (while publishing) | Exception type when publishing message                          |                                                   |
 
 ### Integrate custom metrics
-To integrate your custom metrics with fastream you should pass your `CollectorRegistry` to the middlewares and router.
+To integrate your custom metrics with fastream you should pass your `CollectorRegistry` or global `REGISTRY` to the middlewares and router.
 
 ```python
 from prometheus_client import CollectorRegistry, Counter
 
-CUSTOM_COUNTER = Counter("custom_counter")
-registry = CollectorRegistry(auto_describe=True)
-
-registry.register(BLOCK_REQUESTS_COUNTER)
+PROMETHEUS_REGISTRY = CollectorRegistry(auto_describe=True)
+CUSTOM_COUNTER = Counter("custom_counter", registry=PROMETHEUS_REGISTRY)
 
 ...
-middleware = KafkaPrometheusMiddleware(registry=registry)
+middleware = KafkaPrometheusMiddleware(registry=PROMETHEUS_REGISTRY)
 ...
 app = AsgiFastStream(
     broker,
     asgi_routes=[
-        ("/metrics", make_asgi_app(registry)),
+        ("/metrics", make_asgi_app(PROMETHEUS_REGISTRY)),
     ],
 )
 ```
