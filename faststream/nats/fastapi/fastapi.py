@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
+    Literal,
     Optional,
     Union,
     cast,
@@ -26,12 +27,31 @@ from nats.aio.client import (
 from nats.js import api
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import deprecated, overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream.faststream.nats.subscriber.usecases.core_subscriber import (
+    ConcurrentCoreSubscriber,
+    CoreSubscriber,
+)
+from faststream.faststream.nats.subscriber.usecases.key_value_subscriber import (
+    KeyValueWatchSubscriber,
+)
+from faststream.faststream.nats.subscriber.usecases.object_storage_subscriber import (
+    ObjStoreWatchSubscriber,
+)
+from faststream.faststream.nats.subscriber.usecases.stream_pull_subscriber import (
+    BatchPullStreamSubscriber,
+    ConcurrentPullStreamSubscriber,
+    PullStreamSubscriber,
+)
+from faststream.faststream.nats.subscriber.usecases.stream_push_subscriber import (
+    ConcurrentPushStreamSubscriber,
+    PushStreamSubscriber,
+)
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
 
@@ -88,7 +108,7 @@ class NatsRouter(StreamRouter["Msg"]):
         pedantic: bool = False,
         verbose: bool = False,
         allow_reconnect: bool = True,
-        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        connect_timeout: int = DEFAULT_CONNECT_TIMEOUT,
         reconnect_time_wait: int = DEFAULT_RECONNECT_TIME_WAIT,
         max_reconnect_attempts: int = DEFAULT_MAX_RECONNECT_ATTEMPTS,
         ping_interval: int = DEFAULT_PING_INTERVAL,
@@ -130,7 +150,7 @@ class NatsRouter(StreamRouter["Msg"]):
         prefix: str = "",
         tags: list[Union[str, "Enum"]] | None = None,
         dependencies: Sequence["params.Depends"] | None = None,
-        default_response_class:type["Response"] = Default(JSONResponse),
+        default_response_class: type["Response"] = Default(JSONResponse),
         responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list[BaseRoute] | None = None,
         routes: Annotated[
@@ -154,122 +174,124 @@ class NatsRouter(StreamRouter["Msg"]):
         lifespan: Optional["Lifespan[Any]"] = None,
         deprecated: bool | None = None,
         include_in_schema: bool = True,
-        generate_unique_id_function: Callable[["APIRoute"], str] = Default(generate_unique_id),
+        generate_unique_id_function: Callable[["APIRoute"], str] = Default(
+            generate_unique_id
+        ),
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
         """Args:
-            servers: NATS cluster addresses to connect.
-            error_cb: Callback to report errors.
-            disconnected_cb: Callback to report disconnection from NATS.
-            closed_cb: Callback to report when client stops reconnection to NATS.
-            discovered_server_cb: Callback to report when a new server joins the cluster.
-            reconnected_cb: Callback to report success reconnection.
-            name: Label the connection with name (shown in NATS monitoring).
-            pedantic: Turn on NATS server pedantic mode that performs extra checks on the protocol.
-                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
-            verbose: Verbose mode produce more feedback about code execution.
-            allow_reconnect: Whether recover connection automatically or not.
-            connect_timeout: Timeout in seconds to establish connection with NATS server.
-            reconnect_time_wait: Time in seconds to wait for reestablish connection to NATS server
-            max_reconnect_attempts: Maximum attempts number to reconnect to NATS server.
-            ping_interval: Interval in seconds to ping.
-            max_outstanding_pings: Maximum number of failed pings
-            dont_randomize: Boolean indicating should client randomly shuffle servers list for reconnection randomness.
-            flusher_queue_size: Max count of commands awaiting to be flushed to the socket
-            no_echo: Boolean indicating should commands be echoed.
-            tls_hostname: Hostname for TLS.
-            token: Auth token for NATS auth.
-            drain_timeout: Timeout in seconds to drain subscriptions.
-            signature_cb: A callback used to sign a nonce from the server while
-                authenticating with nkeys. The user should sign the nonce and
-                return the base64 encoded signature.
-            user_jwt_cb: A callback used to fetch and return the account
-                signed JWT for this user.
-            user_credentials: A user credentials file or tuple of files.
-            nkeys_seed: Nkeys seed to be used.
-            nkeys_seed_str: Raw nkeys seed to be used.
-            inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
-            pending_size: Max size of the pending buffer for publishing commands.
-            flush_timeout: Max duration to wait for a forced flush to occur.
-            graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
-            decoder: Custom decoder object.
-            parser: Custom parser object.
-            middlewares: Middlewares to apply to all broker publishers/subscribers.
-            security: Security options to connect broker and generate AsyncAPI server security information.
-            specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
-            protocol: AsyncAPI server protocol.
-            protocol_version: AsyncAPI server protocol version.
-            description: AsyncAPI server description.
-            specification_tags: AsyncAPI server tags.
-            logger: User specified logger to pass into Context and log service messages.
-            log_level: Service messages log level.
-            setup_state: Whether to add broker to app scope in lifespan.
-                You should disable this option at old ASGI servers.
-            schema_url: AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
-            prefix: An optional path prefix for the router.
-            tags: A list of tags to be applied to all the *path operations* in this
-                router.
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-            dependencies: A list of dependencies (using `Depends()`) to be applied to all the
-                *path and stream operations* in this router.
-                Read more about it in the
-                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-            default_response_class: The default response class to be used.
-                Read more in the
-                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-            responses: Additional responses to be shown in OpenAPI.
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-                Read more about it in the
-                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
-                And in the
-                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-            callbacks: OpenAPI callbacks that should apply to all *path operations* in this
-                router.
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-                Read more about it in the
-                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-            routes: **Note**: you probably shouldn't use this parameter, it is inherited
-                from Starlette and supported for compatibility.
-                ---
-                A list of routes to serve incoming HTTP and WebSocket requests.
-            redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
-                use the same format.
-            default: Default function handler for this router. Used to handle
-                404 Not Found errors.
-            dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
-                You shouldn't need to use it. It normally points to the `FastAPI` app
-                object.
-            route_class: Custom route (*path operation*) class to be used by this router.
-                Read more about it in the
-                [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-            on_startup: A list of startup event handler functions.
-                You should instead use the `lifespan` handlers.
-                Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-            on_shutdown: A list of shutdown event handler functions.
-                You should instead use the `lifespan` handlers.
-                Read more in the
-                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-            lifespan: A `Lifespan` context manager handler. This replaces `startup` and
-                `shutdown` functions with a single context manager.
-                Read more in the
-                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-            deprecated: Mark all *path operations* in this router as deprecated.
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-            include_in_schema: To include (or not) all the *path operations* in this router in the
-                generated OpenAPI.
-                This affects the generated OpenAPI (e.g. visible at `/docs`).
-                Read more about it in the
-                [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-            generate_unique_id_function: Customize the function used to generate unique IDs for the *path
-                operations* shown in the generated OpenAPI.
-                This is particularly useful when automatically generating clients or
-                SDKs for your API.
-                Read more about it in the
-                [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
+        servers: NATS cluster addresses to connect.
+        error_cb: Callback to report errors.
+        disconnected_cb: Callback to report disconnection from NATS.
+        closed_cb: Callback to report when client stops reconnection to NATS.
+        discovered_server_cb: Callback to report when a new server joins the cluster.
+        reconnected_cb: Callback to report success reconnection.
+        name: Label the connection with name (shown in NATS monitoring).
+        pedantic: Turn on NATS server pedantic mode that performs extra checks on the protocol.
+            https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+        verbose: Verbose mode produce more feedback about code execution.
+        allow_reconnect: Whether recover connection automatically or not.
+        connect_timeout: Timeout in seconds to establish connection with NATS server.
+        reconnect_time_wait: Time in seconds to wait for reestablish connection to NATS server
+        max_reconnect_attempts: Maximum attempts number to reconnect to NATS server.
+        ping_interval: Interval in seconds to ping.
+        max_outstanding_pings: Maximum number of failed pings
+        dont_randomize: Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+        flusher_queue_size: Max count of commands awaiting to be flushed to the socket
+        no_echo: Boolean indicating should commands be echoed.
+        tls_hostname: Hostname for TLS.
+        token: Auth token for NATS auth.
+        drain_timeout: Timeout in seconds to drain subscriptions.
+        signature_cb: A callback used to sign a nonce from the server while
+            authenticating with nkeys. The user should sign the nonce and
+            return the base64 encoded signature.
+        user_jwt_cb: A callback used to fetch and return the account
+            signed JWT for this user.
+        user_credentials: A user credentials file or tuple of files.
+        nkeys_seed: Nkeys seed to be used.
+        nkeys_seed_str: Raw nkeys seed to be used.
+        inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+        pending_size: Max size of the pending buffer for publishing commands.
+        flush_timeout: Max duration to wait for a forced flush to occur.
+        graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+        decoder: Custom decoder object.
+        parser: Custom parser object.
+        middlewares: Middlewares to apply to all broker publishers/subscribers.
+        security: Security options to connect broker and generate AsyncAPI server security information.
+        specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+        protocol: AsyncAPI server protocol.
+        protocol_version: AsyncAPI server protocol version.
+        description: AsyncAPI server description.
+        specification_tags: AsyncAPI server tags.
+        logger: User specified logger to pass into Context and log service messages.
+        log_level: Service messages log level.
+        setup_state: Whether to add broker to app scope in lifespan.
+            You should disable this option at old ASGI servers.
+        schema_url: AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
+        prefix: An optional path prefix for the router.
+        tags: A list of tags to be applied to all the *path operations* in this
+            router.
+            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+            Read more about it in the
+            [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+        dependencies: A list of dependencies (using `Depends()`) to be applied to all the
+            *path and stream operations* in this router.
+            Read more about it in the
+            [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+        default_response_class: The default response class to be used.
+            Read more in the
+            [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
+        responses: Additional responses to be shown in OpenAPI.
+            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+            Read more about it in the
+            [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
+            And in the
+            [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+        callbacks: OpenAPI callbacks that should apply to all *path operations* in this
+            router.
+            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+            Read more about it in the
+            [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
+        routes: **Note**: you probably shouldn't use this parameter, it is inherited
+            from Starlette and supported for compatibility.
+            ---
+            A list of routes to serve incoming HTTP and WebSocket requests.
+        redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
+            use the same format.
+        default: Default function handler for this router. Used to handle
+            404 Not Found errors.
+        dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
+            You shouldn't need to use it. It normally points to the `FastAPI` app
+            object.
+        route_class: Custom route (*path operation*) class to be used by this router.
+            Read more about it in the
+            [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
+        on_startup: A list of startup event handler functions.
+            You should instead use the `lifespan` handlers.
+            Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+        on_shutdown: A list of shutdown event handler functions.
+            You should instead use the `lifespan` handlers.
+            Read more in the
+            [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+        lifespan: A `Lifespan` context manager handler. This replaces `startup` and
+            `shutdown` functions with a single context manager.
+            Read more in the
+            [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+        deprecated: Mark all *path operations* in this router as deprecated.
+            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+            Read more about it in the
+            [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+        include_in_schema: To include (or not) all the *path operations* in this router in the
+            generated OpenAPI.
+            This affects the generated OpenAPI (e.g. visible at `/docs`).
+            Read more about it in the
+            [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
+        generate_unique_id_function: Customize the function used to generate unique IDs for the *path
+            operations* shown in the generated OpenAPI.
+            This is particularly useful when automatically generating clients or
+            SDKs for your API.
+            Read more about it in the
+            [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
         """
         super().__init__(
             servers,
@@ -338,12 +360,673 @@ class NatsRouter(StreamRouter["Msg"]):
             generate_unique_id_function=generate_unique_id_function,
         )
 
-    def subscriber(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def subscriber(
         self,
-        subject: str,
+        subject: str = "",
         queue: str = "",
-        pending_msgs_limit:int | None = None,
-        pending_bytes_limit:int | None = None,
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "CoreSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "ConcurrentCoreSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "PushStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "ConcurrentPushStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[True] = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "PullStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Literal[True] = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int = ...,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "ConcurrentPullStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: PullSub = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> Union["PullStreamSubscriber", "BatchPullStreamSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: Union[str, "KvWatch"] = ...,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "KeyValueWatchSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: None = None,
+        config: None = None,
+        ordered_consumer: Literal[False] = False,
+        idle_heartbeat: None = None,
+        flow_control: None = None,
+        deliver_policy: None = None,
+        headers_only: None = None,
+        # pull arguments
+        pull_sub: Literal[False] = False,
+        kv_watch: None = None,
+        obj_watch: Union[Literal[True], "ObjWatch"] = ...,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "ObjStoreWatchSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
+        pull_sub: Union[bool, "PullSub"] = False,
+        kv_watch: Union[str, "KvWatch", None] = None,
+        obj_watch: Union[bool, "ObjWatch"] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream", None] = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: int | None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "LogicSubscriber[Any]": ...
+
+    @override
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
@@ -360,15 +1043,33 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        ack_first: bool = EMPTY,
+        ack_first: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
         stream: Union[str, "JStream", None] = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
-        max_workers: int = 1,
-        no_ack: bool = EMPTY,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        max_workers: int | None = None,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -485,7 +1186,7 @@ class NatsRouter(StreamRouter["Msg"]):
                 when it makes sense.
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-        
+
         Returns:
             LogicSubscriber[Any]: The created subscriber object.
         """
@@ -556,6 +1257,7 @@ class NatsRouter(StreamRouter["Msg"]):
         include_in_schema: bool = True,
     ) -> "LogicPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
+
         Args:
             subject: NATS subject to send message.
             headers: Message headers to store metainformation.
