@@ -660,7 +660,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: int = 1,
+        max_workers: int | None = None,
     ) -> Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"]:
         """Create a subscriber for Kafka topics.
 
@@ -906,9 +906,11 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             response_model_exclude_none=response_model_exclude_none,
         )
 
+        workers = max_workers or 1
+
         if batch:
             return cast("BatchSubscriber", subscriber)
-        if max_workers > 1:
+        if workers > 1:
             return cast("ConcurrentDefaultSubscriber", subscriber)
         return cast("DefaultSubscriber", subscriber)
 

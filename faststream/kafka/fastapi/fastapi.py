@@ -151,8 +151,8 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
             generate_unique_id
         ),
     ) -> None:
-        """Args:
-
+        """ Init constructor
+        Args:
         bootstrap_servers: A `host[:port]` string (or list of `host[:port]` strings) that the consumer should contact to bootstrap
             initial cluster metadata.
             This does not have to be the full node list.

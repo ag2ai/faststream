@@ -8,6 +8,12 @@ from faststream.confluent.publisher.usecase import (
     BatchPublisher,
     DefaultPublisher,
 )
+from faststream.confluent.subscriber.usecase import (
+    BatchSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
+)
+
 
 
 async def check_response_type() -> None:
@@ -25,7 +31,7 @@ async def check_response_type() -> None:
     )
 
 
-async def check_publish_type() -> None:
+async def check_publish_type(fake_bool: bool = True) -> None:
     broker = KafkaBroker()
 
     publish_with_confirm = await broker.publish(None, "test", no_confirm=True)
@@ -33,6 +39,9 @@ async def check_publish_type() -> None:
 
     publish_without_confirm = await broker.publish(None, "test", no_confirm=False)
     assert_type(publish_without_confirm, Message | None)
+
+    publish_confirm_bool = await broker.publish(None, "test", no_confirm=fake_bool)
+    assert_type(publish_confirm_bool, Message)
 
 
 async def check_publisher_publish_type(fake_bool: bool = False) -> None:
@@ -57,11 +66,19 @@ async def check_publisher_publish_type(fake_bool: bool = False) -> None:
     assert_type(p3, BatchPublisher | DefaultPublisher)
 
 
-async def check_publish_batch_type() -> None:
+async def check_publish_batch_type(fake_bool: bool = True) -> None:
     broker = KafkaBroker()
 
     publish_with_confirm = await broker.publish_batch(None, topic="test")  # type: ignore[func-returns-value]
     assert_type(publish_with_confirm, None)
+
+    publish_without_confirm = await broker.publish_batch(None, topic="test", no_confirm=True) # type: ignore[func-returns-value]
+    assert_type(publish_without_confirm, None)
+
+    publish_confirm_bool = await broker.publish_batch(  # type: ignore[func-returns-value]
+        None, topic="test", no_confirm=fake_bool
+    )
+    assert_type(publish_confirm_bool, None)
 
 
 async def check_channel_subscriber() -> None:
@@ -74,3 +91,16 @@ async def check_channel_subscriber() -> None:
 
     async for msg in subscriber:
         assert_type(msg, KafkaMessage)
+
+
+def check_subscriber_instance_type() -> None:
+    broker = KafkaBroker()
+
+    sub1 = broker.subscriber("test")
+    assert_type(sub1, DefaultSubscriber)
+
+    sub2 = broker.subscriber("test", batch=True)
+    assert_type(sub2, BatchSubscriber)
+
+    sub3 = broker.subscriber("test", max_workers=2)
+    assert_type(sub3, ConcurrentDefaultSubscriber)

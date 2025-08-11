@@ -48,7 +48,7 @@ class KafkaRegistrator(
 ):
     """Includable to KafkaBroker router."""
 
-    @overload  # type: ignore[override]
+    @overload
     def subscriber(
         self,
         *topics: str,
@@ -56,6 +56,65 @@ class KafkaRegistrator(
         polling_interval: float = 0.1,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        fetch_max_wait_ms: int = 500,
+        fetch_max_bytes: int = 50 * 1024 * 1024,
+        fetch_min_bytes: int = 1,
+        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
+        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
+        auto_commit: Annotated[
+            bool,
+            deprecated(
+                "This option is deprecated and will be removed in 0.7.0 release. "
+                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
+            ),
+        ] = EMPTY,
+        auto_commit_interval_ms: int = 5 * 1000,
+        check_crcs: bool = True,
+        partition_assignment_strategy: Sequence[str] = ("roundrobin",),
+        max_poll_interval_ms: int = 5 * 60 * 1000,
+        session_timeout_ms: int = 10 * 1000,
+        heartbeat_interval_ms: int = 3 * 1000,
+        isolation_level: Literal[
+            "read_uncommitted",
+            "read_committed",
+        ] = "read_uncommitted",
+        batch: Literal[False] = False,
+        max_records: int | None = None,
+        # broker args
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[KafkaMessage]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # Specification args
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) ->  "DefaultSubscriber": ...
+
+    @overload  # type: ignore[override]
+    def subscriber(
+        self,
+        *topics: str,
+        partitions: Sequence["TopicPartition"] = (),
+        polling_interval: float = 0.1,
+        group_id: None = None,
+        group_instance_id: None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
         fetch_min_bytes: int = 1,
@@ -98,6 +157,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -156,16 +216,14 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: None = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-    ) -> Union[
-        "DefaultSubscriber",
-        "ConcurrentDefaultSubscriber",
-    ]: ...
+    ) -> "ConcurrentDefaultSubscriber": ...
 
     @overload
     def subscriber(
@@ -217,13 +275,13 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: int | None = None,
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
