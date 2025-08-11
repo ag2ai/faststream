@@ -76,292 +76,65 @@ class NatsRouter(StreamRouter["Msg"]):
 
     def __init__(
         self,
-        servers: Annotated[
-            str | Iterable[str],
-            Doc("NATS cluster addresses to connect."),
-        ] = ("nats://localhost:4222",),
+        servers: str | Iterable[str] = ("nats://localhost:4222",),
         *,
         # connection args
-        error_cb: Annotated[
-            Optional["ErrorCallback"],
-            Doc("Callback to report errors."),
-        ] = None,
-        disconnected_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report disconnection from NATS."),
-        ] = None,
-        closed_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report when client stops reconnection to NATS."),
-        ] = None,
-        discovered_server_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report when a new server joins the cluster."),
-        ] = None,
-        reconnected_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report success reconnection."),
-        ] = None,
-        name: Annotated[
-            str | None,
-            Doc("Label the connection with name (shown in NATS monitoring)."),
-        ] = SERVICE_NAME,
-        pedantic: Annotated[
-            bool,
-            Doc(
-                "Turn on NATS server pedantic mode that performs extra checks on the protocol. "
-                "https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode",
-            ),
-        ] = False,
-        verbose: Annotated[
-            bool,
-            Doc("Verbose mode produce more feedback about code execution."),
-        ] = False,
-        allow_reconnect: Annotated[
-            bool,
-            Doc("Whether recover connection automatically or not."),
-        ] = True,
-        connect_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to establish connection with NATS server."),
-        ] = DEFAULT_CONNECT_TIMEOUT,
-        reconnect_time_wait: Annotated[
-            int,
-            Doc("Time in seconds to wait for reestablish connection to NATS server"),
-        ] = DEFAULT_RECONNECT_TIME_WAIT,
-        max_reconnect_attempts: Annotated[
-            int,
-            Doc("Maximum attempts number to reconnect to NATS server."),
-        ] = DEFAULT_MAX_RECONNECT_ATTEMPTS,
-        ping_interval: Annotated[
-            int,
-            Doc("Interval in seconds to ping."),
-        ] = DEFAULT_PING_INTERVAL,
-        max_outstanding_pings: Annotated[
-            int,
-            Doc("Maximum number of failed pings"),
-        ] = DEFAULT_MAX_OUTSTANDING_PINGS,
-        dont_randomize: Annotated[
-            bool,
-            Doc(
-                "Boolean indicating should client randomly shuffle servers list for reconnection randomness.",
-            ),
-        ] = False,
-        flusher_queue_size: Annotated[
-            int,
-            Doc("Max count of commands awaiting to be flushed to the socket"),
-        ] = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
-        no_echo: Annotated[
-            bool,
-            Doc("Boolean indicating should commands be echoed."),
-        ] = False,
-        tls_hostname: Annotated[
-            str | None,
-            Doc("Hostname for TLS."),
-        ] = None,
-        token: Annotated[
-            str | None,
-            Doc("Auth token for NATS auth."),
-        ] = None,
-        drain_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to drain subscriptions."),
-        ] = DEFAULT_DRAIN_TIMEOUT,
-        signature_cb: Annotated[
-            Optional["SignatureCallback"],
-            Doc(
-                "A callback used to sign a nonce from the server while "
-                "authenticating with nkeys. The user should sign the nonce and "
-                "return the base64 encoded signature.",
-            ),
-        ] = None,
-        user_jwt_cb: Annotated[
-            Optional["JWTCallback"],
-            Doc(
-                "A callback used to fetch and return the account "
-                "signed JWT for this user.",
-            ),
-        ] = None,
-        user_credentials: Annotated[
-            Optional["Credentials"],
-            Doc("A user credentials file or tuple of files."),
-        ] = None,
-        nkeys_seed: Annotated[
-            str | None,
-            Doc("Nkeys seed to be used."),
-        ] = None,
-        nkeys_seed_str: Annotated[
-            str | None,
-            Doc("Raw nkeys seed to be used."),
-        ] = None,
-        inbox_prefix: Annotated[
-            str | bytes,
-            Doc(
-                "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
-            ),
-        ] = DEFAULT_INBOX_PREFIX,
-        pending_size: Annotated[
-            int,
-            Doc("Max size of the pending buffer for publishing commands."),
-        ] = DEFAULT_PENDING_SIZE,
-        flush_timeout: Annotated[
-            float | None,
-            Doc("Max duration to wait for a forced flush to occur."),
-        ] = None,
+        error_cb: Optional["ErrorCallback"] = None,
+        disconnected_cb: Optional["Callback"] = None,
+        closed_cb: Optional["Callback"] = None,
+        discovered_server_cb: Optional["Callback"] = None,
+        reconnected_cb: Optional["Callback"] = None,
+        name: str | None = SERVICE_NAME,
+        pedantic: bool = False,
+        verbose: bool = False,
+        allow_reconnect: bool = True,
+        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        reconnect_time_wait: int = DEFAULT_RECONNECT_TIME_WAIT,
+        max_reconnect_attempts: int = DEFAULT_MAX_RECONNECT_ATTEMPTS,
+        ping_interval: int = DEFAULT_PING_INTERVAL,
+        max_outstanding_pings: int = DEFAULT_MAX_OUTSTANDING_PINGS,
+        dont_randomize: bool = False,
+        flusher_queue_size: int = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
+        no_echo: bool = False,
+        tls_hostname: str | None = None,
+        token: str | None = None,
+        drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
+        signature_cb: Optional["SignatureCallback"] = None,
+        user_jwt_cb: Optional["JWTCallback"] = None,
+        user_credentials: Optional["Credentials"] = None,
+        nkeys_seed: str | None = None,
+        nkeys_seed_str: str | None = None,
+        inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
+        pending_size: int = DEFAULT_PENDING_SIZE,
+        flush_timeout: float | None = None,
         # broker args
-        graceful_timeout: Annotated[
-            float | None,
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = 15.0,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Msg, Any]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        middlewares: Sequence["BrokerMiddleware[Msg, Any]"] = (),
         # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            str | Iterable[str] | None,
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol."),
-        ] = "nats",
-        protocol_version: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol version."),
-        ] = "custom",
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI server description."),
-        ] = None,
-        specification_tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
+        security: Optional["BaseSecurity"] = None,
+        specification_url: str | Iterable[str] | None = None,
+        protocol: str | None = "nats",
+        protocol_version: str | None = "custom",
+        description: str | None = None,
+        specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
         # StreamRouter options
-        setup_state: Annotated[
-            bool,
-            Doc(
-                "Whether to add broker to app scope in lifespan. "
-                "You should disable this option at old ASGI servers.",
-            ),
-        ] = True,
-        schema_url: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
-            ),
-        ] = "/asyncapi",
+        setup_state: bool = True,
+        schema_url: str | None = "/asyncapi",
         context: ContextRepo | None = None,
         # FastAPI args
-        prefix: Annotated[
-            str,
-            Doc("An optional path prefix for the router."),
-        ] = "",
-        tags: Annotated[
-            list[Union[str, "Enum"]] | None,
-            Doc(
-                """
-                A list of tags to be applied to all the *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        dependencies: Annotated[
-            Sequence["params.Depends"] | None,
-            Doc(
-                """
-                A list of dependencies (using `Depends()`) to be applied to all the
-                *path and stream operations* in this router.
-
-                Read more about it in the
-                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        default_response_class: Annotated[
-            type["Response"],
-            Doc(
-                """
-                The default response class to be used.
-
-                Read more in the
-                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-                """,
-            ),
-        ] = Default(JSONResponse),
-        responses: Annotated[
-            dict[int | str, dict[str, Any]] | None,
-            Doc(
-                """
-                Additional responses to be shown in OpenAPI.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
-
-                And in the
-                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        callbacks: Annotated[
-            list[BaseRoute] | None,
-            Doc(
-                """
-                OpenAPI callbacks that should apply to all *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-                """,
-            ),
-        ] = None,
+        prefix: str = "",
+        tags: list[Union[str, "Enum"]] | None = None,
+        dependencies: Sequence["params.Depends"] | None = None,
+        default_response_class:type["Response"] = Default(JSONResponse),
+        responses: dict[int | str, dict[str, Any]] | None = None,
+        callbacks: list[BaseRoute] | None = None,
         routes: Annotated[
             list[BaseRoute] | None,
-            Doc(
-                """
-                **Note**: you probably shouldn't use this parameter, it is inherited
-                from Starlette and supported for compatibility.
-
-                ---
-
-                A list of routes to serve incoming HTTP and WebSocket requests.
-                """,
-            ),
             deprecated(
                 """
                 You normally wouldn't use this parameter with FastAPI, it is inherited
@@ -372,127 +145,132 @@ class NatsRouter(StreamRouter["Msg"]):
                 """,
             ),
         ] = None,
-        redirect_slashes: Annotated[
-            bool,
-            Doc(
-                """
-                Whether to detect and redirect slashes in URLs when the client doesn't
-                use the same format.
-                """,
-            ),
-        ] = True,
-        default: Annotated[
-            Optional["ASGIApp"],
-            Doc(
-                """
-                Default function handler for this router. Used to handle
-                404 Not Found errors.
-                """,
-            ),
-        ] = None,
-        dependency_overrides_provider: Annotated[
-            Any | None,
-            Doc(
-                """
-                Only used internally by FastAPI to handle dependency overrides.
-
-                You shouldn't need to use it. It normally points to the `FastAPI` app
-                object.
-                """,
-            ),
-        ] = None,
-        route_class: Annotated[
-            type["APIRoute"],
-            Doc(
-                """
-                Custom route (*path operation*) class to be used by this router.
-
-                Read more about it in the
-                [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-                """,
-            ),
-        ] = APIRoute,
-        on_startup: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
-                A list of startup event handler functions.
-
-                You should instead use the `lifespan` handlers.
-
-                Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        on_shutdown: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
-                A list of shutdown event handler functions.
-
-                You should instead use the `lifespan` handlers.
-
-                Read more in the
-                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        lifespan: Annotated[
-            Optional["Lifespan[Any]"],
-            Doc(
-                """
-                A `Lifespan` context manager handler. This replaces `startup` and
-                `shutdown` functions with a single context manager.
-
-                Read more in the
-                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        deprecated: Annotated[
-            bool | None,
-            Doc(
-                """
-                Mark all *path operations* in this router as deprecated.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc(
-                """
-                To include (or not) all the *path operations* in this router in the
-                generated OpenAPI.
-
-                This affects the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-                """,
-            ),
-        ] = True,
-        generate_unique_id_function: Annotated[
-            Callable[["APIRoute"], str],
-            Doc(
-                """
-                Customize the function used to generate unique IDs for the *path
-                operations* shown in the generated OpenAPI.
-
-                This is particularly useful when automatically generating clients or
-                SDKs for your API.
-
-                Read more about it in the
-                [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
-                """,
-            ),
-        ] = Default(generate_unique_id),
+        redirect_slashes: bool = True,
+        default: Optional["ASGIApp"] = None,
+        dependency_overrides_provider: Any | None = None,
+        route_class: type["APIRoute"] = APIRoute,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
+        lifespan: Optional["Lifespan[Any]"] = None,
+        deprecated: bool | None = None,
+        include_in_schema: bool = True,
+        generate_unique_id_function: Callable[["APIRoute"], str] = Default(generate_unique_id),
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
+        """Args:
+            servers: NATS cluster addresses to connect.
+            error_cb: Callback to report errors.
+            disconnected_cb: Callback to report disconnection from NATS.
+            closed_cb: Callback to report when client stops reconnection to NATS.
+            discovered_server_cb: Callback to report when a new server joins the cluster.
+            reconnected_cb: Callback to report success reconnection.
+            name: Label the connection with name (shown in NATS monitoring).
+            pedantic: Turn on NATS server pedantic mode that performs extra checks on the protocol.
+                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+            verbose: Verbose mode produce more feedback about code execution.
+            allow_reconnect: Whether recover connection automatically or not.
+            connect_timeout: Timeout in seconds to establish connection with NATS server.
+            reconnect_time_wait: Time in seconds to wait for reestablish connection to NATS server
+            max_reconnect_attempts: Maximum attempts number to reconnect to NATS server.
+            ping_interval: Interval in seconds to ping.
+            max_outstanding_pings: Maximum number of failed pings
+            dont_randomize: Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+            flusher_queue_size: Max count of commands awaiting to be flushed to the socket
+            no_echo: Boolean indicating should commands be echoed.
+            tls_hostname: Hostname for TLS.
+            token: Auth token for NATS auth.
+            drain_timeout: Timeout in seconds to drain subscriptions.
+            signature_cb: A callback used to sign a nonce from the server while
+                authenticating with nkeys. The user should sign the nonce and
+                return the base64 encoded signature.
+            user_jwt_cb: A callback used to fetch and return the account
+                signed JWT for this user.
+            user_credentials: A user credentials file or tuple of files.
+            nkeys_seed: Nkeys seed to be used.
+            nkeys_seed_str: Raw nkeys seed to be used.
+            inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+            pending_size: Max size of the pending buffer for publishing commands.
+            flush_timeout: Max duration to wait for a forced flush to occur.
+            graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder: Custom decoder object.
+            parser: Custom parser object.
+            middlewares: Middlewares to apply to all broker publishers/subscribers.
+            security: Security options to connect broker and generate AsyncAPI server security information.
+            specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol: AsyncAPI server protocol.
+            protocol_version: AsyncAPI server protocol version.
+            description: AsyncAPI server description.
+            specification_tags: AsyncAPI server tags.
+            logger: User specified logger to pass into Context and log service messages.
+            log_level: Service messages log level.
+            setup_state: Whether to add broker to app scope in lifespan.
+                You should disable this option at old ASGI servers.
+            schema_url: AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
+            prefix: An optional path prefix for the router.
+            tags: A list of tags to be applied to all the *path operations* in this
+                router.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            dependencies: A list of dependencies (using `Depends()`) to be applied to all the
+                *path and stream operations* in this router.
+                Read more about it in the
+                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            default_response_class: The default response class to be used.
+                Read more in the
+                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
+            responses: Additional responses to be shown in OpenAPI.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
+                And in the
+                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            callbacks: OpenAPI callbacks that should apply to all *path operations* in this
+                router.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
+            routes: **Note**: you probably shouldn't use this parameter, it is inherited
+                from Starlette and supported for compatibility.
+                ---
+                A list of routes to serve incoming HTTP and WebSocket requests.
+            redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
+                use the same format.
+            default: Default function handler for this router. Used to handle
+                404 Not Found errors.
+            dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
+                You shouldn't need to use it. It normally points to the `FastAPI` app
+                object.
+            route_class: Custom route (*path operation*) class to be used by this router.
+                Read more about it in the
+                [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
+            on_startup: A list of startup event handler functions.
+                You should instead use the `lifespan` handlers.
+                Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            on_shutdown: A list of shutdown event handler functions.
+                You should instead use the `lifespan` handlers.
+                Read more in the
+                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            lifespan: A `Lifespan` context manager handler. This replaces `startup` and
+                `shutdown` functions with a single context manager.
+                Read more in the
+                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            deprecated: Mark all *path operations* in this router as deprecated.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            include_in_schema: To include (or not) all the *path operations* in this router in the
+                generated OpenAPI.
+                This affects the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
+            generate_unique_id_function: Customize the function used to generate unique IDs for the *path
+                operations* shown in the generated OpenAPI.
+                This is particularly useful when automatically generating clients or
+                SDKs for your API.
+                Read more about it in the
+                [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
+        """
         super().__init__(
             servers,
             error_cb=error_cb,
@@ -562,179 +340,96 @@ class NatsRouter(StreamRouter["Msg"]):
 
     def subscriber(  # type: ignore[override]
         self,
-        subject: Annotated[
-            str,
-            Doc("NATS subject to subscribe."),
-        ],
-        queue: Annotated[
-            str,
-            Doc(
-                "Subscribers' NATS queue name. Subscribers with same queue name will be load balanced by the NATS "
-                "server.",
-            ),
-        ] = "",
-        pending_msgs_limit: Annotated[
-            int | None,
-            Doc(
-                "Limit of messages, considered by NATS server as possible to be delivered to the client without "
-                "been answered. In case of NATS Core, if that limits exceeds, you will receive NATS 'Slow Consumer' "
-                "error. "
-                "That's literally means that your worker can't handle the whole load. In case of NATS JetStream, "
-                "you will no longer receive messages until some of delivered messages will be acked in any way.",
-            ),
-        ] = None,
-        pending_bytes_limit: Annotated[
-            int | None,
-            Doc(
-                "The number of bytes, considered by NATS server as possible to be delivered to the client without "
-                "been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow Consumer' "
-                "error."
-                "That's literally means that your worker can't handle the whole load. In case of NATS JetStream, "
-                "you will no longer receive messages until some of delivered messages will be acked in any way.",
-            ),
-        ] = None,
+        subject: str,
+        queue: str = "",
+        pending_msgs_limit:int | None = None,
+        pending_bytes_limit:int | None = None,
         # Core arguments
-        max_msgs: Annotated[
-            int,
-            Doc("Consuming messages limiter. Automatically disconnect if reached."),
-        ] = 0,
+        max_msgs: int = 0,
         # JS arguments
-        durable: Annotated[
-            str | None,
-            Doc(
-                "Name of the durable consumer to which the the subscription should be bound.",
-            ),
-        ] = None,
-        config: Annotated[
-            Optional["api.ConsumerConfig"],
-            Doc("Configuration of JetStream consumer to be subscribed with."),
-        ] = None,
-        ordered_consumer: Annotated[
-            bool,
-            Doc("Enable ordered consumer mode."),
-        ] = False,
-        idle_heartbeat: Annotated[
-            float | None,
-            Doc("Enable Heartbeats for a consumer to detect failures."),
-        ] = None,
-        flow_control: Annotated[
-            bool | None,
-            Doc("Enable Flow Control for a consumer."),
-        ] = None,
-        deliver_policy: Annotated[
-            Optional["api.DeliverPolicy"],
-            Doc("Deliver Policy to be used for subscription."),
-        ] = None,
-        headers_only: Annotated[
-            bool | None,
-            Doc(
-                "Should be message delivered without payload, only headers and metadata.",
-            ),
-        ] = None,
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
         # pull arguments
-        pull_sub: Annotated[
-            Optional["PullSub"],
-            Doc(
-                "NATS Pull consumer parameters container. "
-                "Should be used with `stream` only.",
-            ),
-        ] = None,
-        kv_watch: Annotated[
-            Union[str, "KvWatch", None],
-            Doc("KeyValue watch parameters container."),
-        ] = None,
-        obj_watch: Annotated[
-            Union[bool, "ObjWatch"],
-            Doc("ObjectStore watch parameters container."),
-        ] = False,
-        inbox_prefix: Annotated[
-            bytes,
-            Doc(
-                "Prefix for generating unique inboxes, subjects with that prefix and NUID.",
-            ),
-        ] = api.INBOX_PREFIX,
+        pull_sub: Optional["PullSub"] = None,
+        kv_watch: Union[str, "KvWatch", None] = None,
+        obj_watch: Union[bool, "ObjWatch"] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        ack_first: Annotated[
-            bool,
-            Doc("Whether to `ack` message at start of consuming or not."),
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
-        stream: Annotated[
-            Union[str, "JStream", None],
-            Doc("Subscribe to NATS Stream with `subject` filter."),
-        ] = None,
+        ack_first: bool = EMPTY,
+        stream: Union[str, "JStream", None] = None,
         # broker arguments
-        dependencies: Annotated[
-            Iterable["params.Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Parser to map original **nats-py** Msg to FastStream one."),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-            Doc("Subscriber middlewares to wrap incoming message processing."),
-        ] = (),
-        max_workers: Annotated[
-            int,
-            Doc("Number of workers to process messages concurrently."),
-        ] = 1,
-        no_ack: Annotated[
-            bool,
-            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
+        max_workers: int = 1,
+        no_ack: bool = EMPTY,
         ack_policy: AckPolicy = EMPTY,
-        no_reply: Annotated[
-            bool,
-            Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
-            ),
-        ] = False,
+        no_reply: bool = False,
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI subscriber object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
         # FastAPI args
-        response_model: Annotated[
-            Any,
-            Doc(
-                """
-                The type to use for the response.
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "LogicSubscriber[Msg]":
+        """Creates NATS subscriber object.
 
+        Args:
+            subject: NATS subject to subscribe.
+            queue: Subscribers' NATS queue name. Subscribers with same queue name will be load balanced by the NATS
+                server.
+            pending_msgs_limit: Limit of messages, considered by NATS server as possible to be delivered to the
+                client without been answered. In case of NATS Core, if that limits exceeds, you will receive NATS
+                'Slow Consumer' error. That's literally means that your worker can't handle the whole load. In case of
+                NATS JetStream, you will no longer receive messages until some of delivered messages will be acked in
+                any way.
+            pending_bytes_limit: The number of bytes, considered by NATS server as possible to be delivered to the
+                client without been answered. In case of NATS Core, if that limit exceeds, you will receive NATS 'Slow
+                Consumer' error. That's literally means that your worker can't handle the whole load. In case of NATS
+                JetStream, you will no longer receive messages until some of delivered messages will be acked in any
+                way.
+            max_msgs: Consuming messages limiter. Automatically disconnect if reached.
+            durable: Name of the durable consumer to which the the subscription should be bound.
+            config: Configuration of JetStream consumer to be subscribed with.
+            ordered_consumer: Enable ordered consumer mode.
+            idle_heartbeat: Enable Heartbeats for a consumer to detect failures.
+            flow_control: Enable Flow Control for a consumer.
+            deliver_policy: Deliver Policy to be used for subscription.
+            headers_only: Should be message delivered without payload, only headers and metadata.
+            pull_sub: NATS Pull consumer parameters container. Should be used with `stream` only.
+            kv_watch: KeyValue watch parameters container.
+            obj_watch: ObjectStore watch parameters container.
+            inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.
+            ack_first: Whether to `ack` message at start of consuming or not.
+            stream: Subscribe to NATS Stream with `subject` filter.
+            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser: Parser to map original **nats-py** Msg to FastStream one.
+            decoder: Function to decode FastStream msg bytes body to python objects.
+            middlewares: Subscriber middlewares to wrap incoming message processing.
+            max_workers: Number of workers to process messages concurrently.
+            no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
+            ack_policy: Whether to `ack` message at start of consuming or not.
+            no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
+            title: AsyncAPI subscriber object title.
+            description: AsyncAPI subscriber object description. Uses decorated docstring as default.
+            include_in_schema: Whetever to include operation in AsyncAPI schema or not.
+            response_model: The type to use for the response.
                 It could be any valid Pydantic *field* type. So, it doesn't have to
                 be a Pydantic model, it could be other things, like a `list`, `dict`,
                 etc.
-
                 It will be used for:
-
                 * Documentation: the generated OpenAPI (and the UI at `/docs`) will
                     show it as the response (JSON Schema).
                 * Serialization: you could return an arbitrary object and the
@@ -751,101 +446,49 @@ class NatsRouter(StreamRouter["Msg"]):
                     valid, that would mean a violation of the contract with the client,
                     so it's an error from the API developer. So, FastAPI will raise an
                     error and return a 500 error code (Internal Server Error).
-
                 Read more about it in the
                 [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """,
-            ),
-        ] = Default(None),
-        response_model_include: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to include only certain fields in the
+            response_model_include: Configuration passed to Pydantic to include only certain fields in the
                 response data.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_exclude: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to exclude certain fields in the
+            response_model_exclude: Configuration passed to Pydantic to exclude certain fields in the
                 response data.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_by_alias: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response model
+            response_model_by_alias: Configuration passed to Pydantic to define if the response model
                 should be serialized by alias when an alias is used.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = True,
-        response_model_exclude_unset: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
+            response_model_exclude_unset: Configuration passed to Pydantic to define if the response data
                 should have all the fields, including the ones that were not set and
                 have their default values. This is different from
                 `response_model_exclude_defaults` in that if the fields are set,
                 they will be included in the response, even if the value is the same
                 as the default.
-
                 When `True`, default values are omitted from the response.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
-            ),
-        ] = False,
-        response_model_exclude_defaults: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
+            response_model_exclude_defaults: Configuration passed to Pydantic to define if the response data
                 should have all the fields, including the ones that have the same value
                 as the default. This is different from `response_model_exclude_unset`
                 in that if the fields are set but contain the same default values,
                 they will be excluded from the response.
-
                 When `True`, default values are omitted from the response.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
-            ),
-        ] = False,
-        response_model_exclude_none: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data should
+            response_model_exclude_none:  Configuration passed to Pydantic to define if the response data should
                 exclude fields set to `None`.
-
                 This is much simpler (less smart) than `response_model_exclude_unset`
                 and `response_model_exclude_defaults`. You probably want to use one of
                 those two instead of this one, as those allow returning `None` values
                 when it makes sense.
-
                 Read more about it in the
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """,
-            ),
-        ] = False,
-    ) -> "LogicSubscriber[Msg]":
+        
+        Returns:
+            LogicSubscriber[Any]: The created subscriber object.
+        """
         return cast(
             "LogicSubscriber[Msg]",
             super().subscriber(
@@ -892,34 +535,12 @@ class NatsRouter(StreamRouter["Msg"]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        subject: Annotated[
-            str,
-            Doc("NATS subject to send message."),
-        ],
-        headers: Annotated[
-            dict[str, str] | None,
-            Doc(
-                "Message headers to store metainformation. "
-                "**content-type** and **correlation_id** will be set automatically by framework anyway. "
-                "Can be overridden by `publish.headers` if specified.",
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("NATS subject name to send response."),
-        ] = "",
+        subject: str,
+        headers: dict[str, str] | None = None,
+        reply_to: str = "",
         # JS
-        stream: Annotated[
-            Union[str, "JStream", None],
-            Doc(
-                "This option validates that the target `subject` is in presented stream. "
-                "Can be omitted without any effect.",
-            ),
-        ] = None,
-        timeout: Annotated[
-            float | None,
-            Doc("Timeout to send message to NATS."),
-        ] = None,
+        stream: Union[str, "JStream", None] = None,
+        timeout: float | None = None,
         # specific
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
@@ -927,29 +548,30 @@ class NatsRouter(StreamRouter["Msg"]):
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
-            Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object description."),
-        ] = None,
-        schema: Annotated[
-            Any | None,
-            Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
     ) -> "LogicPublisher":
+        """Creates long-living and AsyncAPI-documented publisher object.
+        Args:
+            subject: NATS subject to send message.
+            headers: Message headers to store metainformation.
+                **content-type** and **correlation_id** will be set automatically by framework anyway.
+                Can be overridden by `publish.headers` if specified.
+            reply_to: NATS subject name to send response.
+            stream: This option validates that the target `subject` is in presented stream.
+                Can be omitted without any effect.
+            timeout: Timeout to send message to NATS.
+            middlewares: Publisher middlewares to wrap outgoing messages.
+            title: AsyncAPI publisher object title.
+            description: AsyncAPI publisher object description.
+            schema: AsyncAPI publishing message type.
+                Should be any python-native object annotation or `pydantic.BaseModel`.
+            include_in_schema: Whetever to include operation in AsyncAPI schema or not.
+        """
         return self.broker.publisher(
             subject,
             headers=headers,
