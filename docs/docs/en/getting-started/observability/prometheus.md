@@ -54,6 +54,7 @@ To add a metrics to your broker, you need to:
     ```
 
 ### Exposing the `/metrics` endpoint
+
 The way Prometheus works requires the service to expose an HTTP endpoint for analysis.
 By convention, this is a GET endpoint, and its path is usually `/metrics`.
 
@@ -126,6 +127,16 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | status (while publishing)         | Message publishing status                                       | `success`, `error`                                |
 | destination                       | Where the message is sent                                       |                                                   |
 | exception_type (while publishing) | Exception type when publishing message                          |                                                   |
+
+### Integrate custom metrics
+
+To integrate your custom metrics with FastStream, you should declare the metric, specifying the **same registry** that you passed to middleware.
+
+```python linenums="1" hl_lines="1 6 7 11 18-19"
+{!> docs_src/getting_started/prometheus/kafka_custom_metric.py!}
+```
+
+To learn about all the metric types supported by the `prometheus_client` Python library, check out the official instrumentation [**documentation**](https://prometheus.github.io/client_python/instrumenting/){.external-link target="_blank"}.
 
 ## Prometheus Metrics in Multi-Process Mode
 

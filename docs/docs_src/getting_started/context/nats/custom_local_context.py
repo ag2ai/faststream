@@ -1,24 +1,24 @@
-from faststream import Context, FastStream, apply_types
-from faststream.nats import NatsBroker
-from faststream.nats.annotations import ContextRepo, NatsMessage
+from typing import Any, Annotated
+from faststream import Context, FastStream, BaseMiddleware
+from faststream.nats import NatsBroker, NatsMessage
+from faststream.types import AsyncFuncAny
+from faststream.message import StreamMessage
 
-broker = NatsBroker("nats://localhost:4222")
+class Middleware(BaseMiddleware):
+    async def consume_scope(
+        self,
+        call_next: AsyncFuncAny,
+        msg: StreamMessage[Any],
+    ) -> Any:
+        with self.context.scope("correlation_id", msg.correlation_id):
+            return await super().consume_scope(call_next, msg)
+
+broker = NatsBroker("nats://localhost:4222", middlewares=[Middleware])
 app = FastStream(broker)
-
 
 @broker.subscriber("test-subject")
 async def handle(
-    msg: str,
-    message: NatsMessage,
-    context: ContextRepo,
-):
-    with context.scope("correlation_id", message.correlation_id):
-        call()
-
-
-@apply_types
-def call(
-    message: NatsMessage,
-    correlation_id: str = Context(),
+    message: NatsMessage,  # get from the context too
+    correlation_id: Annotated[str, Context()],
 ):
     assert correlation_id == message.correlation_id

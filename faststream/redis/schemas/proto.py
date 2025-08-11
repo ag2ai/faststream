@@ -1,32 +1,22 @@
-from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Union
-
-from faststream.asyncapi.abc import AsyncAPIOperation
 from faststream.exceptions import SetupError
 
-if TYPE_CHECKING:
-    from faststream.asyncapi.schema.bindings import redis
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
-
-
-class RedisAsyncAPIProtocol(AsyncAPIOperation):
-    @property
-    @abstractmethod
-    def channel_binding(self) -> "redis.ChannelBinding": ...
-
-    @abstractmethod
-    def get_payloads(self) -> Any: ...
+from .list_sub import ListSub
+from .pub_sub import PubSub
+from .stream_sub import StreamSub
 
 
 def validate_options(
     *,
-    channel: Union["PubSub", str, None],
-    list: Union["ListSub", str, None],
-    stream: Union["StreamSub", str, None],
+    channel: PubSub | str | None,
+    list: ListSub | str | None,
+    stream: StreamSub | str | None,
 ) -> None:
     if all((channel, list)):
-        raise SetupError("You can't use `PubSub` and `ListSub` both")
-    elif all((channel, stream)):
-        raise SetupError("You can't use `PubSub` and `StreamSub` both")
-    elif all((list, stream)):
-        raise SetupError("You can't use `ListSub` and `StreamSub` both")
+        msg = "You can't use `PubSub` and `ListSub` both"
+        raise SetupError(msg)
+    if all((channel, stream)):
+        msg = "You can't use `PubSub` and `StreamSub` both"
+        raise SetupError(msg)
+    if all((list, stream)):
+        msg = "You can't use `ListSub` and `StreamSub` both"
+        raise SetupError(msg)

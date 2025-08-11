@@ -21,7 +21,7 @@ router = NatsRouter(
                 NatsPublisher("outer-subject"),
             ),
         ),
-    )
+    ),
 )
 
 broker.include_router(router)

@@ -2,17 +2,18 @@ from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream, Logger
 from faststream.kafka import KafkaBroker
-
+from faststream.specification import AsyncAPI
 
 class DataBasic(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
-
 broker = KafkaBroker("localhost:9092")
-app = FastStream(broker)
-
+app = FastStream(
+    broker,
+    specification=AsyncAPI(),
+)
 
 @broker.publisher("output_data")
 @broker.subscriber("input_data")

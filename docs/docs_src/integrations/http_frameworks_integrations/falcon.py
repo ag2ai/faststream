@@ -28,7 +28,7 @@ class StreamMiddleware:
         await broker.start()
 
     async def process_shutdown(self, scope, event):
-        await broker.close()
+        await broker.stop()
 
 
 app = falcon.asgi.App()

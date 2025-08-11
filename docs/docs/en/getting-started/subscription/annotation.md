@@ -16,7 +16,7 @@ As you already know, **FastStream** serializes your incoming message body accord
 
 So, there are some valid use cases:
 
-```python hl_lines="3 9 15"
+```python linenums="1" hl_lines="3 9 15"
 @broker.subscriber("test")
 async def handle(
     msg: str,
@@ -50,7 +50,7 @@ But how can we serialize more complex message, like `#!json { "name": "John", "u
 
 For sure, we can serialize it as a simple `#!python dict`
 
-```python hl_lines="5"
+```python linenums="1" hl_lines="5"
 from typing import Dict, Any
 
 @broker.subscriber("test")
@@ -66,30 +66,100 @@ But it doesn't looks like a correct message validation, does it?
 For this reason, **FastStream** supports per-argument message serialization: you can declare multiple arguments with various types and your message will unpack to them:
 
 === "AIOKafka"
-    ```python hl_lines="3-4"
+    ```python linenums="1" hl_lines="3-4"
     {!> docs_src/getting_started/subscription/kafka/annotation.py [ln:8-14] !}
     ```
 
 === "Confluent"
-    ```python hl_lines="3-4"
+    ```python linenums="1" hl_lines="3-4"
     {!> docs_src/getting_started/subscription/confluent/annotation.py [ln:8-14] !}
     ```
 
 === "RabbitMQ"
-    ```python hl_lines="3-4"
+    ```python linenums="1" hl_lines="3-4"
     {!> docs_src/getting_started/subscription/rabbit/annotation.py [ln:8-14] !}
     ```
 
 === "NATS"
-    ```python hl_lines="3-4"
+    ```python linenums="1" hl_lines="3-4"
     {!> docs_src/getting_started/subscription/nats/annotation.py [ln:8-14] !}
     ```
 
 === "Redis"
-    ```python hl_lines="3-4"
+    ```python linenums="1" hl_lines="3-4"
     {!> docs_src/getting_started/subscription/redis/annotation.py [ln:8-14] !}
     ```
 
 
 !!! tip
-    By default **FastStream** uses `json.loads` to decode and `json.dumps` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"}, just install it and framework will use it automatically.
+    By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} or [**ujson**](https://github.com/ultrajson/ultrajson){.external-link target="_blank"}, just install it and framework will use it automatically.
+
+### Serialization details
+
+#### Simple message
+
+If you expect to consume simple message like `#!python b"1"` or `#!python b"any_string"`, using the single argument as a function annotation.
+
+In this case your argument name has no matter cuz it is a total message body.
+
+See the examples below:
+
+```python linenums="1"
+async def handler(body: int): ...
+    # waits any int-serializable simple message like b"1"
+```
+
+```python linenums="1"
+async def handler(body: str): ...
+    # waits any str-serializable simple message like b"any_string"
+```
+
+#### JSON-like message
+
+If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs.
+
+In this case your message will be unpacked and serialized by various fields
+
+See the examples below:
+
+```python linenums="1"
+async def handler(name: str, id: int): ...
+    # waits for { "name": "John", "id": 1, ... }
+```
+
+To consume single JSON, you should create a single-field pydantic model and use it for annotation.
+
+```python linenums="1"
+class User(BaseModel):
+    name: str
+
+async def handler(body: User): ...
+    # waits for { "name": "John" }
+```
+
+
+#### Partial body consuming
+
+If you don't need to use all the fields, you can simply specify the fields you want to use, and the other will be ignored. See the example below:
+
+```python linenums="1" hl_lines="14-18"
+from faststream import FastStream
+from faststream.kafka import KafkaBroker
+
+broker = KafkaBroker()
+app = FastStream(broker)
+
+@broker.subscriber("test")
+async def handle(name: str, age: int):
+    print(f"{name=}, {age=}")
+
+@app.after_startup
+async def t():
+    await broker.publish({
+        "name": "John",
+        "age": 25,
+        "useless": {
+            "nested": "useless"
+        }
+    }, topic="test")
+```

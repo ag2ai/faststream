@@ -1,4 +1,4 @@
-name: Create PR with updated Release Notes
+name: Updated Release Notes
 
 on:
   workflow_dispatch: null
@@ -17,31 +17,26 @@ jobs:
       BRANCH_NAME: update-release-notes-${{ github.ref_name }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
         with:
           version: "latest"
       - name: Configure Git user
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      - uses: tibdex/github-app-token@v2
-        id: generate-token
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
+          git config --local user.name "faststream-actions[bot]"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          uv pip install --system requests
+          uv pip install --system httpx
 
       - name: Run update_releases.py script
         run: python ./docs/update_releases.py
@@ -56,13 +51,13 @@ jobs:
 
       - name: Create Pull Request
         if: steps.git-check.outputs.changes_detected
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
-          token: ${{ steps.generate-token.outputs.token }}
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
           base: "main" # The branch you want to merge into
           title: "Update Release Notes for ${{ env.TAG_NAME }}"
           commit-message: "Update Release Notes for ${{ env.TAG_NAME }}"
           body: "This is an automated pull request to update the release notes for ${{ env.TAG_NAME }}"
           labels: documentation
-          reviewers: davorrunje, Lancetnik, kumaranvpl, sternakt
+          reviewers: Lancetnik, kumaranvpl

@@ -1,14 +1,22 @@
-from typing import TYPE_CHECKING, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Annotated
 
-from redis.asyncio.client import Pipeline as _RedisPipeline
-from redis.asyncio.client import Redis as _RedisClient
-from typing_extensions import Annotated
+from redis.asyncio.client import (
+    Pipeline as _RedisPipeline,
+    Redis as _RedisClient,
+)
 
 from faststream import Depends
-from faststream.annotations import ContextRepo, Logger, NoCast
+from faststream._internal.context import Context
+from faststream.annotations import ContextRepo, Logger
+from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
-from faststream.redis.message import UnifyRedisMessage
-from faststream.utils.context import Context
+from faststream.redis.message import (
+    RedisChannelMessage as Rcm,
+    RedisListMessage as Rlm,
+    RedisMessage as Rm,
+    RedisStreamMessage as Rsm,
+)
 
 if TYPE_CHECKING:
     RedisClient = _RedisClient[bytes]
@@ -17,7 +25,6 @@ else:
     RedisClient = _RedisClient
     RedisPipeline = _RedisPipeline
 
-
 __all__ = (
     "ContextRepo",
     "Logger",
@@ -25,10 +32,15 @@ __all__ = (
     "Pipeline",
     "Redis",
     "RedisBroker",
-    "RedisMessage",
+    "RedisChannelMessage",
+    "RedisStreamMessage",
 )
 
-RedisMessage = Annotated[UnifyRedisMessage, Context("message")]
+RedisMessage = Annotated[Rm, Context("message")]
+RedisChannelMessage = Annotated[Rcm, Context("message")]
+RedisStreamMessage = Annotated[Rsm, Context("message")]
+RedisListMessage = Annotated[Rlm, Context("message")]
+
 RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
 

@@ -8,7 +8,7 @@ from faststream.confluent import KafkaBroker
 
 class Data(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 
@@ -30,5 +30,5 @@ async def on_input_data_1(msg: Data, logger: Logger) -> Tuple[Data, Data]:
 async def on_input_data_2(msg: Data, logger: Logger) -> None:
     logger.info(msg)
     await decrease_and_increase.publish(
-        Data(data=(msg.data * 0.5)), Data(data=(msg.data * 2.0))
+        Data(data=(msg.data * 0.5)), Data(data=(msg.data * 2.0)),
     )

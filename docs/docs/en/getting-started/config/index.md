@@ -65,7 +65,7 @@ Now you can use the new `settings` object in your application:
 You can run the application while passing the configuration parameters as environment variables. For example, you could set an `URL`:
 
 ```console
-URL="amqp://guest:guest@localhost:5672" faststream run serve:app
+URL="amqp://guest:guest@localhost:5672/" faststream run serve:app
 ```
 
 !!! tip
@@ -92,7 +92,7 @@ Pydantic supports reading from these types of files using an external library. Y
 You can create a `.env` file with contents like this:
 
 ```bash
-URL="amqp://guest:guest@localhost:5672"
+URL="amqp://guest:guest@localhost:5672/"
 QUEUE="test-queue"
 ```
 

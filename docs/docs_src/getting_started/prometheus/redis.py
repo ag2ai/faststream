@@ -8,6 +8,6 @@ registry = CollectorRegistry()
 broker = RedisBroker(
     middlewares=(
         RedisPrometheusMiddleware(registry=registry),
-    )
+    ),
 )
 app = FastStream(broker)

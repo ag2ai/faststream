@@ -1,12 +1,16 @@
 import pytest
 from dirty_equals import IsPartialDict
 
-from faststream.confluent import KafkaBroker, config
+from faststream.confluent import KafkaBroker
+from faststream.confluent.helpers import config
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
+from .conftest import Settings
 
-@pytest.mark.confluent
-@pytest.mark.asyncio
+
+@pytest.mark.connected()
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
 async def test_correct_config_merging(queue: str) -> None:
     broker = KafkaBroker(
         connections_max_idle_ms=1000,
@@ -23,25 +27,24 @@ async def test_correct_config_merging(queue: str) -> None:
     async with broker:
         await broker.start()
 
-        expected_config = IsPartialDict(
-            {
-                "connections.max.idle.ms": 1000,
-                "compression.codec": config.CompressionCodec.lz4,
-                "message.max.bytes": 1000,
-                "debug": config.Debug.broker,
-            }
-        )
+        expected_config = IsPartialDict({
+            "connections.max.idle.ms": 1000,
+            "compression.codec": config.CompressionCodec.lz4,
+            "message.max.bytes": 1000,
+            "debug": config.Debug.broker,
+        })
 
-        producer_config = broker._producer._producer.config
+        producer_config = broker._producer._producer.producer.config
 
         assert producer_config == expected_config
 
-        subscriber_config = next(iter(broker._subscribers.values())).consumer.config
+        subscriber_config = broker.subscribers[0].consumer.config
 
         assert subscriber_config == expected_config
 
 
-def test_correct_config_with_dict():
+@pytest.mark.confluent()
+def test_correct_config_with_dict() -> None:
     broker = KafkaBroker(
         config={
             "compression.codec": config.CompressionCodec.none,
@@ -55,10 +58,10 @@ def test_correct_config_with_dict():
             "builtin.features": config.BuiltinFeatures.gzip,
             "debug": config.Debug.broker,
             "group.protocol": config.GroupProtocol.classic,
-        }
+        },
     )
 
-    assert broker.config.as_config_dict() == {
+    assert broker.config.connection_config.consumer_config == IsPartialDict({
         "compression.codec": config.CompressionCodec.none.value,
         "compression.type": config.CompressionType.none.value,
         "client.dns.lookup": config.ClientDNSLookup.use_all_dns_ips.value,
@@ -70,12 +73,13 @@ def test_correct_config_with_dict():
         "builtin.features": config.BuiltinFeatures.gzip.value,
         "debug": config.Debug.broker.value,
         "group.protocol": config.GroupProtocol.classic.value,
-    }
+    })
 
 
-@pytest.mark.confluent
+@pytest.mark.connected()
+@pytest.mark.confluent()
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker
 
-    def get_broker_args(self, settings):
+    def get_broker_args(self, settings: Settings) -> dict[str, str]:
         return {"bootstrap_servers": settings.url}

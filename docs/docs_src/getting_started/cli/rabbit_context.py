@@ -7,10 +7,9 @@ broker = RabbitBroker()
 app = FastStream(broker)
 
 class Settings(BaseSettings):
-    host: str = "amqp://guest:guest@localhost:5672/" # pragma: allowlist secret
+    any_flag: bool
 
 @app.on_startup
-async def setup(env: str, context: ContextRepo):
+async def setup(context: ContextRepo, env: str = ".env"):
     settings = Settings(_env_file=env)
-    await broker.connect(settings.host)
     context.set_global("settings", settings)

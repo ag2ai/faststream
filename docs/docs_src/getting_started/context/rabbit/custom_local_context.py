@@ -1,24 +1,24 @@
-from faststream import Context, FastStream, apply_types
-from faststream.rabbit import RabbitBroker
-from faststream.rabbit.annotations import ContextRepo, RabbitMessage
+from typing import Any, Annotated
+from faststream import Context, FastStream, BaseMiddleware
+from faststream.rabbit import RabbitBroker, RabbitMessage
+from faststream.types import AsyncFuncAny
+from faststream.message import StreamMessage
 
-broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
+class Middleware(BaseMiddleware):
+    async def consume_scope(
+        self,
+        call_next: AsyncFuncAny,
+        msg: StreamMessage[Any],
+    ) -> Any:
+        with self.context.scope("correlation_id", msg.correlation_id):
+            return await super().consume_scope(call_next, msg)
+
+broker = RabbitBroker("amqp://guest:guest@localhost:5672/", middlewares=[Middleware])
 app = FastStream(broker)
-
 
 @broker.subscriber("test-queue")
 async def handle(
-    msg: str,
-    message: RabbitMessage,
-    context: ContextRepo,
-):
-    with context.scope("correlation_id", message.correlation_id):
-        call()
-
-
-@apply_types
-def call(
-    message: RabbitMessage,
-    correlation_id: str = Context(),
+    message: RabbitMessage,  # get from the context too
+    correlation_id: Annotated[str, Context()],
 ):
     assert correlation_id == message.correlation_id

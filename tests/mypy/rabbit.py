@@ -1,10 +1,17 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
+import prometheus_client
 from aio_pika import IncomingMessage
+from aiormq.abc import ConfirmationFrameType
+from typing_extensions import assert_type
 
+from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRouter
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
-from faststream.types import DecodedMessage
+from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
+from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
+from faststream.rabbit.publisher.usecase import RabbitPublisher
+from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:
@@ -16,7 +23,8 @@ async def async_decoder(msg: RabbitMessage) -> DecodedMessage:
 
 
 async def custom_decoder(
-    msg: RabbitMessage, original: Callable[[RabbitMessage], Awaitable[DecodedMessage]]
+    msg: RabbitMessage,
+    original: Callable[[RabbitMessage], Awaitable[DecodedMessage]],
 ) -> DecodedMessage:
     return await original(msg)
 
@@ -27,11 +35,11 @@ RabbitBroker(decoder=custom_decoder)
 
 
 def sync_parser(msg: IncomingMessage) -> RabbitMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def async_parser(msg: IncomingMessage) -> RabbitMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
@@ -173,7 +181,7 @@ async def handle14() -> None: ...
 def sync_handler() -> None: ...
 
 
-def async_handler() -> None: ...
+async def async_handler() -> None: ...
 
 
 RabbitRouter(
@@ -198,7 +206,7 @@ RabbitRouter(
             parser=custom_parser,
             decoder=custom_decoder,
         ),
-    )
+    ),
 )
 
 
@@ -265,3 +273,50 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = RabbitTelemetryMiddleware()
+RabbitBroker().add_middleware(otlp_middleware)
+RabbitBroker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = RabbitPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+RabbitBroker().add_middleware(prometheus_middleware)
+RabbitBroker(middlewares=[prometheus_middleware])
+
+
+async def check_publish_result_type(optional_stream: str | None = "test") -> None:
+    broker = RabbitBroker()
+
+    publish_with_confirm = await broker.publish(None)
+    assert_type(publish_with_confirm, ConfirmationFrameType | None)
+
+    publisher = broker.publisher(queue="test")
+    assert_type(publisher, RabbitPublisher)
+    publish_with_confirm = await publisher.publish(None)
+
+    assert_type(publish_with_confirm, ConfirmationFrameType | None)
+
+
+async def check_request_response_type() -> None:
+    broker = RabbitBroker()
+
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, RabbitMessage)
+
+    publisher = broker.publisher("test")
+    publisher_response = await publisher.request(None, "test")
+    assert_type(publisher_response, RabbitMessage)
+
+
+async def check_subscriber_get_one_type() -> None:
+    broker = RabbitBroker()
+
+    subscriber = broker.subscriber(queue="test")
+    assert_type(subscriber, RabbitSubscriber)
+
+    message = await subscriber.get_one()
+    assert_type(message, RabbitMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, RabbitMessage)

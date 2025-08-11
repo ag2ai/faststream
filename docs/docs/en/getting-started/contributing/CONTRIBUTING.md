@@ -12,70 +12,98 @@ search:
 
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
-## Virtual Environment with `venv`
+## Install Justfile Utility
 
-Create a virtual environment in a directory using Python's `venv` module:
+Install justfile on your system:
+
+https://just.systems/man/en/prerequisites.html
+
+View all available commands:
 
 ```bash
-python -m venv venv
+just
 ```
 
-That will create a `./venv/` directory with Python binaries, allowing you to install packages in an isolated environment.
+## Install uv
 
-## Activate the Environment
+Install uv on your system:
 
-Activate the new environment with:
+https://docs.astral.sh/uv/getting-started/installation/
+
+## Init development environment
+
+Build faststream image and install all dependencies:
 
 ```bash
-source ./venv/bin/activate
+just init
 ```
 
-Ensure you have the latest pip version in your virtual environment:
+By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
 
 ```bash
-python -m pip install --upgrade pip
+just init 3.11.5
 ```
 
-## Installing Dependencies
+To check available Python versions, refer to the pyproject.toml file in the project root.
 
-After activating the virtual environment as described above, run:
+## Run all Dependencies
+
+Start all dependencies as docker containers:
 
 ```bash
-pip install -e ".[dev]"
+just up
 ```
 
-This will install all the dependencies and your local **FastStream** in your virtual environment.
-
-### Using Your local **FastStream**
-
-If you create a Python file that imports and uses **FastStream**, and run it with the Python from your local environment, it will use your local **FastStream** source code.
-
-Whenever you update your local **FastStream** source code, it will automatically use the latest version when you run your Python file again. This is because it is installed with `-e`.
-
-This way, you don't have to "install" your local version to be able to test every change.
-
-To use your local **FastStream CLI**, type:
+Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
 
 ```bash
-python -m faststream ...
+just stop
+# or
+just down
 ```
 
 ## Running Tests
 
-### Pytest
-
-To run tests with your current **FastStream** application and Python environment, use:
+To run fast tests, use:
 
 ```bash
-pytest tests
-# or
-./scripts/test.sh
-# with coverage output
-./scripts/test-cov.sh
+just test
 ```
 
-In your project, you'll find some *pytest marks*:
+To run all tests with brokers connections, use:
 
+```bash
+just test-all
+```
+
+To run tests with coverage:
+
+```bash
+just coverage-test
+```
+If you need test only specific folder or broker:
+
+```bash
+just test tests/brokers/kafka
+# or
+just test-all tests/brokers/kafka
+# or
+just coverage-test tests/brokers/kafka
+```
+
+If you need some pytest arguments:
+
+```bash
+just test -vv
+# or
+just test tests/brokers/kafka -vv
+# or
+just test "-vv -s"
+```
+
+In your project, some tests are grouped under specific pytest marks:
+
+* **confluent**
 * **slow**
 * **rabbit**
 * **kafka**
@@ -83,34 +111,83 @@ In your project, you'll find some *pytest marks*:
 * **redis**
 * **all**
 
-By default, running *pytest* will execute "not slow" tests.
-
-To run all tests use:
-
-```bash
-pytest -m 'all'
-```
-
-If you don't have a local broker instance running, you can run tests without those dependencies:
+By default, "just test" will execute "not slow and not kafka and not confluent and not redis and not rabbit and not nats" tests.
+"just test-all" will execute tests with mark "all".
+You can specify marks to include or exclude tests:
 
 ```bash
-pytest -m 'not rabbit and not kafka and not nats and not redis and not confluent'
+just test tests/ -vv "not kafka and not rabbit"
+# or
+just test . -vv "not kafka and not rabbit"
+# or if you no need pytest arguments
+just test . "" "not kafka and not rabbit"
 ```
 
-To run tests based on RabbitMQ, Kafka, or other dependencies, the following dependencies are needed to be started as docker containers:
+## Linter
 
-```yaml
-{! includes/docker-compose.yaml !}
-```
-
-You can start the dependencies easily using provided script by running:
+Run all linters:
 
 ```bash
-./scripts/start_test_env.sh
+just linter
+```
+This command run ruff check, ruff format.
+
+To use specific command
+```bash
+just ruff-check
+# or
+just ruff-format
 ```
 
-Once you are done with development and running tests, you can stop the dependencies' docker containers by running:
+## Static analysis
+
+To run mypy, please use the following command.
 
 ```bash
-./scripts/stop_test_env.sh
+just mypy
 ```
+
+## Pre-commit
+
+Run pre-commit:
+
+```bash
+just pre-commit
+# or
+just pre-commit-all
+```
+
+## Docs
+
+Build docs:
+
+```bash
+just docs-build
+```
+
+Run docs:
+
+```bash
+just docs-serve
+```
+
+To run full version of the documentation (including API Reference) type the command:
+
+```bash
+just docs-serve --full
+```
+
+## Commits
+
+Please, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to name your commits and PR's.
+
+* **build**: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+* **ci**: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+* **docs**: Documentation only changes
+* **feat**: A new feature
+* **fix**: A bug fix
+* **perf**: A code change that improves performance
+* **refactor**: A code change that neither fixes a bug nor adds a feature
+* **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+* **test**: Adding missing tests or correcting existing tests
+* **chore** Miscellaneous commits e.g. modifying .gitignore, ...

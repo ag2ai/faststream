@@ -1,11 +1,12 @@
 import pytest
 
+from faststream.kafka.broker import KafkaRouter
 from faststream.kafka.fastapi import KafkaRouter as StreamRouter
-from faststream.kafka.router import KafkaRouter
 from tests.brokers.base.future.fastapi import FastapiTestCase
 
 
-@pytest.mark.kafka
+@pytest.mark.kafka()
+@pytest.mark.connected()
 class TestRouter(FastapiTestCase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter

@@ -20,7 +20,7 @@ class PullSub:
     def __init__(
         self,
         batch_size: int = 1,
-        timeout: Optional[float] = 5.0,
+        timeout: float | None = 5.0,
         batch: bool = False,
     ) -> None:
         self.batch_size = batch_size
@@ -47,7 +47,6 @@ class PullSub:
     def validate(cls, value: Union[bool, "PullSub"]) -> Optional["PullSub"]:
         if value is True:
             return PullSub()
-        elif value is False:
+        if value is False:
             return None
-        else:
-            return value
+        return value

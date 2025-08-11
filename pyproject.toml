@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.7.19,<0.9.0"]
+build-backend = "uv_build"
 
 [project]
 name = "faststream"
@@ -8,7 +8,7 @@ description = "FastStream: the simplest way to work with a messaging queues"
 readme = "README.md"
 authors = [
     { name = "AG2AI", email = "support@ag2.ai" },
-    { name = "Nikita Pastukhov", email = "diementros@yandex.com" },
+    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.com" },
 ]
 
 keywords = [
@@ -20,7 +20,7 @@ keywords = [
     "message brokers",
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -29,12 +29,11 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -53,16 +52,15 @@ classifiers = [
     "Framework :: Pydantic :: 2",
 ]
 
-dynamic = ["version"]
+version = "0.6.0rc0"
 
 dependencies = [
     "anyio>=3.7.1,<5",
-    "fast-depends>=2.4.0b0,<3.0.0",
+    "fast-depends[pydantic]>=3.0.0a12,<4.0.0",
     "typing-extensions>=4.8.0",
 ]
 
 [project.optional-dependencies]
-# public distributions
 rabbit = ["aio-pika>=9,<10"]
 
 kafka = ["aiokafka>=0.9,<0.13"]
@@ -80,34 +78,37 @@ otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
     "typer>=0.9,!=0.12,<=0.16.0",
-    "watchfiles>=0.15.0,<1.1.0"
+    "watchfiles>=0.15.0,<1.2.0"
 ]
 
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
-# dev dependencies
+[dependency-groups]
 optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
 
-devdocs = [
-    "mkdocs-material==9.6.14",
+docs = [
+    "mkdocs-material==9.6.16",
     "mkdocs-static-i18n==1.3.0",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==0.29.1; python_version >= '3.9'",
-    "mkdocstrings[python]==0.26.1; python_version < '3.9'",
+    "mkdocstrings[python]==0.30.0",
     "mkdocs-literate-nav==0.6.2",
     "mkdocs-git-revision-date-localized-plugin==1.4.7",
     "mike==2.1.3",                                      # versioning
     "mkdocs-minify-plugin==0.8.0",
     "mkdocs-macros-plugin==1.3.7",                      # includes with variables
     "mkdocs-glightbox==0.4.0",                          # img zoom
-    "pillow",                                           # required for mkdocs-glightbo
-    "cairosvg",                                         # required for mkdocs-glightbo
-    "requests",                                         # using in CI, do not pin it
+    "pillow",                                           # required for mkdocs-glightbox
+    "cairosvg",                                         # required for mkdocs-glightbox
+    "httpx==0.28.1",                                    # using in CI
 ]
 
-types = [
-    "faststream[optionals]",
-    "mypy==1.16.0",
+lint = [
+    "ruff==0.12.7",
+    "bandit==1.8.6",
+    "semgrep==1.131.0",
+    "codespell==2.4.1",
+    "zizmor==1.11.0",
+    "mypy==1.17.1",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -117,51 +118,46 @@ types = [
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
-    "confluent-kafka-stubs; python_version >= '3.11'",
-]
-
-lint = [
-    "faststream[types]",
-    "ruff==0.11.13",
-    "bandit==1.8.3; python_version >= '3.9'",
-    "bandit==1.7.10; python_version < '3.9'",
-    "semgrep==1.124.0; python_version >= '3.9'",
-    "semgrep==1.99.0; python_version < '3.9'",
-    "codespell==2.4.1",
 ]
 
 test-core = [
-    "coverage[toml]==7.8.2; python_version >= '3.9'",
-    "coverage[toml]==7.6.1; python_version < '3.9'",
-    "pytest==8.4.0; python_version >= '3.9'",
-    "pytest==8.3.5; python_version < '3.9'",
-    "pytest-asyncio==1.0.0; python_version >= '3.9'",
-    "pytest-asyncio==0.24.0; python_version < '3.9'",
     "dirty-equals==0.9.0",
-    "typing-extensions>=4.8.0,<4.12.1; python_version < '3.9'",  # to fix dirty-equals
+    "httpx==0.28.1",
+    "pytest==8.4.1",
+    "pytest-asyncio==1.1.0",
+    "pytest-rerunfailures>=15.1",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.8.0",
+    "pytest-cov>=6.2.1",
+    "covdefaults>=2.3.0",
 ]
 
 testing = [
-    "faststream[test-core]",
-    "fastapi==0.115.12",
+    {include-group = "test-core"},
+    "fastapi==0.116.1",
     "pydantic-settings>=2.0.0,<3.0.0",
-    "httpx==0.28.1",
     "PyYAML==6.0.2",
     "email-validator==2.2.0",
+    "msgspec",
     "uvicorn>=0.34.3; python_version >= '3.9'",
-    "uvicorn==0.33.0; python_version == '3.8'",
+    "uvicorn==0.33.0; python_version < '3.9'",
+    "psutil==7.0.0",
+    "prometheus-client>=0.20.0,<0.30.0",
+    "opentelemetry-sdk>=1.24.0,<2.0.0",
 ]
 
 dev = [
-    "faststream[optionals,lint,testing,devdocs]",
-    "pre-commit==3.5.0; python_version < '3.9'",
-    "pre-commit==4.2.0; python_version >= '3.9'",
+    {include-group = "optionals"},
+    {include-group = "lint"},
+    {include-group = "testing"},
+    {include-group = "docs"},
+    "pre-commit==4.2.0",
     "detect-secrets==1.5.0",
 ]
 
 [project.urls]
-Homepage = "https://faststream.airt.ai/latest/"
-Documentation = "https://faststream.airt.ai/latest/getting-started/"
+Homepage = "https://faststream.ag2.ai/latest/"
+Documentation = "https://faststream.ag2.ai/latest/getting-started/"
 Tracker = "https://github.com/ag2ai/FastStream/issues"
 Source = "https://github.com/ag2ai/FastStream"
 Discord = "https://discord.gg/qFm6aSqq59"
@@ -169,22 +165,17 @@ Discord = "https://discord.gg/qFm6aSqq59"
 [project.scripts]
 faststream = "faststream.__main__:cli"
 
-[tool.hatch.version]
-path = "faststream/__about__.py"
-
-[tool.hatch.build]
-skip-excluded-dirs = true
-exclude = ["/tests", "/docs"]
+[tool.uv.build-backend]
+module-root = "."
+module-name = "faststream"
 
 [tool.mypy]
 files = ["faststream", "tests/mypy"]
 strict = true
+python_version = "3.10"
 strict_bytes = true
 local_partial_types = true
-python_version = "3.8"
 ignore_missing_imports = true
-install_types = true
-non_interactive = true
 plugins = ["pydantic.mypy"]
 
 # from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
@@ -199,117 +190,21 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
-[tool.ruff]
-fix = true
-line-length = 88
-target-version = "py38"
-include = [
-    "faststream/**/*.py",
-    "faststream/**/*.pyi",
-    "tests/**/*.py",
-    "docs/**/*.py",
-    "pyproject.toml",
-]
-exclude = ["docs/docs_src"]
-
-[tool.ruff.lint]
-select = [
-    "E",     # pycodestyle errors     https://docs.astral.sh/ruff/rules/#error-e
-    "W",     # pycodestyle warnings   https://docs.astral.sh/ruff/rules/#warning-w
-    "C90",   # mccabe                 https://docs.astral.sh/ruff/rules/#mccabe-c90
-    "N",     # pep8-naming            https://docs.astral.sh/ruff/rules/#pep8-naming-n
-    "D",     # pydocstyle             https://docs.astral.sh/ruff/rules/#pydocstyle-d
-    "I",     # isort                  https://docs.astral.sh/ruff/rules/#isort-i
-    "F",     # pyflakes               https://docs.astral.sh/ruff/rules/#pyflakes-f
-    "ASYNC", # flake8-async           https://docs.astral.sh/ruff/rules/#flake8-async-async
-    "C4",    # flake8-comprehensions  https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
-    "B",     # flake8-bugbear         https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
-    "Q",     # flake8-quotes          https://docs.astral.sh/ruff/rules/#flake8-quotes-q
-    "T20",   # flake8-print           https://docs.astral.sh/ruff/rules/#flake8-print-t20
-    "SIM",   # flake8-simplify        https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
-    "PT",    # flake8-pytest-style    https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
-    "PTH",   # flake8-use-pathlib     https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
-    "TCH",   # flake8-type-checking   https://docs.astral.sh/ruff/rules/#flake8-type-checking-tch
-    "RUF",   # Ruff-specific rules    https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "PERF",  # Perflint               https://docs.astral.sh/ruff/rules/#perflint-perf
-    "UP",    # pyupgrade              https://docs.astral.sh/ruff/rules/#pyupgrade-up
-]
-
-ignore = [
-    "ASYNC109", # own timeout implementation
-
-    "E501",     # line too long, handled by formatter later
-    "C901",     # too complex
-
-    # todo pep8-naming
-    "N817",     # CamelCase `*` imported as acronym `*`
-    "N815",     # Variable `*` in class scope should not be mixedCase
-    "N803",     # Argument name `expandMessageExamples` should be lowercase
-
-    # todo pydocstyle
-    "D100",     # missing docstring in public module
-    "D101",
-    "D102",
-    "D103",
-    "D104",     # missing docstring in public package
-    "D105",     # missing docstring in magic methods
-    "D106",     # missing docstring in public nested class
-    "D107",     # missing docstring in __init__
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**" = [
-    "D101",    # docstrings
-    "D102",
-    "D103",
-    "PLR2004", # magic-value-comparison
-    "S101",    # use assert
-]
-
-"docs/*.py" = [
-    "D101", # docstrings
-    "D102",
-    "D103",
-]
-
-
-[tool.ruff.lint.isort]
-case-sensitive = true
-
-[tool.ruff.format]
-docstring-code-format = true
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = [
-    "faststream.Depends",
-    "faststream.Context",
-    "faststream.broker.fastapi.context.Context",
-    "faststream.Header",
-    "faststream.Path",
-    "faststream.utils.Header",
-    "faststream.utils.Path",
-    "faststream.utils.Depends",
-    "faststream.utils.Context",
-    "faststream.utils.context.Depends",
-    "faststream.utils.context.Context",
-    "typer.Argument",
-    "typer.Option",
-    "pydantic.Field",
-    "rocketry.args.Arg",
-    "fastapi.Depends",
-    "fastapi.Header",
-    "fastapi.datastructures.Default",
-    "kafka.partitioner.default.DefaultPartitioner",
-]
-
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-q -m 'not slow'"
+timeout = 30
+addopts = "--strict-markers --strict-config -q -m 'not slow'"
 testpaths = ["tests"]
-markers = ["rabbit", "kafka", "confluent", "nats", "redis", "slow", "all"]
+markers = [
+    "rabbit",
+    "kafka",
+    "confluent",
+    "nats",
+    "redis",
+    "slow",
+    "connected",
+    "all",
+]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
@@ -317,8 +212,16 @@ parallel = true
 branch = true
 concurrency = ["multiprocessing", "thread"]
 source = ["docs/docs_src", "examples", "faststream", "tests"]
-context = '${CONTEXT}'
+plugins = ["covdefaults"]
 omit = ["**/__init__.py", "tests/mypy/*"]
+
+[tool.coverage.paths]
+source = [
+    ".",
+    "/home/runner/work/faststream/faststream/",
+    "/Users/runner/work/faststream/faststream/",
+    "D:\\a\\faststream\\faststream\\",
+]
 
 [tool.coverage.report]
 show_missing = true
@@ -357,9 +260,7 @@ omit = [
     'examples/serialization/msgpack/pack.py',
     'examples/serialization/protobuf/protobuf.py',
 ]
+fail_under = 20
 
 [tool.bandit]
-
-[tool.codespell]
-skip = "./venv*,./docs/site/*,./htmlcov"
-ignore-words = ".codespell-whitelist.txt"
+skips = ["B101"]

@@ -1,56 +1,54 @@
-from typing import TYPE_CHECKING, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
 
-from faststream.broker.types import MsgType
+from faststream._internal.types import MsgType
+from faststream.confluent.response import KafkaPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 
 if TYPE_CHECKING:
     from confluent_kafka import Message
 
-    from faststream.broker.message import StreamMessage
-    from faststream.types import AnyDict
+    from faststream.message import StreamMessage
+    from faststream.response import PublishCommand
 
 
-class BaseConfluentTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
+class BaseConfluentTelemetrySettingsProvider(
+    TelemetrySettingsProvider[MsgType, KafkaPublishCommand]
+):
     __slots__ = ("messaging_system",)
 
     def __init__(self) -> None:
         self.messaging_system = "kafka"
 
-    def get_publish_attrs_from_kwargs(
-        self,
-        kwargs: "AnyDict",
-    ) -> "AnyDict":
-        attrs = {
+    def get_publish_attrs_from_cmd(self, cmd: "KafkaPublishCommand") -> dict[str, Any]:
+        attrs: dict[str, Any] = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: kwargs["topic"],
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: kwargs["correlation_id"],
+            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
+            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
-        if (partition := kwargs.get("partition")) is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = partition
+        if cmd.partition is not None:
+            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
 
-        if (key := kwargs.get("key")) is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = key
+        if cmd.key is not None:
+            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
 
         return attrs
 
-    def get_publish_destination_name(
-        self,
-        kwargs: "AnyDict",
-    ) -> str:
-        return cast("str", kwargs["topic"])
+    def get_publish_destination_name(self, cmd: "PublishCommand") -> str:
+        return cmd.destination
 
 
 class ConfluentTelemetrySettingsProvider(
-    BaseConfluentTelemetrySettingsProvider["Message"]
+    BaseConfluentTelemetrySettingsProvider["Message"],
 ):
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[Message]",
-    ) -> "AnyDict":
+    ) -> dict[str, Any]:
         attrs = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
@@ -74,41 +72,35 @@ class ConfluentTelemetrySettingsProvider(
 
 
 class BatchConfluentTelemetrySettingsProvider(
-    BaseConfluentTelemetrySettingsProvider[Tuple["Message", ...]]
+    BaseConfluentTelemetrySettingsProvider[tuple["Message", ...]],
 ):
     def get_consume_attrs_from_message(
         self,
-        msg: "StreamMessage[Tuple[Message, ...]]",
-    ) -> "AnyDict":
+        msg: "StreamMessage[tuple[Message, ...]]",
+    ) -> dict[str, Any]:
         raw_message = msg.raw_message[0]
-        attrs = {
+        return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
             SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
-                bytearray().join(cast("Sequence[bytes]", msg.body))
+                bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition(),
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic(),
         }
 
-        return attrs
-
     def get_consume_destination_name(
         self,
-        msg: "StreamMessage[Tuple[Message, ...]]",
+        msg: "StreamMessage[tuple[Message, ...]]",
     ) -> str:
         return cast("str", msg.raw_message[0].topic())
 
 
 def telemetry_attributes_provider_factory(
     msg: Union["Message", Sequence["Message"], None],
-) -> Union[
-    ConfluentTelemetrySettingsProvider,
-    BatchConfluentTelemetrySettingsProvider,
-]:
+) -> ConfluentTelemetrySettingsProvider | BatchConfluentTelemetrySettingsProvider:
     if isinstance(msg, Sequence):
         return BatchConfluentTelemetrySettingsProvider()
-    else:
-        return ConfluentTelemetrySettingsProvider()
+    return ConfluentTelemetrySettingsProvider()

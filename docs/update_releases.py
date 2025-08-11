@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-import requests
+import httpx
 
 
 def find_metablock(lines: List[str]) -> Tuple[List[str], List[str]]:
@@ -27,15 +27,21 @@ def find_header(lines: List[str]) -> Tuple[str, List[str]]:
 
 def get_github_releases() -> Sequence[Tuple[str, str]]:
     # Get the latest version from GitHub releases
-    response = requests.get("https://api.github.com/repos/ag2ai/FastStream/releases")
-    return ((x["tag_name"], x["body"]) for x in reversed(response.json()))
+    response = httpx.get("https://api.github.com/repos/ag2ai/FastStream/releases")
+    row_data = response.json()
+    try:
+        return ((x["tag_name"], x["body"]) for x in reversed(row_data))
+    except Exception as e:
+        raise Exception(f"Error getting GitHub releases: {e}, {row_data}") from e
 
 
 def convert_links_and_usernames(text):
     if "](" not in text:
         # Convert HTTP/HTTPS links
         text = re.sub(
-            r"(https?://.*\/(.*))", r'[#\2](\1){.external-link target="_blank"}', text
+            r"(https?://.*\/(.*))",
+            r'[#\2](\1){.external-link target="_blank"}',
+            text,
         )
 
         # Convert GitHub usernames to links
@@ -53,9 +59,9 @@ def collect_already_published_versions(text: str) -> List[str]:
     return data
 
 
-def update_release_notes(realease_notes_path: Path):
+def update_release_notes(release_notes_path: Path):
     # Get the changelog from the RELEASE.md file
-    changelog = realease_notes_path.read_text()
+    changelog = release_notes_path.read_text()
 
     metablock, lines = find_metablock(changelog.splitlines())
     metablock = "\n".join(metablock)
@@ -75,7 +81,7 @@ def update_release_notes(realease_notes_path: Path):
         changelog = version_changelog + changelog
 
     # Update the RELEASE.md file with the latest version and changelog
-    realease_notes_path.write_text(
+    release_notes_path.write_text(
         (
             metablock
             + "\n\n"
@@ -83,7 +89,7 @@ def update_release_notes(realease_notes_path: Path):
             + "\n"  # adding an addition newline after the header results in one empty file being added every time we run the script
             + changelog
             + "\n"
-        ).replace("\r", "")
+        ).replace("\r", ""),
     )
 
 

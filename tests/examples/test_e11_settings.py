@@ -3,9 +3,9 @@ import pytest
 from tests.marks import require_aiopika
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @require_aiopika
-async def test_example():
+async def test_example() -> None:
     from examples.e11_settings import app, broker, handle
     from faststream.rabbit import TestApp, TestRabbitBroker
 

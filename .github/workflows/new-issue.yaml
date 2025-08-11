@@ -1,0 +1,28 @@
+name: Issue Notifier
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: read
+
+jobs:
+  notify:
+    name: "Telegram notification"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram message about new issue
+        uses: appleboy/telegram-action@221e6b684967abe813051ee4a37dd61770a83ad3 # v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 New issue created by ${{ github.actor }} in ${{ github.repository }}!
+
+            📌 Title: ${{ github.event.issue.title }}
+
+            🔗 Link: ${{ github.event.issue.html_url }}
+
+            📝 Description:
+            ${{ github.event.issue.body }}

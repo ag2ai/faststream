@@ -1,21 +1,27 @@
-from typing import TYPE_CHECKING, Optional, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-from faststream.prometheus.middleware import BasePrometheusMiddleware
+from aio_pika import IncomingMessage
+
+from faststream._internal.constants import EMPTY
+from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.rabbit.prometheus.provider import RabbitMetricsSettingsProvider
-from faststream.types import EMPTY
+from faststream.rabbit.response import RabbitPublishCommand
 
 if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
 
-class RabbitPrometheusMiddleware(BasePrometheusMiddleware):
+class RabbitPrometheusMiddleware(
+    PrometheusMiddleware[RabbitPublishCommand, IncomingMessage],
+):
     def __init__(
         self,
         *,
         registry: "CollectorRegistry",
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
-        received_messages_size_buckets: Optional[Sequence[float]] = None,
+        received_messages_size_buckets: Sequence[float] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=lambda _: RabbitMetricsSettingsProvider(),

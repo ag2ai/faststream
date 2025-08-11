@@ -55,7 +55,7 @@ To set up your development environment, follow these steps:
 
 4. Install all development requirements using pip:
    ```bash
-   pip install -e ".[dev]"
+   pip install --group dev -e .
    ```
 
 5. Create a new repository for our FastStream app on GitHub.![creating-new-github-repo](https://github.com/ag2ai/faststream/assets/7011056/7076b925-2090-4bbb-b9da-0df4783fb5a3)

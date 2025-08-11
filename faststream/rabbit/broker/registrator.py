@@ -1,41 +1,39 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Union, cast
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
-from typing_extensions import Annotated, deprecated, override
+from aio_pika import IncomingMessage
+from typing_extensions import deprecated, override
 
-from faststream.broker.core.abc import ABCBroker
-from faststream.broker.utils import default_filter
+from faststream._internal.broker.registrator import Registrator
+from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
-from faststream.rabbit.publisher.asyncapi import AsyncAPIPublisher
-from faststream.rabbit.publisher.usecase import PublishKwargs
+from faststream.middlewares import AckPolicy
+from faststream.rabbit.configs import RabbitBrokerConfig
+from faststream.rabbit.publisher.factory import create_publisher
+from faststream.rabbit.publisher.options import PublishKwargs
 from faststream.rabbit.schemas import (
+    Channel,
     RabbitExchange,
     RabbitQueue,
 )
-from faststream.rabbit.subscriber.asyncapi import AsyncAPISubscriber
 from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
     from aio_pika.abc import DateType, HeadersType, TimeoutType
-    from fast_depends.dependencies import Depends
+    from fast_depends.dependencies import Dependant
 
-    from faststream.broker.types import (
+    from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        Filter,
         PublisherMiddleware,
         SubscriberMiddleware,
     )
-    from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import Channel, ReplyConfig
-    from faststream.types import AnyDict
+    from faststream.rabbit.publisher import RabbitPublisher
+    from faststream.rabbit.subscriber import RabbitSubscriber
 
 
-class RabbitRegistrator(ABCBroker["IncomingMessage"]):
+class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
-
-    _subscribers: Dict[int, "AsyncAPISubscriber"]
-    _publishers: Dict[int, "AsyncAPIPublisher"]
 
     @override
     def subscriber(  # type: ignore[override]
@@ -43,94 +41,76 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         queue: Union[str, "RabbitQueue"],
         exchange: Union[str, "RabbitExchange", None] = None,
         *,
-        consume_args: Optional["AnyDict"] = None,
-        dependencies: Iterable["Depends"] = (),
+        channel: Optional["Channel"] = None,
+        consume_args: dict[str, Any] | None = None,
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "Deprecated in 0.6.0, use `ack_policy=AckPolicy.MANUAL` instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[RabbitMessage]"] = (),
-        channel: Optional["Channel"] = None,
-        reply_config: Annotated[
-            Optional["ReplyConfig"],
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
-                "Deprecated in **FastStream 0.5.16**. "
-                "Please, use `RabbitResponse` object as a handler return instead. "
-                "Argument will be removed in **FastStream 0.6.0**."
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = None,
-        filter: Annotated[
-            "Filter[RabbitMessage]",
-            deprecated(
-                "Deprecated in **FastStream 0.5.0**. Please, create `subscriber` object "
-                "and use it explicitly instead. Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = default_filter,
-        retry: Annotated[
-            Union[bool, int],
-            deprecated(
-                "Deprecated in **FastStream 0.5.40**."
-                "Please, manage acknowledgement policy manually."
-                "Argument will be removed in **FastStream 0.6.0**."
-            ),
-        ] = False,
-        no_ack: bool = False,
+        ] = (),
         no_reply: bool = False,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
         include_in_schema: bool = True,
-    ) -> AsyncAPISubscriber:
-        """Declares RabbitMQ subscriber object and binds it to the exchange.
-
-        You can use it as a handler decorator - `@broker.subscriber(...)`.
-        Or you can create a subscriber object to call it lately - `broker.subscriber(...)`.
+    ) -> "RabbitSubscriber":
+        """Subscribe a handler to a RabbitMQ queue.
 
         Args:
-            queue: RabbitMQ queue to listen. **FastStream** declares and binds
-            queue object to `exchange` automatically if it is not passive (by default).
-            exchange: RabbitMQ exchange to bind queue to. Uses default exchange
-            if not present. **FastStream** declares exchange object automatically
-            if it is not passive (by default).
-            consume_args: Extra consumer arguments to use in `queue.consume(...)` method.
-            channel: Channel to use for consuming messages. If not specified, a default channel will be used.
-            reply_config: Extra options to use at replies publishing.
-            dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
-            parser: Parser to map original **IncomingMessage** Msg to FastStream one.
-            decoder: Function to decode FastStream msg bytes body to python objects.
-            middlewares: Subscriber middlewares to wrap incoming message processing.
-            filter: Overload subscriber to consume various messages from the same source.
-            retry: Whether to `nack` message at processing exception.
-            no_ack: Whether to disable **FastStream** autoacknowledgement logic or not.
-            no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
-            title: AsyncAPI subscriber object title.
-            description: AsyncAPI subscriber object description. Uses decorated docstring as default.
-            include_in_schema: Whether to include operation in AsyncAPI schema or not.
+            queue (Union[str, RabbitQueue]): RabbitMQ queue to listen. **FastStream** declares and binds queue object to `exchange` automatically by default.
+            exchange (Union[str, RabbitExchange, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default.
+            channel (Optional[Channel], optional): Channel to use for consuming messages.
+            consume_args (dict[str, Any] | None, optional): Extra consumer arguments to use in `queue.consume(...)` method.
+            no_ack (bool, optional): Whether to disable **FastStream** auto acknowledgement logic or not.
+            ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
+            dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser (Optional[CustomCallable], optional): Parser to map original **IncomingMessage** Msg to FastStream one.
+            decoder (Optional[CustomCallable], optional): Function to decode FastStream msg bytes body to python objects.
+            middlewares (Sequence[SubscriberMiddleware[Any]], optional): Subscriber middlewares to wrap incoming message processing.
+            no_reply (bool, optional): Whether to disable **FastStream** RPC and Reply To auto responses or not.
+            title (Optional[str], optional): AsyncAPI subscriber object title.
+            description (Optional[str], optional): AsyncAPI subscriber object description. Uses decorated docstring as default.
+            include_in_schema (bool, optional): Whether to include operation in AsyncAPI schema or not.
+
+        Returns:
+            RabbitSubscriber: The subscriber specification object.
         """
-        subscriber = cast(
-            "AsyncAPISubscriber",
-            super().subscriber(
-                create_subscriber(
-                    queue=RabbitQueue.validate(queue),
-                    exchange=RabbitExchange.validate(exchange),
-                    consume_args=consume_args,
-                    reply_config=reply_config,
-                    channel=channel,
-                    # subscriber args
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_middlewares=self._middlewares,
-                    broker_dependencies=self._dependencies,
-                    # AsyncAPI
-                    title_=title,
-                    description_=description,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
-                )
-            ),
+        subscriber = create_subscriber(
+            queue=RabbitQueue.validate(queue),
+            exchange=RabbitExchange.validate(exchange),
+            consume_args=consume_args,
+            channel=channel,
+            # subscriber args
+            ack_policy=ack_policy,
+            no_ack=no_ack,
+            no_reply=no_reply,
+            # broker args
+            config=cast("RabbitBrokerConfig", self.config),
+            # specification args
+            title_=title,
+            description_=description,
+            include_in_schema=include_in_schema,
         )
 
+        super().subscriber(subscriber)
+
         return subscriber.add_call(
-            filter_=filter,
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser,
+            decoder_=decoder,
             dependencies_=dependencies,
             middlewares_=middlewares,
         )
@@ -146,20 +126,29 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: Optional[str] = None,
-        priority: Optional[int] = None,
-        middlewares: Sequence["PublisherMiddleware"] = (),
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        schema: Optional[Any] = None,
+        reply_to: str | None = None,
+        priority: int | None = None,
+        # specific
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
         include_in_schema: bool = True,
+        # message args
         headers: Optional["HeadersType"] = None,
-        content_type: Optional[str] = None,
-        content_encoding: Optional[str] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
         expiration: Optional["DateType"] = None,
-        message_type: Optional[str] = None,
-        user_id: Optional[str] = None,
-    ) -> AsyncAPIPublisher:
+        message_type: str | None = None,
+        user_id: str | None = None,
+    ) -> "RabbitPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 
         You can use it as a handler decorator (handler should be decorated by `@broker.subscriber(...)` too) - `@broker.publisher(...)`.
@@ -210,25 +199,23 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
             expiration=expiration,
         )
 
-        publisher = cast(
-            "AsyncAPIPublisher",
-            super().publisher(
-                AsyncAPIPublisher.create(
-                    routing_key=routing_key,
-                    queue=RabbitQueue.validate(queue),
-                    exchange=RabbitExchange.validate(exchange),
-                    message_kwargs=message_kwargs,
-                    # Specific
-                    broker_middlewares=self._middlewares,
-                    middlewares=middlewares,
-                    # AsyncAPI
-                    title_=title,
-                    description_=description,
-                    schema_=schema,
-                    include_in_schema=self._solve_include_in_schema(include_in_schema),
-                )
-            ),
+        publisher = create_publisher(
+            routing_key=routing_key,
+            queue=RabbitQueue.validate(queue),
+            exchange=RabbitExchange.validate(exchange),
+            message_kwargs=message_kwargs,
+            # publisher args
+            middlewares=middlewares,
+            # broker args
+            config=cast("RabbitBrokerConfig", self.config),
+            # specification args
+            title_=title,
+            description_=description,
+            schema_=schema,
+            include_in_schema=include_in_schema,
         )
+
+        super().publisher(publisher)
 
         return publisher
 
@@ -238,9 +225,9 @@ class RabbitRegistrator(ABCBroker["IncomingMessage"]):
         router: "RabbitRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
-        dependencies: Iterable["Depends"] = (),
-        middlewares: Iterable["BrokerMiddleware[IncomingMessage]"] = (),
-        include_in_schema: Optional[bool] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        include_in_schema: bool | None = None,
     ) -> None:
         if not isinstance(router, RabbitRegistrator):
             msg = (

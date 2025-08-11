@@ -1,7 +1,7 @@
 site_name: FastStream
 # description to improve website indexing
 site_description: FastStream Python messaging framework documentation
-site_url: https://faststream.airt.ai/
+site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
 copyright: '&copy; 2025 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
 
@@ -49,7 +49,6 @@ theme:
     - search.highlight
     - navigation.tabs            # navbar navigation
     - navigation.tabs.sticky     # navbar always expanded
-    - navigation.indexes         # attach index document direct to section
     - navigation.tracking        # show current TOC section in the page url
     - navigation.prune           # reduce render size
     - navigation.top             # back-to-top btn
@@ -84,8 +83,8 @@ plugins:
       default_handler: python
       handlers:
         python:
-          import:
-          - https://docs.python.org/3/objects.inv
+          # import:
+          # - https://docs.python.org/3/objects.inv
           options:
             preload_modules:
             - httpx
@@ -116,20 +115,20 @@ plugins:
           default: true
           name: en - English
           build: true
-  - git-revision-date-localized: # show page edition date
-      enabled: !ENV [CI, false]
-      type: timeago
+  # - git-revision-date-localized: # show page edition date
+  #     enabled: !ENV [CI, false]
+  #     type: timeago
   - literate-nav:                # .md importable navigation
       nav_file: SUMMARY.md
-  - minify:
-      minify_html: true
-      minify_js: true
-      minify_css: true
-      htmlmin_opts:
-        remove_comments: true
-      cache_safe: true
-      css_files:
-        - stylesheets/extra.css
+  # - minify:
+  #     minify_html: true
+  #     minify_js: true
+  #     minify_css: true
+  #     htmlmin_opts:
+  #       remove_comments: true
+  #     cache_safe: true
+  #     css_files:
+  #       - stylesheets/extra.css
   - mike:                        # versioning
       alias_type: copy
       redirect_template: templates/redirect.html
@@ -156,9 +155,9 @@ markdown_extensions:
       alternate_style: true      # create tabs group
   - attr_list                    # specify html attrs in markdown
   - md_in_html                   # render md wrapped to html tags
-  - pymdownx.emoji:              # render material icons
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # - pymdownx.emoji:              # render material icons
+  #     emoji_index: !!python/name:material.extensions.emoji.twemoji
+  #     emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
   analytics:

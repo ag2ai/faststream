@@ -1,31 +1,41 @@
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from faststream.broker.types import MsgType
+from typing_extensions import TypeVar as TypeVar313
+
+from faststream._internal.types import MsgType
+from faststream.response import PublishCommand
 
 if TYPE_CHECKING:
-    from faststream.broker.message import StreamMessage
-    from faststream.types import AnyDict
+    from faststream.message import StreamMessage
 
 
-class TelemetrySettingsProvider(Protocol[MsgType]):
+PublishCommandType_contra = TypeVar313(
+    "PublishCommandType_contra",
+    bound=PublishCommand,
+    default=PublishCommand,
+    contravariant=True,
+)
+
+
+class TelemetrySettingsProvider(Protocol[MsgType, PublishCommandType_contra]):
     messaging_system: str
 
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[MsgType]",
-    ) -> "AnyDict": ...
+    ) -> dict[str, Any]: ...
 
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[MsgType]",
     ) -> str: ...
 
-    def get_publish_attrs_from_kwargs(
+    def get_publish_attrs_from_cmd(
         self,
-        kwargs: "AnyDict",
-    ) -> "AnyDict": ...
+        cmd: PublishCommandType_contra,
+    ) -> dict[str, Any]: ...
 
     def get_publish_destination_name(
         self,
-        kwargs: "AnyDict",
+        cmd: PublishCommandType_contra,
     ) -> str: ...

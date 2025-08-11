@@ -15,7 +15,7 @@ async def handle(
     for i in range(10):
         await broker.publish(
             f"hello {i}",
-            channel="test-output",  # queue can be channel, list, or stream
+            channel="test-output",  # destination can be channel, list, or stream
             pipeline=pipe,
         )
 

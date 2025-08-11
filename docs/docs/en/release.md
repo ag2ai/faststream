@@ -12,6 +12,384 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc0
+
+# Description
+
+**FastStream 0.6** is a significant technical release that aimed to address many of the current project design issues and unlock further improvements on the path to version 1.0.0. We tried our best to minimize breaking changes, but unfortunately, some aspects were simply not working well. Therefore, we decided to break them in order to move forward.
+
+This release includes:
+
+* Finalized Middleware API
+* Finalized Router API
+* Introduced dynamic subscribers
+* Added support for various serializer backends (such as [Msgspec](https://github.com/jcrist/msgspec))
+* Support for AsyncAPI 3.0 specification
+* A range of minor refactors and improvements
+
+The primary goal of this release is to unlock the path towards further features. Therefore, we are pleased to announce that after this release, we plan to work on **MQTT** #956 and **SQS** #794 support and move towards version **1.0.0**!
+
+### Breaking changes
+
+Firstly, we have dropped support for **Python 3.8** and **Python 3.9**. **Python 3.9** is [almost at the end of its life](https://devguide.python.org/versions/) cycle, so it's a good time to update our minimum version.
+
+#### FastStream object changes
+
+The broker has become a POSITIONAL-ONLY argument. This means that `FastStream(broker=broker)` is no longer valid. You should always pass the broker as a separate positional argument, like `FastStream(brokers)`, to ensure proper usage.
+
+This is a preparatory step for `FastStream(*brokers)` support, which will be introduced in **1.0.0**.
+
+#### [AsyncAPI](https://faststream.ag2.ai/latest/getting-started/asyncapi/export/) changes
+
+In **0.6**, you can't directly pass custom AsyncAPI options to the `FastStream` constructor anymore.
+
+```python
+app = FastStream(   # doesn't work anymore
+    ...,
+    title="My App",
+    version="1.0.0",
+    description="Some description",
+)
+```
+
+You need to create a `specification` object and pass it manually to the constructor.
+
+```python
+from faststream import FastStream, AsyncAPI
+
+FastStream(
+    ...
+    specification=AsyncAPI(
+        title="My App",
+        version="1.0.0",
+        description="Some description",
+    )
+)
+```
+
+#### Retry feature removed
+
+Previously, you were able to configure retry attempts for a handler by using the following option:
+
+```python
+@broker.subscriber("in", retry=True)  # was removed
+async def handler(): ...
+```
+
+Unfortunately, this option was a design mistake. We apologize for any confusion it may have caused. Technically, it was just a shortcut to `message.nack()` on error. We have decided that manual acknowledgement control would be more idiomatic and better for the framework. Therefore, we have provided a new feature in its place: `ack_policy` control.
+
+
+```python
+@broker.subscriber("test", ack_policy=AckPolicy.ACK_FIRST)
+async def handler() -> None: ...
+```
+
+With `ack_policy`, you can now control the default acknowledge behavior for your handlers. `AckPolicy` offers the following options:
+
+* **REJECT_ON_ERROR** (default) – to permanently discard messages on failure.
+* **NACK_ON_ERROR** – to redeliver messages in case of failure.
+* **ACK_FIRST** – for scenarios with high throughput where some message loss can be acceptable.
+* **ACK** – if you want the message to be acknowledged, regardless of success or failure.
+* **MANUAL** – fully manually control message acknowledgment (for example, calling #!python message.ack() yourself).
+
+In addition, we have deprecated a few more options prior to `ack_policy`.
+* `ack_first=True` -> `AckPolicy.ACK_FIRST`
+* `no_ack=True` -> `AckPolicy.MANUAL`
+
+#### [Context](https://faststream.ag2.ai/latest/getting-started/context/) changes
+
+We have made some changes to our Dependency Injection system, so the global context is no longer available.
+
+Currently, you cannot simply import the context from anywhere and use it freely.
+
+```python
+from faststeam import context  # was removed
+```
+
+Instead, you should create the context in a slightly different way. The `FastStream` object serves as an entry point for this, so you can place it wherever you need it:
+
+```python
+from typing import Annotated
+
+from faststream import Context, ContextRepo, FastStream
+from faststream.rabbit import RabbitBroker
+
+broker = RabbitBroker()
+
+app = FastStream(
+    broker,
+    context=ContextRepo({
+        "global_dependency": "value",
+    }),
+)
+```
+
+Everything else about using the context remains the same. You can request it from the context at any place that supports it.
+
+Additionally, `Context("broker")` and `Context("logger")` have been moved to the local context. They cannot be accessed from lifespan hooks any longer.
+
+```python
+@app.after_startup
+async def start(
+    broker: Broker   # does not work anymore
+): ...
+
+@router.subscriber
+async def handler(
+    broker: Broker   # still working
+): ...
+```
+
+This change was also made to support multiple brokers.
+
+#### Middlewares changes
+
+Also, we have finalized our Middleware API. It now supports all the features we wanted, and we have no plans to change it anymore. First of all, the `BaseMiddleware` class constructor requires a context (which is no longer global).
+
+```python
+class BaseMiddleware:
+    def __init__(self, msg: Any | None, context: ContextRepo) -> None:
+        self.msg = msg
+        self.context = context
+```
+
+The context is now available as `self.context` in all middleware methods.
+
+We also changed the `publish_scope` function signature.
+
+```python
+class BaseMiddleware:   # old signature
+    async def publish_scope(
+        self,
+        call_next: "AsyncFunc",
+        msg: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any: ...
+```
+
+Previously, any options passed to `brocker.publish("msg", "destination")` had to be consumed as `*args, **kwargs`.
+
+Now, you can consume them all as a single `PublishCommand` object.
+
+```python
+from faststream import PublishCommand
+
+class BaseMiddleware:
+    async def publish_scope(
+        self,
+        call_next: Callable[[PublishCommand], Awaitable[Any]],
+        cmd: PublishCommand,
+    ) -> Any: ...
+```
+
+Thanks to **Python 3.13**'s `TypeVars` with defaults, `BaseMiddleware` becomes a generic class and you can specify the `PublishCommand` for the broker you want to work with.
+
+```python
+from faststream.rabbit import RabbitPublishCommand
+
+class Middleware(BaseMiddleware[RabbitPublishCommand]):
+    async def publish_scope(
+        self,
+        call_next: Callable[[RabbitPublishCommand], Awaitable[Any]],
+        cmd: RabbitPublishCommand,
+    ) -> Any: ...
+```
+
+Warning: The methods `on_consume`, `after_consume`, `on_publish` and `after_publish` will be deprecated and removed in version **0.7**. Please use `consume_scope` and `publish_scope` instead.
+
+#### Redis Default Message format changes
+
+In **FastStream 0.6** we are using `BinaryMessageFormatV1` as a default instead of `JSONMessageFormat` .
+You can find more details in the documentation: https://faststream.ag2.ai/latest/redis/message_format/
+
+### New Features:
+
+1. AsyncAPI3.0 support – now you can choose between `AsyncAPI(schema_version="3.0.0")` (default) and `AsyncAPI(schema_version="2.6.0")` schemas generation
+
+2. [Msgspec](https://github.com/jcrist/msgspec) native support
+
+    ```python
+    from fast_depends.msgspec import MsgSpecSerializer
+
+    broker = Broker(serializer=MsgSpecSerializer())
+    ```
+
+3. Subscriber iteration support. This features supports all middlewares and other **FastStream** features.
+
+    ```python
+    subscriber = broker.subscriber(...)
+
+    await subscriber.start()
+
+    async for msg in subscriber:
+        ...
+    ```
+
+### Deprecation removed
+
+1. `@broker.subscriber(..., filters=...)` removed
+2. `message.decoded_body` removed, use `await message.decode()` instead
+3. `publish(..., rpc=True)` removed, use `broker.request()` instead
+4. RabbitMQ `@broker.subscriber(..., reply_config=...)` removed, use `Response` instead
+
+### New Contributors
+* @stepanbobrik made their first contribution in https://github.com/ag2ai/faststream/pull/2381
+
+**Full Changelog**: https://github.com/ag2ai/faststream/compare/0.5.48...0.6.0rc0
+
+## 0.5.48
+
+### What's Changed
+
+This release is part of the migration to **FastStream 0.6**.
+
+In order to provide great features such as observability and more, **FastStream** requires the inclusion of additional data in your messages. **Redis**, on the other hand, allows for the sending of any type of data within a message. Therefore, with this release, we introduce **FastStream**'s own binary message format, which supports any data type you wish to use and can include additional information.
+
+For more information on the message format, please see the [documentation](https://faststream.ag2.ai/latest/redis/message_format/)
+
+By default, we are still using the JSON message format, but as of version **0.6**, the default will change to the binary format. Therefore, you can prepare your services for this change by manually setting a new protocol.
+
+For whole broker:
+
+```python
+from faststream.redis import RedisBroker, BinaryMessageFormatV1
+
+# JSONMessageFormat using by default, but it will be deprecated in future updates
+broker = RedisBroker(message_format=BinaryMessageFormatV1)
+```
+
+Or for a specifica `subscriber` / `publisher`
+
+```python
+from faststream.redis import RedisBroker, BinaryMessageFormatV1
+
+broker = RedisBroker()
+
+@broker.subscriber(..., message_format=BinaryMessageFormatV1)
+@broker.publisher(..., message_format=BinaryMessageFormatV1)
+async def handler(msg):
+    return msg
+```
+
+Special thanks for @ilya-4real for this great feature!
+
+**FastStream** require a li
+* docs: detach index pages from sections by @Lancetnik in https://github.com/ag2ai/faststream/pull/2358
+* chore: Force push gh-pages by @dolfinus in https://github.com/ag2ai/faststream/pull/2360
+* fix: #2365 respect prefix by publisher in include_router case by @kodsurfer in https://github.com/ag2ai/faststream/pull/2366
+* feature: RMQ reply-to explicit exchange by @vesalius512 in https://github.com/ag2ai/faststream/pull/2368
+* Added the ability to specify any start identifier for the xreadgroup by @powersemmi in https://github.com/ag2ai/faststream/pull/2309
+* feat: (#2061) Redis Binary Format by @ilya-4real in https://github.com/ag2ai/faststream/pull/2287
+
+### New Contributors
+* @kodsurfer made their first contribution in https://github.com/ag2ai/faststream/pull/2366
+* @vesalius512 made their first contribution in https://github.com/ag2ai/faststream/pull/2368
+* @powersemmi made their first contribution in https://github.com/ag2ai/faststream/pull/2309
+
+**Full Changelog**: https://github.com/ag2ai/faststream/compare/0.5.47...0.5.48
+
+## 0.5.47
+
+### What's Changed
+* fix: correct NATS pattern AsyncAPI render by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2354](https://github.com/ag2ai/faststream/pull/2354){.external-link target="_blank"}
+
+
+**Full Changelog**: [#0.5.46...0.5.47](https://github.com/ag2ai/faststream/compare/0.5.46...0.5.47){.external-link target="_blank"}
+
+## 0.5.46
+
+### What's Changed
+
+* fix overlapping patterns by [@xgemx](https://github.com/xgemx){.external-link target="_blank"} in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+### New Contributors
+* [@xgemx](https://github.com/xgemx){.external-link target="_blank"} made their first contribution in [#2349](https://github.com/ag2ai/faststream/pull/2349){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.45...0.5.46](https://github.com/ag2ai/faststream/compare/0.5.45...0.5.46){.external-link target="_blank"}
+
+## 0.5.45
+
+### What's Changed
+* ci: polish workflows by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2331](https://github.com/ag2ai/faststream/pull/2331){.external-link target="_blank"}
+* Update Release Notes for main by [@davorrunje](https://github.com/davorrunje){.external-link target="_blank"} in [#2337](https://github.com/ag2ai/faststream/pull/2337){.external-link target="_blank"}
+* Markdown Code Blocks Auto Set Language by [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} in [#2339](https://github.com/ag2ai/faststream/pull/2339){.external-link target="_blank"}
+* Change docs by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2343](https://github.com/ag2ai/faststream/pull/2343){.external-link target="_blank"}
+* chore(deps): bump the pip group with 5 updates by [@dependabot](https://github.com/dependabot){.external-link target="_blank"} in [#2344](https://github.com/ag2ai/faststream/pull/2344){.external-link target="_blank"}
+* ci: fix jobs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2338](https://github.com/ag2ai/faststream/pull/2338){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.44...0.5.45](https://github.com/ag2ai/faststream/compare/0.5.44...0.5.45){.external-link target="_blank"}
+
+## 0.5.44
+
+### What's Changed
+
+* Cli tests by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2295](https://github.com/ag2ai/faststream/pull/2295){.external-link target="_blank"}
+* feature #2091: AsyncAPI HTTP support by [@aligeromachine](https://github.com/aligeromachine){.external-link target="_blank"} in [#2301](https://github.com/ag2ai/faststream/pull/2301){.external-link target="_blank"}
+* add try/finally to ensure we exit on close error by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2304](https://github.com/ag2ai/faststream/pull/2304){.external-link target="_blank"}
+* docs: fix EmailStr duplication in API Reference by [@AliakseiYafremau](https://github.com/AliakseiYafremau){.external-link target="_blank"} in [#2308](https://github.com/ag2ai/faststream/pull/2308){.external-link target="_blank"}
+* Rewrite AsyncAPI docs and log file config tests by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2302](https://github.com/ag2ai/faststream/pull/2302){.external-link target="_blank"}
+* Add logging kafka errors by [@spataphore1337](https://github.com/spataphore1337){.external-link target="_blank"} in [#2318](https://github.com/ag2ai/faststream/pull/2318){.external-link target="_blank"}
+* Add aiokafka error handling by [@spataphore1337](https://github.com/spataphore1337){.external-link target="_blank"} in [#2319](https://github.com/ag2ai/faststream/pull/2319){.external-link target="_blank"}
+* feat: add a manual action for deploying from gh-pages branch by [@Tapeline](https://github.com/Tapeline){.external-link target="_blank"} in [#2325](https://github.com/ag2ai/faststream/pull/2325){.external-link target="_blank"}
+* Gh pages manual trigger fix by [@Tapeline](https://github.com/Tapeline){.external-link target="_blank"} in [#2326](https://github.com/ag2ai/faststream/pull/2326){.external-link target="_blank"}
+* feat: add CODEOWNERS by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#2330](https://github.com/ag2ai/faststream/pull/2330){.external-link target="_blank"}
+* introduce stop method on broker and subscriber and deprecate close by [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} in [#2328](https://github.com/ag2ai/faststream/pull/2328){.external-link target="_blank"}
+* fix: add injection extra options in lifespan by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2335](https://github.com/ag2ai/faststream/pull/2335){.external-link target="_blank"}
+
+### New Contributors
+* [@aligeromachine](https://github.com/aligeromachine){.external-link target="_blank"} made their first contribution in [#2301](https://github.com/ag2ai/faststream/pull/2301){.external-link target="_blank"}
+* [@AliakseiYafremau](https://github.com/AliakseiYafremau){.external-link target="_blank"} made their first contribution in [#2308](https://github.com/ag2ai/faststream/pull/2308){.external-link target="_blank"}
+* [@mahenzon](https://github.com/mahenzon){.external-link target="_blank"} made their first contribution in [#2328](https://github.com/ag2ai/faststream/pull/2328){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.43...0.5.44](https://github.com/ag2ai/faststream/compare/0.5.43...0.5.44){.external-link target="_blank"}
+
+## 0.5.43
+
+### What's Changed
+
+* feat (#2291): add global_qos option to Channel by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2297](https://github.com/ag2ai/faststream/pull/2297){.external-link target="_blank"}
+* feat: added delete method to redis message by @ilya-4real in [#2294](https://github.com/ag2ai/faststream/pull/2294){.external-link target="_blank"}
+* feat: add CLI extra options by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2231](https://github.com/ag2ai/faststream/pull/2231){.external-link target="_blank"}
+* feat: redis pipeline by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2270](https://github.com/ag2ai/faststream/pull/2270){.external-link target="_blank"}
+* fix: replace passive with declare by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2236](https://github.com/ag2ai/faststream/pull/2236){.external-link target="_blank"}
+* fix: deprecate log fmt by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2240](https://github.com/ag2ai/faststream/pull/2240){.external-link target="_blank"}
+* fix (#2252): remove useless code snippet by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2256](https://github.com/ag2ai/faststream/pull/2256){.external-link target="_blank"}
+* fix (depends): removed SetupError if correct fastapi.Depends is included to annotation by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2280](https://github.com/ag2ai/faststream/pull/2280){.external-link target="_blank"}
+* Improve license badge by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2241](https://github.com/ag2ai/faststream/pull/2241){.external-link target="_blank"}
+* chore: use stricter mypy settings by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2243](https://github.com/ag2ai/faststream/pull/2243){.external-link target="_blank"}
+* docs: always use `'` in dependency groupds by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2242](https://github.com/ag2ai/faststream/pull/2242){.external-link target="_blank"}
+* docs: better highlight first example by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2245](https://github.com/ag2ai/faststream/pull/2245){.external-link target="_blank"}
+* docs: add more links to readme by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2246](https://github.com/ag2ai/faststream/pull/2246){.external-link target="_blank"}
+* docs: Improve README code examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2247](https://github.com/ag2ai/faststream/pull/2247){.external-link target="_blank"}
+* docs: reword `Multiple Subscriptions` section by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2250](https://github.com/ag2ai/faststream/pull/2250){.external-link target="_blank"}
+* docs: Improve README code examples by [@mxnoob](https://github.com/mxnoob){.external-link target="_blank"} in [#2253](https://github.com/ag2ai/faststream/pull/2253){.external-link target="_blank"}
+* docs: highlight more code by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2255](https://github.com/ag2ai/faststream/pull/2255){.external-link target="_blank"}
+* docs: Fix code style in `Context Fields Declaration` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2269](https://github.com/ag2ai/faststream/pull/2269){.external-link target="_blank"}
+* docs: Improve `Context` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2265](https://github.com/ag2ai/faststream/pull/2265){.external-link target="_blank"}
+* docs: Reword `publishing/decorator.md` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2260](https://github.com/ag2ai/faststream/pull/2260){.external-link target="_blank"}
+* docs: Improve dependencies docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2263](https://github.com/ag2ai/faststream/pull/2263){.external-link target="_blank"}
+* docs: Refactor `publishing/index.md` docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2259](https://github.com/ag2ai/faststream/pull/2259){.external-link target="_blank"}
+* docs: Improve wordings in test docs by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2258](https://github.com/ag2ai/faststream/pull/2258){.external-link target="_blank"}
+* docs: Link to test.md from initial tutorial by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2257](https://github.com/ag2ai/faststream/pull/2257){.external-link target="_blank"}
+* docs: Improve the documentation page with `Response` class  by [@anywindblows](https://github.com/anywindblows){.external-link target="_blank"} in [#2238](https://github.com/ag2ai/faststream/pull/2238){.external-link target="_blank"}
+* docs: fix broken links by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2271](https://github.com/ag2ai/faststream/pull/2271){.external-link target="_blank"}
+* docs: Fix `serialization/index.md` wording and syntax by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2277](https://github.com/ag2ai/faststream/pull/2277){.external-link target="_blank"}
+* docs: import types from correct place by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2278](https://github.com/ag2ai/faststream/pull/2278){.external-link target="_blank"}
+* docs: Improve serialization examples by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2282](https://github.com/ag2ai/faststream/pull/2282){.external-link target="_blank"}
+* docs: improve `Lifespan: Hooks` page by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2284](https://github.com/ag2ai/faststream/pull/2284){.external-link target="_blank"}
+* docs: -1/+1 fix mistake by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2286](https://github.com/ag2ai/faststream/pull/2286){.external-link target="_blank"}
+* docs: doc fix by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2288](https://github.com/ag2ai/faststream/pull/2288){.external-link target="_blank"}
+* docs: remove deprecated syntax from examples by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2234](https://github.com/ag2ai/faststream/pull/2234){.external-link target="_blank"}
+* docs: Improve grammar in `Lifespan: testing` by [@sobolevn](https://github.com/sobolevn){.external-link target="_blank"} in [#2298](https://github.com/ag2ai/faststream/pull/2298){.external-link target="_blank"}
+
+### New Contributors
+* [@mxnoob](https://github.com/mxnoob){.external-link target="_blank"} made their first contribution in [#2253](https://github.com/ag2ai/faststream/pull/2253){.external-link target="_blank"}
+* [@anywindblows](https://github.com/anywindblows){.external-link target="_blank"} made their first contribution in [#2238](https://github.com/ag2ai/faststream/pull/2238){.external-link target="_blank"}
+* @ilya-4real made their first contribution in [#2294](https://github.com/ag2ai/faststream/pull/2294){.external-link target="_blank"}
+
+**Full Changelog**: [#0.5.42...0.5.43](https://github.com/ag2ai/faststream/compare/0.5.42...0.5.43){.external-link target="_blank"}
+
 ## 0.5.42
 
 ### What's Changed
@@ -241,7 +619,7 @@ Also, thanks to [@Sehat1137](https://github.com/Sehat1137){.external-link target
 Well, you (community) made a new breathtaken release for us!
 Thanks to all of this release contributors.
 
-Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"}. He promores a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
+Special thanks to [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} . He promotes a new perfect feature - concurrent Kafka subscriber (with autocommit mode)
 
 ```python
 from faststream.kafka import KafkaBroker
@@ -1102,7 +1480,7 @@ You can find more information about it in the official [**aiokafka** doc](https:
 ```python
 from faststream import NatsBroker, PullSub
 
-broker = NastBroker()
+broker = NatsBroker()
 
 @broker.subscriber(
     "logs.{level}",

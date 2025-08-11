@@ -51,7 +51,6 @@ def _get_submodules(package_name: str) -> List[str]:
         A list of submodules.
     """
     try:
-        # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
         m = import_module(package_name)
     except ModuleNotFoundError as e:
         raise e
@@ -65,11 +64,11 @@ def _get_submodules(package_name: str) -> List[str]:
 
 
 def _import_submodules(
-    module_name: str, include_public_api_only: bool = False
+    module_name: str,
+    include_public_api_only: bool = False,
 ) -> Optional[List[ModuleType]]:
     def _import_module(name: str) -> Optional[ModuleType]:
         try:
-            # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
             return import_module(name)
         except Exception:
             return None
@@ -91,7 +90,8 @@ def _import_submodules(
 
 
 def _import_functions_and_classes(
-    m: ModuleType, include_public_api_only: bool = False
+    m: ModuleType,
+    include_public_api_only: bool = False,
 ) -> List[Tuple[str, Union[FunctionType, Type[Any]]]]:
     funcs_and_classes = []
     if not include_public_api_only:
@@ -114,20 +114,23 @@ def _is_private(name: str) -> bool:
 
 
 def _import_all_members(
-    module_name: str, include_public_api_only: bool = False
+    module_name: str,
+    include_public_api_only: bool = False,
 ) -> List[str]:
     submodules = _import_submodules(
-        module_name, include_public_api_only=include_public_api_only
+        module_name,
+        include_public_api_only=include_public_api_only,
     )
     members: List[Tuple[str, Union[FunctionType, Type[Any]]]] = list(
         itertools.chain(
             *[
                 _import_functions_and_classes(
-                    m, include_public_api_only=include_public_api_only
+                    m,
+                    include_public_api_only=include_public_api_only,
                 )
                 for m in submodules
-            ]
-        )
+            ],
+        ),
     )
 
     names = [
@@ -154,7 +157,7 @@ def _add_all_submodules(members: List[str]) -> List[str]:
         xs = x.split(".")
         return [".".join(xs[:i]) + "." for i in range(1, len(xs))]
 
-    def _get_sorting_key(item):
+    def _get_sorting_key(item: str) -> str:
         y = item.split(".")
         z = [f"~{a}" for a in y[:-1]] + [y[-1]]
         return ".".join(z)
@@ -170,9 +173,8 @@ def _get_api_summary_item(x: str) -> str:
     if x.endswith("."):
         indent = " " * (4 * (len(xs) - 1 + 1))
         return f"{indent}- {xs[-2]}"
-    else:
-        indent = " " * (4 * (len(xs) + 1))
-        return f"{indent}- [{xs[-1]}](api/{'/'.join(xs)}.md)"
+    indent = " " * (4 * (len(xs) + 1))
+    return f"{indent}- [{xs[-1]}](api/{'/'.join(xs)}.md)"
 
 
 def _get_api_summary(members: List[str]) -> str:
@@ -228,22 +230,28 @@ def _load_submodules(
     """
     submodules = _import_submodules(module_name)
     members = itertools.chain(*map(_import_functions_and_classes, submodules))
-    names = [
-        y
-        for _, y in members
-        if (isinstance(y, str) and y in members_with_submodules)
-        or (f"{y.__module__}.{y.__name__}" in members_with_submodules)
-    ]
+
+    names: list[Union[FunctionType, Type[Any]]] = []
+    for _, y in members:
+        if isinstance(y, str):
+            name = y
+        else:
+            name = f"{y.__module__}.{y.__name__}"
+
+        if name in members_with_submodules:
+            names.append(y)
+
     return names
 
 
 def _update_single_api_doc(
-    symbol: Union[FunctionType, Type[Any]], docs_path: Path, module_name: str
+    symbol: Union[FunctionType, Type[Any]],
+    docs_path: Path,
+    module_name: str,
 ) -> None:
     if isinstance(symbol, str):
         class_name = symbol.split(".")[-1]
         module_name = ".".join(symbol.split(".")[:-1])
-        # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
         obj = getattr(import_module(module_name), class_name)
         if obj.__module__.startswith(module_name):
             obj = symbol
@@ -263,11 +271,15 @@ def _update_single_api_doc(
 
 
 def _update_api_docs(
-    symbols: List[Union[FunctionType, Type[Any]]], docs_path: Path, module_name: str
+    symbols: List[Union[FunctionType, Type[Any]]],
+    docs_path: Path,
+    module_name: str,
 ) -> None:
     for symbol in symbols:
         _update_single_api_doc(
-            symbol=symbol, docs_path=docs_path, module_name=module_name
+            symbol=symbol,
+            docs_path=docs_path,
+            module_name=module_name,
         )
 
 
@@ -283,7 +295,7 @@ def _generate_api_docs_for_module() -> Tuple[str, str]:
 
     """
     public_api_summary = _get_api_summary(
-        _add_all_submodules(_import_all_members(MODULE, include_public_api_only=True))
+        _add_all_submodules(_import_all_members(MODULE, include_public_api_only=True)),
     )
     # Using public_api/ symlink pointing to api/ because of the issue
     # https://github.com/mkdocs/mkdocs/issues/1974
@@ -303,7 +315,7 @@ def _generate_api_docs_for_module() -> Tuple[str, str]:
 
     _update_api_docs(symbols, API_DIR, MODULE)
 
-    # todo: fix the problem and remove this
+    # TODO: fix the problem and remove this
     src = """                    - [ContactDict](api/faststream/asyncapi/schema/info/ContactDict.md)
 """
     dst = """                    - [ContactDict](api/faststream/asyncapi/schema/info/ContactDict.md)

@@ -58,9 +58,10 @@ And you should be able to see the following page in your browser:
 
 FastStream includes lightweight [**ASGI** support](../asgi.md){.internal-link} that you can use to serve both your application and the **AsyncAPI** documentation.
 
-```python linenums="1"
-from faststream import FastStream
+```python linenums="1" hl_lines="1 3 11-15"
+from faststream.asgi import AsgiFastStream
 from faststream.kafka import KafkaBroker
+from faststream.specification import AsyncAPI
 
 broker = KafkaBroker()
 
@@ -68,13 +69,28 @@ broker = KafkaBroker()
 async def my_handler(msg: str) -> None:
     print(msg)
 
-app = FastStream(broker).as_asgi(
+app = AsgiFastStream(
+    broker,
+    specification=AsyncAPI(),
     asyncapi_path="/docs/asyncapi",
 )
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+Also, you can configure AsyncAPI route behavior using a special class:
+
+```python linenums="1" hl_lines="1 7"
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
+from faststream.specification import AsyncAPI
+
+app = AsgiFastStream(
+    ...,
+    specification=AsyncAPI(),
+    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", include_in_schema=True),
+)
 ```
 
 After running the script, the **AsyncAPI** docs will be available at: <http://localhost:8000/docs/asyncapi>
@@ -84,14 +100,39 @@ After running the script, the **AsyncAPI** docs will be available at: <http://lo
 **FastStream** provides two robust approaches to combine your message broker documentation with any **ASGI** web frameworks.
 You can choose the method that best fits with your application architecture.
 
-=== "Option 1"
+=== "ASGI Application"
+    ```python linenums="1" hl_lines="5 22"
+    from typing import AsyncIterator
+    from contextlib import asynccontextmanager
+
+    from fastapi import FastAPI
+    from faststream.asgi import make_asyncapi_asgi
+    from faststream.specification import AsyncAPI
+    from faststream.kafka import KafkaBroker
+
+    broker = KafkaBroker()
+
+    @broker.subscriber('topic')
+    async def my_handler(msg: str) -> None:
+        print(msg)
+
+    @asynccontextmanager
+    async def broker_lifespan(app: FastAPI) -> AsyncIterator[None]:
+        async with broker:
+            await broker.start()
+            yield
+
+    app = FastAPI(lifespan=broker_lifespan)
+    app.mount("/docs/asyncapi", make_asyncapi_asgi(AsyncAPI(broker)))
+    ```
+
+=== "Any HTTP Application"
     ```python linenums="1" hl_lines="23-26"
     from typing import AsyncIterator
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI, responses
-    from faststream import FastStream
-    from faststream.asyncapi import get_asyncapi_html, get_app_schema
+    from faststream.specification import get_asyncapi_html, AsyncAPI
     from faststream.kafka import KafkaBroker
 
     broker = KafkaBroker()
@@ -109,36 +150,9 @@ You can choose the method that best fits with your application architecture.
     app = FastAPI(lifespan=broker_lifespan)
 
     @app.get('/docs/asyncapi')
-    async def asyncapi() -> responses.HTMLResponse:
-        schema = get_app_schema(FastStream(broker))
-        return responses.HTMLResponse(get_asyncapi_html(schema))
-    ```
-
-=== "Option 2"
-    ```python linenums="1" hl_lines="23"
-    from typing import AsyncIterator
-    from contextlib import asynccontextmanager
-
-    from fastapi import FastAPI
-    from faststream import FastStream
-    from faststream.asgi import make_asyncapi_asgi
-    from faststream.kafka import KafkaBroker
-
-    broker = KafkaBroker()
-    fs_app = FastStream(broker)
-
-    @broker.subscriber('topic')
-    async def my_handler(msg: str) -> None:
-        print(msg)
-
-    @asynccontextmanager
-    async def broker_lifespan(app: FastAPI) -> AsyncIterator[None]:
-        async with broker:
-            await broker.start()
-            yield
-
-    app = FastAPI(lifespan=broker_lifespan)
-    app.mount("/docs/asyncapi", make_asyncapi_asgi(fs_app))
+    async def docs() -> responses.HTMLResponse:
+        specification = AsyncAPI(broker).to_specification()
+        return responses.HTMLResponse(get_asyncapi_html(specification))
     ```
 
 After running the app, the documentation will be available at:

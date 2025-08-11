@@ -1,73 +1,59 @@
-import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Any
 
-from aio_pika import IncomingMessage, RobustConnection
-from typing_extensions import Annotated, deprecated
-
-from faststream.broker.core.usecase import BrokerUsecase
-from faststream.log.logging import get_broker_logger
-from faststream.types import EMPTY
+from faststream._internal.logger import DefaultLoggerStorage, make_logger_state
+from faststream._internal.logger.logging import get_broker_logger
 
 if TYPE_CHECKING:
-    from faststream.types import LoggerProto
+    from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.context import ContextRepo
 
 
-class RabbitLoggingBroker(BrokerUsecase[IncomingMessage, RobustConnection]):
-    """A class that extends the LoggingMixin class and adds additional functionality for logging RabbitMQ related information."""
+class RabbitParamsStorage(DefaultLoggerStorage):
+    def __init__(self) -> None:
+        super().__init__()
 
-    _max_queue_len: int
-    _max_exchange_len: int
-    __max_msg_id_ln: ClassVar[int] = 10
+        self._max_exchange_len = 4
+        self._max_queue_len = 4
 
-    def __init__(
-        self,
-        *args: Any,
-        logger: Optional["LoggerProto"] = EMPTY,
-        log_level: int = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated(
-                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
-                "Pass a pre-configured `logger` instead."
-            ),
-        ] = EMPTY,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            *args,
-            logger=logger,
-            # TODO: generate unique logger names to not share between brokers
-            default_logger=get_broker_logger(
+    def register_subscriber(self, params: dict[str, Any]) -> None:
+        self._max_exchange_len = max(
+            self._max_exchange_len,
+            len(params.get("exchange", "")),
+        )
+        self._max_queue_len = max(
+            self._max_queue_len,
+            len(params.get("queue", "")),
+        )
+
+    def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
+        # TODO: generate unique logger names to not share between brokers
+        if not (lg := self._get_logger_ref()):
+            message_id_ln = 10
+
+            lg = get_broker_logger(
                 name="rabbit",
                 default_context={
                     "queue": "",
                     "exchange": "",
                 },
-                message_id_ln=self.__max_msg_id_ln,
-            ),
-            log_level=log_level,
-            log_fmt=log_fmt,
-            **kwargs,
-        )
+                message_id_ln=message_id_ln,
+                fmt=(
+                    "%(asctime)s %(levelname)-8s - "
+                    f"%(exchange)-{self._max_exchange_len}s | "
+                    f"%(queue)-{self._max_queue_len}s | "
+                    f"%(message_id)-{message_id_ln}s "
+                    "- %(message)s"
+                ),
+                context=context,
+                log_level=self.logger_log_level,
+            )
+            self._logger_ref.add(lg)
 
-        self._max_queue_len = 4
-        self._max_exchange_len = 4
+        return lg
 
-    def get_fmt(self) -> str:
-        return (
-            "%(asctime)s %(levelname)-8s - "
-            f"%(exchange)-{self._max_exchange_len}s | "
-            f"%(queue)-{self._max_queue_len}s | "
-            f"%(message_id)-{self.__max_msg_id_ln}s "
-            "- %(message)s"
-        )
 
-    def _setup_log_context(
-        self,
-        *,
-        queue: Optional[str] = None,
-        exchange: Optional[str] = None,
-    ) -> None:
-        """Set up log context."""
-        self._max_exchange_len = max(self._max_exchange_len, len(exchange or ""))
-        self._max_queue_len = max(self._max_queue_len, len(queue or ""))
+make_rabbit_logger_state = partial(
+    make_logger_state,
+    default_storage_cls=RabbitParamsStorage,
+)

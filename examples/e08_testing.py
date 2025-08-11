@@ -8,12 +8,12 @@ app = FastStream(broker)
 
 
 @broker.subscriber("test-queue")
-async def handle(msg):
-    raise ValueError()
+async def handle(msg: str) -> None:
+    raise ValueError
 
 
 @pytest.mark.asyncio()
-async def test_handle():
+async def test_handle() -> None:
     async with TestRabbitBroker(broker) as br:
         with pytest.raises(ValueError):  # noqa: PT011
             await br.publish("hello!", "test-queue")

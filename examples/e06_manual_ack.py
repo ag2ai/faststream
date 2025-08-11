@@ -8,14 +8,14 @@ app = FastStream(broker)
 
 @broker.subscriber("test-queue")
 async def handle(
-    body,
+    body: str,
     logger: Logger,
     message: RabbitMessage,
-):
+) -> None:
     await message.ack()  # ack first
     logger.info(body)
 
 
 @app.after_startup
-async def test_publishing():
+async def test_publishing() -> None:
     await broker.publish("Hello!", "test-queue")

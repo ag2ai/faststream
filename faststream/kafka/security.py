@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import Any
 
 from faststream.security import (
     SASLGSSAPI,
@@ -9,37 +9,34 @@ from faststream.security import (
     SASLScram512,
 )
 
-if TYPE_CHECKING:
-    from faststream.types import AnyDict
 
-
-def parse_security(security: Optional[BaseSecurity]) -> "AnyDict":
+def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
     if security is None:
         return {}
-    elif isinstance(security, SASLPlaintext):
+    if isinstance(security, SASLPlaintext):
         return _parse_sasl_plaintext(security)
-    elif isinstance(security, SASLScram256):
+    if isinstance(security, SASLScram256):
         return _parse_sasl_scram256(security)
-    elif isinstance(security, SASLScram512):
+    if isinstance(security, SASLScram512):
         return _parse_sasl_scram512(security)
-    elif isinstance(security, SASLOAuthBearer):
+    if isinstance(security, SASLOAuthBearer):
         return _parse_sasl_oauthbearer(security)
-    elif isinstance(security, SASLGSSAPI):
+    if isinstance(security, SASLGSSAPI):
         return _parse_sasl_gssapi(security)
-    elif isinstance(security, BaseSecurity):
+    if isinstance(security, BaseSecurity):
         return _parse_base_security(security)
-    else:
-        raise NotImplementedError(f"KafkaBroker does not support `{type(security)}`.")
+    msg = f"KafkaBroker does not support `{type(security)}`."
+    raise NotImplementedError(msg)
 
 
-def _parse_base_security(security: BaseSecurity) -> "AnyDict":
+def _parse_base_security(security: BaseSecurity) -> dict[str, Any]:
     return {
         "security_protocol": "SSL" if security.use_ssl else "PLAINTEXT",
         "ssl_context": security.ssl_context,
     }
 
 
-def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
+def _parse_sasl_plaintext(security: SASLPlaintext) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -49,7 +46,7 @@ def _parse_sasl_plaintext(security: SASLPlaintext) -> "AnyDict":
     }
 
 
-def _parse_sasl_scram256(security: SASLScram256) -> "AnyDict":
+def _parse_sasl_scram256(security: SASLScram256) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -59,7 +56,7 @@ def _parse_sasl_scram256(security: SASLScram256) -> "AnyDict":
     }
 
 
-def _parse_sasl_scram512(security: SASLScram512) -> "AnyDict":
+def _parse_sasl_scram512(security: SASLScram512) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -69,7 +66,7 @@ def _parse_sasl_scram512(security: SASLScram512) -> "AnyDict":
     }
 
 
-def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> "AnyDict":
+def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,
@@ -77,7 +74,7 @@ def _parse_sasl_oauthbearer(security: SASLOAuthBearer) -> "AnyDict":
     }
 
 
-def _parse_sasl_gssapi(security: SASLGSSAPI) -> "AnyDict":
+def _parse_sasl_gssapi(security: SASLGSSAPI) -> dict[str, Any]:
     return {
         "security_protocol": "SASL_SSL" if security.use_ssl else "SASL_PLAINTEXT",
         "ssl_context": security.ssl_context,

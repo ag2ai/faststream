@@ -1,67 +1,60 @@
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Any
 
-from typing_extensions import Annotated, deprecated
-
-from faststream.broker.core.usecase import BrokerUsecase
-from faststream.log.logging import get_broker_logger
-from faststream.redis.message import UnifyRedisDict
-from faststream.types import EMPTY
+from faststream._internal.logger import DefaultLoggerStorage, make_logger_state
+from faststream._internal.logger.logging import get_broker_logger
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import Redis  # noqa: F401
+    from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.context import ContextRepo
 
-    from faststream.types import LoggerProto
 
+class RedisParamsStorage(DefaultLoggerStorage):
+    def __init__(self) -> None:
+        super().__init__()
 
-class RedisLoggingBroker(BrokerUsecase[UnifyRedisDict, "Redis[bytes]"]):
-    """A class that extends the LoggingMixin class and adds additional functionality for logging Redis related information."""
+        self._max_channel_name = 4
 
-    _max_channel_name: int
-    __max_msg_id_ln: ClassVar[int] = 10
+        self.logger_log_level = logging.INFO
 
-    def __init__(
-        self,
-        *args: Any,
-        logger: Optional["LoggerProto"] = EMPTY,
-        log_level: int = logging.INFO,
-        log_fmt: Annotated[
-            Optional[str],
-            deprecated(
-                "Argument `log_fmt` is deprecated since 0.5.42 and will be removed in 0.6.0. "
-                "Pass a pre-configured `logger` instead."
+    def set_level(self, level: int) -> None:
+        self.logger_log_level = level
+
+    def register_subscriber(self, params: dict[str, Any]) -> None:
+        self._max_channel_name = max(
+            (
+                self._max_channel_name,
+                len(params.get("channel", "")),
             ),
-        ] = EMPTY,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            *args,
-            logger=logger,
-            # TODO: generate unique logger names to not share between brokers
-            default_logger=get_broker_logger(
+        )
+
+    def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
+        message_id_ln = 10
+
+        # TODO: generate unique logger names to not share between brokers
+        if not (lg := self._get_logger_ref()):
+            lg = get_broker_logger(
                 name="redis",
                 default_context={
                     "channel": "",
                 },
-                message_id_ln=self.__max_msg_id_ln,
-            ),
-            log_level=log_level,
-            log_fmt=log_fmt,
-            **kwargs,
-        )
-        self._max_channel_name = 4
+                message_id_ln=message_id_ln,
+                fmt=(
+                    "%(asctime)s %(levelname)-8s - "
+                    f"%(channel)-{self._max_channel_name}s | "
+                    f"%(message_id)-{message_id_ln}s "
+                    "- %(message)s"
+                ),
+                context=context,
+                log_level=self.logger_log_level,
+            )
+            self._logger_ref.add(lg)
 
-    def get_fmt(self) -> str:
-        return (
-            "%(asctime)s %(levelname)-8s - "
-            f"%(channel)-{self._max_channel_name}s | "
-            f"%(message_id)-{self.__max_msg_id_ln}s "
-            "- %(message)s"
-        )
+        return lg
 
-    def _setup_log_context(
-        self,
-        *,
-        channel: Optional[str] = None,
-    ) -> None:
-        self._max_channel_name = max((self._max_channel_name, len(channel or "")))
+
+make_redis_logger_state = partial(
+    make_logger_state,
+    default_storage_cls=RedisParamsStorage,
+)

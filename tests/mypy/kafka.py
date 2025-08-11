@@ -1,10 +1,28 @@
-from typing import Awaitable, Callable
+import asyncio
+from collections.abc import Awaitable, Callable
 
-from aiokafka import ConsumerRecord
+import prometheus_client
+from typing_extensions import assert_type
 
-from faststream.kafka import KafkaBroker, KafkaMessage, KafkaRoute, KafkaRouter
+from faststream._internal.basic_types import DecodedMessage
+from faststream.kafka import (
+    ConsumerRecord,
+    KafkaBroker,
+    KafkaMessage,
+    KafkaRoute,
+    KafkaRouter,
+    RecordMetadata,
+)
 from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
-from faststream.types import DecodedMessage
+from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
+from faststream.kafka.prometheus import KafkaPrometheusMiddleware
+from faststream.kafka.publisher import BatchPublisher, DefaultPublisher
+from faststream.kafka.subscriber.usecase import (
+    BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
+)
 
 
 def sync_decoder(msg: KafkaMessage) -> DecodedMessage:
@@ -16,7 +34,8 @@ async def async_decoder(msg: KafkaMessage) -> DecodedMessage:
 
 
 async def custom_decoder(
-    msg: KafkaMessage, original: Callable[[KafkaMessage], Awaitable[DecodedMessage]]
+    msg: KafkaMessage,
+    original: Callable[[KafkaMessage], Awaitable[DecodedMessage]],
 ) -> DecodedMessage:
     return await original(msg)
 
@@ -27,15 +46,16 @@ KafkaBroker(decoder=custom_decoder)
 
 
 def sync_parser(msg: ConsumerRecord) -> KafkaMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def async_parser(msg: ConsumerRecord) -> KafkaMessage:
-    return ""  # type: ignore
+    return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
-    msg: ConsumerRecord, original: Callable[[ConsumerRecord], Awaitable[KafkaMessage]]
+    msg: ConsumerRecord,
+    original: Callable[[ConsumerRecord], Awaitable[KafkaMessage]],
 ) -> KafkaMessage:
     return await original(msg)
 
@@ -172,7 +192,7 @@ async def handle14() -> None: ...
 def sync_handler() -> None: ...
 
 
-def async_handler() -> None: ...
+async def async_handler() -> None: ...
 
 
 KafkaRouter(
@@ -197,7 +217,7 @@ KafkaRouter(
             parser=custom_parser,
             decoder=custom_decoder,
         ),
-    )
+    ),
 )
 
 
@@ -263,3 +283,120 @@ def handle20() -> None: ...
 @fastapi_router.subscriber("test")
 @fastapi_router.publisher("test2")
 async def handle21() -> None: ...
+
+
+otlp_middleware = KafkaTelemetryMiddleware()
+KafkaBroker().add_middleware(otlp_middleware)
+KafkaBroker(middlewares=[otlp_middleware])
+
+
+prometheus_middleware = KafkaPrometheusMiddleware(registry=prometheus_client.REGISTRY)
+KafkaBroker().add_middleware(prometheus_middleware)
+KafkaBroker(middlewares=[prometheus_middleware])
+
+
+async def check_broker_publish_result_type() -> None:
+    broker = KafkaBroker()
+
+    publish_with_confirm = await broker.publish(None, "test")
+    assert_type(publish_with_confirm, RecordMetadata)
+
+    publish_without_confirm = await broker.publish(None, "test", no_confirm=True)
+    assert_type(await publish_without_confirm, RecordMetadata)
+
+    publish_confirm_bool = await broker.publish(None, "test", no_confirm=fake_bool())
+    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+
+
+async def check_publisher_publish_result_types() -> None:
+    broker = KafkaBroker()
+
+    publisher = broker.publisher("test")
+    assert_type(publisher, DefaultPublisher)
+
+    publish_with_confirm = await publisher.publish(None, "test")
+    assert_type(publish_with_confirm, RecordMetadata)
+
+    publish_without_confirm = await publisher.publish(None, "test", no_confirm=True)
+    assert_type(await publish_without_confirm, RecordMetadata)
+
+    publish_confirm_bool = await publisher.publish(None, "test", no_confirm=fake_bool())
+    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+
+
+async def check_publish_batch_result_type() -> None:
+    broker = KafkaBroker()
+
+    publish_with_confirm = await broker.publish_batch(None, topic="test")
+    assert_type(publish_with_confirm, RecordMetadata)
+
+    publish_without_confirm = await broker.publish_batch(
+        None, topic="test", no_confirm=True
+    )
+    assert_type(await publish_without_confirm, RecordMetadata)
+
+    publish_confirm_bool = await broker.publish_batch(
+        None, topic="test", no_confirm=fake_bool()
+    )
+    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+
+
+async def check_publisher_publish_batch_result_type() -> None:
+    broker = KafkaBroker()
+
+    publisher = broker.publisher("test", batch=True)
+    assert_type(publisher, BatchPublisher)
+
+    publish_with_confirm = await publisher.publish(None, topic="test")
+    assert_type(publish_with_confirm, RecordMetadata)
+
+    publish_without_confirm = await publisher.publish(None, topic="test", no_confirm=True)
+    assert_type(await publish_without_confirm, RecordMetadata)
+
+    publish_confirm_bool = await publisher.publish(
+        None, topic="test", no_confirm=fake_bool()
+    )
+    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+
+
+async def check_request_response_type() -> None:
+    broker = KafkaBroker()
+
+    broker_response = await broker.request(None, "test")
+    assert_type(broker_response, KafkaMessage)
+
+    publisher = broker.publisher("test")
+    publisher_response = await publisher.request(None, "test")
+    assert_type(publisher_response, KafkaMessage)
+
+
+async def check_subscriber_message_type() -> None:
+    broker = KafkaBroker()
+
+    subscriber = broker.subscriber("test")
+
+    message = await subscriber.get_one()
+    assert_type(message, KafkaMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, KafkaMessage)
+
+
+def check_subscriber_instance_type() -> None:
+    broker = KafkaBroker()
+
+    sub1 = broker.subscriber("test")
+    assert_type(sub1, DefaultSubscriber)
+
+    sub2 = broker.subscriber("test", batch=True)
+    assert_type(sub2, BatchSubscriber)
+
+    sub3 = broker.subscriber("test", max_workers=2)
+    assert_type(sub3, ConcurrentDefaultSubscriber)
+
+    sub4 = broker.subscriber("test", group_id="test", max_workers=2)
+    assert_type(sub4, ConcurrentBetweenPartitionsSubscriber)
+
+
+def fake_bool() -> bool:
+    return True

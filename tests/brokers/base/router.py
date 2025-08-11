@@ -1,59 +1,78 @@
 import asyncio
-from typing import Type
-from unittest.mock import Mock
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
-from faststream import BaseMiddleware, Depends
-from faststream.broker.core.usecase import BrokerUsecase
-from faststream.broker.router import ArgsContainer, BrokerRouter, SubscriberRoute
-from faststream.types import AnyCallable
+from faststream._internal.broker.router import (
+    ArgsContainer,
+    BrokerRouter,
+    SubscriberRoute,
+)
 from tests.brokers.base.middlewares import LocalMiddlewareTestcase
 from tests.brokers.base.parser import LocalCustomParserTestcase
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class RouterTestcase(
     LocalMiddlewareTestcase,
     LocalCustomParserTestcase,
 ):
-    build_message: AnyCallable
-    route_class: Type[SubscriberRoute]
-    publisher_class: Type[ArgsContainer]
+    route_class: type[SubscriberRoute]
+    publisher_class: type[ArgsContainer]
 
-    def patch_broker(self, br: BrokerUsecase, router: BrokerRouter) -> BrokerUsecase:
-        br.include_router(router)
-        return br
+    def get_router(self, **kwargs: Any) -> BrokerRouter:
+        raise NotImplementedError
 
-    @pytest.fixture
-    def pub_broker(self, broker):
-        return broker
-
-    @pytest.fixture
-    def raw_broker(self, pub_broker):
-        return pub_broker
-
-    async def test_empty_prefix(
+    async def test_router_dynamic_objects(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
         event: asyncio.Event,
-    ):
-        args, kwargs = self.get_subscriber_params(queue)
+    ) -> None:
+        nested_router = self.get_router()
+        router = self.get_router(routers=[nested_router])
+        broker = self.get_broker(routers=[router])
 
-        @router.subscriber(*args, **kwargs)
-        def subscriber(m):
+        def subscriber(m) -> None:
             event.set()
 
-        pub_broker.include_router(router)
+        async with self.patch_broker(broker) as br:
+            await br.start()
 
-        async with pub_broker:
-            await pub_broker.start()
+            args, kwargs = self.get_subscriber_params(queue)
+            sub = nested_router.subscriber(*args, **kwargs)
+            sub(subscriber)
+            await sub.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("Hi!", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+    async def test_empty_prefix(self, queue: str) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+        router = self.get_router()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        def subscriber(m) -> None:
+            event.set()
+
+        pub_broker.include_router(router)
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -63,27 +82,27 @@ class RouterTestcase(
 
     async def test_not_empty_prefix(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-    ):
-        router.prefix = "test_"
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        router = self.get_router(prefix="test_")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m):
+        def subscriber(m) -> None:
             event.set()
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -91,27 +110,25 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_include_with_prefix(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-        event: asyncio.Event,
-    ):
+    async def test_include_with_prefix(self, queue: str) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+        router = self.get_router()
+
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m):
+        def subscriber(m) -> None:
             event.set()
 
         pub_broker.include_router(router, prefix="test_")
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -119,34 +136,32 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_empty_prefix_publisher(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-        event: asyncio.Event,
-    ):
+    async def test_empty_prefix_publisher(self, queue: str) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+        router = self.get_router()
+
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m):
+        def subscriber(m) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m):
+        def response(m) -> None:
             event.set()
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -156,34 +171,62 @@ class RouterTestcase(
 
     async def test_not_empty_prefix_publisher(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-    ):
-        router.prefix = "test_"
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        router = self.get_router(prefix="test_")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m):
+        def subscriber(m) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m):
+        def response(m) -> None:
             event.set()
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+    async def test_include_publisher_with_prefix(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        broker = self.get_broker()
+
+        args2, kwargs2 = self.get_subscriber_params(f"test_{queue}")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handler(m: Any) -> None:
+            event.set()
+
+        router = self.get_router()
+        publisher = router.publisher(queue)
+        broker.include_router(router, prefix="test_")
+
+        async with broker:
+            await broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(publisher.publish("hello")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -193,35 +236,35 @@ class RouterTestcase(
 
     async def test_manual_publisher(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-    ):
-        router.prefix = "test_"
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        router = self.get_router(prefix="test_")
 
         p = router.publisher(queue + "resp")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def subscriber(m):
+        async def subscriber(m) -> None:
             await p.publish("resp")
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m):
+        def response(m) -> None:
             event.set()
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -229,31 +272,28 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_delayed_handlers(
-        self,
-        event: asyncio.Event,
-        router: BrokerRouter,
-        queue: str,
-        pub_broker: BrokerUsecase,
-    ):
-        def response(m):
+    async def test_delayed_handlers(self, queue: str) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        def response(m) -> None:
             event.set()
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        r = type(router)(
+        router = self.get_router(
             prefix="test_",
             handlers=(self.route_class(response, *args, **kwargs),),
         )
 
-        pub_broker.include_router(r)
-
-        async with pub_broker:
-            await pub_broker.start()
+        pub_broker.include_router(router)
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -261,20 +301,17 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_delayed_publishers(
-        self,
-        event: asyncio.Event,
-        router: BrokerRouter,
-        queue: str,
-        pub_broker: BrokerUsecase,
-        mock: Mock,
-    ):
+    async def test_delayed_publishers(self, queue: str, mock: MagicMock) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
         def response(m):
             return m
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        r = type(router)(
+        router = self.get_router(
             prefix="test_",
             handlers=(
                 self.route_class(
@@ -286,21 +323,21 @@ class RouterTestcase(
             ),
         )
 
-        pub_broker.include_router(r)
+        pub_broker.include_router(router)
 
         args, kwargs = self.get_subscriber_params(f"test_{queue}1")
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg) -> None:
             mock(msg)
             event.set()
 
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -312,19 +349,20 @@ class RouterTestcase(
 
     async def test_nested_routers_sub(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
-        core_router = type(router)(prefix="test1_")
-        router.prefix = "test2_"
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        core_router = self.get_router(prefix="test1_")
+        router = self.get_router(prefix="test2_")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m):
+        def subscriber(m) -> str:
             event.set()
             mock(m)
             return "hi"
@@ -332,14 +370,12 @@ class RouterTestcase(
         core_router.include_routers(router)
         pub_broker.include_routers(core_router)
 
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(
-                        pub_broker.publish("hello", f"test1_test2_{queue}")
-                    ),
+                    asyncio.create_task(br.publish("hello", f"test1_test2_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -350,40 +386,39 @@ class RouterTestcase(
 
     async def test_nested_routers_pub(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-    ):
-        core_router = type(router)(prefix="test1_")
-        router.prefix = "test2_"
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        core_router = self.get_router(prefix="test1_")
+        router = self.get_router(prefix="test2_")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m):
+        def subscriber(m) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(
-            "test1_" + "test2_" + queue + "resp"
+            "test1_" + "test2_" + queue + "resp",
         )
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        def response(m):
+        def response(m) -> None:
             event.set()
 
         core_router.include_routers(router)
-        pub_broker.include_routers(core_router)
+        pub_broker.include_router(core_router)
 
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(
-                        pub_broker.publish("hello", f"test1_test2_{queue}")
-                    ),
+                    asyncio.create_task(br.publish("hello", f"test1_test2_{queue}")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -391,107 +426,15 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_router_dependencies(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-    ):
-        router = type(router)(dependencies=(Depends(lambda: 1),))
-        router2 = type(router)(dependencies=(Depends(lambda: 2),))
-
-        args, kwargs = self.get_subscriber_params(
-            queue, dependencies=(Depends(lambda: 3),)
-        )
-
-        @router2.subscriber(*args, **kwargs)
-        def subscriber(): ...
-
-        router.include_router(router2)
-        pub_broker.include_routers(router)
-
-        sub = next(iter(pub_broker._subscribers.values()))
-        assert len((*sub._broker_dependencies, *sub.calls[0].dependencies)) == 3
-
-    async def test_router_include_with_dependencies(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-    ):
-        router2 = type(router)()
-
-        args, kwargs = self.get_subscriber_params(
-            queue,
-            dependencies=(Depends(lambda: 3),),
-        )
-
-        @router2.subscriber(*args, **kwargs)
-        def subscriber(): ...
-
-        router.include_router(router2, dependencies=(Depends(lambda: 2),))
-        pub_broker.include_router(router, dependencies=(Depends(lambda: 1),))
-
-        sub = next(iter(pub_broker._subscribers.values()))
-        dependencies = (*sub._broker_dependencies, *sub.calls[0].dependencies)
-        assert len(dependencies) == 3, dependencies
-
-    async def test_router_middlewares(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-    ):
-        router = type(router)(middlewares=(BaseMiddleware,))
-        router2 = type(router)(middlewares=(BaseMiddleware,))
-
-        args, kwargs = self.get_subscriber_params(queue, middlewares=(3,))
-
-        @router2.subscriber(*args, **kwargs)
-        @router2.publisher(queue, middlewares=(3,))
-        def subscriber(): ...
-
-        router.include_router(router2)
-        pub_broker.include_routers(router)
-
-        sub = next(iter(pub_broker._subscribers.values()))
-        publisher = next(iter(pub_broker._publishers.values()))
-
-        assert len((*sub._broker_middlewares, *sub.calls[0].item_middlewares)) == 3
-        assert len((*publisher._broker_middlewares, *publisher._middlewares)) == 3
-
-    async def test_router_include_with_middlewares(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-    ):
-        router2 = type(router)()
-
-        args, kwargs = self.get_subscriber_params(queue, middlewares=(3,))
-
-        @router2.subscriber(*args, **kwargs)
-        @router2.publisher(queue, middlewares=(3,))
-        def subscriber(): ...
-
-        router.include_router(router2, middlewares=(BaseMiddleware,))
-        pub_broker.include_router(router, middlewares=(BaseMiddleware,))
-
-        sub = next(iter(pub_broker._subscribers.values()))
-        publisher = next(iter(pub_broker._publishers.values()))
-
-        sub_middlewares = (*sub._broker_middlewares, *sub.calls[0].item_middlewares)
-        assert len(sub_middlewares) == 3, sub_middlewares
-        assert len((*publisher._broker_middlewares, *publisher._middlewares)) == 3
-
     async def test_router_parser(
         self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
         async def parser(msg, original):
             mock.parser()
             return await original(msg)
@@ -500,25 +443,21 @@ class RouterTestcase(
             mock.decoder()
             return await original(msg)
 
-        router = type(router)(
-            parser=parser,
-            decoder=decoder,
-        )
+        router = self.get_router(parser=parser, decoder=decoder)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(s):
+        def subscriber(s) -> None:
             event.set()
 
-        pub_broker.include_routers(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        pub_broker.include_router(router)
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -528,14 +467,11 @@ class RouterTestcase(
             mock.parser.assert_called_once()
             mock.decoder.assert_called_once()
 
-    async def test_router_parser_override(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+    async def test_router_parser_override(self, queue: str, mock: MagicMock) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
         async def global_parser(msg, original):  # pragma: no cover
             mock()
             return await original(msg)
@@ -552,7 +488,7 @@ class RouterTestcase(
             mock.decoder()
             return await original(msg)
 
-        router = type(router)(
+        router = self.get_router(
             parser=global_parser,
             decoder=global_decoder,
         )
@@ -560,17 +496,16 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue, parser=parser, decoder=decoder)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(s):
+        def subscriber(s) -> None:
             event.set()
 
-        pub_broker.include_routers(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        pub_broker.include_router(router)
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -581,38 +516,70 @@ class RouterTestcase(
             mock.parser.assert_called_once()
             mock.decoder.assert_called_once()
 
+    async def test_router_in_init(self, queue: str) -> None:
+        event = asyncio.Event()
 
-@pytest.mark.asyncio
+        args, kwargs = self.get_subscriber_params(queue)
+        router = self.get_router()
+
+        @router.subscriber(*args, **kwargs)
+        def subscriber(m) -> None:
+            event.set()
+
+        pub_broker = self.get_broker(routers=[router])
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+    async def test_include_passes_producer_to_router(self) -> None:
+        pub_broker = self.get_broker()
+
+        router1 = self.get_router()
+        router2 = self.get_router()
+
+        pub1 = router1.publisher("l3")
+        pub2 = router2.publisher("l3")
+
+        assert pub1._outer_config.producer is not pub2._outer_config.producer
+
+        pub_broker.include_routers(router2, router1)
+
+        assert pub1._outer_config.producer is pub2._outer_config.producer
+
+
+@pytest.mark.asyncio()
 class RouterLocalTestcase(RouterTestcase):
-    @pytest.fixture
-    def pub_broker(self, test_broker):
-        return test_broker
+    async def test_publisher_mock(self, queue: str, event: asyncio.Event) -> None:
+        pub_broker = self.get_broker()
+        router = self.get_router()
 
-    async def test_publisher_mock(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-        event: asyncio.Event,
-    ):
         pub = router.publisher(queue + "resp")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
         @pub
-        def subscriber(m):
+        def subscriber(m) -> str:
             event.set()
             return "hi"
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -621,28 +588,26 @@ class RouterLocalTestcase(RouterTestcase):
             assert event.is_set()
             pub.mock.assert_called_with("hi")
 
-    async def test_subscriber_mock(
-        self,
-        router: BrokerRouter,
-        pub_broker: BrokerUsecase,
-        queue: str,
-        event: asyncio.Event,
-    ):
+    async def test_subscriber_mock(self, queue: str) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+        router = self.get_router()
+
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m):
+        def subscriber(m) -> str:
             event.set()
             return "hi"
 
         pub_broker.include_router(router)
-
-        async with pub_broker:
-            await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
             await asyncio.wait(
                 (
-                    asyncio.create_task(pub_broker.publish("hello", queue)),
+                    asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
@@ -651,19 +616,20 @@ class RouterLocalTestcase(RouterTestcase):
             assert event.is_set()
             subscriber.mock.assert_called_with("hello")
 
-    async def test_manual_publisher_mock(
-        self, router: BrokerRouter, queue: str, pub_broker: BrokerUsecase
-    ):
+    async def test_manual_publisher_mock(self, queue: str) -> None:
+        pub_broker = self.get_broker()
+        router = self.get_router()
+
         publisher = router.publisher(queue + "resp")
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def m(m):
+        async def m(m) -> None:
             await publisher.publish("response")
 
         pub_broker.include_router(router)
-        async with pub_broker:
-            await pub_broker.start()
-            await pub_broker.publish("hello", queue)
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
             publisher.mock.assert_called_with("response")

@@ -1,144 +1,141 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
 from faststream import Path
-from faststream.nats import JStream, NatsBroker, NatsPublisher, NatsRoute, NatsRouter
+from faststream.nats import (
+    JStream,
+    NatsPublisher,
+    NatsRoute,
+    NatsRouter,
+)
 from tests.brokers.base.router import RouterLocalTestcase, RouterTestcase
 
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
-@pytest.mark.nats
-class TestRouter(RouterTestcase):
-    broker_class = NatsRouter
+
+@pytest.mark.connected()
+@pytest.mark.nats()
+class TestRouter(NatsTestcaseConfig, RouterTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher
 
     async def test_router_path(
         self,
-        event,
-        mock,
+        event: asyncio.Event,
+        mock: MagicMock,
         router: NatsRouter,
-        pub_broker,
-    ):
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
         @router.subscriber("in.{name}.{id}")
         async def h(
             name: str = Path(),
             id: int = Path("id"),
-        ):
+        ) -> None:
             event.set()
             mock(name=name, id=id)
 
-        pub_broker._is_apply_types = True
         pub_broker.include_router(router)
 
         await pub_broker.start()
 
-        await pub_broker.publish(
-            "",
-            "in.john.2",
-            rpc=True,
-        )
+        await pub_broker.request("", "in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
 
     async def test_path_as_first_with_prefix(
         self,
-        event,
-        mock,
-        router: NatsRouter,
-        pub_broker,
-    ):
-        router.prefix = "root."
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        router = self.get_router(prefix="root.")
 
         @router.subscriber("{name}.nested")
-        async def h(name: str = Path()):
+        async def h(name: str = Path()) -> None:
             event.set()
             mock(name=name)
 
-        pub_broker._is_apply_types = True
         pub_broker.include_router(router)
 
         await pub_broker.start()
 
-        await pub_broker.publish("", "root.john.nested", rpc=True)
+        await pub_broker.request("", "root.john.nested")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john")
 
     async def test_router_path_with_prefix(
         self,
-        event,
-        mock,
-        router: NatsRouter,
-        pub_broker,
-    ):
-        router.prefix = "test."
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        router = self.get_router(prefix="test.")
 
         @router.subscriber("in.{name}.{id}")
         async def h(
             name: str = Path(),
             id: int = Path("id"),
-        ):
+        ) -> None:
             event.set()
             mock(name=name, id=id)
 
-        pub_broker._is_apply_types = True
         pub_broker.include_router(router)
 
         await pub_broker.start()
 
-        await pub_broker.publish(
-            "",
-            "test.in.john.2",
-            rpc=True,
-        )
+        await pub_broker.request("", "test.in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
 
     async def test_router_delay_handler_path(
         self,
-        event,
-        mock,
+        event: asyncio.Event,
+        mock: MagicMock,
         router: NatsRouter,
-        pub_broker,
-    ):
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
         async def h(
             name: str = Path(),
             id: int = Path("id"),
-        ):
+        ) -> None:
             event.set()
             mock(name=name, id=id)
 
         r = type(router)(handlers=(self.route_class(h, subject="in.{name}.{id}"),))
 
-        pub_broker._is_apply_types = True
         pub_broker.include_router(r)
 
         await pub_broker.start()
 
-        await pub_broker.publish(
-            "",
-            "in.john.2",
-            rpc=True,
-        )
+        await pub_broker.request("", "in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
 
     async def test_delayed_handlers_with_queue(
         self,
-        event,
         router: NatsRouter,
         queue: str,
-        pub_broker,
-    ):
-        def response(m):
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker()
+
+        def response(m) -> None:
             event.set()
 
         r = type(router)(
-            prefix="test.", handlers=(self.route_class(response, subject=queue),)
+            prefix="test.",
+            handlers=(self.route_class(response, subject=queue),),
         )
 
         pub_broker.include_router(r)
@@ -156,24 +153,26 @@ class TestRouter(RouterTestcase):
         assert event.is_set()
 
 
-class TestRouterLocal(RouterLocalTestcase):
-    broker_class = NatsRouter
+@pytest.mark.nats()
+@pytest.mark.connected()
+class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher
 
     async def test_include_stream(
         self,
         router: NatsRouter,
-        pub_broker: NatsBroker,
-    ):
+    ) -> None:
+        pub_broker = self.get_broker()
+
         @router.subscriber("test", stream="stream")
-        async def handler(): ...
+        async def handler() -> None: ...
 
         pub_broker.include_router(router)
 
         assert next(iter(pub_broker._stream_builder.objects.keys())) == "stream"
 
-    async def test_include_stream_with_subjects(self):
+    async def test_include_stream_with_subjects(self) -> None:
         stream = JStream("test-stream")
 
         sub_router = NatsRouter(prefix="client.")
@@ -187,10 +186,11 @@ class TestRouterLocal(RouterLocalTestcase):
 
         router.include_router(sub_router)
 
-        broker = NatsBroker()
+        broker = self.get_broker()
         broker.include_router(router)
 
-        assert set(stream.subjects) == {
+        _, subjects = broker._stream_builder.get(stream)
+        assert set(subjects) == {
             "user.registered",
             "user.client.1",
             "user.client.2",

@@ -1,11 +1,11 @@
 import pytest
 
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaRouter
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitBroker, RabbitRouter
 
 
+@pytest.mark.rabbit()
 def test_use_only_rabbit_router() -> None:
     broker = RabbitBroker()
     router = NatsRouter()
@@ -13,7 +13,7 @@ def test_use_only_rabbit_router() -> None:
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [RabbitRouter(), NatsRouter(), KafkaRouter()]
+    routers = [RabbitRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)

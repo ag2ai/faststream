@@ -3,8 +3,9 @@ import pytest
 from faststream.rabbit import Channel, RabbitBroker
 
 
-@pytest.mark.asyncio
-@pytest.mark.rabbit
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+@pytest.mark.rabbit()
 async def test_set_max():
     broker = RabbitBroker(
         logger=None,

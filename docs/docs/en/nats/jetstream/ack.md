@@ -16,29 +16,6 @@ In most cases, **FastStream** automatically acknowledges (*acks*) messages on yo
 
 However, there are situations where you might want to use different acknowledgement logic.
 
-## Retries
-
-If you prefer to use a *nack* instead of a *reject* when there's an error in message processing, you can specify the `retry` flag in the `#!python  @broker.subscriber(...)` method, which is responsible for error handling logic.
-
-By default, this flag is set to `False`, indicating that if an error occurs during message processing, the message can still be retrieved from the queue:
-
-```python
-@broker.subscriber("test", retry=False) # don't handle exceptions
-async def base_handler(body: str):
-    ...
-```
-
-If this flag is set to `True`, the message will be *nack*ed and placed back in the queue each time an error occurs. In this scenario, the message can be processed by another consumer (if there are several of them) or by the same one:
-
-```python
-@broker.subscriber("test", retry=True)  # try again indefinitely
-async def base_handler(body: str):
-    ...
-```
-
-!!! tip
-    For more complex error handling cases, you can use [tenacity](https://tenacity.readthedocs.io/en/latest/){.external-link target="_blank"}
-
 ## Manual Acknowledgement
 
 If you want to acknowledge a message manually, you can get access directly to the message object via the [Context](../../getting-started/context/existed.md){.internal-link} and call the method.

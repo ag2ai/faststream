@@ -3,9 +3,10 @@ import pytest
 from faststream.rabbit import TestApp, TestRabbitBroker
 
 
-@pytest.mark.asyncio
-@pytest.mark.rabbit
-async def test_index():
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+@pytest.mark.rabbit()
+async def test_index() -> None:
     from examples.rabbit.fanout import (
         app,
         base_handler1,

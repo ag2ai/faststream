@@ -5,7 +5,6 @@ venv*
 .venv*
 .env
 .env*
-*.lock
 .vscode
 .pypirc
 .pytest_cache
@@ -16,6 +15,9 @@ venv*
 htmlcov
 token
 .DS_Store
+*.egg-info
 
 docs/site/
 docs/site_build/
+docs/docs/SUMMARY.md
+docs/docs/en/api/faststream/

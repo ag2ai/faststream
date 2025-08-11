@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Optional, TypedDict
 
 from nats.aio.subscription import (
     DEFAULT_SUB_PENDING_BYTES_LIMIT,
@@ -11,44 +11,56 @@ from nats.js.client import (
     DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
 )
 
+from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
-from faststream.nats.subscriber.asyncapi import (
-    AsyncAPIBatchPullStreamSubscriber,
-    AsyncAPIConcurrentCoreSubscriber,
-    AsyncAPIConcurrentPullStreamSubscriber,
-    AsyncAPIConcurrentPushStreamSubscriber,
-    AsyncAPICoreSubscriber,
-    AsyncAPIKeyValueWatchSubscriber,
-    AsyncAPIObjStoreWatchSubscriber,
-    AsyncAPIPullStreamSubscriber,
-    AsyncAPIStreamSubscriber,
+from faststream.middlewares import AckPolicy
+
+from .config import NatsSubscriberConfig, NatsSubscriberSpecificationConfig
+from .specification import NatsSubscriberSpecification, NotIncludeSpecifation
+from .usecases import (
+    BatchPullStreamSubscriber,
+    ConcurrentCoreSubscriber,
+    ConcurrentPullStreamSubscriber,
+    ConcurrentPushStreamSubscriber,
+    CoreSubscriber,
+    KeyValueWatchSubscriber,
+    LogicSubscriber,
+    ObjStoreWatchSubscriber,
+    PullStreamSubscriber,
+    PushStreamSubscriber,
 )
 
 if TYPE_CHECKING:
-    from fast_depends.dependencies import Depends
     from nats.js import api
 
-    from faststream.broker.types import BrokerMiddleware
+    from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
-    from faststream.types import AnyDict
+
+
+class SharedOptions(TypedDict):
+    config: NatsSubscriberConfig
+    specification: SubscriberSpecification[Any, Any]
+    calls: CallsCollection[Any]
 
 
 def create_subscriber(
     *,
     subject: str,
     queue: str,
-    pending_msgs_limit: Optional[int],
-    pending_bytes_limit: Optional[int],
+    pending_msgs_limit: int | None,
+    pending_bytes_limit: int | None,
     # Core args
     max_msgs: int,
     # JS args
-    durable: Optional[str],
+    durable: str | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,
-    idle_heartbeat: Optional[float],
-    flow_control: Optional[bool],
+    idle_heartbeat: float | None,
+    flow_control: bool | None,
     deliver_policy: Optional["api.DeliverPolicy"],
-    headers_only: Optional[bool],
+    headers_only: bool | None,
     # pull args
     pull_sub: Optional["PullSub"],
     kv_watch: Optional["KvWatch"],
@@ -59,26 +71,15 @@ def create_subscriber(
     max_workers: int,
     stream: Optional["JStream"],
     # Subscriber args
+    ack_policy: "AckPolicy",
     no_ack: bool,
     no_reply: bool,
-    retry: Union[bool, int],
-    broker_dependencies: Iterable["Depends"],
-    broker_middlewares: Sequence["BrokerMiddleware[Any]"],
-    # AsyncAPI information
-    title_: Optional[str],
-    description_: Optional[str],
+    broker_config: "NatsBrokerConfig",
+    # Specification information
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
-) -> Union[
-    "AsyncAPICoreSubscriber",
-    "AsyncAPIConcurrentCoreSubscriber",
-    "AsyncAPIStreamSubscriber",
-    "AsyncAPIConcurrentPushStreamSubscriber",
-    "AsyncAPIPullStreamSubscriber",
-    "AsyncAPIConcurrentPullStreamSubscriber",
-    "AsyncAPIBatchPullStreamSubscriber",
-    "AsyncAPIKeyValueWatchSubscriber",
-    "AsyncAPIObjStoreWatchSubscriber",
-]:
+) -> "LogicSubscriber[Any]":
     _validate_input_for_misconfigure(
         subject=subject,
         queue=queue,
@@ -93,6 +94,8 @@ def create_subscriber(
         deliver_policy=deliver_policy,
         headers_only=headers_only,
         pull_sub=pull_sub,
+        ack_policy=ack_policy,
+        no_ack=no_ack,
         kv_watch=kv_watch,
         obj_watch=obj_watch,
         ack_first=ack_first,
@@ -112,9 +115,8 @@ def create_subscriber(
 
     if stream:
         # Both JS Subscribers
-        extra_options: AnyDict = {
-            "pending_msgs_limit": pending_msgs_limit
-            or DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
+        extra_options: dict[str, Any] = {
+            "pending_msgs_limit": pending_msgs_limit or DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
             "pending_bytes_limit": pending_bytes_limit
             or DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,
             "durable": durable,
@@ -127,6 +129,12 @@ def create_subscriber(
 
         else:
             # JS Push Subscriber
+            if ack_first or ack_policy is AckPolicy.ACK_FIRST:
+                manual_ack = False
+                ack_policy = AckPolicy.MANUAL
+            else:
+                manual_ack = True
+
             extra_options.update(
                 {
                     "ordered_consumer": ordered_consumer,
@@ -134,239 +142,220 @@ def create_subscriber(
                     "flow_control": flow_control,
                     "deliver_policy": deliver_policy,
                     "headers_only": headers_only,
-                    "manual_ack": not ack_first,
-                }
+                    "manual_ack": manual_ack,
+                },
             )
 
     else:
         # Core Subscriber
         extra_options = {
             "pending_msgs_limit": pending_msgs_limit or DEFAULT_SUB_PENDING_MSGS_LIMIT,
-            "pending_bytes_limit": pending_bytes_limit
-            or DEFAULT_SUB_PENDING_BYTES_LIMIT,
+            "pending_bytes_limit": pending_bytes_limit or DEFAULT_SUB_PENDING_BYTES_LIMIT,
             "max_msgs": max_msgs,
         }
 
+    subscriber_config = NatsSubscriberConfig(
+        subject=subject,
+        sub_config=config,
+        extra_options=extra_options,
+        no_reply=no_reply,
+        _outer_config=broker_config,
+        _ack_first=ack_first,
+        _ack_policy=ack_policy,
+        _no_ack=no_ack,
+    )
+
+    calls = CallsCollection[Any]()
+
+    specification_config = NatsSubscriberSpecificationConfig(
+        subject=subject,
+        queue=queue or None,
+        title_=title_,
+        description_=description_,
+        include_in_schema=include_in_schema,
+    )
+
+    specification = NatsSubscriberSpecification(
+        _outer_config=broker_config,
+        calls=calls,
+        specification_config=specification_config,
+    )
+
+    not_include_spec = NotIncludeSpecifation(
+        _outer_config=broker_config,
+        calls=calls,
+        specification_config=specification_config,
+    )
+
+    subscriber_options: SharedOptions = {
+        "config": subscriber_config,
+        "specification": specification,
+        "calls": calls,
+    }
+
     if obj_watch is not None:
-        return AsyncAPIObjStoreWatchSubscriber(
-            subject=subject,
-            config=config,
+        return ObjStoreWatchSubscriber(
+            **(subscriber_options | {"specification": not_include_spec}),
             obj_watch=obj_watch,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
     if kv_watch is not None:
-        return AsyncAPIKeyValueWatchSubscriber(
-            subject=subject,
-            config=config,
+        return KeyValueWatchSubscriber(
+            **(subscriber_options | {"specification": not_include_spec}),
             kv_watch=kv_watch,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
-    elif stream is None:
+    if stream is None:
         if max_workers > 1:
-            return AsyncAPIConcurrentCoreSubscriber(
+            return ConcurrentCoreSubscriber(
+                **subscriber_options,
                 max_workers=max_workers,
-                subject=subject,
-                config=config,
                 queue=queue,
-                # basic args
-                extra_options=extra_options,
-                # Subscriber args
-                no_ack=no_ack,
-                no_reply=no_reply,
-                retry=retry,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # AsyncAPI information
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
             )
 
-        else:
-            return AsyncAPICoreSubscriber(
-                subject=subject,
-                config=config,
+        return CoreSubscriber(
+            **subscriber_options,
+            queue=queue,
+        )
+
+    if max_workers > 1:
+        if pull_sub is not None:
+            return ConcurrentPullStreamSubscriber(
+                **subscriber_options,
                 queue=queue,
-                # basic args
-                extra_options=extra_options,
-                # Subscriber args
-                no_ack=no_ack,
-                no_reply=no_reply,
-                retry=retry,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                # AsyncAPI information
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+                max_workers=max_workers,
+                pull_sub=pull_sub,
             )
 
-    else:
-        if max_workers > 1:
-            if pull_sub is not None:
-                return AsyncAPIConcurrentPullStreamSubscriber(
-                    max_workers=max_workers,
-                    pull_sub=pull_sub,
-                    stream=stream,
-                    subject=subject,
-                    config=config,
-                    # basic args
-                    extra_options=extra_options,
-                    # Subscriber args
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_dependencies=broker_dependencies,
-                    broker_middlewares=broker_middlewares,
-                    # AsyncAPI information
-                    title_=title_,
-                    description_=description_,
-                    include_in_schema=include_in_schema,
-                )
+        return ConcurrentPushStreamSubscriber(
+            **subscriber_options,
+            max_workers=max_workers,
+        )
 
-            else:
-                return AsyncAPIConcurrentPushStreamSubscriber(
-                    max_workers=max_workers,
-                    stream=stream,
-                    subject=subject,
-                    config=config,
-                    queue=queue,
-                    # basic args
-                    extra_options=extra_options,
-                    # Subscriber args
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_dependencies=broker_dependencies,
-                    broker_middlewares=broker_middlewares,
-                    # AsyncAPI information
-                    title_=title_,
-                    description_=description_,
-                    include_in_schema=include_in_schema,
-                )
+    if pull_sub is not None:
+        if pull_sub.batch:
+            return BatchPullStreamSubscriber(
+                **subscriber_options,
+                pull_sub=pull_sub,
+                stream=stream,
+            )
 
-        else:
-            if pull_sub is not None:
-                if pull_sub.batch:
-                    return AsyncAPIBatchPullStreamSubscriber(
-                        pull_sub=pull_sub,
-                        stream=stream,
-                        subject=subject,
-                        config=config,
-                        # basic args
-                        extra_options=extra_options,
-                        # Subscriber args
-                        no_ack=no_ack,
-                        no_reply=no_reply,
-                        retry=retry,
-                        broker_dependencies=broker_dependencies,
-                        broker_middlewares=broker_middlewares,
-                        # AsyncAPI information
-                        title_=title_,
-                        description_=description_,
-                        include_in_schema=include_in_schema,
-                    )
+        return PullStreamSubscriber(
+            **subscriber_options,
+            queue=queue,
+            pull_sub=pull_sub,
+            stream=stream,
+        )
 
-                else:
-                    return AsyncAPIPullStreamSubscriber(
-                        pull_sub=pull_sub,
-                        stream=stream,
-                        subject=subject,
-                        config=config,
-                        # basic args
-                        extra_options=extra_options,
-                        # Subscriber args
-                        no_ack=no_ack,
-                        no_reply=no_reply,
-                        retry=retry,
-                        broker_dependencies=broker_dependencies,
-                        broker_middlewares=broker_middlewares,
-                        # AsyncAPI information
-                        title_=title_,
-                        description_=description_,
-                        include_in_schema=include_in_schema,
-                    )
-
-            else:
-                return AsyncAPIStreamSubscriber(
-                    stream=stream,
-                    subject=subject,
-                    queue=queue,
-                    config=config,
-                    # basic args
-                    extra_options=extra_options,
-                    # Subscriber args
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_dependencies=broker_dependencies,
-                    broker_middlewares=broker_middlewares,
-                    # AsyncAPI information
-                    title_=title_,
-                    description_=description_,
-                    include_in_schema=include_in_schema,
-                )
+    return PushStreamSubscriber(
+        **subscriber_options,
+        queue=queue,
+        stream=stream,
+    )
 
 
-def _validate_input_for_misconfigure(
+def _validate_input_for_misconfigure(  # noqa: PLR0915
     subject: str,
     queue: str,  # default ""
-    pending_msgs_limit: Optional[int],
-    pending_bytes_limit: Optional[int],
+    pending_msgs_limit: int | None,
+    pending_bytes_limit: int | None,
     max_msgs: int,  # default 0
-    durable: Optional[str],
+    durable: str | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,  # default False
-    idle_heartbeat: Optional[float],
-    flow_control: Optional[bool],
+    idle_heartbeat: float | None,
+    flow_control: bool | None,
     deliver_policy: Optional["api.DeliverPolicy"],
-    headers_only: Optional[bool],
+    headers_only: bool | None,
     pull_sub: Optional["PullSub"],
     kv_watch: Optional["KvWatch"],
     obj_watch: Optional["ObjWatch"],
-    ack_first: bool,  # default False
+    ack_policy: "AckPolicy",  # default EMPTY
+    no_ack: bool,  # default EMPTY
+    ack_first: bool,  # default EMPTY
     max_workers: int,  # default 1
     stream: Optional["JStream"],
 ) -> None:
-    if not subject and not config:
-        raise SetupError("You must provide either the `subject` or `config` option.")
+    if ack_policy is not EMPTY:
+        if obj_watch is not None:
+            warnings.warn(
+                "You can't use acknowledgement policy with ObjectStorage watch subscriber.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
-    if stream and kv_watch:
-        raise SetupError(
-            "You can't use both the `stream` and `kv_watch` options simultaneously."
-        )
+        elif kv_watch is not None:
+            warnings.warn(
+                "You can't use acknowledgement policy with KeyValue watch subscriber.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
-    if stream and obj_watch:
-        raise SetupError(
-            "You can't use both the `stream` and `obj_watch` options simultaneously."
-        )
+        elif stream is None and ack_policy is not AckPolicy.MANUAL:
+            warnings.warn(
+                (
+                    "Core subscriber supports only `ack_policy=AckPolicy.MANUAL` option for very specific cases. "
+                    "If you are using different option, probably, you should use JetStream Subscriber instead."
+                ),
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
-    if kv_watch and obj_watch:
-        raise SetupError(
-            "You can't use both the `kv_watch` and `obj_watch` options simultaneously."
-        )
+        if max_msgs > 0 and any((stream, kv_watch, obj_watch)):
+            warnings.warn(
+                "The `max_msgs` option can be used only with a NATS Core Subscriber.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
-    if pull_sub and not stream:
-        raise SetupError(
-            "The pull subscriber can only be used with the `stream` option."
-        )
-
-    if max_msgs > 0 and any((stream, kv_watch, obj_watch)):
+    if ack_first is not EMPTY:
         warnings.warn(
-            "The `max_msgs` option can be used only with a NATS Core Subscriber.",
-            RuntimeWarning,
+            "`ack_first` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.7.0",
+            category=DeprecationWarning,
             stacklevel=4,
         )
+
+        if ack_policy is not EMPTY:
+            msg = "You can't use deprecated `ack_first` and `ack_policy` simultaneously. Please, use `ack_policy` only."
+            raise SetupError(msg)
+
+        ack_policy = AckPolicy.ACK_FIRST if ack_first else AckPolicy.REJECT_ON_ERROR
+
+    if no_ack is not EMPTY:
+        warnings.warn(
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
+            category=DeprecationWarning,
+            stacklevel=4,
+        )
+
+        if ack_policy is not EMPTY:
+            msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
+            raise SetupError(msg)
+
+        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
+
+    if ack_policy is EMPTY:
+        ack_policy = AckPolicy.REJECT_ON_ERROR
+
+    if stream and kv_watch:
+        msg = "You can't use both the `stream` and `kv_watch` options simultaneously."
+        raise SetupError(msg)
+
+    if stream and obj_watch:
+        msg = "You can't use both the `stream` and `obj_watch` options simultaneously."
+        raise SetupError(msg)
+
+    if kv_watch and obj_watch:
+        msg = "You can't use both the `kv_watch` and `obj_watch` options simultaneously."
+        raise SetupError(msg)
+
+    if pull_sub and not stream:
+        msg = "JetStream Pull Subscriber can only be used with the `stream` option."
+        raise SetupError(msg)
+
+    if not subject and not config:
+        msg = "You must provide either the `subject` or `config` option."
+        raise SetupError(msg)
 
     if not stream:
         if obj_watch or kv_watch:
@@ -449,49 +438,47 @@ def _validate_input_for_misconfigure(
                 stacklevel=4,
             )
 
-        if ack_first:
+        if ack_policy is AckPolicy.ACK_FIRST:
             warnings.warn(
-                message="The `ack_first` option can be used only with JetStream Push Subscription.",
+                message="The `ack_policy=AckPolicy.ACK_FIRST:` option can be used only with JetStream Push Subscription.",
                 category=RuntimeWarning,
                 stacklevel=4,
             )
 
-    else:
-        # JetStream Subscribers
-        if pull_sub:
-            if queue:
-                warnings.warn(
-                    message="The `queue` option has no effect with JetStream Pull Subscription. You probably wanted to use the `durable` option instead.",
-                    category=RuntimeWarning,
-                    stacklevel=4,
-                )
+    # JetStream Subscribers
+    elif pull_sub:
+        if queue:
+            warnings.warn(
+                message="The `queue` option has no effect with JetStream Pull Subscription. You probably wanted to use the `durable` option instead.",
+                category=RuntimeWarning,
+                stacklevel=4,
+            )
 
-            if ordered_consumer:
-                warnings.warn(
-                    "The `ordered_consumer` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
-                    RuntimeWarning,
-                    stacklevel=4,
-                )
+        if ordered_consumer:
+            warnings.warn(
+                "The `ordered_consumer` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
 
-            if ack_first:
-                warnings.warn(
-                    message="The `ack_first` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
-                    category=RuntimeWarning,
-                    stacklevel=4,
-                )
+        if ack_policy is AckPolicy.ACK_FIRST:
+            warnings.warn(
+                message="The `ack_policy=AckPolicy.ACK_FIRST` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
+                category=RuntimeWarning,
+                stacklevel=4,
+            )
 
-            if flow_control:
-                warnings.warn(
-                    message="The `flow_control` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
-                    category=RuntimeWarning,
-                    stacklevel=4,
-                )
+        if flow_control:
+            warnings.warn(
+                message="The `flow_control` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
+                category=RuntimeWarning,
+                stacklevel=4,
+            )
 
-        else:
-            # JS PushSub
-            if durable is not None:
-                warnings.warn(
-                    message="The JetStream Push consumer with the `durable` option can't be scaled horizontally across multiple instances. You probably wanted to use the `queue` option instead. Also, we strongly recommend using the Jetstream PullSubsriber with the `durable` option as the default.",
-                    category=RuntimeWarning,
-                    stacklevel=4,
-                )
+    # JS PushSub
+    elif durable is not None:
+        warnings.warn(
+            message="The JetStream Push consumer with the `durable` option can't be scaled horizontally across multiple instances. You probably wanted to use the `queue` option instead. Also, we strongly recommend using the Jetstream PullSubscriber with the `durable` option as the default.",
+            category=RuntimeWarning,
+            stacklevel=4,
+        )

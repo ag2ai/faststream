@@ -3,7 +3,7 @@ from faststream.security import SASLPlaintext
 
 security = SASLPlaintext(
     username="admin",
-    password="password",  # pragma: allowlist secret
+    password="password",
     use_ssl=True,
 )
 

@@ -1,17 +1,17 @@
 import asyncio
-from abc import abstractmethod
+from contextlib import suppress
 from dataclasses import asdict, dataclass
-from datetime import datetime
-from typing import Any, Dict, List, Tuple
-from unittest.mock import Mock
+from datetime import datetime, timezone
+from typing import Any
+from unittest.mock import MagicMock
 
 import anyio
 import pytest
 from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, Response
-from faststream._compat import dump_json, model_to_json
-from faststream.broker.core.usecase import BrokerUsecase
+from faststream._internal._compat import dump_json, model_to_json
+from faststream.exceptions import SubscriberNotFound
 
 from .basic import BaseTestcaseConfig
 
@@ -25,75 +25,96 @@ class SimpleDataclass:
     r: str
 
 
-now = datetime.now()
+now = datetime.now(timezone.utc)
+
+parametrized = (
+    pytest.param(
+        "hello",
+        str,
+        "hello",
+        id="str->str",
+    ),
+    pytest.param(
+        b"hello",
+        bytes,
+        b"hello",
+        id="bytes->bytes",
+    ),
+    pytest.param(
+        1,
+        int,
+        1,
+        id="int->int",
+    ),
+    pytest.param(
+        1.0,
+        float,
+        1.0,
+        id="float->float",
+    ),
+    pytest.param(
+        1,
+        float,
+        1.0,
+        id="int->float",
+    ),
+    pytest.param(
+        False,
+        bool,
+        False,
+        id="bool->bool",
+    ),
+    pytest.param(
+        {"m": 1},
+        dict[str, int],
+        {"m": 1},
+        id="dict->dict",
+    ),
+    pytest.param(
+        [1, 2, 3],
+        list[int],
+        [1, 2, 3],
+        id="list->list",
+    ),
+    pytest.param(
+        now,
+        datetime,
+        now,
+        id="datetime->datetime",
+    ),
+    pytest.param(
+        dump_json(asdict(SimpleDataclass(r="hello!"))),
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="bytes->dataclass",
+    ),
+    pytest.param(
+        SimpleDataclass(r="hello!"),
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="dataclass->dataclass",
+    ),
+    pytest.param(
+        SimpleDataclass(r="hello!"),
+        dict,
+        {"r": "hello!"},
+        id="dataclass->dict",
+    ),
+    pytest.param(
+        {"r": "hello!"},
+        SimpleDataclass,
+        SimpleDataclass(r="hello!"),
+        id="dict->dataclass",
+    ),
+)
 
 
 class BrokerPublishTestcase(BaseTestcaseConfig):
-    @abstractmethod
-    def get_broker(self, apply_types: bool = False) -> BrokerUsecase[Any, Any]:
-        raise NotImplementedError
-
-    def patch_broker(self, broker: BrokerUsecase[Any, Any]) -> BrokerUsecase[Any, Any]:
-        return broker
-
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("message", "message_type", "expected_message"),
-        (  # noqa: PT007
-            pytest.param(
-                "hello",
-                str,
-                "hello",
-                id="str->str",
-            ),
-            pytest.param(
-                b"hello",
-                bytes,
-                b"hello",
-                id="bytes->bytes",
-            ),
-            pytest.param(
-                1,
-                int,
-                1,
-                id="int->int",
-            ),
-            pytest.param(
-                1.0,
-                float,
-                1.0,
-                id="float->float",
-            ),
-            pytest.param(
-                1,
-                float,
-                1.0,
-                id="int->float",
-            ),
-            pytest.param(
-                False,
-                bool,
-                False,
-                id="bool->bool",
-            ),
-            pytest.param(
-                {"m": 1},
-                Dict[str, int],
-                {"m": 1},
-                id="dict->dict",
-            ),
-            pytest.param(
-                [1, 2, 3],
-                List[int],
-                [1, 2, 3],
-                id="list->list",
-            ),
-            pytest.param(
-                now,
-                datetime,
-                now,
-                id="datetime->datetime",
-            ),
+        (
+            *parametrized,
             pytest.param(
                 model_to_json(SimpleModel(r="hello!")).encode(),
                 SimpleModel,
@@ -118,47 +139,24 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 SimpleModel(r="hello!"),
                 id="dict->model",
             ),
-            pytest.param(
-                dump_json(asdict(SimpleDataclass(r="hello!"))),
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="bytes->dataclass",
-            ),
-            pytest.param(
-                SimpleDataclass(r="hello!"),
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="dataclass->dataclass",
-            ),
-            pytest.param(
-                SimpleDataclass(r="hello!"),
-                dict,
-                {"r": "hello!"},
-                id="dataclass->dict",
-            ),
-            pytest.param(
-                {"r": "hello!"},
-                SimpleDataclass,
-                SimpleDataclass(r="hello!"),
-                id="dict->dataclass",
-            ),
         ),
     )
     async def test_serialize(
         self,
         queue: str,
-        message,
-        message_type,
-        expected_message,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        message: Any,
+        message_type: Any,
+        expected_message: Any,
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(m: message_type):
+        async def handler(m: message_type) -> None:
             event.set()
             mock(m)
 
@@ -173,16 +171,16 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(expected_message)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_response(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -195,7 +193,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def m_next(msg=Context("message")):
+        async def m_next(msg=Context("message")) -> None:
             event.set()
             mock(
                 body=msg.body,
@@ -213,26 +211,26 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(
             body=b"1",
             correlation_id="1",
             headers="1",
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_unwrap_dict(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def m(a: int, b: int):
+        async def m(a: int, b: int) -> None:
             event.set()
             mock({"a": a, "b": b})
 
@@ -246,27 +244,27 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with(
             {
                 "a": 1,
                 "b": 1,
-            }
+            },
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_unwrap_list(
         self,
-        mock: Mock,
+        mock: MagicMock,
         queue: str,
-        event: asyncio.Event,
-    ):
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def m(a: int, b: int, *args: Tuple[int, ...]):
+        async def m(a: int, b: int, *args: tuple[int, ...]) -> None:
             event.set()
             mock({"a": a, "b": b, "args": args})
 
@@ -274,35 +272,35 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             await br.start()
             await asyncio.wait(
                 (
-                    asyncio.create_task(br.publish([1, 1.0, 2.0, 3.0], queue)),
+                    asyncio.create_task(br.publish([1, 2.0, 3.0, 4.0], queue)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
-        mock.assert_called_with({"a": 1, "b": 1, "args": (2, 3)})
+        mock.assert_called_with({"a": 1, "b": 2, "args": (3, 4)})
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_base_publisher(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
         @pub_broker.publisher(queue + "resp")
-        async def m():
+        async def m() -> str:
             return ""
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -319,13 +317,14 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.assert_called_once_with("")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_publisher_object(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         publisher = pub_broker.publisher(queue + "resp")
@@ -334,13 +333,13 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
 
         @publisher
         @pub_broker.subscriber(*args, **kwargs)
-        async def m():
+        async def m() -> str:
             return ""
 
         args, kwargs = self.get_subscriber_params(queue + "resp")
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -354,16 +353,16 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_once_with("")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_publish_manual(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         publisher = pub_broker.publisher(queue + "resp")
@@ -371,13 +370,13 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def m():
+        async def m() -> None:
             await publisher.publish("")
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock(msg)
 
@@ -391,15 +390,14 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_once_with("")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_multiple_publishers(
         self,
         queue: str,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         event = anyio.Event()
@@ -410,20 +408,20 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         @pub_broker.publisher(queue + "resp2")
         @pub_broker.subscriber(*args, **kwargs)
         @pub_broker.publisher(queue + "resp")
-        async def m():
+        async def m() -> str:
             return ""
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def resp(msg):
+        async def resp(msg) -> None:
             event.set()
             mock.resp1(msg)
 
         args3, kwargs3 = self.get_subscriber_params(queue + "resp2")
 
         @pub_broker.subscriber(*args3, **kwargs3)
-        async def resp2(msg):
+        async def resp2(msg) -> None:
             event2.set()
             mock.resp2(msg)
 
@@ -438,17 +436,15 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
-        assert event2.is_set()
         mock.resp1.assert_called_once_with("")
         mock.resp2.assert_called_once_with("")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_reusable_publishers(
         self,
         queue: str,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         consume = anyio.Event()
@@ -460,20 +456,20 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
 
         @pub
         @pub_broker.subscriber(*args, **kwargs)
-        async def m():
+        async def m() -> str:
             return ""
 
         args2, kwargs2 = self.get_subscriber_params(queue + "2")
 
         @pub
         @pub_broker.subscriber(*args2, **kwargs2)
-        async def m2():
+        async def m2() -> str:
             return ""
 
         args3, kwargs3 = self.get_subscriber_params(queue + "resp")
 
         @pub_broker.subscriber(*args3, **kwargs3)
-        async def resp():
+        async def resp() -> None:
             if not consume.is_set():
                 consume.set()
             else:
@@ -492,23 +488,22 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert consume2.is_set()
-        assert consume.is_set()
         assert mock.call_count == 2
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_reply_to(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue + "reply")
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def reply_handler(m):
+        async def reply_handler(m) -> None:
             event.set()
             mock(m)
 
@@ -524,23 +519,23 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br.publish("Hello!", queue, reply_to=queue + "reply")
+                        br.publish("Hello!", queue, reply_to=queue + "reply"),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with("Hello!")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_no_reply(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         class Mid(BaseMiddleware):
             async def after_processed(self, *args: Any, **kwargs: Any):
                 event.set()
@@ -553,7 +548,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue + "reply")
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def reply_handler(m):
+        async def reply_handler(m) -> None:
             mock(m)
 
         args2, kwargs2 = self.get_subscriber_params(queue, no_reply=True)
@@ -568,35 +563,37 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br.publish("Hello!", queue, reply_to=queue + "reply")
+                        br.publish("Hello!", queue, reply_to=queue + "reply"),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         assert not mock.called
 
-    @pytest.mark.asyncio
-    async def test_publisher_after_connect(self, queue: str):
+    @pytest.mark.asyncio()
+    async def test_publisher_after_connect(self, queue: str) -> None:
         async with self.patch_broker(self.get_broker()) as br:
             # Should pass without error
-            await br.publisher(queue).publish(None)
+            # suppress TestClient error due where is no suitable subscriber
+            with suppress(SubscriberNotFound):
+                await br.publisher(queue).publish(None)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_publisher_after_start(
         self,
         queue: str,
-        event: asyncio.Event,
-        mock: Mock,
-    ):
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(m):
+        async def handler(m) -> None:
             event.set()
             mock(m)
 
@@ -613,5 +610,4 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert event.is_set()
         mock.assert_called_with("Hello!")

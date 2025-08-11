@@ -18,13 +18,13 @@ Here's an example Python application using **FastStream** that consumes data fro
 topic, increments the value, and outputs the data to another topic.
 Save it in a file called `basic.py`.
 
-```python title="basic.py"
+```python title="basic.py" linenums="1" hl_lines="5 15"
 {! docs_src/kafka/basic/basic.py!}
 ```
 
 ## Generating the AsyncAPI Specification
 
-Now that we have a FastStream application, we can proceed with generating the AsyncAPI specification using a CLI command.
+Now that we have a FastStream application and specification object, we can proceed with generating the AsyncAPI specification using a CLI command.
 
 ```shell
 {! docs_src/getting_started/asyncapi/serve.py [ln:9] !}

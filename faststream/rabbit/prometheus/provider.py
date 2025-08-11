@@ -1,19 +1,20 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from faststream.prometheus import (
     ConsumeAttrs,
     MetricsSettingsProvider,
 )
+from faststream.rabbit.response import RabbitPublishCommand
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage
 
-    from faststream.broker.message import StreamMessage
-    from faststream.rabbit.schemas.exchange import RabbitExchange
-    from faststream.types import AnyDict
+    from faststream.message.message import StreamMessage
 
 
-class RabbitMetricsSettingsProvider(MetricsSettingsProvider["IncomingMessage"]):
+class RabbitMetricsSettingsProvider(
+    MetricsSettingsProvider["IncomingMessage", RabbitPublishCommand],
+):
     __slots__ = ("messaging_system",)
 
     def __init__(self) -> None:
@@ -32,13 +33,8 @@ class RabbitMetricsSettingsProvider(MetricsSettingsProvider["IncomingMessage"]):
             "messages_count": 1,
         }
 
-    def get_publish_destination_name_from_kwargs(
+    def get_publish_destination_name_from_cmd(
         self,
-        kwargs: "AnyDict",
+        cmd: RabbitPublishCommand,
     ) -> str:
-        exchange: Union[None, str, RabbitExchange] = kwargs.get("exchange")
-        exchange_prefix = getattr(exchange, "name", exchange or "default")
-
-        routing_key: str = kwargs["routing_key"]
-
-        return f"{exchange_prefix}.{routing_key}"
+        return f"{cmd.exchange.name or 'default'}.{cmd.destination}"

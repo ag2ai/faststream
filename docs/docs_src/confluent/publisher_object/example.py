@@ -2,7 +2,7 @@ import pytest
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream, Logger
-from faststream._compat import model_to_json
+from faststream._internal._compat import model_to_json
 from faststream.confluent import KafkaBroker, TestKafkaBroker
 
 broker = KafkaBroker("localhost:9092")
@@ -11,7 +11,7 @@ app = FastStream(broker)
 
 class Data(BaseModel):
     data: NonNegativeFloat = Field(
-        ..., examples=[0.5], description="Float data example"
+        ..., examples=[0.5], description="Float data example",
     )
 
 prepared_publisher = broker.publisher("input_data")

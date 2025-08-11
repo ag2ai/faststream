@@ -21,11 +21,11 @@ It creates a structured DataPipeline unit with an input and output. The order of
 
     :material-checkbox-marked:{.checked_mark} **Easy to use** - Publishing messages in **FastStream** is intuitive and requires minimal effort.
 
-    :material-checkbox-marked:{.checked_mark} **AsyncAPI support** - [```AsyncAPI```](../asyncapi/export.md#section{.css-styles}) is a specification for describing asynchronous APIs used in messaging applications.
+    :material-checkbox-marked:{.checked_mark} **AsyncAPI support** - [`AsyncAPI`](../asyncapi/export.md) is a specification for describing asynchronous APIs used in messaging applications. This method supports the specification render.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [```Testing```](./test.md#section{.css-styles}) support.
+    :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [`Testing`](./test.md) support.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [```Context```](../context/index.md#section{.css-styles}), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :fontawesome-solid-square-xmark:{.x_mark} **Not reusable** - This method cannot be reused.
 

@@ -18,11 +18,11 @@ In the **FastStream** project, this call is not represented in the **AsyncAPI** 
 
     :material-checkbox-marked:{.checked_mark} **Easy to use** - Publishing messages in **FastStream** is intuitive and requires minimal effort.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [```Context```](../context/index.md#section{.css-styles}), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No AsyncAPI support** - [```AsyncAPI```](../asyncapi/export.md#section{.css-styles}) is a specification for describing asynchronous APIs used in messaging applications. This method currently does not support this standard.
+    :fontawesome-solid-square-xmark:{.x_mark} **No AsyncAPI support** - [`AsyncAPI`](../asyncapi/export.md) is a specification for describing asynchronous APIs used in messaging applications. This method currently does not support this standard.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [```Testing```](./test.md#section{.css-styles}) support.
+    :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [`Testing`](./test.md) support.
 
 
 === "AIOKafka"

@@ -1,5 +1,7 @@
 """Simple and fast framework to create message brokers based microservices."""
 
-__version__ = "0.5.42"
+from importlib.metadata import version
+
+__version__ = version("faststream")
 
 SERVICE_NAME = f"faststream-{__version__}"

@@ -1,404 +1,187 @@
-from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    overload,
-)
+import warnings
+from collections.abc import Collection, Iterable
+from typing import TYPE_CHECKING, Any, Optional, Union
 
+from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
-from faststream.kafka.publisher.asyncapi import (
-    AsyncAPIBatchPublisher,
-    AsyncAPIDefaultPublisher,
-)
-from faststream.kafka.subscriber.asyncapi import (
-    AsyncAPIBatchSubscriber,
-    AsyncAPIConcurrentBetweenPartitionsSubscriber,
-    AsyncAPIConcurrentDefaultSubscriber,
-    AsyncAPIDefaultSubscriber,
+from faststream.middlewares import AckPolicy
+
+from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
+from .specification import KafkaSubscriberSpecification
+from .usecase import (
+    BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
+    ConcurrentDefaultSubscriber,
+    DefaultSubscriber,
 )
 
 if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord, TopicPartition
+    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
-    from fast_depends.dependencies import Depends
 
-    from faststream.broker.types import BrokerMiddleware, PublisherMiddleware
-    from faststream.types import AnyDict
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    batch: Literal[True],
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Collection["TopicPartition"],
-    is_manual: bool,
-    # Subscriber args
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    retry: bool,
-    broker_dependencies: Iterable["Depends"],
-    broker_middlewares: Sequence["BrokerMiddleware[Tuple[ConsumerRecord, ...]]"],
-    # AsyncAPI args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> "AsyncAPIBatchSubscriber": ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    batch: Literal[False],
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Collection["TopicPartition"],
-    is_manual: bool,
-    # Subscriber args
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    retry: bool,
-    broker_dependencies: Iterable["Depends"],
-    broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-    # AsyncAPI args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "AsyncAPIDefaultSubscriber",
-    "AsyncAPIConcurrentDefaultSubscriber",
-]: ...
-
-
-@overload
-def create_subscriber(
-    *topics: str,
-    batch: bool,
-    batch_timeout_ms: int,
-    max_records: Optional[int],
-    # Kafka information
-    group_id: Optional[str],
-    listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
-    partitions: Collection["TopicPartition"],
-    is_manual: bool,
-    # Subscriber args
-    max_workers: int,
-    no_ack: bool,
-    no_reply: bool,
-    retry: bool,
-    broker_dependencies: Iterable["Depends"],
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[ConsumerRecord, Tuple[ConsumerRecord, ...]]]"
-    ],
-    # AsyncAPI args
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-) -> Union[
-    "AsyncAPIDefaultSubscriber",
-    "AsyncAPIBatchSubscriber",
-    "AsyncAPIConcurrentDefaultSubscriber",
-]: ...
+    from faststream.kafka.configs import KafkaBrokerConfig
 
 
 def create_subscriber(
     *topics: str,
     batch: bool,
     batch_timeout_ms: int,
-    max_records: Optional[int],
+    max_records: int | None,
     # Kafka information
-    group_id: Optional[str],
+    group_id: str | None,
     listener: Optional["ConsumerRebalanceListener"],
-    pattern: Optional[str],
-    connection_args: "AnyDict",
+    pattern: str | None,
+    connection_args: dict[str, Any],
     partitions: Collection["TopicPartition"],
-    is_manual: bool,
+    auto_commit: bool,
     # Subscriber args
+    ack_policy: "AckPolicy",
     max_workers: int,
     no_ack: bool,
     no_reply: bool,
-    retry: bool,
-    broker_dependencies: Iterable["Depends"],
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[ConsumerRecord, Tuple[ConsumerRecord, ...]]]"
-    ],
-    # AsyncAPI args
-    title_: Optional[str],
-    description_: Optional[str],
+    config: "KafkaBrokerConfig",
+    # Specification args
+    title_: str | None,
+    description_: str | None,
     include_in_schema: bool,
 ) -> Union[
-    "AsyncAPIDefaultSubscriber",
-    "AsyncAPIBatchSubscriber",
-    "AsyncAPIConcurrentDefaultSubscriber",
-    "AsyncAPIConcurrentBetweenPartitionsSubscriber",
+    "DefaultSubscriber",
+    "BatchSubscriber",
+    "ConcurrentDefaultSubscriber",
+    "ConcurrentBetweenPartitionsSubscriber",
 ]:
-    if is_manual and not group_id:
-        raise SetupError("You must use `group_id` with manual commit mode.")
+    _validate_input_for_misconfigure(
+        *topics,
+        pattern=pattern,
+        partitions=partitions,
+        ack_policy=ack_policy,
+        no_ack=no_ack,
+        auto_commit=auto_commit,
+        max_workers=max_workers,
+    )
 
-    if is_manual and max_workers > 1:
-        if len(topics) > 1:
-            raise SetupError(
-                "You must use a single topic with concurrent manual commit mode."
-            )
-        if pattern is not None:
-            raise SetupError(
-                "You can not use a pattern with concurrent manual commit mode."
-            )
-        if partitions:
-            raise SetupError(
-                "Manual partition assignment is not supported with concurrent manual commit mode."
-            )
+    subscriber_config = KafkaSubscriberConfig(
+        topics=topics,
+        partitions=partitions,
+        connection_args=connection_args,
+        group_id=group_id,
+        listener=listener,
+        pattern=pattern,
+        no_reply=no_reply,
+        _outer_config=config,
+        _ack_policy=ack_policy,
+        # deprecated options to remove in 0.7.0
+        _auto_commit=auto_commit,
+        _no_ack=no_ack,
+    )
 
-    if not topics and not partitions and not pattern:
-        raise SetupError(
-            "You should provide either `topics` or `partitions` or `pattern`."
-        )
-    elif topics and partitions:
-        raise SetupError("You can't provide both `topics` and `partitions`.")
-    elif topics and pattern:
-        raise SetupError("You can't provide both `topics` and `pattern`.")
-    elif partitions and pattern:
-        raise SetupError("You can't provide both `partitions` and `pattern`.")
+    calls = CallsCollection[Any]()
+
+    specification = KafkaSubscriberSpecification(
+        _outer_config=config,
+        calls=calls,
+        specification_config=KafkaSubscriberSpecificationConfig(
+            topics=topics,
+            partitions=partitions,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
+        ),
+    )
 
     if batch:
-        return AsyncAPIBatchSubscriber(
-            *topics,
+        return BatchSubscriber(
+            subscriber_config,
+            specification,
+            calls,
             batch_timeout_ms=batch_timeout_ms,
             max_records=max_records,
-            group_id=group_id,
-            listener=listener,
-            pattern=pattern,
-            connection_args=connection_args,
-            partitions=partitions,
-            is_manual=is_manual,
-            no_ack=no_ack,
-            no_reply=no_reply,
-            retry=retry,
-            broker_dependencies=broker_dependencies,
-            broker_middlewares=broker_middlewares,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
         )
 
-    else:
-        if max_workers > 1:
-            if is_manual:
-                return AsyncAPIConcurrentBetweenPartitionsSubscriber(
-                    topics[0],
-                    max_workers=max_workers,
-                    group_id=group_id,
-                    listener=listener,
-                    pattern=pattern,
-                    connection_args=connection_args,
-                    partitions=partitions,
-                    is_manual=is_manual,
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_dependencies=broker_dependencies,
-                    broker_middlewares=broker_middlewares,
-                    title_=title_,
-                    description_=description_,
-                    include_in_schema=include_in_schema,
-                )
-            else:
-                return AsyncAPIConcurrentDefaultSubscriber(
-                    *topics,
-                    max_workers=max_workers,
-                    group_id=group_id,
-                    listener=listener,
-                    pattern=pattern,
-                    connection_args=connection_args,
-                    partitions=partitions,
-                    is_manual=is_manual,
-                    no_ack=no_ack,
-                    no_reply=no_reply,
-                    retry=retry,
-                    broker_dependencies=broker_dependencies,
-                    broker_middlewares=broker_middlewares,
-                    title_=title_,
-                    description_=description_,
-                    include_in_schema=include_in_schema,
-                )
-        else:
-            return AsyncAPIDefaultSubscriber(
-                *topics,
-                group_id=group_id,
-                listener=listener,
-                pattern=pattern,
-                connection_args=connection_args,
-                partitions=partitions,
-                is_manual=is_manual,
-                no_ack=no_ack,
-                no_reply=no_reply,
-                retry=retry,
-                broker_dependencies=broker_dependencies,
-                broker_middlewares=broker_middlewares,
-                title_=title_,
-                description_=description_,
-                include_in_schema=include_in_schema,
+    if max_workers > 1:
+        if subscriber_config.ack_first:
+            return ConcurrentDefaultSubscriber(
+                subscriber_config,
+                specification,
+                calls,
+                max_workers=max_workers,
             )
 
-
-@overload
-def create_publisher(
-    *,
-    batch: Literal[True],
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[Dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence["BrokerMiddleware[Tuple[ConsumerRecord, ...]]"],
-    middlewares: Sequence["PublisherMiddleware"],
-    # AsyncAPI args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-    autoflush: bool = False,
-) -> "AsyncAPIBatchPublisher": ...
-
-
-@overload
-def create_publisher(
-    *,
-    batch: Literal[False],
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[Dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence["BrokerMiddleware[ConsumerRecord]"],
-    middlewares: Sequence["PublisherMiddleware"],
-    # AsyncAPI args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-    autoflush: bool = False,
-) -> "AsyncAPIDefaultPublisher": ...
-
-
-@overload
-def create_publisher(
-    *,
-    batch: bool,
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[Dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[Tuple[ConsumerRecord, ...], ConsumerRecord]]"
-    ],
-    middlewares: Sequence["PublisherMiddleware"],
-    # AsyncAPI args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-    autoflush: bool = False,
-) -> Union[
-    "AsyncAPIBatchPublisher",
-    "AsyncAPIDefaultPublisher",
-]: ...
-
-
-def create_publisher(
-    *,
-    batch: bool,
-    key: Optional[bytes],
-    topic: str,
-    partition: Optional[int],
-    headers: Optional[Dict[str, str]],
-    reply_to: str,
-    # Publisher args
-    broker_middlewares: Sequence[
-        "BrokerMiddleware[Union[Tuple[ConsumerRecord, ...], ConsumerRecord]]"
-    ],
-    middlewares: Sequence["PublisherMiddleware"],
-    # AsyncAPI args
-    schema_: Optional[Any],
-    title_: Optional[str],
-    description_: Optional[str],
-    include_in_schema: bool,
-    autoflush: bool = False,
-) -> Union[
-    "AsyncAPIBatchPublisher",
-    "AsyncAPIDefaultPublisher",
-]:
-    publisher: Union[AsyncAPIBatchPublisher, AsyncAPIDefaultPublisher]
-    if batch:
-        if key:
-            raise SetupError("You can't setup `key` with batch publisher")
-
-        publisher = AsyncAPIBatchPublisher(
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
-        )
-    else:
-        publisher = AsyncAPIDefaultPublisher(
-            key=key,
-            # basic args
-            topic=topic,
-            partition=partition,
-            headers=headers,
-            reply_to=reply_to,
-            broker_middlewares=broker_middlewares,
-            middlewares=middlewares,
-            schema_=schema_,
-            title_=title_,
-            description_=description_,
-            include_in_schema=include_in_schema,
+        subscriber_config.topics = (topics[0],)
+        return ConcurrentBetweenPartitionsSubscriber(
+            subscriber_config,
+            specification,
+            calls,
+            max_workers=max_workers,
         )
 
-    if autoflush:
-        default_publish: Callable[..., Awaitable[Optional[Any]]] = publisher.publish
+    return DefaultSubscriber(subscriber_config, specification, calls)
 
-        @wraps(default_publish)
-        async def autoflush_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
-            result = await default_publish(*args, **kwargs)
-            await publisher.flush()
-            return result
 
-        publisher.publish = autoflush_wrapper  # type: ignore[method-assign]
+def _validate_input_for_misconfigure(
+    *topics: str,
+    ack_policy: "AckPolicy",
+    auto_commit: bool,
+    no_ack: bool,
+    max_workers: int,
+    pattern: str | None,
+    partitions: Iterable["TopicPartition"],
+) -> None:
+    if auto_commit is not EMPTY:
+        warnings.warn(
+            "`auto_commit` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.7.0",
+            category=DeprecationWarning,
+            stacklevel=4,
+        )
 
-    return publisher
+        if ack_policy is not EMPTY:
+            msg = "You can't use deprecated `auto_commit` and `ack_policy` simultaneously. Please, use `ack_policy` only."
+            raise SetupError(msg)
+
+        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
+
+    if no_ack is not EMPTY:
+        warnings.warn(
+            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
+            category=DeprecationWarning,
+            stacklevel=4,
+        )
+
+        if ack_policy is not EMPTY:
+            msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
+            raise SetupError(msg)
+
+        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
+
+    if ack_policy is EMPTY:
+        ack_policy = AckPolicy.ACK_FIRST
+
+    if max_workers > 1 and ack_policy is not AckPolicy.ACK_FIRST:
+        if len(topics) > 1:
+            msg = "You must use a single topic with concurrent manual commit mode."
+            raise SetupError(msg)
+
+        if pattern is not None:
+            msg = "You can not use a pattern with concurrent manual commit mode."
+            raise SetupError(msg)
+
+        if partitions:
+            msg = "Manual partition assignment is not supported with concurrent manual commit mode."
+            raise SetupError(msg)
+
+    if not topics and not partitions and not pattern:
+        msg = "You should provide either `topics` or `partitions` or `pattern`."
+        raise SetupError(msg)
+
+    if topics and partitions:
+        msg = "You can't provide both `topics` and `partitions`."
+        raise SetupError(msg)
+
+    if topics and pattern:
+        msg = "You can't provide both `topics` and `pattern`."
+        raise SetupError(msg)
+
+    if partitions and pattern:
+        msg = "You can't provide both `partitions` and `pattern`."
+        raise SetupError(msg)

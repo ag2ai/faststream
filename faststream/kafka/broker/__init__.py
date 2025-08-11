@@ -1,3 +1,4 @@
-from faststream.kafka.broker.broker import KafkaBroker
+from .broker import KafkaBroker
+from .router import KafkaPublisher, KafkaRoute, KafkaRouter
 
-__all__ = ("KafkaBroker",)
+__all__ = ("KafkaBroker", "KafkaPublisher", "KafkaRoute", "KafkaRouter")
