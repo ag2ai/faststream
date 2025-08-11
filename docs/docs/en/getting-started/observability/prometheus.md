@@ -127,6 +127,29 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | destination                       | Where the message is sent                                       |                                                   |
 | exception_type (while publishing) | Exception type when publishing message                          |                                                   |
 
+### Integrate custom metrics
+To integrate your custom metrics with fastream you should pass your `CollectorRegistry` to the middlewares and router.
+
+```python
+from prometheus_client import CollectorRegistry, Counter
+
+CUSTOM_COUNTER = Counter("custom_counter")
+registry = CollectorRegistry(auto_describe=True)
+
+registry.register(BLOCK_REQUESTS_COUNTER)
+
+...
+middleware = KafkaPrometheusMiddleware(registry=registry)
+...
+app = AsgiFastStream(
+    broker,
+    asgi_routes=[
+        ("/metrics", make_asgi_app(registry)),
+    ],
+)
+```
+
+
 ### Grafana dashboard
 
 You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboards/22130-faststream-metrics/){.external-link target="_blank"} to visualize the metrics collected by middleware.
