@@ -74,8 +74,8 @@ class KafkaMessage(
                 else self.raw_message
             )
             await self.consumer.seek(
-                topic=raw_message.topic(),
-                partition=raw_message.partition(),
-                offset=raw_message.offset(),
+                topic=raw_message.topic(),  # type: ignore[arg-type]
+                partition=raw_message.partition(),  # type: ignore[arg-type]
+                offset=raw_message.offset(),  # type: ignore[arg-type]
             )
         await super().nack()

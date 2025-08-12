@@ -1,11 +1,12 @@
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from typing import TYPE_CHECKING, Any, Generic
 
 import anyio
 
 from faststream._internal.types import MsgType
 
+from .supervisor import TaskCallbackSupervisor
 from .usecase import SubscriberUsecase
 
 if TYPE_CHECKING:
@@ -17,8 +18,19 @@ class TasksMixin(SubscriberUsecase[Any]):
         super().__init__(*args, **kwargs)
         self.tasks: list[asyncio.Task[Any]] = []
 
-    def add_task(self, coro: Coroutine[Any, Any, Any]) -> None:
-        self.tasks.append(asyncio.create_task(coro))
+    def add_task(
+        self,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: tuple[Any, ...] | None = None,
+        func_kwargs: dict[str, Any] | None = None,
+    ) -> asyncio.Task[Any]:
+        args = func_args or ()
+        kwargs = func_kwargs or {}
+        task = asyncio.create_task(func(*args, **kwargs))
+        callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
+        task.add_done_callback(callback)
+        self.tasks.append(task)
+        return task
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -51,7 +63,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         super().__init__(*args, **kwargs)
 
     def start_consume_task(self) -> None:
-        self.add_task(self._serve_consume_queue())
+        self.add_task(self._serve_consume_queue)
 
     async def _serve_consume_queue(
         self,
