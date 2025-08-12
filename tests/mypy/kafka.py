@@ -368,9 +368,7 @@ async def check_request_response_type() -> None:
     assert_type(publisher_response, KafkaMessage)
 
 
-async def check_subscriber_message_type() -> None:
-    broker = KafkaBroker()
-
+async def check_subscriber_message_type(broker: KafkaBroker | FastAPIRouter) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -381,7 +379,6 @@ async def check_subscriber_message_type() -> None:
 
 
 def check_subscriber_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
-
     sub1 = broker.subscriber("test")
     assert_type(sub1, DefaultSubscriber)
 
@@ -396,7 +393,6 @@ def check_subscriber_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
 
 
 def check_publisher_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
-
     pub1 = broker.publisher("test")
     assert_type(pub1, DefaultPublisher)
 

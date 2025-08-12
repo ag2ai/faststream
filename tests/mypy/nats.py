@@ -322,9 +322,7 @@ async def check_request_response_type() -> None:
     assert_type(await publisher.request(None, "test"), NatsMessage)
 
 
-async def check_core_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_core_subscriber_message_type(broker: NatsBroker | FastAPIRouter) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -334,9 +332,9 @@ async def check_core_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_concurrent_core_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_concurrent_core_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("test", max_workers=2)
 
     message = await subscriber.get_one()
@@ -346,9 +344,9 @@ async def check_concurrent_core_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_push_stream_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_push_stream_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("test", stream="stream")
 
     message = await subscriber.get_one()
@@ -358,9 +356,9 @@ async def check_push_stream_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_concurrent_push_stream_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_concurrent_push_stream_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("test", stream="stream", max_workers=2)
 
     message = await subscriber.get_one()
@@ -370,9 +368,9 @@ async def check_concurrent_push_stream_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_pull_stream_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_pull_stream_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True)
 
     message = await subscriber.get_one()
@@ -382,9 +380,9 @@ async def check_pull_stream_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_concurrent_pull_stream_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_concurrent_pull_stream_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
 
     message = await subscriber.get_one()
@@ -394,9 +392,9 @@ async def check_concurrent_pull_stream_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_batch_pull_stream_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_batch_pull_stream_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber(
         "test",
         stream="stream",
@@ -410,9 +408,9 @@ async def check_batch_pull_stream_subscriber_message_type() -> None:
         assert_type(msg, NatsMessage)
 
 
-async def check_key_value_watch_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_key_value_watch_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("key", kv_watch="bucket")
 
     message = await subscriber.get_one()
@@ -422,9 +420,9 @@ async def check_key_value_watch_subscriber_message_type() -> None:
         assert_type(msg, NatsKvMessage)
 
 
-async def check_object_store_watch_subscriber_message_type() -> None:
-    broker = NatsBroker()
-
+async def check_object_store_watch_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber("key", obj_watch=ObjWatch())
 
     message = await subscriber.get_one()

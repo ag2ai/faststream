@@ -367,9 +367,9 @@ async def check_request_response_type() -> None:
     assert_type(publisher_response, RedisChannelMessage)
 
 
-async def check_channel_subscriber_message_type() -> None:
-    broker = Broker()
-
+async def check_channel_subscriber_message_type(
+    broker: Broker | RedisRouter,
+) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -379,9 +379,9 @@ async def check_channel_subscriber_message_type() -> None:
         assert_type(msg, RedisChannelMessage)
 
 
-async def check_stream_subscriber_message_type() -> None:
-    broker = Broker()
-
+async def check_stream_subscriber_message_type(
+    broker: Broker | RedisRouter,
+) -> None:
     subscriber = broker.subscriber(stream=StreamSub("test"))
 
     message = await subscriber.get_one()
@@ -391,9 +391,9 @@ async def check_stream_subscriber_message_type() -> None:
         assert_type(msg, RedisStreamMessage)
 
 
-async def check_list_subscriber_message_type() -> None:
-    broker = Broker()
-
+async def check_list_subscriber_message_type(
+    broker: Broker | RedisRouter,
+) -> None:
     subscriber = broker.subscriber(list=ListSub("test"))
 
     message = await subscriber.get_one()

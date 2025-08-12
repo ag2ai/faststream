@@ -467,7 +467,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_none: bool = False,
     ) -> "DefaultSubscriber": ...
 
-    @overload  # type: ignore[override]
+    @overload
     def subscriber(
         self,
         *topics: str,

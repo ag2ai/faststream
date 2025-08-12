@@ -367,7 +367,7 @@ class KafkaBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> asyncio.Future[Message | None] | (Message | None): ...
+    ) -> asyncio.Future[Message | None] | Message | None: ...
 
     @override
     async def publish(

@@ -479,8 +479,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True] = ...,
-    ) -> "asyncio.Future[RecordMetadata]": ...
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
 
     @overload
     async def publish(
@@ -494,8 +494,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+        no_confirm: Literal[True] = ...,
+    ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
     async def publish(
@@ -645,8 +645,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        no_confirm: Literal[True] = ...,
-    ) -> "asyncio.Future[RecordMetadata]": ...
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
 
     @overload
     async def publish_batch(
@@ -658,8 +658,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+        no_confirm: Literal[True] = ...,
+    ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
     async def publish_batch(

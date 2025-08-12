@@ -308,8 +308,9 @@ async def check_request_response_type() -> None:
     assert_type(publisher_response, RabbitMessage)
 
 
-async def check_subscriber_get_one_type() -> None:
-    broker = RabbitBroker()
+async def check_subscriber_get_one_type(
+    broker: RabbitBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber(queue="test")
 
     message = await subscriber.get_one()
