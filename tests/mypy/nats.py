@@ -433,7 +433,6 @@ async def check_object_store_watch_subscriber_message_type(
 
 
 def check_subscriber_instance_type(broker: NatsBroker | FastAPIRouter) -> None:
-
     sub1 = broker.subscriber("key", kv_watch="bucket")
     assert_type(sub1, KeyValueWatchSubscriber)
 

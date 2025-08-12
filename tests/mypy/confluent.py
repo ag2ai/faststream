@@ -41,7 +41,7 @@ async def check_publish_type(fake_bool: bool = True) -> None:
     assert_type(publish_without_confirm, Message | None)
 
     publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
-    assert_type(publish_confirm_bool, Message | None | asyncio.Future[Message | None])
+    assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
 
 
 async def check_publisher_publish_type(
@@ -57,7 +57,7 @@ async def check_publisher_publish_type(
     assert_type(publish_with_confirm, Message | None)
 
     publish_confirm_bool = await p1.publish(None, "test", no_confirm=fake_bool)
-    assert_type(publish_confirm_bool, Message | None | asyncio.Future[Message | None])
+    assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
 
     p2 = broker.publisher("test", batch=True)
     assert_type(p2, BatchPublisher)

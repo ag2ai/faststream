@@ -33,25 +33,6 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
-from faststream.nats.subscriber.usecases.core_subscriber import (
-    ConcurrentCoreSubscriber,
-    CoreSubscriber,
-)
-from faststream.nats.subscriber.usecases.key_value_subscriber import (
-    KeyValueWatchSubscriber,
-)
-from faststream.nats.subscriber.usecases.object_storage_subscriber import (
-    ObjStoreWatchSubscriber,
-)
-from faststream.nats.subscriber.usecases.stream_pull_subscriber import (
-    BatchPullStreamSubscriber,
-    ConcurrentPullStreamSubscriber,
-    PullStreamSubscriber,
-)
-from faststream.nats.subscriber.usecases.stream_push_subscriber import (
-    ConcurrentPushStreamSubscriber,
-    PushStreamSubscriber,
-)
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
 
@@ -82,6 +63,25 @@ if TYPE_CHECKING:
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
     from faststream.nats.subscriber.usecases import (
         LogicSubscriber,
+    )
+    from faststream.nats.subscriber.usecases.core_subscriber import (
+        ConcurrentCoreSubscriber,
+        CoreSubscriber,
+    )
+    from faststream.nats.subscriber.usecases.key_value_subscriber import (
+        KeyValueWatchSubscriber,
+    )
+    from faststream.nats.subscriber.usecases.object_storage_subscriber import (
+        ObjStoreWatchSubscriber,
+    )
+    from faststream.nats.subscriber.usecases.stream_pull_subscriber import (
+        BatchPullStreamSubscriber,
+        ConcurrentPullStreamSubscriber,
+        PullStreamSubscriber,
+    )
+    from faststream.nats.subscriber.usecases.stream_push_subscriber import (
+        ConcurrentPushStreamSubscriber,
+        PushStreamSubscriber,
     )
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
@@ -179,119 +179,123 @@ class NatsRouter(StreamRouter["Msg"]):
         ),
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
-        """Args:
-        servers: NATS cluster addresses to connect.
-        error_cb: Callback to report errors.
-        disconnected_cb: Callback to report disconnection from NATS.
-        closed_cb: Callback to report when client stops reconnection to NATS.
-        discovered_server_cb: Callback to report when a new server joins the cluster.
-        reconnected_cb: Callback to report success reconnection.
-        name: Label the connection with name (shown in NATS monitoring).
-        pedantic: Turn on NATS server pedantic mode that performs extra checks on the protocol.
-            https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
-        verbose: Verbose mode produce more feedback about code execution.
-        allow_reconnect: Whether recover connection automatically or not.
-        connect_timeout: Timeout in seconds to establish connection with NATS server.
-        reconnect_time_wait: Time in seconds to wait for reestablish connection to NATS server
-        max_reconnect_attempts: Maximum attempts number to reconnect to NATS server.
-        ping_interval: Interval in seconds to ping.
-        max_outstanding_pings: Maximum number of failed pings
-        dont_randomize: Boolean indicating should client randomly shuffle servers list for reconnection randomness.
-        flusher_queue_size: Max count of commands awaiting to be flushed to the socket
-        no_echo: Boolean indicating should commands be echoed.
-        tls_hostname: Hostname for TLS.
-        token: Auth token for NATS auth.
-        drain_timeout: Timeout in seconds to drain subscriptions.
-        signature_cb: A callback used to sign a nonce from the server while
-            authenticating with nkeys. The user should sign the nonce and
-            return the base64 encoded signature.
-        user_jwt_cb: A callback used to fetch and return the account
-            signed JWT for this user.
-        user_credentials: A user credentials file or tuple of files.
-        nkeys_seed: Nkeys seed to be used.
-        nkeys_seed_str: Raw nkeys seed to be used.
-        inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
-        pending_size: Max size of the pending buffer for publishing commands.
-        flush_timeout: Max duration to wait for a forced flush to occur.
-        graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
-        decoder: Custom decoder object.
-        parser: Custom parser object.
-        middlewares: Middlewares to apply to all broker publishers/subscribers.
-        security: Security options to connect broker and generate AsyncAPI server security information.
-        specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
-        protocol: AsyncAPI server protocol.
-        protocol_version: AsyncAPI server protocol version.
-        description: AsyncAPI server description.
-        specification_tags: AsyncAPI server tags.
-        logger: User specified logger to pass into Context and log service messages.
-        log_level: Service messages log level.
-        setup_state: Whether to add broker to app scope in lifespan.
-            You should disable this option at old ASGI servers.
-        schema_url: AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
-        prefix: An optional path prefix for the router.
-        tags: A list of tags to be applied to all the *path operations* in this
-            router.
-            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-            Read more about it in the
-            [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-        dependencies: A list of dependencies (using `Depends()`) to be applied to all the
-            *path and stream operations* in this router.
-            Read more about it in the
-            [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-        default_response_class: The default response class to be used.
-            Read more in the
-            [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-        responses: Additional responses to be shown in OpenAPI.
-            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-            Read more about it in the
-            [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
-            And in the
-            [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-        callbacks: OpenAPI callbacks that should apply to all *path operations* in this
-            router.
-            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-            Read more about it in the
-            [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-        routes: **Note**: you probably shouldn't use this parameter, it is inherited
-            from Starlette and supported for compatibility.
-            ---
-            A list of routes to serve incoming HTTP and WebSocket requests.
-        redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
-            use the same format.
-        default: Default function handler for this router. Used to handle
-            404 Not Found errors.
-        dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
-            You shouldn't need to use it. It normally points to the `FastAPI` app
-            object.
-        route_class: Custom route (*path operation*) class to be used by this router.
-            Read more about it in the
-            [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-        on_startup: A list of startup event handler functions.
-            You should instead use the `lifespan` handlers.
-            Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-        on_shutdown: A list of shutdown event handler functions.
-            You should instead use the `lifespan` handlers.
-            Read more in the
-            [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-        lifespan: A `Lifespan` context manager handler. This replaces `startup` and
-            `shutdown` functions with a single context manager.
-            Read more in the
-            [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-        deprecated: Mark all *path operations* in this router as deprecated.
-            It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-            Read more about it in the
-            [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-        include_in_schema: To include (or not) all the *path operations* in this router in the
-            generated OpenAPI.
-            This affects the generated OpenAPI (e.g. visible at `/docs`).
-            Read more about it in the
-            [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-        generate_unique_id_function: Customize the function used to generate unique IDs for the *path
-            operations* shown in the generated OpenAPI.
-            This is particularly useful when automatically generating clients or
-            SDKs for your API.
-            Read more about it in the
-            [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
+        """FastAPI router for NATS broker.
+
+        Args:
+            servers: NATS cluster addresses to connect.
+            error_cb: Callback to report errors.
+            disconnected_cb: Callback to report disconnection from NATS.
+            closed_cb: Callback to report when client stops reconnection to NATS.
+            discovered_server_cb: Callback to report when a new server joins the cluster.
+            reconnected_cb: Callback to report success reconnection.
+            name: Label the connection with name (shown in NATS monitoring).
+            pedantic: Turn on NATS server pedantic mode that performs extra checks on the protocol.
+                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+            verbose: Verbose mode produce more feedback about code execution.
+            allow_reconnect: Whether recover connection automatically or not.
+            connect_timeout: Timeout in seconds to establish connection with NATS server.
+            reconnect_time_wait: Time in seconds to wait for reestablish connection to NATS server
+            max_reconnect_attempts: Maximum attempts number to reconnect to NATS server.
+            ping_interval: Interval in seconds to ping.
+            max_outstanding_pings: Maximum number of failed pings
+            dont_randomize: Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+            flusher_queue_size: Max count of commands awaiting to be flushed to the socket
+            no_echo: Boolean indicating should commands be echoed.
+            tls_hostname: Hostname for TLS.
+            token: Auth token for NATS auth.
+            drain_timeout: Timeout in seconds to drain subscriptions.
+            signature_cb: A callback used to sign a nonce from the server while
+                authenticating with nkeys. The user should sign the nonce and
+                return the base64 encoded signature.
+            user_jwt_cb: A callback used to fetch and return the account
+                signed JWT for this user.
+            user_credentials: A user credentials file or tuple of files.
+            nkeys_seed: Nkeys seed to be used.
+            nkeys_seed_str: Raw nkeys seed to be used.
+            inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+            pending_size: Max size of the pending buffer for publishing commands.
+            flush_timeout: Max duration to wait for a forced flush to occur.
+            graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder: Custom decoder object.
+            parser: Custom parser object.
+            middlewares: Middlewares to apply to all broker publishers/subscribers.
+            security: Security options to connect broker and generate AsyncAPI server security information.
+            specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol: AsyncAPI server protocol.
+            protocol_version: AsyncAPI server protocol version.
+            description: AsyncAPI server description.
+            specification_tags: AsyncAPI server tags.
+            logger: User specified logger to pass into Context and log service messages.
+            log_level: Service messages log level.
+            setup_state: Whether to add broker to app scope in lifespan.
+                You should disable this option at old ASGI servers.
+            schema_url: AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
+            prefix: An optional path prefix for the router.
+            specification: Specification factory to use.
+            context: Context repository to use.
+            tags: A list of tags to be applied to all the *path operations* in this
+                router.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            dependencies: A list of dependencies (using `Depends()`) to be applied to all the
+                *path and stream operations* in this router.
+                Read more about it in the
+                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            default_response_class: The default response class to be used.
+                Read more in the
+                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
+            responses: Additional responses to be shown in OpenAPI.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
+                And in the
+                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            callbacks: OpenAPI callbacks that should apply to all *path operations* in this
+                router.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
+            routes: **Note**: you probably shouldn't use this parameter, it is inherited
+                from Starlette and supported for compatibility.
+                ---
+                A list of routes to serve incoming HTTP and WebSocket requests.
+            redirect_slashes: Whether to detect and redirect slashes in URLs when the client doesn't
+                use the same format.
+            default: Default function handler for this router. Used to handle
+                404 Not Found errors.
+            dependency_overrides_provider: Only used internally by FastAPI to handle dependency overrides.
+                You shouldn't need to use it. It normally points to the `FastAPI` app
+                object.
+            route_class: Custom route (*path operation*) class to be used by this router.
+                Read more about it in the
+                [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
+            on_startup: A list of startup event handler functions.
+                You should instead use the `lifespan` handlers.
+                Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            on_shutdown: A list of shutdown event handler functions.
+                You should instead use the `lifespan` handlers.
+                Read more in the
+                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            lifespan: A `Lifespan` context manager handler. This replaces `startup` and
+                `shutdown` functions with a single context manager.
+                Read more in the
+                [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
+            deprecated: Mark all *path operations* in this router as deprecated.
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            include_in_schema: To include (or not) all the *path operations* in this router in the
+                generated OpenAPI.
+                This affects the generated OpenAPI (e.g. visible at `/docs`).
+                Read more about it in the
+                [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
+            generate_unique_id_function: Customize the function used to generate unique IDs for the *path
+                operations* shown in the generated OpenAPI.
+                This is particularly useful when automatically generating clients or
+                SDKs for your API.
+                Read more about it in the
+                [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
         """
         super().__init__(
             servers,

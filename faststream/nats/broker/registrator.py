@@ -40,7 +40,6 @@ if TYPE_CHECKING:
 
 
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
-    
     """Includable to NatsBroker router."""
 
     def __init__(self, **kwargs: Any) -> None:

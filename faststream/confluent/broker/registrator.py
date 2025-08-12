@@ -105,7 +105,7 @@ class KafkaRegistrator(
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-    ) ->  "DefaultSubscriber": ...
+    ) -> "DefaultSubscriber": ...
 
     @overload
     def subscriber(
