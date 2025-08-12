@@ -4,9 +4,6 @@ from unittest.mock import Mock
 import pytest
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
-from faststream._internal.endpoint.subscriber.supervisor import (
-    SUPERVISOR_DISABLING_ENV_NAME,
-)
 
 
 @pytest.fixture()
@@ -19,4 +16,4 @@ def subscriber_with_task_mixin():
 
 @pytest.fixture(autouse=True)
 def disable_supervisor(monkeypatch):
-    monkeypatch.setenv(SUPERVISOR_DISABLING_ENV_NAME, "0")
+    monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
