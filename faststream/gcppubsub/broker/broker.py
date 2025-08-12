@@ -148,6 +148,7 @@ class GCPPubSubBroker(
                 emulator_host=emulator_host,
             ),
             project_id=project_id,
+            connection=self._state,
             service_file=service_file,
             emulator_host=emulator_host,
             session=session,
@@ -193,9 +194,43 @@ class GCPPubSubBroker(
         
         self._on_startup_hooks = list(on_startup)
         self._on_shutdown_hooks = list(on_shutdown)
+    
+    @override
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        topic: str | None = None,
+        *,
+        attributes: dict[str, str] | None = None,
+        ordering_key: str | None = None,
+        correlation_id: str | None = None,
+    ) -> str:
+        """Publish message to GCP Pub/Sub topic.
         
-        self.run_asgi_app = run_asgi_app
-        self.asgi_app = asgi_app
+        Args:
+            message: Message body to send
+            topic: GCP Pub/Sub topic name
+            attributes: Message attributes for metadata
+            ordering_key: Message ordering key
+            correlation_id: Manual correlation ID setter
+            
+        Returns:
+            Published message ID
+        """
+        cmd = GCPPubSubPublishCommand(
+            message,
+            topic=topic or "",
+            attributes=attributes,
+            ordering_key=ordering_key,
+            correlation_id=correlation_id or gen_cor_id(),
+            _publish_type=PublishType.PUBLISH,
+        )
+        
+        result: str = await super()._basic_publish(
+            cmd,
+            producer=self.config.producer,
+        )
+        return result
     
     @override
     async def _connect(self) -> ConnectionState:
@@ -210,24 +245,28 @@ class GCPPubSubBroker(
         self._state.session = session
         self._state.owns_session = owns_session
         
+        # Determine API root for emulator or production
+        api_root = None
+        if self.emulator_host:
+            # Set environment variable for emulator
+            import os
+            os.environ["PUBSUB_EMULATOR_HOST"] = self.emulator_host
+            # Set API root for gcloud-aio clients
+            api_root = f"http://{self.emulator_host}/v1"
+        
         # Create publisher client
         self._state.publisher = PublisherClient(
-            project=self.project_id,
             service_file=self.service_file,
             session=session,
+            api_root=api_root,
         )
         
         # Create subscriber client
         self._state.subscriber = SubscriberClient(
-            project=self.project_id,
             service_file=self.service_file,
             session=session,
+            api_root=api_root,
         )
-        
-        # Set emulator host if provided
-        if self.emulator_host:
-            import os
-            os.environ["PUBSUB_EMULATOR_HOST"] = self.emulator_host
         
         # Update producer with clients
         self.config.producer._publisher = self._state.publisher

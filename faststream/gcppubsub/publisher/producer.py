@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from gcloud.aio.pubsub import PubsubMessage, PublisherClient
 
 from faststream._internal.producer import ProducerProto
+from faststream.gcppubsub.response import GCPPubSubPublishCommand
 from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
 
 
-class GCPPubSubFastProducer(ProducerProto):
+class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
     """GCP Pub/Sub message producer."""
     
     def __init__(
@@ -36,20 +37,12 @@ class GCPPubSubFastProducer(ProducerProto):
     
     async def publish(
         self,
-        topic: str,
-        data: bytes,
-        attributes: Optional[Dict[str, str]] = None,
-        ordering_key: Optional[str] = None,
-        correlation_id: Optional[str] = None,
+        cmd: GCPPubSubPublishCommand,
     ) -> str:
         """Publish a message to a topic.
         
         Args:
-            topic: Topic name
-            data: Message data
-            attributes: Message attributes
-            ordering_key: Message ordering key
-            correlation_id: Correlation ID
+            cmd: Publish command with message, topic, and options
         
         Returns:
             Published message ID
@@ -57,17 +50,28 @@ class GCPPubSubFastProducer(ProducerProto):
         if not self._publisher:
             raise RuntimeError("Producer not initialized. Call connect() first.")
         
-        # Add correlation ID to attributes if provided
-        attrs = attributes or {}
-        if correlation_id:
-            attrs["correlation_id"] = correlation_id
-        else:
-            attrs["correlation_id"] = gen_cor_id()
+        # Extract data from command
+        message_data = cmd.message
+        topic = cmd.topic
+        attrs = cmd.attributes or {}
+        ordering_key = cmd.ordering_key
+        correlation_id = cmd.correlation_id or gen_cor_id()
         
-        # Create message
-        message = PubsubMessage(data, **attrs)
-        if ordering_key:
-            message.ordering_key = ordering_key
+        # Ensure correlation_id in attributes
+        attrs["correlation_id"] = correlation_id
+        
+        # Convert message to bytes if needed
+        if isinstance(message_data, str):
+            data = message_data.encode()
+        elif isinstance(message_data, bytes):
+            data = message_data
+        else:
+            # Serialize other types to JSON then bytes
+            import json
+            data = json.dumps(message_data).encode()
+        
+        # Create message - gcloud-aio-pubsub expects data and keyword args for attributes
+        message = PubsubMessage(data, ordering_key=ordering_key or "", **attrs)
         
         # Format topic path
         topic_path = self._publisher.topic_path(self.project_id, topic)
@@ -81,14 +85,12 @@ class GCPPubSubFastProducer(ProducerProto):
     
     async def publish_batch(
         self,
-        topic: str,
-        messages: List[PubsubMessage],
+        cmd: GCPPubSubPublishCommand,
     ) -> List[str]:
         """Publish multiple messages to a topic.
         
         Args:
-            topic: Topic name
-            messages: List of messages to publish
+            cmd: Batch publish command
         
         Returns:
             List of published message IDs
@@ -96,34 +98,32 @@ class GCPPubSubFastProducer(ProducerProto):
         if not self._publisher:
             raise RuntimeError("Producer not initialized. Call connect() first.")
         
-        # Format topic path
-        topic_path = self._publisher.topic_path(self.project_id, topic)
-        
-        # Add correlation IDs to messages
-        for msg in messages:
-            if "correlation_id" not in msg.attributes:
-                msg.attributes["correlation_id"] = gen_cor_id()
-        
-        # Publish messages
-        result = await self._publisher.publish(topic_path, messages)
-        
-        # Return message IDs
-        return result.get("messageIds", [])
+        # For now, batch publishing isn't commonly used, so we'll implement a basic version
+        # that just calls publish() for each message
+        if hasattr(cmd, 'messages') and cmd.messages:
+            message_ids = []
+            for msg in cmd.messages:
+                # Create a single message command
+                single_cmd = type('Command', (), {
+                    'message': msg,
+                    'topic': cmd.topic,
+                    'attributes': getattr(cmd, 'attributes', {}),
+                    'ordering_key': getattr(cmd, 'ordering_key', None),
+                    'correlation_id': gen_cor_id(),
+                })
+                msg_id = await self.publish(single_cmd)
+                message_ids.append(msg_id)
+            return message_ids
+        return []
     
     async def request(
         self,
-        topic: str,
-        data: bytes,
-        attributes: Optional[Dict[str, str]] = None,
-        timeout: float = 30.0,
+        cmd: GCPPubSubPublishCommand,
     ) -> Any:
         """Send a request and wait for response (not directly supported in Pub/Sub).
         
         Args:
-            topic: Topic name
-            data: Message data
-            attributes: Message attributes
-            timeout: Request timeout
+            cmd: Request command with message, topic, and options
         
         Returns:
             Response data

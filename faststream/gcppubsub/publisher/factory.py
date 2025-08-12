@@ -30,8 +30,8 @@ def create_publisher(
     """
     return GCPPubSubPublisher(
         topic=topic,
-        broker=broker,
         create_topic=create_topic,
         ordering_key=ordering_key,
+        config=broker.config,
         **kwargs,
     )

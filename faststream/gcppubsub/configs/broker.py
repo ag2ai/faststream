@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.configs import BrokerConfig
+from faststream.gcppubsub.configs.state import ConnectionState
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
@@ -11,12 +12,13 @@ if TYPE_CHECKING:
     from faststream.gcppubsub.publisher.producer import GCPPubSubFastProducer
 
 
-@dataclass(kw_only=True)
+@dataclass
 class GCPPubSubBrokerConfig(BrokerConfig):
     """Configuration for GCP Pub/Sub broker."""
 
     producer: "GCPPubSubFastProducer"
     project_id: str
+    connection: ConnectionState
     service_file: Optional[str] = None
     emulator_host: Optional[str] = None
     session: Optional["ClientSession"] = None

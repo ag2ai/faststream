@@ -46,6 +46,10 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
         if reply_to is None:
             reply_to = raw_message.attributes.get("reply_to")
         
+        # Get message_id and publish_time from attributes
+        message_id = raw_message.attributes.get("message_id", "")
+        publish_time = raw_message.attributes.get("publish_time", "")
+        
         super().__init__(
             raw_message=raw_message,
             body=raw_message.data,
@@ -56,12 +60,12 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
             reply_to=reply_to,
             headers={
                 **raw_message.attributes,
-                "message_id": raw_message.message_id or "",
-                "publish_time": raw_message.publish_time or "",
+                "message_id": message_id,
+                "publish_time": publish_time,
                 "ordering_key": raw_message.ordering_key or "",
             },
             content_type=raw_message.attributes.get("content_type"),
-            message_id=raw_message.message_id or "",
+            message_id=message_id,
             correlation_id=correlation_id,
             **kwargs,
         )
@@ -81,15 +85,11 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
         """Check if message has been acknowledged."""
         return self._acknowledged
     
-    @property
-    def message_id(self) -> str:
-        """Get the message ID."""
-        return self.raw_message.message_id or ""
     
     @property
     def publish_time(self) -> Optional[str]:
         """Get the publish time."""
-        return self.raw_message.publish_time
+        return self.raw_message.attributes.get("publish_time")
     
     @property
     def ordering_key(self) -> Optional[str]:
@@ -111,18 +111,6 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
         # This will be implemented by the subscriber
         self._acknowledged = False
     
-    def decode(self, parser: Optional[Any] = None) -> Any:
-        """Decode message body.
-        
-        Args:
-            parser: Optional parser to use
-        
-        Returns:
-            Decoded message body
-        """
-        if parser:
-            return parser(self.body)
-        return self.body
     
     def as_dict(self) -> "AnyDict":
         """Convert message to dictionary.

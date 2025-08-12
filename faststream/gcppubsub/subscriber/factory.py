@@ -2,6 +2,9 @@
 
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.gcppubsub.subscriber.config import GCPPubSubSubscriberConfig
+from faststream.gcppubsub.subscriber.specification import GCPPubSubSubscriberSpecification
 from faststream.gcppubsub.subscriber.usecase import GCPPubSubSubscriber
 
 if TYPE_CHECKING:
@@ -32,12 +35,29 @@ def create_subscriber(
     Returns:
         GCPPubSubSubscriber instance
     """
-    return GCPPubSubSubscriber(
+    calls = CallsCollection()
+    
+    # Create subscriber configuration
+    subscriber_config = GCPPubSubSubscriberConfig(
+        _outer_config=broker.config,
         subscription=subscription,
-        broker=broker,
         topic=topic,
         create_subscription=create_subscription,
-        ack_deadline=ack_deadline,
+        ack_deadline=ack_deadline or broker.config.subscriber_ack_deadline,
         max_messages=max_messages,
         **kwargs,
+    )
+    
+    # Create specification
+    specification = GCPPubSubSubscriberSpecification(
+        subscription=subscription,
+        topic=topic,
+        _outer_config=broker.config,
+        calls=calls,
+    )
+    
+    return GCPPubSubSubscriber(
+        config=subscriber_config,
+        specification=specification,
+        calls=calls,
     )

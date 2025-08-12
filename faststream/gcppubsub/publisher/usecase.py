@@ -6,10 +6,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from gcloud.aio.pubsub import PubsubMessage
 
 from faststream._internal.endpoint.publisher.usecase import PublisherUsecase
+from faststream.gcppubsub.publisher.config import GCPPubSubPublisherConfig
 from faststream.gcppubsub.publisher.producer import GCPPubSubFastProducer
+from faststream.gcppubsub.publisher.specification import GCPPubSubPublisherSpecification
 
 if TYPE_CHECKING:
-    from faststream.gcppubsub.broker.registrator import GCPPubSubRegistrator
+    from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
 
 
 class GCPPubSubPublisher(PublisherUsecase):
@@ -19,35 +21,83 @@ class GCPPubSubPublisher(PublisherUsecase):
         self,
         topic: str,
         *,
-        broker: "GCPPubSubRegistrator",
         create_topic: bool = True,
         ordering_key: Optional[str] = None,
+        config: "GCPPubSubBrokerConfig",
         **kwargs: Any,
     ) -> None:
         """Initialize publisher.
         
         Args:
             topic: Topic name
-            broker: Broker instance
             create_topic: Whether to create topic if it doesn't exist
             ordering_key: Message ordering key
+            config: Broker configuration
             **kwargs: Additional options
         """
         self.topic = topic
-        self.broker = broker
         self.create_topic = create_topic
         self.ordering_key = ordering_key
         
-        super().__init__(**kwargs)
+        # Create publisher config
+        publisher_config = GCPPubSubPublisherConfig(
+            _outer_config=config,
+            middlewares=(),  # No publisher-specific middlewares for now
+            topic=topic,
+            create_topic=create_topic,
+            ordering_key=ordering_key,
+        )
+        
+        # Create specification
+        specification = GCPPubSubPublisherSpecification(
+            topic=topic,
+            _outer_config=config,
+        )
+        
+        super().__init__(
+            config=publisher_config,
+            specification=specification,
+        )
     
     async def start(self) -> None:
         """Start the publisher."""
+        await super().start()
         if self.create_topic:
             await self._ensure_topic_exists()
     
     async def stop(self) -> None:
         """Stop the publisher."""
-        pass
+        await super().stop()
+    
+    async def _publish(
+        self,
+        message: Any,
+        *,
+        correlation_id: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Publish a message (abstract method implementation)."""
+        return await self.publish(
+            message=message,
+            correlation_id=correlation_id,
+            **kwargs,
+        )
+    
+    async def request(
+        self,
+        message: Any,
+        *,
+        correlation_id: Optional[str] = None,
+        timeout: float = 30.0,
+        **kwargs: Any,
+    ) -> Any:
+        """Send a request and wait for response."""
+        # GCP Pub/Sub doesn't natively support request-reply
+        # This could be implemented using correlation IDs and response topics
+        raise NotImplementedError(
+            "Request-reply pattern is not natively supported in GCP Pub/Sub. "
+            "Consider implementing using correlation IDs and a response subscription."
+        )
     
     async def publish(
         self,
@@ -80,10 +130,10 @@ class GCPPubSubPublisher(PublisherUsecase):
             data = message.encode() if isinstance(message, str) else message
         else:
             # Use broker's serializer
-            data = self.broker.config.parser(message) if hasattr(self.broker, 'config') else str(message).encode()
+            data = self._outer_config.broker_parser(message) if self._outer_config.broker_parser else str(message).encode()
         
-        # Get producer from broker
-        producer = self.broker.config.producer
+        # Get producer from config
+        producer = self._outer_config.producer
         
         return await producer.publish(
             topic=target_topic,
@@ -122,12 +172,12 @@ class GCPPubSubPublisher(PublisherUsecase):
                 if isinstance(msg, (str, bytes)):
                     data = msg.encode() if isinstance(msg, str) else msg
                 else:
-                    data = self.broker.config.parser(msg) if hasattr(self.broker, 'config') else str(msg).encode()
+                    data = self._outer_config.broker_parser(msg) if self._outer_config.broker_parser else str(msg).encode()
                 
                 pubsub_messages.append(PubsubMessage(data))
         
-        # Get producer from broker
-        producer = self.broker.config.producer
+        # Get producer from config
+        producer = self._outer_config.producer
         
         return await producer.publish_batch(
             topic=target_topic,

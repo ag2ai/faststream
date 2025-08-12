@@ -49,7 +49,7 @@ class GCPPubSubRegistrator(Registrator["PubsubMessage"]):
             **kwargs,
         )
         
-        self.subscribers.append(subscriber)
+        self._subscribers.add(subscriber)
         return subscriber
     
     def publisher(
@@ -79,5 +79,5 @@ class GCPPubSubRegistrator(Registrator["PubsubMessage"]):
             **kwargs,
         )
         
-        self.publishers.append(publisher)
+        self._publishers.add(publisher)
         return publisher
