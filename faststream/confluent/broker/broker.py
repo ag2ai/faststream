@@ -351,7 +351,7 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: bool = False,
+        no_confirm: Literal[False] = False,
     ) -> Message | None: ...
 
     @overload
@@ -366,7 +366,7 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
+        no_confirm: bool = False,
     ) -> asyncio.Future[Message | None] | (Message | None): ...
 
     @override
