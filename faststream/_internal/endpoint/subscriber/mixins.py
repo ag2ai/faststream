@@ -24,8 +24,8 @@ class TasksMixin(SubscriberUsecase[Any]):
         func_args: tuple[Any, ...] | None = None,
         func_kwargs: dict[str, Any] | None = None,
     ) -> asyncio.Task[Any]:
-        args: tuple[Any] | tuple[()] = func_args or ()
-        kwargs: dict[str, Any] = func_kwargs or {}
+        args = func_args or ()
+        kwargs = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
         callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
         task.add_done_callback(callback)
