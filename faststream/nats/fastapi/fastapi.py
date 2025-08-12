@@ -1047,6 +1047,11 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
+        stream: Union[str, "JStream", None] = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -1054,11 +1059,6 @@ class NatsRouter(StreamRouter["Msg"]):
                 "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
             ),
         ] = EMPTY,
-        stream: Union[str, "JStream", None] = None,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
@@ -1066,7 +1066,6 @@ class NatsRouter(StreamRouter["Msg"]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        max_workers: int | None = None,
         no_ack: Annotated[
             bool,
             deprecated(
@@ -1074,6 +1073,7 @@ class NatsRouter(StreamRouter["Msg"]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
