@@ -9,9 +9,6 @@ from typer.testing import CliRunner
 
 from faststream.__about__ import __version__
 from faststream._internal.context import ContextRepo
-from faststream._internal.endpoint.subscriber.supervisor import (
-    SUPERVISOR_DISABLING_ENV_NAME,
-)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -79,4 +76,4 @@ def kafka_ascynapi_project() -> str:
 
 @pytest.fixture(autouse=True)
 def disable_supervisor(monkeypatch):
-    monkeypatch.setenv(SUPERVISOR_DISABLING_ENV_NAME, "1")
+    monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "1")
