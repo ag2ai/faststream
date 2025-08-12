@@ -9,7 +9,7 @@ app = FastStream(broker)
 async def handle_priority(msg: GCPPubSubMessage, logger: Logger):
     priority = msg.attributes.get("priority", "normal")
     source = msg.attributes.get("source", "unknown")
-    
+
     logger.info(f"Priority: {priority}, Source: {source}, Body: {msg.body}")
 
 
@@ -21,9 +21,9 @@ async def test_send():
         "priority-events",
         attributes={"priority": "high", "source": "api"}
     )
-    
+
     await broker.publish(
-        "Normal message", 
+        "Normal message",
         "priority-events",
         attributes={"priority": "normal", "source": "web"}
     )

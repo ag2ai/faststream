@@ -7,7 +7,7 @@ from gcloud.aio.pubsub import PubsubMessage
 from faststream.message import StreamMessage
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyDict
+    AnyDict = dict[str, Any]
 
 
 class GCPPubSubMessage(StreamMessage[PubsubMessage]):
@@ -56,7 +56,7 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
                 "topic": raw_message.attributes.get("topic", ""),
                 "subscription": subscription or "",
             },
-            reply_to=reply_to,
+            reply_to=reply_to or "",
             headers={
                 **raw_message.attributes,
                 "message_id": message_id,

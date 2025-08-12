@@ -35,11 +35,11 @@ def create_subscriber(
     Returns:
         GCPPubSubSubscriber instance
     """
-    calls = CallsCollection()
+    calls: CallsCollection[Any] = CallsCollection()
 
     # Create subscriber configuration
     subscriber_config = GCPPubSubSubscriberConfig(
-        _outer_config=broker.config,
+        _outer_config=broker.config,  # type: ignore[arg-type]
         subscription=subscription,
         topic=topic,
         create_subscription=create_subscription,
@@ -52,7 +52,7 @@ def create_subscriber(
     specification = GCPPubSubSubscriberSpecification(
         subscription=subscription,
         topic=topic,
-        _outer_config=broker.config,
+        _outer_config=broker.config,  # type: ignore[arg-type]
         calls=calls,
     )
 

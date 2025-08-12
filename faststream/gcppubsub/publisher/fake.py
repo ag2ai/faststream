@@ -25,8 +25,6 @@ class GCPPubSubFakePublisher(FakePublisher):
         self,
         cmd: Union["PublishCommand", "GCPPubSubPublishCommand"],
     ) -> "GCPPubSubPublishCommand":
-        cmd = super().patch_command(cmd)
-
         # If it's already a GCPPubSubPublishCommand, just update the topic
         if isinstance(cmd, GCPPubSubPublishCommand):
             cmd.topic = self.topic
@@ -34,11 +32,10 @@ class GCPPubSubFakePublisher(FakePublisher):
 
         # Otherwise, create a new GCPPubSubPublishCommand from the base command
         return GCPPubSubPublishCommand(
-            message=cmd.message,
+            message=cmd.body,  # Use body instead of message
             topic=self.topic,
-            attributes=getattr(cmd, "attributes", None),
-            ordering_key=getattr(cmd, "ordering_key", None),
+            attributes=cmd.headers if isinstance(cmd.headers, dict) else {},
             correlation_id=cmd.correlation_id,
-            _publish_type=cmd._publish_type,
-            timeout=getattr(cmd, "timeout", 30.0),
+            _publish_type=cmd.publish_type,
+            timeout=30.0,
         )

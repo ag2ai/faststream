@@ -1,16 +1,18 @@
 """GCP Pub/Sub subscriber configuration."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
+from faststream.gcppubsub.parser import GCPPubSubParser
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
+    from faststream._internal.types import AsyncCallable
     from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
 
 
@@ -35,9 +37,17 @@ class GCPPubSubSubscriberConfig(SubscriberUsecaseConfig):
 
     def __post_init__(self) -> None:
         """Post-initialization setup."""
-        # Set parser and decoder from broker config
-        self.parser = self._outer_config.broker_parser
-        self.decoder = self._outer_config.broker_decoder
+        # Set parser and decoder from broker config, with defaults if None
+
+        default_parser = GCPPubSubParser()
+        self.parser = cast(
+            "AsyncCallable",
+            self._outer_config.broker_parser or default_parser.parse_message,
+        )
+        self.decoder = cast(
+            "AsyncCallable",
+            self._outer_config.broker_decoder or default_parser.decode_message,
+        )
 
     @property
     def ack_policy(self) -> AckPolicy:

@@ -15,7 +15,7 @@ class GCPPubSubPublisherSpecification(PublisherSpecification):
     def __init__(
         self,
         topic: str,
-        _outer_config: "GCPPubSubBrokerConfig" = None,
+        _outer_config: "GCPPubSubBrokerConfig | None" = None,
         **kwargs: Any,
     ) -> None:
         """Initialize publisher specification.
@@ -40,7 +40,7 @@ class GCPPubSubPublisherSpecification(PublisherSpecification):
         )
 
         super().__init__(
-            _outer_config=_outer_config,
+            _outer_config=_outer_config,  # type: ignore[arg-type]
             specification_config=spec_config,
         )
 

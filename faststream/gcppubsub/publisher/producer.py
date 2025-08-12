@@ -33,6 +33,9 @@ class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
         self.emulator_host = emulator_host
         self._publisher: PublisherClient | None = None
         self._session: ClientSession | None = None
+        # Required by ProducerProto interface
+        self._parser: Any = None  # Not used in GCP Pub/Sub
+        self._decoder: Any = None  # Not used in GCP Pub/Sub
 
     async def publish(
         self,
@@ -105,17 +108,13 @@ class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
         if hasattr(cmd, "messages") and cmd.messages:
             message_ids = []
             for msg in cmd.messages:
-                # Create a single message command
-                single_cmd = type(
-                    "Command",
-                    (),
-                    {
-                        "message": msg,
-                        "topic": cmd.topic,
-                        "attributes": getattr(cmd, "attributes", {}),
-                        "ordering_key": getattr(cmd, "ordering_key", None),
-                        "correlation_id": gen_cor_id(),
-                    },
+                # Create a proper GCPPubSubPublishCommand
+                single_cmd = GCPPubSubPublishCommand(
+                    message=msg,
+                    topic=getattr(cmd, "topic", ""),
+                    attributes=getattr(cmd, "attributes", {}),
+                    ordering_key=getattr(cmd, "ordering_key", None),
+                    correlation_id=gen_cor_id(),
                 )
                 msg_id = await self.publish(single_cmd)
                 message_ids.append(msg_id)

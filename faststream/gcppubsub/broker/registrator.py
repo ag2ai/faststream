@@ -2,6 +2,8 @@
 
 from typing import TYPE_CHECKING, Any
 
+from gcloud.aio.pubsub import PubsubMessage
+
 from faststream._internal.broker.registrator import Registrator
 from faststream.gcppubsub.publisher.factory import create_publisher
 from faststream.gcppubsub.subscriber.factory import create_subscriber
@@ -11,10 +13,10 @@ if TYPE_CHECKING:
     from faststream.gcppubsub.subscriber.usecase import GCPPubSubSubscriber
 
 
-class GCPPubSubRegistrator(Registrator["PubsubMessage"]):
+class GCPPubSubRegistrator(Registrator[PubsubMessage]):
     """GCP Pub/Sub broker registrator."""
 
-    def subscriber(
+    def subscriber(  # type: ignore[override]
         self,
         subscription: str,
         *,
@@ -50,7 +52,7 @@ class GCPPubSubRegistrator(Registrator["PubsubMessage"]):
         self._subscribers.add(subscriber)
         return subscriber
 
-    def publisher(
+    def publisher(  # type: ignore[override]
         self,
         topic: str,
         *,

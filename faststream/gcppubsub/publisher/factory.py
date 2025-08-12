@@ -32,6 +32,6 @@ def create_publisher(
         topic=topic,
         create_topic=create_topic,
         ordering_key=ordering_key,
-        config=broker.config,
+        config=broker.config,  # type: ignore[arg-type]
         **kwargs,
     )

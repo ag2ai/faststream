@@ -34,13 +34,10 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-        SendableMessage,
-    )
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import SendableMessage
 
 
 class GCPPubSubBroker(
@@ -165,7 +162,9 @@ class GCPPubSubBroker(
             broker_parser=parser,
             broker_decoder=decoder,
             logger=make_gcppubsub_logger_state(
-                logger=logger,
+                logger=logger
+                if logger is not EMPTY and not isinstance(logger, object)
+                else None,
                 log_level=logging.INFO,
             )
             if logger is not EMPTY
@@ -270,8 +269,10 @@ class GCPPubSubBroker(
         )
 
         # Update producer with clients
-        self.config.producer._publisher = self._state.publisher
-        self.config.producer._session = session
+        if hasattr(self.config.producer, "_publisher"):
+            self.config.producer._publisher = self._state.publisher
+        if hasattr(self.config.producer, "_session"):
+            self.config.producer._session = session
 
         return self._state
 

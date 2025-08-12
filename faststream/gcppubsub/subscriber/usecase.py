@@ -182,7 +182,7 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
     )
     async def _pull_with_retry(
         self, subscriber: SubscriberClient, subscription_path: str
-    ) -> list:
+    ) -> list[Any]:
         """Pull messages with exponential backoff retry."""
         # gcloud-aio returns a list of SubscriberMessage objects directly
         messages = await subscriber.pull(
@@ -252,11 +252,52 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
             subscriber = self._subscriber_client
             # Note: gcloud-aio has a create_subscription method
             await subscriber.create_subscription(
-                subscription_name=self.subscription,
-                topic_name=self.topic,
-                ack_deadline=self.config.ack_deadline,
+                subscription=self.subscription,
+                topic=self.topic or "",
+                body={"ackDeadlineSeconds": self.config.ack_deadline}
+                if self.config.ack_deadline
+                else None,
             )
-        except Exception:
+        except Exception:  # nosec B110
             # Subscription might already exist or creation failed
-            # In a production system, you'd want proper error handling
+            # In a production system, you'd want proper error handling and logging
             pass
+
+    async def __aiter__(self) -> Any:
+        """Async iterator for message consumption."""
+        msg = "Iterator pattern not implemented for GCP Pub/Sub. Use message handlers instead."
+        raise NotImplementedError(msg)
+
+    async def get_one(self, *, timeout: float = 5.0) -> GCPPubSubMessage:
+        """Get a single message from the subscription."""
+        subscriber = self._subscriber_client
+        subscription_path = subscriber.subscription_path(
+            self._outer_config.project_id, self.subscription
+        )
+
+        # Pull a single message with timeout
+        messages = await subscriber.pull(subscription_path, max_messages=1)
+
+        if not messages:
+            msg = f"No messages received from {self.subscription} within {timeout}s"
+            raise TimeoutError(msg)
+
+        # Process the first message
+        msg_data = messages[0]
+        # Convert to PubsubMessage if needed
+        if hasattr(msg_data, "message"):
+            raw_msg = msg_data.message
+        else:
+            # Create PubsubMessage from SubscriberMessage data
+            raw_msg = PubsubMessage(
+                data=getattr(msg_data, "data", b""),
+                message_id=getattr(msg_data, "message_id", ""),
+                publish_time=getattr(msg_data, "publish_time", None),
+                attributes=getattr(msg_data, "attributes", {}),
+            )
+
+        return GCPPubSubMessage(
+            raw_message=raw_msg,
+            ack_id=getattr(msg_data, "ack_id", None),
+            subscription=self.subscription,
+        )

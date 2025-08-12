@@ -10,6 +10,7 @@ from faststream.gcppubsub.publisher.specification import GCPPubSubPublisherSpeci
 
 if TYPE_CHECKING:
     from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
+    from faststream.response.response import PublishCommand
 
 
 class GCPPubSubPublisher(PublisherUsecase):
@@ -65,21 +66,30 @@ class GCPPubSubPublisher(PublisherUsecase):
 
     async def stop(self) -> None:
         """Stop the publisher."""
-        await super().stop()
+        # No cleanup needed for GCP Pub/Sub publisher
 
     async def _publish(
         self,
-        message: Any,
+        cmd: "PublishCommand",
         *,
-        correlation_id: str | None = None,
-        **kwargs: Any,
-    ) -> Any:
+        _extra_middlewares: Any = None,
+    ) -> None:
         """Publish a message (abstract method implementation)."""
-        return await self.publish(
-            message=message,
-            correlation_id=correlation_id,
-            **kwargs,
-        )
+        from faststream.gcppubsub.response import GCPPubSubPublishCommand
+
+        # Convert generic PublishCommand to GCPPubSubPublishCommand if needed
+        if isinstance(cmd, GCPPubSubPublishCommand):
+            gcp_cmd = cmd
+        else:
+            gcp_cmd = GCPPubSubPublishCommand(
+                message=cmd.body,
+                topic=getattr(cmd, "destination", self.topic),
+                attributes=cmd.headers if isinstance(cmd.headers, dict) else {},
+                correlation_id=cmd.correlation_id,
+                _publish_type=cmd.publish_type,
+            )
+
+        await self._outer_config.producer.publish(gcp_cmd)
 
     async def request(
         self,
@@ -128,23 +138,30 @@ class GCPPubSubPublisher(PublisherUsecase):
         if isinstance(message, (str, bytes)):
             data = message.encode() if isinstance(message, str) else message
         else:
-            # Use broker's serializer
-            data = (
-                self._outer_config.broker_parser(message)
-                if self._outer_config.broker_parser
-                else str(message).encode()
-            )
+            # Simple serialization - convert to JSON if needed
+            import json
+
+            try:
+                data = json.dumps(message).encode()
+            except (TypeError, ValueError):
+                data = str(message).encode()
 
         # Get producer from config
         producer = self._outer_config.producer
 
-        return await producer.publish(
+        # Create GCP Pub/Sub command object
+        from faststream.gcppubsub.response import GCPPubSubPublishCommand
+
+        cmd = GCPPubSubPublishCommand(
+            message=data,
             topic=target_topic,
-            data=data,
-            attributes=attributes,
+            attributes=attributes or {},
             ordering_key=target_ordering_key,
             correlation_id=correlation_id,
         )
+
+        result = await producer.publish(cmd)
+        return result if isinstance(result, str) else ""
 
     async def publish_batch(
         self,
@@ -175,30 +192,45 @@ class GCPPubSubPublisher(PublisherUsecase):
                 if isinstance(msg, (str, bytes)):
                     data = msg.encode() if isinstance(msg, str) else msg
                 else:
-                    data = (
-                        self._outer_config.broker_parser(msg)
-                        if self._outer_config.broker_parser
-                        else str(msg).encode()
-                    )
+                    # Simple serialization - convert to JSON if needed
+                    import json
+
+                    try:
+                        data = json.dumps(msg).encode()
+                    except (TypeError, ValueError):
+                        data = str(msg).encode()
 
                 pubsub_messages.append(PubsubMessage(data))
 
         # Get producer from config
         producer = self._outer_config.producer
 
-        return await producer.publish_batch(
-            topic=target_topic,
-            messages=pubsub_messages,
-        )
+        # Create GCP Pub/Sub command objects
+        from faststream.gcppubsub.response import GCPPubSubPublishCommand
+
+        commands = [
+            GCPPubSubPublishCommand(
+                message=msg.data,
+                topic=target_topic,
+                attributes=msg.attributes or {},
+            )
+            for msg in pubsub_messages
+        ]
+
+        result = await producer.publish_batch(commands)
+        return result if isinstance(result, list) else []
 
     async def _ensure_topic_exists(self) -> None:
         """Ensure the topic exists."""
         try:
             # Use publisher client to create topic if it doesn't exist
-            if hasattr(self.broker, "_state") and self.broker._state.publisher:
+            if (
+                hasattr(self._outer_config, "connection")
+                and self._outer_config.connection
+            ):
                 # Note: gcloud-aio doesn't have a built-in create_topic method
                 # In a real implementation, you'd use the admin client or handle this differently
                 pass
-        except Exception:
+        except Exception:  # nosec B110
             # Topic creation can be handled externally or ignored for simplicity
             pass

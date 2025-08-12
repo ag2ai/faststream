@@ -7,7 +7,7 @@ FastStream provides comprehensive testing utilities for GCP Pub/Sub applications
 The GCP Pub/Sub testing framework follows FastStream's established patterns:
 
 - **TestGCPPubSubBroker**: Main test broker class that patches the real broker
-- **FakeGCPPubSubProducer**: Fake producer that routes messages to matching subscribers  
+- **FakeGCPPubSubProducer**: Fake producer that routes messages to matching subscribers
 - **Message Building**: Utilities to create test messages with proper structure
 - **Handler Execution**: Fake producer automatically calls `process_message()` on matching handlers
 - **Topic Matching**: Simple topic-based routing to find appropriate subscribers
@@ -57,7 +57,7 @@ async def test_user_event_handler():
     async with TestGCPPubSubBroker(broker) as test_broker:
         # Create test message
         test_data = b'{"user_id": "123", "action": "login"}'
-        
+
         # Publish using fake producer - handler is called automatically
         await test_broker.broker.config.producer.publish(
             topic="users",
@@ -80,7 +80,7 @@ async def test_message_with_attributes():
             },
             ordering_key="user-123"
         )
-        
+
         # Publish using fake producer
         await test_broker.broker.config.producer.publish(
             topic="test-topic",
@@ -108,7 +108,7 @@ async def test_publisher():
             "user_id": "123",
             "message": "Welcome!"
         })
-        
+
         assert result["notification_id"] == "notif-123"
 ```
 
@@ -122,7 +122,7 @@ async def test_direct_publishing():
             topic="test-topic",
             data=b"Hello World"
         )
-        
+
         # Verify message was published
         assert message_id is not None
         assert message_id.startswith("test-msg-")
@@ -142,7 +142,7 @@ async def test_message_creation():
         attributes={"source": "test"},
         message_id="custom-id-123"
     )
-    
+
     assert msg.data == b"Hello World"
     assert msg.attributes["source"] == "test"
     assert msg.message_id == "custom-id-123"
@@ -153,7 +153,7 @@ async def test_with_ordering_key():
         data="Ordered message",
         ordering_key="user-456"
     )
-    
+
     assert msg.ordering_key == "user-456"
 ```
 
@@ -167,13 +167,13 @@ async def test_batch_publishing():
             create_test_message(data=f"Message {i}")
             for i in range(3)
         ]
-        
+
         # Test batch publishing
         message_ids = await test_broker.broker.config.producer.publish_batch(
             topic="test-topic",
             messages=messages
         )
-        
+
         assert len(message_ids) == 3
         assert all(msg_id.startswith("test-msg-") for msg_id in message_ids)
 ```
@@ -202,11 +202,11 @@ from faststream.gcppubsub.testing import TestGCPPubSubBroker
 @pytest.fixture
 async def test_broker():
     broker = GCPPubSubBroker(project_id="test-project")
-    
+
     @broker.subscriber("test-sub", topic="test-topic")
     async def test_handler(message: str):
         return f"Processed: {message}"
-    
+
     async with TestGCPPubSubBroker(broker) as tb:
         yield tb
 
@@ -247,7 +247,7 @@ async def test_request_response():
                 attributes={"reply_needed": "true"}
             )
             print(f"Received response: {response}")
-            
+
         except Exception as e:
             # GCP Pub/Sub doesn't natively support request-reply
             print(f"Request failed as expected: {e}")
@@ -266,14 +266,14 @@ async def test_error_handling():
     async with TestGCPPubSubBroker(broker) as test_broker:
         # Test successful processing
         await test_broker.broker.config.producer.publish(
-            topic="errors", 
+            topic="errors",
             data=b"success"
         )
-        
+
         # Test error handling
         with pytest.raises(ValueError):
             await test_broker.broker.config.producer.publish(
-                topic="errors", 
+                topic="errors",
                 data=b"error"
             )
 ```
@@ -310,18 +310,18 @@ class TestCompleteWorkflow:
                 data='{"user_id": "123", "action": "signup"}',
                 attributes={"source": "web"}
             )
-            
+
             # 2. Publish message - handler automatically called
             message_id = await test_broker.broker.config.producer.publish(
                 topic="users",
                 data=msg.data,
                 attributes=msg.attributes
             )
-            
+
             # 3. Test publisher decorator
             result = await send_notification({"message": "Welcome!"})
             assert result["sent"] is True
-            
+
             # 4. Verify message was processed
             assert message_id.startswith("test-msg-")
 ```

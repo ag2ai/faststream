@@ -40,10 +40,15 @@ class GCPPubSubSubscriberSpecification(SubscriberSpecification):
             **{k: v for k, v in kwargs.items() if k not in {"title_", "description_"}},
         )
 
+        # Provide defaults for None values
+        from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+
+        default_calls = calls or CallsCollection()
+
         super().__init__(
-            _outer_config=_outer_config,
+            _outer_config=_outer_config,  # type: ignore[arg-type]
             specification_config=spec_config,
-            calls=calls,
+            calls=default_calls,
         )
 
     @property
@@ -62,4 +67,16 @@ class GCPPubSubSubscriberSpecification(SubscriberSpecification):
         return {
             "subscription": subscription or self.subscription,
             "topic": topic or self.topic or "",
+        }
+
+    @property
+    def name(self) -> str:
+        """Get subscriber name."""
+        return self.subscription
+
+    def get_schema(self) -> dict[str, Any]:
+        """Get subscriber schema for documentation."""
+        return {
+            "subscription": self.subscription,
+            "topic": self.topic,
         }

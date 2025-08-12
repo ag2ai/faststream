@@ -3,7 +3,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import AsyncMock
 
 from gcloud.aio.pubsub import PubsubMessage
 
@@ -59,11 +58,8 @@ class TestGCPPubSubBroker(TestBroker[GCPPubSubBroker]):
         return sub, is_real
 
     @staticmethod
-    async def _fake_connect(
-        broker: GCPPubSubBroker, *args: Any, **kwargs: Any
-    ) -> AsyncMock:
+    async def _fake_connect(broker: GCPPubSubBroker, *args: Any, **kwargs: Any) -> None:
         """Fake connection method."""
-        return AsyncMock()
 
 
 class FakeGCPPubSubProducer:
@@ -105,7 +101,7 @@ class FakeGCPPubSubProducer:
 
         # For now, just return the message ID without executing handlers
         # The FastStream testing framework handles handler mocking differently
-        return message.attributes.get("message_id", "test-message-id")
+        return str(message.attributes.get("message_id", "test-message-id"))
 
     async def publish_batch(
         self,
@@ -117,19 +113,15 @@ class FakeGCPPubSubProducer:
         message_ids = []
         if hasattr(cmd, "messages") and cmd.messages:
             for msg in cmd.messages:
-                # Create a single message command
-                single_cmd = type(
-                    "Command",
-                    (),
-                    {
-                        "message": msg,
-                        "topic": cmd.topic,
-                        "attributes": getattr(cmd, "attributes", {}),
-                        "ordering_key": getattr(cmd, "ordering_key", None),
-                        "correlation_id": gen_cor_id(),
-                    },
+                # Create proper GCPPubSubPublishCommand
+                proper_cmd = GCPPubSubPublishCommand(
+                    message=msg,
+                    topic=cmd.topic,
+                    attributes=getattr(cmd, "attributes", {}),
+                    ordering_key=getattr(cmd, "ordering_key", None),
+                    correlation_id=gen_cor_id(),
                 )
-                msg_id = await self.publish(single_cmd)
+                msg_id = await self.publish(proper_cmd)
                 message_ids.append(msg_id)
         return message_ids
 
@@ -185,11 +177,17 @@ class FakeGCPPubSubProducer:
         # Process message through handler
         result = await handler.process_message(fs_message)
 
-        # Return processed message
-        return build_message(
+        # Return processed message as GCPPubSubMessage
+        pubsub_msg = build_message(
             data=str(result.body).encode() if result.body else b"",
             attributes=result.headers or {},
             correlation_id=result.correlation_id or "",
+        )
+
+        return GCPPubSubMessage(
+            raw_message=pubsub_msg,
+            ack_id=f"test-ack-{gen_cor_id()}",
+            subscription=handler.subscription,
         )
 
 

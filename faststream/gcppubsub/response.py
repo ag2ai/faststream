@@ -3,12 +3,13 @@
 from typing import TYPE_CHECKING, Any
 
 from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
 
 
-class GCPPubSubPublishCommand:
+class GCPPubSubPublishCommand(PublishCommand):
     """GCP Pub/Sub publish command."""
 
     def __init__(
@@ -33,12 +34,18 @@ class GCPPubSubPublishCommand:
             _publish_type: Type of publish operation
             timeout: Publish timeout
         """
+        super().__init__(
+            body=message,
+            destination=topic,
+            correlation_id=correlation_id,
+            headers=attributes or {},
+            _publish_type=_publish_type,
+        )
+        # Store GCP-specific attributes
         self.message = message
         self.topic = topic
         self.attributes = attributes or {}
         self.ordering_key = ordering_key
-        self.correlation_id = correlation_id
-        self.publish_type = _publish_type
         self.timeout = timeout
 
     def to_dict(self) -> dict[str, Any]:
