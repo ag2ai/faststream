@@ -458,7 +458,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     def subscriber(
         self,
         *topics: str,
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         group_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
@@ -1180,7 +1180,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],

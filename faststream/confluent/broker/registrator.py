@@ -48,7 +48,7 @@ class KafkaRegistrator(
 ):
     """Includable to KafkaBroker router."""
 
-    @overload
+    @overload  # type: ignore[override]
     def subscriber(
         self,
         *topics: str,
@@ -107,7 +107,7 @@ class KafkaRegistrator(
         include_in_schema: bool = True,
     ) ->  "DefaultSubscriber": ...
 
-    @overload  # type: ignore[override]
+    @overload
     def subscriber(
         self,
         *topics: str,
@@ -137,7 +137,7 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["Dependant"] = (),
@@ -564,7 +564,7 @@ class KafkaRegistrator(
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],

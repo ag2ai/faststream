@@ -564,7 +564,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -1015,7 +1015,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         partition: int | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        batch: Literal[True],
+        batch: Literal[True] = ...,
         # basic args
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],

@@ -260,9 +260,9 @@ class NatsRoute(SubscriberRoute):
             Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
         max_workers: Annotated[
-            int,
+            int | None,
             Doc("Number of workers to process messages concurrently."),
-        ] = 1,
+        ] = None,
         no_ack: Annotated[
             bool,
             Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),

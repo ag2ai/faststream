@@ -148,7 +148,7 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True],
+        no_confirm: Literal[True] = ...,
     ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
@@ -354,7 +354,7 @@ class BatchPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        no_confirm: Literal[True],
+        no_confirm: Literal[True] = ...,
     ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
