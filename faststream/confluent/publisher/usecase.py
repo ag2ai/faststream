@@ -100,7 +100,7 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True],
+        no_confirm: Literal[True] = ...,
     ) -> asyncio.Future[Message | None]: ...
 
     @overload
@@ -117,6 +117,21 @@ class DefaultPublisher(LogicPublisher):
         reply_to: str = "",
         no_confirm: Literal[False] = False,
     ) -> Message | None: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        topic: str = "",
+        *,
+        key: bytes | str | None = None,
+        partition: int | None = None,
+        timestamp_ms: int | None = None,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        no_confirm: bool = False,
+    ) -> asyncio.Future[Message | None] | Message | None: ...
 
     @override
     async def publish(

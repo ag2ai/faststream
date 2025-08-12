@@ -336,7 +336,7 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True],
+        no_confirm: Literal[True] = ...,
     ) -> asyncio.Future[Message | None]: ...
 
     @overload
