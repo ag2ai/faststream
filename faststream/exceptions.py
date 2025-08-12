@@ -195,6 +195,11 @@ To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
 """
 
+INSTALL_FASTSTREAM_GCPPUBSUB = """
+To use GCP PubSub with FastStream, please install dependencies:\n
+pip install "faststream[gcppubsub]"
+"""
+
 INSTALL_UVICORN = """
 To run FastStream ASGI App via CLI, please install uvicorn:\n
 pip install uvicorn

@@ -10,12 +10,11 @@ from typing import (
 )
 
 import aiohttp
-from gcloud.aio.pubsub import PubsubMessage, PublisherClient, SubscriberClient
+from gcloud.aio.pubsub import PublisherClient, PubsubMessage, SubscriberClient
 from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.di import FastDependsConfig
 from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
 from faststream.gcppubsub.configs.state import ConnectionState
 from faststream.gcppubsub.publisher.producer import GCPPubSubFastProducer
@@ -32,12 +31,14 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from fast_depends.dependencies import Dependant
-    from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
-    from faststream.gcppubsub.message import GCPPubSubMessage
+    from faststream._internal.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        SendableMessage,
+    )
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -52,9 +53,9 @@ class GCPPubSubBroker(
         self,
         project_id: str,
         *,
-        service_file: Optional[str] = None,
-        emulator_host: Optional[str] = None,
-        session: Optional[aiohttp.ClientSession] = None,
+        service_file: str | None = None,
+        emulator_host: str | None = None,
+        session: aiohttp.ClientSession | None = None,
         # Publisher settings
         publisher_max_messages: int = 100,
         publisher_max_bytes: int = 1024 * 1024,
@@ -93,7 +94,7 @@ class GCPPubSubBroker(
         asgi_app: Any | None = None,
     ) -> None:
         """Initialize GCP Pub/Sub broker.
-        
+
         Args:
             project_id: GCP project ID
             service_file: Path to service account JSON file
@@ -135,12 +136,9 @@ class GCPPubSubBroker(
         self.emulator_host = emulator_host
         self._provided_session = session
         self._state = ConnectionState()
-        
-        if security is not None:
-            security_kwargs = parse_security(security)
-        else:
-            security_kwargs = {}
-        
+
+        security_kwargs = parse_security(security) if security is not None else {}
+
         config = GCPPubSubBrokerConfig(
             producer=GCPPubSubFastProducer(
                 project_id=project_id,
@@ -169,32 +167,34 @@ class GCPPubSubBroker(
             logger=make_gcppubsub_logger_state(
                 logger=logger,
                 log_level=logging.INFO,
-            ) if logger is not EMPTY else make_gcppubsub_logger_state(
+            )
+            if logger is not EMPTY
+            else make_gcppubsub_logger_state(
                 logger=logging.getLogger(__name__),
                 log_level=logging.INFO,
             ),
         )
-        
+
         if schema is None:
             schema = BrokerSpec(
                 description=description,
-                url=[specification_url or f"https://pubsub.googleapis.com"],
+                url=[specification_url or "https://pubsub.googleapis.com"],
                 protocol=protocol or "gcppubsub",
                 protocol_version=protocol_version or "1.0",
                 security=security,
                 tags=tags or [],
             )
-        
+
         super().__init__(
             config=config,
             specification=schema,
             routers=routers,
             **security_kwargs,
         )
-        
+
         self._on_startup_hooks = list(on_startup)
         self._on_shutdown_hooks = list(on_shutdown)
-    
+
     @override
     async def publish(
         self,
@@ -206,14 +206,14 @@ class GCPPubSubBroker(
         correlation_id: str | None = None,
     ) -> str:
         """Publish message to GCP Pub/Sub topic.
-        
+
         Args:
             message: Message body to send
             topic: GCP Pub/Sub topic name
             attributes: Message attributes for metadata
             ordering_key: Message ordering key
             correlation_id: Manual correlation ID setter
-            
+
         Returns:
             Published message ID
         """
@@ -225,13 +225,13 @@ class GCPPubSubBroker(
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
         )
-        
+
         result: str = await super()._basic_publish(
             cmd,
             producer=self.config.producer,
         )
         return result
-    
+
     @override
     async def _connect(self) -> ConnectionState:
         """Connect to GCP Pub/Sub."""
@@ -241,39 +241,40 @@ class GCPPubSubBroker(
         else:
             session = aiohttp.ClientSession()
             owns_session = True
-        
+
         self._state.session = session
         self._state.owns_session = owns_session
-        
+
         # Determine API root for emulator or production
         api_root = None
         if self.emulator_host:
             # Set environment variable for emulator
             import os
+
             os.environ["PUBSUB_EMULATOR_HOST"] = self.emulator_host
             # Set API root for gcloud-aio clients
             api_root = f"http://{self.emulator_host}/v1"
-        
+
         # Create publisher client
         self._state.publisher = PublisherClient(
             service_file=self.service_file,
             session=session,
             api_root=api_root,
         )
-        
+
         # Create subscriber client
         self._state.subscriber = SubscriberClient(
             service_file=self.service_file,
             session=session,
             api_root=api_root,
         )
-        
+
         # Update producer with clients
         self.config.producer._publisher = self._state.publisher
         self.config.producer._session = session
-        
+
         return self._state
-    
+
     @override
     async def stop(
         self,
@@ -283,7 +284,7 @@ class GCPPubSubBroker(
     ) -> None:
         """Close the broker connection."""
         await super().stop(exc_type, exc_val, exc_tb)
-        
+
         if self._connection:
             await self._state.close()
             self._connection = None

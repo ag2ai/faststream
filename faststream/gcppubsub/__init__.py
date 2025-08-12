@@ -21,27 +21,24 @@ try:
 except ImportError as e:
     if "'gcloud'" not in str(e):
         raise
-    
-    from faststream.exceptions import INSTALL_FASTSTREAM
-    
-    raise ImportError(INSTALL_FASTSTREAM + "[gcppubsub]") from e
+
+    from faststream.exceptions import INSTALL_FASTSTREAM_GCPPUBSUB
+
+    raise ImportError(INSTALL_FASTSTREAM_GCPPUBSUB + "[gcppubsub]") from e
 
 __all__ = (
-    # Main classes
+    "INSTALL_FASTSTREAM_GCPPUBSUB",
     "GCPPubSubBroker",
     "GCPPubSubMessage",
-    "GCPPubSubRouter", 
+    "GCPPubSubRouter",
     "GCPPubSubSecurity",
-    # Testing
+    "NativeMessage",
+    "Publisher",
+    "PubsubMessage",
+    "StreamMessage",
+    "Subscriber",
+    "Subscription",
     "TestApp",
     "TestGCPPubSubBroker",
-    # External types
-    "PubsubMessage",
-    # Type annotations
     "Topic",
-    "Subscription",
-    "NativeMessage",
-    "StreamMessage",
-    "Publisher",
-    "Subscriber",
 )

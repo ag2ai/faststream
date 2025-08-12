@@ -1,6 +1,6 @@
 """GCP Pub/Sub publisher factory."""
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from faststream.gcppubsub.publisher.usecase import GCPPubSubPublisher
 
@@ -13,18 +13,18 @@ def create_publisher(
     *,
     broker: "GCPPubSubRegistrator",
     create_topic: bool = True,
-    ordering_key: Optional[str] = None,
+    ordering_key: str | None = None,
     **kwargs: Any,
 ) -> GCPPubSubPublisher:
     """Create a GCP Pub/Sub publisher.
-    
+
     Args:
         topic: Topic name
         broker: Broker instance
         create_topic: Whether to create topic if it doesn't exist
         ordering_key: Message ordering key
         **kwargs: Additional publisher options
-    
+
     Returns:
         GCPPubSubPublisher instance
     """

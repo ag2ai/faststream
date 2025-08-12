@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
-    from gcloud.aio.pubsub import PubsubMessage, PublisherClient, SubscriberClient
+    from gcloud.aio.pubsub import PublisherClient, PubsubMessage, SubscriberClient
 
     from faststream.gcppubsub.message import GCPPubSubMessage
 

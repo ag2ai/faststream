@@ -1,6 +1,6 @@
 """GCP Pub/Sub response types."""
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from faststream.response.publish_type import PublishType
 
@@ -10,20 +10,20 @@ if TYPE_CHECKING:
 
 class GCPPubSubPublishCommand:
     """GCP Pub/Sub publish command."""
-    
+
     def __init__(
         self,
         message: "SendableMessage",
         *,
         topic: str,
-        attributes: Optional[Dict[str, str]] = None,
-        ordering_key: Optional[str] = None,
-        correlation_id: Optional[str] = None,
+        attributes: dict[str, str] | None = None,
+        ordering_key: str | None = None,
+        correlation_id: str | None = None,
         _publish_type: PublishType = PublishType.PUBLISH,
-        timeout: Optional[float] = 30.0,
+        timeout: float | None = 30.0,
     ) -> None:
         """Initialize publish command.
-        
+
         Args:
             message: Message to publish
             topic: Topic to publish to
@@ -40,10 +40,10 @@ class GCPPubSubPublishCommand:
         self.correlation_id = correlation_id
         self.publish_type = _publish_type
         self.timeout = timeout
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary.
-        
+
         Returns:
             Dictionary representation
         """
