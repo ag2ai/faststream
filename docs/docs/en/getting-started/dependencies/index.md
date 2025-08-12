@@ -52,6 +52,19 @@ By default, it applies to all event handlers, unless you disabled the same optio
 
 This flag can be useful if you are using **FastStream** within another framework and you need to use its native dependency system.
 
+## Using `Annotated`
+Dependencies also can be used with `Annotated`.
+
+=== "Non-Annotated"
+    ```python
+    {!> docs_src/index/dependencies.py !}
+    ```
+
+=== "Annotated"
+    ```python
+    {!> docs_src/index/dependencies_annotated.py !}
+    ```
+
 ## Dependency Injection
 
 To implement dependencies in **FastStream**, a special class called **Depends** is used

@@ -1,8 +1,10 @@
 import asyncio
+from typing import Any
 
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
+from faststream import StreamMessage
 from faststream.confluent import KafkaBroker, KafkaMessage
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
@@ -88,7 +90,7 @@ async def check_channel_subscriber() -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
-    assert_type(message, KafkaMessage | None)
+    assert_type(message, StreamMessage[Any] | None)
 
     async for msg in subscriber:
         assert_type(msg, KafkaMessage)
