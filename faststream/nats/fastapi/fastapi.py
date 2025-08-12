@@ -774,7 +774,7 @@ class NatsRouter(StreamRouter["Msg"]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
-        pull_sub: PullSub = ...,
+        pull_sub: "PullSub" = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
