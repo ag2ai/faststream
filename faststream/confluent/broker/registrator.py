@@ -216,7 +216,7 @@ class KafkaRegistrator(
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        max_workers: None = ...,
+        max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args

@@ -4,6 +4,7 @@ from confluent_kafka import Message
 from typing_extensions import assert_type
 
 from faststream.confluent import KafkaBroker, KafkaMessage
+from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
     DefaultPublisher,
@@ -40,11 +41,11 @@ async def check_publish_type(fake_bool: bool = True) -> None:
     publish_without_confirm = await broker.publish(None, "test", no_confirm=False)
     assert_type(publish_without_confirm, Message | None)
 
-    publish_confirm_bool = await broker.publish(None, "test", no_confirm=fake_bool)
-    assert_type(publish_confirm_bool, Message)
+    publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
+    assert_type(publish_confirm_bool, Message | None)
 
 
-async def check_publisher_publish_type(fake_bool: bool = False) -> None:
+async def check_publisher_publish_type(broker: KafkaBroker | FastAPIRouter, fake_bool: bool = False) -> None:
     broker = KafkaBroker()
 
     p1 = broker.publisher("test", batch=True)
@@ -72,7 +73,7 @@ async def check_publish_batch_type(fake_bool: bool = True) -> None:
     publish_with_confirm = await broker.publish_batch(None, topic="test")  # type: ignore[func-returns-value]
     assert_type(publish_with_confirm, None)
 
-    publish_without_confirm = await broker.publish_batch(None, topic="test", no_confirm=True) # type: ignore[func-returns-value]
+    publish_without_confirm = await broker.publish_batch(None, topic="test", no_confirm=True)  # type: ignore[func-returns-value]
     assert_type(publish_without_confirm, None)
 
     publish_confirm_bool = await broker.publish_batch(  # type: ignore[func-returns-value]
@@ -93,7 +94,7 @@ async def check_channel_subscriber() -> None:
         assert_type(msg, KafkaMessage)
 
 
-def check_subscriber_instance_type() -> None:
+def check_subscriber_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
     broker = KafkaBroker()
 
     sub1 = broker.subscriber("test")

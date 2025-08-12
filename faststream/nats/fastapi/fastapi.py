@@ -33,22 +33,22 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
-from faststream.faststream.nats.subscriber.usecases.core_subscriber import (
+from faststream.nats.subscriber.usecases.core_subscriber import (
     ConcurrentCoreSubscriber,
     CoreSubscriber,
 )
-from faststream.faststream.nats.subscriber.usecases.key_value_subscriber import (
+from faststream.nats.subscriber.usecases.key_value_subscriber import (
     KeyValueWatchSubscriber,
 )
-from faststream.faststream.nats.subscriber.usecases.object_storage_subscriber import (
+from faststream.nats.subscriber.usecases.object_storage_subscriber import (
     ObjStoreWatchSubscriber,
 )
-from faststream.faststream.nats.subscriber.usecases.stream_pull_subscriber import (
+from faststream.nats.subscriber.usecases.stream_pull_subscriber import (
     BatchPullStreamSubscriber,
     ConcurrentPullStreamSubscriber,
     PullStreamSubscriber,
 )
-from faststream.faststream.nats.subscriber.usecases.stream_push_subscriber import (
+from faststream.nats.subscriber.usecases.stream_push_subscriber import (
     ConcurrentPushStreamSubscriber,
     PushStreamSubscriber,
 )
@@ -1084,7 +1084,7 @@ class NatsRouter(StreamRouter["Msg"]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-    ) -> "LogicSubscriber[Msg]":
+    ) -> "LogicSubscriber[Any]":
         """Creates NATS subscriber object.
 
         Args:
@@ -1191,7 +1191,7 @@ class NatsRouter(StreamRouter["Msg"]):
             LogicSubscriber[Any]: The created subscriber object.
         """
         return cast(
-            "LogicSubscriber[Msg]",
+            "LogicSubscriber[Any]",
             super().subscriber(
                 subject=subject,
                 queue=queue,
