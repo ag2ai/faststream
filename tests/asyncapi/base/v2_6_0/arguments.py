@@ -426,6 +426,7 @@ class FastAPICompatible(AsyncAPI260Factory):
         Fixes issue #2443: Nested Pydantic models are not included in AsyncAPI
         components/schemas (inplaced instead).
         """
+
         class Email(pydantic.BaseModel):
             addr: str
 
@@ -461,6 +462,7 @@ class FastAPICompatible(AsyncAPI260Factory):
         Fixes issue #2443: Nested Pydantic models are not included in AsyncAPI
         components/schemas (inplaced instead).
         """
+
         class Email(pydantic.BaseModel):
             addr: str
 
