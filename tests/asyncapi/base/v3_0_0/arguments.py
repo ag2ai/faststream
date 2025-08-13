@@ -384,6 +384,81 @@ class FastAPICompatible(AsyncAPI300Factory):
             },
         }
 
+    def test_nested_models_in_union_should_be_in_schemas(self) -> None:
+        """Test that nested Pydantic models in union types are promoted to components/schemas.
+
+        Fixes issue #2443: Nested Pydantic models are not included in AsyncAPI
+        components/schemas (inplaced instead).
+        """
+        class Email(pydantic.BaseModel):
+            addr: str
+
+        class User(pydantic.BaseModel):
+            name: str = ""
+            id: int
+            email: Email
+
+        class Other(pydantic.BaseModel):
+            id: int
+
+        broker = self.broker_class()
+
+        @broker.subscriber("test")
+        async def handle(body: User | Other) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        payload = schema["components"]["schemas"]
+
+        # Check that nested Email model is promoted to components/schemas
+        assert "Email" in payload
+        assert payload["Email"] == {
+            "title": "Email",
+            "type": "object",
+            "properties": {"addr": {"title": "Addr", "type": "string"}},
+            "required": ["addr"],
+        }
+
+    def test_nested_models_in_publisher_union_should_be_in_schemas(self) -> None:
+        """Test that nested Pydantic models in publisher union types are promoted to components/schemas.
+
+        Fixes issue #2443: Nested Pydantic models are not included in AsyncAPI
+        components/schemas (inplaced instead).
+        """
+        class Email(pydantic.BaseModel):
+            addr: str
+
+        class User(pydantic.BaseModel):
+            name: str = ""
+            id: int
+            email: Email
+
+        class Other(pydantic.BaseModel):
+            id: int
+
+        broker = self.broker_class()
+
+        publisher = broker.publisher("test")
+
+        @publisher
+        def handle0(msg) -> User: ...
+
+        @publisher
+        def handle1(msg) -> Other: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        payload = schema["components"]["schemas"]
+
+        # Check that nested Email model is promoted to components/schemas
+        assert "Email" in payload
+        assert payload["Email"] == {
+            "title": "Email",
+            "type": "object",
+            "properties": {"addr": {"title": "Addr", "type": "string"}},
+            "required": ["addr"],
+        }
+
     def test_pydantic_model_with_example(self) -> None:
         class User(pydantic.BaseModel):
             name: str = ""

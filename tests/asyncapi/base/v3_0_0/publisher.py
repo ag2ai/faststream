@@ -121,31 +121,3 @@ class PublisherTestcase(AsyncAPI300Factory):
         schema = self.get_spec(broker).to_jsonable()
 
         assert schema["channels"] == {}, schema["channels"]
-
-    def test_nested_models_in_one_of_should_be_in_schemas(self) -> None:
-        class Email(pydantic.BaseModel):
-            email: str
-
-        class User(pydantic.BaseModel):
-            email: Email
-            name: str = ""
-            id: int
-
-        broker = self.broker_class()
-
-        publisher = broker.publisher("test")
-
-        @publisher
-        def handle0(msg) -> User: ...
-
-        class Other(pydantic.BaseModel):
-            id: int
-
-        @publisher
-        def handle1(msg) -> Other: ...
-
-        schema = self.get_spec(broker).to_jsonable()
-
-        payload = schema["components"]["schemas"]
-
-        assert "Email" in payload
