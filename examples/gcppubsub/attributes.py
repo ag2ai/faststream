@@ -1,12 +1,12 @@
 from faststream import FastStream, Logger
-from faststream.gcppubsub import GCPPubSubBroker, GCPPubSubMessage
+from faststream.gcp import GCPBroker, GCPMessage
 
-broker = GCPPubSubBroker(project_id="test-project")
+broker = GCPBroker(project_id="test-project")
 app = FastStream(broker)
 
 
 @broker.subscriber("priority-sub", topic="priority-events")
-async def handle_priority(msg: GCPPubSubMessage, logger: Logger):
+async def handle_priority(msg: GCPMessage, logger: Logger):
     priority = msg.attributes.get("priority", "normal")
     source = msg.attributes.get("source", "unknown")
 

@@ -13,7 +13,7 @@ Prerequisites:
    export PUBSUB_EMULATOR_HOST=localhost:8085
 
 4. Run this example:
-   python examples/gcppubsub/emulator_example.py
+   python examples/gcp/emulator_example.py
 """
 
 import asyncio
@@ -23,7 +23,7 @@ from typing import Dict
 import pytest
 
 from faststream import FastStream, Logger
-from faststream.gcppubsub import GCPPubSubBroker, TestGCPPubSubBroker
+from faststream.gcp import GCPBroker, TestGCPBroker
 
 
 def check_emulator():
@@ -36,7 +36,7 @@ def check_emulator():
 
 # Configure broker for emulator
 emulator_host = os.getenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
-broker = GCPPubSubBroker(
+broker = GCPBroker(
     project_id="test-project",
     emulator_host=emulator_host,
 )
@@ -139,10 +139,10 @@ async def test_with_emulator():
 
 
 async def test_with_test_broker():
-    """Test with TestGCPPubSubBroker (for comparison)."""
-    print("\n🧪 Testing with TestGCPPubSubBroker...")
+    """Test with TestGCPBroker (for comparison)."""
+    print("\n🧪 Testing with TestGCPBroker...")
 
-    async with TestGCPPubSubBroker(broker, with_real=False) as test_broker:
+    async with TestGCPBroker(broker, with_real=False) as test_broker:
         # Test publishing
         result = await test_broker.publish("Test message", topic="user-events")
         print(f"Test broker result: {result}")

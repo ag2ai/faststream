@@ -2,8 +2,8 @@
 
 import os
 from faststream import FastStream, Logger
-from faststream.gcppubsub import (
-    GCPPubSubBroker,
+from faststream.gcp import (
+    GCPBroker,
     PublisherConfig,
     RetryConfig,
     SubscriberConfig,
@@ -30,7 +30,7 @@ retry_config = RetryConfig(
 )
 
 # Create broker with grouped configuration
-broker = GCPPubSubBroker(
+broker = GCPBroker(
     project_id=os.getenv("GCP_PROJECT_ID", "test-project"),
     emulator_host=os.getenv("PUBSUB_EMULATOR_HOST"),
     publisher_config=publisher_config,

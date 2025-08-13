@@ -1,9 +1,9 @@
 import pytest
 
 from faststream import FastStream
-from faststream.gcppubsub import GCPPubSubBroker, TestGCPPubSubBroker
+from faststream.gcp import GCPBroker, TestGCPBroker
 
-broker = GCPPubSubBroker(project_id="test-project")
+broker = GCPBroker(project_id="test-project")
 app = FastStream(broker)
 
 
@@ -14,7 +14,7 @@ async def handle(msg: str):
 
 @pytest.mark.asyncio()
 async def test_handle():
-    async with TestGCPPubSubBroker(broker) as br:
+    async with TestGCPBroker(broker) as br:
         result = await br.publish("Hello!", topic="test-topic")
         assert result is not None
         print("✅ Basic publish test passed!")

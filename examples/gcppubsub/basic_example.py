@@ -1,9 +1,9 @@
 import os
 from faststream import FastStream, Logger
-from faststream.gcppubsub import GCPPubSubBroker
+from faststream.gcp import GCPBroker
 
 # Use environment variables for configuration
-broker = GCPPubSubBroker(
+broker = GCPBroker(
     project_id=os.getenv("GCP_PROJECT_ID", "test-project"),
     emulator_host=os.getenv("PUBSUB_EMULATOR_HOST"),
 )

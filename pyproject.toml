@@ -74,7 +74,7 @@ nats = ["nats-py>=2.7.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<7.0.0"]
 
-gcppubsub = [
+gcp = [
     "gcloud-aio-pubsub>=6.3.0,<7.0.0",
     "aiohttp>=3.8.0,<4.0.0",
     "backoff>=2.0.0,<3.0.0",
@@ -90,7 +90,7 @@ cli = [
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,gcppubsub,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,gcp,otel,cli,prometheus]"]
 
 docs = [
     "mkdocs-material==9.6.16",
@@ -207,7 +207,7 @@ markers = [
     "confluent",
     "nats",
     "redis",
-    "gcppubsub",
+    "gcp",
     "slow",
     "connected",
     "all",

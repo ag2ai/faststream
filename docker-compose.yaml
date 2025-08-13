@@ -40,10 +40,25 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  gcp:
+    image: messagebird/gcloud-pubsub-emulator:latest
+    ports:
+      - 8681:8681
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8681/v1/projects"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
   faststream:
     build: .
     volumes:
       - ./:/src
       - /src/.venv/
-    network_mode: "host"
+    environment:
+      PUBSUB_EMULATOR_HOST: "gcp:8681"
     tty: true

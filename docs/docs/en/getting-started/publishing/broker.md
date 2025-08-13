@@ -49,3 +49,7 @@ In the **FastStream** project, this call is not represented in the **AsyncAPI** 
     ```python linenums="1" hl_lines="10 20"
     {!> docs_src/getting_started/publishing/redis/broker.py !}
     ```
+=== "GCP Pub/Sub"
+    ```python linenums="1" hl_lines="10 20"
+    {!> docs_src/getting_started/publishing/gcp/broker.py !}
+    ```

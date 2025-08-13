@@ -1,7 +1,7 @@
 from faststream import FastStream, Logger
-from faststream.gcppubsub import GCPPubSubBroker
+from faststream.gcp import GCPBroker
 
-broker = GCPPubSubBroker(project_id="test-project")
+broker = GCPBroker(project_id="test-project")
 app = FastStream(broker)
 
 

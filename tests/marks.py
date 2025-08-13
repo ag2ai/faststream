@@ -87,13 +87,13 @@ require_nats = pytest.mark.skipif(
 
 
 try:
-    from faststream.gcppubsub import GCPPubSubBroker  # noqa: F401
+    from faststream.gcp import GCPBroker  # noqa: F401
 except ImportError:
-    HAS_GCPPUBSUB = False
+    HAS_GCP = False
 else:
-    HAS_GCPPUBSUB = True
+    HAS_GCP = True
 
-require_gcppubsub = pytest.mark.skipif(
-    not HAS_GCPPUBSUB,
+require_gcp = pytest.mark.skipif(
+    not HAS_GCP,
     reason="requires gcloud-aio-pubsub",
 )

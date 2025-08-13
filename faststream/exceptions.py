@@ -197,7 +197,7 @@ pip install "faststream[nats]"
 
 INSTALL_FASTSTREAM_GCPPUBSUB = """
 To use GCP PubSub with FastStream, please install dependencies:\n
-pip install "faststream[gcppubsub]"
+pip install "faststream[gcp]"
 """
 
 INSTALL_UVICORN = """

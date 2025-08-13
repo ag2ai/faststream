@@ -44,6 +44,12 @@ Redis:
       - faststream/redis/**
       - docs/docs/en/redis/**
 
+GCP:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/gcp/**
+      - docs/docs/en/gcp/**
+
 Observability:
   - changed-files:
     - any-glob-to-any-file:
