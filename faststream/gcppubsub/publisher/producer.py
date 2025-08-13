@@ -1,5 +1,6 @@
 """GCP Pub/Sub message producer."""
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from gcloud.aio.pubsub import PublisherClient, PubsubMessage
@@ -63,22 +64,55 @@ class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
         # Ensure correlation_id in attributes
         attrs["correlation_id"] = correlation_id
 
-        # Convert message to bytes if needed
-        if isinstance(message_data, str):
-            data = message_data.encode()
-        elif isinstance(message_data, bytes):
-            data = message_data
-        else:
-            # Serialize other types to JSON then bytes
-            import json
+        # Convert message to bytes - handle FastStream encoding with custom serialization fallback
+        from faststream.message import encode_message
 
-            data = json.dumps(message_data).encode()
+        try:
+            # Try FastStream's encoding first
+            data, content_type = encode_message(message_data, serializer=None)
+
+            # GCP Pub/Sub doesn't allow empty messages, use a single space as minimal payload
+            if not data:
+                data = b" "
+                attrs["__faststream_empty"] = "true"  # Mark as originally empty
+
+            # Add content type to attributes if available
+            if content_type:
+                attrs["content_type"] = content_type
+
+        except TypeError as e:
+            if "not JSON serializable" in str(e):
+                # Handle non-serializable objects with custom encoder
+                import json
+                from dataclasses import asdict, is_dataclass
+                from datetime import datetime
+
+                def json_serializer(obj: Any) -> Any:
+                    """JSON serializer for objects not serializable by default json code."""
+                    if isinstance(obj, datetime):
+                        return obj.isoformat()
+                    if is_dataclass(obj) and not isinstance(obj, type):
+                        return asdict(obj)
+                    if hasattr(obj, "model_dump"):  # Pydantic v2
+                        return obj.model_dump()
+                    if hasattr(obj, "dict"):  # Pydantic v1
+                        return obj.dict()
+                    error_msg = f"Object of type {obj.__class__.__name__} is not JSON serializable"
+                    raise TypeError(error_msg)
+
+                data = json.dumps(message_data, default=json_serializer).encode()
+                attrs["content_type"] = "application/json"
+            else:
+                raise
 
         # Create message - gcloud-aio-pubsub expects data and keyword args for attributes
         message = PubsubMessage(data, ordering_key=ordering_key or "", **attrs)
 
         # Format topic path
         topic_path = self._publisher.topic_path(self.project_id, topic)
+
+        # Ensure topic exists (create if needed)
+        await self._ensure_topic_exists(topic_path)
 
         # Publish message
         result = await self._publisher.publish(topic_path, [message])
@@ -120,6 +154,22 @@ class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
                 message_ids.append(msg_id)
             return message_ids
         return []
+
+    async def _ensure_topic_exists(self, topic_path: str) -> None:
+        """Ensure the topic exists, create if it doesn't.
+
+        Args:
+            topic_path: Full topic path (projects/project-id/topics/topic-name)
+        """
+        # Try to create the topic - this will fail silently if it already exists
+        # GCP Pub/Sub emulator returns 409 if topic exists, production returns different errors
+        with contextlib.suppress(Exception):  # nosec B110
+            await self.get_publisher().create_topic(topic_path)
+
+    def get_publisher(self) -> PublisherClient:
+        """Returns the publisher and errors if does not exist."""
+        assert self._publisher is not None
+        return self._publisher
 
     async def request(
         self,

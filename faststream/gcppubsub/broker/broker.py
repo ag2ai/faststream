@@ -15,6 +15,7 @@ from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.di import FastDependsConfig
 from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
 from faststream.gcppubsub.configs.state import ConnectionState
 from faststream.gcppubsub.publisher.producer import GCPPubSubFastProducer
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream._internal.types.compat import SerializerProto
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
     from faststream.types import SendableMessage
@@ -73,6 +75,9 @@ class GCPPubSubBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Sequence["Registrator[PubsubMessage]"] = (),
+        # FastDepends args
+        apply_types: bool = True,
+        serializer: Optional["SerializerProto"] = EMPTY,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
@@ -127,6 +132,8 @@ class GCPPubSubBroker(
             schema: Broker specification
             run_asgi_app: Whether to run ASGI app
             asgi_app: ASGI application
+            apply_types: Whether to use FastDepends for type validation
+            serializer: FastDepends-compatible serializer for message validation
         """
         self.project_id = project_id
         self.service_file = service_file
@@ -172,6 +179,16 @@ class GCPPubSubBroker(
                 logger=logging.getLogger(__name__),
                 log_level=logging.INFO,
             ),
+            fd_config=FastDependsConfig(
+                use_fastdepends=apply_types,
+                serializer=serializer,
+            ),
+            # subscriber args
+            broker_dependencies=dependencies,
+            graceful_timeout=graceful_timeout,
+            extra_context={
+                "broker": self,
+            },
         )
 
         if schema is None:
@@ -202,6 +219,7 @@ class GCPPubSubBroker(
         *,
         attributes: dict[str, str] | None = None,
         ordering_key: str | None = None,
+        reply_to: str | None = None,
         correlation_id: str | None = None,
     ) -> str:
         """Publish message to GCP Pub/Sub topic.
@@ -211,15 +229,21 @@ class GCPPubSubBroker(
             topic: GCP Pub/Sub topic name
             attributes: Message attributes for metadata
             ordering_key: Message ordering key
+            reply_to: Reply topic for response messages (stored in attributes)
             correlation_id: Manual correlation ID setter
 
         Returns:
             Published message ID
         """
+        # Add reply_to to attributes since GCP Pub/Sub doesn't have native reply_to
+        final_attributes = attributes or {}
+        if reply_to:
+            final_attributes["reply_to"] = reply_to
+
         cmd = GCPPubSubPublishCommand(
             message,
             topic=topic or "",
-            attributes=attributes,
+            attributes=final_attributes,
             ordering_key=ordering_key,
             correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
@@ -230,6 +254,48 @@ class GCPPubSubBroker(
             producer=self.config.producer,
         )
         return result
+
+    async def publish_batch(  # type: ignore[override]
+        self,
+        messages: list[Any],
+        *,
+        topic: str,
+        attributes: dict[str, str] | None = None,
+        ordering_key: str | None = None,
+        correlation_id: str | None = None,
+    ) -> list[str]:
+        """Publish multiple messages to GCP Pub/Sub topic.
+
+        Args:
+            messages: List of message bodies to send
+            topic: GCP Pub/Sub topic name
+            attributes: Message attributes for metadata
+            ordering_key: Message ordering key
+            correlation_id: Base correlation ID for messages
+
+        Returns:
+            List of published message IDs
+        """
+        # Publish each message individually for now
+        # TODO: Use true batch publishing when producer supports it
+        message_ids = []
+        for msg in messages:
+            message_id = await self.publish(
+                msg,
+                topic=topic,
+                attributes=attributes,
+                ordering_key=ordering_key,
+                correlation_id=correlation_id,
+            )
+            message_ids.append(message_id)
+
+        return message_ids
+
+    @override
+    async def start(self) -> None:
+        """Connect broker to GCP Pub/Sub and startup all subscribers."""
+        await self.connect()
+        await super().start()
 
     @override
     async def _connect(self) -> ConnectionState:

@@ -1,5 +1,6 @@
 """GCP Pub/Sub subscriber use case."""
 
+import contextlib
 import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
@@ -11,8 +12,8 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
+from faststream._internal.endpoint.utils import process_msg
 from faststream.gcppubsub.message import GCPPubSubMessage
-from faststream.gcppubsub.parser import GCPPubSubParser
 from faststream.gcppubsub.publisher.fake import GCPPubSubFakePublisher
 
 if TYPE_CHECKING:
@@ -44,16 +45,23 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
             specification: Subscriber specification
             calls: Handler calls collection
         """
-        # Create parser for message processing
-        parser = GCPPubSubParser()
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        # Parser and decoder are already set in config.__post_init__
 
         super().__init__(config, specification, calls)
         self.config = config
         self.subscription = config.subscription
         self.topic = config.topic
         self.max_messages = config.max_messages
+
+    def get_subscription_name(self) -> str:
+        """Get subscription name with prefix applied."""
+        return f"{self._outer_config.prefix}{self.subscription}"
+
+    def get_topic_name(self) -> str | None:
+        """Get topic name with prefix applied."""
+        if self.topic:
+            return f"{self._outer_config.prefix}{self.topic}"
+        return None
 
     @property
     def _subscriber_client(self) -> SubscriberClient:
@@ -72,6 +80,11 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
         self,
         message: "BrokerStreamMessage[PubsubMessage]",
     ) -> Sequence["PublisherProto"]:
+        # GCP Pub/Sub requires a valid topic name - if reply_to is empty,
+        # we can't create a publisher (unlike RabbitMQ where empty routing key is valid)
+        if not message.reply_to:
+            return ()
+
         return (
             GCPPubSubFakePublisher(
                 self._outer_config.producer,
@@ -115,7 +128,7 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
 
         self._log(
             log_level=logging.INFO,
-            message=f"Starting consume loop for {self.subscription}",
+            message=f"Starting consume loop for {self.get_subscription_name()}",
         )
 
         while self.running:
@@ -139,7 +152,7 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
                     connected = True
                     self._log(
                         log_level=logging.INFO,
-                        message=f"{self.subscription} subscription connection established",
+                        message=f"{self.get_subscription_name()} subscription connection established",
                     )
 
     async def _get_msgs(self, *args: Any) -> None:
@@ -147,7 +160,7 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
         try:
             subscriber = self._subscriber_client
             subscription_path = subscriber.subscription_path(
-                self._outer_config.project_id, self.subscription
+                self._outer_config.project_id, self.get_subscription_name()
             )
 
             # Pull messages with retry logic
@@ -159,7 +172,7 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
 
             self._log(
                 log_level=logging.INFO,
-                message=f"Pulled {len(messages)} messages from {self.subscription}",
+                message=f"Pulled {len(messages)} messages from {self.get_subscription_name()}",
             )
 
             # Process messages concurrently
@@ -197,11 +210,13 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
             ack_id = msg_data.ack_id
 
             # Create PubsubMessage from SubscriberMessage
+            # Use keyword arguments to preserve attribute structure
+            attrs = msg_data.attributes or {}
             pubsub_msg = PubsubMessage(
                 data=msg_data.data,
                 message_id=msg_data.message_id,
                 publish_time=msg_data.publish_time,
-                attributes=msg_data.attributes or {},
+                **attrs,
             )
 
             # Use the inherited consume method which handles dependency injection
@@ -228,20 +243,20 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
         return GCPPubSubMessage(
             raw_message=msg,
             ack_id=None,  # Will be set by _process_message
-            subscription=self.subscription,
+            subscription=self.get_subscription_name(),
         )
 
     async def _ack_message(self, subscriber: SubscriberClient, ack_id: str) -> None:
         """Acknowledge a message."""
         subscription_path = subscriber.subscription_path(
-            self._outer_config.project_id, self.subscription
+            self._outer_config.project_id, self.get_subscription_name()
         )
         await subscriber.acknowledge(subscription_path, [ack_id])
 
     async def _nack_message(self, subscriber: SubscriberClient, ack_id: str) -> None:
         """Negative acknowledge a message."""
         subscription_path = subscriber.subscription_path(
-            self._outer_config.project_id, self.subscription
+            self._outer_config.project_id, self.get_subscription_name()
         )
         # Modify ack deadline to 0 to immediately make message available for redelivery
         await subscriber.modify_ack_deadline(subscription_path, [ack_id], 0)
@@ -249,11 +264,30 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
     async def _ensure_subscription_exists(self) -> None:
         """Ensure the subscription exists."""
         try:
+            # First ensure the topic exists (needed for subscription creation)
+            topic_name = self.get_topic_name()
+            if (
+                topic_name
+                and hasattr(self._outer_config, "connection")
+                and self._outer_config.connection
+            ):
+                publisher_client = self._outer_config.connection.publisher
+                assert publisher_client is not None
+                topic_path = (
+                    f"projects/{self._outer_config.project_id}/topics/{topic_name}"
+                )
+                # Topic might already exist
+                with contextlib.suppress(Exception):  # nosec B110
+                    await publisher_client.create_topic(topic_path)
+
+            # Now create the subscription
             subscriber = self._subscriber_client
-            # Note: gcloud-aio has a create_subscription method
+            subscription_path = f"projects/{self._outer_config.project_id}/subscriptions/{self.get_subscription_name()}"
+            topic_path = f"projects/{self._outer_config.project_id}/topics/{self.get_topic_name() or ''}"
+
             await subscriber.create_subscription(
-                subscription=self.subscription,
-                topic=self.topic or "",
+                subscription=subscription_path,
+                topic=topic_path,
                 body={"ackDeadlineSeconds": self.config.ack_deadline}
                 if self.config.ack_deadline
                 else None,
@@ -265,22 +299,73 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
 
     async def __aiter__(self) -> Any:
         """Async iterator for message consumption."""
-        msg = "Iterator pattern not implemented for GCP Pub/Sub. Use message handlers instead."
-        raise NotImplementedError(msg)
-
-    async def get_one(self, *, timeout: float = 5.0) -> GCPPubSubMessage:
-        """Get a single message from the subscription."""
-        subscriber = self._subscriber_client
-        subscription_path = subscriber.subscription_path(
-            self._outer_config.project_id, self.subscription
+        assert not self.calls, (
+            "You can't use iterator method if subscriber has registered handlers."
         )
 
-        # Pull a single message with timeout
-        messages = await subscriber.pull(subscription_path, max_messages=1)
+        subscriber = self._subscriber_client
+        subscription_path = subscriber.subscription_path(
+            self._outer_config.project_id, self.get_subscription_name()
+        )
+        context = self._outer_config.fd_config.context
+
+        while self.running:
+            # Pull messages from subscription
+            messages = await subscriber.pull(subscription_path, max_messages=1)
+
+            if not messages:
+                # No messages available, short sleep and continue
+                await anyio.sleep(0.1)
+                continue
+
+            # Process the first message
+            msg_data = messages[0]
+
+            # Convert to PubsubMessage if needed
+            if hasattr(msg_data, "message"):
+                raw_msg = msg_data.message
+            else:
+                # Create PubsubMessage from SubscriberMessage data
+                raw_msg = PubsubMessage(
+                    data=getattr(msg_data, "data", b""),
+                    message_id=getattr(msg_data, "message_id", ""),
+                    publish_time=getattr(msg_data, "publish_time", None),
+                    attributes=getattr(msg_data, "attributes", {}),
+                )
+
+            # Use process_msg to properly set up parser and decoder like get_one() does
+            msg = await process_msg(
+                msg=raw_msg,
+                middlewares=(
+                    m(raw_msg, context=context) for m in self._broker_middlewares
+                ),
+                parser=self.config.parser,
+                decoder=self.config.decoder,
+            )
+
+            if msg and isinstance(msg, GCPPubSubMessage):
+                msg._ack_id = getattr(msg_data, "ack_id", None)
+                msg._subscription = self.get_subscription_name()
+                yield msg
+
+    async def get_one(self, *, timeout: float = 5.0) -> "BrokerStreamMessage[Any] | None":
+        """Get a single message from the subscription."""
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
+        subscriber = self._subscriber_client
+        subscription_path = subscriber.subscription_path(
+            self._outer_config.project_id, self.get_subscription_name()
+        )
+
+        # Pull a single message with timeout using anyio.move_on_after
+        messages = None
+        with anyio.move_on_after(timeout):
+            messages = await subscriber.pull(subscription_path, max_messages=1)
 
         if not messages:
-            msg = f"No messages received from {self.subscription} within {timeout}s"
-            raise TimeoutError(msg)
+            # Either no messages available or timeout exceeded, return None
+            return None
 
         # Process the first message
         msg_data = messages[0]
@@ -296,8 +381,19 @@ class GCPPubSubSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
                 attributes=getattr(msg_data, "attributes", {}),
             )
 
-        return GCPPubSubMessage(
-            raw_message=raw_msg,
-            ack_id=getattr(msg_data, "ack_id", None),
-            subscription=self.subscription,
+        # Use process_msg to properly set up parser and decoder
+        context = self._outer_config.fd_config.context
+
+        msg = await process_msg(
+            msg=raw_msg,
+            middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
+            parser=self.config.parser,
+            decoder=self.config.decoder,
         )
+
+        # Set additional GCP Pub/Sub specific attributes
+        if msg and isinstance(msg, GCPPubSubMessage):
+            msg._ack_id = getattr(msg_data, "ack_id", None)
+            msg._subscription = self.get_subscription_name()
+
+        return msg

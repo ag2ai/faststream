@@ -26,12 +26,18 @@ class GCPPubSubParser:
         attributes = {}
 
         if hasattr(message, "attributes") and message.attributes:
-            attributes = message.attributes
+            # For PubsubMessage, user attributes are nested in attributes['attributes']
+            if "attributes" in message.attributes and isinstance(
+                message.attributes["attributes"], dict
+            ):
+                attributes = message.attributes["attributes"]
+            else:
+                attributes = message.attributes
 
         return GCPPubSubMessage(
             raw_message=message,
             correlation_id=attributes.get("correlation_id") or gen_cor_id(),
-            reply_to="",  # GCP Pub/Sub doesn't have built-in reply-to
+            # Don't set reply_to - let it default to None
         )
 
     async def decode_message(

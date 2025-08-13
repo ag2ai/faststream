@@ -47,7 +47,12 @@ class GCPPubSubPublisherSpecification(PublisherSpecification):
     @property
     def call_name(self) -> str:
         """Get call name for logging."""
-        return f"gcppubsub:{self.topic}"
+        topic_name = (
+            f"{self._outer_config.prefix}{self.topic}"
+            if self._outer_config
+            else self.topic
+        )
+        return f"gcppubsub:{topic_name}"
 
     def get_log_context(
         self,

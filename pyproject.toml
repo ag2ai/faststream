@@ -207,6 +207,7 @@ markers = [
     "confluent",
     "nats",
     "redis",
+    "gcppubsub",
     "slow",
     "connected",
     "all",

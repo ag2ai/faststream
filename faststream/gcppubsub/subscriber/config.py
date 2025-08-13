@@ -37,17 +37,10 @@ class GCPPubSubSubscriberConfig(SubscriberUsecaseConfig):
 
     def __post_init__(self) -> None:
         """Post-initialization setup."""
-        # Set parser and decoder from broker config, with defaults if None
-
+        # Set parser and decoder to defaults - broker parser will be composed separately
         default_parser = GCPPubSubParser()
-        self.parser = cast(
-            "AsyncCallable",
-            self._outer_config.broker_parser or default_parser.parse_message,
-        )
-        self.decoder = cast(
-            "AsyncCallable",
-            self._outer_config.broker_decoder or default_parser.decode_message,
-        )
+        self.parser = cast("AsyncCallable", default_parser.parse_message)
+        self.decoder = cast("AsyncCallable", default_parser.decode_message)
 
     @property
     def ack_policy(self) -> AckPolicy:

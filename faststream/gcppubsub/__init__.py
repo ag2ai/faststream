@@ -6,6 +6,7 @@ try:
     from gcloud.aio.pubsub import PubsubMessage
 
     from faststream.gcppubsub.annotations import (
+        GCPPubSubMessage,
         NativeMessage,
         Publisher,
         StreamMessage,
@@ -14,7 +15,6 @@ try:
         Topic,
     )
     from faststream.gcppubsub.broker import GCPPubSubBroker, GCPPubSubRouter
-    from faststream.gcppubsub.message import GCPPubSubMessage
     from faststream.gcppubsub.security import GCPPubSubSecurity
     from faststream.gcppubsub.testing import TestGCPPubSubBroker
 

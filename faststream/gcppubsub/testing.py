@@ -9,7 +9,6 @@ from gcloud.aio.pubsub import PubsubMessage
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.gcppubsub.broker import GCPPubSubBroker
-from faststream.gcppubsub.message import GCPPubSubMessage
 from faststream.gcppubsub.response import GCPPubSubPublishCommand
 from faststream.message import gen_cor_id
 
@@ -40,7 +39,12 @@ class TestGCPPubSubBroker(TestBroker[GCPPubSubBroker]):
         # Look for existing subscriber that matches the publisher's topic
         for handler in broker.subscribers:
             handler = cast("GCPPubSubSubscriber", handler)
-            if hasattr(handler, "topic") and handler.topic == publisher.topic:
+            # Check if subscriber matches publisher topic
+            # If subscriber topic is None, it defaults to subscription name
+            handler_topic = (
+                handler.topic if handler.topic is not None else handler.subscription
+            )
+            if handler_topic == publisher.topic:
                 sub = handler
                 break
 
@@ -50,7 +54,7 @@ class TestGCPPubSubBroker(TestBroker[GCPPubSubBroker]):
             sub = broker.subscriber(
                 subscription=f"fake-sub-{publisher.topic}",
                 topic=publisher.topic,
-                create_subscription=False,
+                create_subscription=True,  # Allow creation for real connections
             )
         else:
             is_real = True
@@ -68,6 +72,89 @@ class FakeGCPPubSubProducer:
     def __init__(self, broker: GCPPubSubBroker) -> None:
         self.broker = broker
 
+    def _create_json_serializer(self) -> Any:
+        """Create a JSON serializer for custom types."""
+        from datetime import date, datetime
+
+        def json_serializer(obj: Any) -> Any:
+            """Custom JSON serializer for common Python types."""
+            if isinstance(obj, (datetime, date)):
+                return obj.isoformat()
+            error_msg = f"Object of type {type(obj).__name__} is not JSON serializable"
+            raise TypeError(error_msg)
+
+        return json_serializer
+
+    def _serialize_with_broker_serializer(
+        self, message_data: Any, serializer: Any
+    ) -> bytes:
+        """Serialize message data using broker's serializer."""
+        try:
+            # Try using the broker's serializer first
+            data = serializer.dumps(message_data)
+            if isinstance(data, str):
+                return data.encode()
+            if isinstance(data, bytes):
+                return data
+            # Convert any other type to bytes via JSON
+            return self._serialize_with_json(message_data)
+        except Exception:
+            # Fall back to JSON serialization
+            return self._serialize_with_json(message_data)
+
+    def _serialize_with_json(self, message_data: Any) -> bytes:
+        """Serialize message data using JSON."""
+        import json
+        from dataclasses import asdict, is_dataclass
+
+        json_serializer = self._create_json_serializer()
+
+        if is_dataclass(message_data) and not isinstance(message_data, type):
+            return json.dumps(asdict(message_data), default=json_serializer).encode()
+        # Try to serialize as dict if it has __dict__
+        try:
+            return json.dumps(
+                message_data.__dict__
+                if hasattr(message_data, "__dict__")
+                else message_data,
+                default=json_serializer,
+            ).encode()
+        except (TypeError, AttributeError):
+            # Last resort - convert to string
+            return str(message_data).encode()
+
+    def _serialize_message_data(self, message_data: Any, attrs: dict[str, Any]) -> bytes:
+        """Serialize message data based on its type."""
+        if isinstance(message_data, str):
+            attrs["content_type"] = "text/plain"
+            return message_data.encode()
+        if isinstance(message_data, bytes):
+            # Keep as-is, no content type
+            return message_data
+        # For other types, use serialization
+        attrs["content_type"] = "application/json"
+        serializer = self._get_broker_serializer()
+
+        if serializer:
+            return self._serialize_with_broker_serializer(message_data, serializer)
+        return self._serialize_with_json(message_data)
+
+    def _get_broker_serializer(self) -> Any | None:
+        """Get the broker's serializer if available."""
+        serializer = getattr(self.broker.config, "fd_config", None)
+        if serializer and hasattr(serializer, "_serializer"):
+            return serializer._serializer
+        return None
+
+    async def _execute_matching_handlers(self, message: Any, topic: str) -> None:
+        """Execute handlers that match the topic."""
+        from typing import cast
+
+        for handler in self.broker.subscribers:
+            handler = cast("GCPPubSubSubscriber", handler)
+            if _is_handler_matches(handler, topic):
+                await self._execute_handler(message, handler)
+
     async def publish(
         self,
         cmd: GCPPubSubPublishCommand,
@@ -78,18 +165,13 @@ class FakeGCPPubSubProducer:
         attrs = cmd.attributes or {}
         ordering_key = cmd.ordering_key
         correlation_id = cmd.correlation_id or gen_cor_id()
+        topic = cmd.topic
 
         # Ensure correlation_id in attributes
         attrs["correlation_id"] = correlation_id
 
-        # Convert message to bytes if needed
-        if isinstance(message_data, str):
-            data = message_data.encode()
-        elif isinstance(message_data, bytes):
-            data = message_data
-        else:
-            # Serialize other types to string then bytes
-            data = str(message_data).encode()
+        # Serialize the message data
+        data = self._serialize_message_data(message_data, attrs)
 
         # Build the message
         message = build_message(
@@ -99,8 +181,9 @@ class FakeGCPPubSubProducer:
             correlation_id=correlation_id,
         )
 
-        # For now, just return the message ID without executing handlers
-        # The FastStream testing framework handles handler mocking differently
+        # Find matching subscribers and execute handlers
+        await self._execute_matching_handlers(message, topic)
+
         return str(message.attributes.get("message_id", "test-message-id"))
 
     async def publish_batch(
@@ -108,10 +191,16 @@ class FakeGCPPubSubProducer:
         cmd: Any,
     ) -> list[str]:
         """Publish multiple messages to a topic (fake implementation)."""
-        # For now, just call publish for each message in batch
-        # This is a simplified implementation
         message_ids = []
-        if hasattr(cmd, "messages") and cmd.messages:
+
+        # Handle different batch formats
+        if isinstance(cmd, list):
+            # List of GCPPubSubPublishCommand objects
+            for command in cmd:
+                msg_id = await self.publish(command)
+                message_ids.append(msg_id)
+        elif hasattr(cmd, "messages") and cmd.messages:
+            # Single command with messages array
             for msg in cmd.messages:
                 # Create proper GCPPubSubPublishCommand
                 proper_cmd = GCPPubSubPublishCommand(
@@ -123,6 +212,7 @@ class FakeGCPPubSubProducer:
                 )
                 msg_id = await self.publish(proper_cmd)
                 message_ids.append(msg_id)
+
         return message_ids
 
     async def request(
@@ -162,33 +252,15 @@ class FakeGCPPubSubProducer:
         self,
         msg: PubsubMessage,
         handler: "GCPPubSubSubscriber",
-    ) -> GCPPubSubMessage:
+    ) -> Any:
         """Execute a message handler."""
-        # Get message_id from attributes
-        message_id = msg.attributes.get("message_id", "unknown")
+        # Ensure handler is running (for test mode)
+        if not handler.running:
+            handler.running = True
 
-        # Wrap in FastStream message
-        fs_message = GCPPubSubMessage(
-            raw_message=msg,
-            ack_id=f"ack-{message_id}",
-            subscription=handler.subscription,
-        )
-
-        # Process message through handler
-        result = await handler.process_message(fs_message)
-
-        # Return processed message as GCPPubSubMessage
-        pubsub_msg = build_message(
-            data=str(result.body).encode() if result.body else b"",
-            attributes=result.headers or {},
-            correlation_id=result.correlation_id or "",
-        )
-
-        return GCPPubSubMessage(
-            raw_message=pubsub_msg,
-            ack_id=f"test-ack-{gen_cor_id()}",
-            subscription=handler.subscription,
-        )
+        # Pass the raw PubsubMessage directly - process_message expects it
+        # The parser will wrap it in GCPPubSubMessage
+        return await handler.process_message(msg)
 
 
 def build_message(

@@ -54,7 +54,12 @@ class GCPPubSubSubscriberSpecification(SubscriberSpecification):
     @property
     def call_name(self) -> str:
         """Get call name for logging."""
-        return f"gcppubsub:{self.subscription}"
+        subscription_name = (
+            f"{self._outer_config.prefix}{self.subscription}"
+            if self._outer_config
+            else self.subscription
+        )
+        return f"gcppubsub:{subscription_name}"
 
     def get_log_context(
         self,
@@ -72,7 +77,11 @@ class GCPPubSubSubscriberSpecification(SubscriberSpecification):
     @property
     def name(self) -> str:
         """Get subscriber name."""
-        return self.subscription
+        return (
+            f"{self._outer_config.prefix}{self.subscription}"
+            if self._outer_config
+            else self.subscription
+        )
 
     def get_schema(self) -> dict[str, Any]:
         """Get subscriber schema for documentation."""

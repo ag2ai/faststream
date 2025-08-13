@@ -1,6 +1,7 @@
 """GCP Pub/Sub publisher use case."""
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from gcloud.aio.pubsub import PubsubMessage
 
@@ -9,6 +10,7 @@ from faststream.gcppubsub.publisher.config import GCPPubSubPublisherConfig
 from faststream.gcppubsub.publisher.specification import GCPPubSubPublisherSpecification
 
 if TYPE_CHECKING:
+    from faststream._internal.types import PublisherMiddleware
     from faststream.gcppubsub.configs.broker import GCPPubSubBrokerConfig
     from faststream.response.response import PublishCommand
 
@@ -22,7 +24,11 @@ class GCPPubSubPublisher(PublisherUsecase):
         *,
         create_topic: bool = True,
         ordering_key: str | None = None,
+        middlewares: Sequence["PublisherMiddleware"] = (),
         config: "GCPPubSubBrokerConfig",
+        title_: str | None = None,
+        description_: str | None = None,
+        include_in_schema: bool = True,
         **kwargs: Any,
     ) -> None:
         """Initialize publisher.
@@ -31,7 +37,11 @@ class GCPPubSubPublisher(PublisherUsecase):
             topic: Topic name
             create_topic: Whether to create topic if it doesn't exist
             ordering_key: Message ordering key
+            middlewares: Publisher middlewares
             config: Broker configuration
+            title_: AsyncAPI title
+            description_: AsyncAPI description
+            include_in_schema: Whether to include in schema
             **kwargs: Additional options
         """
         self.topic = topic
@@ -41,7 +51,7 @@ class GCPPubSubPublisher(PublisherUsecase):
         # Create publisher config
         publisher_config = GCPPubSubPublisherConfig(
             _outer_config=config,
-            middlewares=(),  # No publisher-specific middlewares for now
+            middlewares=middlewares,
             topic=topic,
             create_topic=create_topic,
             ordering_key=ordering_key,
@@ -51,12 +61,19 @@ class GCPPubSubPublisher(PublisherUsecase):
         specification = GCPPubSubPublisherSpecification(
             topic=topic,
             _outer_config=config,
+            title_=title_,
+            description_=description_,
+            include_in_schema=include_in_schema,
         )
 
         super().__init__(
             config=publisher_config,
             specification=specification,
         )
+
+    def get_topic_name(self) -> str:
+        """Get topic name with prefix applied."""
+        return f"{self._outer_config.prefix}{self.topic}"
 
     async def start(self) -> None:
         """Start the publisher."""
@@ -81,15 +98,22 @@ class GCPPubSubPublisher(PublisherUsecase):
         if isinstance(cmd, GCPPubSubPublishCommand):
             gcp_cmd = cmd
         else:
+            # Use cmd.destination if it's truthy, otherwise fall back to prefixed topic
+            destination = getattr(cmd, "destination", None) or self.get_topic_name()
             gcp_cmd = GCPPubSubPublishCommand(
                 message=cmd.body,
-                topic=getattr(cmd, "destination", self.topic),
+                topic=destination,
                 attributes=cmd.headers if isinstance(cmd.headers, dict) else {},
                 correlation_id=cmd.correlation_id,
                 _publish_type=cmd.publish_type,
             )
 
-        await self._outer_config.producer.publish(gcp_cmd)
+        # Use _basic_publish to properly handle publisher middleware
+        await self._basic_publish(
+            gcp_cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares or (),
+        )
 
     async def request(
         self,
@@ -131,20 +155,43 @@ class GCPPubSubPublisher(PublisherUsecase):
         Returns:
             Published message ID
         """
-        target_topic = topic or self.topic
+        target_topic = topic or self.get_topic_name()
         target_ordering_key = ordering_key or self.ordering_key
 
-        # Serialize message if needed
-        if isinstance(message, (str, bytes)):
-            data = message.encode() if isinstance(message, str) else message
-        else:
-            # Simple serialization - convert to JSON if needed
-            import json
+        # Use FastStream's encoding logic for consistency
+        from faststream.message import encode_message
 
-            try:
-                data = json.dumps(message).encode()
-            except (TypeError, ValueError):
-                data = str(message).encode()
+        try:
+            data, content_type = encode_message(message, serializer=None)
+
+            # Handle empty messages like the broker does
+            if not data:
+                data = b" "
+                attributes = attributes or {}
+                attributes["__faststream_empty"] = "true"
+        except TypeError as e:
+            if "not JSON serializable" in str(e):
+                # Fallback for non-serializable objects
+                import json
+                from dataclasses import asdict, is_dataclass
+                from datetime import datetime
+
+                def json_serializer(obj: Any) -> Any:
+                    if isinstance(obj, datetime):
+                        return obj.isoformat()
+                    if is_dataclass(obj) and not isinstance(obj, type):
+                        return asdict(obj)
+                    if hasattr(obj, "model_dump"):
+                        return obj.model_dump()
+                    if hasattr(obj, "dict"):
+                        return obj.dict()
+                    error_msg = f"Object of type {obj.__class__.__name__} is not JSON serializable"
+                    raise TypeError(error_msg)
+
+                data = json.dumps(message, default=json_serializer).encode()
+                content_type = "application/json"
+            else:
+                raise
 
         # Get producer from config
         producer = self._outer_config.producer
@@ -152,10 +199,15 @@ class GCPPubSubPublisher(PublisherUsecase):
         # Create GCP Pub/Sub command object
         from faststream.gcppubsub.response import GCPPubSubPublishCommand
 
+        # Merge content_type into attributes
+        final_attributes = attributes or {}
+        if "content_type" in locals() and content_type:
+            final_attributes["content_type"] = content_type
+
         cmd = GCPPubSubPublishCommand(
             message=data,
             topic=target_topic,
-            attributes=attributes or {},
+            attributes=final_attributes,
             ordering_key=target_ordering_key,
             correlation_id=correlation_id,
         )
@@ -180,7 +232,7 @@ class GCPPubSubPublisher(PublisherUsecase):
         Returns:
             List of published message IDs
         """
-        target_topic = topic or self.topic
+        target_topic = topic or self.get_topic_name()
 
         # Convert messages to PubsubMessage objects
         pubsub_messages = []
@@ -228,9 +280,14 @@ class GCPPubSubPublisher(PublisherUsecase):
                 hasattr(self._outer_config, "connection")
                 and self._outer_config.connection
             ):
-                # Note: gcloud-aio doesn't have a built-in create_topic method
-                # In a real implementation, you'd use the admin client or handle this differently
-                pass
+                publisher_client = self._outer_config.connection.publisher
+                # Create full topic path
+                # Type cast needed since base class expects BrokerConfig but we have GCPPubSubBrokerConfig
+                config = cast("GCPPubSubBrokerConfig", self._outer_config)
+                topic_path = (
+                    f"projects/{config.project_id}/topics/{self.get_topic_name()}"
+                )
+                await publisher_client.create_topic(topic_path)
         except Exception:  # nosec B110
-            # Topic creation can be handled externally or ignored for simplicity
+            # Topic might already exist or creation failed - continue anyway
             pass

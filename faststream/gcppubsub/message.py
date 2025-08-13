@@ -49,9 +49,14 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
         message_id = raw_message.attributes.get("message_id", "")
         publish_time = raw_message.attributes.get("publish_time", "")
 
+        # Handle empty message marker
+        body = raw_message.data
+        if raw_message.attributes.get("__faststream_empty") == "true" and body == b" ":
+            body = b""
+
         super().__init__(
             raw_message=raw_message,
-            body=raw_message.data,
+            body=body,
             path={
                 "topic": raw_message.attributes.get("topic", ""),
                 "subscription": subscription or "",
@@ -63,11 +68,21 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
                 "publish_time": publish_time,
                 "ordering_key": raw_message.ordering_key or "",
             },
-            content_type=raw_message.attributes.get("content_type"),
+            content_type=self._get_content_type_from_attributes(raw_message.attributes),
             message_id=message_id,
             correlation_id=correlation_id,
             **kwargs,
         )
+
+    def _get_content_type_from_attributes(self, attributes: dict[str, str]) -> str | None:
+        """Extract content_type from potentially nested attributes structure."""
+        if not attributes:
+            return None
+
+        # For PubsubMessage, user attributes are nested in attributes['attributes']
+        if "attributes" in attributes and isinstance(attributes["attributes"], dict):
+            return attributes["attributes"].get("content_type")
+        return attributes.get("content_type")
 
     @property
     def ack_id(self) -> str | None:
@@ -97,7 +112,14 @@ class GCPPubSubMessage(StreamMessage[PubsubMessage]):
     @property
     def attributes(self) -> dict[str, str]:
         """Get message attributes."""
-        return dict(self.raw_message.attributes)
+        # For PubsubMessage, user attributes are nested in attributes['attributes']
+        if hasattr(self.raw_message, "attributes") and self.raw_message.attributes:
+            if "attributes" in self.raw_message.attributes and isinstance(
+                self.raw_message.attributes["attributes"], dict
+            ):
+                return dict(self.raw_message.attributes["attributes"])
+            return dict(self.raw_message.attributes)
+        return {}
 
     async def ack(self) -> None:
         """Acknowledge the message."""

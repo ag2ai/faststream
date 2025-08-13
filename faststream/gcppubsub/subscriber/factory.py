@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.gcppubsub.subscriber.config import GCPPubSubSubscriberConfig
 from faststream.gcppubsub.subscriber.specification import GCPPubSubSubscriberSpecification
@@ -19,6 +20,7 @@ def create_subscriber(
     create_subscription: bool = True,
     ack_deadline: int | None = None,
     max_messages: int = 10,
+    no_ack: bool = EMPTY,
     **kwargs: Any,
 ) -> GCPPubSubSubscriber:
     """Create a GCP Pub/Sub subscriber.
@@ -30,6 +32,7 @@ def create_subscriber(
         create_subscription: Whether to create subscription if it doesn't exist
         ack_deadline: ACK deadline in seconds
         max_messages: Maximum messages to pull at once
+        no_ack: Whether to automatically acknowledge messages
         **kwargs: Additional subscriber options
 
     Returns:
@@ -37,14 +40,20 @@ def create_subscriber(
     """
     calls: CallsCollection[Any] = CallsCollection()
 
+    # Remove parser and decoder from kwargs (they are handled via add_call)
+    kwargs.pop("parser", None)
+    kwargs.pop("decoder", None)
+
     # Create subscriber configuration
     subscriber_config = GCPPubSubSubscriberConfig(
         _outer_config=broker.config,  # type: ignore[arg-type]
         subscription=subscription,
         topic=topic,
         create_subscription=create_subscription,
-        ack_deadline=ack_deadline or broker.config.subscriber_ack_deadline,
+        ack_deadline=ack_deadline
+        or getattr(broker.config, "subscriber_ack_deadline", 600),
         max_messages=max_messages,
+        _no_ack=no_ack,
         **kwargs,
     )
 

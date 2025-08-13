@@ -1,12 +1,14 @@
 """GCP Pub/Sub type annotations."""
 
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Annotated, TypeAlias
+
+from faststream._internal.context import Context
+from faststream.gcppubsub.message import GCPPubSubMessage as Gm
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
     from gcloud.aio.pubsub import PublisherClient, PubsubMessage, SubscriberClient
 
-    from faststream.gcppubsub.message import GCPPubSubMessage
 
 # Topic and Subscription types
 Topic: TypeAlias = str
@@ -21,4 +23,7 @@ Subscriber: TypeAlias = "SubscriberClient"
 Session: TypeAlias = "ClientSession"
 
 # FastStream message type
-StreamMessage: TypeAlias = "GCPPubSubMessage"
+StreamMessage: TypeAlias = Gm
+
+# Context annotations for dependency injection
+GCPPubSubMessage = Annotated[Gm, Context("message")]
