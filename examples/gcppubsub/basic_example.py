@@ -1,7 +1,12 @@
+import os
 from faststream import FastStream, Logger
 from faststream.gcppubsub import GCPPubSubBroker
 
-broker = GCPPubSubBroker(project_id="test-project")
+# Use environment variables for configuration
+broker = GCPPubSubBroker(
+    project_id=os.getenv("GCP_PROJECT_ID", "test-project"),
+    emulator_host=os.getenv("PUBSUB_EMULATOR_HOST"),
+)
 app = FastStream(broker)
 
 

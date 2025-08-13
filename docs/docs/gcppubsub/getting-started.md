@@ -151,7 +151,7 @@ from faststream.gcppubsub import GCPPubSubBroker
 # Using service account JSON file
 broker = GCPPubSubBroker(
     project_id="your-project",
-    service_account_path="/path/to/credentials.json"
+    service_file="/path/to/credentials.json"
 )
 
 # Using environment variable
@@ -165,6 +165,104 @@ If running on Google Cloud (GCE, GKE, Cloud Run, etc.), default credentials will
 
 ```python
 broker = GCPPubSubBroker(project_id="your-project")
+```
+
+## Environment Variables
+
+You can configure the GCP Pub/Sub broker using environment variables, which is especially useful for deployment and testing scenarios.
+
+### Authentication Environment Variables
+
+```bash
+# Google Cloud credentials
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/credentials.json"
+
+# Or using service account key content (for containerized environments)
+export GOOGLE_APPLICATION_CREDENTIALS_JSON='{"type": "service_account", ...}'
+```
+
+### Project Configuration
+
+```bash
+# GCP Project ID
+export GCP_PROJECT_ID="your-project-id"
+export GOOGLE_CLOUD_PROJECT="your-project-id"  # Alternative name
+```
+
+### Pub/Sub Emulator (for local development)
+
+```bash
+# Enable emulator mode
+export PUBSUB_EMULATOR_HOST="localhost:8681"
+export GCP_PROJECT_ID="test-project"
+```
+
+### Example with Environment Variables
+
+```python
+import os
+from faststream.gcppubsub import GCPPubSubBroker
+
+# Read project ID from environment variable
+project_id = os.getenv("GCP_PROJECT_ID", "default-project")
+
+# Use emulator if environment variable is set
+emulator_host = os.getenv("PUBSUB_EMULATOR_HOST")
+
+broker = GCPPubSubBroker(
+    project_id=project_id,
+    emulator_host=emulator_host,  # Will be None if not set
+)
+```
+
+### Docker Environment Variables
+
+When running in Docker, you can pass environment variables:
+
+```dockerfile
+# In your Dockerfile
+ENV GCP_PROJECT_ID=your-project
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+
+# Copy credentials file
+COPY credentials.json /app/credentials.json
+```
+
+Or using docker-compose:
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    environment:
+      - GCP_PROJECT_ID=your-project
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+    volumes:
+      - ./credentials.json:/app/credentials.json:ro
+```
+
+### Configuration with Environment Variables
+
+You can also use environment variables for broker configuration:
+
+```python
+import os
+from faststream.gcppubsub import GCPPubSubBroker, PublisherConfig, SubscriberConfig
+
+broker = GCPPubSubBroker(
+    project_id=os.getenv("GCP_PROJECT_ID"),
+    emulator_host=os.getenv("PUBSUB_EMULATOR_HOST"),
+    publisher_config=PublisherConfig(
+        max_messages=int(os.getenv("PUBSUB_PUBLISHER_MAX_MESSAGES", "100")),
+        max_bytes=int(os.getenv("PUBSUB_PUBLISHER_MAX_BYTES", "1048576")),
+    ),
+    subscriber_config=SubscriberConfig(
+        max_messages=int(os.getenv("PUBSUB_SUBSCRIBER_MAX_MESSAGES", "1000")),
+        ack_deadline=int(os.getenv("PUBSUB_ACK_DEADLINE", "600")),
+    ),
+)
 ```
 
 ## Next Steps

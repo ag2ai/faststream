@@ -7,6 +7,10 @@ from typing import TYPE_CHECKING, Any, cast
 from gcloud.aio.pubsub import PubsubMessage
 
 from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.serialization import (
+    serialize_with_broker_serializer,
+    serialize_with_json,
+)
 from faststream.exceptions import SubscriberNotFound
 from faststream.gcppubsub.broker import GCPPubSubBroker
 from faststream.gcppubsub.response import GCPPubSubPublishCommand
@@ -72,57 +76,6 @@ class FakeGCPPubSubProducer:
     def __init__(self, broker: GCPPubSubBroker) -> None:
         self.broker = broker
 
-    def _create_json_serializer(self) -> Any:
-        """Create a JSON serializer for custom types."""
-        from datetime import date, datetime
-
-        def json_serializer(obj: Any) -> Any:
-            """Custom JSON serializer for common Python types."""
-            if isinstance(obj, (datetime, date)):
-                return obj.isoformat()
-            error_msg = f"Object of type {type(obj).__name__} is not JSON serializable"
-            raise TypeError(error_msg)
-
-        return json_serializer
-
-    def _serialize_with_broker_serializer(
-        self, message_data: Any, serializer: Any
-    ) -> bytes:
-        """Serialize message data using broker's serializer."""
-        try:
-            # Try using the broker's serializer first
-            data = serializer.dumps(message_data)
-            if isinstance(data, str):
-                return data.encode()
-            if isinstance(data, bytes):
-                return data
-            # Convert any other type to bytes via JSON
-            return self._serialize_with_json(message_data)
-        except Exception:
-            # Fall back to JSON serialization
-            return self._serialize_with_json(message_data)
-
-    def _serialize_with_json(self, message_data: Any) -> bytes:
-        """Serialize message data using JSON."""
-        import json
-        from dataclasses import asdict, is_dataclass
-
-        json_serializer = self._create_json_serializer()
-
-        if is_dataclass(message_data) and not isinstance(message_data, type):
-            return json.dumps(asdict(message_data), default=json_serializer).encode()
-        # Try to serialize as dict if it has __dict__
-        try:
-            return json.dumps(
-                message_data.__dict__
-                if hasattr(message_data, "__dict__")
-                else message_data,
-                default=json_serializer,
-            ).encode()
-        except (TypeError, AttributeError):
-            # Last resort - convert to string
-            return str(message_data).encode()
-
     def _serialize_message_data(self, message_data: Any, attrs: dict[str, Any]) -> bytes:
         """Serialize message data based on its type."""
         if isinstance(message_data, str):
@@ -136,8 +89,8 @@ class FakeGCPPubSubProducer:
         serializer = self._get_broker_serializer()
 
         if serializer:
-            return self._serialize_with_broker_serializer(message_data, serializer)
-        return self._serialize_with_json(message_data)
+            return serialize_with_broker_serializer(message_data, serializer)
+        return serialize_with_json(message_data)
 
     def _get_broker_serializer(self) -> Any | None:
         """Get the broker's serializer if available."""

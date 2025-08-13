@@ -4,6 +4,17 @@ from typing import TYPE_CHECKING, Any
 
 from faststream._internal.endpoint.subscriber.specification import SubscriberSpecification
 from faststream.gcppubsub.subscriber.config import GCPPubSubSubscriberSpecificationConfig
+from faststream.specification.asyncapi.utils import resolve_payloads
+from faststream.specification.schema import (
+    Message,
+    Operation,
+    SubscriberSpec,
+)
+from faststream.specification.schema.bindings import (
+    ChannelBinding,
+    OperationBinding,
+    gcppubsub,
+)
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -83,9 +94,38 @@ class GCPPubSubSubscriberSpecification(SubscriberSpecification):
             else self.subscription
         )
 
-    def get_schema(self) -> dict[str, Any]:
-        """Get subscriber schema for documentation."""
+    def get_schema(self) -> dict[str, SubscriberSpec]:
+        """Get subscriber schema for AsyncAPI specification."""
+        payloads = self.get_payloads()
+
+        # Create bindings for GCP Pub/Sub
+        channel_binding = gcppubsub.ChannelBinding(
+            topic=self.topic or self.subscription,
+            subscription=self.subscription,
+            project_id=getattr(self._outer_config, "project_id", None),
+        )
+
+        operation_binding = gcppubsub.OperationBinding(
+            ack_deadline=getattr(self.config, "ack_deadline", None),
+            ordering_key=getattr(self.config, "ordering_key", None),
+        )
+
+        channel_name = self.name
+
         return {
-            "subscription": self.subscription,
-            "topic": self.topic,
+            channel_name: SubscriberSpec(
+                description=self.description,
+                operation=Operation(
+                    bindings=OperationBinding(
+                        gcppubsub=operation_binding,
+                    ),
+                    message=Message(
+                        title=f"{channel_name}:Message",
+                        payload=resolve_payloads(payloads),
+                    ),
+                ),
+                bindings=ChannelBinding(
+                    gcppubsub=channel_binding,
+                ),
+            ),
         }

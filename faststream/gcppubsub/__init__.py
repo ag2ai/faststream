@@ -15,6 +15,11 @@ try:
         Topic,
     )
     from faststream.gcppubsub.broker import GCPPubSubBroker, GCPPubSubRouter
+    from faststream.gcppubsub.configs import (
+        PublisherConfig,
+        RetryConfig,
+        SubscriberConfig,
+    )
     from faststream.gcppubsub.security import GCPPubSubSecurity
     from faststream.gcppubsub.testing import TestGCPPubSubBroker
 
@@ -34,9 +39,12 @@ __all__ = (
     "GCPPubSubSecurity",
     "NativeMessage",
     "Publisher",
+    "PublisherConfig",
     "PubsubMessage",
+    "RetryConfig",
     "StreamMessage",
     "Subscriber",
+    "SubscriberConfig",
     "Subscription",
     "TestApp",
     "TestGCPPubSubBroker",

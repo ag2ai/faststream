@@ -1,10 +1,13 @@
 """GCP Pub/Sub broker configuration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.configs import BrokerConfig
+from faststream.gcppubsub.configs.publisher import PublisherConfig
+from faststream.gcppubsub.configs.retry import RetryConfig
 from faststream.gcppubsub.configs.state import ConnectionState
+from faststream.gcppubsub.configs.subscriber import SubscriberConfig
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
@@ -23,18 +26,58 @@ class GCPPubSubBrokerConfig(BrokerConfig):
     emulator_host: str | None = None
     session: Optional["ClientSession"] = None
 
-    # Publisher settings
-    publisher_max_messages: int = 100
-    publisher_max_bytes: int = 1024 * 1024  # 1MB
-    publisher_max_latency: float = 0.01  # 10ms
+    # Grouped configuration objects
+    publisher: PublisherConfig = field(default_factory=PublisherConfig)
+    subscriber: SubscriberConfig = field(default_factory=SubscriberConfig)
+    retry: RetryConfig = field(default_factory=RetryConfig)
 
-    # Subscriber settings
-    subscriber_max_messages: int = 1000
-    subscriber_ack_deadline: int = 600  # 10 minutes
-    subscriber_max_extension: int = 600  # 10 minutes
+    # Maintain backward compatibility properties
+    @property
+    def publisher_max_messages(self) -> int:
+        """Publisher max messages (backward compatibility)."""
+        return self.publisher.max_messages
 
-    # Retry settings
-    retry_max_attempts: int = 5
-    retry_max_delay: float = 60.0
-    retry_multiplier: float = 2.0
-    retry_min_delay: float = 1.0
+    @property
+    def publisher_max_bytes(self) -> int:
+        """Publisher max bytes (backward compatibility)."""
+        return self.publisher.max_bytes
+
+    @property
+    def publisher_max_latency(self) -> float:
+        """Publisher max latency (backward compatibility)."""
+        return self.publisher.max_latency
+
+    @property
+    def subscriber_max_messages(self) -> int:
+        """Subscriber max messages (backward compatibility)."""
+        return self.subscriber.max_messages
+
+    @property
+    def subscriber_ack_deadline(self) -> int:
+        """Subscriber ack deadline (backward compatibility)."""
+        return self.subscriber.ack_deadline
+
+    @property
+    def subscriber_max_extension(self) -> int:
+        """Subscriber max extension (backward compatibility)."""
+        return self.subscriber.max_extension
+
+    @property
+    def retry_max_attempts(self) -> int:
+        """Retry max attempts (backward compatibility)."""
+        return self.retry.max_attempts
+
+    @property
+    def retry_max_delay(self) -> float:
+        """Retry max delay (backward compatibility)."""
+        return self.retry.max_delay
+
+    @property
+    def retry_multiplier(self) -> float:
+        """Retry multiplier (backward compatibility)."""
+        return self.retry.multiplier
+
+    @property
+    def retry_min_delay(self) -> float:
+        """Retry min delay (backward compatibility)."""
+        return self.retry.min_delay

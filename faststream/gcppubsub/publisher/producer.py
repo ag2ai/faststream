@@ -34,9 +34,13 @@ class GCPPubSubFastProducer(ProducerProto[GCPPubSubPublishCommand]):
         self.emulator_host = emulator_host
         self._publisher: PublisherClient | None = None
         self._session: ClientSession | None = None
-        # Required by ProducerProto interface
-        self._parser: Any = None  # Not used in GCP Pub/Sub
-        self._decoder: Any = None  # Not used in GCP Pub/Sub
+
+        # ProducerProto interface compliance
+        # GCP Pub/Sub handles serialization internally, but we need these for interface compliance
+        from faststream._internal.utils.functions import return_input
+
+        self._parser: Any = return_input  # Pass-through function
+        self._decoder: Any = return_input  # Pass-through function
 
     async def publish(
         self,

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from faststream.specification.schema.bindings import (
     amqp as amqp_bindings,
+    gcppubsub as gcppubsub_bindings,
     http as http_bindings,
     kafka as kafka_bindings,
     nats as nats_bindings,
@@ -16,6 +17,7 @@ class ChannelBinding:
 
     Attributes:
         amqp : AMQP channel binding (optional)
+        gcppubsub : GCP Pub/Sub channel binding (optional)
         kafka : Kafka channel binding (optional)
         sqs : SQS channel binding (optional)
         nats : NATS channel binding (optional)d
@@ -23,6 +25,7 @@ class ChannelBinding:
     """
 
     amqp: amqp_bindings.ChannelBinding | None = None
+    gcppubsub: gcppubsub_bindings.ChannelBinding | None = None
     kafka: kafka_bindings.ChannelBinding | None = None
     sqs: sqs_bindings.ChannelBinding | None = None
     nats: nats_bindings.ChannelBinding | None = None
@@ -35,6 +38,7 @@ class OperationBinding:
 
     Attributes:
         amqp : AMQP operation binding (optional)
+        gcppubsub : GCP Pub/Sub operation binding (optional)
         kafka : Kafka operation binding (optional)
         sqs : SQS operation binding (optional)
         nats : NATS operation binding (optional)
@@ -43,6 +47,7 @@ class OperationBinding:
     """
 
     amqp: amqp_bindings.OperationBinding | None = None
+    gcppubsub: gcppubsub_bindings.OperationBinding | None = None
     kafka: kafka_bindings.OperationBinding | None = None
     sqs: sqs_bindings.OperationBinding | None = None
     nats: nats_bindings.OperationBinding | None = None
