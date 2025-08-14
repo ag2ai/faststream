@@ -3,10 +3,38 @@
 from typing import TYPE_CHECKING, Any
 
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand
+from faststream.response.response import PublishCommand, Response
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
+
+
+class GCPResponse(Response):
+    """GCP Pub/Sub response with attributes support."""
+
+    def __init__(
+        self,
+        body: "SendableMessage",
+        *,
+        attributes: dict[str, str] | None = None,
+        ordering_key: str | None = None,
+        correlation_id: str | None = None,
+    ) -> None:
+        """Initialize GCP response.
+
+        Args:
+            body: Response message body
+            attributes: Message attributes
+            ordering_key: Message ordering key
+            correlation_id: Correlation ID for tracking
+        """
+        super().__init__(
+            body=body,
+            headers=attributes or {},
+            correlation_id=correlation_id,
+        )
+        self.attributes = attributes or {}
+        self.ordering_key = ordering_key
 
 
 class GCPPublishCommand(PublishCommand):

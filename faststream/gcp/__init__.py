@@ -6,8 +6,13 @@ try:
     from gcloud.aio.pubsub import PubsubMessage
 
     from faststream.gcp.annotations import (
+        Attributes,
         GCPMessage,
+        MessageAttributes,
+        MessageId,
         NativeMessage,
+        OrderingKey,
+        PublishTime,
         Publisher,
         StreamMessage,
         Subscriber,
@@ -20,6 +25,9 @@ try:
         RetryConfig,
         SubscriberConfig,
     )
+    from faststream.gcp.response import GCPResponse
+    from faststream.gcp.response_types import ResponseAttributes, ResponseOrderingKey
+    from faststream.gcp.response_utils import ensure_gcp_response
     from faststream.gcp.security import GCPSecurity
     from faststream.gcp.testing import TestGCPBroker
 
@@ -33,14 +41,22 @@ except ImportError as e:
 
 __all__ = (
     "INSTALL_FASTSTREAM_GCPPUBSUB",
+    "Attributes",
     "GCPBroker",
     "GCPMessage",
+    "GCPResponse",
     "GCPRouter",
     "GCPSecurity",
+    "MessageAttributes",
+    "MessageId",
     "NativeMessage",
+    "OrderingKey",
+    "PublishTime",
     "Publisher",
     "PublisherConfig",
     "PubsubMessage",
+    "ResponseAttributes",
+    "ResponseOrderingKey",
     "RetryConfig",
     "StreamMessage",
     "Subscriber",
@@ -49,4 +65,5 @@ __all__ = (
     "TestApp",
     "TestGCPBroker",
     "Topic",
+    "ensure_gcp_response",
 )

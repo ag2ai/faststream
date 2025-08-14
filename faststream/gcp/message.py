@@ -121,6 +121,20 @@ class GCPMessage(StreamMessage[PubsubMessage]):
             return dict(self.raw_message.attributes)
         return {}
 
+    @property
+    def message_id(self) -> str:
+        """Get the message ID."""
+        return (
+            getattr(self, "_message_id", "")
+            or self.raw_message.attributes.get("message_id", "")
+            or self.correlation_id
+        )
+
+    @message_id.setter
+    def message_id(self, value: str | None) -> None:
+        """Set the message ID."""
+        self._message_id = value
+
     async def ack(self) -> None:
         """Acknowledge the message."""
         # This will be implemented by the subscriber

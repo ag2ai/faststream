@@ -3,6 +3,8 @@
 import contextlib
 import logging
 from collections.abc import Sequence
+from contextlib import AsyncExitStack
+from itertools import chain
 from typing import TYPE_CHECKING, Any
 
 import anyio
@@ -13,18 +15,22 @@ from typing_extensions import override
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream.exceptions import SubscriberNotFound
 from faststream.gcp.message import GCPMessage
 from faststream.gcp.publisher.fake import GCPFakePublisher
+from faststream.gcp.response_utils import ensure_gcp_response
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.middlewares import BaseMiddleware
     from faststream.gcp.configs.broker import GCPBrokerConfig
     from faststream.gcp.subscriber.config import GCPSubscriberConfig
     from faststream.gcp.subscriber.specification import (
         GCPSubscriberSpecification,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
+    from faststream.response.response import Response
 
 
 class GCPSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
@@ -91,6 +97,90 @@ class GCPSubscriber(TasksMixin, SubscriberUsecase[PubsubMessage]):
                 topic=message.reply_to,
             ),
         )
+
+    @override
+    async def process_message(self, msg: PubsubMessage) -> "Response":
+        """Execute all message processing stages with GCP-specific response handling."""
+        context = self._outer_config.fd_config.context
+        logger_state = self._outer_config.logger
+
+        async with AsyncExitStack() as stack:
+            stack.enter_context(self.lock)
+
+            # Enter context before middlewares
+            stack.enter_context(context.scope("logger", logger_state.logger.logger))
+            for k, v in self._outer_config.extra_context.items():
+                stack.enter_context(context.scope(k, v))
+
+            # enter all middlewares
+            middlewares: list[BaseMiddleware] = []
+            for base_m in (
+                self._SubscriberUsecase__build__middlewares_stack()  # type: ignore[attr-defined]
+            ):  # Access private method
+                middleware = base_m(msg, context=context)
+                middlewares.append(middleware)
+                await middleware.__aenter__()
+
+            cache: dict[Any, Any] = {}
+            parsing_error: Exception | None = None
+
+            for h in self.calls:
+                try:
+                    message = await h.is_suitable(msg, cache)
+                except Exception as e:
+                    parsing_error = e
+                    break
+
+                if message is not None:
+                    stack.enter_context(
+                        context.scope("log_context", self.get_log_context(message)),
+                    )
+                    stack.enter_context(context.scope("message", message))
+
+                    # Middlewares should be exited before scope release
+                    for m in middlewares:
+                        stack.push_async_exit(m.__aexit__)
+
+                    # Use GCP-specific response handler for tuple support
+                    result_msg = ensure_gcp_response(
+                        await h.call(
+                            message=message,
+                            # consumer middlewares
+                            _extra_middlewares=(
+                                m.consume_scope for m in middlewares[::-1]
+                            ),
+                        ),
+                    )
+
+                    if not result_msg.correlation_id:
+                        result_msg.correlation_id = message.correlation_id
+
+                    # Publish to response publisher and handler publishers
+                    for p in chain(
+                        self._SubscriberUsecase__get_response_publisher(  # type: ignore[attr-defined]
+                            message
+                        ),  # Access private method
+                        h.handler._publishers,
+                    ):
+                        await p._publish(
+                            result_msg.as_publish_command(),
+                            _extra_middlewares=(
+                                m.publish_scope for m in middlewares[::-1]
+                            ),
+                        )
+
+                    # Return data for tests
+                    return result_msg
+
+            # Suitable handler wasn't found or an error during msg validation
+            if parsing_error:
+                raise parsing_error
+
+            error_msg = f"There is no suitable handler for {msg=}"
+            raise SubscriberNotFound(error_msg)
+
+        # An error was raised and processed by some middleware
+        return ensure_gcp_response(None)
 
     @override
     async def start(
