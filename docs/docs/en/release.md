@@ -12,6 +12,52 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc1
+
+### What's Changed
+* ci: correct just-install job by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2393](https://github.com/ag2ai/faststream/pull/2393){.external-link target="_blank"}
+* ci: ignore secret detection false positive by [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} in [#2399](https://github.com/ag2ai/faststream/pull/2399){.external-link target="_blank"}
+* fix(redis): assign serializer to internal producer in LogicPublisher by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2396](https://github.com/ag2ai/faststream/pull/2396){.external-link target="_blank"}
+* types: add Rabbit type tests  by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2401](https://github.com/ag2ai/faststream/pull/2401){.external-link target="_blank"}
+* docs: updated manual run with broker examples by [@ArtyomVysotskiy](https://github.com/ArtyomVysotskiy){.external-link target="_blank"} in [#2402](https://github.com/ag2ai/faststream/pull/2402){.external-link target="_blank"}
+* tests: remove useless tests by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2403](https://github.com/ag2ai/faststream/pull/2403){.external-link target="_blank"}
+* fix: Added missing DecodedMessage export to faststream.types by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2405](https://github.com/ag2ai/faststream/pull/2405){.external-link target="_blank"}
+* types: add Nats type tests by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2406](https://github.com/ag2ai/faststream/pull/2406){.external-link target="_blank"}
+* types: add Confluent type tests by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2407](https://github.com/ag2ai/faststream/pull/2407){.external-link target="_blank"}
+* ci: add zizmor and implement related fixes by [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} in [#2398](https://github.com/ag2ai/faststream/pull/2398){.external-link target="_blank"}
+* Docs: fix list of modes by [@Totorokrut](https://github.com/Totorokrut){.external-link target="_blank"} in [#2413](https://github.com/ag2ai/faststream/pull/2413){.external-link target="_blank"}
+* CI: use pre-commit-ci-lite instead of manual commit step during linters by [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} in [#2416](https://github.com/ag2ai/faststream/pull/2416){.external-link target="_blank"}
+* lint(rabbit): check publisher and subscriber by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#2415](https://github.com/ag2ai/faststream/pull/2415){.external-link target="_blank"}
+* dont replace hyphen in cli values by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2426](https://github.com/ag2ai/faststream/pull/2426){.external-link target="_blank"}
+* docs: update contributing guide with pip upgrade and fix mkdocs serve… by [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} in [#2427](https://github.com/ag2ai/faststream/pull/2427){.external-link target="_blank"}
+* cli: Fix assertation to app object is Application instance by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2428](https://github.com/ag2ai/faststream/pull/2428){.external-link target="_blank"}
+* Docs: add llms.txt by [@vldmrdev](https://github.com/vldmrdev){.external-link target="_blank"} in [#2421](https://github.com/ag2ai/faststream/pull/2421){.external-link target="_blank"}
+* Docs/middlewares main changes by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2425](https://github.com/ag2ai/faststream/pull/2425){.external-link target="_blank"}
+* lint: Kafka overrides polish by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2429](https://github.com/ag2ai/faststream/pull/2429){.external-link target="_blank"}
+* Docs: Add example defining custom prometheus metrics to documentation by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2431](https://github.com/ag2ai/faststream/pull/2431){.external-link target="_blank"}
+* fix: Redis pubsub connection leak in request method by [@veronchenko](https://github.com/veronchenko){.external-link target="_blank"} in [#2430](https://github.com/ag2ai/faststream/pull/2430){.external-link target="_blank"}
+* Fix issue 2391 For rabbit and redis fastapi by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#2437](https://github.com/ag2ai/faststream/pull/2437){.external-link target="_blank"}
+* Docs: add example with annotated dependencies by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2438](https://github.com/ag2ai/faststream/pull/2438){.external-link target="_blank"}
+* CI: make the linter great again by [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} in [#2439](https://github.com/ag2ai/faststream/pull/2439){.external-link target="_blank"}
+* Docs: change scripts folder to `just` by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2436](https://github.com/ag2ai/faststream/pull/2436){.external-link target="_blank"}
+* Closes #2391 add polish for kafka and nats fastapi by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2442](https://github.com/ag2ai/faststream/pull/2442){.external-link target="_blank"}
+* fix(asyncapi): promote nested pydantic  to components/schemas by [@legau](https://github.com/legau){.external-link target="_blank"} in [#2445](https://github.com/ag2ai/faststream/pull/2445){.external-link target="_blank"}
+* fix: pass stream to concurrent subscribers by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2449](https://github.com/ag2ai/faststream/pull/2449){.external-link target="_blank"}
+
+### New Contributors
+* [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} made their first contribution in [#2399](https://github.com/ag2ai/faststream/pull/2399){.external-link target="_blank"}
+* [@loRes228](https://github.com/loRes228){.external-link target="_blank"} made their first contribution in [#2396](https://github.com/ag2ai/faststream/pull/2396){.external-link target="_blank"}
+* [@ArtyomVysotskiy](https://github.com/ArtyomVysotskiy){.external-link target="_blank"} made their first contribution in [#2402](https://github.com/ag2ai/faststream/pull/2402){.external-link target="_blank"}
+* [@Totorokrut](https://github.com/Totorokrut){.external-link target="_blank"} made their first contribution in [#2413](https://github.com/ag2ai/faststream/pull/2413){.external-link target="_blank"}
+* [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} made their first contribution in [#2416](https://github.com/ag2ai/faststream/pull/2416){.external-link target="_blank"}
+* [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} made their first contribution in [#2427](https://github.com/ag2ai/faststream/pull/2427){.external-link target="_blank"}
+* [@vldmrdev](https://github.com/vldmrdev){.external-link target="_blank"} made their first contribution in [#2421](https://github.com/ag2ai/faststream/pull/2421){.external-link target="_blank"}
+* [@Samoed](https://github.com/Samoed){.external-link target="_blank"} made their first contribution in [#2431](https://github.com/ag2ai/faststream/pull/2431){.external-link target="_blank"}
+* [@veronchenko](https://github.com/veronchenko){.external-link target="_blank"} made their first contribution in [#2430](https://github.com/ag2ai/faststream/pull/2430){.external-link target="_blank"}
+* [@legau](https://github.com/legau){.external-link target="_blank"} made their first contribution in [#2445](https://github.com/ag2ai/faststream/pull/2445){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc0...0.6.0rc1](https://github.com/ag2ai/faststream/compare/0.6.0rc0...0.6.0rc1){.external-link target="_blank"}
+
 ## 0.6.0rc0
 
 # Description
