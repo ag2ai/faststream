@@ -30,7 +30,7 @@ hide:
 * lint(rabbit): check publisher and subscriber by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#2415](https://github.com/ag2ai/faststream/pull/2415){.external-link target="_blank"}
 * dont replace hyphen in cli values by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2426](https://github.com/ag2ai/faststream/pull/2426){.external-link target="_blank"}
 * docs: update contributing guide with pip upgrade and fix mkdocs serve… by [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} in [#2427](https://github.com/ag2ai/faststream/pull/2427){.external-link target="_blank"}
-* cli: Fix assertation to app object is Application instance by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2428](https://github.com/ag2ai/faststream/pull/2428){.external-link target="_blank"}
+* cli: Fix assertion to app object is Application instance by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2428](https://github.com/ag2ai/faststream/pull/2428){.external-link target="_blank"}
 * Docs: add llms.txt by [@vldmrdev](https://github.com/vldmrdev){.external-link target="_blank"} in [#2421](https://github.com/ag2ai/faststream/pull/2421){.external-link target="_blank"}
 * Docs/middlewares main changes by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2425](https://github.com/ag2ai/faststream/pull/2425){.external-link target="_blank"}
 * lint: Kafka overrides polish by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2429](https://github.com/ag2ai/faststream/pull/2429){.external-link target="_blank"}
