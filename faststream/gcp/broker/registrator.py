@@ -30,8 +30,9 @@ class GCPRegistrator(Registrator[PubsubMessage]):
         *,
         topic: str | None = None,
         create_subscription: bool = True,
+        # Subscriber configuration (overrides broker config)
         ack_deadline: int | None = None,
-        max_messages: int = 10,
+        max_messages: int | None = None,
         # Handler arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -49,8 +50,8 @@ class GCPRegistrator(Registrator[PubsubMessage]):
             subscription: Subscription name
             topic: Topic name (required if creating subscription)
             create_subscription: Whether to create subscription if it doesn't exist
-            ack_deadline: ACK deadline in seconds
-            max_messages: Maximum messages to pull at once
+            ack_deadline: Message acknowledgment deadline (overrides broker config)
+            max_messages: Maximum messages to pull at once (overrides broker config)
             dependencies: Dependencies list to apply to the subscriber
             parser: Parser to map original **PubsubMessage** to FastStream one
             decoder: Function to decode FastStream msg bytes body to python objects
@@ -67,11 +68,11 @@ class GCPRegistrator(Registrator[PubsubMessage]):
             subscription=subscription,
             topic=topic,
             create_subscription=create_subscription,
-            ack_deadline=ack_deadline,
-            max_messages=max_messages,
             broker=self,
             parser=parser,
             decoder=decoder,
+            ack_deadline=ack_deadline,
+            max_messages=max_messages,
             **kwargs,
         )
 

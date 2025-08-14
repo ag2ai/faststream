@@ -95,8 +95,6 @@ class GCPRoute(SubscriberRoute):
         *,
         topic: str | None = None,
         create_subscription: bool = True,
-        ack_deadline: int | None = None,
-        max_messages: int = 10,
         # Handler arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -113,8 +111,6 @@ class GCPRoute(SubscriberRoute):
             subscription=subscription,
             topic=topic,
             create_subscription=create_subscription,
-            ack_deadline=ack_deadline,
-            max_messages=max_messages,
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
@@ -184,7 +180,14 @@ class GCPRouter(GCPRegistrator, BrokerRouter[PubsubMessage]):
             include_in_schema: Whether to include in AsyncAPI schema
             tags: AsyncAPI tags for documentation
         """
-        from faststream._internal.configs.broker import BrokerConfig
+        from faststream.gcp.configs import (
+            GCPBrokerConfig,
+            PublisherConfig,
+            RetryConfig,
+            SubscriberConfig,
+        )
+        from faststream.gcp.configs.state import ConnectionState
+        from faststream.gcp.publisher.producer import GCPFastProducer
 
         # Store tags for documentation purposes
         self.tags = tags or []
@@ -195,7 +198,17 @@ class GCPRouter(GCPRegistrator, BrokerRouter[PubsubMessage]):
 
         super().__init__(
             handlers=handlers,
-            config=BrokerConfig(
+            config=GCPBrokerConfig(
+                producer=GCPFastProducer(
+                    project_id="router-default",
+                    service_file=None,
+                    emulator_host=None,
+                ),
+                project_id="router-default",
+                connection=ConnectionState(),
+                publisher=PublisherConfig(),
+                subscriber=SubscriberConfig(),
+                retry=RetryConfig(),
                 broker_middlewares=middlewares,
                 broker_dependencies=dependencies,
                 broker_parser=parser,

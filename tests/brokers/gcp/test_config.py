@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from faststream.gcp import GCPBroker
+from faststream.gcp.configs import SubscriberConfig
 from tests.marks import require_gcp
 
 
@@ -19,25 +20,25 @@ class TestConfig:
         broker = GCPBroker(project_id="test-project")
 
         assert broker.config.broker_config.project_id == "test-project"
-        # Test other default values from the actual configuration
-        assert hasattr(broker.config.broker_config, "subscriber_ack_deadline")
-        assert hasattr(broker.config.broker_config, "subscriber_max_messages")
-        assert broker.config.broker_config.subscriber_ack_deadline == 600  # Default value
+        # Test default values from the subscriber config object
+        assert broker.config.broker_config.subscriber.ack_deadline == 600  # Default value
         assert (
-            broker.config.broker_config.subscriber_max_messages == 1000
+            broker.config.broker_config.subscriber.max_messages == 1000
         )  # Default value
 
     def test_broker_config_custom(self) -> None:
-        """Test broker configuration with custom values."""
+        """Test broker configuration with custom values using config objects."""
         broker = GCPBroker(
             project_id="custom-project",
-            subscriber_ack_deadline=300,
-            subscriber_max_messages=50,
+            subscriber_config=SubscriberConfig(
+                ack_deadline=300,
+                max_messages=50,
+            ),
         )
 
         assert broker.config.broker_config.project_id == "custom-project"
-        assert broker.config.broker_config.subscriber_ack_deadline == 300
-        assert broker.config.broker_config.subscriber_max_messages == 50
+        assert broker.config.broker_config.subscriber.ack_deadline == 300
+        assert broker.config.broker_config.subscriber.max_messages == 50
 
     def test_project_id_validation(self) -> None:
         """Test project ID validation."""
@@ -50,32 +51,42 @@ class TestConfig:
         assert broker_empty.config.broker_config.project_id == ""
 
     def test_ack_deadline_validation(self) -> None:
-        """Test ACK deadline validation."""
+        """Test ACK deadline validation using config objects."""
         # Valid values
-        broker = GCPBroker(project_id="test", subscriber_ack_deadline=60)
-        assert broker.config.broker_config.subscriber_ack_deadline == 60
+        broker = GCPBroker(
+            project_id="test", subscriber_config=SubscriberConfig(ack_deadline=60)
+        )
+        assert broker.config.broker_config.subscriber.ack_deadline == 60
 
         # Negative value - test actual behavior
-        broker_negative = GCPBroker(project_id="test", subscriber_ack_deadline=-1)
-        assert broker_negative.config.broker_config.subscriber_ack_deadline == -1
+        broker_negative = GCPBroker(
+            project_id="test", subscriber_config=SubscriberConfig(ack_deadline=-1)
+        )
+        assert broker_negative.config.broker_config.subscriber.ack_deadline == -1
 
     def test_max_messages_validation(self) -> None:
-        """Test max messages validation."""
+        """Test max messages validation using config objects."""
         # Valid values
-        broker = GCPBroker(project_id="test", subscriber_max_messages=100)
-        assert broker.config.broker_config.subscriber_max_messages == 100
+        broker = GCPBroker(
+            project_id="test", subscriber_config=SubscriberConfig(max_messages=100)
+        )
+        assert broker.config.broker_config.subscriber.max_messages == 100
 
         # Zero value should be handled gracefully
-        broker_zero = GCPBroker(project_id="test", subscriber_max_messages=0)
-        assert broker_zero.config.broker_config.subscriber_max_messages == 0
+        broker_zero = GCPBroker(
+            project_id="test", subscriber_config=SubscriberConfig(max_messages=0)
+        )
+        assert broker_zero.config.broker_config.subscriber.max_messages == 0
 
     def test_subscriber_config(self) -> None:
-        """Test subscriber-specific configuration."""
-        broker = GCPBroker(project_id="test")
-
-        @broker.subscriber(
-            "test-subscription", topic="test-topic", ack_deadline=120, max_messages=10
+        """Test subscriber configuration via broker config."""
+        # Configure subscriber settings via broker's SubscriberConfig
+        broker = GCPBroker(
+            project_id="test",
+            subscriber_config=SubscriberConfig(ack_deadline=120, max_messages=10),
         )
+
+        @broker.subscriber("test-subscription", topic="test-topic")
         async def handler(msg) -> None:
             pass
 
@@ -118,12 +129,14 @@ class TestConfig:
                 assert broker.config.project_id == "env-project"
 
     def test_config_inheritance(self) -> None:
-        """Test configuration inheritance patterns."""
+        """Test configuration inheritance patterns using config objects."""
         # Create broker with base config
         broker = GCPBroker(
             project_id="test-project",
-            subscriber_ack_deadline=600,
-            subscriber_max_messages=100,
+            subscriber_config=SubscriberConfig(
+                ack_deadline=600,
+                max_messages=100,
+            ),
         )
 
         # Create subscriber - should inherit broker defaults
@@ -134,20 +147,24 @@ class TestConfig:
         subscriber = broker.subscribers[0]
         # Subscriber should inherit broker defaults where not overridden
         assert subscriber.config._outer_config.project_id == "test-project"
+        assert subscriber.config.ack_deadline == 600
+        assert subscriber.config.max_messages == 100
 
     def test_broker_config_object(self) -> None:
         """Test direct broker config object usage via broker creation."""
         # Test configuration through broker creation (most common usage)
         broker = GCPBroker(
             project_id="direct-config-test",
-            subscriber_ack_deadline=300,
-            subscriber_max_messages=25,
+            subscriber_config=SubscriberConfig(
+                ack_deadline=300,
+                max_messages=25,
+            ),
         )
 
         config = broker.config.broker_config
         assert config.project_id == "direct-config-test"
-        assert config.subscriber_ack_deadline == 300
-        assert config.subscriber_max_messages == 25
+        assert config.subscriber.ack_deadline == 300
+        assert config.subscriber.max_messages == 25
 
     def test_invalid_config_combinations(self) -> None:
         """Test invalid configuration combinations."""
@@ -156,9 +173,9 @@ class TestConfig:
         # Large timeout values should be accepted
         broker = GCPBroker(
             project_id="test",
-            subscriber_ack_deadline=86400,  # 24 hours
+            subscriber_config=SubscriberConfig(ack_deadline=86400),  # 24 hours
         )
-        assert broker.config.broker_config.subscriber_ack_deadline == 86400
+        assert broker.config.broker_config.subscriber.ack_deadline == 86400
 
     def test_config_serialization(self) -> None:
         """Test configuration can be serialized/represented."""
@@ -192,20 +209,24 @@ class TestConfig:
         # Very large values
         broker = GCPBroker(
             project_id="edge-case-test",
-            subscriber_ack_deadline=86400,  # 24 hours
-            subscriber_max_messages=1000,
+            subscriber_config=SubscriberConfig(
+                ack_deadline=86400,  # 24 hours
+                max_messages=1000,
+            ),
         )
-        assert broker.config.broker_config.subscriber_ack_deadline == 86400
-        assert broker.config.broker_config.subscriber_max_messages == 1000
+        assert broker.config.broker_config.subscriber.ack_deadline == 86400
+        assert broker.config.broker_config.subscriber.max_messages == 1000
 
         # Minimum valid values
         broker2 = GCPBroker(
             project_id="edge-case-test-2",
-            subscriber_ack_deadline=10,  # 10 seconds
-            subscriber_max_messages=1,
+            subscriber_config=SubscriberConfig(
+                ack_deadline=10,  # 10 seconds
+                max_messages=1,
+            ),
         )
-        assert broker2.config.broker_config.subscriber_ack_deadline == 10
-        assert broker2.config.broker_config.subscriber_max_messages == 1
+        assert broker2.config.broker_config.subscriber.ack_deadline == 10
+        assert broker2.config.broker_config.subscriber.max_messages == 1
 
     def test_config_with_custom_endpoints(self) -> None:
         """Test configuration with custom API endpoints."""

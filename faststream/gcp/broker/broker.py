@@ -60,23 +60,10 @@ class GCPBroker(
         service_file: str | None = None,
         emulator_host: str | None = None,
         session: aiohttp.ClientSession | None = None,
-        # Configuration objects (new grouped approach)
+        # Configuration objects
         publisher_config: PublisherConfig | None = None,
         subscriber_config: SubscriberConfig | None = None,
         retry_config: RetryConfig | None = None,
-        # Publisher settings (backward compatibility)
-        publisher_max_messages: int | None = None,
-        publisher_max_bytes: int | None = None,
-        publisher_max_latency: float | None = None,
-        # Subscriber settings (backward compatibility)
-        subscriber_max_messages: int | None = None,
-        subscriber_ack_deadline: int | None = None,
-        subscriber_max_extension: int | None = None,
-        # Retry settings (backward compatibility)
-        retry_max_attempts: int | None = None,
-        retry_max_delay: float | None = None,
-        retry_multiplier: float | None = None,
-        retry_min_delay: float | None = None,
         # Broker base args
         graceful_timeout: float | None = None,
         decoder: Optional["CustomCallable"] = None,
@@ -114,16 +101,6 @@ class GCPBroker(
             publisher_config: Publisher configuration object
             subscriber_config: Subscriber configuration object
             retry_config: Retry configuration object
-            publisher_max_messages: Max messages per batch (deprecated, use publisher_config)
-            publisher_max_bytes: Max bytes per batch (deprecated, use publisher_config)
-            publisher_max_latency: Max latency before publishing batch (deprecated, use publisher_config)
-            subscriber_max_messages: Max messages to pull (deprecated, use subscriber_config)
-            subscriber_ack_deadline: ACK deadline in seconds (deprecated, use subscriber_config)
-            subscriber_max_extension: Max ACK deadline extension (deprecated, use subscriber_config)
-            retry_max_attempts: Max retry attempts (deprecated, use retry_config)
-            retry_max_delay: Max retry delay in seconds (deprecated, use retry_config)
-            retry_multiplier: Retry delay multiplier (deprecated, use retry_config)
-            retry_min_delay: Min retry delay in seconds (deprecated, use retry_config)
             graceful_timeout: Graceful shutdown timeout
             decoder: Message decoder
             parser: Message parser
@@ -155,49 +132,10 @@ class GCPBroker(
 
         security_kwargs = parse_security(security) if security is not None else {}
 
-        # Handle configuration objects vs individual parameters
-        # Publisher config
-        if publisher_config is not None:
-            final_publisher_config = publisher_config
-        else:
-            final_publisher_config = PublisherConfig(
-                max_messages=publisher_max_messages
-                if publisher_max_messages is not None
-                else 100,
-                max_bytes=publisher_max_bytes
-                if publisher_max_bytes is not None
-                else (1024 * 1024),
-                max_latency=publisher_max_latency
-                if publisher_max_latency is not None
-                else 0.01,
-            )
-
-        # Subscriber config
-        if subscriber_config is not None:
-            final_subscriber_config = subscriber_config
-        else:
-            final_subscriber_config = SubscriberConfig(
-                max_messages=subscriber_max_messages
-                if subscriber_max_messages is not None
-                else 1000,
-                ack_deadline=subscriber_ack_deadline
-                if subscriber_ack_deadline is not None
-                else 600,
-                max_extension=subscriber_max_extension
-                if subscriber_max_extension is not None
-                else 600,
-            )
-
-        # Retry config
-        if retry_config is not None:
-            final_retry_config = retry_config
-        else:
-            final_retry_config = RetryConfig(
-                max_attempts=retry_max_attempts if retry_max_attempts is not None else 5,
-                max_delay=retry_max_delay if retry_max_delay is not None else 60.0,
-                multiplier=retry_multiplier if retry_multiplier is not None else 2.0,
-                min_delay=retry_min_delay if retry_min_delay is not None else 1.0,
-            )
+        # Use provided config objects or create defaults
+        final_publisher_config = publisher_config or PublisherConfig()
+        final_subscriber_config = subscriber_config or SubscriberConfig()
+        final_retry_config = retry_config or RetryConfig()
 
         config = GCPBrokerConfig(
             producer=GCPFastProducer(
