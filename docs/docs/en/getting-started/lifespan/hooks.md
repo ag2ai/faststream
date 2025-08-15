@@ -10,6 +10,84 @@ search:
 
 # Lifespan Hooks
 
+In FastStream, *lifespan hooks* are special functions executed at specific stages of the application’s lifecycle.
+They allow you to:
+
+* Initialize resources before the broker starts (configuration, databases)
+* Perform actions after the broker has started (send initial messages, warm up caches)
+* Gracefully shut down before the broker stops (save data, close connections)
+* Clean up resources after the application has fully stopped
+
+There are **four types of hooks**:
+
+1. `on_startup` — before the broker is connected
+2. `after_startup` — after the broker is connected
+3. `on_shutdown` — before the broker is disconnected
+4. `after_shutdown` — after the broker is disconnected
+
+## Resource availability by hooks
+
+The table below summarizes what is available in each of the hooks at different stages of the broker's life.
+
+| Hook                | CLI args | Context | Broker life |
+| ------------------- | -------- |---------|-------------|
+| **on\_startup**     | ✅        | ✅       | ❌           |
+| **after\_startup**  | ❌        | ✅       | ✅           |
+| **on\_shutdown**    | ❌        | ✅       | ✅           |
+| **after\_shutdown** | ❌        | ✅       | ❌           |
+
+## Call Order
+
+Lifespan hooks are called in a strict order following the application’s lifecycle, as shown in the table above: first `on_startup`, then `after_startup`, followed by `on_shutdown`, and finally `after_shutdown`.
+
+You can define multiple functions for a single hook — they will be executed in the order they were registered. The order in which different hooks are declared does not affect their execution: FastStream guarantees that hooks are called according to the lifecycle sequence, regardless of registration order.
+
+```python
+# --- Startup hooks ---
+@app.on_startup
+async def startup_first(logger: Logger):
+    logger.info("startup_first called")
+
+@app.on_startup
+async def startup_second(logger: Logger):
+    logger.info("startup_second called")
+
+# --- After startup hooks ---
+@app.after_startup
+async def after_startup(logger: Logger):
+    logger.info("after_startup called")
+
+# --- Shutdown hooks ---
+@app.on_shutdown
+async def shutdown_first(logger: Logger):
+    logger.info("shutdown_first called")
+
+@app.on_shutdown
+async def shutdown_second(logger: Logger):
+    logger.info("shutdown_second called")
+
+# --- After shutdown hooks ---
+@app.after_shutdown
+async def after_shutdown(logger: Logger):
+    logger.info("after_shutdown called")
+```
+
+**Console output:**
+
+```
+startup_first called
+startup_second called
+after_startup called
+shutdown_first called
+shutdown_second called
+after_shutdown called
+```
+
+
+This allows you to safely separate logic and resource initialization across different functions and hooks without worrying about the order of registration.
+
+
+
 ## Usage example
 
 Let's imagine that your application uses **pydantic** as your settings manager.
