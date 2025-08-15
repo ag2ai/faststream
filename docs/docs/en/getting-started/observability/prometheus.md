@@ -138,6 +138,71 @@ To integrate your custom metrics with FastStream, you should declare the metric,
 
 To learn about all the metric types supported by the `prometheus_client` Python library, check out the official instrumentation [**documentation**](https://prometheus.github.io/client_python/instrumenting/){.external-link target="_blank"}.
 
+## Prometheus Metrics in Multi-Process Mode
+
+When running FastStream with multiple worker processes, follow these steps to properly configure Prometheus metrics collection:
+
+### Basic Configuration
+1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory:
+   ```bash
+   export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
+   ```
+
+2. The metrics will automatically work in multiprocess mode when the environment variable is set. Here's a minimal working example:
+
+```python linenums="1" hl_lines="8"
+import os
+
+from prometheus_client import CollectorRegistry
+
+from faststream.kafka import KafkaBroker
+from faststream.kafka.prometheus import KafkaPrometheusMiddleware
+
+broker = KafkaBroker(
+    middlewares=[
+        KafkaPrometheusMiddleware(
+            registry=CollectorRegistry(),
+            app_name="your-app-name"
+        )
+    ]
+)
+```
+
+### Metrics Export Endpoint
+For exporting metrics in multi-process mode, you need a special endpoint:
+
+```python linenums="1" hl_lines="8"
+import os
+
+from prometheus_client import CollectorRegistry, multiprocess, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST
+
+from faststream.asgi import AsgiResponse
+
+registry = CollectorRegistry()
+
+@get
+async def metrics(scope):
+    if path := os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+        registry_ = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry_, path=path)
+    else:
+        registry_ = registry
+
+    headers = {"Content-Type": CONTENT_TYPE_LATEST}
+    return AsgiResponse(generate_latest(registry_), status_code=200, headers=headers)
+```
+
+### Important Requirements
+1. The metrics directory must:
+   - Exist before application start
+   - Be writable by all worker processes
+   - Be on a filesystem accessible to all workers
+   - Be emptied between application runs
+2. For better performance:
+   - Consider mounting the directory on `tmpfs`
+   - Set up regular cleanup of old metric files
+
 ### Grafana dashboard
 
 You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboards/22130-faststream-metrics/){.external-link target="_blank"} to visualize the metrics collected by middleware.
