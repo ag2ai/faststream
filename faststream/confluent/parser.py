@@ -96,4 +96,6 @@ class AsyncConfluentParser:
 def _parse_msg_headers(
     headers: Sequence[tuple[str, bytes | str]],
 ) -> dict[str, str]:
-    return {i: j if isinstance(j, str) else j.decode() for i, j in headers}
+    return {
+        i: j if isinstance(j, str) else j.decode(errors="replace") for i, j in headers
+    }
