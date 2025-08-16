@@ -31,9 +31,9 @@ class StreamMessage(Generic[MsgType]):
         raw_message: "MsgType",
         body: bytes | Any,
         *,
-        headers: dict[str, Any] | None = None,
+        headers: dict[str, bytes] | None = None,
         reply_to: str = "",
-        batch_headers: list[dict[str, Any]] | None = None,
+        batch_headers: list[dict[str, bytes]] | None = None,
         path: dict[str, Any] | None = None,
         content_type: str | None = None,
         correlation_id: str | None = None,
@@ -46,7 +46,7 @@ class StreamMessage(Generic[MsgType]):
         self.content_type = content_type
         self.source_type = source_type
 
-        self.headers = headers or {}
+        self.raw_headers = headers or {}
         self.batch_headers = batch_headers or []
         self.path = path or {}
         self.correlation_id = correlation_id or str(uuid4())
@@ -78,7 +78,7 @@ class StreamMessage(Generic[MsgType]):
                     f"message_id={self.message_id}",
                     f"correlation_id={self.correlation_id}",
                     f"reply_to={self.reply_to}" if self.reply_to else "",
-                    f"headers={self.headers}",
+                    f"headers={self.raw_headers}",
                     f"path={self.path}",
                     f"committed={self.committed}",
                     f"raw_message={self.raw_message}",
@@ -112,3 +112,14 @@ class StreamMessage(Generic[MsgType]):
     async def reject(self) -> None:
         if self.committed is None:
             self.committed = AckStatus.REJECTED
+
+    @property
+    def headers(self) -> dict[str, str]:
+        """Parse raw_headers values to str.
+
+        Returns ...
+        """
+        return {
+            header: value if isinstance(value, str) else value.decode()
+            for header, value in self.raw_headers.items()
+        }
