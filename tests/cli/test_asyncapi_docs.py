@@ -235,10 +235,10 @@ def test_serve_asyncapi_docs_from_file(
 ) -> None:
     with (
         generate_template(doc, filename=doc_filename) as doc_path,
-        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+        faststream_cli("faststream", "docs", "serve", str(doc_path), "--host", "127.0.0.1") as cli,
     ):
         cli.wait_for_stderr("Please, do not use it in production.")
 
-        response = httpx.get("http://localhost:8000")
+        response = httpx.get("http://127.0.0.1:8000")
         assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
