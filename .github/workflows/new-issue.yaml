@@ -17,6 +17,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
           message: |
             🚀 New issue created by ${{ github.actor }} in ${{ github.repository }}!
 
