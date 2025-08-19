@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
-from tests.marks import require_aiokafka, skip_windows, skip_macos
+from tests.marks import require_aiokafka, skip_macos, skip_windows
 
 json_asyncapi_doc = """
 {
