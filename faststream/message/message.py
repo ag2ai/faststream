@@ -120,6 +120,6 @@ class StreamMessage(Generic[MsgType]):
         Returns ...
         """
         return {
-            header: value if isinstance(value, str) else value.decode()
+            header: value if isinstance(value, str) else value.decode(errors="replace")
             for header, value in self.raw_headers.items()
         }
