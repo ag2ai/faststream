@@ -22,13 +22,50 @@ Fortunately, we have built-in **ASGI** support. It is very limited but good enou
 
 Let's take a look at the following example:
 
-```python linenums="1" hl_lines="2 5" title="main.py"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream
+=== "NATS"
+    ```python linenums="1" hl_lines="2 5" title="main.py"
+    from faststream.nats import NatsBroker
+    from faststream.asgi import AsgiFastStream
 
-broker = NatsBroker()
-app = AsgiFastStream(broker)
-```
+    broker = NatsBroker()
+    app = AsgiFastStream(broker)
+    ```
+
+=== "Kafka"
+    ```python linenums="1" hl_lines="2 5" title="main.py"
+    from faststream.kafka import KafkaBroker
+    from faststream.asgi import AsgiFastStream
+
+    broker = KafkaBroker()
+    app = AsgiFastStream(broker)
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="2 5" title="main.py"
+    from faststream.rabbit import RabbitBroker
+    from faststream.asgi import AsgiFastStream
+
+    broker = RabbitBroker()
+    app = AsgiFastStream(broker)
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="2 5" title="main.py"
+    from faststream.redis import RedisBroker
+    from faststream.asgi import AsgiFastStream
+
+    broker = RedisBroker()
+    app = AsgiFastStream(broker)
+    ```
+
+=== "GCP Pub/Sub"
+    ```python linenums="1" hl_lines="2 5" title="main.py"
+    from faststream.gcp import GCPBroker
+    from faststream.asgi import AsgiFastStream
+
+    broker = GCPBroker(project_id="your-project")
+    app = AsgiFastStream(broker)
+    ```
 
 This simple example allows you to run the app using regular **ASGI** servers:
 
@@ -60,19 +97,35 @@ It doesn't look very helpful, so let's add some **HTTP** endpoints.
 
 First, we have already written a wrapper on top of the broker to make a ready-to-use **ASGI** healthcheck endpoint for you:
 
-```python linenums="1" hl_lines="2 9"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, make_ping_asgi
+=== "NATS"
+    ```python linenums="1" hl_lines="2 9"
+    from faststream.nats import NatsBroker
+    from faststream.asgi import AsgiFastStream, make_ping_asgi
 
-broker = NatsBroker()
+    broker = NatsBroker()
 
-app = AsgiFastStream(
-    broker,
-    asgi_routes=[
-        ("/health", make_ping_asgi(broker, timeout=5.0)),
-    ]
-)
-```
+    app = AsgiFastStream(
+        broker,
+        asgi_routes=[
+            ("/health", make_ping_asgi(broker, timeout=5.0)),
+        ]
+    )
+    ```
+
+=== "GCP Pub/Sub"
+    ```python linenums="1" hl_lines="2 9"
+    from faststream.gcp import GCPBroker
+    from faststream.asgi import AsgiFastStream, make_ping_asgi
+
+    broker = GCPBroker(project_id="your-project")
+
+    app = AsgiFastStream(
+        broker,
+        asgi_routes=[
+            ("/health", make_ping_asgi(broker, timeout=5.0)),
+        ]
+    )
+    ```
 
 !!! note
     This `/health` endpoint calls the `#!python broker.ping()` method and returns **HTTP 204** or **HTTP 500** statuses.

@@ -74,3 +74,9 @@ To publish a message, provide the message content and a routing key:
     async with RedisBroker() as br:
         await br.publish("message", "channel")
     ```
+
+=== "GCP Pub/Sub"
+    ```python
+    async with GCPBroker(project_id="your-project") as br:
+        await br.publish("message", "topic")
+    ```

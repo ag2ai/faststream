@@ -14,6 +14,7 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 - [**RabbitMQ**](../rabbit/index.md){.internal-link}
 - [**NATS JetStream**](../nats/jetstream/index.md){.internal-link}
 - [**Redis Streams**](../redis/streams/index.md){.internal-link}
+- [**GCP Pub/Sub**](../gcp/index.md){.internal-link}
 
 ### Usage
 
@@ -106,3 +107,4 @@ However, not all brokers support our semantics. Here is a brief overview of **Fa
 | [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
 | [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
 | Kafka | Commits offset          | Do nothing    | Do nothing      |
+| [GCP Pub/Sub](https://cloud.google.com/pubsub/docs/subscriber#at-least-once-delivery){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol ack    |

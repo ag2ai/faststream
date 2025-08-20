@@ -126,6 +126,14 @@ search:
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
 	- [Message Format](redis/message_format.md)
+- [GCP Pub/Sub](gcp/index.md)
+    - [Publisher](gcp/Publisher/index.md)
+        - [Ordering Key](gcp/Publisher/using_a_key.md)
+    - [Subscriber](gcp/Subscriber/index.md)
+    - [Manual Ack](gcp/ack.md)
+    - [Message Attributes](gcp/message.md)
+    - [Security Configuration](gcp/security.md)
+
 - [Reference - Code API](api/index.md)
 {public_api}
 {api}

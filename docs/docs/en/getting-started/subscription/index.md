@@ -70,6 +70,17 @@ The basic syntax is the same for all brokers:
         ...
     ```
 
+=== "GCP Pub/Sub"
+    ```python
+    from faststream.gcp import GCPBroker
+
+    broker = GCPBroker(project_id="your-project")
+
+    @broker.subscriber("test-sub", topic="test")  # subscription and topic
+    async def handle_msg(msg_body):
+        ...
+    ```
+
 !!! tip
     If you want to use Message Broker specific features, please visit the corresponding broker documentation section.
     In the **Tutorial** section, the general features are described.
@@ -127,6 +138,17 @@ Also, synchronous functions are supported as well:
     broker = RedisBroker()
 
     @broker.subscriber("test")  # channel name
+    def handle_msg(msg_body):
+        ...
+    ```
+
+=== "GCP Pub/Sub"
+    ```python
+    from faststream.gcp import GCPBroker
+
+    broker = GCPBroker(project_id="your-project")
+
+    @broker.subscriber("test-sub", topic="test")  # subscription and topic
     def handle_msg(msg_body):
         ...
     ```

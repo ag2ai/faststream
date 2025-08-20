@@ -59,6 +59,7 @@ services:
     volumes:
       - ./:/src
       - /src/.venv/
+    network_mode: "host"
     environment:
-      PUBSUB_EMULATOR_HOST: "gcp:8681"
+      PUBSUB_EMULATOR_HOST: "localhost:8681"
     tty: true

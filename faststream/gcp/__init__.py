@@ -40,7 +40,6 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_GCPPUBSUB + "[gcp]") from e
 
 __all__ = (
-    "INSTALL_FASTSTREAM_GCPPUBSUB",
     "Attributes",
     "GCPBroker",
     "GCPMessage",
