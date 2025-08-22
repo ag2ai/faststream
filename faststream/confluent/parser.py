@@ -36,7 +36,9 @@ class AsyncConfluentParser:
         return KafkaMessage(
             body=body,
             headers=headers,
-            reply_to=headers.get("reply_to", ""),
+            reply_to=headers.get("reply_to").decode()
+            if "content-type" in headers
+            else None,
             content_type=headers.get("content-type").decode()
             if "content-type" in headers
             else None,
@@ -72,10 +74,16 @@ class AsyncConfluentParser:
             body=body,
             headers=headers,
             batch_headers=batch_headers,
-            reply_to=headers.get("reply_to", ""),
-            content_type=headers.get("content-type"),
+            reply_to=headers.get("reply_to").decode()
+            if "content-type" in headers
+            else None,
+            content_type=headers.get("content-type").decode()
+            if "content-type" in headers
+            else None,
             message_id=f"{first.offset()}-{last.offset()}-{first_timestamp}",
-            correlation_id=headers.get("correlation_id"),
+            correlation_id=headers.get("correlation_id").decode()
+            if "correlation_id" in headers
+            else None,
             raw_message=message,
             consumer=self._consumer,
             is_manual=self.is_manual,
