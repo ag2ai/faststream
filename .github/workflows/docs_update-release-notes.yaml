@@ -17,11 +17,11 @@ jobs:
       BRANCH_NAME: update-release-notes-${{ github.ref_name }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+      - uses: astral-sh/setup-uv@d9e0f98d3fc6adb07d1e3d37f3043649ddad06a1 # v6.5.0
         with:
           version: "latest"
       - name: Configure Git user
@@ -55,7 +55,7 @@ jobs:
         with:
           token: ${{ secrets.AUTOMERGE_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
-          base: "main" # The branch you want to merge into
+          base: "dev" # The branch you want to merge into
           title: "Update Release Notes for ${{ env.TAG_NAME }}"
           commit-message: "Update Release Notes for ${{ env.TAG_NAME }}"
           body: "This is an automated pull request to update the release notes for ${{ env.TAG_NAME }}"

@@ -14,7 +14,7 @@ As you know, **FastStream** serializes a message body and provides you access to
 
 ## Message Access
 
-You can get it in a simple way: just access the message object in the [Context](../getting-started/context/existed.md){.internal-link}.
+You can get it in a simple way: just access the message object in the [Context](../getting-started/context.md#existing-fields){.internal-link}.
 
 This message contains the required information such as:
 
@@ -47,7 +47,7 @@ async def base_handler(body: str, msg: RabbitMessage):
 
 ## Message Fields Access
 
-But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context/fields.md){.internal-link} feature for this reason.
+But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing_fields){.internal-link} feature for this reason.
 
 For example, you can access the `correlation_id` like this:
 

@@ -52,7 +52,7 @@ classifiers = [
     "Framework :: Pydantic :: 2",
 ]
 
-version = "0.6.0rc1"
+version = "0.6.0rc2"
 
 dependencies = [
     "anyio>=3.7.1,<5",
@@ -95,7 +95,7 @@ docs = [
     "mkdocs-git-revision-date-localized-plugin==1.4.7",
     "mike==2.1.3",                                      # versioning
     "mkdocs-minify-plugin==0.8.0",
-    "mkdocs-macros-plugin==1.3.7",                      # includes with variables
+    "mkdocs-macros-plugin==1.3.9",                      # includes with variables
     "mkdocs-glightbox==0.4.0",                          # img zoom
     "pillow",                                           # required for mkdocs-glightbox
     "cairosvg",                                         # required for mkdocs-glightbox
@@ -103,11 +103,11 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.12.8",
+    "ruff==0.12.9",
     "bandit==1.8.6",
     "semgrep==1.131.0",
     "codespell==2.4.1",
-    "zizmor==1.11.0",
+    "zizmor==1.12.0",
     "mypy==1.17.1",
     # mypy extensions
     "types-Deprecated",

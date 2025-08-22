@@ -14,7 +14,7 @@ As you may know, **FastStream** serializes a message body and provides you acces
 
 ## Message Access
 
-You can easily access this information by referring to the message object in the [Context](../getting-started/context/existed.md)
+You can easily access this information by referring to the message object in the [Context](../getting-started/context.md#existing-fields)
 
 This object serves as a unified **FastStream** wrapper around the native broker library message (for example, [`confluent_kafka.Message`](https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message) in this case which uses *Confluent* python library). It contains most of the required information, including:
 
@@ -57,7 +57,7 @@ async def base_handler(
 ## Message Fields Access
 
 In most cases, you don't need all message fields; you need to know just a part of them.
-You can use [Context Fields access](../getting-started/context/fields.md) feature for this.
+You can use [Context Fields access](../getting-started/context.md#existing_fields) feature for this.
 
 For example, you can get access to the `headers` like this:
 
