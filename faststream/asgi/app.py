@@ -123,7 +123,7 @@ class AsgiFastStream(Application):
 
         for path, app in self.routes:
             if isinstance(app, HttpHandler):
-                self.schema.add_http_route(path, app)
+                self._register_route(path, app)
 
         self._server = OuterRunState()
 
@@ -153,6 +153,12 @@ class AsgiFastStream(Application):
 
     def mount(self, path: str, route: "ASGIApp") -> None:
         self.routes.append((path, route))
+        self._register_route(path, route)
+
+    def _register_route(self, path: str, route: "ASGIApp") -> None:
+        if isinstance(route, HttpHandler):
+            self.schema.add_http_route(path, route)
+            route.set_context(self.config.context)
 
     async def __call__(
         self,

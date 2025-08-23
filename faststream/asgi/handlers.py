@@ -1,6 +1,11 @@
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
+from faststream import apply_types
+from faststream._internal.context.repository import ContextRepo
+from faststream._internal.logger import logger
+from faststream.asgi.request import AsgiRequest
+
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
@@ -10,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class HttpHandler:
+    _context_repo: ContextRepo
+
     def __init__(
         self,
         func: "UserApp",
@@ -33,11 +40,22 @@ class HttpHandler:
 
         else:
             try:
-                response = await self.func(scope)
+                if hasattr(self, "_context_repo"):
+                    with self._context_repo.scope(
+                        "request", AsgiRequest(scope, receive, send)
+                    ):
+                        response = await self.func(scope)
+                else:
+                    response = await self.func(scope)
             except Exception:
+                logger.exception("Exception occurred while processing request")
                 response = AsgiResponse(body=b"Internal Server Error", status_code=500)
 
         await response(scope, receive, send)
+
+    def set_context(self, context_repo: ContextRepo) -> None:
+        self._context_repo = context_repo
+        self.func = apply_types(self.func, context__=context_repo)
 
 
 class GetHandler(HttpHandler):
@@ -92,6 +110,71 @@ def get(
 ) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
     def decorator(inner_func: "UserApp") -> "ASGIApp":
         return GetHandler(
+            inner_func,
+            include_in_schema=include_in_schema,
+            description=description,
+            tags=tags,
+            unique_id=unique_id,
+        )
+
+    if func is None:
+        return decorator
+
+    return decorator(func)
+
+
+class PostHandler(HttpHandler):
+    def __init__(
+        self,
+        func: "UserApp",
+        *,
+        include_in_schema: bool = True,
+        description: str | None = None,
+        tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
+        unique_id: str | None = None,
+    ) -> None:
+        super().__init__(
+            func,
+            include_in_schema=include_in_schema,
+            description=description,
+            methods=("POST", "HEAD"),
+            tags=tags,
+            unique_id=unique_id,
+        )
+
+
+@overload
+def post(
+    func: "UserApp",
+    *,
+    include_in_schema: bool = True,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
+    unique_id: str | None = None,
+) -> "ASGIApp": ...
+
+
+@overload
+def post(
+    func: None = None,
+    *,
+    include_in_schema: bool = True,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
+    unique_id: str | None = None,
+) -> Callable[["UserApp"], "ASGIApp"]: ...
+
+
+def post(
+    func: Optional["UserApp"] = None,
+    *,
+    include_in_schema: bool = True,
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
+    unique_id: str | None = None,
+) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
+    def decorator(inner_func: "UserApp") -> "ASGIApp":
+        return PostHandler(
             inner_func,
             include_in_schema=include_in_schema,
             description=description,
