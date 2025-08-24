@@ -78,7 +78,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
         start_signal = anyio.Event()
 
         if self.calls:
-            self.add_task(self._consume(*args, start_signal=start_signal))
+            self.add_task(self._consume, args, {"start_signal": start_signal})
 
             with anyio.fail_after(3.0):
                 await start_signal.wait()
