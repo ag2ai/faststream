@@ -28,6 +28,14 @@ class AsyncConfluentParser:
     ) -> KafkaMessage:
         """Parses a Kafka message."""
         headers = dict(message.headers() or ())
+        decoded_headers = {
+            header: value.decode(errors="replace")
+            for header, value in (
+                headers.get("reply_to"),
+                headers.get("content-type"),
+                headers.get("correlation_id"),
+            )
+        }
 
         body = message.value() or b""
         offset = message.offset()
@@ -36,16 +44,10 @@ class AsyncConfluentParser:
         return KafkaMessage(
             body=body,
             headers=headers,
-            reply_to=headers.get("reply_to").decode()
-            if "content-type" in headers
-            else None,
-            content_type=headers.get("content-type").decode()
-            if "content-type" in headers
-            else None,
+            reply_to=decoded_headers.get("reply_to") or None,
+            content_type=decoded_headers.get("content-type") or None,
             message_id=f"{offset}-{timestamp}",
-            correlation_id=headers.get("correlation_id").decode()
-            if "correlation_id" in headers
-            else None,
+            correlation_id=decoded_headers.get("correlation_id") or None,
             raw_message=message,
             consumer=self._consumer,
             is_manual=self.is_manual,
