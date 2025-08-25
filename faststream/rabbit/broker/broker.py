@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
+from faststream._internal.configs.settings import Settings
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
@@ -107,6 +108,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+        settings: Settings = EMPTY
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -180,6 +182,7 @@ class RabbitBroker(
             # Basic args
             routers=routers,
             config=RabbitBrokerConfig(
+                settings=settings,
                 channel_manager=cm,
                 producer=producer,
                 declarer=declarer,
@@ -346,6 +349,10 @@ class RabbitBroker(
         Returns:
             An optional `aiormq.abc.ConfirmationFrameType` representing the confirmation frame if RabbitMQ is configured to send confirmations.
         """
+        # example
+        if isinstance(queue, Settings):
+            queue = queue.resolve_from(self.config)
+
         cmd = RabbitPublishCommand(
             message,
             routing_key=routing_key or RabbitQueue.validate(queue).routing(),

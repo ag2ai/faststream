@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.configs.settings import Settings
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -40,6 +41,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
+
+        # example
+        if isinstance(config.queue, Settings):
+            config.queue = config.queue.resolve_from(config._outer_config)
+
         parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
@@ -70,7 +76,13 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
+        print("start")
+
         await super().start()
+
+        # как корректно достать/положить queue
+        if isinstance(self.queue, Settings):
+            self.queue = self._outer_config.settings.queue
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
 
