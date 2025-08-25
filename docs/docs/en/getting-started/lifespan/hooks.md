@@ -42,7 +42,7 @@ Now let's look into a little more detail.
 To begin with, we are using a `#!python @app.on_startup` decorator
 
 ```python linenums="12" hl_lines="14-15" hl_lines="1"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 to declare a function that runs when our application starts.
@@ -50,7 +50,7 @@ to declare a function that runs when our application starts.
 The next step is to declare our function parameters that we expect to receive:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="2"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 The `env` argument will be passed to the `setup` function from the user-provided command line arguments.
@@ -62,7 +62,7 @@ The `env` argument will be passed to the `setup` function from the user-provided
 Then, we initialize the settings of our application using the file passed to us from the command line:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="3"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 And put these settings in a global context:

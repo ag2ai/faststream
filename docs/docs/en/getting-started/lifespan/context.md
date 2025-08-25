@@ -51,4 +51,4 @@ As you can see, `lifespan` parameter is much suitable for case (than `#!python @
 Also, `lifespan` supports all **FastStream** hooks features:
 
 * Dependency Injection
-* [extra **CLI**](../cli/index.md#environment-management){.internal-link} options passing
+* [extra **CLI**](../cli.md){.internal-link} options passing

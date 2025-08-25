@@ -2636,7 +2636,7 @@ broker = RabbitBroker(
 
 ### New Functionalities
 
-Now, `Context` provides access to inner [dict keys too](./getting-started/context/fields.md):
+Now, `Context` provides access to inner [dict keys too](./getting-started/context.md#existing_fields):
 
 ```python
 # headers is a `dict`
