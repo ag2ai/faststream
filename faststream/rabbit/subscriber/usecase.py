@@ -42,10 +42,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
 
-        # example
-        if isinstance(config.queue, Settings):
-            config.queue = config.queue.resolve_from(config._outer_config)
-
         parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message

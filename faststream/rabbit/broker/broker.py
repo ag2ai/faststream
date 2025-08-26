@@ -108,7 +108,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        settings: Settings = EMPTY
+        settings: SettingsContainer = EMPTY
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -349,9 +349,6 @@ class RabbitBroker(
         Returns:
             An optional `aiormq.abc.ConfirmationFrameType` representing the confirmation frame if RabbitMQ is configured to send confirmations.
         """
-        # example
-        if isinstance(queue, Settings):
-            queue = queue.resolve_from(self.config)
 
         cmd = RabbitPublishCommand(
             message,

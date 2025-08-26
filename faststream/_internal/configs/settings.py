@@ -2,19 +2,17 @@ from typing import Any
 
 
 class Settings:
-    def __init__(self, key: str | None = None, **kwargs: Any) -> None:
+    def __init__(self, key: str) -> None:
         self.key = key
+
+
+class SettingsContainer:
+    def __init__(self, **kwargs: Any) -> None:
         self._items = dict(kwargs)
 
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._items.get(key, default)
-
-    def __getitem__(self, key: str) -> Any:
-        return self._items[key]
-    
-    # example
-    def resolve_from(self, outer: Any) -> Any:
-        if self.key is not None:
-            return outer.settings.get(self.key)
-        return self._items
+    # Возиожно просто возвращать из self,items
+    def resolve_from(self, item: Any, outer: Any) -> Any:
+        if isinstance(item, Settings):
+            return outer.settings.get(item.key)
+        return item
 
