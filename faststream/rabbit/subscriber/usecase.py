@@ -42,9 +42,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
 
-        parser = AioPikaParser(pattern=config.queue.path_regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        # parser = AioPikaParser(pattern=config.queue.path_regex)
+        config.decoder = None
+        config.parser = None
         super().__init__(
             config,
             specification=specification,
@@ -72,13 +72,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        print("start")
-
+        self.queue = self._outer_config.settings.resolve_from(self.queue)
+        parser = AioPikaParser(pattern=self.queue.path_regex)
+        self._decoder = parser.decode_message
+        self._parser = parser.parse_message
         await super().start()
-
-        # как корректно достать/положить queue
-        if isinstance(self.queue, Settings):
-            self.queue = self._outer_config.settings.queue
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
 
@@ -222,7 +220,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         exchange: Optional["RabbitExchange"] = None,
     ) -> dict[str, str]:
         return {
-            "queue": queue.name,
+            "queue": getattr(queue, "name", ""),
             "exchange": getattr(exchange, "name", ""),
             "message_id": getattr(message, "message_id", ""),
         }
@@ -233,6 +231,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     ) -> dict[str, str]:
         return self.build_log_context(
             message=message,
-            queue=self.queue,
+            queue=self._outer_config.settings.resolve_from(self.queue),
             exchange=self.exchange,
         )

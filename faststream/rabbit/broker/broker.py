@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
-from faststream._internal.configs.settings import Settings
+from faststream._internal.configs.settings import SettingsContainer
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME

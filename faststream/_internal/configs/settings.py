@@ -10,9 +10,7 @@ class SettingsContainer:
     def __init__(self, **kwargs: Any) -> None:
         self._items = dict(kwargs)
 
-    # Возиожно просто возвращать из self,items
-    def resolve_from(self, item: Any, outer: Any) -> Any:
+    def resolve_from(self, item: Any) -> Any:
         if isinstance(item, Settings):
-            return outer.settings.get(item.key)
+            return self._items.get(item.key)
         return item
-

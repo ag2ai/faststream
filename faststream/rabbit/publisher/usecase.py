@@ -70,6 +70,8 @@ class RabbitPublisher(PublisherUsecase):
         queue: Union["RabbitQueue", str, None] = None,
         routing_key: str = "",
     ) -> str:
+        print(self._outer_config.settings)
+        self.queue = self._outer_config.settings.resolve_from(self.queue)
         if not routing_key:
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
@@ -80,6 +82,8 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
+        self.queue = self._outer_config.settings.resolve_from(self.queue)
+        print("start")
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()
