@@ -41,8 +41,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-
-        # parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = None
         config.parser = None
         super().__init__(

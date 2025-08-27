@@ -349,7 +349,6 @@ class RabbitBroker(
         Returns:
             An optional `aiormq.abc.ConfirmationFrameType` representing the confirmation frame if RabbitMQ is configured to send confirmations.
         """
-
         cmd = RabbitPublishCommand(
             message,
             routing_key=routing_key or RabbitQueue.validate(queue).routing(),

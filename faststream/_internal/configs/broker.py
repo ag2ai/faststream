@@ -20,9 +20,7 @@ if TYPE_CHECKING:
 class BrokerConfig:
     prefix: str = ""
     include_in_schema: bool | None = True
-
     settings: SettingsContainer = None
-
     broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["CustomCallable"] = None
     broker_decoder: Optional["CustomCallable"] = None
