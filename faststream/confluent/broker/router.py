@@ -372,5 +372,5 @@ class KafkaRouter(
                 include_in_schema=include_in_schema,
                 prefix=prefix,
             ),
-            routers=routers,  # type: ignore[arg-type]
+            routers=routers,
         )

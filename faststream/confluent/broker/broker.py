@@ -253,7 +253,7 @@ class KafkaBroker(
         )
 
         super().__init__(
-            routers=routers,  # type: ignore[arg-type]
+            routers=routers,
             config=KafkaBrokerConfig(
                 connection_config=connection_config,
                 client_id=client_id,
