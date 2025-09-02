@@ -46,14 +46,11 @@ class RabbitPublisher(PublisherUsecase):
         self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
         self.timeout = config.message_kwargs.pop("timeout", None)
 
-        message_options, _ = filter_by_dict(
-            BasicMessageOptions,
-            dict(config.message_kwargs),
-        )
-        self._message_options = message_options
+        self.message_kwargs = config.message_kwargs
+        
+        self._message_options = None
 
-        publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
-        self.publish_options = publish_options
+        self.publish_options = None
 
     @property
     def message_options(self) -> "BasicMessageOptions":
@@ -70,7 +67,6 @@ class RabbitPublisher(PublisherUsecase):
         queue: Union["RabbitQueue", str, None] = None,
         routing_key: str = "",
     ) -> str:
-        self.queue = self._outer_config.settings.resolve_from(self.queue)
         if not routing_key:
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
@@ -81,7 +77,24 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
-        self.queue = self._outer_config.settings.resolve_from(self.queue)
+        self.queue = self._outer_config.settings.resolve(self.queue)
+        self.exchange = self._outer_config.settings.resolve(self.exchange)
+        self.routing_key = self._outer_config.settings.resolve(self.routing_key)
+        self.timeout = self._outer_config.settings.resolve(self.timeout)
+        self.reply_to = self._outer_config.settings.resolve(self.reply_to)
+        self.headers = self._outer_config.settings.resolve(self.headers)
+
+        self.message_kwargs = self._outer_config.settings.resolve(self.message_kwargs)
+
+        message_options, _ = filter_by_dict(
+            BasicMessageOptions,
+            dict(self.message_kwargs),
+        )
+        self._message_options = message_options
+
+        publish_options, _ = filter_by_dict(PublishOptions, dict(self.message_kwargs))
+        self.publish_options = publish_options
+
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()

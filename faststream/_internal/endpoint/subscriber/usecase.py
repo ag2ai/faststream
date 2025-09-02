@@ -109,6 +109,22 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         """Private method to start subscriber by broker."""
         self.lock = MultiLock()
 
+        self.ack_policy = self._outer_config.settings.resolve(self.ack_policy)
+        self._parser = self._outer_config.settings.resolve(self._parser)
+        self._decoder = self._outer_config.settings.resolve(self._decoder)
+        self._no_reply = self._outer_config.settings.resolve(self._no_reply)
+
+        self._call_options = _CallOptions(
+            parser=self._outer_config.settings.resolve(self._call_options.parser),
+            decoder=self._outer_config.settings.resolve(self._call_options.decoder),
+            middlewares=self._outer_config.settings.resolve(self._call_options.middlewares),
+            dependencies=self._outer_config.settings.resolve(self._call_options.dependencies),
+        )
+
+        self.specification.config.description_ = self._outer_config.settings.resolve(self.specification.config.description_)
+        self.specification.config.title_ = self._outer_config.settings.resolve(self.specification.config.title_)
+        self.specification.config.include_in_schema = self._outer_config.settings.resolve(self.specification.config.include_in_schema)
+
         self._build_fastdepends_model()
 
         self._outer_config.logger.log(

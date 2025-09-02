@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.configs.settings import Settings
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -70,7 +69,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        self.queue = self._outer_config.settings.resolve_from(self.queue)
+        self.queue = self._outer_config.settings.resolve(self.queue)
+        self.exchange = self._outer_config.settings.resolve(self.exchange)
+        self.channel = self._outer_config.settings.resolve(self.channel)
+        self.consume_args = self._outer_config.settings.resolve(self.consume_args)
+        self.__no_ack = self._outer_config.settings.resolve(self.__no_ack)
+
         parser = AioPikaParser(pattern=self.queue.path_regex)
         self._decoder = parser.decode_message
         self._parser = parser.parse_message
@@ -229,6 +233,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     ) -> dict[str, str]:
         return self.build_log_context(
             message=message,
-            queue=self._outer_config.settings.resolve_from(self.queue),
-            exchange=self.exchange,
+            queue=self._outer_config.settings.resolve(self.queue),
+            exchange=self._outer_config.settings.resolve(self.exchange),
         )

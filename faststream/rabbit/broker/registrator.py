@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
 from aio_pika import IncomingMessage
+from faststream._internal.configs.settings import Settings
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
@@ -38,11 +39,11 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: Union[str, "RabbitQueue"],
-        exchange: Union[str, "RabbitExchange", None] = None,
+        queue: Union[str, "RabbitQueue", Settings],
+        exchange: Union[str, "RabbitExchange", Settings, None] = None,
         *,
-        channel: Optional["Channel"] = None,
-        consume_args: dict[str, Any] | None = None,
+        channel: Optional["Channel"] | Settings = None,
+        consume_args: dict[str, Any] | Settings | None = None,
         no_ack: Annotated[
             bool,
             deprecated(
@@ -50,23 +51,23 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        ack_policy: AckPolicy = EMPTY,
+        ack_policy: AckPolicy | Settings = EMPTY,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] | Settings = (),
+        parser: Optional["CustomCallable"] | Settings = None,
+        decoder: Optional["CustomCallable"] | Settings = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
+            Sequence["SubscriberMiddleware[Any]"] | Settings,
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_reply: bool = False,
+        no_reply: bool | Settings = False,
         # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
+        title: str | Settings | None = None,
+        description: str | Settings | None = None,
+        include_in_schema: bool | Settings = True,
     ) -> "RabbitSubscriber":
         """Subscribe a handler to a RabbitMQ queue.
 
@@ -118,36 +119,36 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        queue: Union["RabbitQueue", str] = "",
-        exchange: Union["RabbitExchange", str, None] = None,
+        queue: Union["RabbitQueue", str, Settings] = "",
+        exchange: Union["RabbitExchange", str, Settings, None] = None,
         *,
-        routing_key: str = "",
-        mandatory: bool = True,
-        immediate: bool = False,
+        routing_key: str | Settings = "",
+        mandatory: bool | Settings = True,
+        immediate: bool | Settings = False,
         timeout: "TimeoutType" = None,
-        persist: bool = False,
-        reply_to: str | None = None,
-        priority: int | None = None,
+        persist: bool | Settings = False,
+        reply_to: str | Settings | None = None,
+        priority: int | Settings | None = None,
         # specific
         middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
+            Sequence["PublisherMiddleware"] | Settings,
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        schema: Any | None = None,
-        include_in_schema: bool = True,
+        title:  str | Settings | None = None,
+        description: str | Settings | None = None,
+        schema: Settings | Any | None = None,
+        include_in_schema: bool | Settings = True,
         # message args
-        headers: Optional["HeadersType"] = None,
-        content_type: str | None = None,
-        content_encoding: str | None = None,
-        expiration: Optional["DateType"] = None,
-        message_type: str | None = None,
-        user_id: str | None = None,
+        headers: Settings | Optional["HeadersType"] = None,
+        content_type: str | Settings | None = None,
+        content_encoding: str | Settings | None = None,
+        expiration: Optional["DateType"] | Settings = None,
+        message_type: str | Settings | None = None,
+        user_id: str | Settings | None = None,
     ) -> "RabbitPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 

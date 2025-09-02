@@ -1,6 +1,7 @@
 import warnings
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.configs.settings import Settings
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
@@ -20,20 +21,20 @@ if TYPE_CHECKING:
 
 def create_subscriber(
     *,
-    queue: "RabbitQueue",
-    exchange: "RabbitExchange",
-    consume_args: dict[str, Any] | None,
-    channel: Optional["Channel"],
+    queue: "RabbitQueue"  | Settings,
+    exchange: "RabbitExchange"  | Settings,
+    consume_args: dict[str, Any] | Settings | None,
+    channel: Optional["Channel"] | Settings,
     # Subscriber args
-    no_reply: bool,
-    ack_policy: "AckPolicy",
-    no_ack: bool,
+    no_reply: bool | Settings,
+    ack_policy: "AckPolicy" | Settings,
+    no_ack: bool | Settings,
     # Broker args
     config: "RabbitBrokerConfig",
     # Specification args
-    title_: str | None,
-    description_: str | None,
-    include_in_schema: bool,
+    title_: str | Settings | None,
+    description_: str | Settings | None,
+    include_in_schema: bool | Settings,
 ) -> RabbitSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
 

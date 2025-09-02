@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from faststream._internal.configs.settings import Settings
+
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
 from .specification import RabbitPublisherSpecification
 from .usecase import RabbitPublisher
@@ -15,19 +17,19 @@ if TYPE_CHECKING:
 
 def create_publisher(
     *,
-    routing_key: str,
-    queue: "RabbitQueue",
-    exchange: "RabbitExchange",
+    routing_key: str | Settings,
+    queue: "RabbitQueue" | Settings,  # noqa: TC010
+    exchange: "RabbitExchange" | Settings,  # noqa: TC010
     message_kwargs: "PublishKwargs",
     # Broker args
     config: "RabbitBrokerConfig",
     # Publisher args
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
-    schema_: Any | None,
-    title_: str | None,
-    description_: str | None,
-    include_in_schema: bool,
+    schema_: Any | Settings | None,
+    title_: str | Settings | None,
+    description_: str | Settings | None,
+    include_in_schema: bool | Settings,
 ) -> RabbitPublisher:
     publisher_config = RabbitPublisherConfig(
         routing_key=routing_key,

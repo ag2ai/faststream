@@ -49,7 +49,11 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.mock = MagicMock()
 
     async def start(self) -> None:
-        pass
+        self.middlewares = self._outer_config.settings.resolve(self.middlewares)
+        self.specification.config.description_ = self._outer_config.settings.resolve(self.specification.config.description_)
+        self.specification.config.title_ = self._outer_config.settings.resolve(self.specification.config.title_)
+        self.specification.config.include_in_schema = self._outer_config.settings.resolve(self.specification.config.include_in_schema)
+        self.specification.config.schema_ = self._outer_config.settings.resolve(self.specification.config.schema_)
 
     def set_test(
         self,
