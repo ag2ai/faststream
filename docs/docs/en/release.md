@@ -12,6 +12,24 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc2
+
+### What's Changed
+* fix(aiokafka): AttributeError on first _LoggingListener.on_partitions_assigned by [@legau](https://github.com/legau){.external-link target="_blank"} in [#2453](https://github.com/ag2ai/faststream/pull/2453){.external-link target="_blank"}
+* chore: change issue format by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2465](https://github.com/ag2ai/faststream/pull/2465){.external-link target="_blank"}
+* docs: Joined context pages into one page by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2460](https://github.com/ag2ai/faststream/pull/2460){.external-link target="_blank"}
+* fix: add benches.csv, some confluent fixes by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2461](https://github.com/ag2ai/faststream/pull/2461){.external-link target="_blank"}
+* docs: Improve cli overview by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2414](https://github.com/ag2ai/faststream/pull/2414){.external-link target="_blank"}
+* Feat: switch image from bitnami to confluent by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2482](https://github.com/ag2ai/faststream/pull/2482){.external-link target="_blank"}
+* Feature/update docs by [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} in [#2457](https://github.com/ag2ai/faststream/pull/2457){.external-link target="_blank"}
+* Add new issue workflow by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2481](https://github.com/ag2ai/faststream/pull/2481){.external-link target="_blank"}
+* fix: 0.6.0rc2 release changes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2485](https://github.com/ag2ai/faststream/pull/2485){.external-link target="_blank"}
+* 0.6.0rc2 release 08-29-2025 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2454](https://github.com/ag2ai/faststream/pull/2454){.external-link target="_blank"}
+* ci: change default branch to main back by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2488](https://github.com/ag2ai/faststream/pull/2488){.external-link target="_blank"}
+
+
+**Full Changelog**: [#0.6.0rc1...0.6.0rc2](https://github.com/ag2ai/faststream/compare/0.6.0rc1...0.6.0rc2){.external-link target="_blank"}
+
 ## 0.6.0rc1
 
 ### What's Changed
