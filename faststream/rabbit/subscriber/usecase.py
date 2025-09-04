@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.configs.settings import Settings
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -40,9 +41,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        parser = AioPikaParser(pattern=config.queue.path_regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        config.decoder = None
+        config.parser = None
         super().__init__(
             config,
             specification=specification,
@@ -70,6 +70,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
+        self.queue = self._outer_config.settings.resolve_from(self.queue)
+        parser = AioPikaParser(pattern=self.queue.path_regex)
+        self._decoder = parser.decode_message
+        self._parser = parser.parse_message
         await super().start()
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
@@ -214,7 +218,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         exchange: Optional["RabbitExchange"] = None,
     ) -> dict[str, str]:
         return {
-            "queue": queue.name,
+            "queue": getattr(queue, "name", ""),
             "exchange": getattr(exchange, "name", ""),
             "message_id": getattr(message, "message_id", ""),
         }
@@ -225,6 +229,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     ) -> dict[str, str]:
         return self.build_log_context(
             message=message,
-            queue=self.queue,
+            queue=self._outer_config.settings.resolve_from(self.queue),
             exchange=self.exchange,
         )
