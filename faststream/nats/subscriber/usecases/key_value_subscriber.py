@@ -167,7 +167,7 @@ class KeyValueWatchSubscriber(
             ),
         )
 
-        self.add_task(self.__consume_watch())
+        self.add_task(self.__consume_watch)
 
     async def __consume_watch(self) -> None:
         assert self.subscription, "You should call `create_subscription` at first."
