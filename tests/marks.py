@@ -1,6 +1,7 @@
 import pytest
 
 from faststream._internal._compat import (
+    IS_MACOS,
     IS_WINDOWS,
     PYDANTIC_V2,
 )
@@ -8,6 +9,11 @@ from faststream._internal._compat import (
 skip_windows = pytest.mark.skipif(
     IS_WINDOWS,
     reason="does not run on windows",
+)
+
+skip_macos = pytest.mark.skipif(
+    IS_MACOS,
+    reason="does not run on macOS",
 )
 
 pydantic_v1 = pytest.mark.skipif(

@@ -270,6 +270,7 @@ The availability of such documentation significantly simplifies the integration 
 **FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/)) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
 
 ```python
+from typing import Annotated
 from faststream import Depends, Logger
 
 async def base_dep(user_id: int) -> bool:
@@ -278,7 +279,7 @@ async def base_dep(user_id: int) -> bool:
 @broker.subscriber("in-test")
 async def base_handler(user: str,
                        logger: Logger,
-                       dep: bool = Depends(base_dep)):
+                       dep: Annotated[bool, Depends(base_dep)]):
     assert dep is True
     logger.info(user)
 ```

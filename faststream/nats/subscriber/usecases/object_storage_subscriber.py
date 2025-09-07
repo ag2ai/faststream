@@ -1,11 +1,11 @@
 from collections.abc import AsyncIterator, Iterable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from nats.errors import TimeoutError
 from nats.js.api import ObjectInfo
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.utils import process_msg
@@ -186,22 +186,24 @@ class ObjStoreWatchSubscriber(
 
     def _make_response_publisher(
         self,
-        message: Annotated[
-            "StreamMessage[ObjectInfo]",
-            Doc("Message requiring reply"),
-        ],
+        message: "StreamMessage[ObjectInfo]",
     ) -> Iterable["PublisherProto"]:
-        """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
+        """Create Publisher objects to use it as one of `publishers` in `self.consume` scope.
+
+        Args:
+            message: Message requiring reply
+        """
         return ()
 
     def get_log_context(
         self,
-        message: Annotated[
-            Optional["StreamMessage[ObjectInfo]"],
-            Doc("Message which we are building context for"),
-        ],
+        message: Optional["StreamMessage[ObjectInfo]"],
     ) -> dict[str, str]:
-        """Log context factory using in `self.consume` scope."""
+        """Log context factory using in `self.consume` scope.
+
+        Args:
+            message: Message which we are building context for
+        """
         return self.build_log_context(
             message=message,
             subject=self.subject,

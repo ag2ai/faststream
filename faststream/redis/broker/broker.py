@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 import anyio
 from anyio import move_on_after
+from fast_depends import Provider, dependency_provider
 from redis.asyncio.connection import (
     Connection,
     DefaultParser,
@@ -24,6 +25,7 @@ from typing_extensions import Doc, deprecated, overload, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
 from faststream.redis.configs import ConnectionState, RedisBrokerConfig
@@ -183,6 +185,8 @@ class RedisBroker(
             Doc("Whether to use FastDepends or not."),
         ] = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
     ) -> None:
         if message_format == JSONMessageFormat:
             warnings.warn(
@@ -250,6 +254,8 @@ class RedisBroker(
                 fd_config=FastDependsConfig(
                     use_fastdepends=apply_types,
                     serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
                 ),
                 # subscriber args
                 broker_dependencies=dependencies,

@@ -17,11 +17,13 @@ import anyio
 from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
 from aiokafka.structs import RecordMetadata
+from fast_depends import Provider, dependency_provider
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
@@ -230,6 +232,8 @@ class KafkaBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
     ) -> None:
         """Kafka broker constructor.
 
@@ -338,6 +342,10 @@ class KafkaBroker(
                 Whether to use FastDepends or not.
             serializer (Optional[SerializerProto]):
                 Serializer to use.
+            provider (Optional[Provider]):
+                Provider for FastDepends.
+            context (Optional[ContextRepo]):
+                Context for FastDepends.
         """
         if protocol is None:
             if security is not None and security.use_ssl:
@@ -414,6 +422,8 @@ class KafkaBroker(
                 fd_config=FastDependsConfig(
                     use_fastdepends=apply_types,
                     serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
                 ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
@@ -479,8 +489,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True],
-    ) -> "asyncio.Future[RecordMetadata]": ...
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
 
     @overload
     async def publish(
@@ -494,8 +504,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+        no_confirm: Literal[True] = ...,
+    ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
     async def publish(
@@ -645,8 +655,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        no_confirm: Literal[True],
-    ) -> "asyncio.Future[RecordMetadata]": ...
+        no_confirm: Literal[False] = False,
+    ) -> "RecordMetadata": ...
 
     @overload
     async def publish_batch(
@@ -658,8 +668,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+        no_confirm: Literal[True] = ...,
+    ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
     async def publish_batch(

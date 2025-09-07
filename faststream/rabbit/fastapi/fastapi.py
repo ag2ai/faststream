@@ -441,204 +441,43 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: Annotated[
-            str | RabbitQueue,
-            Doc(
-                "RabbitMQ queue to listen. "
-                "**FastStream** declares and binds queue object to `exchange` automatically by default.",
-            ),
-        ],
-        exchange: Annotated[
-            str | RabbitExchange | None,
-            Doc(
-                "RabbitMQ exchange to bind queue to. "
-                "Uses default exchange if not present. "
-                "**FastStream** declares exchange object automatically by default.",
-            ),
-        ] = None,
+        queue: str | RabbitQueue,
+        exchange: str | RabbitExchange | None = None,
         *,
         channel: Optional["Channel"] = None,
-        consume_args: Annotated[
-            dict[str, Any] | None,
-            Doc("Extra consumer arguments to use in `queue.consume(...)` method."),
-        ] = None,
+        consume_args: dict[str, Any] | None = None,
         # broker arguments
-        dependencies: Annotated[
-            Iterable["params.Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
-            ),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
-            Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
-        no_reply: Annotated[
-            bool,
-            Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
-            ),
-        ] = False,
+        no_reply: bool = False,
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI subscriber object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
         # FastAPI args
-        response_model: Annotated[
-            Any,
-            Doc(
-                """
-                The type to use for the response.
-
-                It could be any valid Pydantic *field* type. So, it doesn't have to
-                be a Pydantic model, it could be other things, like a `list`, `dict`,
-                etc.
-
-                It will be used for:
-
-                * Documentation: the generated OpenAPI (and the UI at `/docs`) will
-                    show it as the response (JSON Schema).
-                * Serialization: you could return an arbitrary object and the
-                    `response_model` would be used to serialize that object into the
-                    corresponding JSON.
-                * Filtering: the JSON sent to the client will only contain the data
-                    (fields) defined in the `response_model`. If you returned an object
-                    that contains an attribute `password` but the `response_model` does
-                    not include that field, the JSON sent to the client would not have
-                    that `password`.
-                * Validation: whatever you return will be serialized with the
-                    `response_model`, converting any data as necessary to generate the
-                    corresponding JSON. But if the data in the object returned is not
-                    valid, that would mean a violation of the contract with the client,
-                    so it's an error from the API developer. So, FastAPI will raise an
-                    error and return a 500 error code (Internal Server Error).
-
-                Read more about it in the
-                [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """,
-            ),
-        ] = Default(None),
-        response_model_include: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to include only certain fields in the
-                response data.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_exclude: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to exclude certain fields in the
-                response data.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_by_alias: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response model
-                should be serialized by alias when an alias is used.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = True,
-        response_model_exclude_unset: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
-                should have all the fields, including the ones that were not set and
-                have their default values. This is different from
-                `response_model_exclude_defaults` in that if the fields are set,
-                they will be included in the response, even if the value is the same
-                as the default.
-
-                When `True`, default values are omitted from the response.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
-            ),
-        ] = False,
-        response_model_exclude_defaults: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
-                should have all the fields, including the ones that have the same value
-                as the default. This is different from `response_model_exclude_unset`
-                in that if the fields are set but contain the same default values,
-                they will be excluded from the response.
-
-                When `True`, default values are omitted from the response.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
-            ),
-        ] = False,
-        response_model_exclude_none: Annotated[
-            bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data should
-                exclude fields set to `None`.
-
-                This is much simpler (less smart) than `response_model_exclude_unset`
-                and `response_model_exclude_defaults`. You probably want to use one of
-                those two instead of this one, as those allow returning `None` values
-                when it makes sense.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """,
-            ),
-        ] = False,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
     ) -> "RabbitSubscriber":
         return cast(
             "RabbitSubscriber",
@@ -671,54 +510,16 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
     @override
     def publisher(
         self,
-        queue: Annotated[
-            RabbitQueue | str,
-            Doc("Default message routing key to publish with."),
-        ] = "",
-        exchange: Annotated[
-            RabbitExchange | str | None,
-            Doc("Target exchange to publish message to."),
-        ] = None,
+        queue: RabbitQueue | str = "",
+        exchange: RabbitExchange | str | None = None,
         *,
-        routing_key: Annotated[
-            str,
-            Doc(
-                "Default message routing key to publish with. "
-                "Overrides `queue` option if presented.",
-            ),
-        ] = "",
-        mandatory: Annotated[
-            bool,
-            Doc(
-                "Client waits for confirmation that the message is placed to some queue. "
-                "RabbitMQ returns message to client if there is no suitable queue.",
-            ),
-        ] = True,
-        immediate: Annotated[
-            bool,
-            Doc(
-                "Client expects that there is consumer ready to take the message to work. "
-                "RabbitMQ returns message to client if there is no suitable consumer.",
-            ),
-        ] = False,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Send confirmation time from RabbitMQ."),
-        ] = None,
-        persist: Annotated[
-            bool,
-            Doc("Restore the message on RabbitMQ reboot."),
-        ] = False,
-        reply_to: Annotated[
-            str | None,
-            Doc(
-                "Reply message routing key to send with (always sending to default exchange).",
-            ),
-        ] = None,
-        priority: Annotated[
-            int | None,
-            Doc("The message priority (0 by default)."),
-        ] = None,
+        routing_key: str = "",
+        mandatory: bool = True,
+        immediate: bool = False,
+        timeout: "TimeoutType" = None,
+        persist: bool = False,
+        reply_to: str | None = None,
+        priority: int | None = None,
         # specific
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
@@ -726,60 +527,19 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
-            Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object description."),
-        ] = None,
-        schema: Annotated[
-            Any | None,
-            Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
         # message args
-        headers: Annotated[
-            Optional["HeadersType"],
-            Doc(
-                "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified.",
-            ),
-        ] = None,
-        content_type: Annotated[
-            str | None,
-            Doc(
-                "Message **content-type** header. "
-                "Used by application, not core RabbitMQ. "
-                "Will be set automatically if not specified.",
-            ),
-        ] = None,
-        content_encoding: Annotated[
-            str | None,
-            Doc("Message body content encoding, e.g. **gzip**."),
-        ] = None,
-        expiration: Annotated[
-            Optional["DateType"],
-            Doc("Message expiration (lifetime) in seconds (or datetime or timedelta)."),
-        ] = None,
-        message_type: Annotated[
-            str | None,
-            Doc("Application-specific message type, e.g. **orders.created**."),
-        ] = None,
-        user_id: Annotated[
-            str | None,
-            Doc("Publisher connection User ID, validated if set."),
-        ] = None,
+        headers: Optional["HeadersType"] = None,
+        content_type: str | None = None,
+        content_encoding: str | None = None,
+        expiration: Optional["DateType"] = None,
+        message_type: str | None = None,
+        user_id: str | None = None,
     ) -> "RabbitPublisher":
         return self.broker.publisher(
             queue=queue,

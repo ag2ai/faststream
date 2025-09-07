@@ -11,11 +11,13 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
+from fast_depends import Provider, dependency_provider
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -107,6 +109,8 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -138,6 +142,8 @@ class RabbitBroker(
             log_level: Service messages log level.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
+            provider: Provider for FastDepends.
+            context: Context for FastDepends.
         """
         security_args = parse_security(security)
 
@@ -196,6 +202,8 @@ class RabbitBroker(
                 fd_config=FastDependsConfig(
                     use_fastdepends=apply_types,
                     serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
                 ),
                 # subscriber args
                 broker_dependencies=dependencies,

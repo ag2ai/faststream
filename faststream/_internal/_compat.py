@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
 IS_WINDOWS = sys.platform in {"win32", "cygwin", "msys"}
+IS_MACOS = sys.platform == "darwin"
 
 __all__ = (
     "HAS_TYPER",

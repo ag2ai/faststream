@@ -285,14 +285,13 @@ RabbitBroker().add_middleware(prometheus_middleware)
 RabbitBroker(middlewares=[prometheus_middleware])
 
 
-async def check_publish_result_type(optional_stream: str | None = "test") -> None:
+async def check_publish_result_type() -> None:
     broker = RabbitBroker()
 
     publish_with_confirm = await broker.publish(None)
     assert_type(publish_with_confirm, ConfirmationFrameType | None)
 
     publisher = broker.publisher(queue="test")
-    assert_type(publisher, RabbitPublisher)
     publish_with_confirm = await publisher.publish(None)
 
     assert_type(publish_with_confirm, ConfirmationFrameType | None)
@@ -309,14 +308,21 @@ async def check_request_response_type() -> None:
     assert_type(publisher_response, RabbitMessage)
 
 
-async def check_subscriber_get_one_type() -> None:
-    broker = RabbitBroker()
-
+async def check_subscriber_get_one_type(
+    broker: RabbitBroker | FastAPIRouter,
+) -> None:
     subscriber = broker.subscriber(queue="test")
-    assert_type(subscriber, RabbitSubscriber)
 
     message = await subscriber.get_one()
     assert_type(message, RabbitMessage | None)
 
     async for msg in subscriber:
         assert_type(msg, RabbitMessage)
+
+
+async def check_instance_type(broker: RabbitBroker | FastAPIRouter) -> None:
+    subscriber = broker.subscriber(queue="test")
+    assert_type(subscriber, RabbitSubscriber)
+
+    publisher = broker.publisher(queue="test")
+    assert_type(publisher, RabbitPublisher)

@@ -10,6 +10,76 @@ search:
 
 # Lifespan Hooks
 
+In FastStream, *lifespan hooks* are special functions executed at specific stages of the application’s lifecycle.
+They allow you to:
+
+* Initialize resources before the broker starts (configuration, databases)
+* Perform actions after the broker has started (send initial messages, warm up caches)
+* Gracefully shut down before the broker stops (save data, close connections)
+* Clean up resources after the application has fully stopped
+
+There are **four types of hooks**:
+
+1. `on_startup` — before the broker is connected
+2. `after_startup` — after the broker is connected
+3. `on_shutdown` — before the broker is disconnected
+4. `after_shutdown` — after the broker is disconnected
+
+## Resource availability by hooks
+
+The table below summarizes what is available in each of the hooks at different stages of the broker's life.
+
+| Hook                | CLI args | Context | Broker life |
+| ------------------- | -------- |---------|-------------|
+| **on\_startup**     | ✅        | ✅       | ❌           |
+| **after\_startup**  | ❌        | ✅       | ✅           |
+| **on\_shutdown**    | ❌        | ✅       | ✅           |
+| **after\_shutdown** | ❌        | ✅       | ❌           |
+
+## Call Order
+
+Lifespan hooks are called in a strict order following the application’s lifecycle, as shown in the table above: first `on_startup`, then `after_startup`, followed by `on_shutdown`, and finally `after_shutdown`.
+
+You can define multiple functions for a single hook — they will be executed in the order they were registered. The order in which different hooks are declared does not affect their execution: FastStream guarantees that hooks are called according to the lifecycle sequence, regardless of registration order.
+
+```python
+import logging
+
+logger = logging.getLogger("faststream")
+
+
+@app.on_startup
+async def startup_hook():
+    logger.info("on_startup called")
+
+@app.after_startup
+async def after_startup_hook():
+    logger.info("after_startup called")
+
+@app.on_shutdown
+async def shutdown_hook():
+    logger.info("on_shutdown called")
+
+@app.after_shutdown
+async def after_shutdown_hook():
+    logger.info("after_shutdown called")
+```
+
+**Console output:**
+
+```
+on_startup called
+after_startup called
+on_shutdown called
+after_shutdown called
+```
+
+
+This allows you to safely separate logic and resource initialization across different functions and hooks without worrying about the order of registration.
+
+!!! note ""
+   You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
+
 ## Usage example
 
 Let's imagine that your application uses **pydantic** as your settings manager.
@@ -42,7 +112,7 @@ Now let's look into a little more detail.
 To begin with, we are using a `#!python @app.on_startup` decorator
 
 ```python linenums="12" hl_lines="14-15" hl_lines="1"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 to declare a function that runs when our application starts.
@@ -50,7 +120,7 @@ to declare a function that runs when our application starts.
 The next step is to declare our function parameters that we expect to receive:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="2"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 The `env` argument will be passed to the `setup` function from the user-provided command line arguments.
@@ -62,7 +132,7 @@ The `env` argument will be passed to the `setup` function from the user-provided
 Then, we initialize the settings of our application using the file passed to us from the command line:
 
 ```python linenums="12" hl_lines="14-15" hl_lines="3"
-{! docs_src/getting_started/cli/kafka_context.py [ln:12-15]!}
+{! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 And put these settings in a global context:

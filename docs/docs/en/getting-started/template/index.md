@@ -89,7 +89,7 @@ To run the [`FastStream`](https://github.com/ag2ai/faststream){.external-link ta
 
 1. Start the Kafka Docker container locally using the provided script:
    ```bash
-   ./scripts/start_kafka_broker_locally.sh
+   just kafka-up
    ```
 
 2. Start the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application with the following command:
@@ -98,16 +98,11 @@ To run the [`FastStream`](https://github.com/ag2ai/faststream){.external-link ta
    ```
    > **_NOTE:_** Replace `<directory-name>` with the directory that is automatically generated from the project slug name and contains the `app.py` file.
 
-3. You can now send messages to the Kafka topic and can test the application. Optionally, if you want to view messages in a topic, you can subscribe to it using the provided script:
-   ```bash
-   ./scripts/subscribe_to_kafka_broker_locally.sh <topic_name>
-   ```
+3. To stop the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application, press `Ctrl+C`.
 
-4. To stop the [`FastStream`](https://github.com/ag2ai/faststream){.external-link target="_blank"} application, press `Ctrl+C`.
-
-5. Finally, stop the Kafka Docker container by running the script:
+4. Finally, stop the Kafka Docker container by running the script:
    ```bash
-   ./scripts/stop_kafka_broker_locally.sh
+   just kafka-stop
    ```
 
 ## Building and Testing Docker Image Locally
@@ -116,13 +111,13 @@ If you'd like to build and test the [`Docker`](https://www.docker.com/){.externa
 
 1. Run the provided script to build the [`Docker`](https://www.docker.com/){.external-link target="_blank"} image locally. Use the following command:
    ```bash
-   ./scripts/build_docker.sh <username> <repo-name>
+   just init
    ```
    This script will build the [`Docker`](https://www.docker.com/){.external-link target="_blank"} image locally with the same name as the one built in `CI`.
 
 2. Before starting the [`Docker`](https://www.docker.com/){.external-link target="_blank"} container, ensure that a Kafka [`Docker`](https://www.docker.com/){.external-link target="_blank"} container is running locally. You can start it using the provided script:
    ```bash
-   ./scripts/start_kafka_broker_locally.sh
+   just kafka-up
    ```
 
 3. Once Kafka is up and running, you can start the local [`Docker`](https://www.docker.com/){.external-link target="_blank"} container using the following command:
@@ -137,7 +132,7 @@ If you'd like to build and test the [`Docker`](https://www.docker.com/){.externa
 
 5. Finally, stop the Kafka [`Docker`](https://www.docker.com/){.external-link target="_blank"} container by running the provided script:
    ```bash
-   ./scripts/stop_kafka_broker_locally.sh
+   just kafka-stop
    ```
 
 > **_NOTE:_** Replace `<username>` with your GitHub username and `<repo-name>` with the name of your repository in the above commands.
@@ -147,7 +142,7 @@ If you'd like to build and test the [`Docker`](https://www.docker.com/){.externa
 After making changes to the code, it's essential to ensure it adheres to coding standards. We provide a script to help you with code formatting and linting. Run the following script to automatically fix linting issues:
 
 ```bash
-./scripts/lint.sh
+just lint
 ```
 
 ## Static Analysis
@@ -155,7 +150,7 @@ After making changes to the code, it's essential to ensure it adheres to coding 
 Static analysis tools [`mypy`](https://mypy.readthedocs.io/en/stable/){.external-link target="_blank"} and [`bandit`](https://bandit.readthedocs.io/en/latest/){.external-link target="_blank"} can help identify potential issues in your code. To run static analysis, use the following script:
 
 ```bash
-./scripts/static-analysis.sh
+just static-analysis
 ```
 
 If there are any static analysis errors, resolve them in your code and rerun the script until it passes successfully.

@@ -16,11 +16,11 @@ Please delete options that are not relevant.
 
 ## Checklist
 
-- [ ] My code adheres to the style guidelines of this project (`scripts/lint.sh` shows no errors)
+- [ ] My code adheres to the style guidelines of this project (`just lint` shows no errors)
 - [ ] I have conducted a self-review of my own code
 - [ ] I have made the necessary changes to the documentation
 - [ ] My changes do not generate any new warnings
 - [ ] I have added tests to validate the effectiveness of my fix or the functionality of my new feature
-- [ ] Both new and existing unit tests pass successfully on my local environment by running `scripts/test-cov.sh`
-- [ ] I have ensured that static analysis tests are passing by running `scripts/static-analysis.sh`
+- [ ] Both new and existing unit tests pass successfully on my local environment by running `just test-coverage`
+- [ ] I have ensured that static analysis tests are passing by running `just static-analysis`
 - [ ] I have included code examples to illustrate the modifications

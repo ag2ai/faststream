@@ -1,8 +1,8 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from nats.errors import ConnectionClosedError, TimeoutError
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import JsParser
@@ -43,12 +43,13 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
 
     def get_log_context(
         self,
-        message: Annotated[
-            Optional["StreamMessage[Msg]"],
-            Doc("Message which we are building context for"),
-        ],
+        message: Optional["StreamMessage[Msg]"],
     ) -> dict[str, str]:
-        """Log context factory using in `self.consume` scope."""
+        """Log context factory using in `self.consume` scope.
+
+        Args:
+            message: Message which we are building context for
+        """
         return self.build_log_context(
             message=message,
             subject=self._resolved_subject_string,

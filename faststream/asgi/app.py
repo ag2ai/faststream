@@ -7,11 +7,12 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
-from fast_depends import Provider
+from fast_depends import Provider, dependency_provider
 
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
@@ -93,6 +94,7 @@ class AsgiFastStream(Application):
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
+        context: ContextRepo | None = None,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
@@ -105,7 +107,8 @@ class AsgiFastStream(Application):
             broker,
             logger=logger,
             config=FastDependsConfig(
-                provider=provider or Provider(),
+                provider=provider or dependency_provider,
+                context=context or ContextRepo(),
                 serializer=serializer,
             ),
             lifespan=lifespan,
