@@ -109,21 +109,24 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         """Private method to start subscriber by broker."""
         self.lock = MultiLock()
 
-        self.ack_policy = self._outer_config.settings.resolve(self.ack_policy)
-        self._parser = self._outer_config.settings.resolve(self._parser)
-        self._decoder = self._outer_config.settings.resolve(self._decoder)
-        self._no_reply = self._outer_config.settings.resolve(self._no_reply)
+        resolve_ = self._outer_config.settings.resolve
+        cfg = self.specification.config
+        self.ack_policy = resolve_(self.ack_policy)
+        self._parser = resolve_(self._parser)
+        self._decoder = resolve_(self._decoder)
+        self._no_reply = resolve_(self._no_reply)
 
+        # вот тут некорректные значения middlewares и dependencies
         self._call_options = _CallOptions(
-            parser=self._outer_config.settings.resolve(self._call_options.parser),
-            decoder=self._outer_config.settings.resolve(self._call_options.decoder),
-            middlewares=self._outer_config.settings.resolve(self._call_options.middlewares),
-            dependencies=self._outer_config.settings.resolve(self._call_options.dependencies),
+            parser=self._parser,
+            decoder=self._decoder,
+            middlewares=resolve_(self._call_options.middlewares),
+            dependencies=resolve_(self._call_options.dependencies),
         )
 
-        self.specification.config.description_ = self._outer_config.settings.resolve(self.specification.config.description_)
-        self.specification.config.title_ = self._outer_config.settings.resolve(self.specification.config.title_)
-        self.specification.config.include_in_schema = self._outer_config.settings.resolve(self.specification.config.include_in_schema)
+        cfg.description_ = resolve_(cfg.description_)
+        cfg.title_ = resolve_(cfg.title_)
+        cfg.include_in_schema = resolve_(cfg.include_in_schema)
 
         self._build_fastdepends_model()
 

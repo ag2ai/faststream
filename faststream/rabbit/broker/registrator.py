@@ -185,19 +185,22 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             message_type: Application-specific message type, e.g. **orders.created**.
             user_id: Publisher connection User ID, validated if set.
         """
+        config = cast("RabbitBrokerConfig", self.config)
+        resolve_ = config.settings.resolve
+
         message_kwargs = PublishKwargs(
-            mandatory=mandatory,
-            immediate=immediate,
-            timeout=timeout,
-            persist=persist,
-            reply_to=reply_to,
-            headers=headers,
-            priority=priority,
-            content_type=content_type,
-            content_encoding=content_encoding,
-            message_type=message_type,
-            user_id=user_id,
-            expiration=expiration,
+            mandatory=resolve_(mandatory),
+            immediate=resolve_(immediate),
+            timeout=resolve_(timeout),
+            persist=resolve_(persist),
+            reply_to=resolve_(reply_to),
+            headers=resolve_(headers),
+            priority=resolve_(priority),
+            content_type=resolve_(content_type),
+            content_encoding=resolve_(content_encoding),
+            message_type=resolve_(message_type),
+            user_id=resolve_(user_id),
+            expiration=resolve_(expiration),
         )
 
         publisher = create_publisher(
@@ -208,7 +211,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             # publisher args
             middlewares=middlewares,
             # broker args
-            config=cast("RabbitBrokerConfig", self.config),
+            config=config,
             # specification args
             title_=title,
             description_=description,

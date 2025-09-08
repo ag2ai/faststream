@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 from collections.abc import AsyncIterator, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 import anyio
 from typing_extensions import override
@@ -69,11 +69,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        self.queue = self._outer_config.settings.resolve(self.queue)
-        self.exchange = self._outer_config.settings.resolve(self.exchange)
-        self.channel = self._outer_config.settings.resolve(self.channel)
-        self.consume_args = self._outer_config.settings.resolve(self.consume_args)
-        self.__no_ack = self._outer_config.settings.resolve(self.__no_ack)
+        resolve_ = self._outer_config.settings.resolve
+        self.queue = resolve_(self.queue)
+        self.exchange = resolve_(self.exchange)
+        self.channel = resolve_(self.channel)
+        self.consume_args = resolve_(self.consume_args)
+        self.__no_ack = resolve_(self.__no_ack)
 
         parser = AioPikaParser(pattern=self.queue.path_regex)
         self._decoder = parser.decode_message

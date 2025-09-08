@@ -47,7 +47,7 @@ class RabbitPublisher(PublisherUsecase):
         self.timeout = config.message_kwargs.pop("timeout", None)
 
         self.message_kwargs = config.message_kwargs
-        
+
         self._message_options = None
 
         self.publish_options = None
@@ -83,8 +83,6 @@ class RabbitPublisher(PublisherUsecase):
         self.timeout = self._outer_config.settings.resolve(self.timeout)
         self.reply_to = self._outer_config.settings.resolve(self.reply_to)
         self.headers = self._outer_config.settings.resolve(self.headers)
-
-        self.message_kwargs = self._outer_config.settings.resolve(self.message_kwargs)
 
         message_options, _ = filter_by_dict(
             BasicMessageOptions,
