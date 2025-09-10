@@ -3,11 +3,13 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from fast_depends import Depends
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from faststream.annotations import FastStream, Logger
 from faststream.asgi import (
     AsgiFastStream,
     AsgiResponse,
@@ -130,12 +132,17 @@ class AsgiTestcase:
             pytest.param(post, "post", id="post"),
         ),
     )
-    async def test_request_injected(
+    async def test_context_injected(
         self, decorator: Callable[..., ASGIApp], client_method: str
     ) -> None:
         @decorator
-        async def some_handler(request: Request) -> AsgiResponse:
-            return AsgiResponse(body=request.__class__.__name__.encode(), status_code=200)
+        async def some_handler(
+            request: Request, logger: Logger, app: FastStream
+        ) -> AsgiResponse:
+            return AsgiResponse(
+                body=f"{request.__class__.__name__} {logger.__class__.__name__} {app.__class__.__name__}".encode(),
+                status_code=200,
+            )
 
         broker = self.get_broker()
         app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
@@ -144,7 +151,34 @@ class AsgiTestcase:
             with TestClient(app) as client:
                 response = getattr(client, client_method)("/test")
                 assert response.status_code == 200
-                assert response.text == "AsgiRequest"
+                assert response.text == "AsgiRequest Logger AsgiFastStream"
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("decorator", "client_method"),
+        (
+            pytest.param(get, "get", id="get"),
+            pytest.param(post, "post", id="post"),
+        ),
+    )
+    async def test_fast_depends_injected(
+        self, decorator: Callable[..., ASGIApp], client_method: str
+    ) -> None:
+        def get_string() -> str:
+            return "test"
+
+        @decorator
+        async def some_handler(string=Depends(get_string)) -> AsgiResponse:  # noqa: B008
+            return AsgiResponse(body=string.encode(), status_code=200)
+
+        broker = self.get_broker()
+        app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = getattr(client, client_method)("/test")
+                assert response.status_code == 200
+                assert response.text == "test"
 
     def test_asyncapi_pure_asgi(self) -> None:
         broker = self.get_broker()

@@ -128,11 +128,11 @@ class Application(StartAbleApplication):
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
+        self.logger = logger
+
         super().__init__(broker, config=config, specification=specification)
 
         self.context.set_global("app", self)
-
-        self.logger = logger
 
         self._on_startup_calling: list[AsyncFunc] = [
             apply_types(

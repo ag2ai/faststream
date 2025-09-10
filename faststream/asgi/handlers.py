@@ -1,16 +1,17 @@
+import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from faststream import apply_types
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
-from faststream._internal.logger import logger
 from faststream._internal.utils.functions import to_async
 
 from .request import AsgiRequest
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
+    from faststream._internal.basic_types import LoggerProto
     from faststream.specification.schema import Tag, TagDict
 
     from .types import ASGIApp, Receive, Scope, Send, UserApp
@@ -38,21 +39,34 @@ class HttpHandler:
         self.tags = tags
         self.unique_id = unique_id
         self.fd_config = fd_config or FastDependsConfig()
+        self.logger: LoggerProto | None = None
 
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         if scope["method"] not in self.methods:
             response: ASGIApp = _get_method_not_allowed_response(self.methods)
 
         else:
-            try:
-                with self.fd_config.context.scope(
+            with (
+                self.fd_config.context.scope(
                     "request", AsgiRequest(scope, receive, send)
-                ):
+                ),
+                self.fd_config.context.scope(
+                    "logger",
+                    self.logger,
+                ),
+            ):
+                try:
                     response = await self.func(scope)
-            except Exception:
-                logger.exception("Exception occurred while processing request")
-                response = AsgiResponse(body=b"Internal Server Error", status_code=500)
-
+                except Exception:
+                    if self.logger is not None:
+                        self.logger.log(
+                            logging.ERROR,
+                            "Exception occurred while processing request",
+                            exc_info=True,
+                        )
+                    response = AsgiResponse(
+                        body=b"Internal Server Error", status_code=500
+                    )
         await response(scope, receive, send)
 
     def update_fd_config(self, config: FastDependsConfig) -> None:
@@ -60,6 +74,9 @@ class HttpHandler:
         self.func = apply_types(
             to_async(self.__original_func), context__=self.fd_config.context
         )
+
+    def set_logger(self, logger: "LoggerProto | None") -> None:
+        self.logger = logger
 
 
 class GetHandler(HttpHandler):

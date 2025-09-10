@@ -104,13 +104,15 @@ class AsgiFastStream(Application):
         asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
         self.routes = list(asgi_routes)
+        context = context or ContextRepo()
+        context.set_global("app", self)
 
         super().__init__(
             broker,
             logger=logger,
             config=FastDependsConfig(
                 provider=provider or dependency_provider,
-                context=context or ContextRepo(),
+                context=context,
                 serializer=serializer,
             ),
             lifespan=lifespan,
@@ -172,6 +174,7 @@ class AsgiFastStream(Application):
         if isinstance(route, HttpHandler):
             self.schema.add_http_route(path, route)
             route.update_fd_config(self.config)
+            route.set_logger(self.logger)
 
     async def __call__(
         self,

@@ -25,7 +25,7 @@ def make_ping_asgi(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> "ASGIApp":
+) -> ASGIApp:
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)
 
@@ -124,7 +124,7 @@ def make_asyncapi_asgi(
     expand_message_examples: bool = True,
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
-) -> "ASGIApp":
+) -> ASGIApp:
     cached_docs = None
 
     @get(
