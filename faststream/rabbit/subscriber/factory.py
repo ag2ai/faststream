@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.configs.settings import Settings
 from faststream._internal.constants import EMPTY
@@ -21,13 +21,13 @@ if TYPE_CHECKING:
 
 def create_subscriber(
     *,
-    queue: "RabbitQueue"  | Settings,
-    exchange: "RabbitExchange"  | Settings,
+    queue: Union["RabbitQueue", Settings],
+    exchange: Union["RabbitExchange", Settings],
     consume_args: dict[str, Any] | Settings | None,
     channel: Optional["Channel"] | Settings,
     # Subscriber args
     no_reply: bool | Settings,
-    ack_policy: "AckPolicy" | Settings,
+    ack_policy: Union["AckPolicy", Settings],
     no_ack: bool | Settings,
     # Broker args
     config: "RabbitBrokerConfig",

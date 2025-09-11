@@ -2,10 +2,10 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
 
 from aio_pika import IncomingMessage
-from faststream._internal.configs.settings import Settings
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.configs.settings import Settings
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -21,8 +21,8 @@ from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
-    from fast_depends.dependencies import Dependant
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -90,8 +90,9 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         Returns:
             RabbitSubscriber: The subscriber specification object.
         """
+        config = cast("RabbitBrokerConfig", self.config)
         subscriber = create_subscriber(
-            queue=RabbitQueue.validate(queue),
+            queue=RabbitQueue.validate(queue, settings=config.settings),
             exchange=RabbitExchange.validate(exchange),
             consume_args=consume_args,
             channel=channel,
@@ -100,7 +101,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             no_ack=no_ack,
             no_reply=no_reply,
             # broker args
-            config=cast("RabbitBrokerConfig", self.config),
+            config=config,
             # specification args
             title_=title,
             description_=description,
@@ -205,7 +206,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
 
         publisher = create_publisher(
             routing_key=routing_key,
-            queue=RabbitQueue.validate(queue),
+            queue=RabbitQueue.validate(queue, settings=config.settings),
             exchange=RabbitExchange.validate(exchange),
             message_kwargs=message_kwargs,
             # publisher args

@@ -2,6 +2,7 @@ from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
+from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
 from faststream._internal.utils.path import compile_path
@@ -164,33 +165,75 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        re, routing_key = compile_path(
-            routing_key,
-            replace_symbol="*",
-            patch_regex=lambda x: x.replace(r"\#", ".+"),
-        )
-
-        if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
-            if durable is EMPTY:
-                durable = True
-            elif not durable:
-                error_msg = "Quorum and Stream queues must be durable"
-                raise SetupError(error_msg)
-        elif durable is EMPTY:
-            durable = False
-
         super().__init__(name)
 
-        self.path_regex = re
+        self.path_regex = None
         self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
         self.routing_key = routing_key
         self.robust = robust
         self.auto_delete = auto_delete
-        self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
+        self.arguments = arguments
         self.timeout = timeout
         self.declare = declare
+        self.queue_type = queue_type
+
+    @classmethod
+    def _create_with_setup(cls, value, settings, **kwargs):
+        obj = cls(value, **kwargs)
+        obj.setup(settings)
+        return obj
+    
+    @classmethod
+    def validate(cls, value, **kwargs):
+        settings = kwargs.get('settings')
+        if settings:
+            value = settings.resolve(value)
+        if value is not None and isinstance(value, str):
+            return cls._create_with_setup(value, settings, **kwargs)
+        if isinstance(value, cls):
+            value.setup(settings)
+            return value
+        return value
+
+    def setup(self, settings: SettingsContainer) -> None:
+        print('setup self', self)
+        print('vars before setup', vars(self))
+        resolve_ = settings.resolve
+        self.name = resolve_(self.name)
+        self.durable = resolve_(self.durable)
+        self.exclusive = resolve_(self.exclusive)
+        self.bind_arguments = resolve_(self.bind_arguments)
+        self.routing_key = resolve_(self.routing_key)
+        self.robust = resolve_(self.robust)
+        self.auto_delete = resolve_(self.auto_delete)
+        self.arguments = resolve_(self.arguments)
+        self.timeout = resolve_(self.timeout)
+        self.declare = resolve_(self.declare)
+        self.queue_type = resolve_(self.queue_type)
+
+        re, routing_key = compile_path(
+            self.routing_key,
+            replace_symbol="*",
+            patch_regex=lambda x: x.replace(r"\#", ".+"),
+        )
+
+        self.path_regex = re
+        self.routing_key = routing_key
+        print('setup rk', self.routing_key)
+
+        if self.queue_type is QueueType.QUORUM or self.queue_type is QueueType.STREAM:
+            if self.durable is EMPTY:
+                self.durable = True
+            elif not self.durable:
+                error_msg = "Quorum and Stream queues must be durable"
+                raise SetupError(error_msg)
+        elif self.durable is EMPTY:
+            self.durable = False
+
+        self.arguments = {"x-queue-type": self.queue_type.value, **(self.arguments or {})}
+        print('vars after setup', vars(self))
 
 
 CommonQueueArgs = TypedDict(

@@ -457,6 +457,8 @@ class RabbitBroker(
 
     async def declare_queue(self, queue: "RabbitQueue") -> "RobustQueue":
         """Declares queue object in **RabbitMQ**."""
+        queue = self.config.settings.resolve(queue)
+        queue.setup(self.config.settings)
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_queue(queue)
 
