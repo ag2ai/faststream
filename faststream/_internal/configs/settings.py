@@ -1,21 +1,21 @@
 from typing import Any, TypeVar, overload
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class Settings:
     def __init__(self, key: str) -> None:
         self.key = key
+
 
 class SettingsContainer:
     def __init__(self, **kwargs: Any) -> None:
         self._items: dict[str, Any] = dict(kwargs)
 
     @overload
-    def resolve(self, item: Settings) -> Any:
-        ...
+    def resolve(self, item: Settings) -> Any: ...
     @overload
-    def resolve(self, item: T) -> T:
-        ...
+    def resolve(self, item: T) -> T: ...
 
     def resolve(self, item):
         if isinstance(item, Settings):

@@ -180,26 +180,25 @@ class RabbitQueue(NameRequired):
         self.queue_type = queue_type
 
     @classmethod
-    def _create_with_setup(cls, value, settings, **kwargs):
+    def _create_with_setup(cls, value, **kwargs):
+        settings = kwargs.pop("settings")
         obj = cls(value, **kwargs)
         obj.setup(settings)
         return obj
-    
+
     @classmethod
     def validate(cls, value, **kwargs):
-        settings = kwargs.get('settings')
+        settings = kwargs.get("settings")
         if settings:
             value = settings.resolve(value)
         if value is not None and isinstance(value, str):
-            return cls._create_with_setup(value, settings, **kwargs)
+            return cls._create_with_setup(value, **kwargs)
         if isinstance(value, cls):
             value.setup(settings)
             return value
         return value
 
     def setup(self, settings: SettingsContainer) -> None:
-        print('setup self', self)
-        print('vars before setup', vars(self))
         resolve_ = settings.resolve
         self.name = resolve_(self.name)
         self.durable = resolve_(self.durable)
@@ -221,7 +220,6 @@ class RabbitQueue(NameRequired):
 
         self.path_regex = re
         self.routing_key = routing_key
-        print('setup rk', self.routing_key)
 
         if self.queue_type is QueueType.QUORUM or self.queue_type is QueueType.STREAM:
             if self.durable is EMPTY:
@@ -233,7 +231,6 @@ class RabbitQueue(NameRequired):
             self.durable = False
 
         self.arguments = {"x-queue-type": self.queue_type.value, **(self.arguments or {})}
-        print('vars after setup', vars(self))
 
 
 CommonQueueArgs = TypedDict(

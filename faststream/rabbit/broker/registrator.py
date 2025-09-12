@@ -139,7 +139,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             ),
         ] = (),
         # AsyncAPI information
-        title:  str | Settings | None = None,
+        title: str | Settings | None = None,
         description: str | Settings | None = None,
         schema: Settings | Any | None = None,
         include_in_schema: bool | Settings = True,

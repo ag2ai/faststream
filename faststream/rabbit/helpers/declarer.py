@@ -84,10 +84,7 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         *,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
-        print("declare_queue", self._queues)
         if (q := self._queues.get(queue)) is None:
-            # изменения нужны здесь
-            print("Tofy")
             if declare is EMPTY:
                 declare = queue.declare
 

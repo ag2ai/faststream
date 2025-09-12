@@ -49,7 +49,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.mock = MagicMock()
 
     async def start(self) -> None:
-       await self.start_()
+        await self.start_()
 
     async def start_(self) -> None:
         resolve_ = self._outer_config.settings.resolve

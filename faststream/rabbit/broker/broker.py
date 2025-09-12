@@ -108,7 +108,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        settings: SettingsContainer = EMPTY
+        settings: SettingsContainer = EMPTY,
     ) -> None:
         """Initialize the RabbitBroker.
 
