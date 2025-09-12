@@ -1,11 +1,12 @@
+from dataclasses import dataclass
 from typing import Any, TypeVar, overload
 
 T = TypeVar("T")
 
 
+@dataclass
 class Settings:
-    def __init__(self, key: str) -> None:
-        self.key = key
+    key: str
 
 
 class SettingsContainer:

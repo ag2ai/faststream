@@ -11,11 +11,11 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
-from faststream._internal.configs.settings import SettingsContainer
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
+from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
@@ -50,10 +50,10 @@ if TYPE_CHECKING:
         RobustQueue,
     )
     from aio_pika.abc import DateType, HeadersType, SSLOptions, TimeoutType
-    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from yarl import URL
 
+    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -140,6 +140,7 @@ class RabbitBroker(
             log_level: Service messages log level.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
+            settings: Container for configuration publisher and subscriber.
         """
         security_args = parse_security(security)
 

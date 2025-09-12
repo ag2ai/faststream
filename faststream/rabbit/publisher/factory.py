@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 def create_publisher(
     *,
     routing_key: str | Settings,
-    queue: Union["RabbitQueue", Settings],  # noqa: TC010
-    exchange: Union["RabbitExchange", Settings],  # noqa: TC010
+    queue: Union["RabbitQueue", Settings],
+    exchange: Union["RabbitExchange", Settings],
     message_kwargs: "PublishKwargs",
     # Broker args
     config: "RabbitBrokerConfig",

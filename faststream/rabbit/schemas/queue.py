@@ -2,6 +2,8 @@ from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
+from typing_extensions import Self
+
 from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
@@ -180,15 +182,15 @@ class RabbitQueue(NameRequired):
         self.queue_type = queue_type
 
     @classmethod
-    def _create_with_setup(cls, value, **kwargs):
-        settings = kwargs.pop("settings")
+    def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
+        settings: SettingsContainer = kwargs.pop("settings")
         obj = cls(value, **kwargs)
         obj.setup(settings)
         return obj
 
     @classmethod
-    def validate(cls, value, **kwargs):
-        settings = kwargs.get("settings")
+    def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
+        settings: SettingsContainer = kwargs.get("settings")
         if settings:
             value = settings.resolve(value)
         if value is not None and isinstance(value, str):
