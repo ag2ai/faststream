@@ -352,8 +352,8 @@ class RabbitBroker(
         """
         cmd = RabbitPublishCommand(
             message,
-            routing_key=routing_key or RabbitQueue.validate(queue).routing(),
-            exchange=RabbitExchange.validate(exchange),
+            routing_key=routing_key or RabbitQueue.validate(queue, settings=self.config.settings).routing(),
+            exchange=RabbitExchange.validate(exchange, settings=self.config.settings),
             correlation_id=correlation_id or gen_cor_id(),
             app_id=self.config.app_id,
             mandatory=mandatory,
@@ -458,13 +458,17 @@ class RabbitBroker(
 
     async def declare_queue(self, queue: "RabbitQueue") -> "RobustQueue":
         """Declares queue object in **RabbitMQ**."""
-        queue = self.config.settings.resolve(queue)
-        queue.setup(self.config.settings)
+        if self.config.settings is not EMPTY and self.config.settings is not None:
+            queue = self.config.settings.resolve(queue)
+            queue.setup(self.config.settings)
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_queue(queue)
 
     async def declare_exchange(self, exchange: "RabbitExchange") -> "RobustExchange":
         """Declares exchange object in **RabbitMQ**."""
+        if self.config.settings is not EMPTY and self.config.settings is not None:
+            exchange = self.config.settings.resolve(exchange)
+            exchange.setup(self.config.settings)
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_exchange(exchange)
 

@@ -17,7 +17,6 @@ from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
-
     from faststream._internal.basic_types import AsyncFuncAny, Decorator
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
@@ -111,9 +110,12 @@ class HandlerItem(Generic[MsgType]):
         cache: dict[Any, Any],
     ) -> Optional["StreamMessage[MsgType]"]:
         """Check is message suite for current filter."""
+        print(self.item_parser)
+        print(self.item_decoder)
         if not (parser := cast("AsyncCallable | None", self.item_parser)) or not (
             decoder := cast("AsyncCallable | None", self.item_decoder)
         ):
+            print(parser)
             error_msg = "You should setup `HandlerItem` at first."
             raise SetupError(error_msg)
 

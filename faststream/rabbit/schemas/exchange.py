@@ -1,8 +1,10 @@
 import warnings
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Annotated, Any, Optional
 
-from typing_extensions import Doc, override
+from typing_extensions import Doc, Self, override
 
+from faststream._internal.configs.settings import SettingsContainer
+from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
 from faststream.rabbit.schemas.constants import ExchangeType
 
@@ -118,16 +120,6 @@ class RabbitExchange(NameRequired):
         ] = "",
     ) -> None:
         """Initialize a RabbitExchange object."""
-        if routing_key and bind_to is None:  # pragma: no cover
-            warnings.warn(
-                (
-                    "\nRabbitExchange `routing_key` is using to bind exchange to another one."
-                    "\nIt can be used only with the `bind_to` argument, please setup it too."
-                ),
-                category=RuntimeWarning,
-                stacklevel=1,
-            )
-
         super().__init__(name)
 
         self.type = type
@@ -141,14 +133,49 @@ class RabbitExchange(NameRequired):
         self.bind_arguments = bind_arguments
         self.routing_key = routing_key
 
+    @classmethod
+    def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
+        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
+        obj = cls(value, **kwargs)
+        if settings is not EMPTY and settings is not None:
+            obj.setup(settings)
+        return obj
+
     @override
     @classmethod
-    def validate(  # type: ignore[override]
-        cls,
-        value: Union[str, "RabbitExchange", None],
-        **kwargs: Any,
-    ) -> "RabbitExchange":
-        exch = super().validate(value, **kwargs)
-        if exch is None:
-            exch = RabbitExchange()
-        return exch
+    def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
+        settings: SettingsContainer = kwargs.get("settings", EMPTY)
+        if settings is not EMPTY and settings is not None:
+            value = settings.resolve(value)
+        if value is not None and isinstance(value, str):
+            return cls._create_with_setup(value, **kwargs)
+        if isinstance(value, cls) and settings is not EMPTY and settings is not None:
+            value.setup(settings)
+            return value
+        if value is None:
+            value = RabbitExchange()
+        return value
+    
+    def setup(self, settings: SettingsContainer) -> None:
+        resolve_ = settings.resolve
+        self.name = resolve_(self.name)
+        self.type = resolve_(self.type)
+        self.durable = resolve_(self.durable)
+        self.auto_delete = resolve_(self.auto_delete)
+        self.robust = resolve_(self.robust)
+        self.timeout = resolve_(self.timeout)
+        self.arguments = resolve_(self.arguments)
+        self.declare = resolve_(self.declare)
+        self.bind_to = resolve_(self.bind_to)
+        self.bind_arguments = resolve_(self.bind_arguments)
+        self.routing_key = resolve_(self.routing_key)
+
+        if self.routing_key and self.bind_to is None:  # pragma: no cover
+            warnings.warn(
+                (
+                    "\nRabbitExchange `routing_key` is using to bind exchange to another one."
+                    "\nIt can be used only with the `bind_to` argument, please setup it too."
+                ),
+                category=RuntimeWarning,
+                stacklevel=1,
+            )

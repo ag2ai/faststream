@@ -93,7 +93,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         config = cast("RabbitBrokerConfig", self.config)
         subscriber = create_subscriber(
             queue=RabbitQueue.validate(queue, settings=config.settings),
-            exchange=RabbitExchange.validate(exchange),
+            exchange=RabbitExchange.validate(exchange, settings=config.settings),
             consume_args=consume_args,
             channel=channel,
             # subscriber args
@@ -187,27 +187,44 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             user_id: Publisher connection User ID, validated if set.
         """
         config = cast("RabbitBrokerConfig", self.config)
-        resolve_ = config.settings.resolve
 
-        message_kwargs = PublishKwargs(
-            mandatory=resolve_(mandatory),
-            immediate=resolve_(immediate),
-            timeout=resolve_(timeout),
-            persist=resolve_(persist),
-            reply_to=resolve_(reply_to),
-            headers=resolve_(headers),
-            priority=resolve_(priority),
-            content_type=resolve_(content_type),
-            content_encoding=resolve_(content_encoding),
-            message_type=resolve_(message_type),
-            user_id=resolve_(user_id),
-            expiration=resolve_(expiration),
-        )
+        if config.settings is not EMPTY and config.settings is not None:
+            resolve_ = config.settings.resolve
+
+            message_kwargs = PublishKwargs(
+                mandatory=resolve_(mandatory),
+                immediate=resolve_(immediate),
+                timeout=resolve_(timeout),
+                persist=resolve_(persist),
+                reply_to=resolve_(reply_to),
+                headers=resolve_(headers),
+                priority=resolve_(priority),
+                content_type=resolve_(content_type),
+                content_encoding=resolve_(content_encoding),
+                message_type=resolve_(message_type),
+                user_id=resolve_(user_id),
+                expiration=resolve_(expiration),
+            )
+        else:
+            message_kwargs = PublishKwargs(
+                mandatory=mandatory,
+                immediate=immediate,
+                timeout=timeout,
+                persist=persist,
+                reply_to=reply_to,
+                headers=headers,
+                priority=priority,
+                content_type=content_type,
+                content_encoding=content_encoding,
+                message_type=message_type,
+                user_id=user_id,
+                expiration=expiration,
+            )
 
         publisher = create_publisher(
             routing_key=routing_key,
             queue=RabbitQueue.validate(queue, settings=config.settings),
-            exchange=RabbitExchange.validate(exchange),
+            exchange=RabbitExchange.validate(exchange, settings=config.settings),
             message_kwargs=message_kwargs,
             # publisher args
             middlewares=middlewares,

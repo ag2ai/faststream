@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from faststream._internal.constants import EMPTY
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
@@ -77,12 +78,13 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
-        self.queue = self._outer_config.settings.resolve(self.queue)
-        self.exchange = self._outer_config.settings.resolve(self.exchange)
-        self.routing_key = self._outer_config.settings.resolve(self.routing_key)
-        self.timeout = self._outer_config.settings.resolve(self.timeout)
-        self.reply_to = self._outer_config.settings.resolve(self.reply_to)
-        self.headers = self._outer_config.settings.resolve(self.headers)
+        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
+            self.queue = self._outer_config.settings.resolve(self.queue)
+            self.exchange = self._outer_config.settings.resolve(self.exchange)
+            self.routing_key = self._outer_config.settings.resolve(self.routing_key)
+            self.timeout = self._outer_config.settings.resolve(self.timeout)
+            self.reply_to = self._outer_config.settings.resolve(self.reply_to)
+            self.headers = self._outer_config.settings.resolve(self.headers)
 
         message_options, _ = filter_by_dict(
             BasicMessageOptions,
@@ -117,7 +119,7 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(exchange or self.exchange),
+            exchange=RabbitExchange.validate(exchange or self.exchange, settings=self._outer_config.settings),
             headers=headers,
             correlation_id=correlation_id,
             _publish_type=PublishType.PUBLISH,
@@ -176,7 +178,7 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(exchange or self.exchange),
+            exchange=RabbitExchange.validate(exchange or self.exchange, settings=self._outer_config.settings),
             correlation_id=correlation_id,
             headers=headers,
             _publish_type=PublishType.PUBLISH,

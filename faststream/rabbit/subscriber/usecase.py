@@ -1,11 +1,12 @@
 import asyncio
 import contextlib
 from collections.abc import AsyncIterator, Sequence
-from typing import TYPE_CHECKING, Any, Callable, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
@@ -69,12 +70,13 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        resolve_ = self._outer_config.settings.resolve
-        self.queue = resolve_(self.queue)
-        self.exchange = resolve_(self.exchange)
-        self.channel = resolve_(self.channel)
-        self.consume_args = resolve_(self.consume_args)
-        self.__no_ack = resolve_(self.__no_ack)
+        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
+            resolve_ = self._outer_config.settings.resolve
+            self.queue = resolve_(self.queue)
+            self.exchange = resolve_(self.exchange)
+            self.channel = resolve_(self.channel)
+            self.consume_args = resolve_(self.consume_args)
+            self.__no_ack = resolve_(self.__no_ack)
 
         parser = AioPikaParser(pattern=self.queue.path_regex)
         self._decoder = parser.decode_message
@@ -204,7 +206,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 self._outer_config.producer,
                 app_id=self.app_id,
                 routing_key=queue_name,
-                exchange=RabbitExchange.validate(exchange_name),
+                exchange=RabbitExchange.validate(exchange_name, settings=self._outer_config.settings),
             )
         else:
             publisher = RabbitFakePublisher(
@@ -232,8 +234,13 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         message: Optional["StreamMessage[Any]"],
     ) -> dict[str, str]:
+        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
+            queue = self._outer_config.settings.resolve(self.queue)
+            exchange = self._outer_config.settings.resolve(self.exchange)
+        queue = self.queue
+        exchange = self.exchange
         return self.build_log_context(
             message=message,
-            queue=self._outer_config.settings.resolve(self.queue),
-            exchange=self._outer_config.settings.resolve(self.exchange),
+            queue=queue,
+            exchange=exchange,
         )
