@@ -461,6 +461,8 @@ class RabbitBroker(
         if self.config.settings is not EMPTY and self.config.settings is not None:
             queue = self.config.settings.resolve(queue)
             queue.setup(self.config.settings)
+        else:
+            queue.setup()
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_queue(queue)
 
@@ -469,6 +471,8 @@ class RabbitBroker(
         if self.config.settings is not EMPTY and self.config.settings is not None:
             exchange = self.config.settings.resolve(exchange)
             exchange.setup(self.config.settings)
+        else:
+            exchange.setup()
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_exchange(exchange)
 

@@ -170,51 +170,63 @@ class RabbitQueue(NameRequired):
         super().__init__(name)
 
         self.path_regex = None
-        self.durable = durable
+        self.routing_key = routing_key
+        if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
+            if durable is EMPTY:
+                self.durable = True
+            elif not durable:
+                error_msg = "Quorum and Stream queues must be durable"
+                raise SetupError(error_msg)
+        elif durable is EMPTY:
+            self.durable = False
+
+        # self.path_regex = None
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        self.routing_key = routing_key
+        # self.routing_key = routing_key
         self.robust = robust
         self.auto_delete = auto_delete
-        self.arguments = arguments
+        self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
         self.timeout = timeout
         self.declare = declare
-        self.queue_type = queue_type
+        # self.queue_type = queue_type
 
     @classmethod
     def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
         settings: SettingsContainer = kwargs.pop("settings", EMPTY)
         obj = cls(value, **kwargs)
-        if settings is not EMPTY and settings is not None:
-            obj.setup(settings)
+        obj.setup(settings)
         return obj
 
     @override
     @classmethod
     def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
         settings: SettingsContainer = kwargs.get("settings", EMPTY)
+        # тут нужно рекурсивно резолвить, иначе не ок
         if settings is not EMPTY and settings is not None:
             value = settings.resolve(value)
+
         if value is not None and isinstance(value, str):
             return cls._create_with_setup(value, **kwargs)
-        if isinstance(value, cls) and settings is not EMPTY and settings is not None:
+        if isinstance(value, cls):
             value.setup(settings)
             return value
         return value
 
-    def setup(self, settings: SettingsContainer) -> None:
-        resolve_ = settings.resolve
-        self.name = resolve_(self.name)
-        self.durable = resolve_(self.durable)
-        self.exclusive = resolve_(self.exclusive)
-        self.bind_arguments = resolve_(self.bind_arguments)
-        self.routing_key = resolve_(self.routing_key)
-        self.robust = resolve_(self.robust)
-        self.auto_delete = resolve_(self.auto_delete)
-        self.arguments = resolve_(self.arguments)
-        self.timeout = resolve_(self.timeout)
-        self.declare = resolve_(self.declare)
-        self.queue_type = resolve_(self.queue_type)
+    def setup(self, settings: SettingsContainer = EMPTY) -> None:
+        if settings is not EMPTY and settings is not None:
+            resolve_ = settings.resolve
+            self.name = resolve_(self.name)
+            self.durable = resolve_(self.durable)
+            self.exclusive = resolve_(self.exclusive)
+            self.bind_arguments = resolve_(self.bind_arguments)
+            self.routing_key = resolve_(self.routing_key)
+            self.robust = resolve_(self.robust)
+            self.auto_delete = resolve_(self.auto_delete)
+            self.arguments = resolve_(self.arguments)
+            self.timeout = resolve_(self.timeout)
+            self.declare = resolve_(self.declare)
+            # self.queue_type = resolve_(self.queue_type)
 
         re, routing_key = compile_path(
             self.routing_key,
@@ -224,17 +236,16 @@ class RabbitQueue(NameRequired):
 
         self.path_regex = re
         self.routing_key = routing_key
+        # if self.queue_type is QueueType.QUORUM or self.queue_type is QueueType.STREAM:
+        #     if self.durable is EMPTY:
+        #         self.durable = True
+        #     elif not self.durable:
+        #         error_msg = "Quorum and Stream queues must be durable"
+        #         raise SetupError(error_msg)
+        # elif self.durable is EMPTY:
+        #     self.durable = False
 
-        if self.queue_type is QueueType.QUORUM or self.queue_type is QueueType.STREAM:
-            if self.durable is EMPTY:
-                self.durable = True
-            elif not self.durable:
-                error_msg = "Quorum and Stream queues must be durable"
-                raise SetupError(error_msg)
-        elif self.durable is EMPTY:
-            self.durable = False
-
-        self.arguments = {"x-queue-type": self.queue_type.value, **(self.arguments or {})}
+        # self.arguments = {"x-queue-type": self.queue_type.value, **(self.arguments or {})}
 
 
 CommonQueueArgs = TypedDict(

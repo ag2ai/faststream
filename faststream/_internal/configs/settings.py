@@ -4,7 +4,7 @@ from typing import Any, TypeVar, overload
 T = TypeVar("T")
 
 
-@dataclass
+@dataclass(slots=True)
 class Settings:
     key: str
 
@@ -26,9 +26,7 @@ class SettingsContainer:
 
     def resolve_child(self, item: Any) -> None:
         for attr_name in dir(item):
-            attr = getattr(item, attr_name)
-            if isinstance(attr, Settings):
-                setattr(item, attr_name, self._items.get(attr.key))
-
-    def resolve_recursion(self) -> None:
-        pass
+            if not attr_name.startswith("__"):
+                attr = getattr(item, attr_name)
+                if isinstance(attr, Settings):
+                    setattr(item, attr_name, self._items.get(attr.key))

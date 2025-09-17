@@ -120,12 +120,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             cfg.title_ = resolve_(cfg.title_)
             cfg.include_in_schema = resolve_(cfg.include_in_schema)
 
-        self._call_options = _CallOptions(
-            parser=self._parser,
-            decoder=self._decoder,
-            middlewares=resolve_(self._call_options.middlewares),
-            dependencies=resolve_(self._call_options.dependencies),
-        )
         self._build_fastdepends_model()
 
         self._outer_config.logger.log(

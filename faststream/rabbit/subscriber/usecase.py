@@ -41,8 +41,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        config.decoder = None
-        config.parser = None
+
+        parser = AioPikaParser()
+        config.decoder = parser.decode_message
+        config.parser = parser.parse_message
+
+        self.config = config
         super().__init__(
             config,
             specification=specification,
@@ -77,10 +81,13 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             self.channel = resolve_(self.channel)
             self.consume_args = resolve_(self.consume_args)
             self.__no_ack = resolve_(self.__no_ack)
+            pattern = resolve_(self.queue.path_regex)
+        else:
+            pattern = self.config.queue.path_regex
+        parser = AioPikaParser(pattern=pattern)
+        self.config.decoder = parser.decode_message
+        self.config.parser = parser.parse_message
 
-        parser = AioPikaParser(pattern=self.queue.path_regex)
-        self._decoder = parser.decode_message
-        self._parser = parser.parse_message
         await super().start()
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)

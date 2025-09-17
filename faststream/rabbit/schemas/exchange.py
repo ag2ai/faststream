@@ -137,8 +137,7 @@ class RabbitExchange(NameRequired):
     def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
         settings: SettingsContainer = kwargs.pop("settings", EMPTY)
         obj = cls(value, **kwargs)
-        if settings is not EMPTY and settings is not None:
-            obj.setup(settings)
+        obj.setup(settings)
         return obj
 
     @override
@@ -155,20 +154,21 @@ class RabbitExchange(NameRequired):
         if value is None:
             value = RabbitExchange()
         return value
-    
-    def setup(self, settings: SettingsContainer) -> None:
-        resolve_ = settings.resolve
-        self.name = resolve_(self.name)
-        self.type = resolve_(self.type)
-        self.durable = resolve_(self.durable)
-        self.auto_delete = resolve_(self.auto_delete)
-        self.robust = resolve_(self.robust)
-        self.timeout = resolve_(self.timeout)
-        self.arguments = resolve_(self.arguments)
-        self.declare = resolve_(self.declare)
-        self.bind_to = resolve_(self.bind_to)
-        self.bind_arguments = resolve_(self.bind_arguments)
-        self.routing_key = resolve_(self.routing_key)
+
+    def setup(self, settings: SettingsContainer = EMPTY) -> None:
+        if settings is not EMPTY and settings is not None:
+            resolve_ = settings.resolve
+            self.name = resolve_(self.name)
+            self.type = resolve_(self.type)
+            self.durable = resolve_(self.durable)
+            self.auto_delete = resolve_(self.auto_delete)
+            self.robust = resolve_(self.robust)
+            self.timeout = resolve_(self.timeout)
+            self.arguments = resolve_(self.arguments)
+            self.declare = resolve_(self.declare)
+            self.bind_to = resolve_(self.bind_to)
+            self.bind_arguments = resolve_(self.bind_arguments)
+            self.routing_key = resolve_(self.routing_key)
 
         if self.routing_key and self.bind_to is None:  # pragma: no cover
             warnings.warn(

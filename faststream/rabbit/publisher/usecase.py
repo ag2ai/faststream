@@ -48,10 +48,8 @@ class RabbitPublisher(PublisherUsecase):
         self.timeout = config.message_kwargs.pop("timeout", None)
 
         self.message_kwargs = config.message_kwargs
-
-        self._message_options = None
-
-        self.publish_options = None
+        self._message_options = {}
+        self.publish_options = {}
 
     @property
     def message_options(self) -> "BasicMessageOptions":
