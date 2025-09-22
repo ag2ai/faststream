@@ -458,21 +458,17 @@ class RabbitBroker(
 
     async def declare_queue(self, queue: "RabbitQueue") -> "RobustQueue":
         """Declares queue object in **RabbitMQ**."""
-        if self.config.settings is not EMPTY and self.config.settings is not None:
+        if self.config.settings is not EMPTY:
             queue = self.config.settings.resolve(queue)
-            queue.setup(self.config.settings)
-        else:
-            queue.setup()
+        queue.setup(self.config.settings)
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_queue(queue)
 
     async def declare_exchange(self, exchange: "RabbitExchange") -> "RobustExchange":
         """Declares exchange object in **RabbitMQ**."""
-        if self.config.settings is not EMPTY and self.config.settings is not None:
+        if self.config.settings is not EMPTY:
             exchange = self.config.settings.resolve(exchange)
-            exchange.setup(self.config.settings)
-        else:
-            exchange.setup()
+        exchange.setup(self.config.settings)
         declarer: RabbitDeclarer = self.config.declarer
         return await declarer.declare_exchange(exchange)
 

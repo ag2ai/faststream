@@ -180,41 +180,27 @@ class RabbitQueue(NameRequired):
         elif durable is EMPTY:
             self.durable = False
 
-        # self.path_regex = None
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        # self.routing_key = routing_key
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
         self.timeout = timeout
         self.declare = declare
-        # self.queue_type = queue_type
-
-    @classmethod
-    def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
-        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
-        obj = cls(value, **kwargs)
-        obj.setup(settings)
-        return obj
 
     @override
     @classmethod
     def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
-        settings: SettingsContainer = kwargs.get("settings", EMPTY)
-        # тут нужно рекурсивно резолвить, иначе не ок
-        if settings is not EMPTY and settings is not None:
+        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
+        if settings is not EMPTY:
             value = settings.resolve(value)
-
-        if value is not None and isinstance(value, str):
-            return cls._create_with_setup(value, **kwargs)
-        if isinstance(value, cls):
+        value = super().validate(value, **kwargs)
+        if value is not None:
             value.setup(settings)
-            return value
         return value
 
     def setup(self, settings: SettingsContainer = EMPTY) -> None:
-        if settings is not EMPTY and settings is not None:
+        if settings is not EMPTY:
             resolve_ = settings.resolve
             self.name = resolve_(self.name)
             self.durable = resolve_(self.durable)

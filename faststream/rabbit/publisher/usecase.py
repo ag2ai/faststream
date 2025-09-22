@@ -76,13 +76,14 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
-        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
-            self.queue = self._outer_config.settings.resolve(self.queue)
-            self.exchange = self._outer_config.settings.resolve(self.exchange)
-            self.routing_key = self._outer_config.settings.resolve(self.routing_key)
-            self.timeout = self._outer_config.settings.resolve(self.timeout)
-            self.reply_to = self._outer_config.settings.resolve(self.reply_to)
-            self.headers = self._outer_config.settings.resolve(self.headers)
+        if self._outer_config.settings is not EMPTY:
+            resolve_ = self._outer_config.settings.resolve
+            self.queue = resolve_(self.queue)
+            self.exchange = resolve_(self.exchange)
+            self.routing_key = resolve_(self.routing_key)
+            self.timeout = resolve_(self.timeout)
+            self.reply_to = resolve_(self.reply_to)
+            self.headers = resolve_(self.headers)
 
         message_options, _ = filter_by_dict(
             BasicMessageOptions,

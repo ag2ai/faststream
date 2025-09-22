@@ -74,7 +74,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
+        if self._outer_config.settings is not EMPTY:
             resolve_ = self._outer_config.settings.resolve
             self.queue = resolve_(self.queue)
             self.exchange = resolve_(self.exchange)
@@ -241,11 +241,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         message: Optional["StreamMessage[Any]"],
     ) -> dict[str, str]:
-        if self._outer_config.settings is not EMPTY and self._outer_config.settings is not None:
+        if self._outer_config.settings is not EMPTY:
             queue = self._outer_config.settings.resolve(self.queue)
             exchange = self._outer_config.settings.resolve(self.exchange)
-        queue = self.queue
-        exchange = self.exchange
+        else:
+            queue = self.queue
+            exchange = self.exchange
         return self.build_log_context(
             message=message,
             queue=queue,

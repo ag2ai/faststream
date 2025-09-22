@@ -133,30 +133,18 @@ class RabbitExchange(NameRequired):
         self.bind_arguments = bind_arguments
         self.routing_key = routing_key
 
-    @classmethod
-    def _create_with_setup(cls, value: Any, **kwargs: dict[str, Any]) -> Self:
-        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
-        obj = cls(value, **kwargs)
-        obj.setup(settings)
-        return obj
-
     @override
     @classmethod
     def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
-        settings: SettingsContainer = kwargs.get("settings", EMPTY)
-        if settings is not EMPTY and settings is not None:
+        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
+        if settings is not EMPTY:
             value = settings.resolve(value)
-        if value is not None and isinstance(value, str):
-            return cls._create_with_setup(value, **kwargs)
-        if isinstance(value, cls) and settings is not EMPTY and settings is not None:
-            value.setup(settings)
-            return value
-        if value is None:
-            value = RabbitExchange()
+        value = super().validate(value, **kwargs) or RabbitExchange()
+        value.setup(settings)
         return value
 
     def setup(self, settings: SettingsContainer = EMPTY) -> None:
-        if settings is not EMPTY and settings is not None:
+        if settings is not EMPTY:
             resolve_ = settings.resolve
             self.name = resolve_(self.name)
             self.type = resolve_(self.type)

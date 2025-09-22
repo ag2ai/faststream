@@ -5,7 +5,7 @@ from aio_pika import IncomingMessage
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
-from faststream._internal.configs.settings import Settings
+from faststream._internal.configs.settings import Settings, SettingsContainer
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -188,38 +188,20 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         """
         config = cast("RabbitBrokerConfig", self.config)
 
-        if config.settings is not EMPTY and config.settings is not None:
-            resolve_ = config.settings.resolve
-
-            message_kwargs = PublishKwargs(
-                mandatory=resolve_(mandatory),
-                immediate=resolve_(immediate),
-                timeout=resolve_(timeout),
-                persist=resolve_(persist),
-                reply_to=resolve_(reply_to),
-                headers=resolve_(headers),
-                priority=resolve_(priority),
-                content_type=resolve_(content_type),
-                content_encoding=resolve_(content_encoding),
-                message_type=resolve_(message_type),
-                user_id=resolve_(user_id),
-                expiration=resolve_(expiration),
-            )
-        else:
-            message_kwargs = PublishKwargs(
-                mandatory=mandatory,
-                immediate=immediate,
-                timeout=timeout,
-                persist=persist,
-                reply_to=reply_to,
-                headers=headers,
-                priority=priority,
-                content_type=content_type,
-                content_encoding=content_encoding,
-                message_type=message_type,
-                user_id=user_id,
-                expiration=expiration,
-            )
+        message_kwargs = PublishKwargs(
+            mandatory=self.resolve_(mandatory),
+            immediate=self.resolve_(immediate),
+            timeout=self.resolve_(timeout),
+            persist=self.resolve_(persist),
+            reply_to=self.resolve_(reply_to),
+            headers=self.resolve_(headers),
+            priority=self.resolve_(priority),
+            content_type=self.resolve_(content_type),
+            content_encoding=self.resolve_(content_encoding),
+            message_type=self.resolve_(message_type),
+            user_id=self.resolve_(user_id),
+            expiration=self.resolve_(expiration),
+        )
 
         publisher = create_publisher(
             routing_key=routing_key,
@@ -265,3 +247,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             middlewares=middlewares,
             include_in_schema=include_in_schema,
         )
+
+    def resolve_(self, value: Any) -> Any:
+        if self.config.settings is not EMPTY:
+            return self.config.settings.resolve(value)
+        return value

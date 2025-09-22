@@ -53,7 +53,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         await self.start_()
 
     async def start_(self) -> None:
-        if self._outer_config.settings is not None and self._outer_config.settings is not EMPTY:
+        if self._outer_config.settings is not EMPTY:
             resolve_ = self._outer_config.settings.resolve
             self.middlewares = resolve_(self.middlewares)
             cfg = self.specification.config

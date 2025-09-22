@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, TypeVar, overload
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -13,18 +13,13 @@ class SettingsContainer:
     def __init__(self, **kwargs: Any) -> None:
         self._items: dict[str, Any] = dict(kwargs)
 
-    @overload
-    def resolve(self, item: Settings) -> Any: ...
-    @overload
-    def resolve(self, item: T) -> T: ...
-
-    def resolve(self, item):
+    def resolve(self, item: Any) -> Any:
         if isinstance(item, Settings):
             return self._items.get(item.key)
-        self.resolve_child(item)
+        self._resolve_child(item)
         return item
 
-    def resolve_child(self, item: Any) -> None:
+    def _resolve_child(self, item: Any) -> None:
         for attr_name in dir(item):
             if not attr_name.startswith("__"):
                 attr = getattr(item, attr_name)
