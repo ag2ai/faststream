@@ -44,6 +44,8 @@ if TYPE_CHECKING:
 
 __all__ = ("TestRedisBroker",)
 
+TEST_SUBSCRIBER_NAME = "__TEST_SUBSCRIBER__%d__"
+
 
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
@@ -83,8 +85,21 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(**publisher.subscriber_property(name_only=False))
 
+            publisher_property = publisher.subscriber_property(name_only=True)
+
+            if any(publisher_property.values()):
+                sub_options = publisher.subscriber_property(name_only=False)
+
+            else:
+                # Publisher was created with empty destination
+                sub_options = {}
+                for key, value in publisher_property.items():
+                    if value is not None:
+                        sub_options[key] = TEST_SUBSCRIBER_NAME % hash(publisher)
+
+            sub = broker.subscriber(**sub_options)
+            sub._original_publisher__ = publisher  # type: ignore[union-attr]
         else:
             is_real = True
 
@@ -278,6 +293,11 @@ class ChannelVisitor(Visitor):
 
         sub_channel = sub.channel
 
+        if (publisher := getattr(sub, "_original_publisher__", None)) and (
+            sub_channel.name == TEST_SUBSCRIBER_NAME % hash(publisher)
+        ):
+            return channel
+
         if (
             sub_channel.pattern
             and bool(
@@ -317,6 +337,11 @@ class ListVisitor(Visitor):
         if list is None or not isinstance(sub, _ListHandlerMixin):
             return None
 
+        if (publisher := getattr(sub, "_original_publisher__", None)) and (
+            sub.list_sub.name == TEST_SUBSCRIBER_NAME % hash(publisher)
+        ):
+            return list
+
         if list == sub.list_sub.name:
             return list
 
@@ -353,6 +378,11 @@ class StreamVisitor(Visitor):
     ) -> str | None:
         if stream is None or not isinstance(sub, _StreamHandlerMixin):
             return None
+
+        if (publisher := getattr(sub, "_original_publisher__", None)) and (
+            sub.stream_sub.name == TEST_SUBSCRIBER_NAME % hash(publisher)
+        ):
+            return stream
 
         if stream == sub.stream_sub.name:
             return stream

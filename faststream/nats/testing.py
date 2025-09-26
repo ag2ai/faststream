@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
 __all__ = ("TestNatsBroker",)
 
+TEST_SUBSCRIBER_NAME = "__TEST_SUBSCRIBER__%d__"
+
 
 @contextmanager
 def change_producer(
@@ -66,7 +68,10 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(publisher.subject)
+            sub = broker.subscriber(
+                publisher.subject or TEST_SUBSCRIBER_NAME % hash(publisher)
+            )
+            sub._original_publisher__ = publisher  # type: ignore[attr-defined]
         else:
             is_real = True
 
@@ -193,6 +198,11 @@ def _is_handler_matches(
     subject: str,
     stream: str | None = None,
 ) -> bool:
+    if (publisher := getattr(handler, "_original_publisher__", None)) and (
+        handler.subject == TEST_SUBSCRIBER_NAME % hash(publisher)
+    ):
+        return True
+
     if stream:
         if not (handler_stream := getattr(handler, "stream", None)):
             return False

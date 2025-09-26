@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
 __all__ = ("TestKafkaBroker",)
 
+TEST_SUBSCRIBER_NAME = "__TEST_SUBSCRIBER__%d__"
+
 
 class TestKafkaBroker(TestBroker[KafkaBroker]):
     """A class to test Kafka brokers."""
@@ -71,9 +73,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         if sub is None:
             is_real = False
 
+            topic_name = publisher.topic or TEST_SUBSCRIBER_NAME % hash(publisher)
+
             if publisher.partition:
                 tp = TopicPartition(
-                    topic=publisher.topic,
+                    topic=topic_name,
                     partition=publisher.partition,
                 )
                 sub = broker.subscriber(
@@ -83,11 +87,11 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
                 )
             else:
                 sub = broker.subscriber(
-                    publisher.topic,
+                    topic_name,
                     batch=isinstance(publisher, BatchPublisher),
                     auto_offset_reset="earliest",
                 )
-
+            sub._original_publisher__ = publisher  # type: ignore[union-attr]
         else:
             is_real = True
 
@@ -326,6 +330,20 @@ def _find_handler(
 
 
 def _is_handler_matches(
+    handler: "LogicSubscriber[Any]",
+    topic: str,
+    partition: int | None,
+) -> bool:
+    if _try_match_publisher(handler, topic, partition):
+        return True
+
+    if publisher := getattr(handler, "_original_publisher__", None):
+        return _try_match_publisher(handler, TEST_SUBSCRIBER_NAME % hash(publisher), None)
+
+    return False
+
+
+def _try_match_publisher(
     handler: "LogicSubscriber[Any]",
     topic: str,
     partition: int | None,
