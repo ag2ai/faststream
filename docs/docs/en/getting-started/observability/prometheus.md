@@ -140,68 +140,54 @@ To learn about all the metric types supported by the `prometheus_client` Python 
 
 ## Prometheus Metrics in Multi-Process Mode
 
-When running FastStream with multiple worker processes, follow these steps to properly configure Prometheus metrics collection:
+When running FastStream with multiple worker processes (e.g., via `uvicorn --workers N`), you need special configuration for Prometheus metrics collection.
 
 ### Basic Configuration
+
 1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory:
+
    ```bash
    export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
    ```
 
-2. The metrics will automatically work in multiprocess mode when the environment variable is set. Here's a minimal working example:
+2. Configure your broker with Prometheus middleware and create a metrics endpoint:
 
-```python linenums="1" hl_lines="8"
-import os
-
-from prometheus_client import CollectorRegistry
-
-from faststream.kafka import KafkaBroker
-from faststream.kafka.prometheus import KafkaPrometheusMiddleware
-
-broker = KafkaBroker(
-    middlewares=[
-        KafkaPrometheusMiddleware(
-            registry=CollectorRegistry(),
-            app_name="your-app-name"
-        )
-    ]
-)
+```python linenums="1" hl_lines="17-18 35-45"
+{!> docs_src/getting_started/prometheus/kafka_multiprocess.py!}
 ```
 
-### Metrics Export Endpoint
-For exporting metrics in multi-process mode, you need a special endpoint:
+### How It Works
 
-```python linenums="1" hl_lines="8"
-import os
+The metrics endpoint checks for the `PROMETHEUS_MULTIPROC_DIR` environment variable:
 
-from prometheus_client import CollectorRegistry, multiprocess, generate_latest
-from prometheus_client import CONTENT_TYPE_LATEST
+- **Multi-process mode**: When the variable is set, it creates a new `CollectorRegistry` with `MultiProcessCollector` that aggregates metrics from all worker processes
+- **Single-process mode**: When the variable is not set, it falls back to using the default registry
 
-from faststream.asgi import AsgiResponse
+This allows the same code to work in both single and multi-process deployments.
 
-registry = CollectorRegistry()
+### Running with Multiple Workers
 
-@get
-async def metrics(scope):
-    if path := os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
-        registry_ = CollectorRegistry()
-        multiprocess.MultiProcessCollector(registry_, path=path)
-    else:
-        registry_ = registry
+Start your application with uvicorn using multiple workers:
 
-    headers = {"Content-Type": CONTENT_TYPE_LATEST}
-    return AsgiResponse(generate_latest(registry_), status_code=200, headers=headers)
+```bash
+export PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+mkdir -p $PROMETHEUS_MULTIPROC_DIR
+uvicorn app:app --workers 4
 ```
 
 ### Important Requirements
-1. The metrics directory must:
+
+1. **The metrics directory must:**
    - Exist before application start
    - Be writable by all worker processes
    - Be on a filesystem accessible to all workers
    - Be emptied between application runs
-2. For better performance:
+
+2. **For better performance:**
    - Consider mounting the directory on `tmpfs`
    - Set up regular cleanup of old metric files
+
+---
 
 ### Grafana dashboard
 
