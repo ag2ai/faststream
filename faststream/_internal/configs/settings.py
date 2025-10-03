@@ -23,12 +23,21 @@ class RealSettingsContainer(SettingsContainer):
         self._resolve_child(item)
         return item
 
-    def _resolve_child(self, item: Any) -> None:
+    def _resolve_child(self, item: Any, seen: set[Any] | None = None) -> None:
+        if seen is None:
+            seen = set()
+
+        if id(item) in seen:
+            return
+
+        seen.add(id(item))
+
         for attr_name in dir(item):
             if not attr_name.startswith("__"):
                 attr = getattr(item, attr_name)
                 if isinstance(attr, Settings):
                     setattr(item, attr_name, self._items[attr.key])
+                self._resolve_child(attr, seen)
 
 
 class FakeSettingsContainer(SettingsContainer):
