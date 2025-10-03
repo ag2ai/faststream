@@ -189,18 +189,18 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         config = cast("RabbitBrokerConfig", self.config)
 
         message_kwargs = PublishKwargs(
-            mandatory=self.resolve_(mandatory),
-            immediate=self.resolve_(immediate),
-            timeout=self.resolve_(timeout),
-            persist=self.resolve_(persist),
-            reply_to=self.resolve_(reply_to),
-            headers=self.resolve_(headers),
-            priority=self.resolve_(priority),
-            content_type=self.resolve_(content_type),
-            content_encoding=self.resolve_(content_encoding),
-            message_type=self.resolve_(message_type),
-            user_id=self.resolve_(user_id),
-            expiration=self.resolve_(expiration),
+            mandatory=self._reslove(mandatory),
+            immediate=self._reslove(immediate),
+            timeout=self._reslove(timeout),
+            persist=self._reslove(persist),
+            reply_to=self._reslove(reply_to),
+            headers=self._reslove(headers),
+            priority=self._reslove(priority),
+            content_type=self._reslove(content_type),
+            content_encoding=self._reslove(content_encoding),
+            message_type=self._reslove(message_type),
+            user_id=self._reslove(user_id),
+            expiration=self._reslove(expiration),
         )
 
         publisher = create_publisher(
@@ -247,8 +247,3 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             middlewares=middlewares,
             include_in_schema=include_in_schema,
         )
-
-    def resolve_(self, value: Any) -> Any:
-        if self.config.settings is not EMPTY:
-            return self.config.settings.resolve(value)
-        return value

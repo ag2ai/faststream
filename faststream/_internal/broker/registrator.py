@@ -102,3 +102,6 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         """Includes routers in the object."""
         for r in routers:
             self.include_router(r)
+
+    def _reslove(self, value: Any) -> Any:
+        return self.config.settings.resolve(value)
