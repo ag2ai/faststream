@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, TypeVar
-
-T = TypeVar("T")
+from typing import Any
 
 
 @dataclass(slots=True)

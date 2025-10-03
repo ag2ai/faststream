@@ -41,7 +41,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-
         parser = AioPikaParser()
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
@@ -213,7 +212,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 self._outer_config.producer,
                 app_id=self.app_id,
                 routing_key=queue_name,
-                exchange=RabbitExchange.validate(exchange_name, settings=self._outer_config.settings),
+                exchange=RabbitExchange.validate(
+                    exchange_name, settings=self._outer_config.settings
+                ),
             )
         else:
             publisher = RabbitFakePublisher(
@@ -247,6 +248,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         else:
             queue = self.queue
             exchange = self.exchange
+
         return self.build_log_context(
             message=message,
             queue=queue,

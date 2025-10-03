@@ -109,16 +109,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
         self.lock = MultiLock()
-        if self._outer_config.settings is not EMPTY:
-            resolve_ = self._outer_config.settings.resolve
-            cfg = self.specification.config
-            self.ack_policy = resolve_(self.ack_policy)
-            self._parser = resolve_(self._parser)
-            self._decoder = resolve_(self._decoder)
-            self._no_reply = resolve_(self._no_reply)
-            cfg.description_ = resolve_(cfg.description_)
-            cfg.title_ = resolve_(cfg.title_)
-            cfg.include_in_schema = resolve_(cfg.include_in_schema)
 
         self._build_fastdepends_model()
 

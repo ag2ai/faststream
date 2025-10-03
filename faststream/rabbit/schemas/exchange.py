@@ -1,7 +1,7 @@
 import warnings
 from typing import TYPE_CHECKING, Annotated, Any, Optional
 
-from typing_extensions import Doc, Self, override
+from typing_extensions import Doc, override
 
 from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY

@@ -2,7 +2,7 @@ from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
-from typing_extensions import Self, override
+from typing_extensions import override
 
 from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY

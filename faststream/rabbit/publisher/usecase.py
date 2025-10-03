@@ -1,9 +1,9 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from faststream._internal.constants import EMPTY
 from typing_extensions import Unpack, override
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
 from faststream.message import gen_cor_id
@@ -118,7 +118,9 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(exchange or self.exchange, settings=self._outer_config.settings),
+            exchange=RabbitExchange.validate(
+                exchange or self.exchange, settings=self._outer_config.settings
+            ),
             headers=headers,
             correlation_id=correlation_id,
             _publish_type=PublishType.PUBLISH,
@@ -177,7 +179,9 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(exchange or self.exchange, settings=self._outer_config.settings),
+            exchange=RabbitExchange.validate(
+                exchange or self.exchange, settings=self._outer_config.settings
+            ),
             correlation_id=correlation_id,
             headers=headers,
             _publish_type=PublishType.PUBLISH,

@@ -50,17 +50,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.mock = MagicMock()
 
     async def start(self) -> None:
-        await self.start_()
-
-    async def start_(self) -> None:
-        if self._outer_config.settings is not EMPTY:
-            resolve_ = self._outer_config.settings.resolve
-            self.middlewares = resolve_(self.middlewares)
-            cfg = self.specification.config
-            cfg.description_ = resolve_(cfg.description_)
-            cfg.title_ = resolve_(cfg.title_)
-            cfg.include_in_schema = resolve_(cfg.include_in_schema)
-            cfg.schema_ = resolve_(cfg.schema_)
+        pass
 
     def set_test(
         self,

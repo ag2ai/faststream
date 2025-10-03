@@ -50,10 +50,10 @@ if TYPE_CHECKING:
         RobustQueue,
     )
     from aio_pika.abc import DateType, HeadersType, SSLOptions, TimeoutType
+    from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
     from yarl import URL
 
-    from fast_depends.dependencies import Dependant
     from faststream._internal.basic_types import LoggerProto
     from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
@@ -352,7 +352,8 @@ class RabbitBroker(
         """
         cmd = RabbitPublishCommand(
             message,
-            routing_key=routing_key or RabbitQueue.validate(queue, settings=self.config.settings).routing(),
+            routing_key=routing_key
+            or RabbitQueue.validate(queue, settings=self.config.settings).routing(),
             exchange=RabbitExchange.validate(exchange, settings=self.config.settings),
             correlation_id=correlation_id or gen_cor_id(),
             app_id=self.config.app_id,

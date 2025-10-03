@@ -5,7 +5,7 @@ from aio_pika import IncomingMessage
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
-from faststream._internal.configs.settings import Settings, SettingsContainer
+from faststream._internal.configs.settings import Settings
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -21,8 +21,8 @@ from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
-
     from fast_depends.dependencies import Dependant
+
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
