@@ -7,7 +7,6 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )

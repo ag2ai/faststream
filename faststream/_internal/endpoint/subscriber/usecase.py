@@ -14,7 +14,6 @@ from typing import (
 
 from typing_extensions import Self, deprecated, overload, override
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.types import (
