@@ -5,7 +5,7 @@ from aio_pika import IncomingMessage
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
-from faststream._internal.configs.settings import Settings
+from faststream._internal.configs import Settings
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -51,23 +51,23 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
-        ack_policy: AckPolicy | Settings = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
         # broker arguments
-        dependencies: Iterable["Dependant"] | Settings = (),
-        parser: Optional["CustomCallable"] | Settings = None,
-        decoder: Optional["CustomCallable"] | Settings = None,
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"] | Settings,
+            Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
-        no_reply: bool | Settings = False,
+        no_reply: bool = False,
         # AsyncAPI information
-        title: str | Settings | None = None,
-        description: str | Settings | None = None,
-        include_in_schema: bool | Settings = True,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
     ) -> "RabbitSubscriber":
         """Subscribe a handler to a RabbitMQ queue.
 
@@ -92,8 +92,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         """
         config = cast("RabbitBrokerConfig", self.config)
         subscriber = create_subscriber(
-            queue=RabbitQueue.validate(queue, settings=config.settings),
-            exchange=RabbitExchange.validate(exchange, settings=config.settings),
+            queue=RabbitQueue.validate(queue),
+            exchange=RabbitExchange.validate(exchange),
             consume_args=consume_args,
             channel=channel,
             # subscriber args
@@ -126,25 +126,25 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         routing_key: str | Settings = "",
         mandatory: bool | Settings = True,
         immediate: bool | Settings = False,
-        timeout: "TimeoutType" = None,
         persist: bool | Settings = False,
         reply_to: str | Settings | None = None,
         priority: int | Settings | None = None,
+        timeout: "TimeoutType" = None,
         # specific
         middlewares: Annotated[
-            Sequence["PublisherMiddleware"] | Settings,
+            Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
         # AsyncAPI information
-        title: str | Settings | None = None,
-        description: str | Settings | None = None,
-        schema: Settings | Any | None = None,
-        include_in_schema: bool | Settings = True,
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
         # message args
-        headers: Settings | Optional["HeadersType"] = None,
+        headers: Optional["HeadersType"] | Settings = None,
         content_type: str | Settings | None = None,
         content_encoding: str | Settings | None = None,
         expiration: Optional["DateType"] | Settings = None,
@@ -186,32 +186,30 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             message_type: Application-specific message type, e.g. **orders.created**.
             user_id: Publisher connection User ID, validated if set.
         """
-        config = cast("RabbitBrokerConfig", self.config)
-
         message_kwargs = PublishKwargs(
-            mandatory=self._reslove(mandatory),
-            immediate=self._reslove(immediate),
-            timeout=self._reslove(timeout),
-            persist=self._reslove(persist),
-            reply_to=self._reslove(reply_to),
-            headers=self._reslove(headers),
-            priority=self._reslove(priority),
-            content_type=self._reslove(content_type),
-            content_encoding=self._reslove(content_encoding),
-            message_type=self._reslove(message_type),
-            user_id=self._reslove(user_id),
-            expiration=self._reslove(expiration),
+            mandatory=mandatory,
+            immediate=immediate,
+            persist=persist,
+            reply_to=reply_to,
+            headers=headers,
+            priority=priority,
+            content_type=content_type,
+            content_encoding=content_encoding,
+            message_type=message_type,
+            user_id=user_id,
+            expiration=expiration,
+            timeout=timeout,
         )
 
         publisher = create_publisher(
             routing_key=routing_key,
-            queue=RabbitQueue.validate(queue, settings=config.settings),
-            exchange=RabbitExchange.validate(exchange, settings=config.settings),
+            queue=RabbitQueue.validate(queue),
+            exchange=RabbitExchange.validate(exchange),
             message_kwargs=message_kwargs,
             # publisher args
             middlewares=middlewares,
             # broker args
-            config=config,
+            config=cast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
             description_=description,

@@ -188,17 +188,6 @@ class RabbitQueue(NameRequired):
         self.timeout = timeout
         self.declare = declare
 
-    @override
-    @classmethod
-    def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
-        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
-        if settings is not EMPTY:
-            value = settings.resolve(value)
-        value = super().validate(value, **kwargs)
-        if value is not None:
-            value.setup(settings)
-        return value
-
     def setup(self, settings: SettingsContainer = EMPTY) -> None:
         if settings is not EMPTY:
             resolve_ = settings.resolve

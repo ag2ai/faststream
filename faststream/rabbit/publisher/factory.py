@@ -20,16 +20,16 @@ def create_publisher(
     routing_key: str | Settings,
     queue: Union["RabbitQueue", Settings],
     exchange: Union["RabbitExchange", Settings],
-    message_kwargs: "PublishKwargs",
+    message_kwargs: "PublishKwargs | Settings",
     # Broker args
     config: "RabbitBrokerConfig",
     # Publisher args
     middlewares: Sequence["PublisherMiddleware"],
     # Specification args
-    schema_: Any | Settings | None,
-    title_: str | Settings | None,
-    description_: str | Settings | None,
-    include_in_schema: bool | Settings,
+    schema_: Any | None,
+    title_: str | None,
+    description_: str | None,
+    include_in_schema: bool,
 ) -> RabbitPublisher:
     publisher_config = RabbitPublisherConfig(
         routing_key=routing_key,

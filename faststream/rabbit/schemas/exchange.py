@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
 
 from typing_extensions import Doc, override
 
@@ -120,6 +120,16 @@ class RabbitExchange(NameRequired):
         ] = "",
     ) -> None:
         """Initialize a RabbitExchange object."""
+        if routing_key and bind_to is None:  # pragma: no cover
+            warnings.warn(
+                (
+                    "\nRabbitExchange `routing_key` is using to bind exchange to another one."
+                    "\nIt can be used only with the `bind_to` argument, please setup it too."
+                ),
+                category=RuntimeWarning,
+                stacklevel=1,
+            )
+
         super().__init__(name)
 
         self.type = type
@@ -135,13 +145,15 @@ class RabbitExchange(NameRequired):
 
     @override
     @classmethod
-    def validate(cls, value: Any, **kwargs: dict[str, Any]) -> Any:
-        settings: SettingsContainer = kwargs.pop("settings", EMPTY)
-        if settings is not EMPTY:
-            value = settings.resolve(value)
-        value = super().validate(value, **kwargs) or RabbitExchange()
-        value.setup(settings)
-        return value
+    def validate(  # type: ignore[override]
+        cls,
+        value: Union[str, "RabbitExchange", None],
+        **kwargs: Any,
+    ) -> "RabbitExchange":
+        exch = super().validate(value, **kwargs)
+        if exch is None:
+            exch = RabbitExchange()
+        return exch
 
     def setup(self, settings: SettingsContainer = EMPTY) -> None:
         if settings is not EMPTY:

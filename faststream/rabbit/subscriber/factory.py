@@ -26,15 +26,15 @@ def create_subscriber(
     consume_args: dict[str, Any] | Settings | None,
     channel: Optional["Channel"] | Settings,
     # Subscriber args
-    no_reply: bool | Settings,
-    ack_policy: Union["AckPolicy", Settings],
-    no_ack: bool | Settings,
+    no_reply: bool,
+    ack_policy: "AckPolicy",
+    no_ack: bool,
     # Broker args
     config: "RabbitBrokerConfig",
     # Specification args
-    title_: str | Settings | None,
-    description_: str | Settings | None,
-    include_in_schema: bool | Settings,
+    title_: str | None,
+    description_: str | None,
+    include_in_schema: bool,
 ) -> RabbitSubscriber:
     _validate_input_for_misconfigure(ack_policy=ack_policy, no_ack=no_ack)
 
