@@ -109,12 +109,9 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-<<<<<<< HEAD
         settings: Mapping[str, Any] | None = None,
-=======
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
->>>>>>> a798e012c9afd91765ebf4644c2f811e40ea399c
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -146,12 +143,9 @@ class RabbitBroker(
             log_level: Service messages log level.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
-<<<<<<< HEAD
             settings: Container for configuration publisher and subscriber.
-=======
             provider: Provider for FastDepends.
             context: Context for FastDepends.
->>>>>>> a798e012c9afd91765ebf4644c2f811e40ea399c
         """
         security_args = parse_security(security)
 

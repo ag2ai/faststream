@@ -102,7 +102,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             no_ack=no_ack,
             no_reply=no_reply,
             # broker args
-            config=сast("RabbitBrokerConfig", self.config),
+            config=cast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
             description_=description,
