@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import Unpack, override
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
 from faststream.message import gen_cor_id
@@ -47,9 +46,14 @@ class RabbitPublisher(PublisherUsecase):
         self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
         self.timeout = config.message_kwargs.pop("timeout", None)
 
-        self.message_kwargs = config.message_kwargs
-        self._message_options = {}
-        self.publish_options = {}
+        message_options, _ = filter_by_dict(
+            BasicMessageOptions,
+            dict(config.message_kwargs),
+        )
+        self._message_options = message_options
+
+        publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
+        self.publish_options = publish_options
 
     @property
     def message_options(self) -> "BasicMessageOptions":
@@ -76,24 +80,6 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
-        if self._outer_config.settings is not EMPTY:
-            resolve_ = self._outer_config.settings.resolve
-            self.queue = resolve_(self.queue)
-            self.exchange = resolve_(self.exchange)
-            self.routing_key = resolve_(self.routing_key)
-            self.timeout = resolve_(self.timeout)
-            self.reply_to = resolve_(self.reply_to)
-            self.headers = resolve_(self.headers)
-
-        message_options, _ = filter_by_dict(
-            BasicMessageOptions,
-            dict(self.message_kwargs),
-        )
-        self._message_options = message_options
-
-        publish_options, _ = filter_by_dict(PublishOptions, dict(self.message_kwargs))
-        self.publish_options = publish_options
-
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()
@@ -118,9 +104,7 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(
-                exchange or self.exchange, settings=self._outer_config.settings
-            ),
+            exchange=RabbitExchange.validate(exchange or self.exchange),
             headers=headers,
             correlation_id=correlation_id,
             _publish_type=PublishType.PUBLISH,
@@ -179,9 +163,7 @@ class RabbitPublisher(PublisherUsecase):
         cmd = RabbitPublishCommand(
             message,
             routing_key=self.routing(queue=queue, routing_key=routing_key),
-            exchange=RabbitExchange.validate(
-                exchange or self.exchange, settings=self._outer_config.settings
-            ),
+            exchange=RabbitExchange.validate(exchange or self.exchange),
             correlation_id=correlation_id,
             headers=headers,
             _publish_type=PublishType.PUBLISH,

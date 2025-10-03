@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.rabbit.parser import AioPikaParser
@@ -41,11 +40,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        parser = AioPikaParser()
+        parser = AioPikaParser(pattern=config.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
-
-        self.config = config
         super().__init__(
             config,
             specification=specification,
@@ -73,20 +70,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
-        if self._outer_config.settings is not EMPTY:
-            resolve_ = self._outer_config.settings.resolve
-            self.queue = resolve_(self.queue)
-            self.exchange = resolve_(self.exchange)
-            self.channel = resolve_(self.channel)
-            self.consume_args = resolve_(self.consume_args)
-            self.__no_ack = resolve_(self.__no_ack)
-            pattern = resolve_(self.queue.path_regex)
-        else:
-            pattern = self.config.queue.path_regex
-        parser = AioPikaParser(pattern=pattern)
-        self.config.decoder = parser.decode_message
-        self.config.parser = parser.parse_message
-
         await super().start()
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
@@ -212,9 +195,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 self._outer_config.producer,
                 app_id=self.app_id,
                 routing_key=queue_name,
-                exchange=RabbitExchange.validate(
-                    exchange_name, settings=self._outer_config.settings
-                ),
+                exchange=RabbitExchange.validate(exchange_name),
             )
         else:
             publisher = RabbitFakePublisher(
@@ -233,7 +214,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         exchange: Optional["RabbitExchange"] = None,
     ) -> dict[str, str]:
         return {
-            "queue": getattr(queue, "name", ""),
+            "queue": queue.name,
             "exchange": getattr(exchange, "name", ""),
             "message_id": getattr(message, "message_id", ""),
         }
@@ -242,15 +223,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self,
         message: Optional["StreamMessage[Any]"],
     ) -> dict[str, str]:
-        if self._outer_config.settings is not EMPTY:
-            queue = self._outer_config.settings.resolve(self.queue)
-            exchange = self._outer_config.settings.resolve(self.exchange)
-        else:
-            queue = self.queue
-            exchange = self.exchange
-
         return self.build_log_context(
             message=message,
-            queue=queue,
-            exchange=exchange,
+            queue=self.queue,
+            exchange=self.exchange,
         )

@@ -90,7 +90,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         Returns:
             RabbitSubscriber: The subscriber specification object.
         """
-        config = cast("RabbitBrokerConfig", self.config)
         subscriber = create_subscriber(
             queue=RabbitQueue.validate(queue),
             exchange=RabbitExchange.validate(exchange),
@@ -101,7 +100,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             no_ack=no_ack,
             no_reply=no_reply,
             # broker args
-            config=config,
+            config=сast("RabbitBrokerConfig", self.config),
             # specification args
             title_=title,
             description_=description,
@@ -189,6 +188,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         message_kwargs = PublishKwargs(
             mandatory=mandatory,
             immediate=immediate,
+            timeout=timeout,
             persist=persist,
             reply_to=reply_to,
             headers=headers,
@@ -198,7 +198,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             message_type=message_type,
             user_id=user_id,
             expiration=expiration,
-            timeout=timeout,
         )
 
         publisher = create_publisher(

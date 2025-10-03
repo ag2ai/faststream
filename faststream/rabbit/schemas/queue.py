@@ -2,9 +2,6 @@ from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
-from typing_extensions import override
-
-from faststream._internal.configs.settings import SettingsContainer
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
 from faststream._internal.utils.path import compile_path
@@ -167,60 +164,33 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        super().__init__(name)
+        re, routing_key = compile_path(
+            routing_key,
+            replace_symbol="*",
+            patch_regex=lambda x: x.replace(r"\#", ".+"),
+        )
 
-        self.path_regex = None
-        self.routing_key = routing_key
         if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
             if durable is EMPTY:
-                self.durable = True
+                durable = True
             elif not durable:
                 error_msg = "Quorum and Stream queues must be durable"
                 raise SetupError(error_msg)
         elif durable is EMPTY:
-            self.durable = False
+            durable = False
 
+        super().__init__(name)
+
+        self.path_regex = re
+        self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
+        self.routing_key = routing_key
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
         self.timeout = timeout
         self.declare = declare
-
-    def setup(self, settings: SettingsContainer = EMPTY) -> None:
-        if settings is not EMPTY:
-            resolve_ = settings.resolve
-            self.name = resolve_(self.name)
-            self.durable = resolve_(self.durable)
-            self.exclusive = resolve_(self.exclusive)
-            self.bind_arguments = resolve_(self.bind_arguments)
-            self.routing_key = resolve_(self.routing_key)
-            self.robust = resolve_(self.robust)
-            self.auto_delete = resolve_(self.auto_delete)
-            self.arguments = resolve_(self.arguments)
-            self.timeout = resolve_(self.timeout)
-            self.declare = resolve_(self.declare)
-            # self.queue_type = resolve_(self.queue_type)
-
-        re, routing_key = compile_path(
-            self.routing_key,
-            replace_symbol="*",
-            patch_regex=lambda x: x.replace(r"\#", ".+"),
-        )
-
-        self.path_regex = re
-        self.routing_key = routing_key
-        # if self.queue_type is QueueType.QUORUM or self.queue_type is QueueType.STREAM:
-        #     if self.durable is EMPTY:
-        #         self.durable = True
-        #     elif not self.durable:
-        #         error_msg = "Quorum and Stream queues must be durable"
-        #         raise SetupError(error_msg)
-        # elif self.durable is EMPTY:
-        #     self.durable = False
-
-        # self.arguments = {"x-queue-type": self.queue_type.value, **(self.arguments or {})}
 
 
 CommonQueueArgs = TypedDict(

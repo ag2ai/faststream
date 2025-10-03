@@ -20,7 +20,7 @@ def create_publisher(
     routing_key: str | Settings,
     queue: Union["RabbitQueue", Settings],
     exchange: Union["RabbitExchange", Settings],
-    message_kwargs: "PublishKwargs | Settings",
+    message_kwargs: Union["PublishKwargs", Settings],
     # Broker args
     config: "RabbitBrokerConfig",
     # Publisher args
