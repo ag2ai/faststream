@@ -312,7 +312,6 @@ async def check_publisher_publish_result_types() -> None:
     broker = KafkaBroker()
 
     publisher = broker.publisher("test")
-    assert_type(publisher, DefaultPublisher)
 
     publish_with_confirm = await publisher.publish(None, "test")
     assert_type(publish_with_confirm, RecordMetadata)
@@ -345,7 +344,6 @@ async def check_publisher_publish_batch_result_type() -> None:
     broker = KafkaBroker()
 
     publisher = broker.publisher("test", batch=True)
-    assert_type(publisher, BatchPublisher)
 
     publish_with_confirm = await publisher.publish(None, topic="test")
     assert_type(publish_with_confirm, RecordMetadata)
@@ -370,9 +368,9 @@ async def check_request_response_type() -> None:
     assert_type(publisher_response, KafkaMessage)
 
 
-async def check_subscriber_message_type() -> None:
-    broker = KafkaBroker()
-
+async def check_subscriber_message_type(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -382,9 +380,9 @@ async def check_subscriber_message_type() -> None:
         assert_type(msg, KafkaMessage)
 
 
-def check_subscriber_instance_type() -> None:
-    broker = KafkaBroker()
-
+def check_subscriber_instance_type(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, DefaultSubscriber)
 
@@ -398,5 +396,24 @@ def check_subscriber_instance_type() -> None:
     assert_type(sub4, ConcurrentBetweenPartitionsSubscriber)
 
 
+def check_publisher_instance_type(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    pub1 = broker.publisher("test")
+    assert_type(pub1, DefaultPublisher)
+
+    pub2 = broker.publisher("test", batch=True)
+    assert_type(pub2, BatchPublisher)
+
+
 def fake_bool() -> bool:
     return True
+
+
+KafkaBroker(routers=[KafkaRouter()])
+KafkaBroker().include_router(KafkaRouter())
+KafkaBroker().include_routers(KafkaRouter())
+
+KafkaRouter(routers=[KafkaRouter()])
+KafkaRouter().include_router(KafkaRouter())
+KafkaRouter().include_routers(KafkaRouter())

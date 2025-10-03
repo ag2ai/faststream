@@ -9,13 +9,12 @@ from faststream.specification.asyncapi.site import (
 
 from .handlers import get
 from .response import AsgiResponse
+from .types import ASGIApp, Scope
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema import Tag, TagDict
-
-    from .types import ASGIApp, Scope
 
 
 def make_ping_asgi(
@@ -26,7 +25,7 @@ def make_ping_asgi(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> "ASGIApp":
+) -> ASGIApp:
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)
 
@@ -36,7 +35,7 @@ def make_ping_asgi(
         tags=tags,
         unique_id=unique_id,
     )
-    async def ping(scope: "Scope") -> AsgiResponse:
+    async def ping(scope: Scope) -> AsgiResponse:
         if await broker.ping(timeout):
             return healthy_response
         return unhealthy_response
@@ -125,7 +124,7 @@ def make_asyncapi_asgi(
     expand_message_examples: bool = True,
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
-) -> "ASGIApp":
+) -> ASGIApp:
     cached_docs = None
 
     @get(
@@ -134,7 +133,7 @@ def make_asyncapi_asgi(
         tags=tags,
         unique_id=unique_id,
     )
-    async def docs(scope: "Scope") -> AsgiResponse:
+    async def docs(scope: Scope) -> AsgiResponse:
         nonlocal cached_docs
         if not cached_docs:
             cached_docs = get_asyncapi_html(

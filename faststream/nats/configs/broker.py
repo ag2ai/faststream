@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import TypedDict
 
 from faststream._internal.configs import BrokerConfig
 from faststream.nats.broker.state import BrokerState
@@ -12,8 +14,17 @@ if TYPE_CHECKING:
     from faststream.nats.publisher.producer import NatsFastProducer
 
 
+class JsInitOptions(TypedDict, total=False):
+    prefix: str
+    domain: str | None
+    timeout: float
+    publish_async_max_pending: int
+
+
 @dataclass(kw_only=True)
 class NatsBrokerConfig(BrokerConfig):
+    js_options: JsInitOptions | dict[str, Any] = field(default_factory=dict)
+
     producer: "NatsFastProducer" = field(default_factory=FakeNatsFastProducer)
     js_producer: "NatsFastProducer" = field(default_factory=FakeNatsFastProducer)
     connection_state: BrokerState = field(default_factory=BrokerState)
@@ -21,7 +32,7 @@ class NatsBrokerConfig(BrokerConfig):
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
     def connect(self, connection: "Client") -> None:
-        stream = connection.jetstream()
+        stream = connection.jetstream(**self.js_options)
 
         self.producer.connect(connection, serializer=self.fd_config._serializer)
 

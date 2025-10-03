@@ -37,7 +37,10 @@ class NotSetLoggerObject(LoggerObject):
         exc_info: Any = None,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        err_msg = "Logger object not set. Please, call `_setup_logger_state` of parent broker state."
+        err_msg = (
+            "Logger object not set. Please, call `broker.connect()` or "
+            "`_setup_logger_state` of parent broker state."
+        )
         raise IncorrectState(err_msg)
 
 

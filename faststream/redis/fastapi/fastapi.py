@@ -19,7 +19,7 @@ from redis.asyncio.connection import (
 )
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import deprecated, overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -47,7 +47,23 @@ if TYPE_CHECKING:
         SubscriberMiddleware,
     )
     from faststream.redis.publisher.factory import PublisherType
+    from faststream.redis.publisher.usecase import (
+        ChannelPublisher,
+        ListBatchPublisher,
+        ListPublisher,
+        StreamPublisher,
+    )
     from faststream.redis.subscriber.factory import SubscriberType
+    from faststream.redis.subscriber.usecases import (
+        ChannelConcurrentSubscriber,
+        ChannelSubscriber,
+        ListBatchSubscriber,
+        ListConcurrentSubscriber,
+        ListSubscriber,
+        StreamBatchSubscriber,
+        StreamConcurrentSubscriber,
+        StreamSubscriber,
+    )
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -82,160 +98,34 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
         # broker base args
-        graceful_timeout: Annotated[
-            float | None,
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = 15.0,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Any, Any]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            str | None,
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol."),
-        ] = None,
-        protocol_version: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol version."),
-        ] = "custom",
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI server description."),
-        ] = None,
+        security: Optional["BaseSecurity"] = None,
+        specification_url: str | None = None,
+        protocol: str | None = None,
+        protocol_version: str | None = "custom",
+        description: str | None = None,
         specification: Optional["SpecificationFactory"] = None,
-        specification_tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
+        specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
         # StreamRouter options
-        setup_state: Annotated[
-            bool,
-            Doc(
-                "Whether to add broker to app scope in lifespan. "
-                "You should disable this option at old ASGI servers.",
-            ),
-        ] = True,
-        schema_url: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
-            ),
-        ] = "/asyncapi",
+        setup_state: bool = True,
+        schema_url: str | None = "/asyncapi",
         context: ContextRepo | None = None,
         # FastAPI args
-        prefix: Annotated[
-            str,
-            Doc("An optional path prefix for the router."),
-        ] = "",
-        tags: Annotated[
-            list[Union[str, "Enum"]] | None,
-            Doc(
-                """
-                A list of tags to be applied to all the *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        dependencies: Annotated[
-            Sequence["params.Depends"] | None,
-            Doc(
-                """
-                A list of dependencies (using `Depends()`) to be applied to all the
-                *path and stream operations* in this router.
-
-                Read more about it in the
-                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        default_response_class: Annotated[
-            type["Response"],
-            Doc(
-                """
-                The default response class to be used.
-
-                Read more in the
-                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-                """,
-            ),
-        ] = Default(JSONResponse),
-        responses: Annotated[
-            dict[int | str, dict[str, Any]] | None,
-            Doc(
-                """
-                Additional responses to be shown in OpenAPI.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
-
-                And in the
-                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        callbacks: Annotated[
-            list[BaseRoute] | None,
-            Doc(
-                """
-                OpenAPI callbacks that should apply to all *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-                """,
-            ),
-        ] = None,
+        prefix: str = "",
+        tags: list[Union[str, "Enum"]] | None = None,
+        dependencies: Sequence["params.Depends"] | None = None,
+        default_response_class: type["Response"] = Default(JSONResponse),
+        responses: dict[int | str, dict[str, Any]] | None = None,
+        callbacks: list[BaseRoute] | None = None,
         routes: Annotated[
             list[BaseRoute] | None,
-            Doc(
-                """
-                **Note**: you probably shouldn't use this parameter, it is inherited
-                from Starlette and supported for compatibility.
-
-                ---
-
-                A list of routes to serve incoming HTTP and WebSocket requests.
-                """,
-            ),
             deprecated(
                 """
                 You normally wouldn't use this parameter with FastAPI, it is inherited
@@ -246,100 +136,182 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
                 """,
             ),
         ] = None,
-        redirect_slashes: Annotated[
-            bool,
-            Doc(
-                """
+        redirect_slashes: bool = True,
+        default: Optional["ASGIApp"] = None,
+        dependency_overrides_provider: Any | None = None,
+        route_class: type["APIRoute"] = APIRoute,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
+        lifespan: Optional["Lifespan[Any]"] = None,
+        deprecated: bool | None = None,
+        include_in_schema: bool = True,
+        generate_unique_id_function: Callable[["APIRoute"], str] = Default(
+            generate_unique_id
+        ),
+    ) -> None:
+        """Initialize the RedisRouter object.
+
+        Args:
+            url:
+                _ ...
+            host:
+                _ ...
+            port:
+                _ ...
+            db:
+                _ ...
+            connection_class:
+                _ ...
+            client_name:
+                _ ...
+            health_check_interval:
+                _ ...
+            max_connections:
+                _ ...
+            socket_timeout:
+                _ ...
+            socket_connect_timeout:
+                _ ...
+            socket_read_size:
+                _ ...
+            socket_keepalive:
+                _ ...
+            socket_keepalive_options:
+                _ ...
+            socket_type:
+                _ ...
+            retry_on_timeout:
+                _ ...
+            encoding:
+                _ ...
+            encoding_errors:
+                _ ...
+            parser_class:
+                _ ...
+            encoder_class:
+                _ ...
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder:
+                Custom decoder object.
+            parser:
+                Custom parser object.
+            middlewares:
+                Middlewares to apply to all broker publishers/subscribers.
+            security:
+                Security options to connect broker and generate AsyncAPI server security information.
+            specification_url:
+                AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol:
+                AsyncAPI server protocol.
+            protocol_version:
+                AsyncAPI server protocol version.
+            description:
+                AsyncAPI server description.
+            specification:
+                _ ...
+            specification_tags:
+                AsyncAPI server tags.
+            logger:
+                User specified logger to pass into Context and log service messages.
+            log_level:
+                Service messages log level.
+            setup_state:
+                Whether to add broker to app scope in lifespan.
+                You should disable this option at old ASGI servers.
+            schema_url:
+                AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
+            context:
+                _ ...
+            prefix:
+                An optional path prefix for the router.
+            tags:
+                A list of tags to be applied to all the *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            dependencies:
+                A list of dependencies (using `Depends()`) to be applied to all the
+                *path and stream operations* in this router.
+
+                Read more about it in the
+                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            default_response_class:
+                The default response class to be used.
+
+                Read more in the
+                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
+            responses:
+                Additional responses to be shown in OpenAPI.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
+
+                And in the
+                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            callbacks:
+                OpenAPI callbacks that should apply to all *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
+            routes:
+                **Note**: you probably shouldn't use this parameter, it is inherited
+                from Starlette and supported for compatibility.
+
+                ---
+
+                A list of routes to serve incoming HTTP and WebSocket requests.
+            redirect_slashes:
                 Whether to detect and redirect slashes in URLs when the client doesn't
                 use the same format.
-                """,
-            ),
-        ] = True,
-        default: Annotated[
-            Optional["ASGIApp"],
-            Doc(
-                """
+            default:
                 Default function handler for this router. Used to handle
                 404 Not Found errors.
-                """,
-            ),
-        ] = None,
-        dependency_overrides_provider: Annotated[
-            Any | None,
-            Doc(
-                """
+            dependency_overrides_provider:
                 Only used internally by FastAPI to handle dependency overrides.
 
                 You shouldn't need to use it. It normally points to the `FastAPI` app
                 object.
-                """,
-            ),
-        ] = None,
-        route_class: Annotated[
-            type["APIRoute"],
-            Doc(
-                """
+            route_class:
                 Custom route (*path operation*) class to be used by this router.
 
                 Read more about it in the
                 [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-                """,
-            ),
-        ] = APIRoute,
-        on_startup: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
+            on_startup:
                 A list of startup event handler functions.
 
                 You should instead use the `lifespan` handlers.
 
                 Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        on_shutdown: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
+            on_shutdown:
                 A list of shutdown event handler functions.
 
                 You should instead use the `lifespan` handlers.
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        lifespan: Annotated[
-            Optional["Lifespan[Any]"],
-            Doc(
-                """
+            lifespan:
                 A `Lifespan` context manager handler. This replaces `startup` and
                 `shutdown` functions with a single context manager.
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        deprecated: Annotated[
-            bool | None,
-            Doc(
-                """
+            deprecated:
                 Mark all *path operations* in this router as deprecated.
 
                 It will be added to the generated OpenAPI (e.g. visible at `/docs`).
 
                 Read more about it in the
                 [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc(
-                """
+            include_in_schema:
                 To include (or not) all the *path operations* in this router in the
                 generated OpenAPI.
 
@@ -347,13 +319,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
 
                 Read more about it in the
                 [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-                """,
-            ),
-        ] = True,
-        generate_unique_id_function: Annotated[
-            Callable[["APIRoute"], str],
-            Doc(
-                """
+            generate_unique_id_function:
                 Customize the function used to generate unique IDs for the *path
                 operations* shown in the generated OpenAPI.
 
@@ -362,10 +328,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
 
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
-                """,
-            ),
-        ] = Default(generate_unique_id),
-    ) -> None:
+
+        """
         super().__init__(
             url=url,
             host=host,
@@ -424,209 +388,388 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             generate_unique_id_function=generate_unique_id_function,
         )
 
-    @override
-    def subscriber(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def subscriber(
         self,
-        channel: Annotated[
-            str | PubSub | None,
-            Doc("Redis PubSub object name to send message."),
-        ] = None,
+        channel: str | PubSub = ...,
         *,
-        list: Annotated[
-            str | ListSub | None,
-            Doc("Redis List object name to send message."),
-        ] = None,
-        stream: Annotated[
-            str | StreamSub | None,
-            Doc("Redis Stream object name to send message."),
-        ] = None,
+        list: None = None,
+        stream: None = None,
         # broker arguments
-        dependencies: Annotated[
-            Iterable["params.Depends"],
-            Doc("Dependencies list (`[Depends(),]`) to apply to the subscriber."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
-            ),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
         middlewares: Annotated[
             Sequence["SubscriberMiddleware[Any]"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
-            Doc("Subscriber middlewares to wrap incoming message processing."),
         ] = (),
         no_ack: Annotated[
             bool,
-            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
             deprecated(
                 "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
-        no_reply: Annotated[
-            bool,
-            Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
-            ),
-        ] = False,
+        no_reply: bool = False,
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI subscriber object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
         # FastAPI args
-        response_model: Annotated[
-            Any,
-            Doc(
-                """
-                The type to use for the response.
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "ChannelSubscriber": ...
 
-                It could be any valid Pydantic *field* type. So, it doesn't have to
-                be a Pydantic model, it could be other things, like a `list`, `dict`,
-                etc.
-
-                It will be used for:
-
-                * Documentation: the generated OpenAPI (and the UI at `/docs`) will
-                    show it as the response (JSON Schema).
-                * Serialization: you could return an arbitrary object and the
-                    `response_model` would be used to serialize that object into the
-                    corresponding JSON.
-                * Filtering: the JSON sent to the client will only contain the data
-                    (fields) defined in the `response_model`. If you returned an object
-                    that contains an attribute `password` but the `response_model` does
-                    not include that field, the JSON sent to the client would not have
-                    that `password`.
-                * Validation: whatever you return will be serialized with the
-                    `response_model`, converting any data as necessary to generate the
-                    corresponding JSON. But if the data in the object returned is not
-                    valid, that would mean a violation of the contract with the client,
-                    so it's an error from the API developer. So, FastAPI will raise an
-                    error and return a 500 error code (Internal Server Error).
-
-                Read more about it in the
-                [FastAPI docs for Response Model](https://fastapi.tiangolo.com/tutorial/response-model/).
-                """,
+    @overload
+    def subscriber(
+        self,
+        channel: str | PubSub = ...,
+        *,
+        list: None = None,
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = Default(None),
-        response_model_include: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to include only certain fields in the
-                response data.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_exclude: Annotated[
-            Optional["IncEx"],
-            Doc(
-                """
-                Configuration passed to Pydantic to exclude certain fields in the
-                response data.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
-            ),
-        ] = None,
-        response_model_by_alias: Annotated[
+        ] = (),
+        no_ack: Annotated[
             bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response model
-                should be serialized by alias when an alias is used.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_include-and-response_model_exclude).
-                """,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = True,
-        response_model_exclude_unset: Annotated[
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "ChannelConcurrentSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str = ...,
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
             bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
-                should have all the fields, including the ones that were not set and
-                have their default values. This is different from
-                `response_model_exclude_defaults` in that if the fields are set,
-                they will be included in the response, even if the value is the same
-                as the default.
-
-                When `True`, default values are omitted from the response.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = False,
-        response_model_exclude_defaults: Annotated[
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "ListSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str | ListSub = ...,
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
             bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data
-                should have all the fields, including the ones that have the same value
-                as the default. This is different from `response_model_exclude_unset`
-                in that if the fields are set but contain the same default values,
-                they will be excluded from the response.
-
-                When `True`, default values are omitted from the response.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter).
-                """,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = False,
-        response_model_exclude_none: Annotated[
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> Union["ListSubscriber", "ListBatchSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str | ListSub = ...,
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
             bool,
-            Doc(
-                """
-                Configuration passed to Pydantic to define if the response data should
-                exclude fields set to `None`.
-
-                This is much simpler (less smart) than `response_model_exclude_unset`
-                and `response_model_exclude_defaults`. You probably want to use one of
-                those two instead of this one, as those allow returning `None` values
-                when it makes sense.
-
-                Read more about it in the
-                [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
-                """,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = False,
-        max_workers: Annotated[
-            int,
-            Doc("Number of workers to process messages concurrently."),
-        ] = 1,
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "ListConcurrentSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "StreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str | StreamSub = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> Union["StreamSubscriber", "StreamBatchSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str | StreamSub = ...,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "StreamConcurrentSubscriber": ...
+
+    @override
+    def subscriber(
+        self,
+        channel: str | PubSub | None = None,
+        *,
+        list: str | ListSub | None = None,
+        stream: str | StreamSub | None = None,
+        # broker arguments
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Annotated[
+            Sequence["SubscriberMiddleware[Any]"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        no_ack: Annotated[
+            bool,
+            deprecated(
+                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = EMPTY,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int | None = None,
     ) -> "SubscriberType":
         return cast(
             "SubscriberType",
             super().subscriber(
                 channel=channel,
-                max_workers=max_workers,
+                max_workers=max_workers or 1,
                 list=list,
                 stream=stream,
                 dependencies=dependencies,
@@ -650,60 +793,114 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             ),
         )
 
-    @override
+    @overload
     def publisher(
         self,
-        channel: Annotated[
-            str | PubSub | None,
-            Doc("Redis PubSub object name to send message."),
-        ] = None,
-        list: Annotated[
-            str | ListSub | None,
-            Doc("Redis List object name to send message."),
-        ] = None,
-        stream: Annotated[
-            str | StreamSub | None,
-            Doc("Redis Stream object name to send message."),
-        ] = None,
-        headers: Annotated[
-            dict[str, Any] | None,
-            Doc(
-                "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified.",
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message destination PubSub object name."),
-        ] = "",
+        channel: None = None,
+        list: None = None,
+        stream: str | StreamSub = ...,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
                 "This option was deprecated in 0.6.0. Use router-level middlewares instead."
                 "Scheduled to remove in 0.7.0",
             ),
-            Doc("Publisher middlewares to wrap outgoing messages."),
         ] = (),
         # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object description."),
-        ] = None,
-        schema: Annotated[
-            Any | None,
-            Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`.",
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "StreamPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        channel: None = None,
+        list: str = ...,
+        stream: None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
             ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        ] = (),
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "ListPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        channel: None = None,
+        list: str | ListSub = ...,
+        stream: None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> Union["ListPublisher", "ListBatchPublisher"]: ...
+
+    @overload
+    def publisher(
+        self,
+        channel: str | PubSub = ...,
+        list: None = None,
+        stream: None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "ChannelPublisher": ...
+
+    @override
+    def publisher(
+        self,
+        channel: str | PubSub | None = None,
+        list: str | ListSub | None = None,
+        stream: str | StreamSub | None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
     ) -> "PublisherType":
         return self.broker.publisher(
             channel,

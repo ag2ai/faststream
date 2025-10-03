@@ -91,7 +91,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         if self._fetch_sub is not None:
             await self._fetch_sub.unsubscribe()
-            self.subscription = None
+            self._fetch_sub = None
 
     @abstractmethod
     async def _create_subscription(self) -> None:

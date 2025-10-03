@@ -90,7 +90,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume())
+            self.add_task(self._consume)
 
     async def stop(self) -> None:
         await super().stop()
@@ -104,7 +104,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[MsgType] | None":
+    ) -> "KafkaMessage | None":
         assert self.consumer, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
@@ -114,7 +114,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         context = self._outer_config.fd_config.context
 
-        return await process_msg(
+        return await process_msg(  # type: ignore[return-value]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares

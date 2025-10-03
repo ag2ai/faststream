@@ -72,3 +72,8 @@ def kafka_basic_project() -> str:
 @pytest.fixture()
 def kafka_ascynapi_project() -> str:
     return "docs.docs_src.kafka.basic.basic:asyncapi"
+
+
+@pytest.fixture(autouse=True)
+def disable_supervisor(monkeypatch):
+    monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "1")

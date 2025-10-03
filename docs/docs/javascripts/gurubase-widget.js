@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const widgetSettings = {
         // This token is binded to `faststream.ag2.ai` domain,
         // so its publication is not a problem
-        "data-widget-id": "TSM1_f2Ese6iwdKflPk7_ItbjXoRBi5CxL_BEYM2s_4",  // pragma: allowlist secrets
+        "data-widget-id": "_2ahK_hlW0rzUban70WOF0l5uc1w4_rgp_C_W1a4NsI",  // pragma: allowlist secrets
         "data-text": "Ask AI",
         "data-margins": JSON.stringify({ bottom: "20px", right: "20px" }),
         "data-light-mode": "false",

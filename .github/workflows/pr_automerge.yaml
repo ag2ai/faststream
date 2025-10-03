@@ -7,7 +7,7 @@ jobs:
   automerge:
     name: Enable pull request automerge
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'faststream-actions[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
 
     permissions:
       pull-requests: write
@@ -23,7 +23,7 @@ jobs:
     name: Automatically approve pull request
     needs: [automerge]
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'faststream-actions[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
 
     permissions:
       pull-requests: write

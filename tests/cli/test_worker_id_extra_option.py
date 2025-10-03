@@ -1,6 +1,6 @@
 import pytest
 
-from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
+from tests.cli import interfaces
 from tests.marks import skip_windows
 
 
@@ -36,8 +36,8 @@ from tests.marks import skip_windows
     ),
 )
 def test_worker_id_parameter_exists(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
     app_import: str,
     log_strings: list[str],
     cli_options: list[str],

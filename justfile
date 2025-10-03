@@ -58,41 +58,41 @@ test-coverage-all +param="tests/":
 [doc("Build docs")]
 [group("docs")]
 docs-build:
-  cd docs && uv run python docs.py build
+  cd docs && uv run --frozen python docs.py build
 
 [doc("Build API Reference")]
 [group("docs")]
 docs-build-api:
-  cd docs && uv run python docs.py build-api-docs
+  cd docs && uv run --frozen python docs.py build-api-docs
 
 [doc("Update release notes")]
 [group("docs")]
 docs-update-release-notes:
-  cd docs && uv run python docs.py update-release-notes
+  cd docs && uv run --frozen python docs.py update-release-notes
 
 [doc("Serve docs")]
 [group("docs")]
 docs-serve params="":
-  cd docs && uv run python docs.py live 8000 {{params}}
+  cd docs && uv run --frozen python docs.py live 8000 {{params}}
 
 # Linter
 [doc("Ruff format")]
 [group("linter")]
 ruff-format *params:
-  uv run --active ruff format {{params}}
+  uv run --active --frozen ruff format {{params}}
 
 [doc("Ruff check")]
 [group("linter")]
 ruff-check *params:
-  uv run --active ruff check --exit-non-zero-on-fix {{params}}
+  uv run --active --frozen ruff check --exit-non-zero-on-fix {{params}}
 
 _codespell:
-  uv run --active codespell -L Dependant,dependant --skip "./docs/site"
+  uv run --active --frozen codespell -L Dependant,dependant --skip "./docs/site"
 
 [doc("Check typos")]
 [group("linter")]
 typos: _codespell
-  uv run pre-commit run --all-files typos
+  uv run --active --frozen pre-commit run --all-files typos
 
 alias lint := linter
 
@@ -104,22 +104,22 @@ linter: ruff-format ruff-check _codespell
 [doc("Mypy check")]
 [group("static analysis")]
 mypy *params:
-  uv run mypy {{params}}
+  uv run --active --frozen mypy {{params}}
 
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
-  uv run bandit -c pyproject.toml -r faststream
+  uv run --active --frozen bandit -c pyproject.toml -r faststream
 
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  uv run semgrep scan --config auto --error --skip-unknown-extensions faststream
+  uv run --active --frozen semgrep scan --config auto --error --skip-unknown-extensions faststream
 
 [doc("Zizmor check")]
 [group("static analysis")]
 zizmor:
-  uv run zizmor .
+  uv run --active --frozen zizmor .
 
 [doc("Static analysis check")]
 [group("static analysis")]
@@ -128,17 +128,17 @@ static-analysis: mypy bandit semgrep
 [doc("Install pre-commit hooks")]
 [group("pre-commit")]
 pre-commit-install:
-  uv run pre-commit install
+  uv run --active --frozen pre-commit install
 
 [doc("Pre-commit modified files")]
 [group("pre-commit")]
 pre-commit:
-  uv run pre-commit run
+  uv run --active --frozen pre-commit run
 
 [doc("Pre-commit all files")]
 [group("pre-commit")]
 pre-commit-all:
-  uv run pre-commit run --all-files
+  uv run --active --frozen pre-commit run --all-files
 
 # Kafka
 [doc("Run kafka container")]
@@ -270,4 +270,4 @@ test-nats-all +param="tests/":
 [doc("Run benchmarks")]
 [group("benchmarks")]
 bench:
-  cd benchmarks && uv run python bench.py
+  cd benchmarks && uv run --active --frozen python bench.py

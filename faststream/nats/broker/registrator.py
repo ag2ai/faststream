@@ -75,6 +75,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -133,6 +134,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -191,6 +193,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -249,6 +252,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -307,6 +311,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -365,6 +370,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -423,6 +429,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -481,6 +488,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -539,6 +547,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -597,6 +606,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -655,6 +665,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        persistent: bool = True,
         ack_first: Annotated[
             bool,
             deprecated(
@@ -727,6 +738,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             title: AsyncAPI subscriber object title.
             description: AsyncAPI subscriber object description. Uses decorated docstring as default.
             include_in_schema: Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the subscriber persistent or not.
 
         Returns:
             LogicSubscriber[Any]: The created subscriber object.
@@ -765,7 +777,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().subscriber(subscriber)
+        super().subscriber(subscriber, persistent=persistent)
 
         self._stream_builder.add_subject(stream, subscriber.subject)
 
@@ -785,6 +797,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         reply_to: str = "",
         stream: Union[str, "JStream", None] = None,
         timeout: float | None = None,
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -819,6 +832,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             schema: AsyncAPI publishing message type.
                 Should be any python-native object annotation or `pydantic.BaseModel`.
             include_in_schema: Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the publisher persistent or not.
         """
         stream = self._stream_builder.create(stream)
 
@@ -840,7 +854,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().publisher(publisher)
+        super().publisher(publisher, persistent=persistent)
 
         self._stream_builder.add_subject(stream, publisher.subject)
 

@@ -3,7 +3,6 @@ import sys
 import warnings
 from collections import UserString
 from collections.abc import Callable, Iterable, Mapping
-from importlib.metadata import version as get_version
 from importlib.util import find_spec
 from typing import (
     Any,
@@ -14,6 +13,7 @@ from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
 IS_WINDOWS = sys.platform in {"win32", "cygwin", "msys"}
+IS_MACOS = sys.platform == "darwin"
 
 __all__ = (
     "HAS_TYPER",
@@ -167,15 +167,8 @@ else:
         return {}
 
 
-major, *_ = get_version("anyio").split(".")
-_ANYIO_MAJOR = int(major)
-ANYIO_V3 = _ANYIO_MAJOR == 3
-
-
-if ANYIO_V3:
-    from anyio import ExceptionGroup  # type: ignore[attr-defined]
-elif sys.version_info >= (3, 11):
-    ExceptionGroup = ExceptionGroup  # noqa: PLW0127
+if sys.version_info >= (3, 11):
+    ExceptionGroup = ExceptionGroup  # noqa: F821,PLW0127
 else:
     from exceptiongroup import ExceptionGroup
 

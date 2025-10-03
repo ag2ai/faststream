@@ -12,6 +12,98 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc3
+
+### What's Changed
+* ci: create update release PRs to main: by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2490](https://github.com/ag2ai/faststream/pull/2490){.external-link target="_blank"}
+* ci: use PAT to build docs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2491](https://github.com/ag2ai/faststream/pull/2491){.external-link target="_blank"}
+* ci: update telegram-notifier & send message to oss board by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2492](https://github.com/ag2ai/faststream/pull/2492){.external-link target="_blank"}
+* ci: explicit user set in docs build pipeline by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2494](https://github.com/ag2ai/faststream/pull/2494){.external-link target="_blank"}
+* fix: incorrect asyncapi render by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2495](https://github.com/ag2ai/faststream/pull/2495){.external-link target="_blank"}
+* feat: task supervisor by [@fil1n](https://github.com/fil1n){.external-link target="_blank"} in [#2408](https://github.com/ag2ai/faststream/pull/2408){.external-link target="_blank"}
+* docs: Actualize structlog example by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2501](https://github.com/ag2ai/faststream/pull/2501){.external-link target="_blank"}
+* docs: new Gurubase widget token by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2502](https://github.com/ag2ai/faststream/pull/2502){.external-link target="_blank"}
+* chore: update lock by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2503](https://github.com/ag2ai/faststream/pull/2503){.external-link target="_blank"}
+* Fix RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was… by [@maxsonferovante](https://github.com/maxsonferovante){.external-link target="_blank"} in [#2509](https://github.com/ag2ai/faststream/pull/2509){.external-link target="_blank"}
+* feat: asgi request by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2467](https://github.com/ag2ai/faststream/pull/2467){.external-link target="_blank"}
+* BugFix: add missing serializer in redis test request builder by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2517](https://github.com/ag2ai/faststream/pull/2517){.external-link target="_blank"}
+* configure supervisor to use default logging behaviour by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2518](https://github.com/ag2ai/faststream/pull/2518){.external-link target="_blank"}
+* feat: add `broker.subscriber(persistent=False)` argument to control WeakRef behavior by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2519](https://github.com/ag2ai/faststream/pull/2519){.external-link target="_blank"}
+* fix: #2513 add magic subscriber name for publisher without routing key by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2515](https://github.com/ag2ai/faststream/pull/2515){.external-link target="_blank"}
+* Improve docs testing section (publisher and subscriber) by [@lubaskinc0de](https://github.com/lubaskinc0de){.external-link target="_blank"} in [#2521](https://github.com/ag2ai/faststream/pull/2521){.external-link target="_blank"}
+
+### New Contributors
+* [@fil1n](https://github.com/fil1n){.external-link target="_blank"} made their first contribution in [#2408](https://github.com/ag2ai/faststream/pull/2408){.external-link target="_blank"}
+* [@maxsonferovante](https://github.com/maxsonferovante){.external-link target="_blank"} made their first contribution in [#2509](https://github.com/ag2ai/faststream/pull/2509){.external-link target="_blank"}
+* [@lubaskinc0de](https://github.com/lubaskinc0de){.external-link target="_blank"} made their first contribution in [#2521](https://github.com/ag2ai/faststream/pull/2521){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc2...0.6.0rc3](https://github.com/ag2ai/faststream/compare/0.6.0rc2...0.6.0rc3){.external-link target="_blank"}
+
+
+## 0.6.0rc2
+
+### What's Changed
+* fix(aiokafka): AttributeError on first _LoggingListener.on_partitions_assigned by [@legau](https://github.com/legau){.external-link target="_blank"} in [#2453](https://github.com/ag2ai/faststream/pull/2453){.external-link target="_blank"}
+* chore: change issue format by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2465](https://github.com/ag2ai/faststream/pull/2465){.external-link target="_blank"}
+* docs: Joined context pages into one page by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2460](https://github.com/ag2ai/faststream/pull/2460){.external-link target="_blank"}
+* fix: add benches.csv, some confluent fixes by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2461](https://github.com/ag2ai/faststream/pull/2461){.external-link target="_blank"}
+* docs: Improve cli overview by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2414](https://github.com/ag2ai/faststream/pull/2414){.external-link target="_blank"}
+* Feat: switch image from bitnami to confluent by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2482](https://github.com/ag2ai/faststream/pull/2482){.external-link target="_blank"}
+* Feature/update docs by [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} in [#2457](https://github.com/ag2ai/faststream/pull/2457){.external-link target="_blank"}
+* Add new issue workflow by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2481](https://github.com/ag2ai/faststream/pull/2481){.external-link target="_blank"}
+* fix: 0.6.0rc2 release changes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2485](https://github.com/ag2ai/faststream/pull/2485){.external-link target="_blank"}
+* 0.6.0rc2 release 08-29-2025 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2454](https://github.com/ag2ai/faststream/pull/2454){.external-link target="_blank"}
+* ci: change default branch to main back by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2488](https://github.com/ag2ai/faststream/pull/2488){.external-link target="_blank"}
+
+
+**Full Changelog**: [#0.6.0rc1...0.6.0rc2](https://github.com/ag2ai/faststream/compare/0.6.0rc1...0.6.0rc2){.external-link target="_blank"}
+
+## 0.6.0rc1
+
+### What's Changed
+* ci: correct just-install job by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2393](https://github.com/ag2ai/faststream/pull/2393){.external-link target="_blank"}
+* ci: ignore secret detection false positive by [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} in [#2399](https://github.com/ag2ai/faststream/pull/2399){.external-link target="_blank"}
+* fix(redis): assign serializer to internal producer in LogicPublisher by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2396](https://github.com/ag2ai/faststream/pull/2396){.external-link target="_blank"}
+* types: add Rabbit type tests  by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2401](https://github.com/ag2ai/faststream/pull/2401){.external-link target="_blank"}
+* docs: updated manual run with broker examples by [@ArtyomVysotskiy](https://github.com/ArtyomVysotskiy){.external-link target="_blank"} in [#2402](https://github.com/ag2ai/faststream/pull/2402){.external-link target="_blank"}
+* tests: remove useless tests by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2403](https://github.com/ag2ai/faststream/pull/2403){.external-link target="_blank"}
+* fix: Added missing DecodedMessage export to faststream.types by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2405](https://github.com/ag2ai/faststream/pull/2405){.external-link target="_blank"}
+* types: add Nats type tests by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2406](https://github.com/ag2ai/faststream/pull/2406){.external-link target="_blank"}
+* types: add Confluent type tests by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2407](https://github.com/ag2ai/faststream/pull/2407){.external-link target="_blank"}
+* ci: add zizmor and implement related fixes by [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} in [#2398](https://github.com/ag2ai/faststream/pull/2398){.external-link target="_blank"}
+* Docs: fix list of modes by [@Totorokrut](https://github.com/Totorokrut){.external-link target="_blank"} in [#2413](https://github.com/ag2ai/faststream/pull/2413){.external-link target="_blank"}
+* CI: use pre-commit-ci-lite instead of manual commit step during linters by [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} in [#2416](https://github.com/ag2ai/faststream/pull/2416){.external-link target="_blank"}
+* lint(rabbit): check publisher and subscriber by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#2415](https://github.com/ag2ai/faststream/pull/2415){.external-link target="_blank"}
+* dont replace hyphen in cli values by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2426](https://github.com/ag2ai/faststream/pull/2426){.external-link target="_blank"}
+* docs: update contributing guide with pip upgrade and fix mkdocs serve… by [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} in [#2427](https://github.com/ag2ai/faststream/pull/2427){.external-link target="_blank"}
+* cli: Fix assertion to app object is Application instance by [@loRes228](https://github.com/loRes228){.external-link target="_blank"} in [#2428](https://github.com/ag2ai/faststream/pull/2428){.external-link target="_blank"}
+* Docs: add llms.txt by [@vldmrdev](https://github.com/vldmrdev){.external-link target="_blank"} in [#2421](https://github.com/ag2ai/faststream/pull/2421){.external-link target="_blank"}
+* Docs/middlewares main changes by [@Maclovi](https://github.com/Maclovi){.external-link target="_blank"} in [#2425](https://github.com/ag2ai/faststream/pull/2425){.external-link target="_blank"}
+* lint: Kafka overrides polish by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2429](https://github.com/ag2ai/faststream/pull/2429){.external-link target="_blank"}
+* Docs: Add example defining custom prometheus metrics to documentation by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2431](https://github.com/ag2ai/faststream/pull/2431){.external-link target="_blank"}
+* fix: Redis pubsub connection leak in request method by [@veronchenko](https://github.com/veronchenko){.external-link target="_blank"} in [#2430](https://github.com/ag2ai/faststream/pull/2430){.external-link target="_blank"}
+* Fix issue 2391 For rabbit and redis fastapi by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#2437](https://github.com/ag2ai/faststream/pull/2437){.external-link target="_blank"}
+* Docs: add example with annotated dependencies by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2438](https://github.com/ag2ai/faststream/pull/2438){.external-link target="_blank"}
+* CI: make the linter great again by [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} in [#2439](https://github.com/ag2ai/faststream/pull/2439){.external-link target="_blank"}
+* Docs: change scripts folder to `just` by [@Samoed](https://github.com/Samoed){.external-link target="_blank"} in [#2436](https://github.com/ag2ai/faststream/pull/2436){.external-link target="_blank"}
+* Closes #2391 add polish for kafka and nats fastapi by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2442](https://github.com/ag2ai/faststream/pull/2442){.external-link target="_blank"}
+* fix(asyncapi): promote nested pydantic  to components/schemas by [@legau](https://github.com/legau){.external-link target="_blank"} in [#2445](https://github.com/ag2ai/faststream/pull/2445){.external-link target="_blank"}
+* fix: pass stream to concurrent subscribers by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2449](https://github.com/ag2ai/faststream/pull/2449){.external-link target="_blank"}
+
+### New Contributors
+* [@bsoyka](https://github.com/bsoyka){.external-link target="_blank"} made their first contribution in [#2399](https://github.com/ag2ai/faststream/pull/2399){.external-link target="_blank"}
+* [@loRes228](https://github.com/loRes228){.external-link target="_blank"} made their first contribution in [#2396](https://github.com/ag2ai/faststream/pull/2396){.external-link target="_blank"}
+* [@ArtyomVysotskiy](https://github.com/ArtyomVysotskiy){.external-link target="_blank"} made their first contribution in [#2402](https://github.com/ag2ai/faststream/pull/2402){.external-link target="_blank"}
+* [@Totorokrut](https://github.com/Totorokrut){.external-link target="_blank"} made their first contribution in [#2413](https://github.com/ag2ai/faststream/pull/2413){.external-link target="_blank"}
+* [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} made their first contribution in [#2416](https://github.com/ag2ai/faststream/pull/2416){.external-link target="_blank"}
+* [@Kolanar](https://github.com/Kolanar){.external-link target="_blank"} made their first contribution in [#2427](https://github.com/ag2ai/faststream/pull/2427){.external-link target="_blank"}
+* [@vldmrdev](https://github.com/vldmrdev){.external-link target="_blank"} made their first contribution in [#2421](https://github.com/ag2ai/faststream/pull/2421){.external-link target="_blank"}
+* [@Samoed](https://github.com/Samoed){.external-link target="_blank"} made their first contribution in [#2431](https://github.com/ag2ai/faststream/pull/2431){.external-link target="_blank"}
+* [@veronchenko](https://github.com/veronchenko){.external-link target="_blank"} made their first contribution in [#2430](https://github.com/ag2ai/faststream/pull/2430){.external-link target="_blank"}
+* [@legau](https://github.com/legau){.external-link target="_blank"} made their first contribution in [#2445](https://github.com/ag2ai/faststream/pull/2445){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc0...0.6.0rc1](https://github.com/ag2ai/faststream/compare/0.6.0rc0...0.6.0rc1){.external-link target="_blank"}
+
 ## 0.6.0rc0
 
 # Description
@@ -2590,7 +2682,7 @@ broker = RabbitBroker(
 
 ### New Functionalities
 
-Now, `Context` provides access to inner [dict keys too](./getting-started/context/fields.md):
+Now, `Context` provides access to inner [dict keys too](./getting-started/context.md#existing_fields):
 
 ```python
 # headers is a `dict`

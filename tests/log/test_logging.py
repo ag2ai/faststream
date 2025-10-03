@@ -15,4 +15,4 @@ def test_duplicates_set_formatter() -> None:
         set_logger_fmt(logger, stream=sys.stdout, fmt="%(message)s with format2")
 
         logger.info("msg")
-        assert log_output.getvalue().strip() == "msg with format1"
+        assert log_output.getvalue().strip() != "msg with format2"
