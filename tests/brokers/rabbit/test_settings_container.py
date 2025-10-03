@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.configs.settings import Settings, SettingsContainer
+from faststream import Settings
 from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
 
 
@@ -11,7 +11,7 @@ from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
 @pytest.mark.rabbit()
 @pytest.mark.connected()
 async def test_queue_from_settings(event: asyncio.Event, queue: str) -> None:
-    broker = RabbitBroker(settings=SettingsContainer(q1=queue))
+    broker = RabbitBroker(settings={"q1": queue})
 
     @broker.subscriber(queue=Settings("q1"))
     def h(m: Any) -> None:
@@ -40,7 +40,7 @@ async def test_queue_object_name_from_settings(
     event: asyncio.Event,
     queue: str,
 ) -> None:
-    broker = RabbitBroker(settings=SettingsContainer(queue_name=queue))
+    broker = RabbitBroker(settings={"queue_name": queue})
 
     @broker.subscriber(queue=RabbitQueue(Settings("queue_name")))
     def h(m: Any) -> None:
@@ -69,10 +69,10 @@ async def test_nested_settings(
     event: asyncio.Event,
     queue: str,
 ) -> None:
-    settings = SettingsContainer(
-        ex=RabbitExchange(f"{queue}2"),
-        rk=queue,
-    )
+    settings = {
+        "ex": RabbitExchange(f"{queue}2"),
+        "rk": queue,
+    }
 
     broker = RabbitBroker(settings=settings)
 

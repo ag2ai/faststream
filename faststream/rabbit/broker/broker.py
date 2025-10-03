@@ -15,7 +15,7 @@ from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
-from faststream._internal.configs.settings import SettingsContainer
+from faststream._internal.configs import make_settings_container
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
@@ -108,7 +108,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        settings: SettingsContainer = EMPTY,
+        settings: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -183,7 +183,7 @@ class RabbitBroker(
             # Basic args
             routers=routers,
             config=RabbitBrokerConfig(
-                settings=settings,
+                settings=make_settings_container(settings),
                 channel_manager=cm,
                 producer=producer,
                 declarer=declarer,
