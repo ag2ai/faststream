@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -108,7 +108,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
-        settings: dict[str, Any] | None = None,
+        settings: Mapping[str, Any] | None = None,
     ) -> None:
         """Initialize the RabbitBroker.
 
