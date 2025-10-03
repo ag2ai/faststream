@@ -66,7 +66,8 @@ class BaseReload:
         self._process.join()
 
     def start_process(self, worker_id: int | None = None) -> SpawnProcess:
-        self._args[1]["worker_id"] = worker_id
+        if isinstance(self._args[1], dict):
+            self._args[1]["worker_id"] = worker_id
         process = get_subprocess(target=self._target, args=self._args)
         process.start()
         return process
