@@ -30,7 +30,7 @@ However, there are situations where you might want to use a different acknowledg
 
 ## Manual Acknowledgement
 
-If you want to acknowledge a message manually, you can get direct access to the message object via the [Context](../getting-started/context/existed.md){.internal-link} and acknowledge the message by calling the `ack` method:
+If you want to acknowledge a message manually, you can get direct access to the message object via the [Context](../getting-started/context.md#existing-fields){.internal-link} and acknowledge the message by calling the `ack` method:
 
 ```python
 from faststream.confluent.annotations import KafkaMessage

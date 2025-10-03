@@ -65,7 +65,7 @@ class PullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self.consume))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
 
     async def _consume_pull(
         self,
@@ -102,7 +102,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self._put_msg))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
 
 
 class BatchPullStreamSubscriber(
@@ -215,7 +215,7 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull())
+        self.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""

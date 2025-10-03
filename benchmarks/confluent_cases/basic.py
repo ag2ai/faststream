@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from faststream.confluent import KafkaBroker
+from faststream.confluent import KafkaBroker, TopicPartition
 
 
 class ConfluentTestCase:
@@ -18,7 +18,9 @@ class ConfluentTestCase:
         p = self.publisher = broker.publisher("in")
 
         @p
-        @broker.subscriber("in")
+        @broker.subscriber(
+            partitions=[TopicPartition("in", 0)], auto_offset_reset="earliest"
+        )
         async def handle(message: Any) -> Any:
             self.EVENTS_PROCESSED += 1
             return message

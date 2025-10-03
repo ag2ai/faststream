@@ -81,6 +81,7 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -140,6 +141,7 @@ class KafkaRegistrator(
         batch: Literal[True] = ...,
         max_records: int | None = None,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -199,6 +201,7 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -258,6 +261,7 @@ class KafkaRegistrator(
         batch: bool = False,
         max_records: int | None = None,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -321,6 +325,7 @@ class KafkaRegistrator(
         batch: bool = False,
         max_records: int | None = None,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -471,6 +476,7 @@ class KafkaRegistrator(
                 Uses decorated docstring as default.
             include_in_schema: Whether to include operation in Specification schema or not.
             max_workers: Number of workers to process messages concurrently.
+            persistent: Whether to make the subscriber persistent or not.
 
         Returns:
             Union of DefaultSubscriber, BatchSubscriber, or ConcurrentDefaultSubscriber
@@ -520,7 +526,7 @@ class KafkaRegistrator(
         else:
             subscriber = cast("DefaultSubscriber", subscriber)
 
-        subscriber = super().subscriber(subscriber)  # type: ignore[assignment]
+        subscriber = super().subscriber(subscriber, persistent=persistent)  # type: ignore[assignment]
 
         return subscriber.add_call(
             parser_=parser or self._parser,
@@ -540,6 +546,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -566,6 +573,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -592,6 +600,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: bool = False,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -621,6 +630,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: bool = False,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -668,6 +678,7 @@ class KafkaRegistrator(
                 Should be any python-native object annotation or `pydantic.BaseModel`.
             include_in_schema: Whetever to include operation in Specification schema or not.
             autoflush: Whether to flush the producer or not on every publish call.
+            persistent: Whether to make the publisher persistent or not.
         """
         publisher = create_publisher(
             # batch flag
@@ -690,7 +701,7 @@ class KafkaRegistrator(
             autoflush=autoflush,
         )
 
-        super().publisher(publisher)
+        super().publisher(publisher, persistent=persistent)
 
         if batch:
             return cast("BatchPublisher", publisher)

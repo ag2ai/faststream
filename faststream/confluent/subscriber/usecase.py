@@ -90,7 +90,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume())
+            self.add_task(self._consume)
 
     async def stop(self) -> None:
         await super().stop()

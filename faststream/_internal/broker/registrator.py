@@ -23,7 +23,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self,
         *,
         config: BrokerConfigType,
-        routers: Sequence["Registrator[MsgType]"],
+        routers: Iterable["Registrator[MsgType]"],
     ) -> None:
         self._parser = config.broker_parser
         self._decoder = config.broker_decoder
@@ -33,6 +33,9 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self._subscribers: WeakSet[SubscriberUsecase[MsgType]] = WeakSet()
         self._publishers: WeakSet[PublisherUsecase] = WeakSet()
         self.routers: list[Registrator[MsgType, Any]] = []
+
+        self.__persistent_subscribers: list[SubscriberUsecase[MsgType]] = []
+        self.__persistent_publishers: list[PublisherUsecase] = []
 
         self.include_routers(*routers)
 
@@ -62,16 +65,22 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
     def subscriber(
         self,
         subscriber: "SubscriberUsecase[MsgType]",
+        persistent: bool = True,
     ) -> "SubscriberUsecase[MsgType]":
         self._subscribers.add(subscriber)
+        if persistent:
+            self.__persistent_subscribers.append(subscriber)
         return subscriber
 
     @abstractmethod
     def publisher(
         self,
         publisher: "PublisherUsecase",
+        persistent: bool = True,
     ) -> "PublisherUsecase":
         self._publishers.add(publisher)
+        if persistent:
+            self.__persistent_publishers.append(publisher)
         return publisher
 
     def include_router(

@@ -58,22 +58,22 @@ test-coverage-all +param="tests/":
 [doc("Build docs")]
 [group("docs")]
 docs-build:
-  cd docs && uv run python docs.py build
+  cd docs && uv run --frozen python docs.py build
 
 [doc("Build API Reference")]
 [group("docs")]
 docs-build-api:
-  cd docs && uv run python docs.py build-api-docs
+  cd docs && uv run --frozen python docs.py build-api-docs
 
 [doc("Update release notes")]
 [group("docs")]
 docs-update-release-notes:
-  cd docs && uv run python docs.py update-release-notes
+  cd docs && uv run --frozen python docs.py update-release-notes
 
 [doc("Serve docs")]
 [group("docs")]
 docs-serve params="":
-  cd docs && uv run python docs.py live 8000 {{params}}
+  cd docs && uv run --frozen python docs.py live 8000 {{params}}
 
 # Linter
 [doc("Ruff format")]

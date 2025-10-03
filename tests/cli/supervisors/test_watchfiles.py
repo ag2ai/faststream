@@ -9,7 +9,7 @@ import pytest
 
 from faststream._internal.cli.supervisors.utils import get_subprocess
 from faststream._internal.cli.supervisors.watchfiles import WatchReloader
-from tests.cli.conftest import GenerateTemplateFactory
+from tests.cli import interfaces
 from tests.marks import skip_windows
 
 DIR = Path(__file__).resolve().parent
@@ -24,7 +24,7 @@ class PatchedWatchReloader(WatchReloader):
 
 @pytest.mark.slow()
 @skip_windows
-def test_base(generate_template: GenerateTemplateFactory) -> None:
+def test_base(generate_template: interfaces.GenerateTemplateFactory) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
             target=exit,
@@ -42,7 +42,9 @@ def test_base(generate_template: GenerateTemplateFactory) -> None:
 
 @pytest.mark.slow()
 @skip_windows
-def test_restart(mock: MagicMock, generate_template: GenerateTemplateFactory) -> None:
+def test_restart(
+    mock: MagicMock, generate_template: interfaces.GenerateTemplateFactory
+) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
             target=touch_file,

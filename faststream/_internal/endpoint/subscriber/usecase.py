@@ -289,6 +289,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             stack.enter_context(self.lock)
 
             # Enter context before middlewares
+            stack.enter_context(context.scope("handler_", self))
             stack.enter_context(context.scope("logger", logger_state.logger.logger))
             for k, v in self._outer_config.extra_context.items():
                 stack.enter_context(context.scope(k, v))

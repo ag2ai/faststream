@@ -12,7 +12,7 @@ search:
 
 ## Logging Requests
 
-To log requests, it is strongly recommended to use the `access_logger` of your broker, as it is available from the [Context](../getting-started/context/existed.md){.internal-link} of your application.
+To log requests, it is strongly recommended to use the `access_logger` of your broker, as it is available from the [Context](../getting-started/context.md#existing-fields){.internal-link} of your application.
 
 ```python
 from faststream import Logger
@@ -247,34 +247,42 @@ We created a logger that prints messages to the console in a user-friendly forma
 
 To integrate this logger with our **FastStream** application, we just need to access it through context information and pass it to our objects:
 
-```python linenums="1" hl_lines="11 15 20 26-27"
+```python linenums="1" hl_lines="8 16-19 32"
 import logging
 
 import structlog
 
-from faststream import FastStream, context
+from faststream import FastStream, ContextRepo
 from faststream.kafka import KafkaBroker
 
-def merge_contextvars(
-    logger: structlog.types.WrappedLogger,
-    method_name: str,
-    event_dict: structlog.types.EventDict,
-) -> structlog.types.EventDict:
-    event_dict["extra"] = event_dict.get(
-        "extra",
-        context.get_local("log_context") or {},
-    )
-    return event_dict
+context = ContextRepo()
+
+def merge_contextvars(context: ContextRepo):
+    def inner(
+        logger: structlog.types.WrappedLogger,
+        method_name: str,
+        event_dict: structlog.types.EventDict,
+    ) -> structlog.types.EventDict:
+        event_dict["extra"] = event_dict.get(
+            "extra",
+            context.get_local("log_context") or {},
+        )
+        return event_dict
+    return inner
 
 shared_processors = [
-    merge_contextvars,
+    merge_contextvars(context),
     ...
 ]
 
 ...
 
 broker = KafkaBroker(logger=logger, log_level=logging.DEBUG)
-app = FastStream(broker, logger=logger)
+app = FastStream(
+    broker,
+    context=context,
+    logger=logger,
+)
 ```
 
 And the job is done! Now you have a perfectly structured logs using **Structlog**.

@@ -15,7 +15,7 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import Doc, deprecated, override
+from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -59,207 +59,42 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
 
     def __init__(
         self,
-        url: Annotated[
-            Union[str, "URL", None],
-            Doc("RabbitMQ destination location to connect."),
-        ] = "amqp://guest:guest@localhost:5672/",
+        url: Union[str, "URL", None] = "amqp://guest:guest@localhost:5672/",
         *,
-        # connection args
-        host: Annotated[
-            str | None,
-            Doc("Destination host. This option overrides `url` option host."),
-        ] = None,
-        port: Annotated[
-            int | None,
-            Doc("Destination port. This option overrides `url` option port."),
-        ] = None,
-        virtualhost: Annotated[
-            str | None,
-            Doc("RabbitMQ virtual host to use in the current broker connection."),
-        ] = None,
-        ssl_options: Annotated[
-            Optional["SSLOptions"],
-            Doc("Extra ssl options to establish connection."),
-        ] = None,
-        client_properties: Annotated[
-            Optional["FieldTable"],
-            Doc("Add custom client capability."),
-        ] = None,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Connection establishment timeout."),
-        ] = None,
-        fail_fast: Annotated[
-            bool,
-            Doc(
-                "Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.",
-            ),
-        ] = True,
-        reconnect_interval: Annotated[
-            "TimeoutType",
-            Doc("Time to sleep between reconnection attempts."),
-        ] = 5.0,
-        # channel args
+        host: str | None = None,
+        port: int | None = None,
+        virtualhost: str | None = None,
+        ssl_options: Optional["SSLOptions"] = None,
+        client_properties: Optional["FieldTable"] = None,
+        timeout: "TimeoutType" = None,
+        fail_fast: bool = True,
+        reconnect_interval: "TimeoutType" = 5.0,
         default_channel: Optional["Channel"] = None,
-        app_id: Annotated[
-            str | None,
-            Doc("Application name to mark outgoing messages by."),
-        ] = SERVICE_NAME,
-        # broker base args
-        graceful_timeout: Annotated[
-            float | None,
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = 15.0,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Any, Any]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
-        # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
+        app_id: str | None = SERVICE_NAME,
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        security: Optional["BaseSecurity"] = None,
         specification: Optional["SpecificationFactory"] = None,
-        specification_url: Annotated[
-            str | None,
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol."),
-        ] = None,
-        protocol_version: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol version."),
-        ] = "0.9.1",
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI server description."),
-        ] = None,
-        specification_tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
-        # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
-        # StreamRouter options
-        setup_state: Annotated[
-            bool,
-            Doc(
-                "Whether to add broker to app scope in lifespan. "
-                "You should disable this option at old ASGI servers.",
-            ),
-        ] = True,
-        schema_url: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.",
-            ),
-        ] = "/asyncapi",
+        specification_url: str | None = None,
+        protocol: str | None = None,
+        protocol_version: str | None = "0.9.1",
+        description: str | None = None,
+        specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
+        setup_state: bool = True,
+        schema_url: str | None = "/asyncapi",
         context: ContextRepo | None = None,
-        # FastAPI args
-        prefix: Annotated[
-            str,
-            Doc("An optional path prefix for the router."),
-        ] = "",
-        tags: Annotated[
-            list[Union[str, "Enum"]] | None,
-            Doc(
-                """
-                A list of tags to be applied to all the *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        dependencies: Annotated[
-            Sequence["params.Depends"] | None,
-            Doc(
-                """
-                A list of dependencies (using `Depends()`) to be applied to all the
-                *path and stream operations* in this router.
-
-                Read more about it in the
-                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        default_response_class: Annotated[
-            type["Response"],
-            Doc(
-                """
-                The default response class to be used.
-
-                Read more in the
-                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
-                """,
-            ),
-        ] = Default(JSONResponse),
-        responses: Annotated[
-            dict[int | str, dict[str, Any]] | None,
-            Doc(
-                """
-                Additional responses to be shown in OpenAPI.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
-
-                And in the
-                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
-                """,
-            ),
-        ] = None,
-        callbacks: Annotated[
-            list[BaseRoute] | None,
-            Doc(
-                """
-                OpenAPI callbacks that should apply to all *path operations* in this
-                router.
-
-                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
-
-                Read more about it in the
-                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
-                """,
-            ),
-        ] = None,
+        prefix: str = "",
+        tags: list[Union[str, "Enum"]] | None = None,
+        dependencies: Sequence["params.Depends"] | None = None,
+        default_response_class: type["Response"] = Default(JSONResponse),
+        responses: dict[int | str, dict[str, Any]] | None = None,
+        callbacks: list[BaseRoute] | None = None,
         routes: Annotated[
             list[BaseRoute] | None,
-            Doc(
-                """
-                **Note**: you probably shouldn't use this parameter, it is inherited
-                from Starlette and supported for compatibility.
-
-                ---
-
-                A list of routes to serve incoming HTTP and WebSocket requests.
-                """,
-            ),
             deprecated(
                 """
                 You normally wouldn't use this parameter with FastAPI, it is inherited
@@ -270,100 +105,166 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
                 """,
             ),
         ] = None,
-        redirect_slashes: Annotated[
-            bool,
-            Doc(
-                """
+        redirect_slashes: bool = True,
+        default: Optional["ASGIApp"] = None,
+        dependency_overrides_provider: Any | None = None,
+        route_class: type["APIRoute"] = APIRoute,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
+        lifespan: Optional["Lifespan[Any]"] = None,
+        deprecated: bool | None = None,
+        include_in_schema: bool = True,
+        generate_unique_id_function: Callable[["APIRoute"], str] = Default(
+            generate_unique_id
+        ),
+    ) -> None:
+        """Initialized RabbitRouter.
+
+        Args:
+            url:
+                The RabbitMQ destination location to connect.
+            host:
+                Destination host. This option overrides the `url` option host.
+            port:
+                Destination port. This option overrides the `url` option port.
+            virtualhost:
+                RabbitMQ virtual host to use in the current broker connection.
+            ssl_options:
+                Extra SSL options to establish a connection.
+            client_properties:
+                Add custom client capability.
+            timeout:
+                Connection establishment timeout.
+            fail_fast:
+                Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.
+            reconnect_interval:
+                Time to sleep between reconnection attempts.
+            default_channel:
+                The default channel for the broker.
+            app_id:
+                Application name to mark outgoing messages by.
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder:
+                Custom decoder object.
+            parser:
+                Custom parser object.
+            middlewares:
+                Middlewares to apply to all broker publishers/subscribers.
+            security:
+                Security options to connect the broker and generate AsyncAPI server security information.
+            specification:
+                The specification factory to use for this router. If not specified, it will be loaded from the URL provided by `specification_url`.
+            specification_url:
+                The URL of the AsyncAPI specification. If not specified, it will be read from the file at `path / asyncapi.yaml`.
+            protocol:
+                The protocol to use for this router (e.g. "http", "https").
+            protocol_version:
+                The version of the protocol to use (e.g. "1.0", "2.0").
+            description:
+                A brief description of this router.
+            specification_tags:
+                A list of tags to be applied to all the *path operations* in this router.
+            logger:
+                The user specified logger to pass into Context and log service messages.
+            log_level:
+                The service messages log level.
+            setup_state:
+                Whether to add broker to app scope in lifespan.
+                You should disable this option at old ASGI servers.
+            schema_url:
+                The AsyncAPI schema url. You should set this option to `None` to disable AsyncAPI routes at all.
+            context:
+                Context for FastDepends.
+            prefix:
+                An optional path prefix for the router.
+            tags:
+                A list of tags to be applied to all the *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
+            dependencies:
+                A list of dependencies (using `Depends()`) to be applied to all the
+                *path and stream operations* in this router.
+
+                Read more about it in the
+                [FastAPI docs for Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            default_response_class:
+                The default response class to be used.
+
+                Read more in the
+                [FastAPI docs for Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/#default-response-class).
+            responses:
+                Additional responses to be shown in OpenAPI.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for Additional Responses in OpenAPI](https://fastapi.tiangolo.com/advanced/additional-responses/).
+
+                And in the
+                [FastAPI docs for Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/#include-an-apirouter-with-a-custom-prefix-tags-responses-and-dependencies).
+            callbacks:
+                OpenAPI callbacks that should apply to all *path operations* in this
+                router.
+
+                It will be added to the generated OpenAPI (e.g. visible at `/docs`).
+
+                Read more about it in the
+                [FastAPI docs for OpenAPI Callbacks](https://fastapi.tiangolo.com/advanced/openapi-callbacks/).
+            routes:
+                **Note**: you probably shouldn't use this parameter, it is inherited
+                from Starlette and supported for compatibility.
+
+                ---
+
+                A list of routes to serve incoming HTTP and WebSocket requests.
+            redirect_slashes:
                 Whether to detect and redirect slashes in URLs when the client doesn't
                 use the same format.
-                """,
-            ),
-        ] = True,
-        default: Annotated[
-            Optional["ASGIApp"],
-            Doc(
-                """
+            default:
                 Default function handler for this router. Used to handle
                 404 Not Found errors.
-                """,
-            ),
-        ] = None,
-        dependency_overrides_provider: Annotated[
-            Any | None,
-            Doc(
-                """
+            dependency_overrides_provider:
                 Only used internally by FastAPI to handle dependency overrides.
 
                 You shouldn't need to use it. It normally points to the `FastAPI` app
                 object.
-                """,
-            ),
-        ] = None,
-        route_class: Annotated[
-            type["APIRoute"],
-            Doc(
-                """
+            route_class:
                 Custom route (*path operation*) class to be used by this router.
 
                 Read more about it in the
                 [FastAPI docs for Custom Request and APIRoute class](https://fastapi.tiangolo.com/how-to/custom-request-and-route/#custom-apiroute-class-in-a-router).
-                """,
-            ),
-        ] = APIRoute,
-        on_startup: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
+            on_startup:
                 A list of startup event handler functions.
 
                 You should instead use the `lifespan` handlers.
 
                 Read more in the [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        on_shutdown: Annotated[
-            Sequence[Callable[[], Any]] | None,
-            Doc(
-                """
+            on_shutdown:
                 A list of shutdown event handler functions.
 
                 You should instead use the `lifespan` handlers.
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        lifespan: Annotated[
-            Optional["Lifespan[Any]"],
-            Doc(
-                """
+            lifespan:
                 A `Lifespan` context manager handler. This replaces `startup` and
                 `shutdown` functions with a single context manager.
 
                 Read more in the
                 [FastAPI docs for `lifespan`](https://fastapi.tiangolo.com/advanced/events/).
-                """,
-            ),
-        ] = None,
-        deprecated: Annotated[
-            bool | None,
-            Doc(
-                """
+            deprecated:
                 Mark all *path operations* in this router as deprecated.
 
                 It will be added to the generated OpenAPI (e.g. visible at `/docs`).
 
                 Read more about it in the
                 [FastAPI docs for Path Operation Configuration](https://fastapi.tiangolo.com/tutorial/path-operation-configuration/).
-                """,
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc(
-                """
+            include_in_schema:
                 To include (or not) all the *path operations* in this router in the
                 generated OpenAPI.
 
@@ -371,13 +272,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
 
                 Read more about it in the
                 [FastAPI docs for Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#exclude-from-openapi).
-                """,
-            ),
-        ] = True,
-        generate_unique_id_function: Annotated[
-            Callable[["APIRoute"], str],
-            Doc(
-                """
+            generate_unique_id_function:
                 Customize the function used to generate unique IDs for the *path
                 operations* shown in the generated OpenAPI.
 
@@ -386,10 +281,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
 
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
-                """,
-            ),
-        ] = Default(generate_unique_id),
-    ) -> None:
+        """
         super().__init__(
             url,
             host=host,

@@ -140,7 +140,6 @@ NatsRouter(
 
 router = NatsRouter()
 
-
 router_sub = router.subscriber("test")
 
 
@@ -322,7 +321,9 @@ async def check_request_response_type() -> None:
     assert_type(await publisher.request(None, "test"), NatsMessage)
 
 
-async def check_core_subscriber_message_type(broker: NatsBroker | FastAPIRouter) -> None:
+async def check_core_subscriber_message_type(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -333,7 +334,7 @@ async def check_core_subscriber_message_type(broker: NatsBroker | FastAPIRouter)
 
 
 async def check_concurrent_core_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", max_workers=2)
 
@@ -345,7 +346,7 @@ async def check_concurrent_core_subscriber_message_type(
 
 
 async def check_push_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream")
 
@@ -357,7 +358,7 @@ async def check_push_stream_subscriber_message_type(
 
 
 async def check_concurrent_push_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", max_workers=2)
 
@@ -369,7 +370,7 @@ async def check_concurrent_push_stream_subscriber_message_type(
 
 
 async def check_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True)
 
@@ -381,7 +382,7 @@ async def check_pull_stream_subscriber_message_type(
 
 
 async def check_concurrent_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
 
@@ -393,7 +394,7 @@ async def check_concurrent_pull_stream_subscriber_message_type(
 
 
 async def check_batch_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber(
         "test",
@@ -409,7 +410,7 @@ async def check_batch_pull_stream_subscriber_message_type(
 
 
 async def check_key_value_watch_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("key", kv_watch="bucket")
 
@@ -421,7 +422,7 @@ async def check_key_value_watch_subscriber_message_type(
 
 
 async def check_object_store_watch_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter,
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("key", obj_watch=ObjWatch())
 
@@ -432,7 +433,9 @@ async def check_object_store_watch_subscriber_message_type(
         assert_type(msg, NatsObjMessage)
 
 
-def check_subscriber_instance_type(broker: NatsBroker | FastAPIRouter) -> None:
+def check_subscriber_instance_type(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
     sub1 = broker.subscriber("key", kv_watch="bucket")
     assert_type(sub1, KeyValueWatchSubscriber)
 
@@ -465,6 +468,17 @@ def check_subscriber_instance_type(broker: NatsBroker | FastAPIRouter) -> None:
     assert_type(sub9, CoreSubscriber)
 
 
-def check_publisher_instance_type(broker: NatsBroker | FastAPIRouter) -> None:
+def check_publisher_instance_type(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
     publisher = broker.publisher("test")
     assert_type(publisher, LogicPublisher)
+
+
+NatsBroker(routers=[NatsRouter()])
+NatsBroker().include_router(NatsRouter())
+NatsBroker().include_routers(NatsRouter())
+
+NatsRouter(routers=[NatsRouter()])
+NatsRouter().include_router(NatsRouter())
+NatsRouter().include_routers(NatsRouter())

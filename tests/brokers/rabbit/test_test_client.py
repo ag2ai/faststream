@@ -55,6 +55,15 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
             with pytest.raises(SubscriberNotFound):
                 await br.request("", "")
 
+    async def test_publisher_without_routing_key(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+        broker = self.get_broker()
+        publisher = broker.publisher(exchange="test_exchange")
+
+        async with self.patch_broker(broker):
+            await publisher.publish(None, routing_key="new-key")
+            publisher.mock.assert_called_once()
+
     async def test_consume_manual_ack(
         self,
         queue: str,

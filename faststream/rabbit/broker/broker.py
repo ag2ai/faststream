@@ -11,12 +11,14 @@ from urllib.parse import urlparse
 
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
+from fast_depends import Provider, dependency_provider
 from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.configs import make_settings_container
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -55,7 +57,6 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -94,7 +95,7 @@ class RabbitBroker(
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
-        routers: Sequence["Registrator[IncomingMessage]"] = (),
+        routers: Iterable[RabbitRegistrator] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
@@ -108,7 +109,12 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+<<<<<<< HEAD
         settings: Mapping[str, Any] | None = None,
+=======
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
+>>>>>>> a798e012c9afd91765ebf4644c2f811e40ea399c
     ) -> None:
         """Initialize the RabbitBroker.
 
@@ -140,7 +146,12 @@ class RabbitBroker(
             log_level: Service messages log level.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
+<<<<<<< HEAD
             settings: Container for configuration publisher and subscriber.
+=======
+            provider: Provider for FastDepends.
+            context: Context for FastDepends.
+>>>>>>> a798e012c9afd91765ebf4644c2f811e40ea399c
         """
         security_args = parse_security(security)
 
@@ -200,6 +211,8 @@ class RabbitBroker(
                 fd_config=FastDependsConfig(
                     use_fastdepends=apply_types,
                     serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
                 ),
                 # subscriber args
                 broker_dependencies=dependencies,

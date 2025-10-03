@@ -299,7 +299,7 @@ And multiprocessing horizontal scaling feature as well:
 faststream run basic:app --workers 3
 ```
 
-You can Learn more about **CLI** features [here](./getting-started/cli/index.md){.internal-link}
+You can Learn more about **CLI** features [here](./getting-started/cli.md){.internal-link}
 
 ---
 
