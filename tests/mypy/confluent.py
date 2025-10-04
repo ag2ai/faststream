@@ -3,7 +3,7 @@ import asyncio
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
-from faststream.confluent import KafkaBroker, KafkaMessage
+from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -45,7 +45,7 @@ async def check_publish_type(fake_bool: bool = True) -> None:
 
 
 async def check_publisher_publish_type(
-    broker: KafkaBroker | FastAPIRouter, fake_bool: bool = False
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter, fake_bool: bool = False
 ) -> None:
     p1 = broker.publisher("test", batch=False)
     assert_type(p1, DefaultPublisher)
@@ -67,7 +67,9 @@ async def check_publisher_publish_type(
     assert_type(p3, BatchPublisher | DefaultPublisher)
 
 
-async def check_publish_batch_type(fake_bool: bool = True) -> None:
+async def check_publish_batch_type(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter, fake_bool: bool = True
+) -> None:
     broker = KafkaBroker()
 
     assert_type(
@@ -86,7 +88,9 @@ async def check_publish_batch_type(fake_bool: bool = True) -> None:
     )
 
 
-async def check_channel_subscriber(broker: KafkaBroker | FastAPIRouter) -> None:
+async def check_channel_subscriber(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
     subscriber = broker.subscriber("test")
 
     message = await subscriber.get_one()
@@ -96,7 +100,9 @@ async def check_channel_subscriber(broker: KafkaBroker | FastAPIRouter) -> None:
         assert_type(msg, KafkaMessage)
 
 
-def check_subscriber_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
+def check_subscriber_instance_type(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, DefaultSubscriber)
 
@@ -105,3 +111,12 @@ def check_subscriber_instance_type(broker: KafkaBroker | FastAPIRouter) -> None:
 
     sub3 = broker.subscriber("test", max_workers=2)
     assert_type(sub3, ConcurrentDefaultSubscriber)
+
+
+KafkaBroker(routers=[KafkaRouter()])
+KafkaBroker().include_router(KafkaRouter())
+KafkaBroker().include_routers(KafkaRouter())
+
+KafkaRouter(routers=[KafkaRouter()])
+KafkaRouter().include_router(KafkaRouter())
+KafkaRouter().include_routers(KafkaRouter())

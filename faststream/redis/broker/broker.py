@@ -3,7 +3,6 @@ import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Optional,
     TypeAlias,
@@ -21,7 +20,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import Doc, deprecated, overload, override
+from typing_extensions import deprecated, overload, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -54,7 +53,6 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.redis.message import RedisChannelMessage
     from faststream.security import BaseSecurity
@@ -112,82 +110,106 @@ class RedisBroker(
         encoding_errors: str = "strict",
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
-        # broker args
-        graceful_timeout: Annotated[
-            float | None,
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = 15.0,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc("Dependencies to apply to all broker subscribers."),
-        ] = (),
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Any, Any]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
-        routers: Annotated[
-            Sequence["Registrator[UnifyRedisDict]"],
-            Doc("Routers to apply to broker."),
-        ] = (),
-        message_format: Annotated[
-            type["MessageFormat"],
-            Doc("What format to use when parsing messages"),
-        ] = BinaryMessageFormatV1,
-        # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            str | None,
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol."),
-        ] = None,
-        protocol_version: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol version."),
-        ] = "custom",
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI server description."),
-        ] = None,
-        tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
-        # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
-        # FastDepends args
-        apply_types: Annotated[
-            bool,
-            Doc("Whether to use FastDepends or not."),
-        ] = True,
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        routers: Iterable[RedisRegistrator] = (),
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
+        security: Optional["BaseSecurity"] = None,
+        specification_url: str | None = None,
+        protocol: str | None = None,
+        protocol_version: str | None = "custom",
+        description: str | None = None,
+        tags: Iterable[Union["Tag", "TagDict"]] = (),
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
+        apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
+        """Initialized the RedisBroker.
+
+        Args:
+            url:
+                The Redis connection URL. Defaults to "redis://localhost:6379".
+            host:
+                The Redis host to connect to. If not provided, it will be extracted from the URL.
+            port:
+                The Redis port to connect to. If not provided, it will be extracted from the URL.
+            db:
+                The Redis database to use. If not provided, it will be extracted from the URL.
+            connection_class:
+                The class to use for establishing connections. Defaults to EMPTY.
+            client_name:
+                The name of the Redis client. Defaults to None.
+            health_check_interval:
+                The interval at which to perform health checks on the broker. Defaults to 0.
+            max_connections:
+                The maximum number of connections to establish. Defaults to None.
+            socket_timeout:
+                The timeout for socket operations. Defaults to None.
+            socket_connect_timeout:
+                The timeout for connecting sockets. Defaults to None.
+            socket_read_size:
+                The size of the buffer used for reading from sockets. Defaults to 65536.
+            socket_keepalive:
+                Whether to enable keep-alive on sockets. Defaults to False.
+            socket_keepalive_options:
+                Options for keep-alive on sockets. Defaults to None.
+            socket_type:
+                The type of socket to use (if supported by your platform). Defaults to 0.
+            retry_on_timeout:
+                Whether to retry operations that timeout. Defaults to False.
+            encoding:
+                The encoding used for sending and receiving data. Defaults to "utf-8".
+            encoding_errors:
+                How to handle encoding errors. Defaults to "strict".
+            parser_class:
+                The class to use for parsing messages. Defaults to DefaultParser.
+            encoder_class:
+                The class to use for encoding messages. Defaults to Encoder.
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
+            decoder:
+                Custom decoder object. Defaults to None.
+            parser:
+                Custom parser object. Defaults to None.
+            dependencies:
+                Dependencies to apply to all broker subscribers. Defaults to ().
+            middlewares:
+                Middlewares to apply to all broker publishers/subscribers. Defaults to ().
+            routers:
+                Routers to apply to broker. Defaults to ().
+            message_format:
+                What format to use when parsing messages. Defaults to BinaryMessageFormatV1.
+            security:
+                Security options to connect broker and generate AsyncAPI server security information. Defaults to None.
+            specification_url:
+                AsyncAPI hardcoded server addresses. Use `servers` if not specified. Defaults to None.
+            protocol:
+                AsyncAPI server protocol. Defaults to None.
+            protocol_version:
+                AsyncAPI server protocol version. Defaults to "custom".
+            description:
+                AsyncAPI server description. Defaults to None.
+            tags:
+                AsyncAPI server tags. Defaults to ().
+            logger:
+                User specified logger to pass into Context and log service messages. Defaults to EMPTY.
+            log_level:
+                Service messages log level. Defaults to logging.INFO.
+            apply_types:
+                Whether to use FastDepends or not. Defaults to True.
+            serializer:
+                Serializer object. Defaults to EMPTY.
+            provider:
+                Provider for FastDepends library. Defaults to None.
+            context:
+                Context repository for FastDepends library. Defaults to None.
+        """
         if message_format == JSONMessageFormat:
             warnings.warn(
                 "JSONMessageFormat has been deprecated and will be removed in version 0.7. "

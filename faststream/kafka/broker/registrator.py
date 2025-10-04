@@ -95,6 +95,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -162,6 +163,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -229,6 +231,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -296,6 +299,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -363,6 +367,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -435,6 +440,7 @@ class KafkaRegistrator(
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -649,7 +655,7 @@ class KafkaRegistrator(
             title: Specification subscriber object title.
             description: Specification subscriber object description. " "Uses decorated docstring as default.
             include_in_schema: Whetever to include operation in Specification schema or not.
-
+            persistent: Whether to make the subscriber persistent or not.
         """
         workers = max_workers or 1
 
@@ -696,7 +702,7 @@ class KafkaRegistrator(
             include_in_schema=include_in_schema,
         )
 
-        super().subscriber(subscriber)
+        super().subscriber(subscriber, persistent=persistent)
 
         subscriber.add_call(
             parser_=parser,
@@ -725,6 +731,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -751,6 +758,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -805,6 +813,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: bool = False,
         # basic args
+        persistent: bool = True,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -856,6 +865,7 @@ class KafkaRegistrator(
                 Should be any python-native object annotation or `pydantic.BaseModel`.
             include_in_schema: Whetever to include operation in Specification schema or not.
             autoflush: Whether to flush the producer or not on every publish call.
+            persistent: Whether to make the publisher persistent or not.
         """
         publisher = create_publisher(
             autoflush=autoflush,
@@ -878,7 +888,7 @@ class KafkaRegistrator(
             include_in_schema=include_in_schema,
         )
 
-        super().publisher(publisher)
+        super().publisher(publisher, persistent=persistent)
 
         if batch:
             return cast("BatchPublisher", publisher)

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import watchfiles
 
@@ -8,7 +8,7 @@ from faststream._internal.cli.supervisors.basereload import BaseReload
 from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import DecoratedCallable
+    from faststream._internal.cli.dto import RunArgs, RunFunction
 
 
 class ExtendedFilter(watchfiles.PythonFilter):
@@ -38,8 +38,8 @@ class WatchReloader(BaseReload):
 
     def __init__(
         self,
-        target: "DecoratedCallable",
-        args: tuple[Any, ...],
+        target: "RunFunction",
+        args: "RunArgs",
         reload_dirs: Sequence[Path | str],
         reload_delay: float = 0.3,
         extra_extensions: Sequence[str] = (),

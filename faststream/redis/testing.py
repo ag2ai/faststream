@@ -83,8 +83,8 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(**publisher.subscriber_property(name_only=False))
-
+            sub_options = publisher.subscriber_property(name_only=False)
+            sub = broker.subscriber(**sub_options, persistent=False)
         else:
             is_real = True
 
@@ -133,8 +133,8 @@ class FakeProducer(RedisFastProducer):
             reply_to=cmd.reply_to,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
-            serializer=self.broker.config.fd_config._serializer,
             message_format=cmd.message_format,
+            serializer=self.broker.config.fd_config._serializer,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -161,6 +161,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            serializer=self.broker.config.fd_config._serializer,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -189,6 +190,7 @@ class FakeProducer(RedisFastProducer):
                 correlation_id=cmd.correlation_id or gen_cor_id(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
+                serializer=self.broker.config.fd_config._serializer,
             )
             for m in cmd.batch_bodies
         ]

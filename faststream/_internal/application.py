@@ -84,6 +84,7 @@ class StartAbleApplication:
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self.config = config or FastDependsConfig()
+        self.config.context.set_global("app", self)
 
         self.brokers = [broker] if broker else []
 
@@ -128,11 +129,9 @@ class Application(StartAbleApplication):
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
-        super().__init__(broker, config=config, specification=specification)
-
-        self.context.set_global("app", self)
-
         self.logger = logger
+
+        super().__init__(broker, config=config, specification=specification)
 
         self._on_startup_calling: list[AsyncFunc] = [
             apply_types(

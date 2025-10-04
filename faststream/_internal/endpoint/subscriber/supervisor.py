@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import logging
 import os
 from asyncio import CancelledError, Task
 from typing import TYPE_CHECKING, Any
-
-from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -45,15 +44,23 @@ class TaskCallbackSupervisor:
         return bool(int(os.getenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")))
 
     def __call__(self, task: Task[Any]) -> None:
-        logger.info(f"callback for {task.get_name()} is being executed...")
+        logger = self.subscriber._outer_config.logger
+
+        logger.log(
+            f"callback for {task.get_name()} is being executed...",
+            log_level=logging.INFO,
+        )
+
         if task.cancelled() or self.is_disabled:
             return
 
         if (exc := task.exception()) and not isinstance(exc, self.ignored_exceptions):
-            logger.error(
+            logger.log(
                 f"{task.get_name()} raised an exception, retrying...\n"
                 "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
                 "Also, please consider opening issue on the repository: https://github.com/ag2ai/faststream.",
                 exc_info=exc,
+                log_level=logging.ERROR,
             )
+
             self.subscriber.add_task(self.func, self.args, self.kwargs)

@@ -71,23 +71,26 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         if sub is None:
             is_real = False
 
+            topic_name = publisher.topic
+
             if publisher.partition:
                 tp = TopicPartition(
-                    topic=publisher.topic,
+                    topic=topic_name,
                     partition=publisher.partition,
                 )
                 sub = broker.subscriber(
                     partitions=[tp],
                     batch=isinstance(publisher, BatchPublisher),
                     auto_offset_reset="earliest",
+                    persistent=False,
                 )
             else:
                 sub = broker.subscriber(
-                    publisher.topic,
+                    topic_name,
                     batch=isinstance(publisher, BatchPublisher),
                     auto_offset_reset="earliest",
+                    persistent=False,
                 )
-
         else:
             is_real = True
 

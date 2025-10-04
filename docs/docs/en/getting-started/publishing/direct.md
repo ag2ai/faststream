@@ -61,4 +61,40 @@ async def handle(msg) -> str:
 ```
 
 !!! note
-    When using this method, **FastStream** doesn't reuse the incoming `correlation_id` to mark outgoing messages with it. You should set it manually if it is required.
+    When using this method, **FastStream** doesn't reuse the incoming `correlation_id` to mark outgoing messages with it. You should set it manually if it is required:
+
+
+    === "AIOKafka"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-queue")
+        async def handle(message: KafkaMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```
+
+    === "Confluent"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-queue")
+        async def handle(message: KafkaMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```
+
+    === "RabbitMQ"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-queue")
+        async def handle(message: RabbitMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```
+
+    === "NATS"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-queue")
+        async def handle(message: NatsMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```
+
+    === "Redis"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-queue")
+        async def handle(message: RedisMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```

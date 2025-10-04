@@ -1,7 +1,5 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
-
-from typing_extensions import Doc, deprecated
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -19,7 +17,6 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -37,59 +34,43 @@ class RedisPublisher(ArgsContainer):
 
     def __init__(
         self,
-        channel: Annotated[
-            Union["PubSub", str, None],
-            Doc("Redis PubSub object name to send message."),
-        ] = None,
+        channel: str | None = None,
         *,
-        list: Annotated[
-            Union["ListSub", str, None],
-            Doc("Redis List object name to send message."),
-        ] = None,
-        stream: Annotated[
-            Union["StreamSub", str, None],
-            Doc("Redis Stream object name to send message."),
-        ] = None,
-        headers: Annotated[
-            dict[str, Any] | None,
-            Doc(
-                "Message headers to store metainformation. "
-                "Can be overridden by `publish.headers` if specified.",
-            ),
-        ] = None,
-        reply_to: Annotated[
-            str,
-            Doc("Reply message destination PubSub object name."),
-        ] = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-            Doc("Publisher middlewares to wrap outgoing messages."),
-        ] = (),
-        # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI publisher object description."),
-        ] = None,
-        schema: Annotated[
-            Any | None,
-            Doc(
-                "AsyncAPI publishing message type. "
-                "Should be any python-native object annotation or `pydantic.BaseModel`.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
+        list: str | None = None,
+        stream: str | None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        middlewares: Sequence["PublisherMiddleware"] = (),
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
     ) -> None:
+        """Initialize the RedisPublisher.
+
+        Args:
+            channel:
+                Redis PubSub object name to send message.
+            list:
+                Redis List object name to send message.
+            stream:
+                Redis Stream object name to send message.
+            headers:
+                Message headers to store metainformation. Can be overridden by `publish.headers` if specified.
+            reply_to:
+                Reply message destination PubSub object name.
+            middlewares:
+                Publisher middlewares to wrap outgoing messages.
+            title:
+                AsyncAPI publisher object title.
+            description:
+                AsyncAPI publisher object description.
+            schema:
+                AsyncAPI publishing message type.
+            include_in_schema:
+                Whetever to include operation in AsyncAPI schema or not.
+
+        """
         super().__init__(
             channel=channel,
             list=list,
@@ -109,90 +90,61 @@ class RedisRoute(SubscriberRoute):
 
     def __init__(
         self,
-        call: Annotated[
-            Callable[..., "SendableMessage"]
-            | Callable[..., Awaitable["SendableMessage"]],
-            Doc(
-                "Message handler function "
-                "to wrap the same with `@broker.subscriber(...)` way.",
-            ),
-        ],
-        channel: Annotated[
-            Union["PubSub", str, None],
-            Doc("Redis PubSub object name to send message."),
-        ] = None,
+        call: Callable[..., "SendableMessage"]
+        | Callable[..., Awaitable["SendableMessage"]],
+        channel: Union[str, "PubSub"] | None = None,
         *,
-        publishers: Annotated[
-            Iterable["RedisPublisher"],
-            Doc("Redis publishers to broadcast the handler result."),
-        ] = (),
-        list: Annotated[
-            Union["ListSub", str, None],
-            Doc("Redis List object name to send message."),
-        ] = None,
-        stream: Annotated[
-            Union["StreamSub", str, None],
-            Doc("Redis Stream object name to send message."),
-        ] = None,
-        # broker arguments
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc("Dependencies list (`[Dependant(),]`) to apply to the subscriber."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc(
-                "Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.",
-            ),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-            Doc("Subscriber middlewares to wrap incoming message processing."),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            Doc("Whether to disable **FastStream** auto acknowledgement logic or not."),
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
+        publishers: Iterable["RedisPublisher"] = (),
+        list: Union[str, "ListSub"] | None = None,
+        stream: Union[str, "StreamSub"] | None = None,
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
+        no_ack: bool = EMPTY,
         ack_policy: AckPolicy = EMPTY,
-        no_reply: Annotated[
-            bool,
-            Doc(
-                "Whether to disable **FastStream** RPC and Reply To auto responses or not.",
-            ),
-        ] = False,
-        # AsyncAPI information
-        title: Annotated[
-            str | None,
-            Doc("AsyncAPI subscriber object title."),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc(
-                "AsyncAPI subscriber object description. "
-                "Uses decorated docstring as default.",
-            ),
-        ] = None,
-        include_in_schema: Annotated[
-            bool,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = True,
-        max_workers: Annotated[
-            int | None,
-            Doc("Number of workers to process messages concurrently."),
-        ] = None,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        max_workers: int | None = None,
     ) -> None:
+        """Initialize the RedisRoute.
+
+        Args:
+            call:
+                Message handler function to wrap the same with `@broker.subscriber(...)` way.
+            channel:
+                Redis PubSub object name to send message.
+            publishers:
+                Redis publishers to broadcast the handler result.
+            list:
+                Redis List object name to send message.
+            stream:
+                Redis Stream object name to send message.
+            dependencies:
+                Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser:
+                Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.
+            decoder:
+                Function to decode FastStream msg bytes body to python objects.
+            middlewares:
+                Subscriber middlewares to wrap incoming message processing. (Deprecated)
+            no_ack:
+                Whether to disable **FastStream** auto acknowledgement logic or not. (Deprecated)
+            ack_policy:
+                Acknowledgement policy of the handler.
+            no_reply:
+                Whether to disable **FastStream** RPC and Reply To auto responses or not.
+            title:
+                AsyncAPI subscriber object title.
+            description:
+                AsyncAPI subscriber object description. Uses decorated docstring as default.
+            include_in_schema:
+                Whetever to include operation in AsyncAPI schema or not.
+            max_workers:
+                Number of workers to process messages concurrently.
+        """
         super().__init__(
             call,
             channel=channel,
@@ -213,47 +165,44 @@ class RedisRoute(SubscriberRoute):
         )
 
 
-class RedisRouter(RedisRegistrator, BrokerRouter[BaseMessage]):
+class RedisRouter(
+    RedisRegistrator,
+    BrokerRouter[BaseMessage],
+):
     """Includable to RedisBroker router."""
 
     def __init__(
         self,
-        prefix: Annotated[
-            str,
-            Doc("String prefix to add to all subscribers queues."),
-        ] = "",
-        handlers: Annotated[
-            Iterable[RedisRoute],
-            Doc("Route object to include."),
-        ] = (),
+        prefix: str = "",
+        handlers: Iterable[RedisRoute] = (),
         *,
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc(
-                "Dependencies list (`[Dependant(),]`) to apply to all routers' publishers/subscribers.",
-            ),
-        ] = (),
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Any, Any]"],
-            Doc("Router middlewares to apply to all routers' publishers/subscribers."),
-        ] = (),
-        routers: Annotated[
-            Sequence["Registrator[BaseMessage]"],
-            Doc("Routers to apply to broker."),
-        ] = (),
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Parser to map original **IncomingMessage** Msg to FastStream one."),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Function to decode FastStream msg bytes body to python objects."),
-        ] = None,
-        include_in_schema: Annotated[
-            bool | None,
-            Doc("Whetever to include operation in AsyncAPI schema or not."),
-        ] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        routers: Iterable[RedisRegistrator] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        include_in_schema: bool | None = None,
     ) -> None:
+        """Initialize the RedisRouter.
+
+        Args:
+            prefix:
+                String prefix to add to all subscribers queues.
+            handlers:
+                Route object to include.
+            dependencies:
+                Dependencies list (`[Dependant(),]`) to apply to all routers' publishers/subscribers.
+            middlewares:
+                Router middlewares to apply to all routers' publishers/subscribers.
+            routers:
+                Routers to apply to broker.
+            parser:
+                Parser to map original **IncomingMessage** Msg to FastStream one.
+            decoder:
+                Function to decode FastStream msg bytes body to python objects.
+            include_in_schema:
+                Whetever to include operation in AsyncAPI schema or not.
+        """
         super().__init__(
             handlers=handlers,
             config=RedisRouterConfig(

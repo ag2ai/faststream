@@ -272,3 +272,19 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         self, queue: str
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
+
+    @pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+    async def test_publisher_without_destination(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+        broker = self.get_broker()
+
+        # use two publishers to check that we don't have conflicts
+        publisher = broker.publisher(topic="")
+        another_publisher = broker.publisher(topic="")
+
+        async with self.patch_broker(broker):
+            await publisher.publish(None, topic="new-key")
+            publisher.mock.assert_called_once()
+
+            await another_publisher.publish(None, topic="new-key")
+            another_publisher.mock.assert_called_once()

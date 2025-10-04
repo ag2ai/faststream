@@ -2,7 +2,6 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Optional,
     Union,
@@ -27,7 +26,7 @@ from nats.aio.client import (
 from nats.aio.msg import Msg
 from nats.errors import Error
 from nats.js.errors import BadRequestError
-from typing_extensions import Doc, deprecated, overload, override
+from typing_extensions import deprecated, overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -67,7 +66,6 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
@@ -77,134 +75,97 @@ if TYPE_CHECKING:
     from faststream.specification.schema.extra import Tag, TagDict
 
     class NatsInitKwargs(TypedDict, total=False):
-        """NatsBroker.connect() method type hints."""
+        """NatsBroker.connect() method type hints.
 
-        error_cb: Annotated[
-            "ErrorCallback" | None,
-            Doc("Callback to report errors."),
-        ]
-        disconnected_cb: Annotated[
-            "Callback" | None,
-            Doc("Callback to report disconnection from NATS."),
-        ]
-        closed_cb: Annotated[
-            "Callback" | None,
-            Doc("Callback to report when client stops reconnection to NATS."),
-        ]
-        discovered_server_cb: Annotated[
-            "Callback" | None,
-            Doc("Callback to report when a new server joins the cluster."),
-        ]
-        reconnected_cb: Annotated[
-            "Callback" | None,
-            Doc("Callback to report success reconnection."),
-        ]
-        name: Annotated[
-            str | None,
-            Doc("Label the connection with name (shown in NATS monitoring)."),
-        ]
-        pedantic: Annotated[
-            bool,
-            Doc(
-                "Turn on NATS server pedantic mode that performs extra checks on the protocol. "
-                "https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode",
-            ),
-        ]
-        verbose: Annotated[
-            bool,
-            Doc("Verbose mode produce more feedback about code execution."),
-        ]
-        allow_reconnect: Annotated[
-            bool,
-            Doc("Whether recover connection automatically or not."),
-        ]
-        connect_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to establish connection with NATS server."),
-        ]
-        reconnect_time_wait: Annotated[
-            int,
-            Doc("Time in seconds to wait for reestablish connection to NATS server"),
-        ]
-        max_reconnect_attempts: Annotated[
-            int,
-            Doc("Maximum attempts number to reconnect to NATS server."),
-        ]
-        ping_interval: Annotated[
-            int,
-            Doc("Interval in seconds to ping."),
-        ]
-        max_outstanding_pings: Annotated[
-            int,
-            Doc("Maximum number of failed pings"),
-        ]
-        dont_randomize: Annotated[
-            bool,
-            Doc(
-                "Boolean indicating should client randomly shuffle servers list for reconnection randomness.",
-            ),
-        ]
-        flusher_queue_size: Annotated[
-            int,
-            Doc("Max count of commands awaiting to be flushed to the socket"),
-        ]
-        no_echo: Annotated[
-            bool,
-            Doc("Boolean indicating should commands be echoed."),
-        ]
-        tls_hostname: Annotated[
-            str | None,
-            Doc("Hostname for TLS."),
-        ]
-        token: Annotated[
-            str | None,
-            Doc("Auth token for NATS auth."),
-        ]
-        drain_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to drain subscriptions."),
-        ]
-        signature_cb: Annotated[
-            "SignatureCallback" | None,
-            Doc(
-                "A callback used to sign a nonce from the server while "
-                "authenticating with nkeys. The user should sign the nonce and "
-                "return the base64 encoded signature.",
-            ),
-        ]
-        user_jwt_cb: Annotated[
-            "JWTCallback" | None,
-            Doc(
-                "A callback used to fetch and return the account "
-                "signed JWT for this user.",
-            ),
-        ]
-        user_credentials: Annotated[
-            "Credentials" | None,
-            Doc("A user credentials file or tuple of files."),
-        ]
-        nkeys_seed: Annotated[
-            str | None,
-            Doc("Path-like object containing nkeys seed that will be used."),
-        ]
-        nkeys_seed_str: Annotated[
-            str | None,
-            Doc("Nkeys seed to be used."),
-        ]
-        inbox_prefix: Annotated[
-            str | bytes,
-            Doc(
-                "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
-            ),
-        ]
-        pending_size: Annotated[
-            int,
-            Doc("Max size of the pending buffer for publishing commands."),
-        ]
-        flush_timeout: Annotated[
-            float | None,
-            Doc("Max duration to wait for a forced flush to occur."),
-        ]
+        Args:
+            error_cb:
+                Callback to report errors.
+            disconnected_cb: \
+                Callback to report disconnection from NATS.
+            closed_cb:
+                Callback to report when client stops reconnection to NATS.
+            discovered_server_cb:
+                A callback to report when a new server joins the cluster.
+            reconnected_cb:
+                Callback to report success reconnection.
+            name:
+                Label the connection with name (shown in NATS monitoring
+            pedantic:
+                Turn on NATS server pedantic mode that performs extra checks on the protocol.
+                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+            verbose:
+                Verbose mode produce more feedback about code execution.
+            allow_reconnect:
+                Whether recover connection automatically or not.
+            connect_timeout:
+                Timeout in seconds to establish connection with NATS server.
+            reconnect_time_wait:
+                Time in seconds to wait for reestablish connection to NATS server
+            max_reconnect_attempts:
+                Maximum attempts number to reconnect to NATS server.
+            ping_interval:
+                Interval in seconds to ping.
+            max_outstanding_pings:
+                Maximum number of failed pings
+            dont_randomize:
+                Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+            flusher_queue_size:
+                Max count of commands awaiting to be flushed to the socket
+            no_echo:
+                Boolean indicating should commands be echoed.
+            tls_hostname:
+                Hostname for TLS.
+            token:
+                Auth token for NATS auth.
+            drain_timeout:
+                Timeout in seconds to drain subscriptions.
+            signature_cb:
+                A callback used to sign a nonce from the server while authenticating with nkeys.
+                The user should sign the nonce and return the base64 encoded signature.
+            user_jwt_cb:
+                A callback used to fetch and return the account signed JWT for this user.
+            user_credentials:
+                A user credentials file or tuple of files.
+            nkeys_seed:
+                Path-like object containing nkeys seed that will be used.
+            nkeys_seed_str:
+                Nkeys seed to be used.
+            inbox_prefix:
+                Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+            pending_size:
+                Max size of the pending buffer for publishing commands.
+            flush_timeout:
+                Max duration to wait for a forced flush to occur
+        """
+
+        error_cb: "ErrorCallback" | None
+        disconnected_cb: "Callback" | None
+        closed_cb: Callback | None
+        discovered_server_cb: "Callback" | None
+        reconnected_cb: "Callback" | None
+        name: str | None
+        pedantic: bool
+        verbose: bool
+        allow_reconnect: bool
+        connect_timeout: int
+        reconnect_time_wait: int
+        max_reconnect_attempts: int
+        ping_interval: int
+        max_outstanding_pings: int
+        dont_randomize: bool
+        flusher_queue_size: int
+        no_echo: bool
+        tls_hostname: str | None
+        token: str | None
+        drain_timeout: int
+        signature_cb: "SignatureCallback" | None
+        user_jwt_cb: "JWTCallback" | None
+        user_credentials: "Credentials" | None
+        nkeys_seed: str | None
+        nkeys_seed_str: str | None
+        inbox_prefix: str | bytes
+        pending_size: int
+        flush_timeout: float | None
 
 
 class NatsBroker(
@@ -217,214 +178,158 @@ class NatsBroker(
 
     def __init__(
         self,
-        servers: Annotated[
-            str | Iterable[str],
-            Doc("NATS cluster addresses to connect."),
-        ] = ("nats://localhost:4222",),
+        servers: str | Iterable[str] = ("nats://localhost:4222",),
         *,
-        error_cb: Annotated[
-            Optional["ErrorCallback"],
-            Doc("Callback to report errors."),
-        ] = None,
-        disconnected_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report disconnection from NATS."),
-        ] = None,
-        closed_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report when client stops reconnection to NATS."),
-        ] = None,
-        discovered_server_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report when a new server joins the cluster."),
-        ] = None,
-        reconnected_cb: Annotated[
-            Optional["Callback"],
-            Doc("Callback to report success reconnection."),
-        ] = None,
-        name: Annotated[
-            str | None,
-            Doc("Label the connection with name (shown in NATS monitoring)."),
-        ] = SERVICE_NAME,
-        pedantic: Annotated[
-            bool,
-            Doc(
-                "Turn on NATS server pedantic mode that performs extra checks on the protocol. "
-                "https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode",
-            ),
-        ] = False,
-        verbose: Annotated[
-            bool,
-            Doc("Verbose mode produce more feedback about code execution."),
-        ] = False,
-        allow_reconnect: Annotated[
-            bool,
-            Doc("Whether recover connection automatically or not."),
-        ] = True,
-        connect_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to establish connection with NATS server."),
-        ] = DEFAULT_CONNECT_TIMEOUT,
-        reconnect_time_wait: Annotated[
-            int,
-            Doc("Time in seconds to wait for reestablish connection to NATS server"),
-        ] = DEFAULT_RECONNECT_TIME_WAIT,
-        max_reconnect_attempts: Annotated[
-            int,
-            Doc("Maximum attempts number to reconnect to NATS server."),
-        ] = DEFAULT_MAX_RECONNECT_ATTEMPTS,
-        ping_interval: Annotated[
-            int,
-            Doc("Interval in seconds to ping."),
-        ] = DEFAULT_PING_INTERVAL,
-        max_outstanding_pings: Annotated[
-            int,
-            Doc("Maximum number of failed pings"),
-        ] = DEFAULT_MAX_OUTSTANDING_PINGS,
-        dont_randomize: Annotated[
-            bool,
-            Doc(
-                "Boolean indicating should client randomly shuffle servers list for reconnection randomness.",
-            ),
-        ] = False,
-        flusher_queue_size: Annotated[
-            int,
-            Doc("Max count of commands awaiting to be flushed to the socket"),
-        ] = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
-        no_echo: Annotated[
-            bool,
-            Doc("Boolean indicating should commands be echoed."),
-        ] = False,
-        tls_hostname: Annotated[
-            str | None,
-            Doc("Hostname for TLS."),
-        ] = None,
-        token: Annotated[
-            str | None,
-            Doc("Auth token for NATS auth."),
-        ] = None,
-        drain_timeout: Annotated[
-            int,
-            Doc("Timeout in seconds to drain subscriptions."),
-        ] = DEFAULT_DRAIN_TIMEOUT,
-        signature_cb: Annotated[
-            Optional["SignatureCallback"],
-            Doc(
-                "A callback used to sign a nonce from the server while "
-                "authenticating with nkeys. The user should sign the nonce and "
-                "return the base64 encoded signature.",
-            ),
-        ] = None,
-        user_jwt_cb: Annotated[
-            Optional["JWTCallback"],
-            Doc(
-                "A callback used to fetch and return the account "
-                "signed JWT for this user.",
-            ),
-        ] = None,
-        user_credentials: Annotated[
-            Optional["Credentials"],
-            Doc("A user credentials file or tuple of files."),
-        ] = None,
-        nkeys_seed: Annotated[
-            str | None,
-            Doc("Path-like object containing nkeys seed that will be used."),
-        ] = None,
-        nkeys_seed_str: Annotated[
-            str | None,
-            Doc("Raw nkeys seed to be used."),
-        ] = None,
-        inbox_prefix: Annotated[
-            str | bytes,
-            Doc(
-                "Prefix for generating unique inboxes, subjects with that prefix and NUID.ß",
-            ),
-        ] = DEFAULT_INBOX_PREFIX,
-        pending_size: Annotated[
-            int,
-            Doc("Max size of the pending buffer for publishing commands."),
-        ] = DEFAULT_PENDING_SIZE,
-        flush_timeout: Annotated[
-            float | None,
-            Doc("Max duration to wait for a forced flush to occur."),
-        ] = None,
-        js_options: Annotated[
-            Union["JsInitOptions", dict[str, Any], None],
-            Doc("JetStream initialization options."),
-        ] = None,
-        # broker args
-        graceful_timeout: Annotated[
-            float | None,
-            Doc(
-                "Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.",
-            ),
-        ] = None,
-        decoder: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom decoder object."),
-        ] = None,
-        parser: Annotated[
-            Optional["CustomCallable"],
-            Doc("Custom parser object."),
-        ] = None,
-        dependencies: Annotated[
-            Iterable["Dependant"],
-            Doc("Dependencies to apply to all broker subscribers."),
-        ] = (),
-        middlewares: Annotated[
-            Sequence["BrokerMiddleware[Any, Any]"],
-            Doc("Middlewares to apply to all broker publishers/subscribers."),
-        ] = (),
-        routers: Annotated[
-            Sequence["Registrator[Msg]"],
-            Doc("Routers to apply to broker."),
-        ] = (),
-        # AsyncAPI args
-        security: Annotated[
-            Optional["BaseSecurity"],
-            Doc(
-                "Security options to connect broker and generate AsyncAPI server security information.",
-            ),
-        ] = None,
-        specification_url: Annotated[
-            str | Iterable[str] | None,
-            Doc("AsyncAPI hardcoded server addresses. Use `servers` if not specified."),
-        ] = None,
-        protocol: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol."),
-        ] = "nats",
-        protocol_version: Annotated[
-            str | None,
-            Doc("AsyncAPI server protocol version."),
-        ] = "custom",
-        description: Annotated[
-            str | None,
-            Doc("AsyncAPI server description."),
-        ] = None,
-        tags: Annotated[
-            Iterable[Union["Tag", "TagDict"]],
-            Doc("AsyncAPI server tags."),
-        ] = (),
-        # logging args
-        logger: Annotated[
-            Optional["LoggerProto"],
-            Doc("User specified logger to pass into Context and log service messages."),
-        ] = EMPTY,
-        log_level: Annotated[
-            int,
-            Doc("Service messages log level."),
-        ] = logging.INFO,
-        # FastDepends args
-        apply_types: Annotated[
-            bool,
-            Doc("Whether to use FastDepends or not."),
-        ] = True,
+        error_cb: Optional["ErrorCallback"] = None,
+        disconnected_cb: Optional["Callback"] = None,
+        closed_cb: Optional["Callback"] = None,
+        discovered_server_cb: Optional["Callback"] = None,
+        reconnected_cb: Optional["Callback"] = None,
+        name: str | None = SERVICE_NAME,
+        pedantic: bool = False,
+        verbose: bool = False,
+        allow_reconnect: bool = True,
+        connect_timeout: int = DEFAULT_CONNECT_TIMEOUT,
+        reconnect_time_wait: int = DEFAULT_RECONNECT_TIME_WAIT,
+        max_reconnect_attempts: int = DEFAULT_MAX_RECONNECT_ATTEMPTS,
+        ping_interval: int = DEFAULT_PING_INTERVAL,
+        max_outstanding_pings: int = DEFAULT_MAX_OUTSTANDING_PINGS,
+        dont_randomize: bool = False,
+        flusher_queue_size: int = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
+        no_echo: bool = False,
+        tls_hostname: str | None = None,
+        token: str | None = None,
+        drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
+        signature_cb: Optional["SignatureCallback"] = None,
+        user_jwt_cb: Optional["JWTCallback"] = None,
+        user_credentials: Optional["Credentials"] = None,
+        nkeys_seed: str | None = None,
+        nkeys_seed_str: str | None = None,
+        inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
+        pending_size: int = DEFAULT_PENDING_SIZE,
+        flush_timeout: float | None = None,
+        js_options: Union["JsInitOptions", dict[str, Any], None] = None,
+        graceful_timeout: float | None = None,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        routers: Iterable[NatsRegistrator] = (),
+        security: Optional["BaseSecurity"] = None,
+        specification_url: str | Iterable[str] | None = None,
+        protocol: str | None = "nats",
+        protocol_version: str | None = "custom",
+        description: str | None = None,
+        tags: Iterable[Union["Tag", "TagDict"]] = (),
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
+        apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
-        """Initialize the NatsBroker object."""
+        """Initialize the NatsBroker object.
+
+        Args:
+            servers:
+                NATS cluster addresses to connect.
+            error_cb:
+                Callback to report errors.
+            disconnected_cb:
+                Callback to report disconnection from NATS.
+            closed_cb:
+                Callback to report when client stops reconnection to NATS.
+            discovered_server_cb:
+                A callback to report when a new server joins the cluster.
+            reconnected_cb:
+                Callback to report success reconnection.
+            name:
+                Label the connection with name (shown in NATS monitoring).
+            pedantic:
+                Turn on NATS server pedantic mode that performs extra checks on the protocol.
+                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+            verbose:
+                Verbose mode produce more feedback about code execution.
+            allow_reconnect:
+                Whether recover connection automatically or not.
+            connect_timeout:
+                Timeout in seconds to establish connection with NATS server.
+            reconnect_time_wait:
+                Time in seconds to wait for reestablish connection to NATS server
+            max_reconnect_attempts:
+                Maximum attempts number to reconnect to NATS server.
+            ping_interval:
+                Interval in seconds to ping.
+            max_outstanding_pings:
+                Maximum number of failed pings
+            dont_randomize:
+                Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+            flusher_queue_size:
+                Max count of commands awaiting to be flushed to the socket
+            no_echo:
+                Boolean indicating should commands be echoed.
+            tls_hostname:
+                Hostname for TLS.
+            token:
+                Auth token for NATS auth.
+            drain_timeout:
+                Timeout in seconds to drain subscriptions.
+            signature_cb:
+                A callback used to sign a nonce from the server while authenticating with nkeys.
+                The user should sign the nonce and return the base64 encoded signature.
+            user_jwt_cb:
+                A callback used to fetch and return the account signed JWT for this user.
+            user_credentials:
+                A user credentials file or tuple of files.
+            nkeys_seed:
+                Path-like object containing nkeys seed that will be used.
+            nkeys_seed_str:
+                Nkeys seed to be used.
+            inbox_prefix:
+                Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+            pending_size:
+                Max size of the pending buffer for publishing commands.
+            flush_timeout:
+                Max duration to wait for a forced flush to occur
+            js_options:
+                JetStream initialization options.
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            decoder:
+                Custom decoder object
+            parser:
+                Custom parser object.
+            dependencies:
+                Dependencies to apply to all broker subscribers.
+            middlewares:
+                "Middlewares to apply to all broker publishers/subscribers.
+            routers:
+                "Routers to apply to broker.
+            security:
+                Security options to connect broker and generate AsyncAPI server security information.
+            specification_url:
+                AsyncAPI hardcoded server addresses. Use `servers` if not specified.
+            protocol:
+                AsyncAPI server protocol.
+            protocol_version:
+                AsyncAPI server protocol version.
+            description:
+                AsyncAPI server description.
+            tags:
+                AsyncAPI server tags.
+            logger:
+                User specified logger to pass into Context and log service messages.
+            log_level:
+                Service messages log level.
+            apply_types:
+                Whether to use FastDepends or not.
+            serializer:
+                FastDepends-compatible serializer to validate incoming messages.
+            provider:
+                Provider for FastDepends.
+            context:
+                Context for FastDepends.
+        """
         secure_kwargs = parse_security(security)
 
         servers = [servers] if isinstance(servers, str) else list(servers)
