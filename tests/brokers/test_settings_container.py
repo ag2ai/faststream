@@ -45,3 +45,26 @@ def test_circular_dependency() -> None:
     settings = RealSettingsContainer({"key": 1})
     assert settings.resolve(obj2) == SomeClass(field=1, other=obj1)
     assert settings.resolve(obj1) == SomeClass(field=1, other=obj2)
+
+
+def test_resolve_dict() -> None:
+    settings = RealSettingsContainer({"key": 1})
+    assert settings.resolve({"key": Settings("key")}) == {"key": 1}
+
+
+def test_resolve_complex() -> None:
+    @dataclass
+    class SomeClass:
+        field: Any
+
+    settings = RealSettingsContainer({"key": 1})
+
+    assert settings.resolve({
+        "key": Settings("key"),
+        "other": {"key": Settings("key")},
+        "some_class": SomeClass(field={"key": Settings("key")}),
+    }) == {
+        "key": 1,
+        "other": {"key": 1},
+        "some_class": SomeClass(field={"key": 1}),
+    }

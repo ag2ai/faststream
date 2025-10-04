@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -23,7 +23,11 @@ class RealSettingsContainer(SettingsContainer):
         self._resolve_child(item)
         return item
 
-    def _resolve_child(self, item: Any, seen: set[Any] | None = None) -> None:
+    def _resolve_child(
+        self,
+        item: Any,
+        seen: set[Any] | None = None,
+    ) -> None:
         if seen is None:
             seen = set()
 
@@ -32,12 +36,19 @@ class RealSettingsContainer(SettingsContainer):
 
         seen.add(id(item))
 
-        for attr_name in dir(item):
-            if not attr_name.startswith("__"):
-                attr = getattr(item, attr_name)
-                if isinstance(attr, Settings):
-                    setattr(item, attr_name, self._items[attr.key])
-                self._resolve_child(attr, seen)
+        if isinstance(item, MutableMapping):
+            for key, value in item.items():
+                if isinstance(value, Settings):
+                    item[key] = self._items[value.key]
+                self._resolve_child(value, seen)
+
+        else:
+            for attr_name in dir(item):
+                if not attr_name.startswith("_"):
+                    attr = getattr(item, attr_name)
+                    if isinstance(attr, Settings):
+                        setattr(item, attr_name, self._items[attr.key])
+                    self._resolve_child(attr, seen)
 
 
 class FakeSettingsContainer(SettingsContainer):
