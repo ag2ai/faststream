@@ -253,11 +253,18 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
-    async def test_publisher_without_subject(self) -> None:
+    @pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+    async def test_publisher_without_destination(self) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2513."""
         broker = self.get_broker()
+
+        # use two publishers to check that we don't have conflicts
         publisher = broker.publisher(subject="")
+        another_publisher = broker.publisher(subject="")
 
         async with self.patch_broker(broker):
             await publisher.publish(None, subject="new-key")
             publisher.mock.assert_called_once()
+
+            await another_publisher.publish(None, subject="new-key")
+            another_publisher.mock.assert_called_once()

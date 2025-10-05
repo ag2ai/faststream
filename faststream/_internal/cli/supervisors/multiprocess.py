@@ -1,5 +1,5 @@
 import signal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from faststream._internal.cli.supervisors.basereload import BaseReload
 from faststream._internal.logger import logger
@@ -7,7 +7,7 @@ from faststream._internal.logger import logger
 if TYPE_CHECKING:
     from multiprocessing.context import SpawnProcess
 
-    from faststream._internal.basic_types import DecoratedCallable
+    from faststream._internal.cli.dto import RunArgs, RunFunction
 
 
 class Multiprocess(BaseReload):
@@ -15,8 +15,8 @@ class Multiprocess(BaseReload):
 
     def __init__(
         self,
-        target: "DecoratedCallable",
-        args: tuple[Any, ...],
+        target: "RunFunction",
+        args: "RunArgs",
         workers: int,
         reload_delay: float = 0.5,
     ) -> None:

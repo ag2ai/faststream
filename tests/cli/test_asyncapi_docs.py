@@ -200,7 +200,7 @@ def test_gen_wrong_path(faststream_cli) -> None:
 
 
 @skip_windows
-@skip_macos
+@skip_macos  # MacOS GHArunner doesn't allow to run 0.0.0.0 process
 @require_aiokafka
 @pytest.mark.slow()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
@@ -226,7 +226,28 @@ def test_serve_asyncapi_docs_from_app(
 
 
 @skip_windows
-@skip_macos
+@require_aiokafka
+def test_serve_asyncapi_docs_from_app_with_reload(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    with (
+        generate_template(app_code) as app_path,
+        faststream_cli(
+            "faststream",
+            "docs",
+            "serve",
+            f"{app_path.stem}:app",
+            "--reload",
+        ) as cli,
+    ):
+        assert cli.wait_for_stderr("HTTPServer running on http://localhost:8000"), (
+            cli.stderr
+        )
+
+
+@skip_windows
+@skip_macos  # MacOS GHA runner doesn't allow to run 0.0.0.0 process
 @require_aiokafka
 @pytest.mark.slow()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)

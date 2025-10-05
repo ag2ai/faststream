@@ -90,11 +90,10 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
         if sub is None:
             is_real = False
             sub = broker.subscriber(
-                queue=publisher.routing() or _get_publisher_sub_name(publisher),
+                queue=publisher.routing(),
                 exchange=publisher.exchange,
                 persistent=False,
             )
-            sub._original_publisher__ = publisher  # type: ignore[attr-defined]
         else:
             is_real = True
 
@@ -294,11 +293,6 @@ def _is_handler_matches(
     if handler.exchange != exchange:
         return False
 
-    if (publisher := getattr(handler, "_original_publisher__", None)) and (
-        handler.routing() == _get_publisher_sub_name(publisher)
-    ):
-        return True
-
     if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:
         return handler.routing() == routing_key
 
@@ -369,7 +363,3 @@ def apply_pattern(pattern: str, current: str) -> bool:
             return False
 
     return next(current_queue, None) is None
-
-
-def _get_publisher_sub_name(publisher: "RabbitPublisher") -> str:
-    return f"__TEST_SUBSCRIBER__{hash(publisher)}__"

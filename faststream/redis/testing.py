@@ -83,21 +83,8 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         if sub is None:
             is_real = False
-
-            publisher_property = publisher.subscriber_property(name_only=True)
-
-            if any(publisher_property.values()):
-                sub_options = publisher.subscriber_property(name_only=False)
-
-            else:
-                # Publisher was created with empty destination
-                sub_options = {}
-                for key, value in publisher_property.items():
-                    if value is not None:
-                        sub_options[key] = _get_publisher_sub_name(publisher)
-
+            sub_options = publisher.subscriber_property(name_only=False)
             sub = broker.subscriber(**sub_options, persistent=False)
-            sub._original_publisher__ = publisher  # type: ignore[union-attr]
         else:
             is_real = True
 
@@ -291,11 +278,6 @@ class ChannelVisitor(Visitor):
 
         sub_channel = sub.channel
 
-        if (publisher := getattr(sub, "_original_publisher__", None)) and (
-            sub_channel.name == _get_publisher_sub_name(publisher)
-        ):
-            return channel
-
         if (
             sub_channel.pattern
             and bool(
@@ -335,11 +317,6 @@ class ListVisitor(Visitor):
         if list is None or not isinstance(sub, _ListHandlerMixin):
             return None
 
-        if (publisher := getattr(sub, "_original_publisher__", None)) and (
-            sub.list_sub.name == _get_publisher_sub_name(publisher)
-        ):
-            return list
-
         if list == sub.list_sub.name:
             return list
 
@@ -376,11 +353,6 @@ class StreamVisitor(Visitor):
     ) -> str | None:
         if stream is None or not isinstance(sub, _StreamHandlerMixin):
             return None
-
-        if (publisher := getattr(sub, "_original_publisher__", None)) and (
-            sub.stream_sub.name == _get_publisher_sub_name(publisher)
-        ):
-            return stream
 
         if stream == sub.stream_sub.name:
             return stream
@@ -428,7 +400,3 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
         raise SetupError(INCORRECT_SETUP_MSG)
 
     return destination
-
-
-def _get_publisher_sub_name(publisher: "LogicPublisher") -> str:
-    return f"__TEST_SUBSCRIBER__{hash(publisher)}__"
