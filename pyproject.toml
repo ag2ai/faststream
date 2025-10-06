@@ -103,7 +103,7 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.13.2",
+    "ruff==0.13.3",
     "bandit==1.8.6",
     "semgrep==1.139.0",
     "codespell==2.4.1",

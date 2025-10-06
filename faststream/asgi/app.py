@@ -80,6 +80,8 @@ def cast_uvicorn_params(params: dict[str, Any]) -> dict[str, Any]:
         params["port"] = int(port)
     if fd := params.get("fd"):
         params["fd"] = int(fd)
+    if (access_log := params.get("access_log", EMPTY)) is not EMPTY:
+        params["access_log"] = access_log.lower() not in {"false", ""}
     return params
 
 
