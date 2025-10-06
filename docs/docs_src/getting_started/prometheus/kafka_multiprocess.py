@@ -24,7 +24,6 @@ broker = KafkaBroker(
 @broker.subscriber("test-queue")
 async def handle_message(msg: str) -> None:
     """Handle incoming messages."""
-    pass
 
 
 async def metrics(scope):

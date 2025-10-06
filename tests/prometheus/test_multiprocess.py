@@ -77,6 +77,7 @@ class TestPrometheusMultiprocess:
                 pytest.skip(f"Uvicorn process failed to start. stderr: {stderr[:500]}")
 
             import asyncio
+
             import httpx
 
             try:
