@@ -53,7 +53,9 @@ def set_exit(
         signal.signal(sig, func)
 
 
-def get_subprocess(target: "DecoratedCallableNone", args: Any) -> "SpawnProcess":
+def get_subprocess(
+    target: "DecoratedCallableNone", args: tuple[Any, ...]
+) -> "SpawnProcess":
     """Spawn a subprocess."""
     stdin_fileno: int | None
     try:

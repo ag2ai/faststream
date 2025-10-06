@@ -1,11 +1,13 @@
 import inspect
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal._compat import HAS_UVICORN, uvicorn
-from faststream._internal.basic_types import SettingField
 from faststream.asgi.app import cast_uvicorn_params
 from faststream.exceptions import INSTALL_UVICORN
+
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import SettingField
+    from faststream._internal.cli.dto import RunArgs
 
 if HAS_UVICORN:
     from uvicorn.supervisors.multiprocess import Multiprocess, Process
@@ -39,15 +41,14 @@ class ASGIMultiprocess:
     def __init__(
         self,
         target: str,
-        args: tuple[str, dict[str, SettingField], bool, Path | None, int],
+        args: "RunArgs",
         workers: int,
     ) -> None:
-        _, run_extra_options, is_factory, _, log_level = args
         self._target = target
-        self._run_extra_options = cast_uvicorn_params(run_extra_options or {})
+        self._run_extra_options = cast_uvicorn_params(args.extra_options)
         self._workers = workers
-        self._is_factory = is_factory
-        self._log_level = log_level
+        self._is_factory = args.is_factory
+        self._log_level = args.log_level
 
     def run(self) -> None:
         if not HAS_UVICORN:

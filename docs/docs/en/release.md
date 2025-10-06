@@ -12,6 +12,30 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc4
+
+### What's Changed
+
+This is the latest RC version before the stable release. **0.6.0** is scheduled to be released on 10/10/2025.
+
+* fix: #2462 list subscriber consume/stop race by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2531](https://github.com/ag2ai/faststream/pull/2531){.external-link target="_blank"}
+* fix: correct NATS dynamic subscriber stop by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2539](https://github.com/ag2ai/faststream/pull/2539){.external-link target="_blank"}
+* docs: add warning about idle dynamic subscribers in test clients by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#2540](https://github.com/ag2ai/faststream/pull/2540){.external-link target="_blank"}
+* docs: fix readme badges by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#2523](https://github.com/ag2ai/faststream/pull/2523){.external-link target="_blank"}
+* docs: Added an example to manual reuse the message's "correlation_id" by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2526](https://github.com/ag2ai/faststream/pull/2526){.external-link target="_blank"}
+* docs: Added Args Doc to StreamSub by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2534](https://github.com/ag2ai/faststream/pull/2534){.external-link target="_blank"}
+* docs: two phrasing corrections by [@axgkl](https://github.com/axgkl){.external-link target="_blank"} in [#2541](https://github.com/ag2ai/faststream/pull/2541){.external-link target="_blank"}
+* chore: Remove Doc() part1 by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2532](https://github.com/ag2ai/faststream/pull/2532){.external-link target="_blank"}
+* chore: Remove Doc() part2 by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2536](https://github.com/ag2ai/faststream/pull/2536){.external-link target="_blank"}
+* refactor: impl ArgsDto to standardize CLI commands by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2544](https://github.com/ag2ai/faststream/pull/2544){.external-link target="_blank"}
+* test: add extended test for 2513 bug by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2545](https://github.com/ag2ai/faststream/pull/2545){.external-link target="_blank"}
+* ci: use uv ecosystem for dependanbot by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2535](https://github.com/ag2ai/faststream/pull/2535){.external-link target="_blank"}
+
+### New Contributors
+* [@axgkl](https://github.com/axgkl){.external-link target="_blank"} made their first contribution in [#2541](https://github.com/ag2ai/faststream/pull/2541){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc3...0.6.0rc4](https://github.com/ag2ai/faststream/compare/0.6.0rc3...0.6.0rc4){.external-link target="_blank"}
+
 ## 0.6.0rc3
 
 ### What's Changed

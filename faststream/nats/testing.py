@@ -66,11 +66,7 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(
-                publisher.subject or _get_publisher_sub_name(publisher),
-                persistent=False,
-            )
-            sub._original_publisher__ = publisher  # type: ignore[attr-defined]
+            sub = broker.subscriber(publisher.subject, persistent=False)
         else:
             is_real = True
 
@@ -197,11 +193,6 @@ def _is_handler_matches(
     subject: str,
     stream: str | None = None,
 ) -> bool:
-    if (publisher := getattr(handler, "_original_publisher__", None)) and (
-        handler.subject == _get_publisher_sub_name(publisher)
-    ):
-        return True
-
     if stream:
         if not (handler_stream := getattr(handler, "stream", None)):
             return False
@@ -260,7 +251,3 @@ class PatchedMessage(Msg):
 
     async def in_progress(self) -> None:
         pass
-
-
-def _get_publisher_sub_name(publisher: "LogicPublisher") -> str:
-    return f"__TEST_SUBSCRIBER__{hash(publisher)}__"

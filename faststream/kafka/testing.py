@@ -73,7 +73,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
         if sub is None:
             is_real = False
 
-            topic_name = publisher.topic or _get_publisher_sub_name(publisher)
+            topic_name = publisher.topic
 
             if publisher.partition:
                 tp = TopicPartition(
@@ -91,7 +91,6 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
                     batch=isinstance(publisher, BatchPublisher),
                     persistent=False,
                 )
-            sub._original_publisher__ = publisher  # type: ignore[union-attr]
         else:
             is_real = True
 
@@ -304,20 +303,6 @@ def _is_handler_matches(
     topic: str,
     partition: int | None,
 ) -> bool:
-    if _try_match_publisher(handler, topic, partition):
-        return True
-
-    if publisher := getattr(handler, "_original_publisher__", None):
-        return _try_match_publisher(handler, _get_publisher_sub_name(publisher), None)
-
-    return False
-
-
-def _try_match_publisher(
-    handler: "LogicSubscriber[Any]",
-    topic: str,
-    partition: int | None,
-) -> bool:
     return bool(
         any(
             p.topic == topic and (partition is None or p.partition == partition)
@@ -326,7 +311,3 @@ def _try_match_publisher(
         or topic in handler.topics
         or (handler.pattern and re.match(handler.pattern, topic)),
     )
-
-
-def _get_publisher_sub_name(publisher: "LogicPublisher") -> str:
-    return f"__TEST_SUBSCRIBER__{hash(publisher)}__"
