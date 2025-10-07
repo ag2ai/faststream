@@ -2,26 +2,39 @@ name: Issue Notifier
 
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled, reopened]
+  pull_request_target:
+    types: [opened, reopened] # zizmor: ignore[dangerous-triggers]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   issues: read
+  pull-requests: read
 
 jobs:
   notify:
     name: "Telegram notification"
     runs-on: ubuntu-latest
     steps:
-      - name: Send Telegram notification for new issue
+      - name: Send Telegram notification for new issue or opened pull request
         uses: sehat1137/telegram-notifier@5d130037eb80a33251f3afe8bc56447236acab77 # v1.3.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.TELEGRAM_TO }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+  notify-oss-board:
+    name: "Telegram notification"
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'issues' &&
+      contains(github.event.issue.labels.*.name, 'good first issue')
+    steps:
       - name: Send Telegram notification to OSS board
         uses: sehat1137/telegram-notifier@5d130037eb80a33251f3afe8bc56447236acab77 # v1.3.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.GFI_CHAT }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          trigger-labels: "good first issue"
