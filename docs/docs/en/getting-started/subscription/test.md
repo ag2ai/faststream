@@ -115,6 +115,34 @@ This way you can catch any exceptions that occur inside your handler:
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:18-23] !}
     ```
 
+## Full Example
+Let's look at a complete example of creating an app and testing it
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/kafka/full_testing.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/confluent/full_testing.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/rabbit/full_testing.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/nats/full_testing.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/redis/full_testing.py !}
+    ```
+
 ### Validates Input
 
 Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.MagicMock){.external-link target="_blank"} object to validate passed arguments and call counts.

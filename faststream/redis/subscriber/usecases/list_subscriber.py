@@ -42,6 +42,7 @@ class _ListHandlerMixin(LogicSubscriber):
         calls: "CallsCollection[Any]",
     ) -> None:
         super().__init__(config, specification, calls)
+        self._read_lock = anyio.Lock()
         assert config.list_sub
         self._list_sub = config.list_sub
 
@@ -75,6 +76,12 @@ class _ListHandlerMixin(LogicSubscriber):
             return
 
         await super().start(self._client)
+
+    @override
+    async def stop(self) -> None:
+        with anyio.move_on_after(self._outer_config.graceful_timeout):
+            async with self._read_lock:
+                await super().stop()
 
     @override
     async def get_one(
@@ -169,21 +176,22 @@ class ListSubscriber(_ListHandlerMixin):
         super().__init__(config, specification, calls)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
-        raw_msg = await client.blpop(
-            self.list_sub.name,
-            timeout=self.list_sub.polling_interval,
-        )
-
-        if raw_msg:
-            _, msg_data = raw_msg
-
-            msg = DefaultListMessage(
-                type="list",
-                data=msg_data,
-                channel=self.list_sub.name,
+        async with self._read_lock:
+            raw_msg = await client.blpop(
+                self.list_sub.name,
+                timeout=self.list_sub.polling_interval,
             )
 
-            await self.consume_one(msg)
+            if raw_msg:
+                _, msg_data = raw_msg
+
+                msg = DefaultListMessage(
+                    type="list",
+                    data=msg_data,
+                    channel=self.list_sub.name,
+                )
+
+                await self.consume_one(msg)
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
@@ -199,21 +207,22 @@ class ListBatchSubscriber(_ListHandlerMixin):
         super().__init__(config, specification, calls)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
-        raw_msgs = await client.lpop(
-            name=self.list_sub.name,
-            count=self.list_sub.max_records,
-        )
-
-        if raw_msgs:
-            msg = BatchListMessage(
-                type="blist",
-                channel=self.list_sub.name,
-                data=raw_msgs,
+        async with self._read_lock:
+            raw_msgs = await client.lpop(
+                name=self.list_sub.name,
+                count=self.list_sub.max_records,
             )
 
-            await self.consume_one(msg)
+            if raw_msgs:
+                msg = BatchListMessage(
+                    type="blist",
+                    channel=self.list_sub.name,
+                    data=raw_msgs,
+                )
 
-        else:
+                await self.consume_one(msg)
+
+        if not raw_msgs:
             await anyio.sleep(self.list_sub.polling_interval)
 
 

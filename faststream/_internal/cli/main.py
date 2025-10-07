@@ -16,6 +16,7 @@ from faststream.asgi import AsgiFastStream
 from faststream.exceptions import INSTALL_WATCHFILES, SetupError, StartupValidationError
 
 from .docs import docs_app
+from .dto import RunArgs
 from .options import (
     APP_ARGUMENT,
     APP_DIR_OPTION,
@@ -34,7 +35,6 @@ from .utils.logs import (
 from .utils.parser import parse_cli_args
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SettingField
     from faststream._internal.broker import BrokerUsecase
 
 cli = typer.Typer(pretty_exceptions_short=True)
@@ -122,20 +122,24 @@ def run(
     module_path, app_obj = import_from_string(app, is_factory=is_factory)
     app_obj = cast("Application", app_obj)
 
-    args = (app, extra, is_factory, log_config, casted_log_level)
-
     if reload and workers > 1:
         msg = "You can't use reload option with multiprocessing"
         raise SetupError(msg)
-    if workers <= 1:
-        extra["worker_id"] = None
+
+    run_args = RunArgs(
+        app,
+        extra_options={"worker_id": None, **extra},
+        is_factory=is_factory,
+        log_config=log_config,
+        log_level=casted_log_level,
+    )
 
     if reload:
         try:
             from faststream._internal.cli.supervisors.watchfiles import WatchReloader
         except ImportError:
             warnings.warn(INSTALL_WATCHFILES, category=ImportWarning, stacklevel=1)
-            _run(*args)
+            _run(run_args)
 
         else:
             reload_dirs = []
@@ -146,7 +150,7 @@ def run(
 
             WatchReloader(
                 target=_run,
-                args=args,
+                args=run_args,
                 reload_dirs=reload_dirs,
                 extra_extensions=watch_extensions,
             ).run()
@@ -155,9 +159,11 @@ def run(
         if isinstance(app_obj, FastStream):
             from faststream._internal.cli.supervisors.multiprocess import Multiprocess
 
+            run_args.app_level = logging.DEBUG
+
             Multiprocess(
                 target=_run,
-                args=(*args, logging.DEBUG),
+                args=run_args,
                 workers=workers,
             ).run()
 
@@ -168,7 +174,7 @@ def run(
 
             ASGIMultiprocess(
                 target=app,
-                args=args,
+                args=run_args,
                 workers=workers,
             ).run()
 
@@ -177,53 +183,28 @@ def run(
             raise typer.BadParameter(msg)
 
     else:
-        _run_imported_app(
-            app_obj,
-            extra_options=extra,
-            log_level=casted_log_level,
-            log_config=log_config,
-        )
+        _run_imported_app(app_obj, args=run_args)
 
 
-def _run(
-    # NOTE: we should pass `str` due FastStream is not picklable
-    app: str,
-    extra_options: dict[str, "SettingField"],
-    is_factory: bool,
-    log_config: Path | None,
-    log_level: int = logging.NOTSET,
-    app_level: int = logging.INFO,  # option for reloader only
-) -> None:
+def _run(args: RunArgs) -> None:
     """Runs the specified application."""
-    _, app_obj = import_from_string(app, is_factory=is_factory)
+    _, app_obj = import_from_string(args.app, is_factory=args.is_factory)
     app_obj = cast("Application", app_obj)
-    _run_imported_app(
-        app_obj,
-        extra_options=extra_options,
-        log_level=log_level,
-        app_level=app_level,
-        log_config=log_config,
-    )
+    _run_imported_app(app_obj, args=args)
 
 
-def _run_imported_app(
-    app_obj: "Application",
-    extra_options: dict[str, "SettingField"],
-    log_config: Path | None,
-    log_level: int = logging.NOTSET,
-    app_level: int = logging.INFO,  # option for reloader only
-) -> None:
+def _run_imported_app(app_obj: "Application", args: RunArgs) -> None:
     if not isinstance(app_obj, Application):
         msg = f'Imported object "{app_obj}" must be "Application" type.'
         raise typer.BadParameter(
             msg,
         )
 
-    if log_level > 0:
-        set_log_level(log_level, app_obj)
+    if args.log_level > 0:
+        set_log_level(args.log_level, app_obj)
 
-    if log_config is not None:
-        set_log_config(log_config)
+    if args.log_config is not None:
+        set_log_config(args.log_config)
 
     if not IS_WINDOWS:  # pragma: no cover
         with suppress(ImportError):
@@ -234,8 +215,8 @@ def _run_imported_app(
     try:
         anyio.run(
             app_obj.run,
-            app_level,
-            extra_options,
+            args.app_level,
+            args.extra_options,
         )
 
     except StartupValidationError as startup_exc:

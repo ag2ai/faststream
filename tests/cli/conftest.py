@@ -5,15 +5,15 @@ import subprocess
 import threading
 import time
 from collections.abc import Generator
-from contextlib import AbstractContextManager, contextmanager, suppress
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
-from typing import Protocol
 
 import pytest
 
 from faststream import FastStream
 from faststream._internal._compat import IS_WINDOWS
+from tests.cli import interfaces
 
 
 @pytest.fixture()
@@ -46,18 +46,10 @@ def faststream_tmp_path(tmp_path: "Path"):
     return faststream_tmp
 
 
-class GenerateTemplateFactory(Protocol):
-    def __call__(
-        self,
-        code: str,
-        filename: str = "temp_app.py",
-    ) -> AbstractContextManager[Path]: ...
-
-
 @pytest.fixture()
 def generate_template(
     faststream_tmp_path: "Path",
-) -> GenerateTemplateFactory:
+) -> interfaces.GenerateTemplateFactory:
     @contextmanager
     def factory(
         code: str,
@@ -158,17 +150,10 @@ class CLIThread:
             self.process.kill()
 
 
-class FastStreamCLIFactory(Protocol):
-    def __call__(
-        self,
-        *cmd: str,
-        wait_time: float = 2.0,
-        extra_env: dict[str, str] | None = None,
-    ) -> AbstractContextManager[CLIThread]: ...
-
-
 @pytest.fixture()
-def faststream_cli(faststream_tmp_path: Path) -> FastStreamCLIFactory:
+def faststream_cli(
+    faststream_tmp_path: Path,
+) -> interfaces.FastStreamCLIFactory:
     @contextmanager
     def cli_factory(
         *cmd: str,

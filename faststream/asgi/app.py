@@ -80,6 +80,8 @@ def cast_uvicorn_params(params: dict[str, Any]) -> dict[str, Any]:
         params["port"] = int(port)
     if fd := params.get("fd"):
         params["fd"] = int(fd)
+    if (access_log := params.get("access_log", EMPTY)) is not EMPTY:
+        params["access_log"] = access_log.lower() not in {"false", ""}
     return params
 
 
@@ -103,6 +105,8 @@ class AsgiFastStream(Application):
         specification: Optional["SpecificationFactory"] = None,
         asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
+        self.routes = list(asgi_routes)
+
         super().__init__(
             broker,
             logger=logger,
@@ -119,19 +123,25 @@ class AsgiFastStream(Application):
             specification=specification,
         )
 
-        self.routes = list(asgi_routes)
         if asyncapi_path:
-            route = AsyncAPIRoute.ensure_route(asyncapi_path)
-            self.routes.append((route.path, route(self.schema)))
-
-        for path, app in self.routes:
-            if isinstance(app, HttpHandler):
-                self.schema.add_http_route(path, app)
+            asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path)
+            self.routes.append((asyncapi_route.path, asyncapi_route(self.schema)))
 
         self._server = OuterRunState()
 
         self._log_level: int = logging.INFO
         self._run_extra_options: dict[str, SettingField] = {}
+
+    def _init_setupable_(  # noqa: PLW3201
+        self,
+        broker: Optional["BrokerUsecase[Any, Any]"] = None,
+        /,
+        specification: Optional["SpecificationFactory"] = None,
+        config: Optional["FastDependsConfig"] = None,
+    ) -> None:
+        super()._init_setupable_(broker, specification, config)
+        for route in self.routes:
+            self._register_route(route)
 
     @classmethod
     def from_app(
@@ -155,7 +165,16 @@ class AsgiFastStream(Application):
         return asgi_app
 
     def mount(self, path: str, route: "ASGIApp") -> None:
-        self.routes.append((path, route))
+        asgi_route = (path, route)
+        self.routes.append(asgi_route)
+        self._register_route(asgi_route)
+
+    def _register_route(self, asgi_route: tuple[str, "ASGIApp"]) -> None:
+        path, route = asgi_route
+        if isinstance(route, HttpHandler):
+            self.schema.add_http_route(path, route)
+            route.update_fd_config(self.config)
+            route.set_logger(self.logger)
 
     async def __call__(
         self,

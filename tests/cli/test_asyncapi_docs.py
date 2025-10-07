@@ -6,7 +6,7 @@ import httpx
 import pytest
 import yaml
 
-from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
+from tests.cli import interfaces
 from tests.marks import require_aiokafka, skip_macos, skip_windows
 
 json_asyncapi_doc = """
@@ -162,8 +162,8 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
 )
 def test_gen_asyncapi_for_kafka_app(
     commands: list[str],
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
     load_schema: Callable[[TextIO], Any],
 ) -> None:
     with (
@@ -194,19 +194,19 @@ def test_gen_asyncapi_for_kafka_app(
 
 @pytest.mark.slow()
 @skip_windows
-def test_gen_wrong_path(faststream_cli: FastStreamCLIFactory) -> None:
+def test_gen_wrong_path(faststream_cli) -> None:
     with faststream_cli("faststream", "docs", "gen", "non_existent:app") as cli:
         assert cli.wait_for_stderr("No such file or directory")
 
 
 @skip_windows
-@skip_macos
+@skip_macos  # MacOS GHArunner doesn't allow to run 0.0.0.0 process
 @require_aiokafka
 @pytest.mark.slow()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_serve_asyncapi_docs_from_app(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     with (
         generate_template(app_code) as app_path,
@@ -226,7 +226,28 @@ def test_serve_asyncapi_docs_from_app(
 
 
 @skip_windows
-@skip_macos
+@require_aiokafka
+def test_serve_asyncapi_docs_from_app_with_reload(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    with (
+        generate_template(app_code) as app_path,
+        faststream_cli(
+            "faststream",
+            "docs",
+            "serve",
+            f"{app_path.stem}:app",
+            "--reload",
+        ) as cli,
+    ):
+        assert cli.wait_for_stderr("HTTPServer running on http://localhost:8000"), (
+            cli.stderr
+        )
+
+
+@skip_windows
+@skip_macos  # MacOS GHA runner doesn't allow to run 0.0.0.0 process
 @require_aiokafka
 @pytest.mark.slow()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
@@ -240,8 +261,8 @@ def test_serve_asyncapi_docs_from_app(
 def test_serve_asyncapi_docs_from_file(
     doc_filename: str,
     doc: str,
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     with (
         generate_template(doc, filename=doc_filename) as doc_path,

@@ -46,7 +46,6 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -99,7 +98,7 @@ class KafkaBroker(
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
-        routers: Sequence["Registrator[Message]"] = (),
+        routers: Iterable[KafkaRegistrator] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,

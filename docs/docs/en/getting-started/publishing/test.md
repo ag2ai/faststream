@@ -115,4 +115,7 @@ publisher.mock.assert_called_once_with("Hi!")
 !!! note
     The Publisher mock contains not just a `publish` method input value. It sets up a virtual consumer for an outgoing topic, consumes a message, and stores this consumed one.
 
+!!! note
+    In order for publishers to be properly patched by the test broker, you need to create them before running the test broker
+
 Additionally, *TestBroker* can be used with a real external broker to make your tests end-to-end suitable. For more information, please visit the [subscriber testing page](../subscription/test.md#real-broker-testing){.internal-link}.

@@ -92,6 +92,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
             sub = broker.subscriber(
                 queue=publisher.routing(),
                 exchange=publisher.exchange,
+                persistent=False,
             )
         else:
             is_real = True

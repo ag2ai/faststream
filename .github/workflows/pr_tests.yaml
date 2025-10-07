@@ -36,20 +36,14 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        id: cache
-        with:
-          path: ${{ env.pythonLocation }}
-          key: ${{ runner.os }}-python-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}-uv
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Install Pydantic v1
@@ -79,7 +73,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -87,7 +81,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -111,7 +104,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -119,7 +112,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -143,7 +135,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -151,7 +143,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -186,7 +177,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -194,7 +185,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -218,7 +208,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -226,7 +216,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -261,7 +250,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -269,7 +258,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -293,7 +281,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -301,7 +289,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -324,7 +311,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -332,7 +319,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -356,7 +342,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -364,7 +350,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -387,7 +372,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -395,7 +380,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -419,7 +403,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -427,7 +411,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -450,7 +433,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - name: Set up Python
@@ -458,7 +441,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
@@ -492,7 +474,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: "latest"
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0

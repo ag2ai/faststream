@@ -1,21 +1,19 @@
 import os
 import threading
 from multiprocessing.context import SpawnProcess
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from faststream._internal.cli.supervisors.utils import get_subprocess, set_exit
 from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import DecoratedCallable
+    from faststream._internal.cli.dto import RunArgs, RunFunction
 
 
 class BaseReload:
     """A base class for implementing a reloader process."""
 
     _process: SpawnProcess
-    _target: "DecoratedCallable"
-    _args: tuple[Any, ...]
 
     reload_delay: float | None
     should_exit: threading.Event
@@ -24,8 +22,8 @@ class BaseReload:
 
     def __init__(
         self,
-        target: "DecoratedCallable",
-        args: tuple[Any, ...],
+        target: "RunFunction",
+        args: "RunArgs",
         reload_delay: float | None = 0.5,
     ) -> None:
         self._target = target
@@ -66,8 +64,8 @@ class BaseReload:
         self._process.join()
 
     def start_process(self, worker_id: int | None = None) -> SpawnProcess:
-        self._args[1]["worker_id"] = worker_id
-        process = get_subprocess(target=self._target, args=self._args)
+        self._args.extra_options["worker_id"] = worker_id
+        process = get_subprocess(target=self._target, args=(self._args,))
         process.start()
         return process
 

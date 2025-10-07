@@ -74,6 +74,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -109,6 +110,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -179,6 +181,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -214,6 +217,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -249,6 +253,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -284,6 +289,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -319,6 +325,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -354,6 +361,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -389,6 +397,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -409,6 +418,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             middlewares: Subscriber middlewares to wrap incoming message processing.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             message_format: Which format to use when parsing messages.
+            persistent: Whether to make the subscriber persistent or not.
             max_workers: Number of workers to process messages concurrently.
             title: AsyncAPI subscriber object title.
             description: AsyncAPI subscriber object description. Uses decorated docstring as default.
@@ -434,7 +444,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().subscriber(subscriber)
+        super().subscriber(subscriber, persistent=persistent)
 
         return subscriber.add_call(
             parser_=parser or self._parser,
@@ -460,6 +470,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -484,6 +495,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -508,6 +520,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -532,6 +545,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -556,6 +570,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -580,6 +595,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             ),
         ] = (),
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -607,6 +623,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             schema: AsyncAPI publishing message type. Should be any python-native
                 object annotation or `pydantic.BaseModel`.
             include_in_schema: Whether to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the publisher persistent or not.
         """
         publisher = create_publisher(
             channel=channel,
@@ -624,7 +641,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             schema_=schema,
             include_in_schema=include_in_schema,
         )
-        super().publisher(publisher)
+        super().publisher(publisher, persistent=persistent)
         return publisher
 
     @override

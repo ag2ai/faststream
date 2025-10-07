@@ -224,3 +224,28 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         queue: str,
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
+
+    @pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+    async def test_publisher_without_destination(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+        broker = self.get_broker()
+
+        # use two publishers to check that we don't have conflicts
+        channel_publisher = broker.publisher(channel="")
+        another_channel_publisher = broker.publisher(channel="")
+
+        list_publisher = broker.publisher(list="")
+        stream_publisher = broker.publisher(stream="")
+
+        async with self.patch_broker(broker):
+            await channel_publisher.publish(None, channel="new-key")
+            channel_publisher.mock.assert_called_once()
+
+            await another_channel_publisher.publish(None, channel="new-key")
+            another_channel_publisher.mock.assert_called_once()
+
+            await list_publisher.publish(None, list="new-key")
+            list_publisher.mock.assert_called_once()
+
+            await stream_publisher.publish(None, stream="new-key")
+            stream_publisher.mock.assert_called_once()

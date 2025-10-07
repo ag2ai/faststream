@@ -1,9 +1,9 @@
 import signal
 from multiprocessing.context import SpawnProcess
-from typing import Any
 
 import pytest
 
+from faststream._internal.cli.dto import RunArgs
 from faststream._internal.cli.supervisors.basereload import BaseReload, get_subprocess
 
 
@@ -16,20 +16,20 @@ class PatchedBaseReload(BaseReload):
         return True
 
     def start_process(self, worker_id: int | None = None) -> SpawnProcess:
-        process = get_subprocess(target=self._target, args=self._args)
+        process = get_subprocess(target=self._target, args=(self._args,))
         process.start()
         return process
 
 
-def empty(*args: Any, **kwargs: Any) -> None:
+def empty(args: RunArgs) -> None:
     pass
 
 
 @pytest.mark.slow()
 def test_base() -> None:
-    processor = PatchedBaseReload(target=empty, args=())
+    processor = PatchedBaseReload(target=empty, args=RunArgs(app=""))
 
-    processor._args = (processor.pid,)
+    processor._args.extra_options = {"parent_id": processor.pid}
     processor.run()
 
     code = abs(processor._process.exitcode or 0)

@@ -44,7 +44,6 @@ Partition = TypeVar("Partition")
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from aiokafka import ConsumerRecord
     from aiokafka.abc import AbstractTokenProvider
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
@@ -54,7 +53,6 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.broker.registrator import Registrator
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -218,7 +216,7 @@ class KafkaBroker(
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
-        routers: Sequence["Registrator[ConsumerRecord]"] = (),
+        routers: Iterable[KafkaRegistrator] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,

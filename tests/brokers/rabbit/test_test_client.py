@@ -55,6 +55,22 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
             with pytest.raises(SubscriberNotFound):
                 await br.request("", "")
 
+    @pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+    async def test_publisher_without_destination(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+        broker = self.get_broker()
+
+        # use two publishers to check that we don't have conflicts
+        publisher = broker.publisher(exchange="test_exchange")
+        another_publisher = broker.publisher(exchange="test_exchange")
+
+        async with self.patch_broker(broker):
+            await publisher.publish(None, routing_key="new-key")
+            publisher.mock.assert_called_once()
+
+            await another_publisher.publish(None, routing_key="new-key")
+            another_publisher.mock.assert_called_once()
+
     async def test_consume_manual_ack(
         self,
         queue: str,

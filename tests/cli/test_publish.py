@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -29,9 +29,12 @@ def get_mock_app(broker_type: Any, producer_type: Any) -> tuple[FastStream, Asyn
     broker.connect = AsyncMock()
     mock_producer = AsyncMock(spec=producer_type)
     mock_producer.publish = AsyncMock()
-    mock_producer._parser = AsyncMock()
-    mock_producer._decoder = AsyncMock()
+    mock_producer._parser = MagicMock(return_value=None)
+    mock_producer._decoder = MagicMock(return_value=None)
     broker.config.broker_config.producer = mock_producer
+
+    broker.config.broker_config.broker_decoder = MagicMock(return_value=None)
+
     return FastStream(broker), mock_producer
 
 

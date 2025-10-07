@@ -12,6 +12,57 @@ hide:
 ---
 
 # Release Notes
+## 0.6.0rc4
+
+### What's Changed
+
+This is the latest RC version before the stable release. **0.6.0** is scheduled to be released on 10/10/2025.
+
+* fix: #2462 list subscriber consume/stop race by [@NelsonNotes](https://github.com/NelsonNotes){.external-link target="_blank"} in [#2531](https://github.com/ag2ai/faststream/pull/2531){.external-link target="_blank"}
+* fix: correct NATS dynamic subscriber stop by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2539](https://github.com/ag2ai/faststream/pull/2539){.external-link target="_blank"}
+* docs: add warning about idle dynamic subscribers in test clients by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#2540](https://github.com/ag2ai/faststream/pull/2540){.external-link target="_blank"}
+* docs: fix readme badges by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#2523](https://github.com/ag2ai/faststream/pull/2523){.external-link target="_blank"}
+* docs: Added an example to manual reuse the message's "correlation_id" by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2526](https://github.com/ag2ai/faststream/pull/2526){.external-link target="_blank"}
+* docs: Added Args Doc to StreamSub by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2534](https://github.com/ag2ai/faststream/pull/2534){.external-link target="_blank"}
+* docs: two phrasing corrections by [@axgkl](https://github.com/axgkl){.external-link target="_blank"} in [#2541](https://github.com/ag2ai/faststream/pull/2541){.external-link target="_blank"}
+* chore: Remove Doc() part1 by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2532](https://github.com/ag2ai/faststream/pull/2532){.external-link target="_blank"}
+* chore: Remove Doc() part2 by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2536](https://github.com/ag2ai/faststream/pull/2536){.external-link target="_blank"}
+* refactor: impl ArgsDto to standardize CLI commands by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2544](https://github.com/ag2ai/faststream/pull/2544){.external-link target="_blank"}
+* test: add extended test for 2513 bug by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2545](https://github.com/ag2ai/faststream/pull/2545){.external-link target="_blank"}
+* ci: use uv ecosystem for dependanbot by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2535](https://github.com/ag2ai/faststream/pull/2535){.external-link target="_blank"}
+
+### New Contributors
+* [@axgkl](https://github.com/axgkl){.external-link target="_blank"} made their first contribution in [#2541](https://github.com/ag2ai/faststream/pull/2541){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc3...0.6.0rc4](https://github.com/ag2ai/faststream/compare/0.6.0rc3...0.6.0rc4){.external-link target="_blank"}
+
+## 0.6.0rc3
+
+### What's Changed
+* ci: create update release PRs to main: by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2490](https://github.com/ag2ai/faststream/pull/2490){.external-link target="_blank"}
+* ci: use PAT to build docs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2491](https://github.com/ag2ai/faststream/pull/2491){.external-link target="_blank"}
+* ci: update telegram-notifier & send message to oss board by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2492](https://github.com/ag2ai/faststream/pull/2492){.external-link target="_blank"}
+* ci: explicit user set in docs build pipeline by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2494](https://github.com/ag2ai/faststream/pull/2494){.external-link target="_blank"}
+* fix: incorrect asyncapi render by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2495](https://github.com/ag2ai/faststream/pull/2495){.external-link target="_blank"}
+* feat: task supervisor by [@fil1n](https://github.com/fil1n){.external-link target="_blank"} in [#2408](https://github.com/ag2ai/faststream/pull/2408){.external-link target="_blank"}
+* docs: Actualize structlog example by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2501](https://github.com/ag2ai/faststream/pull/2501){.external-link target="_blank"}
+* docs: new Gurubase widget token by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2502](https://github.com/ag2ai/faststream/pull/2502){.external-link target="_blank"}
+* chore: update lock by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2503](https://github.com/ag2ai/faststream/pull/2503){.external-link target="_blank"}
+* Fix RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was… by [@maxsonferovante](https://github.com/maxsonferovante){.external-link target="_blank"} in [#2509](https://github.com/ag2ai/faststream/pull/2509){.external-link target="_blank"}
+* feat: asgi request by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2467](https://github.com/ag2ai/faststream/pull/2467){.external-link target="_blank"}
+* BugFix: add missing serializer in redis test request builder by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2517](https://github.com/ag2ai/faststream/pull/2517){.external-link target="_blank"}
+* configure supervisor to use default logging behaviour by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2518](https://github.com/ag2ai/faststream/pull/2518){.external-link target="_blank"}
+* feat: add `broker.subscriber(persistent=False)` argument to control WeakRef behavior by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2519](https://github.com/ag2ai/faststream/pull/2519){.external-link target="_blank"}
+* fix: #2513 add magic subscriber name for publisher without routing key by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2515](https://github.com/ag2ai/faststream/pull/2515){.external-link target="_blank"}
+* Improve docs testing section (publisher and subscriber) by [@lubaskinc0de](https://github.com/lubaskinc0de){.external-link target="_blank"} in [#2521](https://github.com/ag2ai/faststream/pull/2521){.external-link target="_blank"}
+
+### New Contributors
+* [@fil1n](https://github.com/fil1n){.external-link target="_blank"} made their first contribution in [#2408](https://github.com/ag2ai/faststream/pull/2408){.external-link target="_blank"}
+* [@maxsonferovante](https://github.com/maxsonferovante){.external-link target="_blank"} made their first contribution in [#2509](https://github.com/ag2ai/faststream/pull/2509){.external-link target="_blank"}
+* [@lubaskinc0de](https://github.com/lubaskinc0de){.external-link target="_blank"} made their first contribution in [#2521](https://github.com/ag2ai/faststream/pull/2521){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.0rc2...0.6.0rc3](https://github.com/ag2ai/faststream/compare/0.6.0rc2...0.6.0rc3){.external-link target="_blank"}
+
 
 ## 0.6.0rc2
 

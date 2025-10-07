@@ -9,10 +9,12 @@ from faststream._internal.logger import logger
 if TYPE_CHECKING:
     from faststream.specification import Specification
 
-ASYNCAPI_JS_DEFAULT_URL = "https://unpkg.com/@asyncapi/react-component@1.0.0-next.54/browser/standalone/index.js"
+ASYNCAPI_JS_DEFAULT_URL = (
+    "https://unpkg.com/@asyncapi/react-component@2.6.4/browser/standalone/index.js"
+)
 
 ASYNCAPI_CSS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@1.0.0-next.54/styles/default.min.css"
+    "https://unpkg.com/@asyncapi/react-component@2.6.4/styles/default.min.css"
 )
 
 

@@ -128,7 +128,6 @@ RabbitRouter(
 
 router = RabbitRouter()
 
-
 router_sub = router.subscriber("test")
 
 
@@ -309,7 +308,7 @@ async def check_request_response_type() -> None:
 
 
 async def check_subscriber_get_one_type(
-    broker: RabbitBroker | FastAPIRouter,
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
 ) -> None:
     subscriber = broker.subscriber(queue="test")
 
@@ -320,9 +319,20 @@ async def check_subscriber_get_one_type(
         assert_type(msg, RabbitMessage)
 
 
-async def check_instance_type(broker: RabbitBroker | FastAPIRouter) -> None:
+async def check_instance_type(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
     subscriber = broker.subscriber(queue="test")
     assert_type(subscriber, RabbitSubscriber)
 
     publisher = broker.publisher(queue="test")
     assert_type(publisher, RabbitPublisher)
+
+
+RabbitBroker(routers=[RabbitRouter()])
+RabbitBroker().include_router(RabbitRouter())
+RabbitBroker().include_routers(RabbitRouter())
+
+RabbitRouter(routers=[RabbitRouter()])
+RabbitRouter().include_router(RabbitRouter())
+RabbitRouter().include_routers(RabbitRouter())

@@ -20,6 +20,7 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     ApplicationSchema as SchemaV3,
 )
 
+from .dto import RunArgs
 from .options import (
     APP_ARGUMENT,
     APP_DIR_OPTION,
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from faststream.specification.base import SpecificationFactory
+
 
 docs_app = typer.Typer(pretty_exceptions_short=True)
 
@@ -71,24 +73,30 @@ def serve(
         schema_filepath = module_parent / docs
         extra_extensions = (schema_filepath.suffix, *watch_extensions)
 
+    run_args = RunArgs(
+        app=docs,
+        extra_options={"host": host, "port": port},
+        is_factory=is_factory,
+    )
+
     if reload:
         try:
             from faststream._internal.cli.supervisors.watchfiles import WatchReloader
 
         except ImportError:
             warnings.warn(INSTALL_WATCHFILES, category=ImportWarning, stacklevel=1)
-            _parse_and_serve(docs, host, port, is_factory)
+            _parse_and_serve(run_args)
 
         else:
             WatchReloader(
                 target=_parse_and_serve,
-                args=(docs, host, port, is_factory),
+                args=run_args,
                 reload_dirs=(str(module_parent),),
                 extra_extensions=extra_extensions,
             ).run()
 
     else:
-        _parse_and_serve(docs, host, port, is_factory)
+        _parse_and_serve(run_args)
 
 
 @docs_app.command(name="gen")
@@ -163,14 +171,9 @@ def gen(
         typer.echo(f"Your project AsyncAPI scheme was placed to `{filename}`")
 
 
-def _parse_and_serve(
-    docs: str,
-    host: str = "localhost",
-    port: int = 8000,
-    is_factory: bool = False,
-) -> None:
-    if ":" in docs:
-        _, app_obj = import_from_string(docs, is_factory=is_factory)
+def _parse_and_serve(args: RunArgs) -> None:
+    if ":" in args.app:
+        _, app_obj = import_from_string(args.app, is_factory=args.is_factory)
         schema_factory = cast(
             "SpecificationFactory | None",
             getattr(app_obj, "schema", None),
@@ -181,7 +184,7 @@ def _parse_and_serve(
         raw_schema = schema_factory.to_specification()
 
     else:
-        schema_filepath = Path.cwd() / docs
+        schema_filepath = Path.cwd() / args.app
 
         if schema_filepath.suffix == ".json":
             data = schema_filepath.read_bytes()
@@ -199,7 +202,7 @@ def _parse_and_serve(
             data = json_dumps(schema)
 
         else:
-            msg = f"Unknown extension given - {docs}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
+            msg = f"Unknown extension given - {args.app}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
             raise ValueError(msg)
 
         for schema in (SchemaV3, SchemaV2_6):
@@ -207,7 +210,11 @@ def _parse_and_serve(
                 raw_schema = model_parse(schema, data)
                 break
         else:
-            typer.echo(SCHEMA_NOT_SUPPORTED.format(schema_filename=docs), err=True)
+            typer.echo(SCHEMA_NOT_SUPPORTED.format(schema_filename=args.app), err=True)
             raise typer.Exit(1)
 
-    serve_app(raw_schema, host, port)
+    serve_app(
+        raw_schema,
+        cast("str", args.extra_options.get("host", "localhost")),
+        cast("int", args.extra_options.get("port", 8000)),
+    )
