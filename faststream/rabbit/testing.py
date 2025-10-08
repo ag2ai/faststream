@@ -244,7 +244,7 @@ class FakeProducer(AioPikaFastProducer):
         self,
         cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
-        """Publish a message to a RabbitMQ queue or exchange."""
+        """Make a synchronous request to RabbitMQ."""
         incoming = build_message(
             message=cmd.body,
             exchange=cmd.exchange,
