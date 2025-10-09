@@ -81,7 +81,7 @@ app = AsgiFastStream(
 
 **AsgiFastStream** is able to call any **ASGI**-compatible callable objects, so you can use any endpoints from other libraries if they are compatible with the protocol.
 
-If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` decorator as in the following example:
+If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` or `#!python @post` decorator as in the following example.
 
 ```python linenums="1" hl_lines="2 6-8 12"
 from faststream.nats import NatsBroker
@@ -102,6 +102,60 @@ app = AsgiFastStream(
 !!! tip
     You do not need to setup all routes using the `asgi_routes=[]` parameter.<br/>
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
+
+#### Accessing context fields
+
+**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, **Context**, or **Request** objects.
+
+```python linenums="1" hl_lines="7 15"
+from faststream.annotations import Logger
+from faststream.asgi import AsgiFastStream, get, AsgiResponse, Request
+from faststream.nats import NatsBroker
+
+
+@get
+async def log_request_payload(request: Request, logger: Logger):
+    payload = await request.json()
+    logger.info(payload)
+    return AsgiResponse(status_code=200)
+
+
+broker = NatsBroker()
+app = AsgiFastStream(broker, asgi_routes=[
+    ("/log-request-payload", log_request_payload),
+])
+```
+
+You can also use helper functions to access query parameters and headers:
+
+```python linenums="1" hl_lines="7-8 18"
+from faststream.asgi import AsgiFastStream, get, AsgiResponse, Header, Query
+from faststream.nats import NatsBroker
+
+
+@get
+async def protected_method(
+    token: str = Header("X-auth-token"),
+    foo: list[str] = Query(),
+):
+    if token != "secret-token":
+        return AsgiResponse(status_code=401)
+    print(foo)
+    return AsgiResponse(status_code=200)
+
+
+broker = NatsBroker()
+app = AsgiFastStream(broker, asgi_routes=[
+    ("/protected-method", protected_method),
+])
+```
+
+#### Dependency injection
+
+Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"} in the same way as described in [Dependencies](./dependencies/index.md).
+
+!!! warning
+    FastDepends DI and `Context` access will not work if you implement your own handlers instead using the `get` or `post` decorators.
 
 ### ASGI Documentation
 
