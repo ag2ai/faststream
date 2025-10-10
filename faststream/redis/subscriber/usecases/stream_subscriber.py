@@ -34,6 +34,22 @@ if TYPE_CHECKING:
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
+RedisStreamReadResponse: TypeAlias = tuple[
+    tuple[
+        TopicName,
+        tuple[
+            tuple[
+                Offset,
+                dict[bytes, bytes],
+            ],
+            ...,
+        ],
+    ],
+    ...,
+]
+
+RedisStreamReader: TypeAlias = Callable[[str], Awaitable[RedisStreamReadResponse]]
+
 
 class _StreamHandlerMixin(LogicSubscriber):
     def __init__(
@@ -47,6 +63,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         assert config.stream_sub
         self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
+        self.read_pending = False
 
     @property
     def stream_sub(self) -> "StreamSub":
@@ -81,25 +98,6 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         stream = self.stream_sub
 
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ],
-        ]
-
         if stream.group and stream.consumer:
             group_create_id = "$" if self.last_id == ">" else self.last_id
             try:
@@ -113,58 +111,42 @@ class _StreamHandlerMixin(LogicSubscriber):
                 if "already exists" not in str(e):
                     raise
 
-            def read(
-                _: str,
-            ) -> Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ]:
-                return client.xreadgroup(
-                    groupname=stream.group,
-                    consumername=stream.consumer,
-                    streams={stream.name: stream.last_id},
-                    count=stream.max_records,
-                    block=stream.polling_interval,
-                    noack=stream.no_ack,
-                )
+        await super().start(self._create_reader(stream))
 
-        else:
+    def _create_reader(self, stream: "StreamSub") -> RedisStreamReader:
+        if stream.group and stream.consumer:
 
-            def read(
-                last_id: str,
-            ) -> Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ]:
-                return client.xread(
-                    {stream.name: last_id},
-                    block=stream.polling_interval,
-                    count=stream.max_records,
-                )
+            async def read_pending_or_next(_: str) -> RedisStreamReadResponse:
+                if self.read_pending:
+                    response = await self._read_stream("0", stream=stream)
+                    if response and response[0][1]:
+                        return response
+                return await self._read_stream(stream.last_id, stream=stream)
 
-        await super().start(read)
+            return read_pending_or_next
+        return self._read_stream
+
+    def _read_stream(
+        self, last_id: str, *, stream: Optional["StreamSub"] = None
+    ) -> Awaitable[RedisStreamReadResponse]:
+        client = self._client
+        stream = stream or self.stream_sub
+
+        if stream.group and stream.consumer:
+            return client.xreadgroup(
+                groupname=stream.group,
+                consumername=stream.consumer,
+                streams={stream.name: last_id},
+                count=stream.max_records,
+                block=stream.polling_interval,
+                noack=stream.no_ack,
+            )
+
+        return client.xread(
+            {stream.name: last_id},
+            block=stream.polling_interval,
+            count=stream.max_records,
+        )
 
     @override
     async def get_one(
@@ -262,27 +244,7 @@ class StreamSubscriber(_StreamHandlerMixin):
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-    async def _get_msgs(
-        self,
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ],
-        ],
-    ) -> None:
+    async def _get_msgs(self, read: RedisStreamReader) -> None:
         for stream_name, msgs in await read(self.last_id):
             if msgs:
                 self.last_id = msgs[-1][0].decode()
@@ -310,15 +272,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-    async def _get_msgs(
-        self,
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[tuple[bytes, tuple[tuple[bytes, dict[bytes, bytes]], ...]], ...],
-            ],
-        ],
-    ) -> None:
+    async def _get_msgs(self, read: RedisStreamReader) -> None:
         for stream_name, msgs in await read(self.last_id):
             if msgs:
                 self.last_id = msgs[-1][0].decode()
