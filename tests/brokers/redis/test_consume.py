@@ -554,6 +554,66 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         mock.assert_called_once_with({"message": "hello"})
 
+    async def test_consume_pending_with_group(
+        self,
+        mock: MagicMock,
+        queue: str,
+    ) -> None:
+        """Should first attempt to consume from PEL then from stream."""
+        event = asyncio.Event()
+
+        consume_broker = self.get_broker()
+        subscriber = consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id=">"),
+        )
+        subscriber.read_pending = True
+
+        @subscriber
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            if mock.call_count == 2:
+                event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            client = await br.connect()
+            await client.xgroup_create(
+                name=queue,
+                id="$",
+                groupname="group",
+                mkstream=True,
+            )
+
+            # read an ack a message ( expected to be ignored )
+            msgid = await client.xadd(queue, {"message": "ignored"})
+            await client.xreadgroup(
+                groupname="group",
+                consumername=queue,
+                streams={queue: ">"},
+            )
+            await client.xack(queue, "group", msgid)  # type: ignore[no-untyped-call]
+
+            # read and do not ack a message ( expected to be read from PEL )
+            await client.xadd(queue, {"message": "pending"})
+            await client.xreadgroup(
+                groupname="group",
+                consumername=queue,
+                streams={queue: ">"},
+            )
+            await client.xadd(queue, {"message": "new"})
+
+            await br.start()
+            await asyncio.wait(
+                (asyncio.create_task(event.wait()),),
+                timeout=3,
+            )
+
+        mock.assert_has_calls([
+            call({"message": "pending"}),
+            call({"message": "new"}),
+        ])
+
+        assert mock.call_count == 2
+
     @pytest.mark.slow()
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_stream_batch(
