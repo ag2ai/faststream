@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from aio_pika import IncomingMessage
 
@@ -22,6 +22,7 @@ class RabbitPrometheusMiddleware(
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Sequence[float] | None = None,
+        custom_labels: dict[str, str | Callable[[Any], str]] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=lambda _: RabbitMetricsSettingsProvider(),
@@ -29,4 +30,5 @@ class RabbitPrometheusMiddleware(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            custom_labels=custom_labels,
         )

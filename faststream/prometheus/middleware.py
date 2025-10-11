@@ -26,7 +26,12 @@ if TYPE_CHECKING:
 
 
 class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
-    __slots__ = ("_metrics_container", "_metrics_manager", "_settings_provider_factory")
+    __slots__ = (
+        "_custom_labels",
+        "_metrics_container",
+        "_metrics_manager",
+        "_settings_provider_factory",
+    )
 
     def __init__(
         self,
@@ -39,6 +44,7 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Sequence[float] | None = None,
+        custom_labels: dict[str, str | Callable[[Any], str]] | None = None,
     ) -> None:
         if app_name is EMPTY:
             app_name = metrics_prefix
@@ -48,11 +54,13 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             registry,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            custom_label_names=tuple((custom_labels or {}).keys()),
         )
         self._metrics_manager = MetricsManager(
             self._metrics_container,
             app_name=app_name,
         )
+        self._custom_labels = custom_labels
 
     def __call__(
         self,
@@ -66,6 +74,7 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             metrics_manager=self._metrics_manager,
             settings_provider_factory=self._settings_provider_factory,
             context=context,
+            custom_labels=self._custom_labels,
         )
 
 
@@ -84,9 +93,13 @@ class BasePrometheusMiddleware(
         ],
         metrics_manager: MetricsManager,
         context: "ContextRepo",
+        custom_labels: dict[str, str | Callable[[Any], str]] | None,
     ) -> None:
         self._metrics_manager = metrics_manager
         self._settings_provider = settings_provider_factory(msg)
+        self._custom_labels = {
+            k: str(v(msg) if callable(v) else v) for k, v in (custom_labels or {}).items()
+        }
         super().__init__(msg, context=context)
 
     async def consume_scope(
@@ -105,18 +118,21 @@ class BasePrometheusMiddleware(
             amount=consume_attrs["messages_count"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         self._metrics_manager.observe_received_messages_size(
             size=consume_attrs["message_size"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         self._metrics_manager.add_received_message_in_process(
             amount=consume_attrs["messages_count"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         err: Exception | None = None
@@ -133,6 +149,7 @@ class BasePrometheusMiddleware(
                     exception_type=type(err).__name__,
                     broker=messaging_system,
                     handler=destination_name,
+                    **self._custom_labels,
                 )
             raise
 
@@ -142,12 +159,14 @@ class BasePrometheusMiddleware(
                 duration=duration,
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
             self._metrics_manager.remove_received_message_in_process(
                 amount=consume_attrs["messages_count"],
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
             status = ProcessingStatus.acked
@@ -164,6 +183,7 @@ class BasePrometheusMiddleware(
                 status=status,
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
         return result
@@ -193,6 +213,7 @@ class BasePrometheusMiddleware(
                 exception_type=type(err).__name__,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
             raise
 
@@ -203,6 +224,7 @@ class BasePrometheusMiddleware(
                 duration=duration,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
 
             status = PublishingStatus.error if err else PublishingStatus.success
@@ -212,6 +234,7 @@ class BasePrometheusMiddleware(
                 status=status,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
 
         return result
