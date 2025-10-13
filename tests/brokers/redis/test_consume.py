@@ -12,6 +12,11 @@ from faststream.redis import (
     RedisStreamMessage,
     StreamSub,
 )
+from faststream.redis.subscriber.usecases.stream_subscriber import (
+    RedisConsumerReader,
+    RedisGroupReader,
+    RedisStreamReader,
+)
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -471,6 +476,184 @@ class TestConsumeList(RedisTestcaseConfig):
 @pytest.mark.asyncio()
 class TestConsumeStream(RedisTestcaseConfig):
     @pytest.mark.slow()
+    async def test_stream_reader(self, queue: str) -> None:
+        """Should configure the reader to start from '$'.
+
+        The reader, when configured for polling will attempt to read
+        the next available message that comes in and then proceed
+        incrementally.
+        """
+        broker = self.get_broker()
+        client = await broker.connect()
+
+        stream = StreamSub(queue, polling_interval=100)
+        reader = RedisStreamReader(stream_sub=stream)
+
+        # ignored, occurred before polling
+        await client.xadd(queue, {"message": "1"})
+
+        await reader.configure(client=client, prefix="")
+        assert reader.client == client
+        assert reader._last_id == "$"
+
+        response = await reader()
+        assert not response
+
+        response, id2 = await asyncio.gather(
+            reader(),
+            client.xadd(queue, {"message": "2"}),
+        )
+
+        assert len(response) == 1
+        assert response[0][1][0][0] == id2
+        assert reader._last_id == id2.decode()
+
+        id3 = await client.xadd(queue, {"message": "3"})
+        response = await reader()
+        assert response[0][1][0][0] == id3
+        assert reader._last_id == id3.decode()
+
+    @pytest.mark.slow()
+    async def test_stream_group_reader(self, queue: str) -> None:
+        """Should configure the reader to read unread messages.
+
+        The reader will start reading from the first unread message
+        in the stream and then continue using the redis stream
+        consumer's internal offset.
+        """
+        broker = self.get_broker()
+        client = await broker.connect()
+
+        stream = StreamSub(queue, group=queue, consumer=queue)
+        reader = RedisGroupReader(stream_sub=stream)
+
+        # ignored the consumer group is created in the .configure method
+        await client.xadd(queue, {"message": "1"})
+
+        await reader.configure(client=client, prefix="")
+        assert reader.client == client
+        assert reader._last_id == ">"
+
+        id2 = await client.xadd(queue, {"message": "2"})
+        id3 = await client.xadd(queue, {"message": "3"})
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id2
+
+        response = await reader()
+        assert response[0][1][0][0] == id3
+
+    @pytest.mark.slow()
+    async def test_stream_group_reader_pending(self, queue: str) -> None:
+        """Should configure the reader to read pending messages.
+
+        With an offset configured, the reader will only read from the
+        pending entries list (PEL) using the redis stream
+        consumer's internal offset.
+
+        In order to progress to the next message, it must be acknowledged.
+        """
+        broker = self.get_broker()
+        client = await broker.connect()
+
+        stream = StreamSub(queue, group=queue, consumer=queue)
+        reader = RedisGroupReader(stream_sub=stream)
+
+        await reader.configure(client=client, prefix="")
+        assert reader.client == client
+        assert reader._last_id == ">"
+
+        id1 = await client.xadd(queue, {"message": "1"})
+        id2 = await client.xadd(queue, {"message": "2"})
+
+        # read and do not acknowledge messages 1 and 2
+        await asyncio.gather(reader(), reader(), reader())
+
+        stream.last_id = "0"
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id1
+
+        response = await reader()
+        assert response[0][1][0][0] == id1
+
+        await client.xack(queue, queue, id1)  # type: ignore[no-untyped-call]
+
+        response = await reader()
+        assert response[0][1][0][0] == id2
+
+    @pytest.mark.slow()
+    async def test_stream_consumer_reader(self, queue: str) -> None:
+        """Should configure the reader to read unread messages by default.
+
+        When resumable is disabled, the stream consumer reader behaves
+        much like the group reader and will read from either pending
+        or new messages.
+        """
+        broker = self.get_broker()
+        client = await broker.connect()
+
+        stream = StreamSub(queue, group=queue, consumer=queue)
+        reader = RedisConsumerReader(stream_sub=stream)
+
+        await client.xadd(queue, {"message": "1"})
+
+        await reader.configure(client=client, prefix="")
+        assert reader.client == client
+        assert reader._last_id == ">"
+
+        id2 = await client.xadd(queue, {"message": "2"})
+        id3 = await client.xadd(queue, {"message": "3"})
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id2
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id3
+
+    @pytest.mark.slow()
+    async def test_stream_consumer_reader_resumable(self, queue: str) -> None:
+        """Should configure the reader to read pending and then new messages.
+
+        When resumable is enabled, the reader will consume from the pending
+        queue until no pending messages remaing and then continue with new
+        messages.
+        """
+        broker = self.get_broker()
+        client = await broker.connect()
+
+        stream = StreamSub(queue, group=queue, consumer=queue)
+        reader = RedisConsumerReader(stream_sub=stream)
+
+        await client.xadd(queue, {"message": "1"})
+
+        await reader.configure(client=client, prefix="")
+        assert reader.client == client
+        assert reader._last_id == ">"
+
+        id2 = await client.xadd(queue, {"message": "2"})
+        id3 = await client.xadd(queue, {"message": "3"})
+
+        await reader.read(">")
+        reader.resume_from("0", resumable=True)
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id2
+        assert reader._resume_from == "0"
+        await client.xack(queue, queue, id2)  # type: ignore[no-untyped-call]
+
+        response = await reader()
+        assert len(response) == 1
+        assert response[0][1][0][0] == id3
+        # once no pending messages remain, resume_from is cleared
+        assert reader._resume_from is None
+
+    @pytest.mark.slow()
     async def test_consume_stream(
         self,
         mock: MagicMock,
@@ -563,10 +746,11 @@ class TestConsumeStream(RedisTestcaseConfig):
         event = asyncio.Event()
 
         consume_broker = self.get_broker()
+        client = await consume_broker.connect()
+
         subscriber = consume_broker.subscriber(
-            stream=StreamSub(queue, group="group", consumer=queue, last_id=">"),
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
         )
-        subscriber.read_pending = True
 
         @subscriber
         async def handler(msg: RedisMessage) -> None:
@@ -575,7 +759,6 @@ class TestConsumeStream(RedisTestcaseConfig):
                 event.set()
 
         async with self.patch_broker(consume_broker) as br:
-            client = await br.connect()
             await client.xgroup_create(
                 name=queue,
                 id="$",
@@ -583,25 +766,28 @@ class TestConsumeStream(RedisTestcaseConfig):
                 mkstream=True,
             )
 
-            # read an ack a message ( expected to be ignored )
-            msgid = await client.xadd(queue, {"message": "ignored"})
-            await client.xreadgroup(
-                groupname="group",
-                consumername=queue,
-                streams={queue: ">"},
-            )
-            await client.xack(queue, "group", msgid)  # type: ignore[no-untyped-call]
-
-            # read and do not ack a message ( expected to be read from PEL )
+            ignored = await client.xadd(queue, {"message": "ignored"})
             await client.xadd(queue, {"message": "pending"})
-            await client.xreadgroup(
-                groupname="group",
-                consumername=queue,
-                streams={queue: ">"},
-            )
             await client.xadd(queue, {"message": "new"})
 
+            # consume the first and second messages
+            await client.xreadgroup(
+                groupname="group",
+                consumername=queue,
+                streams={queue: ">"},
+            )
+
+            await client.xreadgroup(
+                groupname="group",
+                consumername=queue,
+                streams={queue: ">"},
+            )
+
+            # acknowledge the first message, it should be ignored
+            await client.xack(queue, "group", ignored)  # type: ignore[no-untyped-call]
+
             await br.start()
+
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=3,
