@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
 from itertools import chain
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -104,6 +105,18 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
         return self._outer_config.broker_middlewares
+
+    async def __aenter__(self) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.stop()
 
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
