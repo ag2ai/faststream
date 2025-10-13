@@ -77,6 +77,10 @@ To process a single message, you should create a subscriber and call the appropr
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:6-10] !}
         ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:12-13] !}
+        ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="8"
