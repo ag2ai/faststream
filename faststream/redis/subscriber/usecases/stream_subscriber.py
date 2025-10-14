@@ -81,7 +81,7 @@ class RedisStreamReader:
         self._client = client
         self._last_id = self.stream_sub.last_id
 
-        self.stream = self.stream_sub.add_prefix(prefix)
+        self.stream_sub = self.stream_sub.add_prefix(prefix)
 
     def read(self, last_id: str) -> Awaitable[RedisStreamReadResponse]:
         stream = self.stream_sub
@@ -144,7 +144,7 @@ class RedisGroupReader(RedisStreamReader):
 
 @dataclass(kw_only=True, repr=False)
 class RedisConsumerReader(RedisGroupReader):
-    resumable: bool = False  # type: ignore[assignment] # redefinition
+    resumable: bool = True  # type: ignore[assignment] # redefinition
     _resume_from: str | None = field(default=None, init=False)
 
     @override
@@ -153,6 +153,7 @@ class RedisConsumerReader(RedisGroupReader):
 
         if self.stream_sub.last_id != ">":
             self.resume_from(self.stream_sub.last_id)
+            self.stream_sub.last_id = ">"
 
     def resume_from(self, last_id: str, *, resumable: bool | None = None) -> None:
         self._resume_from = last_id

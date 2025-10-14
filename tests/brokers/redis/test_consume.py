@@ -740,9 +740,8 @@ class TestConsumeStream(RedisTestcaseConfig):
         consume_broker = self.get_broker()
         client = await consume_broker.connect()
 
-        subscriber = consume_broker.subscriber(
-            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
-        )
+        stream = StreamSub(queue, group="group", consumer=queue, last_id="0")
+        subscriber = consume_broker.subscriber(stream=stream)
 
         @subscriber
         async def handler(msg: RedisMessage) -> None:
@@ -762,16 +761,11 @@ class TestConsumeStream(RedisTestcaseConfig):
             await client.xadd(queue, {"message": "pending"})
             await client.xadd(queue, {"message": "new"})
 
-            # consume the first and second messages
+            # consume the "pending" message
             await client.xreadgroup(
                 groupname="group",
                 consumername=queue,
-                streams={queue: ">"},
-            )
-
-            await client.xreadgroup(
-                groupname="group",
-                consumername=queue,
+                count=1,
                 streams={queue: ">"},
             )
 
