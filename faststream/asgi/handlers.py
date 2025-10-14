@@ -2,6 +2,8 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
+from fast_depends.exceptions import ValidationError as FDValidationError
+
 from faststream import apply_types
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
@@ -57,6 +59,14 @@ class HttpHandler:
             ):
                 try:
                     response = await self.func(scope)
+                except FDValidationError:
+                    if self.logger is not None:
+                        message = "Validation error"
+                        self.logger.log(logging.ERROR, message, exc_info=True)
+                    response = AsgiResponse(
+                        body=b"Validation error",
+                        status_code=422,
+                    )
                 except Exception:
                     if self.logger is not None:
                         self.logger.log(

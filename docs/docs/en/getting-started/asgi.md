@@ -61,17 +61,7 @@ It doesn't look very helpful, so let's add some **HTTP** endpoints.
 First, we have already written a wrapper on top of the broker to make a ready-to-use **ASGI** healthcheck endpoint for you:
 
 ```python linenums="1" hl_lines="2 9"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, make_ping_asgi
-
-broker = NatsBroker()
-
-app = AsgiFastStream(
-    broker,
-    asgi_routes=[
-        ("/health", make_ping_asgi(broker, timeout=5.0)),
-    ]
-)
+{! docs_src/getting_started/asgi/healthcheck_app.py !}
 ```
 
 !!! note
@@ -83,20 +73,8 @@ app = AsgiFastStream(
 
 If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` or `#!python @post` decorator as in the following example.
 
-```python linenums="1" hl_lines="2 6-8 12"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, AsgiResponse, get
-
-broker = NatsBroker()
-
-@get
-async def liveness_ping(scope):
-    return AsgiResponse(b"", status_code=200)
-
-app = AsgiFastStream(
-    broker,
-    asgi_routes=[("/health", liveness_ping)]
-)
+```python linenums="1" hl_lines="2 6-8 12""
+{! docs_src/getting_started/asgi/custom_app.py !}
 ```
 
 !!! tip
@@ -105,49 +83,16 @@ app = AsgiFastStream(
 
 #### Accessing context fields
 
-**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, **Context**, or **Request** objects.
+**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, [**Context**](./context.md), or **Request** objects.
 
-```python linenums="1" hl_lines="7 15"
-from faststream.annotations import Logger
-from faststream.asgi import AsgiFastStream, get, AsgiResponse, Request
-from faststream.nats import NatsBroker
-
-
-@get
-async def log_request_payload(request: Request, logger: Logger):
-    payload = await request.json()
-    logger.info(payload)
-    return AsgiResponse(status_code=200)
-
-
-broker = NatsBroker()
-app = AsgiFastStream(broker, asgi_routes=[
-    ("/log-request-payload", log_request_payload),
-])
+```python linenums="1" hl_lines="2 5-6 14"
+{! docs_src/getting_started/asgi/logging_app.py !}
 ```
 
 You can also use helper functions to access query parameters and headers:
 
-```python linenums="1" hl_lines="7-8 18"
-from faststream.asgi import AsgiFastStream, get, AsgiResponse, Header, Query
-from faststream.nats import NatsBroker
-
-
-@get
-async def protected_method(
-    token: str = Header("X-auth-token"),
-    foo: list[str] = Query(),
-):
-    if token != "secret-token":
-        return AsgiResponse(status_code=401)
-    print(foo)
-    return AsgiResponse(status_code=200)
-
-
-broker = NatsBroker()
-app = AsgiFastStream(broker, asgi_routes=[
-    ("/protected-method", protected_method),
-])
+```python linenums="1" hl_lines="1 7-8 18"
+{! docs_src/getting_started/asgi/auth_app.py !}
 ```
 
 #### Dependency injection
