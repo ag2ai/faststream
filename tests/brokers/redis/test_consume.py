@@ -612,7 +612,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         """Should configure the reader to read pending and then new messages.
 
         When resumable is enabled, the reader will consume from the pending
-        queue until no pending messages remaing and then continue with new
+        queue until no pending messages remain and then continue with new
         messages.
         """
         broker = self.get_broker()
