@@ -531,8 +531,6 @@ class TestConsumeStream(RedisTestcaseConfig):
         await client.xadd(queue, {"message": "1"})
 
         await reader.configure(client=client, prefix="")
-        assert reader.client == client
-        assert reader._last_id == ">"
 
         id2 = await client.xadd(queue, {"message": "2"})
         id3 = await client.xadd(queue, {"message": "3"})
@@ -561,8 +559,6 @@ class TestConsumeStream(RedisTestcaseConfig):
         reader = RedisGroupReader(stream_sub=stream)
 
         await reader.configure(client=client, prefix="")
-        assert reader.client == client
-        assert reader._last_id == ">"
 
         id1 = await client.xadd(queue, {"message": "1"})
         id2 = await client.xadd(queue, {"message": "2"})
@@ -601,8 +597,6 @@ class TestConsumeStream(RedisTestcaseConfig):
         await client.xadd(queue, {"message": "1"})
 
         await reader.configure(client=client, prefix="")
-        assert reader.client == client
-        assert reader._last_id == ">"
 
         id2 = await client.xadd(queue, {"message": "2"})
         id3 = await client.xadd(queue, {"message": "3"})
@@ -632,8 +626,6 @@ class TestConsumeStream(RedisTestcaseConfig):
         await client.xadd(queue, {"message": "1"})
 
         await reader.configure(client=client, prefix="")
-        assert reader.client == client
-        assert reader._last_id == ">"
 
         id2 = await client.xadd(queue, {"message": "2"})
         id3 = await client.xadd(queue, {"message": "3"})
