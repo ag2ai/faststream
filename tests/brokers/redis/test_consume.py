@@ -555,7 +555,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         broker = self.get_broker()
         client = await broker.connect()
 
-        stream = StreamSub(queue, group=queue, consumer=queue)
+        stream = StreamSub(queue, group=queue, consumer=queue, last_id="0")
         reader = RedisGroupReader(stream_sub=stream)
 
         await reader.configure(client=client, prefix="")
@@ -564,9 +564,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         id2 = await client.xadd(queue, {"message": "2"})
 
         # read and do not acknowledge messages 1 and 2
-        await asyncio.gather(reader(), reader(), reader())
-
-        stream.last_id = "0"
+        await asyncio.gather(reader.read(">"), reader.read(">"))
 
         response = await reader()
         assert len(response) == 1
