@@ -83,7 +83,7 @@ If you want to write your own simple **HTTP**-endpoint, you can use our `#!pytho
 
 #### Accessing context fields
 
-**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, [**Context**](./context.md), or **Request** objects.
+**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, [**Context**](./context.md){.internal-link}, or **Request** objects.
 
 ```python linenums="1" hl_lines="2 5-6 14"
 {! docs_src/getting_started/asgi/logging_app.py !}
@@ -97,7 +97,7 @@ You can also use helper functions to access query parameters and headers:
 
 #### Dependency injection
 
-Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"} in the same way as described in [Dependencies](./dependencies/index.md).
+Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"} in the same way as described in [Dependencies](./dependencies/index.md){.internal-link}.
 
 !!! warning
     FastDepends DI and `Context` access will not work if you implement your own handlers instead using the `get` or `post` decorators.
