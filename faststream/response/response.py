@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 from typing_extensions import Self
 
@@ -126,3 +126,69 @@ class BatchPublishCommand(PublishCommand):
             else:
                 body = None
         return body, tuple(extra_bodies)
+
+
+def extract_per_message_keys_and_bodies(
+    batch_bodies: Sequence[Any],
+) -> tuple[tuple[Any | None, ...], tuple[Any, ...] | None]:
+    """Extract per-message keys and optionally normalized bodies from a batch.
+
+    Returns a pair (keys, normalized_bodies_or_None):
+    - If no mapping-shaped items with 'message' or 'key' are present, returns ((), None)
+      so callers can reuse the original bodies without extra allocations.
+    - Otherwise returns (keys_tuple, normalized_bodies_tuple), where normalized bodies
+      contain the extracted 'message' values (or the original item if not wrapped).
+    """
+    keys_list: list[Any | None] | None = None
+    bodies_list: list[Any] | None = None
+
+    for idx, item in enumerate(batch_bodies):
+        is_wrapper = isinstance(item, Mapping) and ("message" in item or "key" in item)
+
+        if bodies_list is None:
+            if is_wrapper:
+                if idx:
+                    bodies_list = list(batch_bodies[:idx])
+                    keys_list = [None] * idx
+                else:
+                    bodies_list = []
+                    keys_list = []
+
+                bodies_list.append(item.get("message"))
+                keys_list.append(item.get("key"))
+        else:
+            keys_list = cast("list[Any | None]", keys_list)
+
+            if is_wrapper:
+                bodies_list.append(item.get("message"))
+                keys_list.append(item.get("key"))
+            else:
+                bodies_list.append(item)
+                keys_list.append(None)
+
+    if bodies_list is None:
+        return (), None
+
+    # Both lists are initialized together
+    keys_list = cast("list[Any | None]", keys_list)
+    return tuple(keys_list), tuple(bodies_list)
+
+
+def key_for_index(
+    keys: Sequence[Any | None], default_key: Any | None, index: int
+) -> Any | None:
+    """Return the effective key for a given message index.
+
+    Prefers a per-message key at the given index when it is not None;
+    otherwise falls back to ``default_key``. If the index is out of bounds
+    or negative, ``default_key`` is returned.
+    """
+    if index < 0:
+        return default_key
+
+    try:
+        k = keys[index]
+    except IndexError:
+        return default_key
+
+    return k if k is not None else default_key
