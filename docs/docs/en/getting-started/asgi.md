@@ -73,7 +73,7 @@ First, we have already written a wrapper on top of the broker to make a ready-to
 
 If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` or `#!python @post` decorator as in the following example.
 
-```python linenums="1" hl_lines="2 6-8 12""
+```python linenums="1" hl_lines="2 7-9 13""
 {! docs_src/getting_started/asgi/custom_app.py !}
 ```
 
@@ -91,7 +91,7 @@ If you want to write your own simple **HTTP**-endpoint, you can use our `#!pytho
 
 You can also use helper functions to access query parameters and headers:
 
-```python linenums="1" hl_lines="1 7-8 18"
+```python linenums="1" hl_lines="1 8-9 19"
 {! docs_src/getting_started/asgi/auth_app.py !}
 ```
 

@@ -3,7 +3,7 @@ from faststream.asgi import AsgiFastStream, post, AsgiResponse, Request
 from faststream.nats import NatsBroker
 
 @post
-async def log_request_payload(request: Request, logger: Logger):
+async def log_request_payload(request: Request, logger: Logger) -> AsgiResponse:
     payload = await request.json()
     logger.info(payload)
     return AsgiResponse(status_code=200)
