@@ -103,6 +103,23 @@ class AsgiTestcase:
                 assert response.text
 
     @pytest.mark.asyncio()
+    async def test_asyncapi_asgi_if_broker_set_by_method(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            specification=AsyncAPI(),
+            asyncapi_path="/docs",
+        )
+
+        app.set_broker(broker)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/docs")
+                assert response.status_code == 200, response
+                assert response.text
+
+    @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("decorator", "client_method"),
         (
