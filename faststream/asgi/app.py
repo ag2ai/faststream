@@ -126,7 +126,7 @@ class AsgiFastStream(Application):
         if asyncapi_path:
             asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path)
             handler = asyncapi_route(self.schema)
-            handler.set_logger(logger)  # mypy: ignore[attr-defined]
+            handler.set_logger(logger)  # type: ignore[attr-defined]
             self.routes.append((asyncapi_route.path, handler))
 
         self._server = OuterRunState()
