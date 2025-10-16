@@ -1,6 +1,7 @@
 __pycache__
 dist
 .idea
+.zed
 venv*
 .venv*
 .env
@@ -11,6 +12,7 @@ venv*
 .ruff_cache
 .mypy_cache
 .coverage*
+pyrightconfig.json
 .cache
 htmlcov
 token

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union, overload
 from fast_depends.exceptions import ValidationError as FDValidationError
 
 from faststream import apply_types
-from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
 from faststream._internal.utils.functions import to_async
 
@@ -20,8 +19,6 @@ if TYPE_CHECKING:
 
 
 class HttpHandler:
-    _context_repo: ContextRepo
-
     def __init__(
         self,
         func: "UserApp",
