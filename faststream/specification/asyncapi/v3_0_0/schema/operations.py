@@ -9,6 +9,7 @@ from faststream.specification.schema.operation import Operation as OperationSpec
 
 from .bindings import OperationBinding
 from .channels import Channel
+from .operation_reply import OperationReply
 from .tag import Tag
 from .utils import Reference
 
@@ -42,6 +43,8 @@ class Operation(BaseModel):
     messages: list[Reference] = Field(default_factory=list)
 
     security: dict[str, list[str]] | None = None
+
+    reply: OperationReply | None = None
 
     # TODO
     # traits
