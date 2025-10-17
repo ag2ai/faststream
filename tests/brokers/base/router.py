@@ -9,6 +9,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream.exceptions import SetupError
 from tests.brokers.base.middlewares import LocalMiddlewareTestcase
 from tests.brokers.base.parser import LocalCustomParserTestcase
 
@@ -633,3 +634,21 @@ class RouterLocalTestcase(RouterTestcase):
             await br.start()
             await br.publish("hello", queue)
             publisher.mock.assert_called_with("response")
+
+    async def test_idempotent_register_twice_on_same_broker(self) -> None:
+        router = self.get_router()
+        broker = self.get_broker()
+
+        broker.include_router(router)
+        broker.include_router(router)
+        assert len(router.config.configs) == 2
+        assert router.parent is broker
+
+    async def test_fail_on_register_in_different_brokers(self) -> None:
+        router = self.get_router()
+        broker1 = self.get_broker()
+        broker2 = self.get_broker()
+
+        broker1.include_router(router)
+        with pytest.raises(SetupError):
+            broker2.include_router(router)
