@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SettingField
@@ -15,6 +15,7 @@ class RunArgs:
     log_config: Path | None = None
     log_level: int = logging.NOTSET
     app_level: int = logging.INFO  # option for reloader only
+    loop: Literal["auto"] | str = "auto"
 
 
 class RunFunction(Protocol):

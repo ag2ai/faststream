@@ -70,13 +70,15 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
         context = self._outer_config.fd_config.context
 
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -95,16 +97,17 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         else:
             fetch_sub = self._fetch_sub
 
-        async for raw_message in fetch_sub.messages:
-            context = self._outer_config.fd_config.context
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
+        async for raw_message in fetch_sub.messages:
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 

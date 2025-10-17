@@ -116,17 +116,52 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             extra=self.get_log_context(None),
         )
 
+    def _get_parser_and_decoder(
+        self,
+        item_parser: Optional["CustomCallable"] = None,
+        item_decoder: Optional["CustomCallable"] = None,
+    ) -> tuple[AsyncCallable, AsyncCallable]:
+        """Method to resolve parsers with priority.
+
+        First priority
+        >>> sub = broker.subscriber()
+        >>>
+        >>> @sub(parser=P0_parser)
+        >>> async def handler(): ...
+
+        Second priority
+        >>> sub = broker.subscriber(parser=P1_parser)
+
+        Third priority
+        >>> Broker(parser=P2_parser)
+
+        Default parser is `self._parser`.
+        So, the final parser object is
+        >>> ParserComposition(P0_parser or P1_parser or P2_parser, self._parser)
+        """
+        if parser := (
+            item_parser or self._call_options.parser or self._outer_config.broker_parser
+        ):
+            async_parser: AsyncCallable = ParserComposition(parser, self._parser)
+        else:
+            async_parser = self._parser
+
+        if decoder := (
+            item_decoder
+            or self._call_options.decoder
+            or self._outer_config.broker_decoder
+        ):
+            async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
+        else:
+            async_decoder = self._decoder
+
+        return async_parser, async_decoder
+
     def _build_fastdepends_model(self) -> None:
         for call in self.calls:
-            if parser := call.item_parser or self._outer_config.broker_parser:
-                async_parser: AsyncCallable = ParserComposition(parser, self._parser)
-            else:
-                async_parser = self._parser
-
-            if decoder := call.item_decoder or self._outer_config.broker_decoder:
-                async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
-            else:
-                async_decoder = self._decoder
+            async_parser, async_decoder = self._get_parser_and_decoder(
+                call.item_parser, call.item_decoder
+            )
 
             call._setup(
                 parser=async_parser,
@@ -246,8 +281,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
-                    item_parser=parser or self._call_options.parser,
-                    item_decoder=decoder or self._call_options.decoder,
+                    item_parser=parser,
+                    item_decoder=decoder,
                     item_middlewares=total_middlewares,
                     dependencies=total_deps,
                 ),

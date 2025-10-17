@@ -159,6 +159,7 @@ class BatchPullStreamSubscriber(
             return None
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
             "NatsMessage",
@@ -167,8 +168,8 @@ class BatchPullStreamSubscriber(
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             ),
         )
 
@@ -187,10 +188,11 @@ class BatchPullStreamSubscriber(
         else:
             fetch_sub = self._fetch_sub
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             raw_message = await fetch_sub.fetch(batch=1)
-
-            context = self._outer_config.fd_config.context
 
             yield cast(
                 "NatsMessage",
@@ -199,8 +201,8 @@ class BatchPullStreamSubscriber(
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 

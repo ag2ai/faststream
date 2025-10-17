@@ -1,7 +1,9 @@
 import asyncio
+import json
 from typing import Any
 from unittest.mock import MagicMock
 
+import anyio
 import pytest
 
 from faststream._internal._compat import json_dumps
@@ -19,7 +21,32 @@ from .basic import RedisTestcaseConfig
 @pytest.mark.connected()
 @pytest.mark.redis()
 class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
-    pass
+    async def test_request_respect_decoder(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        async def custom_decoder(msg, original):
+            mock()
+            return await original(msg)
+
+        broker = self.get_broker(decoder=custom_decoder)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg):
+            return msg
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            with anyio.fail_after(self.timeout):
+                msg = await br.request("Hi!", queue)
+
+        assert mock.call_count == 1
+        await msg.decode()
+        assert mock.call_count == 2
 
 
 @pytest.mark.parametrize(
@@ -293,3 +320,39 @@ class TestTestBrokerFormats:
         async with TestRedisBroker(broker) as br:
             await br.publish("hello", queue)
             handler.mock.assert_called_once_with("hello")
+
+    @pytest.mark.connected()
+    @pytest.mark.filterwarnings("ignore:JSONMessageFormat has been deprecated")
+    async def test_binary_fallback_to_json(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2552."""
+        broker = RedisBroker()
+
+        @broker.subscriber(stream=queue, message_format=BinaryMessageFormatV1)
+        async def handler(msg) -> None:
+            mock(msg)
+            if mock.call_count == 2:
+                event.set()
+
+        data = {
+            "name": "John",
+            "age": "25",
+        }
+
+        async with broker:
+            await broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker._connection.xadd(queue, data)),
+                    asyncio.create_task(
+                        broker._connection.xadd(queue, {"data": json.dumps(data)})
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        mock.assert_called_with(data)
+        assert mock.call_count == 2

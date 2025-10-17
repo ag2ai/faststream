@@ -129,3 +129,11 @@ All passed values can be of type `#!python bool`, `#!python str` or `#!python li
 ### Logging Configuration
 
 You can pass any custom flags for logging configuration, it's `--log-level` or `--log-config` for detailed logging configuration. See [here](../observability/logging#logging-levels){.internal-link}
+
+### Event Loop
+
+FastStream is built on [anyio](https://github.com/agronholm/anyio) and supports using any event loop implementation (for example, [asyncio](https://docs.python.org/3/library/asyncio-eventloop.html),  [uvloop](https://github.com/MagicStack/uvloop), [winloop](https://github.com/Vizonex/Winloop), and [rloop](https://github.com/gi0baro/rloop)). By default, FastStream uses behavior from anyio: use uvloop (on Unix) if it exists, with fallback to asyncio. You can set event loop factory explicitly via the `--loop` option.
+
+```shell
+faststream run main:app --loop=uvloop:new_event_loop
+```

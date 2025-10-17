@@ -1,5 +1,6 @@
 from typing import Annotated
-from faststream import Context, FastStream, ContextRepo
+from faststream import Context, FastStream
+from faststream.context import ContextRepo
 from faststream.kafka import KafkaBroker
 
 broker = KafkaBroker("localhost:9092")

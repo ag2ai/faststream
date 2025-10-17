@@ -84,14 +84,15 @@ class KeyValueWatchSubscriber(
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
             "NatsKvMessage",
             await process_msg(
                 msg=msg,
                 middlewares=(m(msg, context=context) for m in self._broker_middlewares),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             ),
         )
 
@@ -122,6 +123,9 @@ class KeyValueWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             msg = None
             with anyio.move_on_after(timeout):
@@ -133,8 +137,6 @@ class KeyValueWatchSubscriber(
             if msg is None:
                 continue
 
-            context = self._outer_config.fd_config.context
-
             yield cast(
                 "NatsKvMessage",
                 await process_msg(
@@ -142,8 +144,8 @@ class KeyValueWatchSubscriber(
                     middlewares=(
                         m(msg, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 

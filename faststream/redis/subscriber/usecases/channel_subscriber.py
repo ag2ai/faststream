@@ -104,14 +104,15 @@ class ChannelSubscriber(LogicSubscriber):
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisChannelMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -127,14 +128,15 @@ class ChannelSubscriber(LogicSubscriber):
 
         raw_message: PubSubMessage | None = None
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             with anyio.move_on_after(timeout):
                 while (  # noqa: ASYNC110
                     raw_message := await self._get_message(self.subscription)
                 ) is None:
                     await anyio.sleep(sleep_interval)
-
-            context = self._outer_config.fd_config.context
 
             if raw_message is None:
                 continue
@@ -144,8 +146,8 @@ class ChannelSubscriber(LogicSubscriber):
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 

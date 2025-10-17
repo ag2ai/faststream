@@ -1,5 +1,6 @@
 from typing import Annotated
-from faststream import Context, FastStream, ContextRepo
+from faststream import Context, FastStream
+from faststream.context import ContextRepo
 from faststream.nats import NatsBroker
 
 broker = NatsBroker("nats://localhost:4222")

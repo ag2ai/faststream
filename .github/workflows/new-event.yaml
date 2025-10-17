@@ -21,11 +21,12 @@ jobs:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
       - name: Send Telegram notification for new issue or opened pull request
-        uses: sehat1137/telegram-notifier@34118668d9efc950ec06f9a3e2cd3a1a3e9e2b63 # v1.4.1-pre-release
+        uses: reagento/relator@983edccef69ef9a25b97552daaeaf0f183b470f4 # v1.5.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.TELEGRAM_TO }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          join-input-with-list: "1"
   notify-oss-board:
     name: "Send Telegram notification to OSS board"
     runs-on: ubuntu-latest
@@ -34,8 +35,9 @@ jobs:
       contains(github.event.issue.labels.*.name, 'good first issue')
     steps:
       - name: Send Telegram notification to OSS board
-        uses: sehat1137/telegram-notifier@34118668d9efc950ec06f9a3e2cd3a1a3e9e2b63 # v1.4.1-pre-release
+        uses: reagento/relator@983edccef69ef9a25b97552daaeaf0f183b470f4 # v1.5.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.GFI_CHAT }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          join-input-with-list: "1"
