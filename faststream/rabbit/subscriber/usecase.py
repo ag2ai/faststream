@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from faststream._internal.configs.settings import Settings
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
@@ -12,6 +13,7 @@ from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
 from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITER
+from faststream.rabbit.schemas import RabbitQueue
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
@@ -24,7 +26,6 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import RabbitQueue
 
     from .config import RabbitSubscriberConfig
 
@@ -40,7 +41,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        parser = AioPikaParser(pattern=config.queue.path_regex)
+        parser = AioPikaParser()
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(
@@ -70,6 +71,20 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
+        resolver = self._outer_config.settings.resolve
+        self.queue = RabbitQueue.validate(resolver(self.queue))
+        if self.queue.path_regex is None:
+            self.queue.set_routing()
+        self.exchange = RabbitExchange.validate(resolver(self.exchange))
+        self.consume_args = resolver(self.consume_args)
+        self.__no_ack = resolver(self.__no_ack)
+        self._consumer_tag = resolver(self._consumer_tag)
+        self._queue_obj = resolver(self._queue_obj)
+        self.channel = resolver(self.channel)
+        pattern = getattr(self.queue, "path_regex", None)
+        parser = AioPikaParser(pattern=pattern)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
         await super().start()
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
@@ -210,11 +225,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     @staticmethod
     def build_log_context(
         message: Optional["StreamMessage[Any]"],
-        queue: "RabbitQueue",
+        queue: "RabbitQueue | Settings",
         exchange: Optional["RabbitExchange"] = None,
     ) -> dict[str, str]:
         return {
-            "queue": queue.name,
+            "queue": getattr(queue, "name", ""),
             "exchange": getattr(exchange, "name", ""),
             "message_id": getattr(message, "message_id", ""),
         }

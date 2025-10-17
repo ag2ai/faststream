@@ -80,6 +80,14 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
+        resolver = self._outer_config.settings.resolve
+        routing_key = resolver(self.routing_key)
+        self.routing_key = routing_key
+        self.queue = RabbitQueue.validate(resolver(self.queue))
+        self.exchange = RabbitExchange.validate(resolver(self.exchange))
+        self.headers = resolver(self.headers)
+        self.reply_to = resolver(self.reply_to)
+        self.timeout = resolver(self.timeout)
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()

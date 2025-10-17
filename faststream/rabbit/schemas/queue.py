@@ -79,6 +79,15 @@ class RabbitQueue(NameRequired):
 
         return new_q
 
+    def set_routing(self):
+        re, routing_key = compile_path(
+            self.routing_key,
+            replace_symbol="*",
+            patch_regex=lambda x: x.replace(r"\#", ".+"),
+        )
+        self.path_regex = re
+        self.routing_key = routing_key
+
     @overload
     def __init__(
         self,
@@ -164,11 +173,13 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        re, routing_key = compile_path(
-            routing_key,
-            replace_symbol="*",
-            patch_regex=lambda x: x.replace(r"\#", ".+"),
-        )
+        re = None
+        if isinstance(routing_key, str):
+            re, routing_key = compile_path(
+                routing_key,
+                replace_symbol="*",
+                patch_regex=lambda x: x.replace(r"\#", ".+"),
+            )
 
         if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
             if durable is EMPTY:
