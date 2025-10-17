@@ -48,6 +48,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 

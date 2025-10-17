@@ -26,12 +26,14 @@ class TestCaseMetrics:
         app_name: str,
         metrics_prefix: str,
         received_messages_size_buckets: list[float] | None = None,
+        custom_label_names: list[str] | None = None,
     ) -> MetricsManager:
         registry = CollectorRegistry()
         container = MetricsContainer(
             registry,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            custom_label_names=custom_label_names or [],
         )
         return MetricsManager(container, app_name=app_name)
 
@@ -70,6 +72,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_received_messages_metric(
@@ -78,12 +81,14 @@ class TestCaseMetrics:
             queue=queue,
             broker=broker,
             messages_amount=messages_amount,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_received_message(
             amount=messages_amount,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.received_messages_total.collect()
@@ -115,7 +120,10 @@ class TestCaseMetrics:
         if not is_default_buckets:
             manager_kwargs["received_messages_size_buckets"] = custom_buckets
 
-        manager = self.create_metrics_manager(**manager_kwargs)
+        manager = self.create_metrics_manager(
+            **manager_kwargs,
+            custom_label_names=["foo"],
+        )
 
         size = 1
         buckets = (
@@ -132,9 +140,12 @@ class TestCaseMetrics:
             buckets=buckets,
             size=size,
             messages_amount=1,
+            custom_labels={"foo": "bar"},
         )
 
-        manager.observe_received_messages_size(size=size, broker=broker, handler=queue)
+        manager.observe_received_messages_size(
+            size=size, broker=broker, handler=queue, foo="bar"
+        )
 
         metric_values = manager._container.received_messages_size_bytes.collect()
 
@@ -151,6 +162,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_received_messages_in_process_metric(
@@ -159,12 +171,14 @@ class TestCaseMetrics:
             broker=broker,
             queue=queue,
             messages_amount=messages_amount,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_received_message_in_process(
             amount=messages_amount,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.received_messages_in_process.collect()
@@ -182,6 +196,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_received_messages_in_process_metric(
@@ -190,17 +205,17 @@ class TestCaseMetrics:
             broker=broker,
             queue=queue,
             messages_amount=messages_amount - 1,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_received_message_in_process(
-            amount=messages_amount,
-            broker=broker,
-            handler=queue,
+            amount=messages_amount, broker=broker, handler=queue, foo="bar"
         )
         manager.remove_received_message_in_process(
             amount=1,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.received_messages_in_process.collect()
@@ -229,6 +244,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_received_processed_messages_metric(
@@ -238,6 +254,7 @@ class TestCaseMetrics:
             queue=queue,
             messages_amount=messages_amount,
             status=status,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_received_processed_message(
@@ -245,6 +262,7 @@ class TestCaseMetrics:
             status=status,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.received_processed_messages_total.collect()
@@ -261,6 +279,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         duration = 0.001
@@ -271,12 +290,14 @@ class TestCaseMetrics:
             broker=broker,
             queue=queue,
             duration=duration,
+            custom_labels={"foo": "bar"},
         )
 
         manager.observe_received_processed_message_duration(
             duration=duration,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = (
@@ -296,6 +317,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_received_processed_messages_exceptions_metric(
@@ -305,12 +327,14 @@ class TestCaseMetrics:
             queue=queue,
             exception_type=exception_type,
             exceptions_amount=1,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_received_processed_message_exception(
             exception_type=exception_type,
             broker=broker,
             handler=queue,
+            foo="bar",
         )
 
         metric_values = (
@@ -338,6 +362,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_published_messages_metric(
@@ -347,12 +372,14 @@ class TestCaseMetrics:
             queue=queue,
             status=status,
             messages_amount=1,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_published_message(
             status=status,
             broker=broker,
             destination=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.published_messages_total.collect()
@@ -369,6 +396,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         duration = 0.001
@@ -379,12 +407,14 @@ class TestCaseMetrics:
             broker=broker,
             queue=queue,
             duration=duration,
+            custom_labels={"foo": "bar"},
         )
 
         manager.observe_published_message_duration(
             duration=duration,
             broker=broker,
             destination=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.published_messages_duration_seconds.collect()
@@ -402,6 +432,7 @@ class TestCaseMetrics:
         manager = self.create_metrics_manager(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
+            custom_label_names=["foo"],
         )
 
         expected = get_published_messages_exceptions_metric(
@@ -410,12 +441,14 @@ class TestCaseMetrics:
             broker=broker,
             queue=queue,
             exception_type=exception_type,
+            custom_labels={"foo": "bar"},
         )
 
         manager.add_published_message_exception(
             exception_type=exception_type,
             broker=broker,
             destination=queue,
+            foo="bar",
         )
 
         metric_values = manager._container.published_messages_exceptions_total.collect()
