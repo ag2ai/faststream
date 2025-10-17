@@ -27,10 +27,11 @@ if TYPE_CHECKING:
 
 class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
     __slots__ = (
-        "_custom_labels",
+        "_dynamic_labels",
         "_metrics_container",
         "_metrics_manager",
         "_settings_provider_factory",
+        "_static_labels",
     )
 
     def __init__(
@@ -60,7 +61,14 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             self._metrics_container,
             app_name=app_name,
         )
-        self._custom_labels = custom_labels
+        self._static_labels = {}
+        self._dynamic_labels = {}
+
+        for k, v in (custom_labels or {}).items():
+            if callable(v):
+                self._dynamic_labels[k] = v
+            else:
+                self._static_labels[k] = v
 
     def __call__(
         self,
@@ -74,7 +82,8 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             metrics_manager=self._metrics_manager,
             settings_provider_factory=self._settings_provider_factory,
             context=context,
-            custom_labels=self._custom_labels,
+            custom_labels=self._static_labels
+            | {k: v(msg) for k, v in self._dynamic_labels.items()},
         )
 
 
@@ -93,13 +102,11 @@ class BasePrometheusMiddleware(
         ],
         metrics_manager: MetricsManager,
         context: "ContextRepo",
-        custom_labels: dict[str, str | Callable[[Any], str]] | None,
+        custom_labels: dict[str, str],
     ) -> None:
         self._metrics_manager = metrics_manager
         self._settings_provider = settings_provider_factory(msg)
-        self._custom_labels = {
-            k: str(v(msg) if callable(v) else v) for k, v in (custom_labels or {}).items()
-        }
+        self._custom_labels = custom_labels
         super().__init__(msg, context=context)
 
     async def consume_scope(
