@@ -147,7 +147,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                 final_headers = headers_to_send.copy()
 
             metadata = batch.append(
-                key=None,
+                key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],

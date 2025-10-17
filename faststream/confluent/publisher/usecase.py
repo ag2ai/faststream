@@ -215,11 +215,22 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
+    """A class to publish messages to a Kafka topic."""
+
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specification: "PublisherSpecification[Any, Any]",
+    ) -> None:
+        super().__init__(config, specification)
+        self.key = config.key
+
     @override
     async def publish(
         self,
         *messages: "SendableMessage",
         topic: str = "",
+        key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -229,7 +240,7 @@ class BatchPublisher(LogicPublisher):
     ) -> None:
         cmd = KafkaPublishCommand(
             *messages,
-            key=None,
+            key=key or self.key,
             topic=topic or self.topic,
             partition=partition or self.partition,
             reply_to=reply_to or self.reply_to,
@@ -261,6 +272,7 @@ class BatchPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition or self.partition
+        cmd.key = cmd.key or self.key
 
         await self._basic_publish_batch(
             cmd,

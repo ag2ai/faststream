@@ -3,7 +3,13 @@ from typing import TYPE_CHECKING, Any, Union
 from typing_extensions import override
 
 from faststream.response.publish_type import PublishType
-from faststream.response.response import BatchPublishCommand, PublishCommand, Response
+from faststream.response.response import (
+    BatchPublishCommand,
+    PublishCommand,
+    Response,
+    extract_per_message_keys_and_bodies,
+    key_for_index,
+)
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
@@ -17,7 +23,7 @@ class KafkaResponse(Response):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         timestamp_ms: int | None = None,
-        key: bytes | str | None = None,
+        key: bytes | Any | None = None,
     ) -> None:
         super().__init__(
             body=body,
@@ -50,7 +56,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         *messages: "SendableMessage",
         topic: str,
         _publish_type: PublishType,
-        key: bytes | str | None = None,
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -77,6 +83,12 @@ class KafkaPublishCommand(BatchPublishCommand):
         # request option
         self.timeout = timeout
 
+        # per-message keys support
+        keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
+        if normalized is not None:
+            self.batch_bodies = normalized
+        self._per_message_keys = keys
+
     @classmethod
     def from_cmd(
         cls,
@@ -99,6 +111,9 @@ class KafkaPublishCommand(BatchPublishCommand):
             reply_to=cmd.reply_to,
             _publish_type=cmd.publish_type,
         )
+
+    def key_for(self, index: int) -> Any | None:
+        return key_for_index(self._per_message_keys, self.key, index)
 
     def headers_to_publish(self) -> dict[str, str]:
         headers = {}
