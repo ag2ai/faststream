@@ -65,12 +65,14 @@ class Operation(BaseModel):
         messages: list[Reference],
         channel: Reference,
         operation: OperationSpec,
+        reply: OperationReply,
     ) -> Self:
         return cls(
             action=Action.RECEIVE,
             messages=messages,
             channel=channel,
             bindings=OperationBinding.from_sub(operation.bindings),
+            reply=reply,
             summary=None,
             description=None,
             security=None,

@@ -35,6 +35,27 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
 
     return body
 
+def parse_handler_return(call: "CallModel", prefix: str = "") -> dict[str, Any]:
+    """Parses the handler parameters."""
+    model_container = getattr(call, "serializer")
+    model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
+    assert model
+    out = model_container.response_option['return']
+
+    body = get_model_schema(
+        create_model(
+            model.__name__,
+            **{out.field_name: (out.field_type, out.default_value)},  # type: ignore[call-overload]
+        ),
+        prefix=prefix,
+        exclude=tuple(call.custom_fields.keys()),
+    )
+
+    if body is None:
+        return {"title": "EmptyPayload", "type": "null"}
+
+    return body
+
 
 @overload
 def get_response_schema(call: None, prefix: str = "") -> None: ...

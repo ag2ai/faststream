@@ -19,6 +19,7 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     Operation,
     Reference,
     Server,
+    OperationReply,
     Tag,
 )
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
@@ -64,6 +65,7 @@ def get_app_schema(
     channels, operations = get_broker_channels(broker)
 
     messages: dict[str, Message] = {}
+    reply_messages: dict[str, Message] = {}
     payloads: dict[str, dict[str, Any]] = {}
 
     for channel in channels.values():
@@ -89,6 +91,17 @@ def get_app_schema(
 
         channel.messages = msgs
 
+    for operation_name, operation in operations.items():
+        reply_msgs: dict[str, Message | Reference] = {}
+        for message in operation.reply.messages:
+            reply_msgs['ReplyMessage'] = _resolve_reply_payloads(
+                'ReplyMessage',
+                message,
+                payloads,
+                reply_messages,
+            )
+
+    messages.update(reply_messages)
     return ApplicationSchema(
         info=ApplicationInfo(
             title=title,
@@ -190,6 +203,9 @@ def get_broker_channels(
                 ],
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=sub_channel.operation,
+                reply=OperationReply(
+                    messages=[Message.from_spec(sub_channel.operation.reply_message)],
+                )
             )
 
     for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
@@ -256,6 +272,61 @@ def get_asgi_routes(
 def _get_http_binding_method(methods: Sequence[str]) -> str:
     return next((method for method in methods if method != "HEAD"), "HEAD")
 
+def _resolve_reply_payloads(
+        message_name: str,
+        m: Message,
+        payloads: dict[str, Any],
+        reply_messages: dict[str, Any],
+) -> Reference:
+    assert isinstance(m.payload, dict)
+
+    m.payload = move_pydantic_refs(m.payload, DEF_KEY)
+
+    message_name = clear_key(message_name)
+
+    if DEF_KEY in m.payload:
+        payloads.update(m.payload.pop(DEF_KEY))
+
+    one_of = m.payload.get("oneOf", None)
+    if isinstance(one_of, dict):
+        one_of_list = []
+        processed_payloads: dict[str, dict[str, Any]] = {}
+        for name, payload in one_of.items():
+            # Promote nested Pydantic $defs from each payload into components/schemas
+            # so that referenced nested models are available globally.
+            if isinstance(payload, dict) and DEF_KEY in payload:
+                defs = payload.pop(DEF_KEY) or {}
+                for def_name, def_schema in defs.items():
+                    payloads[clear_key(def_name)] = def_schema
+            processed_payloads[clear_key(name)] = payload
+            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
+
+        payloads.update(processed_payloads)
+        m.payload["oneOf"] = one_of_list
+        assert m.title
+        reply_messages[clear_key(m.title)] = m
+        return Reference(
+            **{"$ref": f"#/components/messages/{message_name}"},
+        )
+
+    payloads.update(m.payload.pop(DEF_KEY, {}))
+    payload_name = m.payload.get("title", f"{message_name}:Payload")
+    payload_name = clear_key(payload_name)
+
+    if payload_name in payloads and payloads[payload_name] != m.payload:
+        warnings.warn(
+            f"Overwriting the message schema, data types have the same name: `{payload_name}`",
+            RuntimeWarning,
+            stacklevel=1,
+        )
+
+    payloads[payload_name] = m.payload
+    m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
+    assert m.title
+    reply_messages[clear_key(m.title)] = m
+    return Reference(
+        **{"$ref": f"#/components/messages/{message_name}"},
+    )
 
 def _resolve_msg_payloads(
     message_name: str,

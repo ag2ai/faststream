@@ -31,6 +31,7 @@ class RabbitSubscriberSpecification(
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
+        reply_payloads = self.get_reply_payloads()
 
         queue = self.config.queue.add_prefix(self._outer_config.prefix)
 
@@ -59,6 +60,10 @@ class RabbitSubscriberSpecification(
                         title=f"{channel_name}:Message",
                         payload=resolve_payloads(payloads),
                     ),
+                    reply_message=Message(
+                        title=f"{channel_name}:ReplyMessage",
+                        payload=resolve_payloads(reply_payloads),
+                    )
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(

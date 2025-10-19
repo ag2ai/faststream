@@ -6,6 +6,7 @@ from .info import ApplicationInfo
 from .license import License
 from .message import CorrelationId, Message
 from .operations import Operation
+from .operation_reply import OperationReply
 from .schema import ApplicationSchema
 from .servers import Server, ServerVariable
 from .tag import Tag
@@ -23,6 +24,7 @@ __all__ = (
     "License",
     "Message",
     "Operation",
+    "OperationReply",
     "Parameter",
     "Reference",
     "Server",
