@@ -21,7 +21,7 @@ jobs:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     steps:
       - name: Send Telegram notification for new issue or opened pull request
-        uses: reagento/relator@983edccef69ef9a25b97552daaeaf0f183b470f4 # v1.5.0
+        uses: reagento/relator@0942904cfa8775e115be93f3a1e39b365178d8f0 # v1.5.1
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.TELEGRAM_TO }}
@@ -35,7 +35,7 @@ jobs:
       contains(github.event.issue.labels.*.name, 'good first issue')
     steps:
       - name: Send Telegram notification to OSS board
-        uses: reagento/relator@983edccef69ef9a25b97552daaeaf0f183b470f4 # v1.5.0
+        uses: reagento/relator@0942904cfa8775e115be93f3a1e39b365178d8f0 # v1.5.1
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.GFI_CHAT }}
