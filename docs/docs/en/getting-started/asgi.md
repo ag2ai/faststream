@@ -61,17 +61,7 @@ It doesn't look very helpful, so let's add some **HTTP** endpoints.
 First, we have already written a wrapper on top of the broker to make a ready-to-use **ASGI** healthcheck endpoint for you:
 
 ```python linenums="1" hl_lines="2 9"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, make_ping_asgi
-
-broker = NatsBroker()
-
-app = AsgiFastStream(
-    broker,
-    asgi_routes=[
-        ("/health", make_ping_asgi(broker, timeout=5.0)),
-    ]
-)
+{! docs_src/getting_started/asgi/healthcheck_app.py !}
 ```
 
 !!! note
@@ -81,27 +71,36 @@ app = AsgiFastStream(
 
 **AsgiFastStream** is able to call any **ASGI**-compatible callable objects, so you can use any endpoints from other libraries if they are compatible with the protocol.
 
-If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` decorator as in the following example:
+If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` or `#!python @post` decorator as in the following example.
 
-```python linenums="1" hl_lines="2 6-8 12"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, AsgiResponse, get
-
-broker = NatsBroker()
-
-@get
-async def liveness_ping(scope):
-    return AsgiResponse(b"", status_code=200)
-
-app = AsgiFastStream(
-    broker,
-    asgi_routes=[("/health", liveness_ping)]
-)
+```python linenums="1" hl_lines="2 7-9 13""
+{! docs_src/getting_started/asgi/custom_app.py !}
 ```
 
 !!! tip
     You do not need to setup all routes using the `asgi_routes=[]` parameter.<br/>
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
+
+#### Accessing context fields
+
+**HTTP** endpoints can receive arguments from the context, such as **App**, **Logger**, [**Context**](./context.md){.internal-link}, or **Request** objects.
+
+```python linenums="1" hl_lines="2 5-6 14"
+{! docs_src/getting_started/asgi/logging_app.py !}
+```
+
+You can also use helper functions to access query parameters and headers:
+
+```python linenums="1" hl_lines="1 8-9 19"
+{! docs_src/getting_started/asgi/auth_app.py !}
+```
+
+#### Dependency injection
+
+Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"} in the same way as described in [Dependencies](./dependencies/index.md){.internal-link}.
+
+!!! warning
+    FastDepends DI and `Context` access will not work if you implement your own handlers instead using the `get` or `post` decorators.
 
 ### ASGI Documentation
 

@@ -227,10 +227,10 @@ You can find more details in the documentation: https://faststream.ag2.ai/latest
 1. AsyncAPI3.0 support – now you can choose between `AsyncAPI(schema_version="3.0.0")` (default) and `AsyncAPI(schema_version="2.6.0")` schemas generation
 
 2. [Msgspec](https://github.com/jcrist/msgspec) native support
-    
+
     ```python
     from fast_depends.msgspec import MsgSpecSerializer
-    
+
     broker = Broker(serializer=MsgSpecSerializer())
     ```
 
@@ -272,7 +272,7 @@ You can find more details in the documentation: https://faststream.ag2.ai/latest
 * lint(rabbit): check publisher and subscriber by @ApostolFet in https://github.com/ag2ai/faststream/pull/2415
 * dont replace hyphen in cli values by @borisalekseev in https://github.com/ag2ai/faststream/pull/2426
 * docs: update contributing guide with pip upgrade and fix mkdocs serve… by @Kolanar in https://github.com/ag2ai/faststream/pull/2427
-* cli: Fix assertation to app object is Application instance by @loRes228 in https://github.com/ag2ai/faststream/pull/2428
+* cli: Fix assertion to app object is Application instance by @loRes228 in https://github.com/ag2ai/faststream/pull/2428
 * Docs: add llms.txt by @vldmrdev in https://github.com/ag2ai/faststream/pull/2421
 * Docs/middlewares main changes by @Maclovi in https://github.com/ag2ai/faststream/pull/2425
 * lint: Kafka overrides polish by @Lancetnik in https://github.com/ag2ai/faststream/pull/2429

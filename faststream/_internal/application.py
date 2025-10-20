@@ -113,6 +113,7 @@ class StartAbleApplication:
             raise SetupError(msg)
 
         self.brokers.append(broker)
+        _ = self.schema.add_broker(broker)
 
 
 class Application(StartAbleApplication):

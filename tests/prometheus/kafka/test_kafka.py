@@ -52,6 +52,7 @@ class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase)
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 

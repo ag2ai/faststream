@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from dirty_equals import IsList, IsPositiveFloat, IsStr
@@ -13,6 +13,7 @@ from faststream.prometheus.middleware import (
     PROCESSING_STATUS_BY_ACK_STATUS,
     PROCESSING_STATUS_BY_HANDLER_EXCEPTION_MAP,
     BasePrometheusMiddleware,
+    PrometheusMiddleware,
 )
 from faststream.prometheus.types import ProcessingStatus, PublishingStatus
 from tests.brokers.base.basic import BaseTestcaseConfig
@@ -28,10 +29,13 @@ from tests.prometheus.utils import (
     get_received_processed_messages_metric,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 
 @pytest.mark.asyncio()
 class LocalPrometheusTestcase(BaseTestcaseConfig):
-    def get_middleware(self, **kwargs: Any) -> BasePrometheusMiddleware:
+    def get_middleware(self, **kwargs: Any) -> PrometheusMiddleware:
         raise NotImplementedError
 
     def get_settings_provider(self) -> MetricsSettingsProvider[Any]:
@@ -83,7 +87,11 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
     ) -> None:
         event = asyncio.Event()
         registry = CollectorRegistry()
-        middleware = self.get_middleware(registry=registry)
+        custom_labels: dict[str, str | Callable[[Any], str]] = {
+            "static": "pupupu",
+            "dynamic": lambda x: "papapa",
+        }
+        middleware = self.get_middleware(registry=registry, custom_labels=custom_labels)
 
         broker = self.get_broker(apply_types=True, middlewares=(middleware,))
 
@@ -121,6 +129,10 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             registry=registry,
             message=message,
             exception_class=exception_class,
+            custom_labels={
+                "static": "pupupu",
+                "dynamic": "papapa",
+            },
         )
 
     def assert_metrics(
@@ -129,6 +141,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         registry: CollectorRegistry,
         message: Any,
         exception_class: type[Exception] | None,
+        custom_labels: dict[str, str],
     ) -> None:
         settings_provider = self.get_settings_provider()
         consume_attrs = settings_provider.get_consume_attrs_from_message(message)
@@ -139,6 +152,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             broker=settings_provider.messaging_system,
             queue=consume_attrs["destination_name"],
             messages_amount=consume_attrs["messages_count"],
+            custom_labels=custom_labels,
         )
 
         received_messages_size_bytes_metric = get_received_messages_size_bytes_metric(
@@ -162,6 +176,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             ),
             size=consume_attrs["message_size"],
             messages_amount=1,
+            custom_labels=custom_labels,
         )
 
         received_messages_in_process_metric = get_received_messages_in_process_metric(
@@ -170,6 +185,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             broker=settings_provider.messaging_system,
             queue=consume_attrs["destination_name"],
             messages_amount=0,
+            custom_labels=custom_labels,
         )
 
         received_processed_messages_duration_seconds_metric = (
@@ -179,6 +195,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
                 broker=settings_provider.messaging_system,
                 queue=consume_attrs["destination_name"],
                 duration=cast("float", IsPositiveFloat),
+                custom_labels=custom_labels,
             )
         )
 
@@ -199,6 +216,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             queue=consume_attrs["destination_name"],
             messages_amount=consume_attrs["messages_count"],
             status=status,
+            custom_labels=custom_labels,
         )
 
         exception_type: str | None = None
@@ -214,6 +232,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
                 queue=consume_attrs["destination_name"],
                 exception_type=exception_type,
                 exceptions_amount=consume_attrs["messages_count"],
+                custom_labels=custom_labels,
             )
         )
 
@@ -224,6 +243,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             queue=cast("str", IsStr),
             status=PublishingStatus.success,
             messages_amount=consume_attrs["messages_count"],
+            custom_labels=custom_labels,
         )
 
         published_messages_duration_seconds_metric = (
@@ -233,6 +253,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
                 broker=settings_provider.messaging_system,
                 queue=cast("str", IsStr),
                 duration=cast("float", IsPositiveFloat),
+                custom_labels=custom_labels,
             )
         )
 
@@ -242,6 +263,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
             broker=settings_provider.messaging_system,
             queue=cast("str", IsStr),
             exception_type=None,
+            custom_labels=custom_labels,
         )
 
         expected_metrics = IsList(
@@ -299,6 +321,7 @@ class LocalRPCPrometheusTestcase:
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 
