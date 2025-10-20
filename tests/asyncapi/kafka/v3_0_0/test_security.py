@@ -128,7 +128,7 @@ def test_plaintext_security_schema() -> None:
 
     plaintext_security_schema = deepcopy(basic_schema)
     plaintext_security_schema["servers"]["development"]["security"] = [
-        {"user-password": []},
+        {"$ref": "#/components/securitySchemes/user-password"},
     ]
     plaintext_security_schema["components"]["securitySchemes"] = {
         "user-password": {"type": "userPassword"},
@@ -156,7 +156,9 @@ def test_scram256_security_schema() -> None:
     schema = get_3_0_0_schema(broker)
 
     sasl256_security_schema = deepcopy(basic_schema)
-    sasl256_security_schema["servers"]["development"]["security"] = [{"scram256": []}]
+    sasl256_security_schema["servers"]["development"]["security"] = [
+        {"$ref": "#/components/securitySchemes/scram256"}
+    ]
     sasl256_security_schema["components"]["securitySchemes"] = {
         "scram256": {"type": "scramSha256"},
     }
@@ -183,7 +185,9 @@ def test_scram512_security_schema() -> None:
     schema = get_3_0_0_schema(broker)
 
     sasl512_security_schema = deepcopy(basic_schema)
-    sasl512_security_schema["servers"]["development"]["security"] = [{"scram512": []}]
+    sasl512_security_schema["servers"]["development"]["security"] = [
+        {"$ref": "#/components/securitySchemes/scram512"}
+    ]
     sasl512_security_schema["components"]["securitySchemes"] = {
         "scram512": {"type": "scramSha512"},
     }
@@ -209,7 +213,7 @@ def test_oauthbearer_security_schema() -> None:
 
     sasl_oauthbearer_security_schema = deepcopy(basic_schema)
     sasl_oauthbearer_security_schema["servers"]["development"]["security"] = [
-        {"oauthbearer": []},
+        {"$ref": "#/components/securitySchemes/oauthbearer"},
     ]
     sasl_oauthbearer_security_schema["components"]["securitySchemes"] = {
         "oauthbearer": {"type": "oauth2", "$ref": ""},
@@ -235,7 +239,9 @@ def test_gssapi_security_schema() -> None:
     schema = get_3_0_0_schema(broker)
 
     gssapi_security_schema = deepcopy(basic_schema)
-    gssapi_security_schema["servers"]["development"]["security"] = [{"gssapi": []}]
+    gssapi_security_schema["servers"]["development"]["security"] = [
+        {"$ref": "#/components/securitySchemes/gssapi"}
+    ]
     gssapi_security_schema["components"]["securitySchemes"] = {
         "gssapi": {"type": "gssapi"},
     }

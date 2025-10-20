@@ -73,7 +73,7 @@ def test_plaintext_security_schema() -> None:
             "development": {
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
-                "security": [{"user-password": []}],
+                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
                 "host": "admin:password@localhost:5671",
                 "pathname": "/",
             },
@@ -109,7 +109,7 @@ def test_plaintext_security_schema_without_ssl() -> None:
             "development": {
                 "protocol": "amqp",
                 "protocolVersion": "0.9.1",
-                "security": [{"user-password": []}],
+                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
                 "host": "admin:password@localhost:5672",
                 "pathname": "/",
             },

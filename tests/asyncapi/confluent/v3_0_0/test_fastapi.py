@@ -42,7 +42,7 @@ def test_fastapi_security_schema() -> None:
     assert schema["servers"]["development"] == {
         "protocol": "kafka",
         "protocolVersion": "auto",
-        "security": [{"user-password": []}],
+        "security": [{"$ref": "#/components/securitySchemes/user-password"}],
         "host": "localhost:9092",
         "pathname": "",
     }

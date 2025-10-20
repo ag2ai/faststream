@@ -139,7 +139,11 @@ def get_broker_server(
     }
 
     if specification.security is not None:
-        broker_meta["security"] = specification.security.get_requirement()
+        broker_meta["security"] = [
+            Reference(**{"$ref": f"#/components/securitySchemes/{sec}"})
+            for security_item in specification.security.get_requirement()
+            for sec in security_item
+        ]
 
     single_server = len(specification.url) == 1
     for i, broker_url in enumerate(specification.url, 1):
