@@ -12,6 +12,25 @@ hide:
 ---
 
 # Release Notes
+## 0.6.2
+
+### What's Changed
+
+* Asgi request validation error and docs by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2525](https://github.com/ag2ai/faststream/pull/2525){.external-link target="_blank"}
+* fix: docs render if broker is set by set_broker by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2592](https://github.com/ag2ai/faststream/pull/2592){.external-link target="_blank"}
+* feat: custom labels in prometheus metrics by @roma-frolov in [#2555](https://github.com/ag2ai/faststream/pull/2555){.external-link target="_blank"}
+* Add LICENSE file info in distribution by [@Nifacy](https://github.com/Nifacy){.external-link target="_blank"} in [#2595](https://github.com/ag2ai/faststream/pull/2595){.external-link target="_blank"}
+* Mock `xack` and `xdel` methods in Redis testing setup. by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2599](https://github.com/ag2ai/faststream/pull/2599){.external-link target="_blank"}
+* fix: correct group_id default usage by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2601](https://github.com/ag2ai/faststream/pull/2601){.external-link target="_blank"}
+* fix: force ERROR log level in CriticalLogMiddleware by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2602](https://github.com/ag2ai/faststream/pull/2602){.external-link target="_blank"}
+* fix: AsyncAPI 3.0 server security use ref by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2603](https://github.com/ag2ai/faststream/pull/2603){.external-link target="_blank"}
+* lint: fix confluent subscriber decorator annotation by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2604](https://github.com/ag2ai/faststream/pull/2604){.external-link target="_blank"}
+
+### New Contributors
+* [@Nifacy](https://github.com/Nifacy){.external-link target="_blank"} made their first contribution in [#2595](https://github.com/ag2ai/faststream/pull/2595){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.1...0.6.2](https://github.com/ag2ai/faststream/compare/0.6.1...0.6.2){.external-link target="_blank"}
+
 ## 0.6.1
 
 ### What's Changed
