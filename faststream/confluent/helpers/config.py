@@ -367,7 +367,6 @@ class ConfluentFastConfig:
             | self.config,
         )
 
-
     @property
     def producer_config(self) -> dict[str, Any]:
         return _to_confluent(
