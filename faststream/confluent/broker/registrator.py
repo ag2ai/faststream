@@ -114,7 +114,7 @@ class KafkaRegistrator(
         *topics: str,
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: None = None,
+        group_id: str | None = None,
         group_instance_id: None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
