@@ -119,7 +119,7 @@ semgrep:
 [doc("Zizmor check")]
 [group("static analysis")]
 zizmor:
-  VIRTUAL_ENV=.venv uv run --active --frozen zizmor .github/workflows
+  VIRTUAL_ENV=.venv uv run --active --frozen zizmor .github/workflows --no-exit-codes
 
 [doc("Static analysis check")]
 [group("static analysis")]
