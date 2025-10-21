@@ -195,8 +195,6 @@ class LogicPublisher(PublisherUsecase):
             headers:
                 Message headers to store metainformation.
                 **content-type** and **correlation_id** will be set automatically by framework anyway.
-            reply_to:
-                NATS subject name to send response.
             correlation_id:
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.

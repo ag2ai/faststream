@@ -6,7 +6,34 @@ from faststream.exceptions import SetupError
 
 
 class StreamSub(NameRequired):
-    """A class to represent a Redis Stream subscriber."""
+    """A class to represent a Redis Stream subscriber.
+
+    Args:
+        batch:
+            Whether to consume messages in batches or not.
+        max_records:
+            Number of messages to consume as one batch.
+        consumer:
+            The consumer unique name
+
+            https://redis.io/docs/latest/develop/tools/insight/tutorials/insight-stream-consumer/#run-the-consumer
+        group:
+            The name of consumer group
+        last_id:
+            An Entry ID, which uses to pick up from where it left off after it is restarted.
+        maxlen:
+            Redis Stream maxlen publish option. Remove eldest message if maxlen exceeded.
+
+            https://redis.io/docs/latest/develop/data-types/streams/#capped-streams
+        name:
+            The original Redis Stream name.
+        no_ack:
+            If True, to enable the XREADGROUP NOACK subcommand.
+
+            https://redis.io/docs/latest/commands/xreadgroup/#differences-between-xread-and-xreadgroup
+        polling_interval:
+            Polling interval in seconds.
+    """
 
     __slots__ = (
         "batch",

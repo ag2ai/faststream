@@ -36,7 +36,7 @@ def parse_cli_args(*args: str) -> tuple[str, dict[str, "SettingField"]]:
         if ":" in item and not is_bind_arg(item):
             app = item
 
-        elif "-" in item:
+        elif item.startswith("-"):
             if k:
                 k = k.strip().lstrip("-").replace("-", "_")
 

@@ -83,8 +83,8 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(**publisher.subscriber_property(name_only=False))
-
+            sub_options = publisher.subscriber_property(name_only=False)
+            sub = broker.subscriber(**sub_options, persistent=False)
         else:
             is_real = True
 
@@ -105,9 +105,13 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
         pub_sub.get_message = get_msg
 
-        broker.config.broker_config.connection._client = connection
-
         connection.pubsub.side_effect = lambda: pub_sub
+        connection.aclose = AsyncMock()
+
+        connection.xack = AsyncMock()
+        connection.xdel = AsyncMock()
+
+        broker.config.broker_config.connection._client = connection
         return connection
 
 
@@ -133,8 +137,8 @@ class FakeProducer(RedisFastProducer):
             reply_to=cmd.reply_to,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
-            serializer=self.broker.config.fd_config._serializer,
             message_format=cmd.message_format,
+            serializer=self.broker.config.fd_config._serializer,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -161,6 +165,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            serializer=self.broker.config.fd_config._serializer,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -189,6 +194,7 @@ class FakeProducer(RedisFastProducer):
                 correlation_id=cmd.correlation_id or gen_cor_id(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
+                serializer=self.broker.config.fd_config._serializer,
             )
             for m in cmd.batch_bodies
         ]
@@ -223,8 +229,8 @@ class FakeProducer(RedisFastProducer):
                 message=result.body,
                 headers=result.headers,
                 correlation_id=result.correlation_id or "",
-                serializer=self.broker.config.fd_config._serializer,
                 message_format=handler.config.message_format,
+                serializer=self.broker.config.fd_config._serializer,
             ),
             channel="",
             pattern=None,

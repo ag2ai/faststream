@@ -15,6 +15,7 @@ def get_received_messages_metric(
     broker: str,
     queue: str,
     messages_amount: int,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_messages",
@@ -25,14 +26,24 @@ def get_received_messages_metric(
     metric.samples = [
         Sample(
             name=f"{metrics_prefix}_received_messages_total",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=float(messages_amount),
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_received_messages_created",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
@@ -51,6 +62,7 @@ def get_received_messages_size_bytes_metric(
     buckets: Sequence[float],
     size: int,
     messages_amount: int,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_messages_size_bytes",
@@ -67,6 +79,7 @@ def get_received_messages_size_bytes_metric(
                     "broker": broker,
                     "handler": queue,
                     "le": cast("str", IsStr),
+                    **custom_labels,
                 },
                 value=float(messages_amount),
                 timestamp=None,
@@ -76,21 +89,36 @@ def get_received_messages_size_bytes_metric(
         ],
         Sample(
             name=f"{metrics_prefix}_received_messages_size_bytes_count",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=float(messages_amount),
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_received_messages_size_bytes_sum",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=size,
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_received_messages_size_bytes_created",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
@@ -107,6 +135,7 @@ def get_received_messages_in_process_metric(
     broker: str,
     queue: str,
     messages_amount: int,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_messages_in_process",
@@ -117,7 +146,12 @@ def get_received_messages_in_process_metric(
     metric.samples = [
         Sample(
             name=f"{metrics_prefix}_received_messages_in_process",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=float(messages_amount),
             timestamp=None,
             exemplar=None,
@@ -135,6 +169,7 @@ def get_received_processed_messages_metric(
     queue: str,
     messages_amount: int,
     status: ProcessingStatus,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_processed_messages",
@@ -150,6 +185,7 @@ def get_received_processed_messages_metric(
                 "broker": broker,
                 "handler": queue,
                 "status": status.value,
+                **custom_labels,
             },
             value=float(messages_amount),
             timestamp=None,
@@ -162,6 +198,7 @@ def get_received_processed_messages_metric(
                 "broker": broker,
                 "handler": queue,
                 "status": status.value,
+                **custom_labels,
             },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
@@ -179,6 +216,7 @@ def get_received_processed_messages_duration_seconds_metric(
     broker: str,
     queue: str,
     duration: float,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_processed_messages_duration_seconds",
@@ -195,6 +233,7 @@ def get_received_processed_messages_duration_seconds_metric(
                     "broker": broker,
                     "handler": queue,
                     "le": cast("str", IsStr),
+                    **custom_labels,
                 },
                 value=cast("float", IsFloat),
                 timestamp=None,
@@ -204,21 +243,36 @@ def get_received_processed_messages_duration_seconds_metric(
         ],
         Sample(
             name=f"{metrics_prefix}_received_processed_messages_duration_seconds_count",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_received_processed_messages_duration_seconds_sum",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=duration,
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_received_processed_messages_duration_seconds_created",
-            labels={"app_name": app_name, "broker": broker, "handler": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "handler": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
@@ -236,6 +290,7 @@ def get_received_processed_messages_exceptions_metric(
     queue: str,
     exception_type: str | None,
     exceptions_amount: int,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_received_processed_messages_exceptions",
@@ -252,6 +307,7 @@ def get_received_processed_messages_exceptions_metric(
                     "broker": broker,
                     "handler": queue,
                     "exception_type": exception_type,
+                    **custom_labels,
                 },
                 value=float(exceptions_amount),
                 timestamp=None,
@@ -264,6 +320,7 @@ def get_received_processed_messages_exceptions_metric(
                     "broker": broker,
                     "handler": queue,
                     "exception_type": exception_type,
+                    **custom_labels,
                 },
                 value=cast("float", IsPositiveFloat),
                 timestamp=None,
@@ -285,6 +342,7 @@ def get_published_messages_metric(
     queue: str,
     messages_amount: int,
     status: PublishingStatus,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_published_messages",
@@ -300,6 +358,7 @@ def get_published_messages_metric(
                 "broker": broker,
                 "destination": queue,
                 "status": status.value,
+                **custom_labels,
             },
             value=messages_amount,
             timestamp=None,
@@ -312,6 +371,7 @@ def get_published_messages_metric(
                 "broker": broker,
                 "destination": queue,
                 "status": status.value,
+                **custom_labels,
             },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
@@ -329,6 +389,7 @@ def get_published_messages_duration_seconds_metric(
     broker: str,
     queue: str,
     duration: float,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_published_messages_duration_seconds",
@@ -345,6 +406,7 @@ def get_published_messages_duration_seconds_metric(
                     "broker": broker,
                     "destination": queue,
                     "le": cast("str", IsStr),
+                    **custom_labels,
                 },
                 value=cast("float", IsFloat),
                 timestamp=None,
@@ -354,21 +416,36 @@ def get_published_messages_duration_seconds_metric(
         ],
         Sample(
             name=f"{metrics_prefix}_published_messages_duration_seconds_count",
-            labels={"app_name": app_name, "broker": broker, "destination": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "destination": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_published_messages_duration_seconds_sum",
-            labels={"app_name": app_name, "broker": broker, "destination": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "destination": queue,
+                **custom_labels,
+            },
             value=duration,
             timestamp=None,
             exemplar=None,
         ),
         Sample(
             name=f"{metrics_prefix}_published_messages_duration_seconds_created",
-            labels={"app_name": app_name, "broker": broker, "destination": queue},
+            labels={
+                "app_name": app_name,
+                "broker": broker,
+                "destination": queue,
+                **custom_labels,
+            },
             value=cast("float", IsPositiveFloat),
             timestamp=None,
             exemplar=None,
@@ -385,6 +462,7 @@ def get_published_messages_exceptions_metric(
     broker: str,
     queue: str,
     exception_type: str | None,
+    custom_labels: dict[str, str],
 ) -> Metric:
     metric = Metric(
         name=f"{metrics_prefix}_published_messages_exceptions",
@@ -401,6 +479,7 @@ def get_published_messages_exceptions_metric(
                     "broker": broker,
                     "destination": queue,
                     "exception_type": exception_type,
+                    **custom_labels,
                 },
                 value=1.0,
                 timestamp=None,
@@ -413,6 +492,7 @@ def get_published_messages_exceptions_metric(
                     "broker": broker,
                     "destination": queue,
                     "exception_type": exception_type,
+                    **custom_labels,
                 },
                 value=cast("float", IsPositiveFloat),
                 timestamp=None,

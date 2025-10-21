@@ -65,7 +65,7 @@ class PullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self.consume))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
 
     async def _consume_pull(
         self,
@@ -102,7 +102,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull(cb=self._put_msg))
+        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
 
 
 class BatchPullStreamSubscriber(
@@ -159,6 +159,7 @@ class BatchPullStreamSubscriber(
             return None
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
             "NatsMessage",
@@ -167,8 +168,8 @@ class BatchPullStreamSubscriber(
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             ),
         )
 
@@ -187,10 +188,11 @@ class BatchPullStreamSubscriber(
         else:
             fetch_sub = self._fetch_sub
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             raw_message = await fetch_sub.fetch(batch=1)
-
-            context = self._outer_config.fd_config.context
 
             yield cast(
                 "NatsMessage",
@@ -199,8 +201,8 @@ class BatchPullStreamSubscriber(
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 
@@ -215,7 +217,7 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull())
+        self.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""

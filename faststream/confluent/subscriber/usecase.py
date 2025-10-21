@@ -90,7 +90,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume())
+            self.add_task(self._consume)
 
     async def stop(self) -> None:
         await super().stop()
@@ -104,7 +104,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[MsgType] | None":
+    ) -> "KafkaMessage | None":
         assert self.consumer, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
@@ -114,13 +114,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         context = self._outer_config.fd_config.context
 
-        return await process_msg(
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
+        return await process_msg(  # type: ignore[return-value]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
 
     @override
@@ -130,14 +132,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use iterator if subscriber has registered handlers."
         )
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         timeout = 5.0
         while True:
             raw_message = await self.consumer.getone(timeout=timeout)
 
             if raw_message is None:
                 continue
-
-            context = self._outer_config.fd_config.context
 
             yield cast(
                 "KafkaMessage",
@@ -146,8 +149,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 

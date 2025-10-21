@@ -139,7 +139,11 @@ def get_broker_server(
     }
 
     if specification.security is not None:
-        broker_meta["security"] = specification.security.get_requirement()
+        broker_meta["security"] = [
+            Reference(**{"$ref": f"#/components/securitySchemes/{sec}"})
+            for security_item in specification.security.get_requirement()
+            for sec in security_item
+        ]
 
     single_server = len(specification.url) == 1
     for i, broker_url in enumerate(specification.url, 1):
@@ -275,6 +279,12 @@ def _resolve_msg_payloads(
         one_of_list = []
         processed_payloads: dict[str, dict[str, Any]] = {}
         for name, payload in one_of.items():
+            # Promote nested Pydantic $defs from each payload into components/schemas
+            # so that referenced nested models are available globally.
+            if isinstance(payload, dict) and DEF_KEY in payload:
+                defs = payload.pop(DEF_KEY) or {}
+                for def_name, def_schema in defs.items():
+                    payloads[clear_key(def_name)] = def_schema
             processed_payloads[clear_key(name)] = payload
             one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
 

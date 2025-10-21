@@ -87,7 +87,7 @@ class ExceptionMiddleware:
     def add_handler(
         self,
         exc: type[Exception],
-        publish: Literal[True],
+        publish: Literal[True] = ...,
     ) -> Callable[[PublishingExceptionHandler], PublishingExceptionHandler]: ...
 
     def add_handler(

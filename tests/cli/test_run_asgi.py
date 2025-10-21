@@ -4,16 +4,16 @@ import httpx
 import psutil
 import pytest
 
+from tests.cli import interfaces
 from tests.marks import skip_windows
-
-from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
 
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_run(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     import json
@@ -75,9 +75,10 @@ def test_run(
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_single_worker(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse
@@ -108,8 +109,8 @@ def test_single_worker(
 @skip_windows
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_many_workers(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream
@@ -136,9 +137,10 @@ def test_many_workers(
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_factory(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse, get

@@ -63,6 +63,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             ),
         ] = (),
         no_reply: bool = False,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -85,6 +86,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             title (Optional[str], optional): AsyncAPI subscriber object title.
             description (Optional[str], optional): AsyncAPI subscriber object description. Uses decorated docstring as default.
             include_in_schema (bool, optional): Whether to include operation in AsyncAPI schema or not.
+            persistent (bool): Whether to make the subscriber persistent or not.
 
         Returns:
             RabbitSubscriber: The subscriber specification object.
@@ -106,7 +108,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().subscriber(subscriber)
+        super().subscriber(subscriber, persistent=persistent)
 
         return subscriber.add_call(
             parser_=parser,
@@ -128,6 +130,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
+        persistent: bool = True,
         # specific
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
@@ -183,6 +186,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             expiration: Message expiration (lifetime) in seconds (or datetime or timedelta).
             message_type: Application-specific message type, e.g. **orders.created**.
             user_id: Publisher connection User ID, validated if set.
+            persistent: Whether to make the publisher persistent or not.
         """
         message_kwargs = PublishKwargs(
             mandatory=mandatory,
@@ -215,7 +219,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().publisher(publisher)
+        super().publisher(publisher, persistent=persistent)
 
         return publisher
 

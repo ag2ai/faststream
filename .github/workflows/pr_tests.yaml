@@ -17,6 +17,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
 jobs:
   test-basic:
     if: github.event.pull_request.draft == false
@@ -28,21 +33,17 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v4
-        id: cache
-        with:
-          path: ${{ env.pythonLocation }}
-          key: ${{ runner.os }}-python-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}-uv
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Install Pydantic v1
@@ -51,16 +52,14 @@ jobs:
       - name: Install Pydantic v2
         if: matrix.pydantic-version == 'pydantic-v2'
         run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
-        env:
-          COVERAGE_FILE: coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
-          CONTEXT: ${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
           path: coverage
@@ -71,63 +70,84 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.macos-latest
+      - name: Store coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage.macos-latest
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
 
   test-windows-latest:
     if: github.event.pull_request.draft == false
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.windows-latest
+      - name: Store coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage.windows-latest
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
 
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "kafka and not connected"
 
   test-kafka-real:
@@ -138,43 +158,43 @@ jobs:
     runs-on: ubuntu-latest
     services:
       kafka:
-        image: bitnami/kafka:3.5.0
+        image: confluentinc/cp-kafka:8.0.0
         ports:
           - 9092:9092
         env:
-          KAFKA_ENABLE_KRAFT: "true"
-          KAFKA_CFG_NODE_ID: "1"
-          KAFKA_CFG_PROCESS_ROLES: "broker,controller"
-          KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-          KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-          KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://127.0.0.1:9092"
+          KAFKA_NODE_ID: "1"
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+          KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://127.0.0.1:9092"
+          KAFKA_PROCESS_ROLES: "broker,controller"
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_BROKER_ID: "1"
-          KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-          ALLOW_PLAINTEXT_LISTENER: "true"
+          KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+          KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+          KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+          KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+          CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and kafka and connected) or (kafka and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.kafka-py
-          CONTEXT: kafka-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.kafka-py
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.kafka-py
           path: coverage
@@ -185,21 +205,22 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "confluent and not connected"
 
   test-confluent-real:
@@ -210,43 +231,43 @@ jobs:
     runs-on: ubuntu-latest
     services:
       kafka:
-        image: bitnami/kafka:3.5.0
+        image: confluentinc/cp-kafka:8.0.0
         ports:
           - 9092:9092
         env:
-          KAFKA_ENABLE_KRAFT: "true"
-          KAFKA_CFG_NODE_ID: "1"
-          KAFKA_CFG_PROCESS_ROLES: "broker,controller"
-          KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-          KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-          KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://127.0.0.1:9092"
+          KAFKA_NODE_ID: "1"
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+          KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://127.0.0.1:9092"
+          KAFKA_PROCESS_ROLES: "broker,controller"
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_BROKER_ID: "1"
-          KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-          ALLOW_PLAINTEXT_LISTENER: "true"
+          KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+          KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+          KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+          KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+          CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and confluent and connected) or (confluent and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.confluent-py
-          CONTEXT: confluent-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.confluent-py
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.confluent-py
           path: coverage
@@ -257,21 +278,22 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "rabbit and not connected"
 
   test-rabbit-real:
@@ -286,28 +308,27 @@ jobs:
         ports:
           - 5672:5672
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and rabbit and connected) or (rabbit and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.rabbit-py
-          CONTEXT: rabbit-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.rabbit-py
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.rabbit-py
           path: coverage
@@ -318,21 +339,22 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "nats and not connected"
 
   test-nats-real:
@@ -347,28 +369,27 @@ jobs:
         ports:
           - 4222:4222
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and nats and connected) or (nats and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.nats-py
-          CONTEXT: nats-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.nats-py
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.nats-py
           path: coverage
@@ -379,21 +400,22 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest -n auto
           -vv -m "redis and not connected"
 
   test-redis-real:
@@ -408,28 +430,27 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           uv pip install --system --group optionals --group testing .
-      - run: mkdir coverage
       - name: Test
         run: >
-          coverage run -m pytest -n auto
+          pytest --cov --cov-report=
           -vv -m "(slow and redis and connected) or (redis and connected)"
-        env:
-          COVERAGE_FILE: coverage/.coverage.redis-py
-          CONTEXT: redis-py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.redis-py
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: .coverage.redis-py
           path: coverage
@@ -440,6 +461,8 @@ jobs:
     if: github.event.pull_request.draft == false
     needs:
       - test-basic
+      - test-macos-latest
+      - test-windows-latest
       - test-kafka-real
       - test-confluent-real
       - test-rabbit-real
@@ -448,23 +471,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.12"
 
       - name: Get coverage files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: .coverage*
           path: coverage
           merge-multiple: true
 
       - run: |
-          uv pip install --system coverage[toml]
+          uv pip install --system coverage[toml] covdefaults
 
       - run: ls -la coverage
       - run: coverage combine coverage
@@ -472,7 +497,7 @@ jobs:
       - run: coverage html --show-contexts --title "FastStream coverage for ${{ github.sha }}"
 
       - name: Store coverage html
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-html
           path: htmlcov
@@ -496,6 +521,6 @@ jobs:
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}

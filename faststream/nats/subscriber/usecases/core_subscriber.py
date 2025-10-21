@@ -1,8 +1,8 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from nats.errors import TimeoutError
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
@@ -70,13 +70,15 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
         context = self._outer_config.fd_config.context
 
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -95,16 +97,17 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         else:
             fetch_sub = self._fetch_sub
 
-        async for raw_message in fetch_sub.messages:
-            context = self._outer_config.fd_config.context
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
+        async for raw_message in fetch_sub.messages:
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 
@@ -122,12 +125,13 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
     def get_log_context(
         self,
-        message: Annotated[
-            Optional["StreamMessage[Msg]"],
-            Doc("Message which we are building context for"),
-        ],
+        message: Optional["StreamMessage[Msg]"],
     ) -> dict[str, str]:
-        """Log context factory using in `self.consume` scope."""
+        """Log context factory using in `self.consume` scope.
+
+        Args:
+            message: Message which we are building context for
+        """
         return self.build_log_context(
             message=message,
             subject=self.subject,

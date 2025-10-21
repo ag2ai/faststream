@@ -197,14 +197,15 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
             msg=redis_incoming_msg,
             middlewares=(
                 m(redis_incoming_msg, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -215,6 +216,10 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
 
         timeout = 5
+
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             stream_message = await self._client.xread(
                 {self.stream_sub.name: self.last_id},
@@ -236,16 +241,14 @@ class _StreamHandlerMixin(LogicSubscriber):
                 data=raw_message,
             )
 
-            context = self._outer_config.fd_config.context
-
             msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
                 middlewares=(
                     m(redis_incoming_msg, context=context)
                     for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 

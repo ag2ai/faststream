@@ -1,7 +1,7 @@
 import warnings
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from faststream._internal.proto import NameRequired
 from faststream.rabbit.schemas.constants import ExchangeType
@@ -52,72 +52,34 @@ class RabbitExchange(NameRequired):
 
     def __init__(
         self,
-        name: Annotated[
-            str,
-            Doc("RabbitMQ exchange name."),
-        ] = "",
-        type: Annotated[
-            ExchangeType,
-            Doc(
-                "RabbitMQ exchange type. "
-                "You can find detail information in the official RabbitMQ documentation: "
-                "https://www.rabbitmq.com/tutorials/amqp-concepts#exchanges"
-                "\n"
-                "Or in the FastStream one: "
-                "https://faststream.ag2.ai/latest/rabbit/examples/",
-            ),
-        ] = ExchangeType.DIRECT,
-        durable: Annotated[
-            bool,
-            Doc("Whether the object is durable."),
-        ] = False,
-        auto_delete: Annotated[
-            bool,
-            Doc("The exchange will be deleted after connection closed."),
-        ] = False,
+        name: str = "",
+        type: ExchangeType = ExchangeType.DIRECT,
+        durable: bool = False,
+        auto_delete: bool = False,
         # custom
-        declare: Annotated[
-            bool,
-            Doc(
-                "Whether to exchange automatically or just connect to it. "
-                "If you want to connect to an existing exchange, set this to `False`. "
-                "Copy of `passive` aio-pike option.",
-            ),
-        ] = True,
-        arguments: Annotated[
-            dict[str, Any] | None,
-            Doc(
-                "Exchange declarationg arguments. "
-                "You can find usage example in the official RabbitMQ documentation: "
-                "https://www.rabbitmq.com/docs/ae",
-            ),
-        ] = None,
-        timeout: Annotated[
-            "TimeoutType",
-            Doc("Send confirmation time from RabbitMQ."),
-        ] = None,
-        robust: Annotated[
-            bool,
-            Doc("Whether to declare exchange object as restorable."),
-        ] = True,
-        bind_to: Annotated[
-            Optional["RabbitExchange"],
-            Doc(
-                "Another `RabbitExchange` object to bind the current one to. "
-                "You can find more information in the official RabbitMQ blog post: "
-                "https://www.rabbitmq.com/blog/2010/10/19/exchange-to-exchange-bindings",
-            ),
-        ] = None,
-        bind_arguments: Annotated[
-            dict[str, Any] | None,
-            Doc("Exchange-exchange binding options."),
-        ] = None,
-        routing_key: Annotated[
-            str,
-            Doc("Explicit binding routing key."),
-        ] = "",
+        declare: bool = True,
+        arguments: dict[str, Any] | None = None,
+        timeout: "TimeoutType" = None,
+        robust: bool = True,
+        bind_to: Optional["RabbitExchange"] = None,
+        bind_arguments: dict[str, Any] | None = None,
+        routing_key: str = "",
     ) -> None:
-        """Initialize a RabbitExchange object."""
+        """Initialize a RabbitExchange object.
+
+        Args:
+            name: RabbitMQ exchange name.
+            type: RabbitMQ exchange type.
+            durable: Whether the object is durable.
+            auto_delete: The exchange will be deleted after connection closed.
+            declare: Whether to exchange automatically or just connect to it.
+            arguments: Exchange declarationg arguments.
+            timeout: Send confirmation time from RabbitMQ.
+            robust: Whether to declare exchange object as restorable.
+            bind_to: Another `RabbitExchange` object to bind the current one to.
+            bind_arguments: Exchange-exchange binding options.
+            routing_key: Explicit binding routing key.
+        """
         if routing_key and bind_to is None:  # pragma: no cover
             warnings.warn(
                 (

@@ -18,7 +18,7 @@ However, there are situations where you might want to use a different acknowledg
 
 ## Manual acknowledgement
 
-If you want to acknowledge a message manually, you can get access directly to the message object via the [Context](../getting-started/context/existed.md){.internal-link} and call the method.
+If you want to acknowledge a message manually, you can get access directly to the message object via the [Context](../getting-started/context.md#existing-fields){.internal-link} and call the method.
 
 ```python
 from faststream.rabbit.annotations import RabbitMessage

@@ -18,7 +18,7 @@ from tests.brokers.redis.test_consume import (
     TestConsumeList,
     TestConsumeStream,
 )
-from tests.brokers.redis.test_publish import TestPublish
+from tests.brokers.redis.test_publish import TestPublish as PublishCase
 from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
@@ -223,7 +223,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestPublishWithTelemetry(TestPublish):
+class TestPublishWithTelemetry(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisTelemetryMiddleware(),),

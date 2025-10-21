@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.middlewares import BaseMiddleware
@@ -82,6 +83,7 @@ class _LoggingMiddleware(BaseMiddleware):
                 else:
                     self.logger.log(
                         message=f"{exc_type.__name__}: {exc_val}",
+                        log_level=logging.ERROR,
                         exc_info=exc_val,
                         extra=c,
                     )

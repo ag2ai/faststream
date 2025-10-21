@@ -7,8 +7,8 @@ from prometheus_client import CollectorRegistry
 from faststream import Context
 from faststream.confluent import KafkaBroker
 from faststream.confluent.prometheus.middleware import KafkaPrometheusMiddleware
-from tests.brokers.confluent.test_consume import TestConsume
-from tests.brokers.confluent.test_publish import TestPublish
+from tests.brokers.confluent.test_consume import TestConsume as ConsumeCase
+from tests.brokers.confluent.test_publish import TestPublish as PublishCase
 from tests.prometheus.basic import LocalPrometheusTestcase
 
 from .basic import BatchConfluentPrometheusSettings, ConfluentPrometheusSettings
@@ -48,6 +48,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 
@@ -59,7 +60,7 @@ class TestPrometheus(ConfluentPrometheusSettings, LocalPrometheusTestcase):
 
 @pytest.mark.connected()
 @pytest.mark.confluent()
-class TestPublishWithPrometheus(TestPublish):
+class TestPublishWithPrometheus(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
         return KafkaBroker(
             middlewares=(KafkaPrometheusMiddleware(registry=CollectorRegistry()),),
@@ -70,7 +71,7 @@ class TestPublishWithPrometheus(TestPublish):
 
 @pytest.mark.connected()
 @pytest.mark.confluent()
-class TestConsumeWithPrometheus(TestConsume):
+class TestConsumeWithPrometheus(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> KafkaBroker:
         return KafkaBroker(
             middlewares=(KafkaPrometheusMiddleware(registry=CollectorRegistry()),),

@@ -1,14 +1,13 @@
 import pytest
 
 from faststream._internal._compat import IS_WINDOWS
-
-from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
+from tests.cli import interfaces
 
 
 @pytest.mark.slow()
 def test_run(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     from faststream import FastStream

@@ -12,9 +12,9 @@ search:
 
 ## Overview
 
-**NATS JetStream** supports two various way to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank} consumers.
+**NATS JetStream** supports two different ways to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank} consumers.
 
-The **Push** consumer is used by default to consume messages with the **FastStream**. It means that the **NATS** server delivers messages to your consumer as far as possible by itself. However, it also means that **NATS** should control all current consumer connections and increase server load.
+The **Push** consumer is used by default to consume messages with **FastStream**. It means that the **NATS** server delivers messages to your consumer as fast as possible by itself. However, it also means that **NATS** should control all current consumer connections and increase server load.
 
 Thus, the **Pull** consumer is the recommended way to consume JetStream messages by the *NATS TEAM*. Using it, you simply ask **NATS** for new messages at some interval. It may sound a little less convenient than automatic message delivery, but it provides several advantages, such as:
 

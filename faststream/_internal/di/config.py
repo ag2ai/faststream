@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable, Mapping, Reversible, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
-from fast_depends import Provider
+from fast_depends import Provider, dependency_provider
 from fast_depends.core import CallModel, build_call_model
 
 from faststream._internal.constants import EMPTY
@@ -30,7 +30,7 @@ class BuiltDependant:
 class FastDependsConfig:
     use_fastdepends: bool = True
 
-    provider: "Provider" = field(default_factory=Provider)
+    provider: "Provider" = field(default=dependency_provider)
     serializer: Optional["SerializerProto"] = field(default_factory=lambda: EMPTY)
 
     context: "ContextRepo" = field(default_factory=ContextRepo)

@@ -7,11 +7,12 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
-from fast_depends import Provider
+from fast_depends import Provider, dependency_provider
 
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
@@ -79,6 +80,8 @@ def cast_uvicorn_params(params: dict[str, Any]) -> dict[str, Any]:
         params["port"] = int(port)
     if fd := params.get("fd"):
         params["fd"] = int(fd)
+    if (access_log := params.get("access_log", EMPTY)) is not EMPTY:
+        params["access_log"] = access_log.lower() not in {"false", ""}
     return params
 
 
@@ -93,6 +96,7 @@ class AsgiFastStream(Application):
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
+        context: ContextRepo | None = None,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
@@ -101,11 +105,14 @@ class AsgiFastStream(Application):
         specification: Optional["SpecificationFactory"] = None,
         asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
+        self.routes = list(asgi_routes)
+
         super().__init__(
             broker,
             logger=logger,
             config=FastDependsConfig(
-                provider=provider or Provider(),
+                provider=provider or dependency_provider,
+                context=context or ContextRepo(),
                 serializer=serializer,
             ),
             lifespan=lifespan,
@@ -116,19 +123,27 @@ class AsgiFastStream(Application):
             specification=specification,
         )
 
-        self.routes = list(asgi_routes)
         if asyncapi_path:
-            route = AsyncAPIRoute.ensure_route(asyncapi_path)
-            self.routes.append((route.path, route(self.schema)))
-
-        for path, app in self.routes:
-            if isinstance(app, HttpHandler):
-                self.schema.add_http_route(path, app)
+            asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path)
+            handler = asyncapi_route(self.schema)
+            handler.set_logger(logger)  # type: ignore[attr-defined]
+            self.routes.append((asyncapi_route.path, handler))
 
         self._server = OuterRunState()
 
         self._log_level: int = logging.INFO
         self._run_extra_options: dict[str, SettingField] = {}
+
+    def _init_setupable_(  # noqa: PLW3201
+        self,
+        broker: Optional["BrokerUsecase[Any, Any]"] = None,
+        /,
+        specification: Optional["SpecificationFactory"] = None,
+        config: Optional["FastDependsConfig"] = None,
+    ) -> None:
+        super()._init_setupable_(broker, specification, config)
+        for route in self.routes:
+            self._register_route(route)
 
     @classmethod
     def from_app(
@@ -152,7 +167,16 @@ class AsgiFastStream(Application):
         return asgi_app
 
     def mount(self, path: str, route: "ASGIApp") -> None:
-        self.routes.append((path, route))
+        asgi_route = (path, route)
+        self.routes.append(asgi_route)
+        self._register_route(asgi_route)
+
+    def _register_route(self, asgi_route: tuple[str, "ASGIApp"]) -> None:
+        path, route = asgi_route
+        if isinstance(route, HttpHandler):
+            self.schema.add_http_route(path, route)
+            route.update_fd_config(self.config)
+            route.set_logger(self.logger)
 
     async def __call__(
         self,

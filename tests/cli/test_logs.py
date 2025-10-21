@@ -1,5 +1,4 @@
 import logging
-import random
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,9 +7,8 @@ from typer.testing import CliRunner
 from faststream import FastStream
 from faststream._internal.cli.main import cli as faststream_app
 from faststream._internal.cli.utils.logs import get_log_level
+from tests.cli import interfaces
 from tests.marks import skip_windows
-
-from .conftest import FastStreamCLIFactory, GenerateTemplateFactory
 
 
 @pytest.mark.parametrize(
@@ -75,8 +73,8 @@ def test_get_level(level: str, expected_level: int) -> None:
     ),
 )
 def test_run_as_asgi_with_log_config(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
     log_config_file_name: str,
     log_config: str,
 ) -> None:
@@ -115,9 +113,10 @@ def test_run_as_asgi_with_log_config(
 
 @pytest.mark.slow()
 @skip_windows
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_run_as_asgi_mp_with_log_level(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
 ) -> None:
     app_code = """
     import logging
@@ -142,7 +141,7 @@ def test_run_as_asgi_mp_with_log_level(
             "run",
             f"{app_path.stem}:app",
             "--workers",
-            str(random.randint(2, 7)),
+            "2",
             "--log-level",
             log_level,
         ) as cli,

@@ -9,7 +9,7 @@ from typing import (
 )
 
 import anyio
-from fast_depends import Provider
+from fast_depends import Provider, dependency_provider
 from typing_extensions import ParamSpec
 
 from faststream._internal._compat import ExceptionGroup
@@ -50,19 +50,19 @@ class FastStream(Application):
         logger: Optional["LoggerProto"] = logger,
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
+        context: ContextRepo | None = None,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
         on_shutdown: Sequence["AnyCallable"] = (),
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
-        context: ContextRepo | None = None,
     ) -> None:
         super().__init__(
             broker,
             logger=logger,
             config=FastDependsConfig(
-                provider=provider or Provider(),
+                provider=provider or dependency_provider,
                 context=context or ContextRepo(),
                 serializer=serializer,
             ),

@@ -7,8 +7,8 @@ from prometheus_client import CollectorRegistry
 from faststream import Context
 from faststream.nats import JStream, NatsBroker, PullSub
 from faststream.nats.prometheus.middleware import NatsPrometheusMiddleware
-from tests.brokers.nats.test_consume import TestConsume
-from tests.brokers.nats.test_publish import TestPublish
+from tests.brokers.nats.test_consume import TestConsume as ConsumeCase
+from tests.brokers.nats.test_publish import TestPublish as PublishCase
 from tests.prometheus.basic import LocalPrometheusTestcase, LocalRPCPrometheusTestcase
 
 from .basic import BatchNatsPrometheusSettings, NatsPrometheusSettings
@@ -61,6 +61,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 
@@ -75,7 +76,7 @@ class TestPrometheus(
 
 @pytest.mark.connected()
 @pytest.mark.nats()
-class TestPublishWithPrometheus(TestPublish):
+class TestPublishWithPrometheus(PublishCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:
         return NatsBroker(
             middlewares=(NatsPrometheusMiddleware(registry=CollectorRegistry()),),
@@ -86,7 +87,7 @@ class TestPublishWithPrometheus(TestPublish):
 
 @pytest.mark.connected()
 @pytest.mark.nats()
-class TestConsumeWithPrometheus(TestConsume):
+class TestConsumeWithPrometheus(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> NatsBroker:
         return NatsBroker(
             middlewares=(NatsPrometheusMiddleware(registry=CollectorRegistry()),),

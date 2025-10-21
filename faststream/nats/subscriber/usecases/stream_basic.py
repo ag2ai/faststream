@@ -1,8 +1,8 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from nats.errors import ConnectionClosedError, TimeoutError
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import JsParser
@@ -43,12 +43,13 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
 
     def get_log_context(
         self,
-        message: Annotated[
-            Optional["StreamMessage[Msg]"],
-            Doc("Message which we are building context for"),
-        ],
+        message: Optional["StreamMessage[Msg]"],
     ) -> dict[str, str]:
-        """Log context factory using in `self.consume` scope."""
+        """Log context factory using in `self.consume` scope.
+
+        Args:
+            message: Message which we are building context for
+        """
         return self.build_log_context(
             message=message,
             subject=self._resolved_subject_string,
@@ -89,14 +90,15 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             return None
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -122,6 +124,9 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 **extra_options,
             )
 
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             raw_message = (
                 await self._fetch_sub.fetch(
@@ -130,14 +135,12 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 )
             )[0]
 
-            context = self._outer_config.fd_config.context
-
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg

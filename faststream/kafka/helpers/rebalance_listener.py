@@ -38,6 +38,7 @@ def make_logging_listener(
 
 class _LoggingListener(ConsumerRebalanceListener):  # type: ignore[misc]
     _log_unassigned_consumer_delay_seconds = 60 * 2
+    _log_unassigned_consumer_task: asyncio.Task[None] | None
 
     def __init__(
         self,
@@ -49,6 +50,7 @@ class _LoggingListener(ConsumerRebalanceListener):  # type: ignore[misc]
         self.consumer = consumer
         self.logger = logger
         self.log_extra = log_extra
+        self._log_unassigned_consumer_task = None
 
     async def on_partitions_revoked(self, revoked: set["TopicPartition"]) -> None:
         pass

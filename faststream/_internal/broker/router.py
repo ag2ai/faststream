@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable
 from typing import Any
 
 from faststream._internal.configs import BrokerConfigType
@@ -54,7 +54,7 @@ class BrokerRouter(Registrator[MsgType, BrokerConfigType]):
         *,
         config: BrokerConfigType,
         handlers: Iterable[SubscriberRoute],
-        routers: Sequence["Registrator[MsgType]"],
+        routers: Iterable["Registrator[Any, Any]"],
     ) -> None:
         super().__init__(
             config=config,

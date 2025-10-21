@@ -299,7 +299,7 @@ And multiprocessing horizontal scaling feature as well:
 faststream run basic:app --workers 3
 ```
 
-You can Learn more about **CLI** features [here](./getting-started/cli/index.md){.internal-link}
+You can Learn more about **CLI** features [here](./getting-started/cli.md){.internal-link}
 
 ---
 
@@ -317,9 +317,15 @@ The availability of such documentation significantly simplifies the integration 
 
 **FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"}) has a dependency management system similar to [`pytest fixtures`](https://docs.pytest.org/en/latest/explanation/fixtures.html){.external-link target="_blank"} and [`FastAPI Depends`](https://fastapi.tiangolo.com/tutorial/dependencies/){.external-link target="_blank"} at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
 
-```python linenums="1" hl_lines="8-9"
-{! docs_src/index/dependencies.py [ln:1,5-14] !}
-```
+=== "Non-Annotated"
+    ```python
+    {!> docs_src/index/dependencies.py !}
+    ```
+
+=== "Annotated"
+    ```python
+    {!> docs_src/index/dependencies_annotated.py !}
+    ```
 
 ---
 

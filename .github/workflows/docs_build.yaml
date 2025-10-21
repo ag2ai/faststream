@@ -13,19 +13,16 @@ jobs:
   deploy_docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:  # zizmor: ignore[artipacked]
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
+      - uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version: "latest"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
-          python-version: 3.x
-      - uses: actions/cache@v4
-        with:
-          key: ${{ github.ref }}
-          path: .cache
+          python-version: 3.12
       - name: Install dependencies
         run: |
           set -ux
@@ -33,7 +30,7 @@ jobs:
           uv pip uninstall --system email-validator # This is to fix broken link in docs
 
       - name: Install Just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3.0.0
         with:
           just-version: 1.42.4
 
@@ -70,7 +67,7 @@ jobs:
           fi
 
       - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
         with:
           branch: gh-pages
           push_options: "--force"  # force push to stay with clear gh-pages branch history

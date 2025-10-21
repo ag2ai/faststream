@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable
 
 import prometheus_client
 from aio_pika import IncomingMessage
+from aiormq.abc import ConfirmationFrameType
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
@@ -9,6 +10,8 @@ from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRo
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
+from faststream.rabbit.publisher.usecase import RabbitPublisher
+from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:
@@ -124,7 +127,6 @@ RabbitRouter(
 )
 
 router = RabbitRouter()
-
 
 router_sub = router.subscriber("test")
 
@@ -282,7 +284,19 @@ RabbitBroker().add_middleware(prometheus_middleware)
 RabbitBroker(middlewares=[prometheus_middleware])
 
 
-async def check_response_type() -> None:
+async def check_publish_result_type() -> None:
+    broker = RabbitBroker()
+
+    publish_with_confirm = await broker.publish(None)
+    assert_type(publish_with_confirm, ConfirmationFrameType | None)
+
+    publisher = broker.publisher(queue="test")
+    publish_with_confirm = await publisher.publish(None)
+
+    assert_type(publish_with_confirm, ConfirmationFrameType | None)
+
+
+async def check_request_response_type() -> None:
     broker = RabbitBroker()
 
     broker_response = await broker.request(None, "test")
@@ -291,3 +305,34 @@ async def check_response_type() -> None:
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None, "test")
     assert_type(publisher_response, RabbitMessage)
+
+
+async def check_subscriber_get_one_type(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
+    subscriber = broker.subscriber(queue="test")
+
+    message = await subscriber.get_one()
+    assert_type(message, RabbitMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, RabbitMessage)
+
+
+async def check_instance_type(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
+    subscriber = broker.subscriber(queue="test")
+    assert_type(subscriber, RabbitSubscriber)
+
+    publisher = broker.publisher(queue="test")
+    assert_type(publisher, RabbitPublisher)
+
+
+RabbitBroker(routers=[RabbitRouter()])
+RabbitBroker().include_router(RabbitRouter())
+RabbitBroker().include_routers(RabbitRouter())
+
+RabbitRouter(routers=[RabbitRouter()])
+RabbitRouter().include_router(RabbitRouter())
+RabbitRouter().include_routers(RabbitRouter())

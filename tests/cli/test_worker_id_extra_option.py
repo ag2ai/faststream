@@ -1,11 +1,11 @@
 import pytest
 
-from tests.cli.conftest import FastStreamCLIFactory, GenerateTemplateFactory
+from tests.cli import interfaces
 from tests.marks import skip_windows
 
 
-@pytest.mark.slow()
 @skip_windows
+@pytest.mark.slow()
 @pytest.mark.parametrize(
     ("app_import"),
     (
@@ -31,13 +31,15 @@ from tests.marks import skip_windows
             ["Worker id is 0", "Worker id is 1"],
             ["--workers", "2"],
             id="many_workers",
-            marks=pytest.mark.flaky(reruns=3, reruns_delay=1),
+            marks=[
+                pytest.mark.flaky(reruns=3, reruns_delay=1),
+            ],
         ),
     ),
 )
 def test_worker_id_parameter_exists(
-    generate_template: GenerateTemplateFactory,
-    faststream_cli: FastStreamCLIFactory,
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
     app_import: str,
     log_strings: list[str],
     cli_options: list[str],
@@ -67,6 +69,5 @@ def test_worker_id_parameter_exists(
             *cli_options,
         ) as cli,
     ):
-        assert all(
-            cli.wait_for_stderr(log_string, timeout=10) for log_string in log_strings
-        )
+        for log_string in log_strings:
+            assert cli.wait_for_stderr(log_string, timeout=10), cli.stderr

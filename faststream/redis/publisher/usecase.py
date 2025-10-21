@@ -53,6 +53,7 @@ class LogicPublisher(PublisherUsecase):
             parser=broker_producer._parser.custom_func,
             decoder=broker_producer._decoder.custom_func,
             message_format=self.config.message_format,
+            serializer=self.config._outer_config.fd_config._serializer,
         )
 
     @abstractmethod

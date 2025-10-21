@@ -222,14 +222,17 @@ def create_subscriber(
         if pull_sub is not None:
             return ConcurrentPullStreamSubscriber(
                 **subscriber_options,
-                queue=queue,
                 max_workers=max_workers,
+                queue=queue,
+                stream=stream,
                 pull_sub=pull_sub,
             )
 
         return ConcurrentPushStreamSubscriber(
             **subscriber_options,
             max_workers=max_workers,
+            queue=queue,
+            stream=stream,
         )
 
     if pull_sub is not None:
