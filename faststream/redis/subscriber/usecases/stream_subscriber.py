@@ -48,7 +48,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
         self.min_idle_time = config.stream_sub.min_idle_time
-        self.autoclaim_start_id = "0-0"
+        self.autoclaim_start_id = b"0-0"
 
     @property
     def stream_sub(self) -> "StreamSub":
@@ -201,9 +201,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     stream_name = self.stream_sub.name.encode()
                     (next_id, messages, _) = stream_message
                     # Update start_id for next call
-                    self.autoclaim_start_id = (
-                        next_id.decode() if isinstance(next_id, bytes) else next_id
-                    )
+                    self.autoclaim_start_id = next_id
                     if not messages:
                         return ()
                     return ((stream_name, messages),)
@@ -251,9 +249,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             )
             (next_id, messages, _) = stream_message
             # Update start_id for next call
-            self.autoclaim_start_id = (
-                next_id.decode() if isinstance(next_id, bytes) else next_id
-            )
+            self.autoclaim_start_id = next_id
             if not messages:
                 return None
             stream_name = self.stream_sub.name.encode()
@@ -323,9 +319,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 )
                 (next_id, messages, _) = stream_message
                 # Update start_id for next call
-                self.autoclaim_start_id = (
-                    next_id.decode() if isinstance(next_id, bytes) else next_id
-                )
+                self.autoclaim_start_id = next_id
                 if not messages:
                     continue
                 stream_name = self.stream_sub.name.encode()

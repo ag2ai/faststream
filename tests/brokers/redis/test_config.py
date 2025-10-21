@@ -48,6 +48,25 @@ def test_stream_with_group() -> None:
 
 
 @pytest.mark.redis()
+def test_stream_sub_with_no_ack_group() -> None:
+    with pytest.warns(
+        RuntimeWarning,
+        match="`no_ack` is not supported by consumer group with last_id other than `>`",
+    ):
+        config = RedisSubscriberConfig(
+            _outer_config=MagicMock(),
+            stream_sub=StreamSub(
+                "test_stream",
+                group="test_group",
+                consumer="test_consumer",
+                no_ack=True,
+                last_id="$",
+            ),
+        )
+    assert config.ack_policy is AckPolicy.MANUAL
+
+
+@pytest.mark.redis()
 def test_stream_with_group_and_min_idle_time() -> None:
     config = RedisSubscriberConfig(
         _outer_config=MagicMock(),
