@@ -3220,7 +3220,7 @@ pip install faststream==0.3.0rc0 && pip install "faststream[redis]"
 #### Misc
 
 * chore: polishing by [@davorrunje](https://github.com/davorrunje){.external-link target="_blank"} in [https://github.com/ag2ai/faststream/pull/946](https://github.com/ag2ai/faststream/pull/946){.external-link target="_blank"}
-* сhore: add manual publish btn to CI by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [https://github.com/ag2ai/faststream/pull/950](https://github.com/ag2ai/faststream/pull/950){.external-link target="_blank"}
+* chore: add manual publish btn to CI by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [https://github.com/ag2ai/faststream/pull/950](https://github.com/ag2ai/faststream/pull/950){.external-link target="_blank"}
 * chore: limit open dev dependency versions by [@kumaranvpl](https://github.com/kumaranvpl){.external-link target="_blank"} in [https://github.com/ag2ai/faststream/pull/953](https://github.com/ag2ai/faststream/pull/953){.external-link target="_blank"}
 
 
