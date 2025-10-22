@@ -42,7 +42,7 @@ def test_fastapi_security_schema() -> None:
     assert schema["servers"]["development"] == {
         "protocol": "amqp",
         "protocolVersion": "0.9.1",
-        "security": [{"user-password": []}],
+        "security": [{"$ref": "#/components/securitySchemes/user-password"}],
         "host": "user:pass@localhost:5672",
         "pathname": "/",
     }

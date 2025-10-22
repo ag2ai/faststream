@@ -120,3 +120,8 @@ KafkaBroker().include_routers(KafkaRouter())
 KafkaRouter(routers=[KafkaRouter()])
 KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
+
+
+@KafkaBroker().subscriber("mykey", group_id="my_group", batch=True)
+async def process_msgs() -> None:
+    pass

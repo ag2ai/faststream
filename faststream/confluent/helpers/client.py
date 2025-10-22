@@ -211,7 +211,7 @@ class AsyncConfluentConsumer:
             "topic.metadata.refresh.interval.ms": 1000,
             "bootstrap.servers": bootstrap_servers,
             "client.id": client_id,
-            "group.id": group_id,
+            "group.id": group_id or "faststream-consumer-group",
             "group.instance.id": group_instance_id,
             "fetch.wait.max.ms": fetch_max_wait_ms,
             "fetch.max.bytes": fetch_max_bytes,
