@@ -181,3 +181,49 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             with pytest.raises(BatchBufferOverflowException) as e:
                 await br.publish_batch(1, "Hello, world!", topic=queue, no_confirm=True)
             assert e.value.message_position == 1
+
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_manual_with_key(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        keys_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=2)
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg=Context("message")) -> None:
+            await keys_queue.put(msg.raw_message.key)
+
+        publisher = pub_broker.publisher(queue, batch=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await publisher.publish(1, "hi", key=b"my_key")
+
+            k1 = await asyncio.wait_for(keys_queue.get(), timeout=3)
+            k2 = await asyncio.wait_for(keys_queue.get(), timeout=3)
+
+        assert k1 == b"my_key"
+        assert k2 == b"my_key"
+
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_default_key_from_factory(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        keys_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=2)
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg=Context("message")) -> None:
+            await keys_queue.put(msg.raw_message.key)
+
+        publisher = pub_broker.publisher(queue, batch=True, key=b"default_key")
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await publisher.publish(1, "hi")
+
+            k1 = await asyncio.wait_for(keys_queue.get(), timeout=3)
+            k2 = await asyncio.wait_for(keys_queue.get(), timeout=3)
+
+        assert k1 == b"default_key"
+        assert k2 == b"default_key"
