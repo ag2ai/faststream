@@ -81,10 +81,9 @@ class RabbitPublisher(PublisherUsecase):
 
     async def start(self) -> None:
         resolver = self._outer_config.settings.resolve
-        routing_key = resolver(self.routing_key)
-        self.routing_key = routing_key
-        self.queue = RabbitQueue.validate(resolver(self.queue))
-        self.exchange = RabbitExchange.validate(resolver(self.exchange))
+        self.routing_key = resolver(self.routing_key)
+        self.queue = resolver(self.queue)
+        self.exchange = resolver(self.exchange)
         self.headers = resolver(self.headers)
         self.reply_to = resolver(self.reply_to)
         self.timeout = resolver(self.timeout)

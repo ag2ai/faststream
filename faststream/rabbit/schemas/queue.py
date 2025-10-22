@@ -174,12 +174,6 @@ class RabbitQueue(NameRequired):
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
         re = None
-        if isinstance(routing_key, str):
-            re, routing_key = compile_path(
-                routing_key,
-                replace_symbol="*",
-                patch_regex=lambda x: x.replace(r"\#", ".+"),
-            )
 
         if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
             if durable is EMPTY:

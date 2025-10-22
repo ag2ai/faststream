@@ -72,9 +72,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
         resolver = self._outer_config.settings.resolve
+        self.queue = resolver(self.queue)
         self.queue = RabbitQueue.validate(resolver(self.queue))
-        if self.queue.path_regex is None:
-            self.queue.set_routing()
+        self.queue.set_routing()
+        self.exchange = resolver(self.exchange)
         self.exchange = RabbitExchange.validate(resolver(self.exchange))
         self.consume_args = resolver(self.consume_args)
         self.__no_ack = resolver(self.__no_ack)
