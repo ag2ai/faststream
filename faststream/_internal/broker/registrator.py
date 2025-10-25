@@ -37,6 +37,8 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self.__persistent_subscribers: list[SubscriberUsecase[MsgType]] = []
         self.__persistent_publishers: list[PublisherUsecase] = []
 
+        self.__parent: Registrator[MsgType, Any] | None = None
+
         self.include_routers(*routers)
 
     @property
@@ -93,6 +95,10 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         include_in_schema: bool | None = None,
     ) -> None:
         """Includes a router in the current object."""
+        if router.parent is self:
+            return
+        router.parent = self
+
         if options_config := BrokerConfig(
             prefix=prefix,
             include_in_schema=include_in_schema,
@@ -103,6 +109,17 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
 
         router.config.add_config(self.config)
         self.routers.append(router)
+
+    @property
+    def parent(self) -> "Registrator[MsgType, Any] | None":
+        return self.__parent
+
+    @parent.setter
+    def parent(self, parent: "Registrator[MsgType, Any]") -> None:
+        if self.__parent is not None and parent is not self.__parent:
+            self.__parent.routers.remove(self)
+            self.config.reset()
+        self.__parent = parent
 
     def include_routers(
         self,

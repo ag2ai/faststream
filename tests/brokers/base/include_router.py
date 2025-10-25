@@ -145,6 +145,27 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         assert sub2._outer_config.prefix == "1."
         assert sub3._outer_config.prefix == "1.4.5."
 
+    def test_idempotent_include_twice_on_same_broker(self) -> None:
+        router = self.get_router()
+        broker = self.get_broker()
+
+        broker.include_router(router)
+        broker.include_router(router)
+        assert len(router.config.configs) == 2
+        assert router.parent is broker
+
+    def test_reregister_on_include_in_different_brokers(self) -> None:
+        router = self.get_router()
+        broker1 = self.get_broker()
+        broker2 = self.get_broker()
+
+        broker1.include_router(router)
+        broker2.include_router(router)
+
+        assert len(router.config.configs) == 2
+        assert router.parent is broker2
+        assert router not in broker1.routers
+
 
 class IncludePublisherTestcase(IncludeTestcase):
     def get_object(self, router: BrokerRouter[Any] | BrokerUsecase[Any, Any]) -> Any:

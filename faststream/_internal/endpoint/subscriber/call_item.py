@@ -81,11 +81,11 @@ class HandlerItem(Generic[MsgType]):
             self.item_parser = parser
             self.item_decoder = decoder
 
-            self.dependant = self.handler.set_wrapped(
-                dependencies=(*broker_dependencies, *self.dependencies),
-                _call_decorators=_call_decorators,
-                config=config,
-            )
+        self.dependant = self.handler.set_wrapped(
+            dependencies=(*broker_dependencies, *self.dependencies),
+            _call_decorators=_call_decorators,
+            config=config,
+        )
 
     @property
     def name(self) -> str:

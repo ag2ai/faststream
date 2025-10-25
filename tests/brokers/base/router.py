@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from faststream import Context
 from faststream._internal.broker.router import (
     ArgsContainer,
     BrokerRouter,
@@ -633,3 +634,20 @@ class RouterLocalTestcase(RouterTestcase):
             await br.start()
             await br.publish("hello", queue)
             publisher.mock.assert_called_with("response")
+
+    async def test_func_wrapped_correctly_on_include_in_different_broker(self) -> None:
+        router = self.get_router()
+        broker1 = self.get_broker()
+        broker2 = self.get_broker()
+
+        @router.subscriber("in-queue")
+        async def handle_msg(broker=Context()) -> str:
+            return "test"
+
+        broker1.include_router(router)
+        async with self.patch_broker(broker1) as br:
+            await br.publish({}, "in-queue")
+
+        broker2.include_router(router)
+        async with self.patch_broker(broker2) as br:
+            await br.publish({}, "in-queue")
