@@ -36,8 +36,7 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
 
     def __post_init__(self) -> None:
-        if self.ack_first:
-            self.connection_args["enable_auto_commit"] = True
+        self.connection_args["enable_auto_commit"] = self.ack_first
 
     @property
     def ack_first(self) -> bool:
@@ -52,8 +51,8 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def __ack_policy(self) -> AckPolicy:
-        if self._auto_commit is not EMPTY and self._auto_commit:
-            return AckPolicy.ACK_FIRST
+        if self._auto_commit is not EMPTY:
+            return AckPolicy.ACK_FIRST if self._auto_commit else AckPolicy.REJECT_ON_ERROR
 
         if self._no_ack is not EMPTY and self._no_ack:
             return AckPolicy.MANUAL
