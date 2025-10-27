@@ -68,9 +68,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     def routing(self) -> str:
         return f"{self._outer_config.prefix}{self.queue.routing()}"
 
-    @override
-    async def start(self) -> None:
-        """Starts the consumer for the RabbitMQ queue."""
+    def resolve_settings(self):
         resolver = self._outer_config.settings.resolve
         self.queue = resolver(self.queue)
         self.queue = RabbitQueue.validate(resolver(self.queue))
@@ -86,6 +84,10 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         parser = AioPikaParser(pattern=pattern)
         self._parser = parser.parse_message
         self._decoder = parser.decode_message
+
+    @override
+    async def start(self) -> None:
+        """Starts the consumer for the RabbitMQ queue."""
         await super().start()
 
         queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)

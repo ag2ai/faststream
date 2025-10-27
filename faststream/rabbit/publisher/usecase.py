@@ -79,14 +79,17 @@ class RabbitPublisher(PublisherUsecase):
 
         return routing_key
 
-    async def start(self) -> None:
+    def resolve_settings(self) -> None:
         resolver = self._outer_config.settings.resolve
         self.routing_key = resolver(self.routing_key)
-        self.queue = resolver(self.queue)
-        self.exchange = resolver(self.exchange)
+        self.queue = RabbitQueue.validate(resolver(self.queue))
+        self.exchange = RabbitExchange.validate(resolver(self.exchange))
         self.headers = resolver(self.headers)
         self.reply_to = resolver(self.reply_to)
         self.timeout = resolver(self.timeout)
+
+    async def start(self) -> None:
+        """Starts the consumer for the RabbitMQ queue."""
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()

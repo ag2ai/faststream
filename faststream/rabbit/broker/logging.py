@@ -17,17 +17,13 @@ class RabbitParamsStorage(DefaultLoggerStorage):
         self._max_queue_len = 4
 
     def register_subscriber(self, params: dict[str, Any]) -> None:
-        e = params.get("exchange", "")
-        el = len(e) if hasattr(e, "__len__") else 0
         self._max_exchange_len = max(
             self._max_exchange_len,
-            el,
+            len(params.get("exchange", "")),
         )
-        q = params.get("queue", "")
-        ql = len(q) if hasattr(q, "__len__") else 0
         self._max_queue_len = max(
             self._max_queue_len,
-            ql,
+            len(params.get("queue", "")),
         )
 
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":

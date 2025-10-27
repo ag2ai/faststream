@@ -278,6 +278,9 @@ class RabbitBroker(
     async def start(self) -> None:
         """Connect broker to RabbitMQ and startup all subscribers."""
         await self.connect()
+        # can merge it into one operation, something like br.initialize or br.initialize_pipe
+        self.resolve_settings()
+        self.setup_logger()
         await self.declare_queue(RABBIT_REPLY)
         await super().start()
 
