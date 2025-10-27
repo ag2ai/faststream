@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from typing_extensions import Unpack, override
 
@@ -80,7 +80,7 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     def resolve_settings(self) -> None:
-        resolver = self._outer_config.settings.resolve
+        resolver: Callable[..., Any] = self._outer_config.settings.resolve
         self.routing_key = resolver(self.routing_key)
         self.queue = RabbitQueue.validate(resolver(self.queue))
         self.exchange = RabbitExchange.validate(resolver(self.exchange))

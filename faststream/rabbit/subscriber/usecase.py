@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 from collections.abc import AsyncIterator, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 import anyio
 from faststream._internal.configs.settings import Settings
@@ -69,9 +69,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         return f"{self._outer_config.prefix}{self.queue.routing()}"
 
     def resolve_settings(self):
-        resolver = self._outer_config.settings.resolve
+        resolver: Callable[..., Any] = self._outer_config.settings.resolve
         self.queue = resolver(self.queue)
-        self.queue = RabbitQueue.validate(resolver(self.queue))
+        self.queue: RabbitQueue = RabbitQueue.validate(resolver(self.queue))
         self.queue.set_routing()
         self.exchange = resolver(self.exchange)
         self.exchange = RabbitExchange.validate(resolver(self.exchange))
@@ -232,7 +232,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         exchange: Optional["RabbitExchange"] = None,
     ) -> dict[str, str]:
         return {
-            "queue": getattr(queue, "name", ""),
+            "queue": queue.name,
             "exchange": getattr(exchange, "name", ""),
             "message_id": getattr(message, "message_id", ""),
         }
