@@ -545,7 +545,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br.publish({"message": "hello"}, stream=queue),
+                        br._connection.xadd(queue, {"message": "hello"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -680,7 +680,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br.publish({"message": "hello"}, stream=queue),
+                        br._connection.xadd(queue, {"message": "hello"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
