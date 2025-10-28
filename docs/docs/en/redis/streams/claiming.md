@@ -14,7 +14,7 @@ When working with Redis Stream Consumer Groups, there may be situations where me
 
 ## What is Message Claiming?
 
-In Redis Streams, when a consumer reads a message from a consumer group but fails to acknowledge it (due to a crash, network issue, or processing error), the message remains in the **Pending Entries List (PEL)** of that consumer group. These unacknowledged messages are associated with the original consumer and have an "idle time" - the duration since they were last delivered.
+In Redis Streams, when a consumer reads a message from a consumer group but fails to acknowledge it (due to a crash, network issue, or processing error), the message remains in the [**Pending Entries List (PEL)**](https://redis.io/docs/latest/develop/data-types/streams/#working-with-multiple-consumer-groups) of that consumer group. These unacknowledged messages are associated with the original consumer and have an "idle time" - the duration since they were last delivered.
 
 Message claiming allows another consumer to take ownership of these pending messages that have been idle for too long, ensuring that messages don't get stuck and workload can be redistributed among healthy consumers.
 
@@ -37,7 +37,7 @@ When `min_idle_time` is set:
 1. **Circular Scanning**: Instead of using `XREADGROUP` to read new messages, the consumer uses `XAUTOCLAIM` to scan the Pending Entries List
 2. **Idle Time Check**: Only messages that have been pending for at least `min_idle_time` milliseconds are claimed
 3. **Ownership Transfer**: Claimed messages are automatically transferred from the failing consumer to the claiming consumer
-4. **Continuous Processing**: The scanning process is circular - after reaching the end of the PEL, it starts over from the beginning
+4. **Continuous Processing**: The scanning process is circular - after reaching the end of the [PEL](https://redis.io/docs/latest/develop/data-types/streams/#working-with-multiple-consumer-groups), it starts over from the beginning
 
 ### Practical Use Case
 
@@ -139,7 +139,7 @@ async def worker(task): ...
 
 - **Start ID**: FastStream automatically manages the `start_id` parameter for `XAUTOCLAIM`, enabling circular scanning through the Pending Entries List
 - **Empty Results**: When no pending messages meet the idle time criteria, the consumer will continue polling
-- **ACK Handling**: Claimed messages must still be acknowledged using `msg.ack()` to be removed from the PEL
+- **ACK Handling**: Claimed messages must still be acknowledged using `msg.ack()` to be removed from the [PEL](https://redis.io/docs/latest/develop/data-types/streams/#working-with-multiple-consumer-groups)
 
 ## References
 
