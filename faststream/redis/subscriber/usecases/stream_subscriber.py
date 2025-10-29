@@ -71,9 +71,6 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def start(self) -> None:
-        if self.tasks:
-            return
-
         client = self._client
 
         self.extra_watcher_options.update(
