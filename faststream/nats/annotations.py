@@ -27,5 +27,5 @@ __all__ = (
 ObjectStorage = Annotated[_ObjectStore, Context(OBJECT_STORAGE_CONTEXT_KEY)]
 NatsMessage = Annotated[_Message, Context("message")]
 NatsBroker = Annotated[_Broker, Context("broker")]
-Client = Annotated[_NatsClient, Context("broker._connection")]
-JsClient = Annotated[_JetStream, Context("broker._stream")]
+Client = Annotated[_NatsClient, Context("broker.config.connection_state.connection")]
+JsClient = Annotated[_JetStream, Context("broker.config.connection_state.stream")]
