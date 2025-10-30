@@ -18,16 +18,15 @@ A common pattern for healthchecks is a low-cost **HTTP** endpoint,
 Liveness probes determine when to restart a container.
 For example: liveness probes could catch a deadlock when an application is running but unable to make progress.
 
-
 ### Readiness Probe
 
 Readiness probes determine when a container is ready to start accepting traffic.
 This is useful when waiting for an application to perform time-consuming initial tasks, such as establishing network connections, loading files, and warming caches.
 
-
 ### Let's implement readiness and liveness probes
 
 Structure of our app:
+
 ```text
 dummy
 ├── docker-compose.yml
@@ -41,18 +40,18 @@ Readiness probe checks connection to **Redis**, **RabbitMQ** and **Postgres**. L
 ```python linenums="1" hl_lines="13-15 23 24 32 38 44 46 61-64 67" title="main.py"
 import asyncio
 import logging
-from typing import Awaitable, Callable, Any
 
 import asyncpg
 import redis.asyncio as redis
 import uvicorn
 from faststream import FastStream
 from faststream.asgi import AsgiResponse, get
+from faststream.asgi.types import ASGIApp, Scope
 from faststream.rabbit import RabbitBroker
 
 
 @get
-async def liveness(scope: dict[str, Any]) -> AsgiResponse:
+async def liveness(scope: Scope) -> AsgiResponse:
     return AsgiResponse(b"", status_code=204)
 
 
@@ -60,12 +59,12 @@ def readiness(
     broker: RabbitBroker,
     redis_connection: redis.Redis,
     postgres_connection: asyncpg.Pool,
-) -> Callable[[dict[str, Any]], Awaitable[AsgiResponse]]:
+) -> ASGIApp:
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)
 
     @get
-    async def func(scope: dict[str, Any]) -> AsgiResponse:
+    async def func(scope: Scope) -> AsgiResponse:
         try:
             await redis_connection.ping()
         except (redis.ConnectionError, Exception):
