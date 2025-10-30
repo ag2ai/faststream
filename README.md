@@ -25,7 +25,7 @@
 
 ---
 
-## Versioning Policy:
+## Versioning Policy
 
 FastStream has a stable public API. Only major updates may introduce breaking changes.
 
