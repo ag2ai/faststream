@@ -25,12 +25,6 @@
 
 ---
 
-## Versioning Policy
-
-FastStream has a stable public API. Only major updates may introduce breaking changes.
-
-Before FastStream reaches version 1.0, every minor update may include breaking changes. Our team is working on the release of version 1.0.
-
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
@@ -63,22 +57,21 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 <details>
 <summary><b>Table of Contents</b></summary>
 
-- [FastStream](#faststream)
-  - [Features](#features)
-  - [Install](#install)
-  - [Writing app code](#writing-app-code)
-    - [Pydantic serialization](#pydantic-serialization)
-    - [Msgspec serialization](#msgspec-serialization)
-    - [Unified API](#unified-api)
-  - [Testing the service](#testing-the-service)
-  - [Running the application](#running-the-application)
-  - [Project Documentation](#project-documentation)
-  - [Dependencies](#dependencies)
-  - [HTTP Frameworks integrations](#http-frameworks-integrations)
-    - [Any Framework](#any-framework)
-    - [**FastAPI** Plugin](#fastapi-plugin)
-  - [Stay in touch](#stay-in-touch)
-  - [Contributors](#contributors)
+- [Features](#features)
+- [Versioning Policy](#versioning-policy)
+- [Installation](#installation)
+- [Quick Start](#writing-app-code)
+  - [Pydantic serialization](#pydantic-serialization)
+  - [Msgspec serialization](#msgspec-serialization)
+  - [Unified API](#unified-api)
+- [Testing](#testing-the-service)
+- [CLI](#running-the-application)
+- [AsyncAPI Documentation](#project-documentation)
+- [Dependencies](#dependencies)
+- [Integrations](#http-frameworks-integrations)
+  - [Any Framework](#any-framework)
+  - [**FastAPI** Plugin](#fastapi-plugin)
+- [Stay in touch](#stay-in-touch)
 
 </details>
 
@@ -90,7 +83,13 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 
 ---
 
-## Install
+## Versioning Policy
+
+FastStream has a stable public API. Only major updates may introduce breaking changes.
+
+Before FastStream reaches version 1.0, every minor update may include breaking changes. Our team is working on the release of version 1.0.
+
+## Installation
 
 **FastStream** works on **Linux**, **macOS**, **Windows** and most **Unix**-style operating systems.
 You can install it with `pip` as usual:
