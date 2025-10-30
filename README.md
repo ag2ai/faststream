@@ -38,9 +38,9 @@ parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- **Multiple Brokers**: **FastStream** provides a unified API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/) support)
+- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/) support)
 
-- [**Pydantic Validation**](#writing-app-code): Leverage [**Pydantic's**](https://docs.pydantic.dev/) validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
 
 - [**Automatic Docs**](#project-documentation): Stay ahead with automatic [**AsyncAPI**](https://www.asyncapi.com/) documentation
 
@@ -54,17 +54,39 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 - [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin) especially)
 
-That's **FastStream** in a nutshell—easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
+That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
 
 ---
 
 **Documentation**: <a href="https://faststream.ag2.ai/latest/" target="_blank">https://faststream.ag2.ai/latest/</a>
 
----
+<details>
+<summary><b>Table of Contents</b></summary>
 
-## History
+- [FastStream](#faststream)
+  - [Features](#features)
+  - [Install](#install)
+  - [Writing app code](#writing-app-code)
+    - [Pydantic serialization](#pydantic-serialization)
+    - [Msgspec serialization](#msgspec-serialization)
+    - [Unified API](#unified-api)
+  - [Testing the service](#testing-the-service)
+  - [Running the application](#running-the-application)
+  - [Project Documentation](#project-documentation)
+  - [Dependencies](#dependencies)
+  - [HTTP Frameworks integrations](#http-frameworks-integrations)
+    - [Any Framework](#any-framework)
+    - [**FastAPI** Plugin](#fastapi-plugin)
+  - [Stay in touch](#stay-in-touch)
+  - [Contributors](#contributors)
 
-**FastStream** is a new package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka) and [**Propan**](https://github.com/lancetnik/propan). By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol. We'll continue to maintain both packages, but new development will be in this project. If you are starting a new service, this package is the recommended way to do it.
+</details>
+
+<details>
+<summary><b>Project History</b></summary>
+
+**FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka) and [**Propan**](https://github.com/lancetnik/propan). By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
+</details>
 
 ---
 
@@ -76,14 +98,14 @@ You can install it with `pip` as usual:
 ```sh
 pip install 'faststream[kafka]'
 # or
+pip install 'faststream[confluent]'
+# or
 pip install 'faststream[rabbit]'
 # or
 pip install 'faststream[nats]'
 # or
 pip install 'faststream[redis]'
 ```
-
-By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
 
 ---
 
@@ -106,6 +128,7 @@ Here is an example Python app using **FastStream** that consumes data from an in
 ```python
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
+# from faststream.confluent import KafkaBroker
 # from faststream.rabbit import RabbitBroker
 # from faststream.nats import NatsBroker
 # from faststream.redis import RedisBroker
@@ -122,6 +145,8 @@ app = FastStream(broker)
 async def handle_msg(user: str, user_id: int) -> str:
     return f"User: {user_id} - {user} registered"
 ```
+
+### Pydantic serialization
 
 Also, **Pydantic**’s [`BaseModel`](https://docs.pydantic.dev/usage/models/) class allows you
 to define messages using a declarative syntax, making it easy to specify the fields and types of your messages.
@@ -143,6 +168,61 @@ class User(BaseModel):
 async def handle_msg(data: User) -> str:
     return f"User: {data.user} - {data.user_id} registered"
 ```
+
+By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
+
+To choose the **Pydantic** version, you can install the required one using the regular
+
+```shell
+pip install pydantic==1.X.Y
+```
+
+**FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+
+### Msgspec serialization
+
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/).
+
+```python
+from fast_depends.msgspec import MsgSpecSerializer
+from faststream.kafka import KafkaBroker
+
+broker = KafkaBroker(serializer=MsgSpecSerializer())
+```
+
+You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/gettings-started/subscription/msgspec/).
+
+### Unified API
+
+At first glance, **FastStream** unifies various broker backends under a single API. However, a completely unified API inevitably results in missing features. We do not want to limit users' choices. If you prefer Kafka over Redis, there is a reason. Therefore, we support all native broker features you need.
+
+Consequently, our unified API has a relatively limited scope:
+
+```python
+from faststream.[broker] import [Broker], [Broker]Message
+
+broker = [Broker](*servers)
+
+@broker.subscriber([source])  # Kafka topic / RMQ queue / NATS subject / etc
+@broker.publisher([destination])  # topic / routing key / subject / etc
+async def handler(msg: [Broker]Message) -> None:
+    await msg.ack()  # control brokers' acknowledgement policy
+
+...
+
+await broker.publish("Message", [destiination])
+```
+
+Beyond this scope you can use any broker-native features you need:
+
+* **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
+* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
+* **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
+
+You can find detailed information about all supported features in **FastStream**’s broker‑specific documentation.
+
+If a particular feature is missing or not yet supported, you can always fall back to the native broker client/connection for those operations.
 
 ---
 
@@ -176,6 +256,8 @@ async def test_invalid():
             await br.publish("wrong message", "in")
 ```
 
+---
+
 ## Running the application
 
 The application can be started using built-in **FastStream** CLI command.
@@ -188,13 +270,13 @@ pip install "faststream[cli]"
 
 To run the service, use the **FastStream CLI** command and pass the module (in this case, the file where the app implementation is located) and the app symbol to the command.
 
-``` shell
+```shell
 faststream run basic:app
 ```
 
 After running the command, you should see the following output:
 
-``` shell
+```shell
 INFO     - FastStream app starting...
 INFO     - input_data |            - `HandleMsg` waiting for messages
 INFO     - FastStream app started successfully! To exit press CTRL+C
@@ -202,13 +284,13 @@ INFO     - FastStream app started successfully! To exit press CTRL+C
 
 Also, **FastStream** provides you with a great hot reload feature to improve your Development Experience
 
-``` shell
+```shell
 faststream run basic:app --reload
 ```
 
 And multiprocessing horizontal scaling feature as well:
 
-``` shell
+```shell
 faststream run basic:app --workers 3
 ```
 
