@@ -25,6 +25,12 @@
 
 ---
 
+## Versioning Policy:
+
+The Faststream has a stable public API. Only a major updates could have breaking changes.
+
+Before update the Faststream to version 1.0 every minor update meaning major update. Our team is working on the release of version 1.0.
+
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
@@ -149,7 +155,6 @@ The Tester will redirect your `subscriber` and `publisher` decorated functions t
 Using pytest, the test for our service would look like this:
 
 ```python
-# Code above omitted 👆
 
 import pytest
 import pydantic
