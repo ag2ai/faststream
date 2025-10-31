@@ -813,7 +813,6 @@ dev = [
     { name = "types-pyyaml" },
     { name = "types-redis" },
     { name = "types-setuptools" },
-    { name = "types-ujson" },
     { name = "uvicorn" },
     { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'" },
     { name = "zizmor" },
@@ -846,7 +845,6 @@ lint = [
     { name = "types-pyyaml" },
     { name = "types-redis" },
     { name = "types-setuptools" },
-    { name = "types-ujson" },
     { name = "zizmor" },
 ]
 optionals = [
@@ -949,7 +947,6 @@ dev = [
     { name = "types-pyyaml" },
     { name = "types-redis" },
     { name = "types-setuptools" },
-    { name = "types-ujson" },
     { name = "uvicorn", marker = "python_full_version < '3.9'", specifier = "==0.33.0" },
     { name = "uvicorn", marker = "python_full_version >= '3.9'", specifier = ">=0.34.3" },
     { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'", specifier = ">=0.15.1" },
@@ -983,7 +980,6 @@ lint = [
     { name = "types-pyyaml" },
     { name = "types-redis" },
     { name = "types-setuptools" },
-    { name = "types-ujson" },
     { name = "zizmor", specifier = "==1.15.2" },
 ]
 optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] }]
@@ -3234,15 +3230,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/19/bd/1e5f949b7cb740c9f0feaac430e301b8f1c5f11a81e26324299ea671a237/types_setuptools-80.9.0.20250822.tar.gz", hash = "sha256:070ea7716968ec67a84c7f7768d9952ff24d28b65b6594797a464f1b3066f965", size = 41296, upload-time = "2025-08-22T03:02:08.771Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/2d/475bf15c1cdc172e7a0d665b6e373ebfb1e9bf734d3f2f543d668b07a142/types_setuptools-80.9.0.20250822-py3-none-any.whl", hash = "sha256:53bf881cb9d7e46ed12c76ef76c0aaf28cfe6211d3fab12e0b83620b1a8642c3", size = 63179, upload-time = "2025-08-22T03:02:07.643Z" },
-]
-
-[[package]]
-name = "types-ujson"
-version = "5.10.0.20250822"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5c/bd/d372d44534f84864a96c19a7059d9b4d29db8541828b8b9dc3040f7a46d0/types_ujson-5.10.0.20250822.tar.gz", hash = "sha256:0a795558e1f78532373cf3f03f35b1f08bc60d52d924187b97995ee3597ba006", size = 8437, upload-time = "2025-08-22T03:02:19.433Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/f2/d812543c350674d8b3f6e17c8922248ee3bb752c2a76f64beb8c538b40cf/types_ujson-5.10.0.20250822-py3-none-any.whl", hash = "sha256:3e9e73a6dc62ccc03449d9ac2c580cd1b7a8e4873220db498f7dd056754be080", size = 7657, upload-time = "2025-08-22T03:02:18.699Z" },
 ]
 
 [[package]]
