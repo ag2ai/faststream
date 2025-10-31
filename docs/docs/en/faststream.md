@@ -76,6 +76,12 @@ search:
 
 ---
 
+## Versioning Policy
+
+FastStream has a stable public API. Only major updates may introduce breaking changes.
+
+Before FastStream reaches version 1.0, every minor update may include breaking changes. Our team is working on the release of version 1.0.
+
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/) simplifies the process of writing producers and consumers for message queues, handling all the
@@ -83,9 +89,9 @@ parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- **Multiple Brokers**: **FastStream** provides a unified API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/){target="_blank"} [using [**AIOKafka**](https://github.com/aio-libs/aiokafka){target="_blank"} & [**Confluent**](https://github.com/confluentinc/confluent-kafka-python){target="_blank"}], [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"}, [**NATS**](https://nats.io/){target="_blank"}, [**Redis**](https://redis.io/){.external-link target="_blank"} support)
+- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/){target="_blank"}, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"}, [**NATS**](https://nats.io/){target="_blank"}, [**Redis**](https://redis.io/){.external-link target="_blank"} support)
 
-- [**Pydantic Validation**](#writing-app-code): Leverage [**Pydantic's**](https://docs.pydantic.dev/){.external-link target="_blank"} validation capabilities to serialize and validates incoming messages
+- [**Built-in Serialization***](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
 - [**Automatic Docs**](#project-documentation): Stay ahead with automatic [**AsyncAPI**](https://www.asyncapi.com/){.external-link target="_blank"} documentation
 
@@ -99,13 +105,15 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 - [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin) especially)
 
-That's **FastStream** in a nutshell—easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
+That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
 
 ---
 
-## History
 
-**FastStream** is a new package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol. We'll continue to maintain both packages, but new development will be in this project. If you are starting a new service, this package is the recommended way to do it.
+## Project History
+
+**FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
+
 
 ---
 
@@ -154,7 +162,7 @@ and `#!python @broker.publisher(...)` to allow you to delegate the actual proces
 
 - consuming and producing data to Event queues, and
 
-- decoding and encoding JSON encoded messages
+- decoding and encoding JSON-encoded messages
 
 These decorators make it easy to specify the processing logic for your consumers and producers, allowing you to focus on the core business logic of your application without worrying about the underlying integration.
 
@@ -188,6 +196,8 @@ Here is an example Python app using **FastStream** that consumes data from an in
     {!> docs_src/index/redis/basic.py!}
     ```
 
+### Pydantic serialization
+
 Also, **Pydantic**’s [`BaseModel`](https://docs.pydantic.dev/usage/models/){.external-link target="_blank"} class allows you
 to define messages using a declarative syntax, making it easy to specify the fields and types of your messages.
 
@@ -216,8 +226,162 @@ to define messages using a declarative syntax, making it easy to specify the fie
     {!> docs_src/index/redis/pydantic.py !}
     ```
 
----
+By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
 
+To choose the **Pydantic** version, you can install the required one using the regular
+
+```shell
+pip install pydantic==1.X.Y
+```
+
+**FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+
+
+### Msgspec serialization
+
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/).
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.kafka import KafkaBroker
+
+    broker = KafkaBroker(serializer=MsgSpecSerializer())
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.confluent import KafkaBroker
+
+    broker = KafkaBroker(serializer=MsgSpecSerializer())
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.rabbit import RabbitBroker
+
+    broker = RabbitBroker(serializer=MsgSpecSerializer())
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker(serializer=MsgSpecSerializer())
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.redis import RedisBroker
+
+    broker = RedisBroker(serializer=MsgSpecSerializer())
+    ```
+
+You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/).
+
+
+### Unified API
+
+At first glance, **FastStream** unifies various broker backends under a single API. However, a completely unified API inevitably results in missing features. We do not want to limit users' choices. If you prefer Kafka over Redis, there is a reason. Therefore, we support all native broker features you need.
+
+Consequently, our unified API has a relatively limited scope:
+
+=== "AIOKafka"
+    ```python linenums="1"
+    from faststream.kafka import KafkaBroker, KafkaMessage
+
+    broker = KafkaBroker("localhost:9092")
+
+    @broker.subscriber("in-channel")
+    @broker.publisher("out-channel")
+    async def handler(msg: KafkaMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "out-channel")
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    from faststream.confluent import KafkaBroker, KafkaMessage
+
+    broker = KafkaBroker("localhost:9092")
+
+    @broker.subscriber("in-channel")
+    @broker.publisher("out-channel")
+    async def handler(msg: KafkaMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "out-channel")
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    from faststream.rabbit import RabbitBroker, RabbitMessage
+
+    broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
+
+    @broker.subscriber("in-channel")
+    @broker.publisher("out-channel")
+    async def handler(msg: RabbitMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "out-channel")
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    from faststream.nats import NatsBroker, NatsMessage
+
+    broker = NatsBroker("nats://localhost:4222")
+
+    @broker.subscriber("in-channel")
+    @broker.publisher("out-channel")
+    async def handler(msg: NatsMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "out-channel")
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    from faststream.redis import RedisBroker, RedisMessage
+
+    broker = RedisBroker("redis://localhost:6379")
+
+    @broker.subscriber("in-channel")
+    @broker.publisher("out-channel")
+    async def handler(msg: RedisMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "out-channel")
+    ```
+
+Beyond this scope you can use any broker-native features you need:
+
+* **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
+* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
+* **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
+
+You can find detailed information about all supported features in **FastStream**’s broker‑specific documentation.
+
+If a particular feature is missing or not yet supported, you can always fall back to the native broker client/connection for those operations.
+
+---
 ## Testing the service
 
 The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
@@ -372,10 +536,6 @@ Also, **FastStream** can be used as part of **FastAPI**.
 
 Just import a **StreamRouter** you need and declare the message handler with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators.
 
-!!! tip
-    When used this way, **FastStream** does not utilize its own dependency and serialization system but integrates seamlessly into **FastAPI**.
-    This means you can use `Depends`, `BackgroundTasks`, and other **FastAPI** tools as if it were a regular HTTP endpoint.
-
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6 14-18 24-25"
     {!> docs_src/integrations/fastapi/kafka/base.py !}
@@ -403,6 +563,22 @@ Just import a **StreamRouter** you need and declare the message handler with the
 
 !!! note
     More integration features can be found [here](./getting-started/integrations/fastapi/index.md){.internal-link}
+
+---
+
+## Stay in touch
+
+Please show your support and stay in touch by:
+
+- giving our [GitHub repository](https://github.com/ag2ai/faststream/) a star, and
+
+- joining our [EN Discord server](https://discord.gg/qFm6aSqq59)
+
+- joining our [RU Telegram group](https://t.me/python_faststream)
+
+Your support helps us to stay in touch with you and encourages us to
+continue developing and improving the framework. Thank you for your
+support!
 
 ---
 
