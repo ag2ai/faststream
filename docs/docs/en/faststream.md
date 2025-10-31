@@ -80,7 +80,7 @@ search:
 
 FastStream has a stable public API. Only major updates may introduce breaking changes.
 
-Before FastStream reaches version 1.0, every minor update may include breaking changes. Our team is working on the release of version 1.0.
+Before FastStream reaches version 1.0, every minor update meaning major update and may include breaking changes. Our team is working on the release of version 1.0.
 
 ## Features
 
