@@ -76,12 +76,6 @@ search:
 
 ---
 
-## Versioning Policy
-
-FastStream has a stable public API. Only major updates may introduce breaking changes.
-
-Before FastStream reaches version 1.0, every minor update meaning major update and may include breaking changes. Our team is working on the release of version 1.0.
-
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/) simplifies the process of writing producers and consumers for message queues, handling all the
@@ -114,6 +108,13 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 
 **FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
 
+---
+
+## Versioning Policy
+
+FastStream has a stable public API. Only major updates may introduce breaking changes.
+
+Before FastStream reaches version 1.0, every minor update meaning major update and may include breaking changes. Our team is working on the release of version 1.0.
 
 ---
 
