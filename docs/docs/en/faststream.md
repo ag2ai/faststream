@@ -114,7 +114,7 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 
 FastStream has a stable public API. Only major updates may introduce breaking changes.
 
-Before FastStream reaches version 1.0, every minor update meaning major update and may include breaking changes. Our team is working on the release of version 1.0.
+Prior to FastStream's 1.0 release, each minor update may introduce breaking changes. To ensure a smooth transition, these changes are communicated through deprecation warnings before being fully implemented. Our team is working towards the stable 1.0 release.
 
 ---
 
