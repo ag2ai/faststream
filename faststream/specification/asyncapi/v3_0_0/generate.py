@@ -302,17 +302,17 @@ def _get_http_binding_method(methods: Sequence[str]) -> str:
     return next((method for method in methods if method != "HEAD"), "HEAD")
 
 
-def _resolve_reply_payloads(
-    message_name: str,
-    m: Message,
+def _resolve_payloads_common(
+    *,
+    m: "Message",
     payloads: dict[str, Any],
-    reply_messages: dict[str, Any],
-) -> Reference:
+    messages_target: dict[str, Any],
+    message_ref: str,
+    default_payload_title: str,
+) -> "Reference":
     assert isinstance(m.payload, dict)
 
     m.payload = move_pydantic_refs(m.payload, DEF_KEY)
-
-    message_name = clear_key(message_name)
 
     if DEF_KEY in m.payload:
         payloads.update(m.payload.pop(DEF_KEY))
@@ -328,19 +328,24 @@ def _resolve_reply_payloads(
                 defs = payload.pop(DEF_KEY) or {}
                 for def_name, def_schema in defs.items():
                     payloads[clear_key(def_name)] = def_schema
+
             processed_payloads[clear_key(name)] = payload
-            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
+            one_of_list.append(
+                Reference(**{"$ref": f"#/components/schemas/{name}"})
+            )
 
         payloads.update(processed_payloads)
         m.payload["oneOf"] = one_of_list
+
         assert m.title
-        reply_messages[clear_key(m.title)] = m
-        return Reference(
-            **{"$ref": f"#/components/messages/{message_name}"},
-        )
+        messages_target[clear_key(m.title)] = m
+
+        return Reference(**{"$ref": message_ref})
+
 
     payloads.update(m.payload.pop(DEF_KEY, {}))
-    payload_name = m.payload.get("title", f"{message_name}:Payload")
+
+    payload_name = m.payload.get("title", default_payload_title)
     payload_name = clear_key(payload_name)
 
     if payload_name in payloads and payloads[payload_name] != m.payload:
@@ -352,67 +357,44 @@ def _resolve_reply_payloads(
 
     payloads[payload_name] = m.payload
     m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
+
     assert m.title
-    reply_messages[clear_key(m.title)] = m
-    return Reference(
-        **{"$ref": f"#/components/messages/{message_name}"},
+    messages_target[clear_key(m.title)] = m
+
+    return Reference(**{"$ref": message_ref})
+
+
+def _resolve_reply_payloads(
+    message_name: str,
+    m: "Message",
+    payloads: dict[str, Any],
+    reply_messages: dict[str, Any],
+) -> "Reference":
+    message_name = clear_key(message_name)
+
+    return _resolve_payloads_common(
+        m=m,
+        payloads=payloads,
+        messages_target=reply_messages,
+        message_ref=f"#/components/messages/{message_name}",
+        default_payload_title=f"{message_name}:Payload",
     )
 
 
 def _resolve_msg_payloads(
     message_name: str,
-    m: Message,
+    m: "Message",
     channel_name: str,
     payloads: dict[str, Any],
     messages: dict[str, Any],
-) -> Reference:
-    assert isinstance(m.payload, dict)
-
-    m.payload = move_pydantic_refs(m.payload, DEF_KEY)
-
+) -> "Reference":
     message_name = clear_key(message_name)
     channel_name = clear_key(channel_name)
 
-    if DEF_KEY in m.payload:
-        payloads.update(m.payload.pop(DEF_KEY))
-
-    one_of = m.payload.get("oneOf", None)
-    if isinstance(one_of, dict):
-        one_of_list = []
-        processed_payloads: dict[str, dict[str, Any]] = {}
-        for name, payload in one_of.items():
-            # Promote nested Pydantic $defs from each payload into components/schemas
-            # so that referenced nested models are available globally.
-            if isinstance(payload, dict) and DEF_KEY in payload:
-                defs = payload.pop(DEF_KEY) or {}
-                for def_name, def_schema in defs.items():
-                    payloads[clear_key(def_name)] = def_schema
-            processed_payloads[clear_key(name)] = payload
-            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
-
-        payloads.update(processed_payloads)
-        m.payload["oneOf"] = one_of_list
-        assert m.title
-        messages[clear_key(m.title)] = m
-        return Reference(
-            **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
-        )
-
-    payloads.update(m.payload.pop(DEF_KEY, {}))
-    payload_name = m.payload.get("title", f"{channel_name}:{message_name}:Payload")
-    payload_name = clear_key(payload_name)
-
-    if payload_name in payloads and payloads[payload_name] != m.payload:
-        warnings.warn(
-            f"Overwriting the message schema, data types have the same name: `{payload_name}`",
-            RuntimeWarning,
-            stacklevel=1,
-        )
-
-    payloads[payload_name] = m.payload
-    m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
-    assert m.title
-    messages[clear_key(m.title)] = m
-    return Reference(
-        **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+    return _resolve_payloads_common(
+        m=m,
+        payloads=payloads,
+        messages_target=messages,
+        message_ref=f"#/components/messages/{channel_name}:{message_name}",
+        default_payload_title=f"{channel_name}:{message_name}:Payload",
     )
