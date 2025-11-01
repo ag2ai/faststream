@@ -23,6 +23,7 @@ class NatsSubscriberSpecification(
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
+        reply_payloads = self.get_reply_payloads()
 
         return {
             self.name: SubscriberSpec(
@@ -31,6 +32,10 @@ class NatsSubscriberSpecification(
                     message=Message(
                         title=f"{self.name}:Message",
                         payload=resolve_payloads(payloads),
+                    ),
+                    reply_message=Message(
+                        title=f"{self.name}:ReplyMessage",
+                        payload=resolve_payloads(reply_payloads),
                     ),
                     bindings=None,
                 ),
