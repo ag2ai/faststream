@@ -85,7 +85,7 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 - [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/){target="_blank"}, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"}, [**NATS**](https://nats.io/){target="_blank"}, [**Redis**](https://redis.io/){.external-link target="_blank"} support)
 
-- [**Built-in Serialization***](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
 - [**Automatic Docs**](#project-documentation): Stay ahead with automatic [**AsyncAPI**](https://www.asyncapi.com/){.external-link target="_blank"} documentation
 
@@ -101,12 +101,8 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
 
----
-
-
-## Project History
-
-**FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
+??? info "Project History"
+    **FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
 
 ---
 
@@ -147,14 +143,6 @@ You can install it with `pip` as usual:
     ```sh
     pip install 'faststream[redis]'
     ```
-
-
-!!! tip ""
-    By default **FastStream** uses **PydanticV2** written in **Rust**, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
-
-    To choose the **Pydantic** version, you can install the required one using the regular `pip install pydantic==X.Y.Z` command. **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
-
----
 
 ## Writing app code
 
@@ -227,20 +215,21 @@ to define messages using a declarative syntax, making it easy to specify the fie
     {!> docs_src/index/redis/pydantic.py !}
     ```
 
-By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
+!!! tip ""
+    By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
 
-To choose the **Pydantic** version, you can install the required one using the regular
+    To choose the **Pydantic** version, you can install the required one using the regular
 
-```shell
-pip install pydantic==1.X.Y
-```
+    ```shell
+    pip install pydantic==1.X.Y
+    ```
 
-**FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+    **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
 
 
 ### Msgspec serialization
 
-Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/).
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"}.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="1 4"
@@ -282,7 +271,7 @@ Moreover, **FastStream** is not tied to any specific serialization library, so y
     broker = RedisBroker(serializer=MsgSpecSerializer())
     ```
 
-You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/).
+You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/){.internal-link}.
 
 
 ### Unified API
@@ -297,14 +286,14 @@ Consequently, our unified API has a relatively limited scope:
 
     broker = KafkaBroker("localhost:9092")
 
-    @broker.subscriber("in-channel")
-    @broker.publisher("out-channel")
+    @broker.subscriber("in-topic")
+    @broker.publisher("out-topic")
     async def handler(msg: KafkaMessage) -> None:
         await msg.ack()  # control brokers' acknowledgement policy
 
     ...
 
-    await broker.publish("Message", "out-channel")
+    await broker.publish("Message", "in-topic")
     ```
 
 === "Confluent"
@@ -313,14 +302,14 @@ Consequently, our unified API has a relatively limited scope:
 
     broker = KafkaBroker("localhost:9092")
 
-    @broker.subscriber("in-channel")
-    @broker.publisher("out-channel")
+    @broker.subscriber("in-topic")
+    @broker.publisher("out-topic")
     async def handler(msg: KafkaMessage) -> None:
         await msg.ack()  # control brokers' acknowledgement policy
 
     ...
 
-    await broker.publish("Message", "out-channel")
+    await broker.publish("Message", "in-topic")
     ```
 
 === "RabbitMQ"
@@ -329,14 +318,14 @@ Consequently, our unified API has a relatively limited scope:
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 
-    @broker.subscriber("in-channel")
-    @broker.publisher("out-channel")
+    @broker.subscriber("in-queue")
+    @broker.publisher("out-queue")
     async def handler(msg: RabbitMessage) -> None:
         await msg.ack()  # control brokers' acknowledgement policy
 
     ...
 
-    await broker.publish("Message", "out-channel")
+    await broker.publish("Message", "in-queue")
     ```
 
 === "NATS"
@@ -345,14 +334,14 @@ Consequently, our unified API has a relatively limited scope:
 
     broker = NatsBroker("nats://localhost:4222")
 
-    @broker.subscriber("in-channel")
-    @broker.publisher("out-channel")
+    @broker.subscriber("in-subject")
+    @broker.publisher("out-subject")
     async def handler(msg: NatsMessage) -> None:
         await msg.ack()  # control brokers' acknowledgement policy
 
     ...
 
-    await broker.publish("Message", "out-channel")
+    await broker.publish("Message", "in-subject")
     ```
 
 === "Redis"
@@ -368,7 +357,7 @@ Consequently, our unified API has a relatively limited scope:
 
     ...
 
-    await broker.publish("Message", "out-channel")
+    await broker.publish("Message", "in-channel")
     ```
 
 Beyond this scope you can use any broker-native features you need:
@@ -392,38 +381,28 @@ The Tester will redirect your `subscriber` and `publisher` decorated functions t
 Using pytest, the test for our service would look like this:
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="5 10 18-19"
-    # Code above omitted 👆
-
-    {!> docs_src/index/kafka/test.py [ln:3-21] !}
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/kafka/test.py [ln:3-22] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="5 10 18-19"
-    # Code above omitted 👆
-
-    {!> docs_src/index/confluent/test.py [ln:3-21] !}
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/confluent/test.py [ln:3-22] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="5 10 18-19"
-    # Code above omitted 👆
-
-    {!> docs_src/index/rabbit/test.py [ln:3-21] !}
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/rabbit/test.py [ln:3-22] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="5 10 18-19"
-    # Code above omitted 👆
-
-    {!> docs_src/index/nats/test.py [ln:3-21] !}
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/nats/test.py [ln:3-22] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="5 10 18-19"
-    # Code above omitted 👆
-
-    {!> docs_src/index/redis/test.py [ln:3-21] !}
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/redis/test.py [ln:3-22] !}
     ```
 
 
