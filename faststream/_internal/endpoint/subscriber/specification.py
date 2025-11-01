@@ -7,7 +7,10 @@ from typing_extensions import (
 
 from faststream._internal.configs import BrokerConfig, SubscriberSpecificationConfig
 from faststream.exceptions import SetupError
-from faststream.specification.asyncapi.message import parse_handler_params, parse_handler_return
+from faststream.specification.asyncapi.message import (
+    parse_handler_params,
+    parse_handler_return,
+)
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:

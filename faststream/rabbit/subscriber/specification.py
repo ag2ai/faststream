@@ -63,7 +63,7 @@ class RabbitSubscriberSpecification(
                     reply_message=Message(
                         title=f"{channel_name}:ReplyMessage",
                         payload=resolve_payloads(reply_payloads),
-                    )
+                    ),
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(

@@ -10,6 +10,7 @@ class OperationReplyAddress(BaseModel):
     description: str | None = None
     location: str
 
+
 class OperationReply(BaseModel):
     messages: list[Message | Reference]
     channel: Reference | None = None
@@ -18,5 +19,6 @@ class OperationReply(BaseModel):
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
     else:
+
         class Config:
             extra = "allow"

@@ -8,6 +8,7 @@ class OperationReplyAddress:
     location: str
     description: str | None = None
 
+
 @dataclass
 class OperationReply:
     message: Message | None

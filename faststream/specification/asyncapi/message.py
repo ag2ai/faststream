@@ -35,6 +35,7 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
 
     return body
 
+
 def parse_handler_return(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     """Parses the handler parameters."""
     model_container = getattr(call, "serializer", call)

@@ -1,7 +1,7 @@
 import string
 import warnings
 from collections.abc import Sequence
-from typing import Callable, TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
@@ -17,20 +17,22 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     License,
     Message,
     Operation,
+    OperationReply,
     Reference,
     Server,
-    OperationReply,
     Tag,
 )
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     OperationBinding,
     http as http_bindings,
 )
-from faststream.specification.asyncapi.v3_0_0.schema.operation_reply import OperationReplyAddress
+from faststream.specification.asyncapi.v3_0_0.schema.operation_reply import (
+    OperationReplyAddress,
+)
 from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyHttpUrl
+    from faststream._internal.basic_types import AnyCallable, AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
     from faststream.asgi.handlers import HttpHandler
@@ -97,8 +99,10 @@ def get_app_schema(
         if not operation.reply:
             continue
         for message in operation.reply.messages:
-            reply_msgs['ReplyMessage'] = _resolve_reply_payloads(
-                f'{operation_name.removesuffix("Subscribe")}:ReplyMessage',
+            assert isinstance(message, Message)
+
+            reply_msgs["ReplyMessage"] = _resolve_reply_payloads(
+                f"{operation_name.removesuffix('Subscribe')}:ReplyMessage",
                 message,
                 payloads,
                 reply_messages,
@@ -184,7 +188,7 @@ def get_broker_channels(
     """Get the broker channels for an application."""
     channels = {}
     operations = {}
-    operations_by_handler: dict[Callable, Operation] = {}
+    operations_by_handler: dict[AnyCallable, Operation] = {}
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
@@ -210,13 +214,17 @@ def get_broker_channels(
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=sub_channel.operation,
                 reply=OperationReply(
-                    messages=[Message.from_spec(sub_channel.operation.reply_message)] if sub_channel.operation.reply_message else [],
+                    messages=[Message.from_spec(sub_channel.operation.reply_message)]
+                    if sub_channel.operation.reply_message
+                    else [],
                     address=OperationReplyAddress(
                         description=None,
                         location="$message.header#/replyTo",
                     ),
                     channel=None,
-                ) if not sub._no_reply else None,
+                )
+                if not sub._no_reply
+                else None,
             )
             operations[f"{channel_key}Subscribe"] = operation
             for call in sub.specification.calls:
@@ -249,7 +257,9 @@ def get_broker_channels(
                 sub_operation = operations_by_handler.get(call)
                 if sub_operation is None or sub_operation.reply is None:
                     continue
-                sub_operation.reply.channel = Reference(**{"$ref": f"#/channels/{channel_key}"})
+                sub_operation.reply.channel = Reference(**{
+                    "$ref": f"#/channels/{channel_key}"
+                })
 
     return channels, operations
 
@@ -291,11 +301,12 @@ def get_asgi_routes(
 def _get_http_binding_method(methods: Sequence[str]) -> str:
     return next((method for method in methods if method != "HEAD"), "HEAD")
 
+
 def _resolve_reply_payloads(
-        message_name: str,
-        m: Message,
-        payloads: dict[str, Any],
-        reply_messages: dict[str, Any],
+    message_name: str,
+    m: Message,
+    payloads: dict[str, Any],
+    reply_messages: dict[str, Any],
 ) -> Reference:
     assert isinstance(m.payload, dict)
 
@@ -346,6 +357,7 @@ def _resolve_reply_payloads(
     return Reference(
         **{"$ref": f"#/components/messages/{message_name}"},
     )
+
 
 def _resolve_msg_payloads(
     message_name: str,
