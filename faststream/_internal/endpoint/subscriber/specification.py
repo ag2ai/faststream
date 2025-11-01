@@ -105,6 +105,7 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
             )
 
         return payloads
+
     @property
     @abstractmethod
     def name(self) -> str:

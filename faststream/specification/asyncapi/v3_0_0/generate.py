@@ -1,7 +1,7 @@
 import string
 import warnings
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Callable, TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
@@ -26,6 +26,7 @@ from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     OperationBinding,
     http as http_bindings,
 )
+from faststream.specification.asyncapi.v3_0_0.schema.operation_reply import OperationReplyAddress
 from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
@@ -93,15 +94,19 @@ def get_app_schema(
 
     for operation_name, operation in operations.items():
         reply_msgs: dict[str, Message | Reference] = {}
+        if not operation.reply:
+            continue
         for message in operation.reply.messages:
             reply_msgs['ReplyMessage'] = _resolve_reply_payloads(
-                'ReplyMessage',
+                f'{operation_name.removesuffix("Subscribe")}:ReplyMessage',
                 message,
                 payloads,
                 reply_messages,
             )
+        operation.reply.messages = list(reply_msgs.values())
 
     messages.update(reply_messages)
+
     return ApplicationSchema(
         info=ApplicationInfo(
             title=title,
@@ -179,6 +184,7 @@ def get_broker_channels(
     """Get the broker channels for an application."""
     channels = {}
     operations = {}
+    operations_by_handler: dict[Callable, Operation] = {}
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
@@ -194,7 +200,7 @@ def get_broker_channels(
 
             channels[channel_key] = channel_obj
 
-            operations[f"{channel_key}Subscribe"] = Operation.from_sub(
+            operation = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
@@ -204,9 +210,17 @@ def get_broker_channels(
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=sub_channel.operation,
                 reply=OperationReply(
-                    messages=[Message.from_spec(sub_channel.operation.reply_message)],
-                )
+                    messages=[Message.from_spec(sub_channel.operation.reply_message)] if sub_channel.operation.reply_message else [],
+                    address=OperationReplyAddress(
+                        description=None,
+                        location="$message.header#/replyTo",
+                    ),
+                    channel=None,
+                ) if not sub._no_reply else None,
             )
+            operations[f"{channel_key}Subscribe"] = operation
+            for call in sub.specification.calls:
+                operations_by_handler[call.handler._original_call] = operation
 
     for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
@@ -231,6 +245,11 @@ def get_broker_channels(
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=pub_channel.operation,
             )
+            for call in pub.specification.calls:
+                sub_operation = operations_by_handler.get(call)
+                if sub_operation is None or sub_operation.reply is None:
+                    continue
+                sub_operation.reply.channel = Reference(**{"$ref": f"#/channels/{channel_key}"})
 
     return channels, operations
 

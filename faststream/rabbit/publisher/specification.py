@@ -70,6 +70,7 @@ class RabbitPublisherSpecification(
                             served_words=2 if self.config.title_ is None else 1,
                         ),
                     ),
+                    reply_message=None
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
