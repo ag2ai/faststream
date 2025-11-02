@@ -65,7 +65,7 @@ class Operation(BaseModel):
         messages: list[Reference],
         channel: Reference,
         operation: OperationSpec,
-        reply: OperationReply | None,
+        reply: OperationReply | None = None,
     ) -> Self:
         return cls(
             action=Action.RECEIVE,
