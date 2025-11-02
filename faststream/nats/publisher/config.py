@@ -8,7 +8,7 @@ from faststream._internal.configs import (
 from faststream.nats.configs import NatsBrokerConfig
 
 if TYPE_CHECKING:
-    from faststream.nats.schemas import JStream
+    from faststream.nats.schemas import JStream, Schedule
 
 
 @dataclass(kw_only=True)
@@ -25,3 +25,4 @@ class NatsPublisherConfig(PublisherUsecaseConfig):
     headers: dict[str, str] | None
     stream: Optional["JStream"]
     timeout: float | None
+    schedule: Optional["Schedule"]
