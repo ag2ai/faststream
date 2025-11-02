@@ -191,3 +191,19 @@ Please, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0
 * **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
 * **test**: Adding missing tests or correcting existing tests
 * **chore** Miscellaneous commits e.g. modifying .gitignore, ...
+
+## Guidelines
+
+### Links in documentation
+
+- External links need to mark `{.external-link target="_blank"}`
+
+    (e.g `[**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}`)
+ 
+- Internal links need to mark `{.internal-link}` 
+
+    (e.g `[contribution page](./getting-started/contributing/CONTRIBUTING.md){.internal-link}`)
+
+- A lot of lings going in a row doesn't need to mark both `{.external_link}` and `{.internal_link}`. In this case use only `{target="_blank"}` for external links
+
+    (e.g `[JSON](https://www.json.org/json-en.html){target="_blank"}, [MessagePack](https://msgpack.org/){target="_blank"}, [YAML](https://yaml.org/){target="_blank"}, and [TOML](https://toml.io/en/){target="_blank"}.`)
