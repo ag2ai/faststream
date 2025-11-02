@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream
@@ -23,7 +24,7 @@ class DataBasic(BaseModel):
     "input_data",
     title="input_data:Consume",
 )
-async def on_input_data(msg):
+async def on_input_data(msg: Any) -> None:
     """Consumer function
 
     Args:

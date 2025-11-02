@@ -167,7 +167,9 @@ def get_broker_channels(
     channels = {}
     operations = {}
 
-    for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
+    for sub in filter(
+        lambda sub: sub.specification.include_in_schema, broker.subscribers
+    ):
         for sub_key, sub_channel in sub.schema().items():
             channel_obj = Channel.from_sub(sub_key, sub_channel)
 
@@ -181,7 +183,7 @@ def get_broker_channels(
 
             channels[channel_key] = channel_obj
 
-            operations[f"{channel_key}Subscribe"] = Operation.from_sub(
+            operations[f"{channel_key}"] = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",

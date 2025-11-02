@@ -85,7 +85,7 @@ class TestNaming(NamingTestCase):
                 },
             },
             "operations": {
-                "test:_:HandleSubscribe": {
+                "test:_:Handle": {
                     "action": "receive",
                     "bindings": {
                         "amqp": {

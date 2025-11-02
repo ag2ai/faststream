@@ -72,7 +72,7 @@ class TestRouter(RouterTestcase):
                 },
             },
             "operations": {
-                "test_test:_:HandleSubscribe": {
+                "test_test:_:Handle": {
                     "action": "receive",
                     "bindings": {
                         "amqp": {

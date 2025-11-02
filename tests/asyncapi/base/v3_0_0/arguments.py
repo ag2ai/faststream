@@ -46,7 +46,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         assert next(iter(schema["channels"].keys())) == "."
         assert schema["channels"]["."]["address"] == "/"
 
-        assert next(iter(schema["operations"].keys())) == ".Subscribe"
+        assert next(iter(schema["operations"].keys())) == "."
 
         assert next(iter(schema["components"]["messages"].keys())) == ".:SubscribeMessage"
         assert (

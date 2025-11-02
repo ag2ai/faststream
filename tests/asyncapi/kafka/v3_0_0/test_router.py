@@ -56,7 +56,7 @@ class TestRouter(RouterTestcase):
                 },
             },
             "operations": {
-                "test_test:HandleSubscribe": {
+                "test_test:Handle": {
                     "action": "receive",
                     "messages": [
                         {
