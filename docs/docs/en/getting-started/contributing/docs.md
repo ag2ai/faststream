@@ -50,3 +50,20 @@ To develop the documentation, you don't even need to install the entire **FastSt
 
 Now all changes in the documentation files will be reflected on your local version of the site.
 After making all the changes, you can issue a `PR` with them - and we will gladly accept it!
+
+
+## Guidelines
+
+### Links in documentation
+
+- External links need to mark `{.external-link target="_blank"}`
+
+    (e.g [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"} - `[**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}`)
+
+- Internal links need to mark `{.internal-link}`
+
+    (e.g [contribution page](/getting-started/contributing/contributing){.internal-link} - `[contribution page](/getting-started/contributing/contributing){.internal-link}`)
+
+- A lot of links going in a row doesn't need to mark both `{.external_link}` and `{.internal_link}`. In this case use only `{target="_blank"}` for external links
+
+    (e.g [JSON](https://www.json.org/json-en.html){target="_blank"}, [MessagePack](https://msgpack.org/){target="_blank"}, [YAML](https://yaml.org/){target="_blank"}, and [TOML](https://toml.io/en/){target="_blank"} - `[JSON](https://www.json.org/json-en.html){target="_blank"}, [MessagePack](https://msgpack.org/){target="_blank"}, [YAML](https://yaml.org/){target="_blank"}, and [TOML](https://toml.io/en/){target="_blank"}`)
