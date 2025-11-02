@@ -199,8 +199,8 @@ Please, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0
 - External links need to mark `{.external-link target="_blank"}`
 
     (e.g `[**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}`)
- 
-- Internal links need to mark `{.internal-link}` 
+
+- Internal links need to mark `{.internal-link}`
 
     (e.g `[contribution page](./getting-started/contributing/CONTRIBUTING.md){.internal-link}`)
 
