@@ -47,7 +47,7 @@ class TestNaming(NamingTestCase):
                 },
             },
             "operations": {
-                "test:Handle": {
+                "test:HandleSubscribe": {
                     "action": "receive",
                     "channel": {
                         "$ref": "#/channels/test:Handle",

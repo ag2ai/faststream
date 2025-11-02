@@ -1,4 +1,3 @@
-from typing import Any
 from faststream import FastStream
 from faststream.specification import AsyncAPI, License, Contact
 from faststream.kafka import KafkaBroker
@@ -23,6 +22,6 @@ app = FastStream(
 
 @broker.publisher("output_data")
 @broker.subscriber("input_data")
-async def on_input_data(msg: Any) -> None:
+async def on_input_data(msg):
     # your processing logic
     pass

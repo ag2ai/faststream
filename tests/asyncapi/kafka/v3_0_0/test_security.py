@@ -48,7 +48,7 @@ basic_schema = {
         },
     },
     "operations": {
-        "test_1:TestTopic": {
+        "test_1:TestTopicSubscribe": {
             "action": "receive",
             "messages": [
                 {"$ref": "#/channels/test_1:TestTopic/messages/SubscribeMessage"},

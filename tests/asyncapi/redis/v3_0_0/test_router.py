@@ -60,7 +60,7 @@ class TestRouter(RouterTestcase):
                 },
             },
             "operations": {
-                "test_test:Handle": {
+                "test_test:HandleSubscribe": {
                     "action": "receive",
                     "messages": [
                         {
