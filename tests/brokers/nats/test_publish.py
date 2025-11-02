@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -95,7 +95,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
             subjects=[f"{queue}.>"],
         )
 
-        schedule_time = datetime.now(tz=UTC) + timedelta(seconds=2)
+        schedule_time = datetime.now(tz=timezone.utc) + timedelta(seconds=2)
         schedule_target = f"{queue}.{uuid4()}"
 
         @pub_broker.subscriber(
