@@ -34,9 +34,9 @@ class KafkaTestCase:
     async def start(self) -> AsyncIterator[float]:
         stop_event = asyncio.Event()
 
-        def acked(err, msg):
+        def acked(err, msg) -> None:  # noqa: ANN001
             if err is not None:
-                print("Failed to deliver message: %s: %s" % (str(msg), str(err)))
+                print(f"Failed to deliver message: {msg!s}: {err!s}")
 
         def handle() -> None:
             print("handle")

@@ -2,6 +2,7 @@ import json
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import nats
 
@@ -19,7 +20,7 @@ class NatsTestCase:
     async def start(self) -> AsyncIterator[float]:
         nc = await nats.connect(servers=["nats://localhost:4222"])
 
-        async def message_handler(msg):
+        async def message_handler(msg: Any) -> None:
             self.EVENTS_PROCESSED += 1
             data = json.loads(msg.data.decode("utf-8"))
             parsed = Schema(**data)

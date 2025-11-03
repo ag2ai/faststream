@@ -2,7 +2,6 @@
 from pydantic import BaseModel
 
 
-
 class BaseSchema(BaseModel):
     name: str
     age: int
