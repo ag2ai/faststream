@@ -227,7 +227,7 @@ def make_fastapi_execution(
             if FASTAPI_V121:
                 request.scope["fastapi_inner_astack"] = stack
                 function_stack = AsyncExitStack()
-                stack.enter_async_context(function_stack)
+                await stack.enter_async_context(function_stack)
                 request.scope["fastapi_function_astack"] = function_stack
 
             if FASTAPI_V106:
