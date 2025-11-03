@@ -2,19 +2,9 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from pydantic import BaseModel
-
 from faststream.confluent import KafkaBroker
 
-
-class BaseSchema(BaseModel):
-    name: str
-    age: int
-    fullname: str
-
-
-class Schema(BaseSchema):
-    children: list[BaseSchema]
+from .schemas.pydantic import Schema
 
 
 class ConfluentTestCase:

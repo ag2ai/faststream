@@ -3,19 +3,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fast_depends.msgspec import MsgSpecSerializer
-from msgspec import Struct
-
 from faststream.kafka import KafkaBroker
 
-
-class BaseSchema(Struct):
-    name: str
-    age: int
-    fullname: str
-
-
-class Schema(BaseSchema):
-    children: list[BaseSchema]
+from .schemas.msgspec import Schema
 
 
 class KafkaTestCase:

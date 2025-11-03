@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 
 import aio_pika
 
+from .schemas.pydantic import Schema
+
 
 class RabbitTestCase:
-    comment = "Pure aio-pika"
+    comment = "Pure aio-pika with pydantic"
     broker_type = "RabbitMQ"
 
     def __init__(self) -> None:
@@ -22,8 +24,11 @@ class RabbitTestCase:
             self.EVENTS_PROCESSED += 1
 
             async with msg.process():
+                data = json.loads(msg.body.decode())
+                parsed = Schema(**data)
+
                 await channel.default_exchange.publish(
-                    aio_pika.Message(msg.body),
+                    aio_pika.Message(parsed.model_dump_json().encode()),
                     routing_key="in",
                 )
 
