@@ -135,7 +135,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.120.0",
+    "fastapi==0.121.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
