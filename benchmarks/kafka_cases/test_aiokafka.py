@@ -4,17 +4,23 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 
+import pytest
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from aiokafka.admin import AIOKafkaAdminClient, NewTopic
 
 from .schemas.pydantic import Schema
 
 
-class KafkaTestCase:
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=599,
+    max_time=600,
+)
+class TestKafkaCase:
     comment = "Pure aio-kafka client with pydantic"
     broker_type = "Kafka"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
     async def create_topic(self) -> None:
@@ -80,3 +86,8 @@ class KafkaTestCase:
                 await task
             await producer.stop()
             await consumer.stop()
+
+    async def test_consume_message(self) -> None:
+        async with self.start() as start_time:
+            await asyncio.sleep(0.1)
+        assert self.EVENTS_PROCESSED > 1

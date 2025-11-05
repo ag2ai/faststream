@@ -1,17 +1,24 @@
+import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
-from faststream.confluent import KafkaBroker
+import pytest
 
-from .schemas.pydantic import Schema
+from faststream.confluent import KafkaBroker, TopicPartition
 
 
-class ConfluentTestCase:
-    comment = "Consume Pydantic Model"
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=599,
+    max_time=600,
+)
+class TestConfluentCase:
+    comment = "Consume Any Message"
     broker_type = "Confluent"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
         broker = self.broker = KafkaBroker(logger=None, graceful_timeout=10)
@@ -19,8 +26,10 @@ class ConfluentTestCase:
         p = self.publisher = broker.publisher("in")
 
         @p
-        @broker.subscriber("in")
-        async def handle(message: Schema) -> Schema:
+        @broker.subscriber(
+            partitions=[TopicPartition("in", 0)], auto_offset_reset="earliest"
+        )
+        async def handle(message: Any) -> Any:
             self.EVENTS_PROCESSED += 1
             return message
 
@@ -40,3 +49,8 @@ class ConfluentTestCase:
             })
 
             yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start() as start_time:
+            await asyncio.sleep(10.0)
+        assert self.EVENTS_PROCESSED > 1

@@ -4,6 +4,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import pytest
 from confluent_kafka import Consumer, Producer, TopicPartition
 
 from faststream._internal.utils.functions import run_in_executor
@@ -11,11 +12,16 @@ from faststream._internal.utils.functions import run_in_executor
 from .schemas.pydantic import Schema
 
 
-class KafkaTestCase:
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=599,
+    max_time=600,
+)
+class TestConfluentCase:
     comment = "Pure confluent client with pydantic"
     broker_type = "Confluent"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
         self.producer = Producer({
@@ -39,7 +45,6 @@ class KafkaTestCase:
                 print(f"Failed to deliver message: {msg!s}: {err!s}")
 
         def handle() -> None:
-            print("handle")
             while not stop_event.is_set():
                 msg = self.consumer.poll(timeout=0.01)
                 if msg is None:
@@ -77,3 +82,8 @@ class KafkaTestCase:
             await executor_task
             await run_in_executor(None, self.producer.flush)
             await run_in_executor(None, self.consumer.close)
+
+    async def test_consume_message(self) -> None:
+        async with self.start() as start_time:
+            await asyncio.sleep(10.0)
+        assert self.EVENTS_PROCESSED > 1

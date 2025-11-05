@@ -156,6 +156,7 @@ dev = [
     {include-group = "docs"},
     "pre-commit==4.3.0",
     "detect-secrets==1.5.0",
+    "pytest-codspeed>=2.2.1",
 ]
 
 [project.urls]
@@ -207,6 +208,7 @@ markers = [
     "slow",
     "connected",
     "all",
+    "benchmark",
 ]
 asyncio_default_fixture_loop_scope = "function"
 

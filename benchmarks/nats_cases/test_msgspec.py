@@ -1,25 +1,39 @@
+import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
 
-from faststream.rabbit import RabbitBroker
+import pytest
+
+from fast_depends.msgspec import MsgSpecSerializer
+from faststream.nats import NatsBroker
+
+from .schemas.msgspec import Schema
 
 
-class RabbitTestCase:
-    comment = "Consume Any Message"
-    broker_type = "RabbitMQ"
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=599,
+    max_time=600,
+)
+class TestNatsTestCase:
+    comment = "Consume Msgspec Struct"
+    broker_type = "NATS"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
-        broker = self.broker = RabbitBroker(logger=None, graceful_timeout=10)
+        broker = self.broker = NatsBroker(
+            logger=None,
+            graceful_timeout=10,
+            serializer=MsgSpecSerializer(use_fastdepends_errors=False),
+        )
 
         p = self.publisher = broker.publisher("in")
 
         @p
         @broker.subscriber("in")
-        async def handle(message: Any) -> Any:
+        async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1
             return message
 
@@ -39,3 +53,8 @@ class RabbitTestCase:
             })
 
             yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start() as start_time:
+            await asyncio.sleep(0.1)
+        assert self.EVENTS_PROCESSED > 1

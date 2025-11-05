@@ -20,8 +20,13 @@ class TestCase(Protocol):
     broker_type: str
     comment: str
 
+    def setup_method(self) -> None: ...
+
     @asynccontextmanager
     async def start(self) -> AsyncIterator[float]: ...
+
+    @asynccontextmanager
+    async def test_consume_message(self) -> None: ...
 
 
 @dataclass
@@ -57,9 +62,11 @@ async def main(case: TestCase, measure_time: int) -> MeasureResult:
 
 
 if __name__ == "__main__":
-    from rabbit_cases.basic import RabbitTestCase
+    from rabbit_cases.basic import TestRabbitCase
 
-    case: TestCase = RabbitTestCase()
+    case: TestCase = TestRabbitCase()
+
+    case.setup_method()
 
     bench_file = Path(__file__).resolve().parent / "benches.csv"
 
