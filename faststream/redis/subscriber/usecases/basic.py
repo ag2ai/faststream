@@ -68,9 +68,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
         self,
         *args: Any,
     ) -> None:
-        if self.tasks:
-            return
-
         await super().start()
 
         self._post_start()

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import AckPolicy
+from faststream._internal.constants import EMPTY
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 
 
@@ -10,8 +11,8 @@ from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 def test_default() -> None:
     config = KafkaSubscriberConfig(_outer_config=MagicMock())
 
-    assert config.ack_policy is AckPolicy.MANUAL
-    assert config.ack_first
+    assert config.auto_ack_disabled
+    assert config.ack_policy is AckPolicy.ACK_FIRST
     assert config.connection_data == {"enable_auto_commit": True}
 
 
@@ -22,8 +23,8 @@ def test_ack_first() -> None:
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
-    assert config.ack_policy is AckPolicy.MANUAL
-    assert config.ack_first
+    assert config.auto_ack_disabled
+    assert config.ack_policy is AckPolicy.ACK_FIRST
     assert config.connection_data == {"enable_auto_commit": True}
 
 
@@ -35,11 +36,11 @@ def test_custom_ack() -> None:
     )
 
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
-    assert config.connection_data == {}
+    assert config.connection_data == {"enable_auto_commit": False}
 
 
 @pytest.mark.confluent()
-def test_no_ack() -> None:
+def test_no_ack_override_ack_policy() -> None:
     config = KafkaSubscriberConfig(
         _outer_config=MagicMock(),
         _no_ack=True,
@@ -47,17 +48,30 @@ def test_no_ack() -> None:
     )
 
     assert config.ack_policy is AckPolicy.MANUAL
-    assert config.connection_data == {}
+    assert config.connection_data == {"enable_auto_commit": False}
 
 
 @pytest.mark.confluent()
-def test_auto_commit() -> None:
+@pytest.mark.parametrize(
+    ("auto_commit", "enable_auto_commit", "ack_policy"),
+    (
+        pytest.param(True, True, AckPolicy.ACK_FIRST, id="autocommit_specified_true"),
+        pytest.param(
+            False, False, AckPolicy.REJECT_ON_ERROR, id="autocommit_specified_false"
+        ),
+        pytest.param(EMPTY, True, AckPolicy.ACK_FIRST, id="autocommit_on_ack_first_true"),
+    ),
+)
+def test_auto_commit_override_ack_policy(
+    auto_commit: bool,
+    enable_auto_commit: bool,
+    ack_policy: AckPolicy,
+) -> None:
     config = KafkaSubscriberConfig(
         _outer_config=MagicMock(),
-        _auto_commit=True,
+        _auto_commit=auto_commit,
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
-    assert config.ack_policy is AckPolicy.MANUAL
-    assert config.ack_first
-    assert config.connection_data == {"enable_auto_commit": True}
+    assert config.connection_data == {"enable_auto_commit": enable_auto_commit}
+    assert config.ack_policy is ack_policy

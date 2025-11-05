@@ -59,7 +59,7 @@ class LogicPublisher(PublisherUsecase):
             message,
             topic=topic or self.topic,
             key=key,
-            partition=partition or self.partition,
+            partition=partition if partition is not None else self.partition,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
             timestamp_ms=timestamp_ms,
@@ -151,7 +151,7 @@ class DefaultPublisher(LogicPublisher):
             message,
             topic=topic or self.topic,
             key=key or self.key,
-            partition=partition or self.partition,
+            partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
@@ -180,7 +180,7 @@ class DefaultPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        cmd.partition = cmd.partition or self.partition
+        cmd.partition = cmd.partition if cmd.partition is not None else self.partition
         cmd.key = cmd.key or self.key
 
         await self._basic_publish(
@@ -231,7 +231,7 @@ class BatchPublisher(LogicPublisher):
             *messages,
             key=None,
             topic=topic or self.topic,
-            partition=partition or self.partition,
+            partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
             correlation_id=correlation_id or gen_cor_id(),
@@ -260,7 +260,7 @@ class BatchPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        cmd.partition = cmd.partition or self.partition
+        cmd.partition = cmd.partition if cmd.partition is not None else self.partition
 
         await self._basic_publish_batch(
             cmd,
