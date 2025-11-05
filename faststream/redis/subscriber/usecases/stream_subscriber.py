@@ -1,5 +1,6 @@
+import asyncio
 import math
-from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 from redis.exceptions import ResponseError
@@ -33,6 +34,21 @@ if TYPE_CHECKING:
 
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
+
+ReadResponse = tuple[
+    tuple[
+        TopicName,
+        tuple[
+            tuple[
+                Offset,
+                dict[bytes, bytes],
+            ],
+            ...,
+        ],
+    ],
+    ...,
+]
+ReadCallable = Callable[[str], Awaitable[ReadResponse]]
 
 
 class _StreamHandlerMixin(LogicSubscriber):
@@ -80,24 +96,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         stream = self.stream_sub
 
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ],
-        ]
+        read: ReadCallable
 
         if stream.group and stream.consumer:
             group_create_id = "$" if self.last_id == ">" else self.last_id
@@ -116,21 +115,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
                 def read(
                     _: str,
-                ) -> Awaitable[
-                    tuple[
-                        tuple[
-                            TopicName,
-                            tuple[
-                                tuple[
-                                    Offset,
-                                    dict[bytes, bytes],
-                                ],
-                                ...,
-                            ],
-                        ],
-                        ...,
-                    ],
-                ]:
+                ) -> Awaitable[ReadResponse]:
                     return client.xreadgroup(
                         groupname=stream.group,
                         consumername=stream.consumer,
@@ -142,66 +127,32 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             else:
 
-                def read(
-                    _: str,
-                ) -> Coroutine[
-                    Any,
-                    Any,
-                    tuple[
-                        tuple[
-                            TopicName,
-                            tuple[
-                                tuple[
-                                    Offset,
-                                    dict[bytes, bytes],
-                                ],
-                                ...,
-                            ],
-                        ],
-                        ...,
-                    ],
-                ]:
-                    async def xautoclaim() -> tuple[
-                        tuple[TopicName, tuple[tuple[Offset, dict[bytes, bytes]], ...]],
-                        ...,
-                    ]:
-                        stream_message = await client.xautoclaim(
-                            name=self.stream_sub.name,
-                            groupname=self.stream_sub.group,
-                            consumername=self.stream_sub.consumer,
-                            min_idle_time=self.min_idle_time,
-                            start_id=self.autoclaim_start_id,
-                            count=1,
-                        )
-                        stream_name = self.stream_sub.name.encode()
-                        (next_id, messages, _) = stream_message
-                        # Update start_id for next call
-                        self.autoclaim_start_id = next_id
-                        if not messages:
-                            return ()
-                        return ((stream_name, messages),)
+                async def read(_: str) -> ReadResponse:
+                    stream_message = await client.xautoclaim(
+                        name=self.stream_sub.name,
+                        groupname=self.stream_sub.group,
+                        consumername=self.stream_sub.consumer,
+                        min_idle_time=self.min_idle_time,
+                        start_id=self.autoclaim_start_id,
+                        count=1,
+                    )
+                    stream_name = self.stream_sub.name.encode()
+                    (next_id, messages, _) = stream_message
 
-                    return xautoclaim()
+                    # Update start_id for next call
+                    self.autoclaim_start_id = next_id
+
+                    if next_id == b"0-0" and not messages:
+                        await asyncio.sleep(stream.polling_interval / 1000)  # ms to s
+                        return ()
+
+                    return ((stream_name, messages),)
 
         else:
 
             def read(
                 last_id: str,
-            ) -> Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ]:
+            ) -> Awaitable[ReadResponse]:
                 return client.xread(
                     {stream.name: last_id},
                     block=stream.polling_interval,
