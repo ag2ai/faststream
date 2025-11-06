@@ -76,7 +76,8 @@ This way you will send a copy of your return to the all output topics.
     Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
 
     See more information about RPC in the specific broker sections:
-     [Kafka RPC](../../howto/kafka/rpc.md){.internal-link} ,
-     [RabbitMQ PRC](../../rabbit/rpc.md){.internal-link} ,
-     [Nats PRC](../../nats/rpc.md){.internal-link} ,
-     [Redis RPC](../../redis/rpc.md){.internal-link}
+
+    * [Kafka RPC](../../howto/kafka/rpc.md)
+    * [RabbitMQ RPC](../../rabbit/rpc.md)
+    * [Nats PRC](../../nats/rpc.md)
+    * [Redis RPC](../../redis/rpc.md)

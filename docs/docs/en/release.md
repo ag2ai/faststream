@@ -12,6 +12,34 @@ hide:
 ---
 
 # Release Notes
+## 0.6.3
+
+### What's Changed
+
+* Fix annotation for group_instance_id parameter by [@gandhis1](https://github.com/gandhis1){.external-link target="_blank"} in [#2606](https://github.com/ag2ai/faststream/pull/2606){.external-link target="_blank"}
+* Add support for `min_idle_time` in Redis StreamSub and XAUTOCLAIM by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2607](https://github.com/ag2ai/faststream/pull/2607){.external-link target="_blank"}
+* fix incorrect nats annotations by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2619](https://github.com/ag2ai/faststream/pull/2619){.external-link target="_blank"}
+* docs(healthchecks): Fix typing example by [@redb0](https://github.com/redb0){.external-link target="_blank"} in [#2624](https://github.com/ag2ai/faststream/pull/2624){.external-link target="_blank"}
+* add nats kv message annotation by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2626](https://github.com/ag2ai/faststream/pull/2626){.external-link target="_blank"}
+* redis: allow tasks to be added to subscribers by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2622](https://github.com/ag2ai/faststream/pull/2622){.external-link target="_blank"}
+* Reusing router in multiple brokers or routers by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2591](https://github.com/ag2ai/faststream/pull/2591){.external-link target="_blank"}
+* fix: remove UltraJSON (ujson) dependency by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2634](https://github.com/ag2ai/faststream/pull/2634){.external-link target="_blank"}
+* fix: allow explicit publishing to partition #0 of a topic from a Kafka publisher by [@antoinehumbert](https://github.com/antoinehumbert){.external-link target="_blank"} in [#2629](https://github.com/ag2ai/faststream/pull/2629){.external-link target="_blank"}
+* docs: Versioning policy by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2623](https://github.com/ag2ai/faststream/pull/2623){.external-link target="_blank"}
+* docs: Update faststream.md by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2631](https://github.com/ag2ai/faststream/pull/2631){.external-link target="_blank"}
+* docs: Added reference to broker's RPC modes by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2636](https://github.com/ag2ai/faststream/pull/2636){.external-link target="_blank"}
+* docs: Add Guidilines: Links in documentation by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2637](https://github.com/ag2ai/faststream/pull/2637){.external-link target="_blank"}
+* fix enable.auto.commit kafka setting by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2612](https://github.com/ag2ai/faststream/pull/2612){.external-link target="_blank"}
+* docs: fix checkboxes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2643](https://github.com/ag2ai/faststream/pull/2643){.external-link target="_blank"}
+* fix: FastAPI 0.121 compat by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2648](https://github.com/ag2ai/faststream/pull/2648){.external-link target="_blank"}
+
+### New Contributors
+* [@gandhis1](https://github.com/gandhis1){.external-link target="_blank"} made their first contribution in [#2606](https://github.com/ag2ai/faststream/pull/2606){.external-link target="_blank"}
+* [@swelborn](https://github.com/swelborn){.external-link target="_blank"} made their first contribution in [#2619](https://github.com/ag2ai/faststream/pull/2619){.external-link target="_blank"}
+* [@redb0](https://github.com/redb0){.external-link target="_blank"} made their first contribution in [#2624](https://github.com/ag2ai/faststream/pull/2624){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.2...0.6.3](https://github.com/ag2ai/faststream/compare/0.6.2...0.6.3){.external-link target="_blank"}
+
 ## 0.6.2
 
 ### What's Changed
