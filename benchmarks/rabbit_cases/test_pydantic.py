@@ -51,5 +51,5 @@ class TestRabbitCase:
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.7)
         assert self.EVENTS_PROCESSED > 1

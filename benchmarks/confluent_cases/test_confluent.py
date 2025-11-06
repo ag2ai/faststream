@@ -85,5 +85,5 @@ class TestConfluentCase:
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:
-            await asyncio.sleep(10.0)
+            await asyncio.sleep(6.0)
         assert self.EVENTS_PROCESSED > 1
