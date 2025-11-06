@@ -198,3 +198,37 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         assert event.is_set()
         mock.assert_called_with("Hello!")
+
+    @pytest.mark.asyncio()
+    async def test_response_with_exchange(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        @pub_broker.subscriber(queue, exchange="test_exchange")
+        @pub_broker.publisher(queue + "1", exchange="test_exchange")
+        async def handle():
+            return RabbitResponse(1, persist=True)
+
+        @pub_broker.subscriber(queue + "1", exchange="test_exchange")
+        async def handle_next(msg=Context("message")) -> None:
+            mock(body=msg.body)
+            event.set()
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue, exchange="test_exchange")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+        mock.assert_called_once_with(body=b"1")
