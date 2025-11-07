@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from faststream import Context
-from faststream.nats import JStream, NatsMessage, NatsResponse, Schedule
+from faststream.nats import JStream, NatsBroker, NatsMessage, NatsResponse, Schedule
 from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import NatsTestcaseConfig
@@ -78,44 +78,46 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
 
             assert await response.decode() == "Hi!", response
 
-    @pytest.mark.asyncio()
-    async def test_publish_with_schedule(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event = asyncio.Event()
 
-        pub_broker = self.get_broker(apply_types=True)
-        await pub_broker.connect()
+@pytest.mark.asyncio()
+@pytest.mark.nats()
+@pytest.mark.connected()
+async def test_publish_with_schedule(
+    queue: str,
+    mock: MagicMock,
+) -> None:
+    event = asyncio.Event()
 
-        assert pub_broker._connection is not None
-        await pub_broker._connection.jetstream().add_stream(
-            name=queue,
-            subjects=[f"{queue}.>"],
-        )
+    pub_broker = NatsBroker()
+    await pub_broker.connect()
 
-        schedule_time = datetime.now(tz=timezone.utc) + timedelta(seconds=2)
-        schedule_target = f"{queue}.{uuid4()}"
+    assert pub_broker._connection is not None
+    await pub_broker._connection.jetstream().add_stream(
+        name=queue,
+        subjects=[f"{queue}.>"],
+    )
 
-        @pub_broker.subscriber(
-            schedule_target, stream=JStream(queue, allow_msg_schedules=True)
-        )
-        async def handle(body: dict, msg: NatsMessage) -> None:
-            mock(body)
-            event.set()
+    schedule_time = datetime.now(tz=timezone.utc) + timedelta(seconds=0.1)
+    schedule_target = f"{queue}.{uuid4()}"
 
-        await pub_broker.start()
+    @pub_broker.subscriber(
+        schedule_target, stream=JStream(queue, allow_msg_schedules=True)
+    )
+    async def handle(body: dict, msg: NatsMessage) -> None:
+        mock(body)
+        event.set()
 
-        await pub_broker.publish(
-            {"type": "do_something"},
-            f"{queue}.subject",
-            schedule=Schedule(schedule_time, schedule_target),
-            stream=queue,
-            timeout=10,
-        )
+    await pub_broker.start()
 
-        await asyncio.wait_for(event.wait(), timeout=5)
+    await pub_broker.publish(
+        {"type": "do_something"},
+        f"{queue}.subject",
+        schedule=Schedule(schedule_time, schedule_target),
+        stream=queue,
+        timeout=10,
+    )
 
-        assert event.is_set()
-        mock.assert_called_once_with({"type": "do_something"})
+    await asyncio.wait_for(event.wait(), timeout=5)
+
+    assert event.is_set()
+    mock.assert_called_once_with({"type": "do_something"})
