@@ -85,6 +85,51 @@ class _StreamHandlerMixin(LogicSubscriber):
             start_signal.set()
         await super()._consume(*args, start_signal=start_signal)
 
+    async def _create_group(self, reset_counter:bool = False) -> None:
+        if reset_counter:
+            group_create_id = "0"
+        else:
+            group_create_id = "$" if self.last_id == ">" else self.last_id
+        try:
+            await self._client.xgroup_create(
+                name=self.stream_sub.name,
+                id=group_create_id,
+                groupname=self.stream_sub.group,
+                mkstream=True,
+            )
+        except ResponseError as e:
+            if "already exists" not in str(e):
+                raise
+
+    def _protect_read_from_group_removal(
+            self,
+            read_func: Callable[[], Awaitable[ReadResponse]],
+            stream: "StreamSub",
+    ) -> Callable[[], Awaitable[ReadResponse]]:
+        async def _read_from_group_removal() -> ReadResponse:
+            try:
+                return await read_func()
+            except ResponseError as e:
+                err_msg = str(e)
+                known_error:bool = False
+                if "NOGROUP" in err_msg:
+                    # most likely redis was flushed, so we need to reset our group
+                    await self._create_group(reset_counter=True)
+                    # Important: reset our internal position too
+                    stream.last_id = ">"
+                    known_error = True
+                if (
+                        "smaller than the first available entry" in err_msg
+                        or "greater than the maximum id" in err_msg
+                ):
+                    # group was modified by third party and we need to reset our position to an existing id
+                    stream.last_id = "$"
+                    known_error = True
+                if known_error:
+                    return await read_func()
+                raise e
+        return _read_from_group_removal
+
     @override
     async def start(self) -> None:
         client = self._client
@@ -112,10 +157,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     raise
 
             if stream.min_idle_time is None:
-
-                def read(
-                    _: str,
-                ) -> Awaitable[ReadResponse]:
+                def _xreadgroup_call() -> Awaitable[ReadResponse]:
                     return client.xreadgroup(
                         groupname=stream.group,
                         consumername=stream.consumer,
@@ -125,10 +167,18 @@ class _StreamHandlerMixin(LogicSubscriber):
                         noack=stream.no_ack,
                     )
 
-            else:
+                protected_read_func = self._protect_read_from_group_removal(
+                    read_func=_xreadgroup_call,
+                    stream=stream,
+                )
 
-                async def read(_: str) -> ReadResponse:
-                    stream_message = await client.xautoclaim(
+                async def read(
+                        _: str,
+                ) -> ReadResponse:
+                    return await protected_read_func()
+            else:
+                def _xautoclaim_call() -> Awaitable[Any]:
+                    return client.xautoclaim(
                         name=self.stream_sub.name,
                         groupname=self.stream_sub.group,
                         consumername=self.stream_sub.consumer,
@@ -136,6 +186,15 @@ class _StreamHandlerMixin(LogicSubscriber):
                         start_id=self.autoclaim_start_id,
                         count=1,
                     )
+
+                protected_autoclaim = self._protect_read_from_group_removal(
+                    read_func=_xautoclaim_call,
+                    stream=stream,
+                )
+
+                async def read(_: str) -> ReadResponse:
+                    stream_message = await protected_autoclaim()
+
                     stream_name = self.stream_sub.name.encode()
                     (next_id, messages, _) = stream_message
 
@@ -149,7 +208,6 @@ class _StreamHandlerMixin(LogicSubscriber):
                     return ((stream_name, messages),)
 
         else:
-
             def read(
                 last_id: str,
             ) -> Awaitable[ReadResponse]:
@@ -160,7 +218,29 @@ class _StreamHandlerMixin(LogicSubscriber):
                 )
 
         await super().start(read)
+    async def _get_one_message(self, timeout: float) -> Optional[ReadResponse]:
+        if self.stream_sub.group and self.stream_sub.consumer:
+            def _readgroup_call() -> Awaitable[ReadResponse]:
+                return self._client.xreadgroup(
+                    groupname=self.stream_sub.group,
+                    consumername=self.stream_sub.consumer,
+                    streams={self.stream_sub.name: self.last_id},
+                    block=math.ceil(timeout * 1000),
+                    count=1,
+                )
 
+            protected_read = self._protect_read_from_group_removal(
+                read_func=_readgroup_call,
+                stream=self.stream_sub,
+            )
+            stream_message = await protected_read()  # <-- Appel et attente de la fonction protégée
+        else:
+            stream_message = await self._client.xread(
+                {self.stream_sub.name: self.last_id},
+                block=math.ceil(timeout * 1000),
+                count=1,
+            )
+        return stream_message
     @override
     async def get_one(
         self,
@@ -172,26 +252,29 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
         if self.stream_sub.group and self.stream_sub.consumer:
             if self.min_idle_time is None:
-                stream_message = await self._client.xreadgroup(
-                    groupname=self.stream_sub.group,
-                    consumername=self.stream_sub.consumer,
-                    streams={self.stream_sub.name: self.last_id},
-                    block=math.ceil(timeout * 1000),
-                    count=1,
-                )
+                stream_message = await self._get_one_message(timeout)
                 if not stream_message:
                     return None
 
                 ((stream_name, ((message_id, raw_message),)),) = stream_message
             else:
-                stream_message = await self._client.xautoclaim(
-                    name=self.stream_sub.name,
-                    groupname=self.stream_sub.group,
-                    consumername=self.stream_sub.consumer,
-                    min_idle_time=self.min_idle_time,
-                    start_id=self.autoclaim_start_id,
-                    count=1,
+                def _autoclaim_call() -> Awaitable[Any]:
+                    return self._client.xautoclaim(
+                        name=self.stream_sub.name,
+                        groupname=self.stream_sub.group,
+                        consumername=self.stream_sub.consumer,
+                        min_idle_time=self.min_idle_time,
+                        start_id=self.autoclaim_start_id,
+                        count=1,
+                    )
+
+                protected_autoclaim = self._protect_read_from_group_removal(
+                    read_func=_autoclaim_call,
+                    stream=self.stream_sub,
                 )
+                stream_message = await protected_autoclaim()
+                if not stream_message:
+                    return None
                 (next_id, messages, _) = stream_message
                 # Update start_id for next call
                 self.autoclaim_start_id = next_id
@@ -246,26 +329,28 @@ class _StreamHandlerMixin(LogicSubscriber):
         while True:
             if self.stream_sub.group and self.stream_sub.consumer:
                 if self.min_idle_time is None:
-                    stream_message = await self._client.xreadgroup(
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
-                        streams={self.stream_sub.name: self.last_id},
-                        block=math.ceil(timeout * 1000),
-                        count=1,
-                    )
+                    stream_message = await self._get_one_message(timeout)
                     if not stream_message:
                         continue
 
                     ((stream_name, ((message_id, raw_message),)),) = stream_message
                 else:
-                    stream_message = await self._client.xautoclaim(
-                        name=self.stream_sub.name,
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
-                        min_idle_time=self.min_idle_time,
-                        start_id=self.autoclaim_start_id,
-                        count=1,
+                    def _autoclaim_call() -> Awaitable[Any]:
+                        return self._client.xautoclaim(
+                            name=self.stream_sub.name,
+                            groupname=self.stream_sub.group,
+                            consumername=self.stream_sub.consumer,
+                            min_idle_time=self.min_idle_time,
+                            start_id=self.autoclaim_start_id,
+                            count=1,
+                        )
+
+                    protected_autoclaim = self._protect_read_from_group_removal(
+                        read_func=_autoclaim_call,
+                        stream=self.stream_sub,
                     )
+                    stream_message = await protected_autoclaim()
+
                     (next_id, messages, _) = stream_message
                     # Update start_id for next call
                     self.autoclaim_start_id = next_id

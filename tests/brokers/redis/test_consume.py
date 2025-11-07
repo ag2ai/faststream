@@ -844,6 +844,52 @@ class TestConsumeStream(RedisTestcaseConfig):
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
+    async def test_consume_from_group(
+        self,
+        queue: str,
+    ) -> None:
+        event = asyncio.Event()
+
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            redis_client = br._connection
+            with (
+                patch.object(redis_client, "xreadgroup", spy_decorator(redis_client.xreadgroup)) as m_readgroup,
+                patch.object(redis_client, "xgroup_create", spy_decorator(redis_client.xgroup_create)) as m_group_create
+            ):
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
+                await asyncio.sleep(0.1)
+                m_readgroup.mock.assert_called_once()
+                assert event.is_set()
+                await redis_client.flushall()
+                event.clear()
+                await asyncio.sleep(0.1)
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello again", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
+
+                await asyncio.sleep(0.1)
+                m_group_create.mock.assert_called_once()
+
+                assert event.is_set()
 
     async def test_get_one(
         self,
