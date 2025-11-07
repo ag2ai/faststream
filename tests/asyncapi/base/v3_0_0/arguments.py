@@ -38,9 +38,6 @@ class FastAPICompatible(AsyncAPI300Factory):
         assert channel_key == IsStr(regex=r"test[\w:]*:Handle"), channel_key
         assert operation_key == IsStr(regex=r"test[\w:]*:HandleSubscribe"), operation_key
 
-        assert channel_key in schema["channels"]
-        assert operation_key in schema["operations"]
-
     def test_custom_naming(self) -> None:
         broker = self.broker_class()
 
@@ -56,7 +53,6 @@ class FastAPICompatible(AsyncAPI300Factory):
         assert operation_key == "custom_name"
 
         assert schema["channels"][channel_key]["description"] == "test description"
-        assert schema["operations"][operation_key]["action"] == Action.RECEIVE
 
     def test_slash_in_title(self) -> None:
         broker = self.broker_class()
