@@ -23,7 +23,7 @@ from faststream.nats import NatsBroker, JStream, NatsMessage, Schedule
 broker = NatsBroker()
 
 @broker.subscriber(
-  "test_stream.*", 
+  "test_stream.*",
   stream=JStream("test_stream", allow_msg_schedules=True)
 )
 async def handle_scheduled_message(msg: NatsMessage) -> None:
@@ -42,14 +42,14 @@ from uuid import uuid4
 async def publish_scheduled_message() -> None:
   # Connect to the broker
   await broker.connect()
-  
+
   # Calculate the delivery time (e.g., 3 seconds from now)
   current_time = datetime.now(tz=UTC)
   schedule_time = current_time + timedelta(seconds=3)
-  
+
   # Define the target subject for the scheduled message
   schedule_target = f"test_stream.{uuid4()}"
-  
+
   # Publish the message with a schedule
   await broker.publish(
     message={"type": "do_something"},
@@ -75,7 +75,7 @@ broker = NatsBroker()
 
 
 @broker.subscriber(
-  "test_stream.*", 
+  "test_stream.*",
   stream=JStream("test_stream", allow_msg_schedules=True)
 )
 async def handle_scheduled_message(msg: NatsMessage) -> None:
