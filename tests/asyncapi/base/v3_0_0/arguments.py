@@ -35,8 +35,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
         operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
 
-        assert channel_key.endswith("Handle")
-        assert operation_key.endswith("HandleSubscribe")
+        assert channel_key == IsStr(regex=r"test[\w:]*:Handle"), channel_key
+        assert operation_key == IsStr(regex=r"test[\w:]*:HandleSubscribe"), operation_key
 
         assert channel_key in schema["channels"]
         assert operation_key in schema["operations"]
