@@ -370,7 +370,7 @@ jobs:
             --name nats \
             -p 4222:4222 \
             nats:2.12.1 -js
-          
+
           # Wait for NATS to be ready
           timeout 30 bash -c 'until docker logs nats 2>&1 | grep -q "Server is ready"; do sleep 0.5; done'
           echo "NATS is ready!"
