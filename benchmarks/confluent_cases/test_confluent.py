@@ -46,7 +46,10 @@ class TestConfluentCase:
 
         def handle() -> None:
             while not stop_event.is_set():
-                msg = self.consumer.poll(timeout=0.01)
+                try:
+                    msg = self.consumer.poll(timeout=0.01)
+                except RuntimeError:
+                    break
                 if msg is None:
                     continue
                 self.EVENTS_PROCESSED += 1
