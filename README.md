@@ -396,6 +396,9 @@ More integration features can be found [here](https://faststream.ag2.ai/latest/g
 
 ---
 
+## Benchmarks
+We use codspeed to run benchmarks for both FastStream itself and raw clients.
+
 ## Stay in touch
 
 Please show your support and stay in touch by:
