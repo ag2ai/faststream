@@ -365,9 +365,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       nats:
-        image: diementros/nats:js
+        image: nats:2.12.1
         ports:
           - 4222:4222
+        volumes:
+          - ./.github/configs/nats-server.conf:/etc/nats/nats-server.conf
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
