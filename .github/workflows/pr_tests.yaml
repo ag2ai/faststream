@@ -369,18 +369,12 @@ jobs:
           docker run -d \
             --name nats \
             -p 4222:4222 \
-            --health-cmd "nats-server --signal=ping" \
-            --health-interval 10s \
-            --health-timeout 5s \
-            --health-retries 5 \
             nats:2.12.1 -js
           
           # Wait for NATS to be ready
-          until docker exec nats nats-server --signal=ping 2>/dev/null; do
-            echo "Waiting for NATS to be ready..."
-            sleep 1
-          done
+          timeout 30 bash -c 'until docker logs nats 2>&1 | grep -q "Server is ready"; do sleep 0.5; done'
           echo "NATS is ready!"
+          docker logs nats
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
