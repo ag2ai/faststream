@@ -12,7 +12,6 @@ from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi import StreamRouter
-from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI300Factory
