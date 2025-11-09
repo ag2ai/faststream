@@ -11,8 +11,8 @@ from faststream.confluent import KafkaBroker, TopicPartition
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
-    min_time=599,
-    max_time=600,
+    min_time=150,
+    max_time=300,
 )
 class TestConfluentCase:
     comment = "Consume Any Message"

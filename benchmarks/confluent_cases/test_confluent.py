@@ -14,8 +14,8 @@ from .schemas.pydantic import Schema
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
-    min_time=599,
-    max_time=600,
+    min_time=150,
+    max_time=300,
 )
 class TestConfluentCase:
     comment = "Pure confluent client with pydantic"
@@ -45,18 +45,19 @@ class TestConfluentCase:
                 print(f"Failed to deliver message: {msg!s}: {err!s}")
 
         def handle() -> None:
-            while not stop_event.is_set():
-                try:
+            try:
+                while not stop_event.is_set():
                     msg = self.consumer.poll(timeout=0.01)
-                except RuntimeError:
-                    break
-                if msg is None:
-                    continue
-                self.EVENTS_PROCESSED += 1
-                data = json.loads(msg.value().decode("utf-8"))
-                parsed = Schema(**data)
-                self.producer.produce("in", value=parsed.model_dump_json().encode("utf-8"), callback=acked)
+                    if msg is None:
+                        continue
+                    self.EVENTS_PROCESSED += 1
+                    data = json.loads(msg.value().decode("utf-8"))
+                    parsed = Schema(**data)
+                    self.producer.produce("in", value=parsed.model_dump_json().encode("utf-8"), callback=acked)
+                    self.producer.flush()
+            finally:
                 self.producer.flush()
+                self.consumer.close()
 
         loop = asyncio.get_event_loop()
         start_time = time.time()
@@ -83,8 +84,6 @@ class TestConfluentCase:
         finally:
             stop_event.set()
             await executor_task
-            await run_in_executor(None, self.producer.flush)
-            await run_in_executor(None, self.consumer.close)
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:

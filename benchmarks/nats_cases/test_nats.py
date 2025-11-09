@@ -13,8 +13,8 @@ from .schemas.pydantic import Schema
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
-    min_time=599,
-    max_time=600,
+    min_time=150,
+    max_time=300,
 )
 class TestNatsTestCase:
     comment = "Pure nats_py client with pydantic"
@@ -36,11 +36,9 @@ class TestNatsTestCase:
                 "in",
                 parsed.model_dump_json().encode()
             )
-
         await nc.subscribe("in", cb=message_handler)
-
         start_time = time.time()
-
+        
         await nc.publish(
             "in",
             json.dumps({
@@ -50,12 +48,11 @@ class TestNatsTestCase:
                 "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
             }).encode("utf-8")
         )
-
         yield start_time
 
         await nc.close()
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1

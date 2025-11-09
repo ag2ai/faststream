@@ -13,8 +13,8 @@ from .schemas.msgspec import Schema
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
-    min_time=599,
-    max_time=600,
+    min_time=150,
+    max_time=300,
 )
 class TestNatsTestCase:
     comment = "Consume Msgspec Struct"
@@ -56,5 +56,5 @@ class TestNatsTestCase:
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1

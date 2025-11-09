@@ -62,7 +62,7 @@ async def main(case: TestCase, measure_time: int) -> MeasureResult:
 
 
 if __name__ == "__main__":
-    from rabbit_cases.basic import TestRabbitCase
+    from rabbit_cases.test_aiopika import TestRabbitCase
 
     case: TestCase = TestRabbitCase()
 

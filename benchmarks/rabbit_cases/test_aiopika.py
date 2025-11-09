@@ -12,8 +12,8 @@ from .schemas.pydantic import Schema
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
-    min_time=599,
-    max_time=600,
+    min_time=150,
+    max_time=300,
 )
 class TestRabbitCase:
     comment = "Pure aio-pika with pydantic"
@@ -28,12 +28,10 @@ class TestRabbitCase:
         channel = await connection.channel()
 
         async def handler(msg: aio_pika.IncomingMessage) -> None:
-            self.EVENTS_PROCESSED += 1
-
             async with msg.process():
+                self.EVENTS_PROCESSED += 1
                 data = json.loads(msg.body.decode())
                 parsed = Schema(**data)
-
                 await channel.default_exchange.publish(
                     aio_pika.Message(parsed.model_dump_json().encode()),
                     routing_key="in",
@@ -59,10 +57,9 @@ class TestRabbitCase:
         )
 
         yield start_time
-
         await connection.close()
 
     async def test_consume_message(self) -> None:
         async with self.start() as start_time:
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1
