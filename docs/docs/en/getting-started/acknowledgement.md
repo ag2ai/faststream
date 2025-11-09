@@ -105,4 +105,4 @@ However, not all brokers support our semantics. Here is a brief overview of **Fa
 | [RabbitMQ](https://www.rabbitmq.com/docs/confirms#acknowledgement-modes){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol reject |
 | [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
 | [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
-| Kafka | Commits offset          | Do nothing    | Do nothing      |
+| Kafka | Commits offset          | Seek offset and read message again    | Commits offset (same as `ACK`)      |
