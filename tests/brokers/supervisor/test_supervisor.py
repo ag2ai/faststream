@@ -4,6 +4,8 @@ from contextlib import suppress
 
 import pytest
 
+from faststream._internal.endpoint.subscriber.supervisor import TaskCallbackSupervisor
+
 
 @pytest.mark.asyncio()
 async def test_task_failing(subscriber_with_task_mixin):
@@ -17,6 +19,7 @@ async def test_task_failing(subscriber_with_task_mixin):
         await task
 
     assert len(subscriber_with_task_mixin.tasks) > 1
+    assert len(TaskCallbackSupervisor._TaskCallbackSupervisor__printed_exceptions)
 
 
 @pytest.mark.asyncio()

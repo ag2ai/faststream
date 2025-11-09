@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from asyncio import CancelledError, Task
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -23,6 +23,9 @@ class TaskCallbackSupervisor:
         "subscriber",
     )
 
+    # stores hash identifier of exceptions which trace info was printed
+    __printed_exceptions: ClassVar[set[int]] = set()
+
     def __init__(
         self,
         func: Callable[..., Coroutine[Any, Any, Any]],
@@ -37,6 +40,20 @@ class TaskCallbackSupervisor:
         self.args = func_args or ()
         self.kwargs = func_kwargs or {}
         self.ignored_exceptions = ignored_exceptions
+
+    @staticmethod
+    def _get_exception_identifier(
+        exception: BaseException, *, message_size: int = 4096
+    ) -> int:
+        # NOTE: method accepts only raised exceptions (e.b. with __traceback__)
+        line, message, klass = (
+            getattr(exception.__traceback__, "tb_lineno", 0),
+            str(exception)[:message_size],
+            str(exception.__class__),
+        )
+        to_hash = f"{line}-{message}-{klass}"
+
+        return hash(to_hash)
 
     @property
     def is_disabled(self) -> bool:
@@ -55,12 +72,16 @@ class TaskCallbackSupervisor:
             return
 
         if (exc := task.exception()) and not isinstance(exc, self.ignored_exceptions):
-            logger.log(
-                f"{task.get_name()} raised an exception, retrying...\n"
-                "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
-                "Also, please consider opening issue on the repository: https://github.com/ag2ai/faststream.",
-                exc_info=exc,
-                log_level=logging.ERROR,
-            )
+            # trace is printed only once, but task is still retried
+            identifier = self._get_exception_identifier(exc)
+            if identifier not in self.__printed_exceptions:
+                self.__printed_exceptions.add(identifier)
+                logger.log(
+                    f"{task.get_name()} raised an exception, retrying...\n"
+                    "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
+                    "Also, please consider opening issue on the repository: https://github.com/ag2ai/faststream.",
+                    exc_info=exc,
+                    log_level=logging.ERROR,
+                )
 
             self.subscriber.add_task(self.func, self.args, self.kwargs)
