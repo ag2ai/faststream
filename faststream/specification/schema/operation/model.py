@@ -8,3 +8,4 @@ from faststream.specification.schema.message import Message
 class Operation:
     message: Message
     bindings: OperationBinding | None
+    reply_message: Message | None = None

@@ -17,6 +17,7 @@ from faststream.specification.asyncapi.v3_0_0.schema import (
     License,
     Message,
     Operation,
+    OperationReply,
     Reference,
     Server,
     Tag,
@@ -25,10 +26,13 @@ from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     OperationBinding,
     http as http_bindings,
 )
+from faststream.specification.asyncapi.v3_0_0.schema.operation_reply import (
+    OperationReplyAddress,
+)
 from faststream.specification.asyncapi.v3_0_0.schema.operations import Action
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyHttpUrl
+    from faststream._internal.basic_types import AnyCallable, AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
     from faststream.asgi.handlers import HttpHandler
@@ -64,6 +68,7 @@ def get_app_schema(
     channels, operations = get_broker_channels(broker)
 
     messages: dict[str, Message] = {}
+    reply_messages: dict[str, Message] = {}
     payloads: dict[str, dict[str, Any]] = {}
 
     for channel in channels.values():
@@ -88,6 +93,23 @@ def get_app_schema(
             )
 
         channel.messages = msgs
+
+    for operation_name, operation in operations.items():
+        reply_msgs: dict[str, Message | Reference] = {}
+        if not operation.reply:
+            continue
+        for message in operation.reply.messages:
+            assert isinstance(message, Message)
+
+            reply_msgs["ReplyMessage"] = _resolve_reply_payloads(
+                f"{operation_name.removesuffix('Subscribe')}:ReplyMessage",
+                message,
+                payloads,
+                reply_messages,
+            )
+        operation.reply.messages = list(reply_msgs.values())
+
+    messages.update(reply_messages)
 
     return ApplicationSchema(
         info=ApplicationInfo(
@@ -166,6 +188,7 @@ def get_broker_channels(
     """Get the broker channels for an application."""
     channels = {}
     operations = {}
+    operations_by_handler: dict[AnyCallable, Operation] = {}
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
@@ -181,7 +204,7 @@ def get_broker_channels(
 
             channels[channel_key] = channel_obj
 
-            operations[f"{channel_key}Subscribe"] = Operation.from_sub(
+            operation = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
@@ -190,7 +213,22 @@ def get_broker_channels(
                 ],
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=sub_channel.operation,
+                reply=OperationReply(
+                    messages=[Message.from_spec(sub_channel.operation.reply_message)]
+                    if sub_channel.operation.reply_message
+                    else [],
+                    address=OperationReplyAddress(
+                        description=None,
+                        location="$message.header#/replyTo",
+                    ),
+                    channel=None,
+                )
+                if not sub._no_reply
+                else None,
             )
+            operations[f"{channel_key}Subscribe"] = operation
+            for call in sub.specification.calls:
+                operations_by_handler[call.handler._original_call] = operation
 
     for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
@@ -215,6 +253,13 @@ def get_broker_channels(
                 channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
                 operation=pub_channel.operation,
             )
+            for call in pub.specification.calls:
+                sub_operation = operations_by_handler.get(call)
+                if sub_operation is None or sub_operation.reply is None:
+                    continue
+                sub_operation.reply.channel = Reference(**{
+                    "$ref": f"#/channels/{channel_key}"
+                })
 
     return channels, operations
 
@@ -257,19 +302,17 @@ def _get_http_binding_method(methods: Sequence[str]) -> str:
     return next((method for method in methods if method != "HEAD"), "HEAD")
 
 
-def _resolve_msg_payloads(
-    message_name: str,
-    m: Message,
-    channel_name: str,
+def _resolve_payloads_common(
+    *,
+    m: "Message",
     payloads: dict[str, Any],
-    messages: dict[str, Any],
-) -> Reference:
+    messages_target: dict[str, Any],
+    message_ref: str,
+    default_payload_title: str,
+) -> "Reference":
     assert isinstance(m.payload, dict)
 
     m.payload = move_pydantic_refs(m.payload, DEF_KEY)
-
-    message_name = clear_key(message_name)
-    channel_name = clear_key(channel_name)
 
     if DEF_KEY in m.payload:
         payloads.update(m.payload.pop(DEF_KEY))
@@ -285,19 +328,24 @@ def _resolve_msg_payloads(
                 defs = payload.pop(DEF_KEY) or {}
                 for def_name, def_schema in defs.items():
                     payloads[clear_key(def_name)] = def_schema
+
             processed_payloads[clear_key(name)] = payload
-            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
+            one_of_list.append(
+                Reference(**{"$ref": f"#/components/schemas/{name}"})
+            )
 
         payloads.update(processed_payloads)
         m.payload["oneOf"] = one_of_list
+
         assert m.title
-        messages[clear_key(m.title)] = m
-        return Reference(
-            **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
-        )
+        messages_target[clear_key(m.title)] = m
+
+        return Reference(**{"$ref": message_ref})
+
 
     payloads.update(m.payload.pop(DEF_KEY, {}))
-    payload_name = m.payload.get("title", f"{channel_name}:{message_name}:Payload")
+
+    payload_name = m.payload.get("title", default_payload_title)
     payload_name = clear_key(payload_name)
 
     if payload_name in payloads and payloads[payload_name] != m.payload:
@@ -309,8 +357,44 @@ def _resolve_msg_payloads(
 
     payloads[payload_name] = m.payload
     m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
+
     assert m.title
-    messages[clear_key(m.title)] = m
-    return Reference(
-        **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+    messages_target[clear_key(m.title)] = m
+
+    return Reference(**{"$ref": message_ref})
+
+
+def _resolve_reply_payloads(
+    message_name: str,
+    m: "Message",
+    payloads: dict[str, Any],
+    reply_messages: dict[str, Any],
+) -> "Reference":
+    message_name = clear_key(message_name)
+
+    return _resolve_payloads_common(
+        m=m,
+        payloads=payloads,
+        messages_target=reply_messages,
+        message_ref=f"#/components/messages/{message_name}",
+        default_payload_title=f"{message_name}:Payload",
+    )
+
+
+def _resolve_msg_payloads(
+    message_name: str,
+    m: "Message",
+    channel_name: str,
+    payloads: dict[str, Any],
+    messages: dict[str, Any],
+) -> "Reference":
+    message_name = clear_key(message_name)
+    channel_name = clear_key(channel_name)
+
+    return _resolve_payloads_common(
+        m=m,
+        payloads=payloads,
+        messages_target=messages,
+        message_ref=f"#/components/messages/{channel_name}:{message_name}",
+        default_payload_title=f"{channel_name}:{message_name}:Payload",
     )

@@ -9,6 +9,7 @@ from faststream.specification.schema.operation import Operation as OperationSpec
 
 from .bindings import OperationBinding
 from .channels import Channel
+from .operation_reply import OperationReply
 from .tag import Tag
 from .utils import Reference
 
@@ -43,6 +44,8 @@ class Operation(BaseModel):
 
     security: dict[str, list[str]] | None = None
 
+    reply: OperationReply | None = None
+
     # TODO
     # traits
 
@@ -62,12 +65,14 @@ class Operation(BaseModel):
         messages: list[Reference],
         channel: Reference,
         operation: OperationSpec,
+        reply: OperationReply | None = None,
     ) -> Self:
         return cls(
             action=Action.RECEIVE,
             messages=messages,
             channel=channel,
             bindings=OperationBinding.from_sub(operation.bindings),
+            reply=reply,
             summary=None,
             description=None,
             security=None,
@@ -86,6 +91,7 @@ class Operation(BaseModel):
             messages=messages,
             channel=channel,
             bindings=OperationBinding.from_pub(operation.bindings),
+            reply=None,
             summary=None,
             description=None,
             security=None,

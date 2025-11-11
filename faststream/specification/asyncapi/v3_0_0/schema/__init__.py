@@ -5,6 +5,7 @@ from .docs import ExternalDocs
 from .info import ApplicationInfo
 from .license import License
 from .message import CorrelationId, Message
+from .operation_reply import OperationReply
 from .operations import Operation
 from .schema import ApplicationSchema
 from .servers import Server, ServerVariable
@@ -23,6 +24,7 @@ __all__ = (
     "License",
     "Message",
     "Operation",
+    "OperationReply",
     "Parameter",
     "Reference",
     "Server",

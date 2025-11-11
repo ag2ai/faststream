@@ -7,7 +7,10 @@ from typing_extensions import (
 
 from faststream._internal.configs import BrokerConfig, SubscriberSpecificationConfig
 from faststream.exceptions import SetupError
-from faststream.specification.asyncapi.message import parse_handler_params
+from faststream.specification.asyncapi.message import (
+    parse_handler_params,
+    parse_handler_return,
+)
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
@@ -71,6 +74,34 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
                 (
                     {
                         "title": f"{self.config.title_ or call_name}:Message:Payload",
+                    },
+                    to_camelcase(call_name),
+                ),
+            )
+
+        return payloads
+
+    def get_reply_payloads(self) -> list[tuple["dict[str, Any]", str]]:
+        payloads: list[tuple[dict[str, Any], str]] = []
+
+        call_name = self.call_name
+
+        for h in self.calls:
+            if h.dependant is None:
+                msg = "You should setup `Handler` at first."
+                raise SetupError(msg)
+
+            reply_body = parse_handler_return(
+                h.dependant,
+                prefix=f"{self.config.title_ or call_name}:ReplyMessage",
+            )
+            payloads.append((reply_body, to_camelcase(h.name)))
+
+        if not self.calls:
+            payloads.append(
+                (
+                    {
+                        "title": f"{self.config.title_ or call_name}:ReplyMessage:Payload",
                     },
                     to_camelcase(call_name),
                 ),
