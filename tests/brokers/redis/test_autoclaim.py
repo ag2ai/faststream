@@ -4,9 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.redis import (
-    StreamSub,
-)
+from faststream.exceptions import NackMessage
+from faststream.redis import StreamSub
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 
 from .basic import RedisTestcaseConfig
@@ -32,10 +31,20 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 queue,
                 group="test_group",
                 consumer="consumer1",
+            ),
+        )
+        async def regular(msg: str) -> None:
+            raise NackMessage
+
+        @consume_broker.subscriber(
+            stream=StreamSub(
+                queue,
+                group="test_group",
+                consumer="consumer1",
                 min_idle_time=100,  # 100ms
             ),
         )
-        async def handler(msg: str) -> None:
+        async def retry(msg: str) -> None:
             mock(msg)
             event.set()
 
@@ -44,9 +53,6 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
             # First, publish a message and let it become pending
             await br.publish("pending_message", stream=queue)
-
-            # Wait a bit to ensure message becomes idle
-            await asyncio.sleep(0.2)
 
             # The subscriber with XAUTOCLAIM should reclaim it
             await asyncio.wait(
