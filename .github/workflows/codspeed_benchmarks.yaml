@@ -1,12 +1,12 @@
 name: Benchmarks
 
 on:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   benchmarks:
     name: Run benchmarks
-    runs-on: ubuntu-latest
+    runs-on: codspeed-macro
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -52,6 +52,6 @@ jobs:
       - name: Run the benchmarks
         uses: CodSpeedHQ/action@v4
         with:
-          mode: instrumentation
+          mode: walltime
           run: uv run pytest benchmarks/ --codspeed
           token: ${{ secrets.CODSPEED_TOKEN }}
