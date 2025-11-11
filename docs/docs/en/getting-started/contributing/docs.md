@@ -72,9 +72,9 @@ After making all the changes, you can issue a `PR` with them - and we will gladl
 
 When contributing code examples to the documentation, follow these rules to keep examples maintainable and testable:
 
-- **Write Python files in `docs/docs_src/`**: Place all example Python code in the `docs/docs_src/` directory. Organize files by topic and subtopic, e.g., `docs/docs_src/getting_started/basic.py` for a basic FastStream app example. 
+- **Write Python files in `docs/docs_src/`**: Place all example Python code in the `docs/docs_src/` directory. Organize files by topic and subtopic, e.g., `docs/docs_src/getting_started/basic.py` for a basic FastStream app example.
 
-    See below how to use this code examples in the documentation MD file: 
+    See below how to use this code examples in the documentation MD file:
 
     ```
         ````python linenums="1" hl_lines="10 20"
