@@ -79,3 +79,16 @@ When contributing code examples to the documentation, follow these rules to keep
 - **Include examples using [`mdx_include`](https://github.com/neurobin/mdx_include){.external-link target="_blank"}**: To embed the code examples directly into Markdown documentation files, use the `mdx_include` Markdown extension. This allows including the content of Python files (local or remote) at arbitrary positions in the docs.
 
 This approach ensures that code examples are version-controlled, testable, and easily reusable across multiple documentation pages.
+
+
+### Code examples
+
+- Each the code example must to create in `/docs/docs_src/*.py` as a python file, see below how to use this code examples in the documentation MD file:
+
+```
+    ```python linenums="1" hl_lines="10 20"
+    {!> docs_src/getting_started/publishing/kafka/broker.py !}
+    ```
+```
+
+- Each the code example require to tested. To store the test code use a `tests/docs` directory.
