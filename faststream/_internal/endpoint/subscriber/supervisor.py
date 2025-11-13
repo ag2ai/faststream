@@ -1,14 +1,51 @@
 from __future__ import annotations
 
 import logging
-import os
 from asyncio import CancelledError, Task
-from typing import TYPE_CHECKING, Any, ClassVar
+from collections import UserDict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
     from faststream._internal.endpoint.subscriber.mixins import TasksMixin
+
+import os
+import time
+
+
+class _SupervisorCache(UserDict[int, float]):
+    @property
+    def ttl(self) -> float:
+        return float(os.getenv("FASTSTREAM_SUPERVISOR_CACHE_TTL", "3600"))
+
+    def _cleanup(self) -> None:
+        # no need to clean up empty storage
+        if not len(self):
+            return
+
+        # dict preserves insertion order hence if the first element is not outdated there is no reason to check others
+        _, timestamp = next(iter(self.items()))
+        now = time.time()
+        if now - timestamp < self.ttl:
+            return
+
+        now, to_delete = time.time(), []
+        for k, v in self.items():
+            if now - v >= self.ttl:
+                to_delete.append(k)
+            else:
+                break
+
+        for k in to_delete:
+            del self[k]
+
+    def add(self, item: int) -> None:
+        self[item] = time.time()
+
+    def __contains__(self, key: object) -> bool:
+        self._cleanup()
+        return super().__contains__(key)
 
 
 class TaskCallbackSupervisor:
@@ -24,7 +61,7 @@ class TaskCallbackSupervisor:
     )
 
     # stores hash identifier of exceptions which trace info was printed
-    __printed_exceptions: ClassVar[set[int]] = set()
+    __cache: _SupervisorCache = _SupervisorCache()
 
     def __init__(
         self,
@@ -74,8 +111,8 @@ class TaskCallbackSupervisor:
         if (exc := task.exception()) and not isinstance(exc, self.ignored_exceptions):
             # trace is printed only once, but task is still retried
             identifier = self._get_exception_identifier(exc)
-            if identifier not in self.__printed_exceptions:
-                self.__printed_exceptions.add(identifier)
+            if identifier not in self.__cache:
+                self.__cache.add(identifier)
                 logger.log(
                     f"{task.get_name()} raised an exception, retrying...\n"
                     "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
