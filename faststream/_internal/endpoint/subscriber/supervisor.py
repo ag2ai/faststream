@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 from asyncio import CancelledError, Task
 from collections import UserDict
 from typing import TYPE_CHECKING, Any
@@ -9,9 +11,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
     from faststream._internal.endpoint.subscriber.mixins import TasksMixin
-
-import os
-import time
 
 
 class _SupervisorCache(UserDict[int, float]):
