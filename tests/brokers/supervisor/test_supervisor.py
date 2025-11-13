@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from contextlib import suppress
-from time import sleep
+from unittest.mock import patch
 
 import pytest
 
@@ -53,11 +53,15 @@ async def test_ignore_cancellation_error(subscriber_with_task_mixin):
 
 
 def test_supervisor_cache(monkeypatch):
-    monkeypatch.setenv("FASTSTREAM_SUPERVISOR_CACHE_TTL", "2")
-    cache = _SupervisorCache()
-    cache.add(1)
-
-    assert 1 in cache
-    sleep(2.5)
-    assert 1 not in cache
-    assert not len(cache)
+    with patch("time.time") as mocked_time:
+        mocked_time.return_value = 0
+        cache = _SupervisorCache()
+        cache.add(1)
+        cache.add(2)
+        mocked_time.return_value = cache.ttl - 1
+        assert 1 in cache
+        assert 2 in cache
+        assert 1 in cache
+        mocked_time.return_value = cache.ttl + 1
+        assert 1 not in cache
+        assert 2 not in cache
