@@ -35,6 +35,8 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
 
     def __post_init__(self) -> None:
         self.connection_data["enable_auto_commit"] = self.ack_first
+        if self._ack_policy is AckPolicy.ACK:
+            self._ack_policy = AckPolicy.REJECT_ON_ERROR
 
     @property
     def ack_first(self) -> bool:
