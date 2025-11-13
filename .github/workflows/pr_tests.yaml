@@ -363,12 +363,18 @@ jobs:
       - test-basic
       - test-nats-smoke
     runs-on: ubuntu-latest
-    services:
-      nats:
-        image: diementros/nats:js
-        ports:
-          - 4222:4222
     steps:
+      - name: Start NATS with JetStream
+        run: |
+          docker run -d \
+            --name nats \
+            -p 4222:4222 \
+            nats:2.12.1 -js
+
+          # Wait for NATS to be ready
+          timeout 30 bash -c 'until docker logs nats 2>&1 | grep -q "Server is ready"; do sleep 0.5; done'
+          echo "NATS is ready!"
+          docker logs nats
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
