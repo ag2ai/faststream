@@ -59,7 +59,7 @@ class TaskCallbackSupervisor:
         "subscriber",
     )
 
-    # stores hash identifier of exceptions which trace info was printed
+    # stores hash identifier of exceptions which whose info was printed
     __cache: _SupervisorCache = _SupervisorCache()
 
     def __init__(
@@ -81,7 +81,7 @@ class TaskCallbackSupervisor:
     def _get_exception_identifier(
         exception: BaseException, *, message_size: int = 4096
     ) -> int:
-        # NOTE: method accepts only raised exceptions (e.b. with __traceback__)
+        # NOTE: method accepts only raised exceptions (e.g. with __traceback__)
         line, message, klass = (
             getattr(exception.__traceback__, "tb_lineno", 0),
             str(exception)[:message_size],
