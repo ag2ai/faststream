@@ -74,6 +74,9 @@ class ConfigComposition(Generic[BrokerConfigType]):
     def add_config(self, config: "ConfigType") -> None:
         self.configs = (config, *self.configs)
 
+    def reset(self) -> None:
+        self.configs = (self.configs[-1],)
+
     # broker priority options
     @property
     def producer(self) -> "ProducerProto[Any]":

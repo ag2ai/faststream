@@ -202,12 +202,13 @@ class FakeProducer(AioKafkaFastProducer):
                     topic=cmd.destination,
                     partition=cmd.partition,
                     timestamp_ms=cmd.timestamp_ms,
+                    key=cmd.key_for(message_position),
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
                     serializer=self.broker.config.fd_config._serializer,
                 )
-                for message in cmd.batch_bodies
+                for message_position, message in enumerate(cmd.batch_bodies)
             )
 
             if isinstance(handler, BatchSubscriber):

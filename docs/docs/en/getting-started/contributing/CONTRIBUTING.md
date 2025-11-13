@@ -101,18 +101,53 @@ just test tests/brokers/kafka -vv
 just test "-vv -s"
 ```
 
-In your project, some tests are grouped under specific pytest marks:
+## Pytest Marks Usage Rules
 
-* **confluent**
-* **slow**
-* **rabbit**
-* **kafka**
-* **nats**
-* **redis**
-* **all**
+### Broker-specific marks
 
-By default, "just test" will execute "not slow and not kafka and not confluent and not redis and not rabbit and not nats" tests.
-"just test-all" will execute tests with mark "all".
+Use these marks for tests that interact with specific message brokers.
+
+- **kafka**: Apply to tests that interact with a Kafka broker using aiokafka.
+- **confluent**: Apply to tests using Confluent Kafka client (confluent-kafka package).
+- **rabbit**: For tests with RabbitMQ broker (aio-pika).
+- **redis**: For Redis broker tests (redis package).
+- **nats**: For NATS broker tests (nats-py).
+
+To mark tests that require a real broker connection, use the **connected** mark. These tests are excluded by default to allow fast testing without external dependencies.
+
+So, the tests that require a real RabbitMQ connection should be look like this:
+
+```python
+@pytest.mark.asyncio()
+@pytest.mark.connected()
+@pytest.mark.rabbit()
+async def test_rabbit_connection():
+    pass
+```
+
+### Other marks
+
+- **slow**: Mark slow-running tests, such as performance benchmarks or complex integration tests. Excluded in default `just test` to keep CI fast.
+- **all**: Automatically added to all test items. Used internally for running comprehensive test suites.
+
+### Skip marks
+
+Import from `tests/marks.py` and apply to individual tests or classes to skip under certain conditions:
+
+- `@skip_windows`: Skips tests on Windows OS.
+- `@skip_macos`: Skips tests on macOS.
+- `@pydantic_v1`: Runs only if Pydantic v1 is installed (skips on v2).
+- `@pydantic_v2`: Runs only if Pydantic v2 is installed (skips on v1).
+- `@require_confluent`: Skips if `confluent-kafka` is not installed.
+- `@require_aiokafka`: Skips if `aiokafka` is not installed (for standard Kafka).
+- `@require_aiopika`: Skips if `aio-pika` is not installed (RabbitMQ).
+- `@require_redis`: Skips if `redis` is not installed.
+- `@require_nats`: Skips if `nats-py` is not installed.
+
+When writing new tests, always mark them appropriately with broker-specific marks if they require external services, and use skip marks for conditional execution.
+
+By default, `just test` will execute `not slow and not connected` tests.
+`just test-all` will execute `all` tests.
 You can specify marks to include or exclude tests:
 
 ```bash
@@ -157,25 +192,9 @@ just pre-commit
 just pre-commit-all
 ```
 
-## Docs
+## Documentation
 
-Build docs:
-
-```bash
-just docs-build
-```
-
-Run docs:
-
-```bash
-just docs-serve
-```
-
-To run full version of the documentation (including API Reference) type the command:
-
-```bash
-just docs-serve --full
-```
+For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](/getting-started/contributing/docs){.internal-link}.
 
 ## Commits
 

@@ -31,5 +31,9 @@ class SubscriberUsecaseConfig(EndpointConfig):
     decoder: "AsyncCallable" = field(init=False)
 
     @property
+    def auto_ack_disabled(self) -> bool:
+        return self.ack_policy is AckPolicy.MANUAL
+
+    @property
     def ack_policy(self) -> AckPolicy:
         raise NotImplementedError
