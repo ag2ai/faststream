@@ -8,7 +8,7 @@ description = "FastStream: the simplest way to work with a messaging queues"
 readme = "README.md"
 authors = [
     { name = "AG2AI", email = "support@ag2.ai" },
-    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.com" },
+    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.ru" },
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
