@@ -12,7 +12,7 @@ search:
 
 As you may know, *Kafka* consumer should commit a topic offset when consuming a message.
 
-The default behaviour, also implemented as such in the **FastStream**, uses the `#!python AckPolicy.ACK_FIRST` policy which automatically commits (*acks*) topic offset using [`enable.auto.commit`](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit){.external-link target="\_blank"} setting. This is the *at most once* consuming strategy.
+The default behaviour, also implemented as such in the **FastStream**, uses the `#!python AckPolicy.ACK_FIRST` policy which automatically commits (*acks*) topic offset using [`enable.auto.commit`](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit){.external-link target="_blank"} setting. This is the *at most once* consuming strategy.
 
 However, if you wish to use *at least once* strategy, you should commit offset *AFTER* the message is processed correctly. To accomplish that, set a consumer group and use `#!python AckPolicy.ACK` strategy:
 
@@ -66,7 +66,7 @@ async def base_handler(body: str, msg: KafkaMessage):
 | _AckPolicy_     | On success    | On error      | Description                                                                                                                                                                 |
 | --------------- | ------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MANUAL          | Do nothing    | Do nothing    | Consumer never commits offset, full manual control                                                                                                                          |
-| ACK_FIRST       | Do nothing    | Do nothing    | Offset committed by Kafka client within [`enable.auto.commit`](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit){.external-link target="\_blank"} setting |
+| ACK_FIRST       | Do nothing    | Do nothing    | Offset committed by Kafka client within [`enable.auto.commit`](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit){.external-link target="_blank"} setting |
 | ACK             | Commit offset | Commit offset |                                                                                                                                                                             |
 | REJECT_ON_ERROR | Commit offset | Commit offset | Same as ack, because Kafka has not native support for rejecting messages                                                                                                    |
 | NACK_ON_ERROR   | Commit offset | Seek offset   | Seek offset to read message again                                                                                                                                           |
