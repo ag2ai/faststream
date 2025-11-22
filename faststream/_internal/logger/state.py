@@ -71,6 +71,8 @@ class LoggerState:
 
     def _setup(self, context: "ContextRepo", /) -> None:
         if not self.logger:
+            self.params_storage.set_level(self.log_level)
+
             if logger := self.params_storage.get_logger(context=context):
                 self.logger = RealLoggerObject(logger)
             else:

@@ -34,7 +34,7 @@ This approach offers several advantages:
 
 If you use the **FastStream CLI**, you can change the current logging level of the entire application directly from the command line.
 
-The `--log-level` flag sets the current logging level for both the broker and the `FastStream` app. This allows you to configure the levels of not only the default loggers but also your custom loggers, if you use them inside **FastStream**.
+The `--log-level` flag sets the current logging level for both the broker and the `FastStream` app. This allows you to configure the levels of not only the default loggers but also your custom loggers, if you use them inside **FastStream**. When you supply your own logger instance, FastStream will update its level to the value provided via `log_level` or the CLI `--log-level` flag so that your custom logger respects the chosen verbosity.
 
 ```console
 faststream run serve:app --log-level debug
