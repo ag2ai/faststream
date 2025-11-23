@@ -15,14 +15,21 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
-    async def test_reject_on_error_is_unsupported(self) -> None: ...
-
     @pytest.mark.parametrize(
         ("ack_policy", "enable_auto_commit"),
         (
             pytest.param(AckPolicy.ACK_FIRST, True, id="ack_first"),
             pytest.param(AckPolicy.ACK, False, id="ack"),
-            pytest.param(AckPolicy.REJECT_ON_ERROR, False, id="reject_on_error"),
+            pytest.param(
+                AckPolicy.REJECT_ON_ERROR,
+                False,
+                id="reject_on_error",
+                marks=[
+                    pytest.mark.filterwarnings(
+                        "ignore:AckPolicy.REJECT_ON_ERROR has the same effect"
+                    )
+                ],
+            ),
             pytest.param(AckPolicy.NACK_ON_ERROR, False, id="nack_on_error"),
             pytest.param(AckPolicy.MANUAL, False, id="manual"),
         ),
@@ -94,7 +101,19 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.slow()
     @pytest.mark.parametrize(
         "ack_policy",
-        (AckPolicy.ACK, AckPolicy.REJECT_ON_ERROR, AckPolicy.NACK_ON_ERROR),
+        (
+            pytest.param(AckPolicy.ACK, id="ack"),
+            pytest.param(
+                AckPolicy.REJECT_ON_ERROR,
+                id="reject_on_error",
+                marks=[
+                    pytest.mark.filterwarnings(
+                        "ignore:AckPolicy.REJECT_ON_ERROR has the same effect"
+                    )
+                ],
+            ),
+            pytest.param(AckPolicy.NACK_ON_ERROR, id="nack_on_error"),
+        ),
     )
     async def test_commit_called_in_middleware_on_success(
         self,
@@ -138,7 +157,18 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.slow()
     @pytest.mark.parametrize(
         "ack_policy",
-        (AckPolicy.ACK, AckPolicy.REJECT_ON_ERROR),
+        (
+            pytest.param(AckPolicy.ACK, id="ack"),
+            pytest.param(
+                AckPolicy.REJECT_ON_ERROR,
+                id="reject_on_error",
+                marks=[
+                    pytest.mark.filterwarnings(
+                        "ignore:AckPolicy.REJECT_ON_ERROR has the same effect"
+                    )
+                ],
+            ),
+        ),
     )
     async def test_commit_called_in_middleware_on_error(
         self,
@@ -227,3 +257,17 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
                 seek.mock.assert_called_once()
 
         assert event.is_set()
+
+    async def test_reject_on_error_warning(self, queue: str) -> None:
+        consume_broker = self.get_broker(apply_types=True)
+
+        with pytest.warns(
+            UserWarning,
+            match="AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK.",
+        ):
+
+            @consume_broker.subscriber(
+                queue,
+                ack_policy=AckPolicy.REJECT_ON_ERROR,
+            )
+            async def handler(msg: KafkaMessage) -> None: ...

@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Protocol, TypeVar
 from unittest.mock import AsyncMock
 
+import pytest
 from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
@@ -30,7 +31,11 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
 
         @wraps(method)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            mock(*args, **kwargs)
+            with pytest.warns(
+                RuntimeWarning,
+                match="coroutine 'AsyncMockMixin._execute_mock_call' was never awaited",
+            ):
+                mock(*args, **kwargs)
             return method(*args, **kwargs)
 
     wrapper.mock = mock
