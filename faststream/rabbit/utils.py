@@ -18,9 +18,13 @@ def build_virtual_host(
 ) -> str:
     if (not url and not virtualhost) or virtualhost == "/":
         return ""
+    if virtualhost and virtualhost.startswith("//"):
+        return "/" + virtualhost.lstrip("/")
+    if virtualhost and virtualhost.startswith("/"):
+        return virtualhost
     if virtualhost:
-        return virtualhost.replace("/", "", 1)
-    return path.replace("/", "", 1)
+        return "/" + virtualhost
+    return path
 
 
 def build_url(
