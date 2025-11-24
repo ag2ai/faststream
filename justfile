@@ -4,9 +4,6 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Use sh on Unix-like systems
 set shell := ["sh", "-c"]
 
-# Global env vars
-export VIRTUAL_ENV := ".venv"
-
 
 [doc("All command information")]
 default:
@@ -97,7 +94,7 @@ ruff-check *params:
   just _linter ruff check --exit-non-zero-on-fix {{params}}
 
 _codespell:
-  just _linter codespell -L Dependent,dependent --skip "./docs/site"
+  just _linter codespell -L Dependant,dependant --skip "./docs/site"
 
 [doc("Check typos")]
 [group("linter")]
@@ -113,7 +110,7 @@ linter: ruff-format ruff-check _codespell
 
 # Static analysis
 _static *params:
-  uv run --no-dev --group lint --frozen {{params}}
+  uv run --frozen {{params}}
 
 [doc("Mypy check")]
 [group("static analysis")]
@@ -142,7 +139,7 @@ static-analysis: mypy bandit semgrep
 
 # Pre-commit
 _pre_commit *params:
-  uv run --active --frozen pre-commit {{params}}
+  uv run --frozen pre-commit {{params}}
 
 [doc("Install pre-commit hooks")]
 [group("pre-commit")]
