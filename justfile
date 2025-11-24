@@ -4,6 +4,9 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Use sh on Unix-like systems
 set shell := ["sh", "-c"]
 
+# Global env vars
+export VIRTUAL_ENV := ".venv"
+
 
 [doc("All command information")]
 default:
@@ -55,44 +58,51 @@ test-coverage-all +param="tests/":
 
 
 # Docs
+_docs *params:
+  cd docs && uv run --no-dev --group docs --frozen python docs.py {{params}}
+
 [doc("Build docs")]
 [group("docs")]
 docs-build:
-  cd docs && VIRTUAL_ENV=.venv uv run --frozen python docs.py build
+  just _docs build
 
 [doc("Build API Reference")]
 [group("docs")]
 docs-build-api:
-  cd docs && VIRTUAL_ENV=.venv uv run --frozen python docs.py build-api-docs
+  just _docs build-api-docs
 
 [doc("Update release notes")]
 [group("docs")]
 docs-update-release-notes:
-  cd docs && VIRTUAL_ENV=.venv uv run --frozen python docs.py update-release-notes
+  just _docs update-release-notes
 
 [doc("Serve docs")]
 [group("docs")]
 docs-serve params="":
-  cd docs && VIRTUAL_ENV=.venv uv run --frozen python docs.py live 8000 {{params}}
+  just _docs live 8000 {{params}}
+
 
 # Linter
+_linter *params:
+  uv run --no-dev --group lint --frozen {{params}}
+
 [doc("Ruff format")]
 [group("linter")]
 ruff-format *params:
-  VIRTUAL_ENV=.venv uv run --active --frozen ruff format {{params}}
+  just _linter ruff format {{params}}
 
 [doc("Ruff check")]
 [group("linter")]
 ruff-check *params:
-  VIRTUAL_ENV=.venv uv run --active --frozen ruff check --exit-non-zero-on-fix {{params}}
+  just _linter ruff check --exit-non-zero-on-fix {{params}}
 
 _codespell:
-  VIRTUAL_ENV=.venv uv run --active --frozen codespell -L Dependant,dependant --skip "./docs/site"
+  just _linter codespell -L Dependent,dependent --skip "./docs/site"
 
 [doc("Check typos")]
 [group("linter")]
 typos: _codespell
-  VIRTUAL_ENV=.venv uv run --active --frozen pre-commit run --all-files typos
+  just _linter pre-commit run --all-files typos
 
 alias lint := linter
 
@@ -100,45 +110,55 @@ alias lint := linter
 [group("linter")]
 linter: ruff-format ruff-check _codespell
 
+
 # Static analysis
+_static *params:
+  uv run --no-dev --group lint --frozen {{params}}
+
 [doc("Mypy check")]
 [group("static analysis")]
 mypy *params:
-  VIRTUAL_ENV=.venv uv run --active --frozen mypy {{params}}
+  just _static mypy {{params}}
 
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
-  VIRTUAL_ENV=.venv uv run --active --frozen bandit -c pyproject.toml -r faststream
+  just _static bandit -c pyproject.toml -r faststream
 
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  VIRTUAL_ENV=.venv uv run --active --frozen semgrep scan --config auto --error --skip-unknown-extensions faststream
+  just _static semgrep scan --config auto --error --skip-unknown-extensions faststream
 
 [doc("Zizmor check")]
 [group("static analysis")]
 zizmor:
-  VIRTUAL_ENV=.venv uv run --active --frozen zizmor .
+  just _static zizmor .
 
 [doc("Static analysis check")]
 [group("static analysis")]
 static-analysis: mypy bandit semgrep
 
+
+# Pre-commit
+_pre_commit *params:
+  uv run --active --frozen pre-commit {{params}}
+
 [doc("Install pre-commit hooks")]
 [group("pre-commit")]
 pre-commit-install:
-  VIRTUAL_ENV=.venv uv run --active --frozen pre-commit install
+  just _pre_commit install
 
 [doc("Pre-commit modified files")]
 [group("pre-commit")]
 pre-commit:
-  VIRTUAL_ENV=.venv uv run --active --frozen pre-commit run
+  just _pre_commit run
 
 [doc("Pre-commit all files")]
 [group("pre-commit")]
 pre-commit-all:
-  VIRTUAL_ENV=.venv uv run --active --frozen pre-commit run --all-files
+  just _pre_commit run --all-files
+
 
 # Kafka
 [doc("Run kafka container")]
