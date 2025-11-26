@@ -204,7 +204,6 @@ Or, if you want to make the `RPCWorker` work after startup, you should add a man
 ```python
 class RPCWorker:
     async def start(self) -> None:
-        self.broker.setup_subscriber(self.subscriber)
         await self.subscriber.start()
 ```
 
@@ -246,7 +245,6 @@ async def send_request() -> None:
             self.subscriber(self._handle_responses)
 
         async def start(self) -> None:
-            self.broker.setup_subscriber(self.subscriber)
             await self.subscriber.start()
 
         async def stop(self) -> None:
