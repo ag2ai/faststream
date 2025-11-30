@@ -33,6 +33,8 @@ jobs:
         exclude:
           - python-version: "3.14"
             pydantic-version: "pydantic-v1"
+          - python-version: "3.14t"
+            pydantic-version: "pydantic-v1"
       fail-fast: false
 
     steps:
