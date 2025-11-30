@@ -45,6 +45,18 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             # First, publish a message and let it become pending
             await br.publish("pending_message", stream=queue)
 
+            with suppress(Exception):
+                await br._connection.xgroup_create(
+                    queue, "test_group", id="0", mkstream=True
+                )
+
+            await br._connection.xreadgroup(
+                groupname="test_group",
+                consumername="temp_consumer",
+                streams={queue: ">"},
+                count=1,
+            )
+
             # Wait a bit to ensure message becomes idle
             await asyncio.sleep(0.2)
 
@@ -359,3 +371,148 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             # Verify messages were claimed in both passes
             mock.assert_any_call("first_pass_msg0")
             mock.assert_any_call("second_pass_msg0")
+
+    @pytest.mark.slow()
+    async def test_min_idle_time_uses_xautoclaim_not_xreadgroup(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """Regression test for issue where min_idle_time was ignored."""
+        from unittest.mock import patch
+
+        consume_broker = self.get_broker(apply_types=True)
+
+        # Create subscriber WITH min_idle_time
+        @consume_broker.subscriber(
+            stream=StreamSub(
+                queue,
+                group="test_group",
+                consumer="test_consumer",
+                min_idle_time=10000,  # Should trigger XAUTOCLAIM
+            ),
+        )
+        async def handler_with_idle(msg: str) -> None:
+            mock(msg)
+
+        async with self.patch_broker(consume_broker) as br:
+            # Patch the Redis client methods to track calls
+            original_xreadgroup = br._connection.xreadgroup
+            original_xautoclaim = br._connection.xautoclaim
+
+            xreadgroup_called = []
+            xautoclaim_called = []
+
+            async def tracked_xreadgroup(*args, **kwargs):
+                xreadgroup_called.append(True)
+                return await original_xreadgroup(*args, **kwargs)
+
+            async def tracked_xautoclaim(*args, **kwargs):
+                xautoclaim_called.append(True)
+                return await original_xautoclaim(*args, **kwargs)
+
+            with (
+                patch.object(
+                    br._connection, "xreadgroup", side_effect=tracked_xreadgroup
+                ),
+                patch.object(
+                    br._connection, "xautoclaim", side_effect=tracked_xautoclaim
+                ),
+            ):
+                await br.start()
+
+                # Publish a test message
+                await br.publish("test_message", stream=queue)
+
+                # Wait for subscriber to process
+                await asyncio.sleep(0.5)
+
+                # CRITICAL CHECK: XAUTOCLAIM should be called, not XREADGROUP
+                assert len(xautoclaim_called) > 0, (
+                    "XAUTOCLAIM was not called! "
+                    "This indicates the bug where min_idle_time is ignored."
+                )
+
+                # XREADGROUP should NOT be called for the handler
+                # (it might be called once during group creation, but not for consumption)
+                assert len(xreadgroup_called) == 0 or len(xautoclaim_called) > len(
+                    xreadgroup_called
+                ), (
+                    f"XREADGROUP was called {len(xreadgroup_called)} times, "
+                    f"but XAUTOCLAIM was only called {len(xautoclaim_called)} times. "
+                    "This indicates min_idle_time is being ignored!"
+                )
+
+    @pytest.mark.slow()
+    async def test_without_min_idle_time_uses_xreadgroup(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """Test that WITHOUT min_idle_time, XREADGROUP is used (normal behavior)."""
+        from unittest.mock import patch
+
+        event = asyncio.Event()
+        consume_broker = self.get_broker(apply_types=True)
+
+        # Create subscriber WITHOUT min_idle_time
+        @consume_broker.subscriber(
+            stream=StreamSub(
+                queue,
+                group="normal_group",
+                consumer="normal_consumer",
+                # NO min_idle_time specified
+            ),
+        )
+        async def handler_normal(msg: str) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            # Patch the Redis client methods to track calls
+            original_xreadgroup = br._connection.xreadgroup
+            original_xautoclaim = br._connection.xautoclaim
+
+            xreadgroup_called = []
+            xautoclaim_called = []
+
+            async def tracked_xreadgroup(*args, **kwargs):
+                xreadgroup_called.append(True)
+                return await original_xreadgroup(*args, **kwargs)
+
+            async def tracked_xautoclaim(*args, **kwargs):
+                xautoclaim_called.append(True)
+                return await original_xautoclaim(*args, **kwargs)
+
+            with (
+                patch.object(
+                    br._connection, "xreadgroup", side_effect=tracked_xreadgroup
+                ),
+                patch.object(
+                    br._connection, "xautoclaim", side_effect=tracked_xautoclaim
+                ),
+            ):
+                await br.start()
+
+                # Publish a test message
+                await br.publish("normal_message", stream=queue)
+
+                # Wait for message to be consumed
+                await asyncio.wait(
+                    (asyncio.create_task(event.wait()),),
+                    timeout=3,
+                )
+
+                assert event.is_set()
+                mock.assert_called_once_with("normal_message")
+
+                # XREADGROUP should be called for normal consumption
+                assert len(xreadgroup_called) > 0, (
+                    "XREADGROUP was not called for normal consumer group reading!"
+                )
+
+                # XAUTOCLAIM should NOT be called when min_idle_time is not set
+                assert len(xautoclaim_called) == 0, (
+                    f"XAUTOCLAIM was unexpectedly called {len(xautoclaim_called)} times "
+                    "when min_idle_time was not specified!"
+                )
