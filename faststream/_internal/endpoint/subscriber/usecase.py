@@ -24,7 +24,7 @@ from faststream._internal.types import (
 )
 from faststream._internal.utils.functions import FakeContext, to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
-from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
+from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
@@ -85,7 +85,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
+
         self.ack_policy = config.ack_policy
+        self.__auto_ack_disabled = config.auto_ack_disabled
 
         self._call_options = _CallOptions(
             parser=None,
@@ -116,17 +118,52 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             extra=self.get_log_context(None),
         )
 
+    def _get_parser_and_decoder(
+        self,
+        item_parser: Optional["CustomCallable"] = None,
+        item_decoder: Optional["CustomCallable"] = None,
+    ) -> tuple[AsyncCallable, AsyncCallable]:
+        """Method to resolve parsers with priority.
+
+        First priority
+        >>> sub = broker.subscriber()
+        >>>
+        >>> @sub(parser=P0_parser)
+        >>> async def handler(): ...
+
+        Second priority
+        >>> sub = broker.subscriber(parser=P1_parser)
+
+        Third priority
+        >>> Broker(parser=P2_parser)
+
+        Default parser is `self._parser`.
+        So, the final parser object is
+        >>> ParserComposition(P0_parser or P1_parser or P2_parser, self._parser)
+        """
+        if parser := (
+            item_parser or self._call_options.parser or self._outer_config.broker_parser
+        ):
+            async_parser: AsyncCallable = ParserComposition(parser, self._parser)
+        else:
+            async_parser = self._parser
+
+        if decoder := (
+            item_decoder
+            or self._call_options.decoder
+            or self._outer_config.broker_decoder
+        ):
+            async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
+        else:
+            async_decoder = self._decoder
+
+        return async_parser, async_decoder
+
     def _build_fastdepends_model(self) -> None:
         for call in self.calls:
-            if parser := call.item_parser or self._outer_config.broker_parser:
-                async_parser: AsyncCallable = ParserComposition(parser, self._parser)
-            else:
-                async_parser = self._parser
-
-            if decoder := call.item_decoder or self._outer_config.broker_decoder:
-                async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
-            else:
-                async_decoder = self._decoder
+            async_parser, async_decoder = self._get_parser_and_decoder(
+                call.item_parser, call.item_decoder
+            )
 
             call._setup(
                 parser=async_parser,
@@ -246,8 +283,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
-                    item_parser=parser or self._call_options.parser,
-                    item_decoder=decoder or self._call_options.decoder,
+                    item_parser=parser,
+                    item_decoder=decoder,
                     item_middlewares=total_middlewares,
                     dependencies=total_deps,
                 ),
@@ -368,7 +405,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
         logger_state = self._outer_config.logger
 
-        if self.ack_policy is AckPolicy.MANUAL:
+        if self.__auto_ack_disabled:
             broker_middlewares = (
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,

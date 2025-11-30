@@ -1,9 +1,10 @@
 import logging
+import os
 import sys
 import warnings
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import anyio
 import typer
@@ -37,7 +38,18 @@ from .utils.parser import parse_cli_args
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
 
-cli = typer.Typer(pretty_exceptions_short=True)
+rich_mode = os.getenv("FASTSTREAM_CLI_RICH_MODE", "rich")
+if rich_mode == "none":
+    rich_markup_mode: Literal["markdown", "rich"] | None = None
+elif rich_mode in {"md", "markdown"}:
+    rich_markup_mode = "markdown"
+elif rich_mode == "rich":
+    rich_markup_mode = "rich"
+else:
+    msg = f"Invalid rich mode: {rich_mode}"
+    raise ValueError(msg)
+
+cli = typer.Typer(pretty_exceptions_short=True, rich_markup_mode=rich_markup_mode)
 cli.add_typer(docs_app, name="docs", help="Documentations commands")
 
 
@@ -52,6 +64,13 @@ def version_callback(version: bool) -> None:
         )
 
         raise typer.Exit
+
+
+def loop_callback(value: str) -> str:
+    # validate loop string in callback for more informative error
+    if value != "auto":
+        import_from_string(value)
+    return value
 
 
 @cli.callback()
@@ -86,6 +105,13 @@ def run(
     is_factory: bool = FACTORY_OPTION,
     reload: bool = RELOAD_FLAG,
     watch_extensions: list[str] = RELOAD_EXTENSIONS_OPTION,
+    loop: str = typer.Option(
+        "auto",
+        "--loop",
+        callback=loop_callback,
+        help=("Event loop factory implementation."),
+        envvar="FASTSTREAM_LOOP",
+    ),
     log_level: LogLevels = typer.Option(
         LogLevels.notset,
         "-l",
@@ -132,6 +158,7 @@ def run(
         is_factory=is_factory,
         log_config=log_config,
         log_level=casted_log_level,
+        loop=loop,
     )
 
     if reload:
@@ -206,17 +233,23 @@ def _run_imported_app(app_obj: "Application", args: RunArgs) -> None:
     if args.log_config is not None:
         set_log_config(args.log_config)
 
-    if not IS_WINDOWS:  # pragma: no cover
+    backend_options = {}
+    if args.loop != "auto":
+        _, loop_factory = import_from_string(args.loop)
+        backend_options["loop_factory"] = loop_factory
+
+    elif not IS_WINDOWS:  # pragma: no cover
         with suppress(ImportError):
             import uvloop
 
-            uvloop.install()
+            backend_options["loop_factory"] = uvloop.new_event_loop
 
     try:
         anyio.run(
             app_obj.run,
             args.app_level,
             args.extra_options,
+            backend_options=backend_options,
         )
 
     except StartupValidationError as startup_exc:

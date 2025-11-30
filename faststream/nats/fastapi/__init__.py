@@ -11,8 +11,8 @@ from .fastapi import NatsRouter
 
 NatsMessage = Annotated[NM, Context("message")]
 NatsBroker = Annotated[NB, Context("broker")]
-Client = Annotated[NatsClient, Context("broker._connection")]
-JsClient = Annotated[JetStreamContext, Context("broker._stream")]
+Client = Annotated[NatsClient, Context("broker.config.connection_state.connection")]
+JsClient = Annotated[JetStreamContext, Context("broker.config.connection_state.stream")]
 
 __all__ = (
     "Client",

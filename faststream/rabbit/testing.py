@@ -244,13 +244,14 @@ class FakeProducer(AioPikaFastProducer):
         self,
         cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
-        """Publish a message to a RabbitMQ queue or exchange."""
+        """Make a synchronous request to RabbitMQ."""
         incoming = build_message(
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
+            serializer=self.broker.config.fd_config._serializer,
             **cmd.message_options,
         )
 
@@ -278,6 +279,7 @@ class FakeProducer(AioPikaFastProducer):
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
+            serializer=self.broker.config.fd_config._serializer,
         )
 
 

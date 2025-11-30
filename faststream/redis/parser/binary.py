@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal._compat import json_loads
 
+from .json import JSONMessageFormat
 from .message import MessageFormat
 
 if TYPE_CHECKING:
@@ -90,8 +91,8 @@ class BinaryMessageFormatV1(MessageFormat):
 
         except Exception:
             # Raw Redis message format
-            final_data = data
-            headers = {}
+            # TODO: fallback to raw data after JSONMessageFormat removed
+            return JSONMessageFormat.parse(data)
 
         return final_data, headers
 

@@ -149,14 +149,15 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -168,6 +169,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         async with self._queue_obj.iterator() as queue_iter:
             async for raw_message in queue_iter:
@@ -178,8 +180,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 )
                 yield msg
 

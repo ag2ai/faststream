@@ -5,8 +5,6 @@ from typing import (
     Any,
 )
 
-from faststream.exceptions import SetupError
-
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
 from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
@@ -56,10 +54,6 @@ def create_publisher(
     )
 
     if batch:
-        if key:
-            msg = "You can't setup `key` with batch publisher"
-            raise SetupError(msg)
-
         publisher: BatchPublisher | DefaultPublisher = BatchPublisher(
             publisher_config,
             specification,

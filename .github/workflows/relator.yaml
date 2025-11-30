@@ -1,4 +1,4 @@
-name: Issue Notifier
+name: Event Notifier
 
 on:
   issues:
@@ -16,25 +16,29 @@ permissions:
 
 jobs:
   notify:
-    name: "Telegram notification"
+    name: "Send Telegram notification for new issue or opened pull request"
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]' && (github.event.action == 'opened' || github.event.action == 'reopened')
     steps:
       - name: Send Telegram notification for new issue or opened pull request
-        uses: sehat1137/telegram-notifier@5d130037eb80a33251f3afe8bc56447236acab77 # v1.3.0
+        uses: reagento/relator@919d3a1593a3ed3e8b8f2f39013cc6f5498241da # v1.6.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.TELEGRAM_TO }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          join-input-with-list: "1"
   notify-oss-board:
-    name: "Telegram notification"
+    name: "Send Telegram notification to OSS board"
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'issues' &&
       contains(github.event.issue.labels.*.name, 'good first issue')
     steps:
       - name: Send Telegram notification to OSS board
-        uses: sehat1137/telegram-notifier@5d130037eb80a33251f3afe8bc56447236acab77 # v1.3.0
+        uses: reagento/relator@919d3a1593a3ed3e8b8f2f39013cc6f5498241da # v1.6.0
         with:
           tg-bot-token: ${{ secrets.TELEGRAM_TOKEN }}
           tg-chat-id: ${{ secrets.GFI_CHAT }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          join-input-with-list: "1"
+          custom-labels: "faststream,ag2ai"

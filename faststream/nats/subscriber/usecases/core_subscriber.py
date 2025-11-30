@@ -6,7 +6,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream.middlewares import AckPolicy
 from faststream.nats.parser import NatsParser
 
 from .basic import DefaultSubscriber
@@ -36,7 +35,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     ) -> None:
         parser = NatsParser(
             pattern=config.subject,
-            is_ack_disabled=config.ack_policy is not AckPolicy.MANUAL,
+            is_ack_disabled=True,  # core subscriber has no ack policy
         )
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
@@ -70,13 +69,15 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
         context = self._outer_config.fd_config.context
 
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -95,16 +96,17 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         else:
             fetch_sub = self._fetch_sub
 
-        async for raw_message in fetch_sub.messages:
-            context = self._outer_config.fd_config.context
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
+        async for raw_message in fetch_sub.messages:
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 

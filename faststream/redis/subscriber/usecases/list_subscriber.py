@@ -72,9 +72,6 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @override
     async def start(self) -> None:
-        if self.tasks:
-            return
-
         await super().start(self._client)
 
     @override
@@ -112,14 +109,15 @@ class _ListHandlerMixin(LogicSubscriber):
         )
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
             msg=redis_incoming_msg,
             middlewares=(
                 m(redis_incoming_msg, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
@@ -132,6 +130,9 @@ class _ListHandlerMixin(LogicSubscriber):
         timeout = 5
         sleep_interval = timeout / 10
         raw_message = None
+
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
             with anyio.move_on_after(timeout):
@@ -149,16 +150,14 @@ class _ListHandlerMixin(LogicSubscriber):
                 channel=self.list_sub.name,
             )
 
-            context = self._outer_config.fd_config.context
-
             msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
                 middlewares=(
                     m(redis_incoming_msg, context=context)
                     for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 

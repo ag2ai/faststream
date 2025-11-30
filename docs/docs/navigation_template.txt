@@ -117,6 +117,7 @@ search:
         - [Groups](redis/streams/groups.md)
         - [Batching](redis/streams/batch.md)
         - [Acknowledgement](redis/streams/ack.md)
+        - [Claiming](redis/streams/claiming.md)
     - [RPC](redis/rpc.md)
     - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)

@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import PubAck
+    from faststream.nats.schemas import PubAck, Schedule
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -523,6 +523,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> None: ...
 
     @overload
@@ -535,6 +536,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> "PubAck": ...
 
     @override
@@ -547,6 +549,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -574,6 +577,8 @@ class NatsBroker(
                 Can be omitted without any effect if you doesn't want PubAck frame.
             timeout:
                 Timeout to send message to NATS.
+            schedule:
+                Schedule to publish message at a specific time.
 
         Returns:
             `None` if you publishes a regular message.
@@ -588,6 +593,7 @@ class NatsBroker(
             stream=stream,
             timeout=timeout or 0.5,
             _publish_type=PublishType.PUBLISH,
+            schedule=schedule,
         )
 
         result: PubAck | None
@@ -621,8 +627,6 @@ class NatsBroker(
             headers:
                 Message headers to store metainformation.
                 **content-type** and **correlation_id** will be set automatically by framework anyway.
-            reply_to:
-                NATS subject name to send response.
             correlation_id:
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.

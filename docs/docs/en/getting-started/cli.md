@@ -129,3 +129,36 @@ All passed values can be of type `#!python bool`, `#!python str` or `#!python li
 ### Logging Configuration
 
 You can pass any custom flags for logging configuration, it's `--log-level` or `--log-config` for detailed logging configuration. See [here](../observability/logging#logging-levels){.internal-link}
+
+### Event Loop
+
+**FastStream** is built on [anyio](https://github.com/agronholm/anyio) and supports using any event loop implementation (for example, [asyncio](https://docs.python.org/3/library/asyncio-eventloop.html),  [uvloop](https://github.com/MagicStack/uvloop), [winloop](https://github.com/Vizonex/Winloop), and [rloop](https://github.com/gi0baro/rloop)). By default, **FastStream** uses behavior from anyio: use uvloop (on Unix) if it exists, with fallback to asyncio.
+
+You can set the event loop factory explicitly via the `--loop` option in the CLI:
+
+```shell
+faststream run main:app --loop=uvloop:new_event_loop
+```
+
+Alternatively, you can specify the event loop implementation using the `FASTSTREAM_LOOP` environment variable. For example:
+
+```shell
+FASTSTREAM_LOOP=uvloop:new_event_loop faststream run main:app
+```
+
+This lets you control the event loop used by **FastStream** either via command-line flags or by setting an environment variable, according to your deployment or development needs.
+
+### Rich Output Mode
+
+**FastStream** CLI uses [Typer](https://typer.tiangolo.com/){.external-link target="_blank"} rich formatting for its help and error messages. You can control this behavior with the `FASTSTREAM_CLI_RICH_MODE` environment variable:
+
+```shell
+# available values: rich, markdown, or none
+FASTSTREAM_CLI_RICH_MODE=none faststream run main:app
+```
+
+- `rich` *(default)* – use Typer's rich markup styling.
+- `markdown` – render CLI output using markdown-compatible formatting.
+- `none` – disable rich formatting and use plain-text output.
+
+This is useful when working in terminals that do not support ANSI styling or when copying CLI output into plain-text environments.
