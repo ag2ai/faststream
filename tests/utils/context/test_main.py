@@ -1,8 +1,43 @@
+from typing import Any
+
 import pytest
 from fast_depends import ValidationError
 
-from faststream import Context, ContextRepo
+from faststream import Context
+from faststream._internal.context import ContextRepo
 from faststream._internal.utils import apply_types
+
+
+@pytest.mark.parametrize(
+    ("initial", "expected_context"),
+    (
+        pytest.param(None, {}, id="without initial"),
+        pytest.param({"value": 42}, {"value": 42}, id="basic value"),
+        pytest.param({"context": "sus"}, {}, id="sus context"),
+    ),
+)
+def test_context_repo_constructor(
+    initial: dict[str, Any] | None,
+    expected_context: dict[str, Any],
+) -> None:
+    repo = ContextRepo(initial)
+    repo_context = repo.context
+
+    assert repo_context.get("context") is repo
+    repo_context.pop("context")
+    assert repo_context == expected_context
+
+
+def test_context_repo_merge_global():
+    repo_1 = ContextRepo({"value_1": 1, "value_2": 2})
+    repo_2 = ContextRepo({"value_2": 3, "value_3": 4})
+
+    repo_1.merge_global(repo_2)
+
+    assert repo_1.get("value_1") == 1
+    assert repo_1.get("value_2") == 3
+    assert repo_1.get("value_3") == 4
+    assert repo_1.get("context") is repo_1
 
 
 def test_context_getattr(context: ContextRepo) -> None:
