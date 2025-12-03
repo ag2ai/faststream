@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import Any, Sequence
+from typing import Any, Callable, Coroutine, Sequence, TypeVar
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
@@ -11,6 +11,13 @@ from faststream.sqla.client import SqlaClient
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 from faststream.sqla.message import SqlaMessage
 from faststream.sqla.parser import SqlaParser
+
+
+T = TypeVar("T")
+
+
+class StopEventSetError(Exception):
+    pass
 
 
 class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
@@ -50,6 +57,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         self.add_task(self._fetch_loop)
         self.add_task(self._flush_loop)
         self.add_task(self._release_stuck_loop)
+        self._event_task = self.add_task(self._stop_event.wait)
         await super().start()
 
     async def stop(self) -> None:
@@ -69,6 +77,14 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         await asyncio.gather(*self.tasks)
         task_flush = self.add_task(self._flush_results)
         await task_flush
+
+    async def _wait_until_stop_event(self, coro: Callable[[], Coroutine[Any, Any, T]]) -> T:
+        coro_task = asyncio.create_task(coro())
+        done, _ = await asyncio.wait([coro_task, self._event_task], return_when=asyncio.FIRST_COMPLETED)
+        if coro_task in done:
+            return await coro_task
+        if self._event_task in done:
+            raise StopEventSetError
 
     async def _fetch_loop(self) -> None:
         print("fetch_loop")
@@ -99,12 +115,10 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
     async def _worker_loop(self) -> None:
         print("worker_loop")
         while True:
-            if self._stop_event.is_set() and self._message_queue.empty():
-                break
             try:
-                message = await asyncio.wait_for(self._message_queue.get(), timeout=0.5)
-            except asyncio.TimeoutError:
-                continue
+                message = await self._wait_until_stop_event(self._message_queue.get)
+            except StopEventSetError:
+                break
 
             message.retry_strategy = self._retry_strategy
             if message.allow_attempt():
