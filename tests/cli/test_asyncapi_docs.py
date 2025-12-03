@@ -4,7 +4,7 @@ from typing import Any, TextIO
 
 import httpx
 import pytest
-import yaml
+import yaml_rs
 
 from tests.cli import interfaces
 from tests.marks import require_aiokafka, skip_macos, skip_windows
@@ -155,7 +155,7 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
         ),
         pytest.param(
             ["--yaml"],
-            lambda f: yaml.load(f, Loader=yaml.BaseLoader),
+            lambda f: yaml_rs.loads(f),
             id="yaml",
         ),
     ),

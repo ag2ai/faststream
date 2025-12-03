@@ -45,8 +45,8 @@ class BaseApplicationSchema(BaseModel):
         """Convert the schema to a YAML string."""
         from io import StringIO
 
-        import yaml
+        import yaml_rs
 
         io = StringIO(initial_value="", newline="\n")
-        yaml.dump(self.to_jsonable(), io, sort_keys=False)
+        yaml_rs.dump(self.to_jsonable(), io)
         return io.getvalue()

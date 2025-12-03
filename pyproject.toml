@@ -113,7 +113,6 @@ lint = [
     "mypy==1.18.2",
     # mypy extensions
     "types-Deprecated",
-    "types-PyYAML",
     "types-setuptools",
     "types-redis",
     "types-Pygments",
@@ -137,7 +136,7 @@ testing = [
     {include-group = "test-core"},
     "fastapi==0.121.3",
     "pydantic-settings>=2.0.0,<3.0.0",
-    "PyYAML==6.0.3",
+    "yaml_rs==0.0.7",
     "email-validator==2.3.0",
     "msgspec",
     "uvicorn>=0.34.3; python_version >= '3.9'",

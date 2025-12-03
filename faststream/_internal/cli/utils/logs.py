@@ -97,13 +97,13 @@ def _get_json_config(file: Path) -> dict[str, Any] | Any:
 def _get_yaml_config(file: Path) -> dict[str, Any] | Any:
     """Parse yaml config file to dict."""
     try:
-        import yaml
+        import yaml_rs
     except ImportError as e:
         typer.echo(INSTALL_YAML, err=True)
         raise typer.Exit(1) from e
 
     with file.open("r", encoding="utf-8") as config_file:
-        return yaml.safe_load(config_file)
+        return yaml_rs.loads(config_file.read())
 
 
 def _get_toml_config(file: Path) -> dict[str, Any] | Any:

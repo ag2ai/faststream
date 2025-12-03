@@ -191,13 +191,13 @@ def _parse_and_serve(args: RunArgs) -> None:
 
         elif schema_filepath.suffix in {".yaml", ".yml"}:
             try:
-                import yaml
+                import yaml_rs
             except ImportError as e:  # pragma: no cover
                 typer.echo(INSTALL_YAML, err=True)
                 raise typer.Exit(1) from e
 
-            with schema_filepath.open("r") as f:
-                schema = yaml.safe_load(f)
+            with schema_filepath.open("r", encoding="utf-8") as file:
+                schema = yaml_rs.loads(file.read())
 
             data = json_dumps(schema)
 

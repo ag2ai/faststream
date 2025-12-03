@@ -154,7 +154,7 @@ NOT_CONNECTED_YET = "Please, `connect()` the broker first."
 
 INSTALL_YAML = """
 To use feature which need yaml, please install dependencies:\n
-pip install PyYAML
+pip install yaml_rs
 """
 
 INSTALL_TOML = """
