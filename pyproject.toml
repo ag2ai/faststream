@@ -60,6 +60,7 @@ dependencies = [
     "fast-depends[pydantic]>=3.0.0",
     "typing-extensions>=4.12.0",
     "anyio>=4.0,<5",
+    "sqlalchemy>=2.0.44",
 ]
 
 [project.optional-dependencies]
@@ -107,7 +108,7 @@ docs = [
 lint = [
     "ruff==0.14.5",
     "bandit==1.8.6",
-    "semgrep==1.143.1",
+    "semgrep>=1",
     "codespell==2.4.1",
     "zizmor==1.16.3",
     "mypy==1.18.2",
