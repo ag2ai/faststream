@@ -67,7 +67,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         drained = self._drain_acquired()
         if drained:
             for message in drained:
-                message.mark_pending()
+                message._mark_pending()
             self._buffer_results(drained)
             self.add_task(self._flush_results)
         with suppress(asyncio.TimeoutError):
@@ -127,7 +127,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
                 break
 
             message.retry_strategy = self._retry_strategy
-            if message.allow_attempt():
+            if message._allow_attempt():
                 await self.consume(message)
 
             self._buffer_results([message])

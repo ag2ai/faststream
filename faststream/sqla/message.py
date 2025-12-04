@@ -46,25 +46,25 @@ class SqlaMessage(StreamMessage):
         
         super().__init__(raw_message=self, body=payload)
 
-    def mark_completed(self) -> None:
+    def _mark_completed(self) -> None:
         self.state = SqlaMessageState.COMPLETED
         self.next_attempt_at = None
         self.to_archive = True
 
-    def mark_retryable(self, *, next_attempt_at: datetime) -> None:
+    def _mark_retryable(self, *, next_attempt_at: datetime) -> None:
         self.state = SqlaMessageState.RETRYABLE
         self.next_attempt_at = next_attempt_at
 
-    def mark_failed(self) -> None:
+    def _mark_failed(self) -> None:
         self.state = SqlaMessageState.FAILED
         self.next_attempt_at = None
         self.to_archive = True
 
-    def mark_pending(self) -> None:
+    def _mark_pending(self) -> None:
         self.state = SqlaMessageState.PENDING
         self.acquired_at = None
 
-    def allow_attempt(self) -> bool:
+    def _allow_attempt(self) -> bool:
         self.last_attempt_at = datetime.now(timezone.utc)
         if self.attempts_count == 1:
             self.first_attempt_at = self.last_attempt_at
@@ -72,7 +72,7 @@ class SqlaMessage(StreamMessage):
             first_attempt_at=self.first_attempt_at,
             attempts_count=self.attempts_count,
         ):
-            self.mark_failed()
+            self._mark_failed()
             return False
         return True
 
@@ -80,7 +80,7 @@ class SqlaMessage(StreamMessage):
         if self.decision_recorded:
             return
 
-        self.mark_completed()
+        self._mark_completed()
         self.decision_recorded = True
 
     async def nack(self) -> None:
@@ -94,14 +94,14 @@ class SqlaMessage(StreamMessage):
                 attempts_count=self.attempts_count,
             )
         ):
-            self.mark_failed()
+            self._mark_failed()
         else:
-            self.mark_retryable(next_attempt_at=next_attempt_at)
+            self._mark_retryable(next_attempt_at=next_attempt_at)
         self.decision_recorded = True
 
     async def reject(self) -> None:
         if self.decision_recorded:
             return
 
-        self.mark_failed()
+        self._mark_failed()
         self.decision_recorded = True
