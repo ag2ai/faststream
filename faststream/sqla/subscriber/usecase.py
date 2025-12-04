@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+import contextlib
 from typing import Any, Callable, Coroutine, Sequence, TypeVar
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -13,7 +14,7 @@ from faststream.sqla.message import SqlaMessage
 from faststream.sqla.parser import SqlaParser
 
 
-T = TypeVar("T")
+_CoroutineReturnType = TypeVar("_CoroutineReturnType")
 
 
 class StopEventSetError(Exception):
@@ -57,7 +58,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         self.add_task(self._fetch_loop)
         self.add_task(self._flush_loop)
         self.add_task(self._release_stuck_loop)
-        self._event_task = self.add_task(self._stop_event.wait)
+        self._stop_task = self.add_task(self._stop_event.wait)
         await super().start()
 
     async def stop(self) -> None:
@@ -78,12 +79,17 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         task_flush = self.add_task(self._flush_results)
         await task_flush
 
-    async def _wait_until_stop_event(self, coro: Callable[[], Coroutine[Any, Any, T]]) -> T:
-        coro_task = asyncio.create_task(coro())
-        done, _ = await asyncio.wait([coro_task, self._event_task], return_when=asyncio.FIRST_COMPLETED)
+    async def _wait_until_stop_event(self, coro: Coroutine[Any, Any, _CoroutineReturnType]) -> _CoroutineReturnType:
+        coro_task = asyncio.create_task(coro)
+        done, _ = await asyncio.wait([coro_task, self._stop_task], return_when=asyncio.FIRST_COMPLETED)
+        
         if coro_task in done:
             return await coro_task
-        if self._event_task in done:
+        
+        if self._stop_task in done:
+            coro_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await coro_task
             raise StopEventSetError
 
     async def _fetch_loop(self) -> None:
@@ -99,7 +105,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
                 for row in batch:
                     await self._message_queue.put(row)
 
-            if free_slots and batch:
+            if free_slots and len(batch) == limit:
                 timeout_ = self._min_fetch_interval
             else:
                 timeout_ = self._max_fetch_interval
@@ -116,7 +122,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         print("worker_loop")
         while True:
             try:
-                message = await self._wait_until_stop_event(self._message_queue.get)
+                message = await self._wait_until_stop_event(self._message_queue.get())
             except StopEventSetError:
                 break
 
