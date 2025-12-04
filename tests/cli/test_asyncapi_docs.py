@@ -155,7 +155,7 @@ async def on_input_data(msg: DataBasic, logger: Logger) -> DataBasic:
         ),
         pytest.param(
             ["--yaml"],
-            lambda f: yaml_rs.loads(f),
+            lambda f: yaml_rs.loads(f.read()),
             id="yaml",
         ),
     ),
