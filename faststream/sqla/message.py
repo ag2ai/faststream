@@ -7,6 +7,14 @@ from faststream.sqla.retry import RetryStrategy
 
 
 class SqlaMessageState(str, enum.Enum):
+    """
+    The message starts out as PENDING. When it is acquired by a worker, it is marked as
+    PROCESSING. After being acquired, depending on processing result, AckPolicy, retry
+    strategy, and presence of manual acknowledgement, the message can be marked as
+    COMPLETED, FAILED, or RETRYABLE prior to or after a processing attempt. A message
+    that is COMPLETED or FAILED is archived and will not be processed again. A RETRYABLE
+    message might be retried.
+    """
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
