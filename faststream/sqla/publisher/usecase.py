@@ -1,0 +1,68 @@
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Iterable, Union
+
+from faststream._internal.types import PublisherMiddleware
+from faststream.exceptions import FeatureNotSupportedException
+from faststream.response.response import PublishCommand
+from sqlalchemy.ext.asyncio import AsyncConnection
+from typing_extensions import override
+
+from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream.sqla.configs.broker import SqlaBrokerConfig
+from faststream.sqla.publisher.config import SqlaPublisherConfig
+from faststream.sqla.response import SqlaPublishCommand
+
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.endpoint.publisher import PublisherSpecification
+
+
+
+class LogicPublisher(PublisherUsecase):
+    _outer_config: "SqlaBrokerConfig"
+
+    def __init__(
+        self,
+        config: "SqlaPublisherConfig",
+        specification: "PublisherSpecification[Any, Any]",
+    ) -> None:
+        super().__init__(config, specification)
+
+    @override
+    async def publish(
+        self,
+        message: "SendableMessage",
+        queue: str,
+        next_attempt_at: datetime | None = None,
+        connection: AsyncConnection | None = None,
+    ) -> None:
+        cmd = SqlaPublishCommand(
+            message,
+            queue=queue,
+            next_attempt_at=next_attempt_at,
+            connection=connection,
+        )
+
+        return await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=(),
+        )
+    
+    @override
+    async def _publish( # TODO
+        self,
+        cmd: Union["PublishCommand", "SqlaPublishCommand"],
+        *,
+        _extra_middlewares: Iterable["PublisherMiddleware"],
+    ) -> None:
+        raise FeatureNotSupportedException
+
+    @override
+    async def request(
+        self,
+        message: "SendableMessage",
+        queue: str,
+        next_attempt_at: datetime | None = None,
+    ) -> None:
+        raise FeatureNotSupportedException

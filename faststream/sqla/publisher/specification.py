@@ -1,0 +1,2 @@
+class SqlaPublisherSpecification:
+    pass

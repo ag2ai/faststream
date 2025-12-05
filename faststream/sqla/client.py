@@ -34,7 +34,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-
+from sqlalchemy.ext.asyncio import AsyncConnection
 from faststream.sqla.message import SqlaMessage, SqlaMessageState
 
 
@@ -95,10 +95,11 @@ class SqlaClient:
 
     async def enqueue(
         self,
-        queue: str,
         payload: bytes,
         *,
+        queue: str,
         next_attempt_at: datetime | None = None,
+        connection: AsyncConnection | None = None,
     ) -> None:
         if next_attempt_at:
             stmt = insert(message).values(
@@ -111,8 +112,11 @@ class SqlaClient:
                 queue=queue,
                 payload=payload,
             )
-        async with self._engine.begin() as conn:
-            await conn.execute(stmt)
+        if connection:
+            await connection.execute(stmt)
+        else:
+            async with self._engine.begin() as conn:
+                await conn.execute(stmt)
 
     async def fetch(
         self,

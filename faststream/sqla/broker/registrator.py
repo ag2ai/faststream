@@ -1,5 +1,9 @@
-from typing import Any, cast
+from typing import Annotated, Any, Sequence, cast, override
+from faststream.sqla.publisher.usecase import LogicPublisher
+from typing_extensions import deprecated
 
+from faststream._internal.types import PublisherMiddleware
+from faststream.sqla.publisher.factory import create_publisher
 from sqlalchemy.ext.asyncio import AsyncEngine
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -234,3 +238,33 @@ class SqlaRegistrator(Registrator[Any, Any]):
         # )
 
         return subscriber
+    
+    @override
+    def publisher(
+        self,
+        middlewares: Annotated[
+            Sequence["PublisherMiddleware"],
+            deprecated(
+                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "Scheduled to remove in 0.7.0",
+            ),
+        ] = (),
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "LogicPublisher":
+        publisher = create_publisher(
+            # Specific
+            broker_config=cast("SqlaBrokerConfig", self.config),
+            middlewares=middlewares,
+            # AsyncAPI
+            title_=title,
+            description_=description,
+            schema_=schema,
+            include_in_schema=include_in_schema,
+        )
+
+        super().publisher(publisher)
+
+        return publisher

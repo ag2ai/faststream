@@ -10,8 +10,8 @@ if TYPE_CHECKING:
 
 
 class ProducerProto(Protocol[PublishCommandType_contra]):
-    _parser: "AsyncCallable"
-    _decoder: "AsyncCallable"
+    # _parser: "AsyncCallable"
+    # _decoder: "AsyncCallable"
 
     @abstractmethod
     async def publish(self, cmd: "PublishCommandType_contra") -> Any:
