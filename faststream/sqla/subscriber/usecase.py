@@ -34,7 +34,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         super().__init__(config, specification, calls)
 
         self._repo = SqlaClient(config.engine)
-        self._queue = config.queue
+        self._queues = config.queues
         self._max_fetch_interval = config.max_fetch_interval
         self._min_fetch_interval = config.min_fetch_interval
         self._fetch_batch_size = config.fetch_batch_size
@@ -101,7 +101,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             free_slots = self._buffer_capacity - self._message_queue.qsize()
             if free_slots > 0:
                 limit = min(self._fetch_batch_size, free_slots)
-                batch = await self._repo.fetch(self._queue, limit=limit)
+                batch = await self._repo.fetch(self._queues, limit=limit)
                 for row in batch:
                     await self._message_queue.put(row)
 

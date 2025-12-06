@@ -7,16 +7,16 @@ from faststream._internal.endpoint.subscriber.specification import SubscriberSpe
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
-from faststream.sqla.retry import RetryStrategy
+from faststream.sqla.retry import RetryStrategyProto
 from faststream.sqla.subscriber.specification import SqlaSubscriberSpecification
 from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
 
 def create_subscriber(
     engine: AsyncEngine,
-    queue: str,
+    queues: list[str],
     max_workers: int,
-    retry_strategy: RetryStrategy,
+    retry_strategy: RetryStrategyProto,
     max_fetch_interval: float,
     min_fetch_interval: float,
     fetch_batch_size: int,
@@ -30,7 +30,7 @@ def create_subscriber(
 ) -> Any:
     subscriber_config = SqlaSubscriberConfig(
         engine=engine,
-        queue=queue,
+        queues=queues,
         max_workers=max_workers,
         retry_strategy=retry_strategy,
         max_fetch_interval=max_fetch_interval,

@@ -41,6 +41,15 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: broker
+      POSTGRES_USER: broker
+      POSTGRES_PASSWORD: brokerpass
+    ports:
+      - "5432:5432"
+
   faststream:
     build: .
     volumes:

@@ -5,7 +5,7 @@ from faststream._internal.configs.endpoint import SubscriberUsecaseConfig
 from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
-from faststream.sqla.retry import RetryStrategy
+from faststream.sqla.retry import RetryStrategyProto
 
 
 @dataclass(kw_only=True)
@@ -13,9 +13,9 @@ class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "SqlaBrokerConfig" = field(default_factory=SqlaBrokerConfig)
     
     engine: AsyncEngine
-    queue: str
+    queues: list[str]
     max_workers: int
-    retry_strategy: RetryStrategy
+    retry_strategy: RetryStrategyProto
     max_fetch_interval: float
     min_fetch_interval: float
     fetch_batch_size: int

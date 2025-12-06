@@ -206,6 +206,7 @@ markers = [
     "redis",
     "slow",
     "connected",
+    "sqla",
     "all",
 ]
 asyncio_default_fixture_loop_scope = "function"

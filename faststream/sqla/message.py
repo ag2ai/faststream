@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import enum
 
 from faststream.message.message import StreamMessage
-from faststream.sqla.retry import RetryStrategy
+from faststream.sqla.retry import RetryStrategyProto
 
 
 class SqlaMessageState(str, enum.Enum):
@@ -23,7 +23,7 @@ class SqlaMessageState(str, enum.Enum):
 
 
 class SqlaMessage(StreamMessage):
-    retry_strategy: RetryStrategy
+    retry_strategy: RetryStrategyProto
 
     def __init__(
         self,
@@ -113,3 +113,6 @@ class SqlaMessage(StreamMessage):
 
         self._mark_failed()
         self.decision_recorded = True
+    
+    def __repr__(self) -> str: # TODO
+        return f"SqlaMessage(id={self.id}, queue={self.queue})"

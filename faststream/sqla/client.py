@@ -32,6 +32,7 @@ from sqlalchemy import (
     select,
     text,
     update,
+    case,
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -112,6 +113,7 @@ class SqlaClient:
                 queue=queue,
                 payload=payload,
             )
+        
         if connection:
             await connection.execute(stmt)
         else:
@@ -120,10 +122,11 @@ class SqlaClient:
 
     async def fetch(
         self,
-        queue: str,
+        queues: list[str],
         *,
         limit: int,
     ) -> list[SqlaMessage]:
+        now = datetime.now(timezone.utc)
         ready = (
             select(
                 message.c.id.label("id"),
@@ -143,7 +146,7 @@ class SqlaClient:
                     message.c.state == SqlaMessageState.RETRYABLE
                 ),
                 message.c.next_attempt_at <= func.now(),
-                message.c.queue == queue,
+                or_(*(message.c.queue == queue for queue in queues)),
             )
             .order_by(message.c.next_attempt_at)
             .limit(limit)
@@ -156,7 +159,9 @@ class SqlaClient:
             .values(
                 state=SqlaMessageState.PROCESSING,
                 attempts_count=message.c.attempts_count + 1,
-                acquired_at=func.now(),
+                acquired_at=now,
+                last_attempt_at=now,
+                first_attempt_at=case((message.c.attempts_count == 0, now), else_=message.c.first_attempt_at),
             )
             .returning(message)
             .cte("updated")

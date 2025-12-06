@@ -10,16 +10,17 @@ from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.subscriber.factory import create_subscriber
-from faststream.sqla.retry import RetryStrategy
+from faststream.sqla.retry import RetryStrategyProto
 
 
 class SqlaRegistrator(Registrator[Any, Any]):
     def subscriber(
         self,
+        queues: list[str],
+        *,
         engine: AsyncEngine,
-        queue: str,
         max_workers: int,
-        retry_strategy: RetryStrategy,
+        retry_strategy: RetryStrategyProto,
         max_fetch_interval: float,
         min_fetch_interval: float,
         fetch_batch_size: int,
@@ -106,7 +107,7 @@ class SqlaRegistrator(Registrator[Any, Any]):
             This design handles the poison message problem (messages that crash the worker
             without the ability to catch the exception due to e.g. OOM terminations) because
             attempts_count is incremented and retry_strategy is consulted with prior to
-            processing.
+            processing attempt.
         
         SQL queries:
             Fetch:
@@ -125,9 +126,9 @@ class SqlaRegistrator(Registrator[Any, Any]):
                     WHERE (message.state = $3::sqlamessagestate
                             OR message.state = $4::sqlamessagestate)
                         AND message.next_attempt_at <= now()
-                        AND message.queue = $5::VARCHAR
+                        AND (message.queue = $5::VARCHAR OR message.queue = $6::VARCHAR) 
                     ORDER BY message.next_attempt_at
-                    LIMIT $6::INTEGER
+                    LIMIT $7::INTEGER
                     FOR UPDATE SKIP LOCKED),
                     updated AS
                     (UPDATE message
@@ -213,7 +214,7 @@ class SqlaRegistrator(Registrator[Any, Any]):
 
         subscriber = create_subscriber(
             engine=engine,
-            queue=queue,
+            queues=queues,
             max_workers=max_workers,
             retry_strategy=retry_strategy,
             max_fetch_interval=max_fetch_interval,
