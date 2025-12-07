@@ -108,6 +108,9 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         connection.pubsub.side_effect = lambda: pub_sub
         connection.aclose = AsyncMock()
 
+        connection.xack = AsyncMock()
+        connection.xdel = AsyncMock()
+
         broker.config.broker_config.connection._client = connection
         return connection
 
@@ -226,8 +229,8 @@ class FakeProducer(RedisFastProducer):
                 message=result.body,
                 headers=result.headers,
                 correlation_id=result.correlation_id or "",
-                serializer=self.broker.config.fd_config._serializer,
                 message_format=handler.config.message_format,
+                serializer=self.broker.config.fd_config._serializer,
             ),
             channel="",
             pattern=None,

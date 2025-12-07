@@ -65,6 +65,9 @@ class KafkaMessage(
             await self.consumer.commit()
         await super().ack()
 
+    async def reject(self) -> None:
+        await self.ack()
+
     async def nack(self) -> None:
         """Reject the Kafka message."""
         if self.is_manual and not self.committed:

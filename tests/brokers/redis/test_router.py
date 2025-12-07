@@ -148,7 +148,6 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
                 ),
                 timeout=3,
             )
-
             assert event.is_set()
 
     async def test_delayed_stream_handlers(

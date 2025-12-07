@@ -9,6 +9,7 @@ from starlette.routing import Mount
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from faststream._internal.context import Context
 from faststream.annotations import FastStream, Logger
 from faststream.asgi import (
     AsgiFastStream,
@@ -19,6 +20,7 @@ from faststream.asgi import (
     make_ping_asgi,
     post,
 )
+from faststream.asgi.params import Header, Query
 from faststream.asgi.types import ASGIApp, Scope
 from faststream.specification import AsyncAPI
 
@@ -93,6 +95,23 @@ class AsgiTestcase:
             specification=AsyncAPI(),
             asyncapi_path="/docs",
         )
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/docs")
+                assert response.status_code == 200, response
+                assert response.text
+
+    @pytest.mark.asyncio()
+    async def test_asyncapi_asgi_if_broker_set_by_method(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            specification=AsyncAPI(),
+            asyncapi_path="/docs",
+        )
+
+        app.set_broker(broker)
 
         async with self.get_test_broker(broker):
             with TestClient(app) as client:
@@ -179,6 +198,28 @@ class AsgiTestcase:
                 response = getattr(client, client_method)("/test")
                 assert response.status_code == 200
                 assert response.text == "test"
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "dependency",
+        (
+            pytest.param(Query(), id="query"),
+            pytest.param(Header(), id="header"),
+        ),
+    )
+    async def test_validation_error_handled(self, dependency: Context) -> None:
+        @get
+        async def some_handler(dep=dependency) -> AsgiResponse:
+            return AsgiResponse(status_code=200)
+
+        broker = self.get_broker()
+        app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/test")
+                assert response.status_code == 422
+                assert response.text == "Validation error"
 
     def test_asyncapi_pure_asgi(self) -> None:
         broker = self.get_broker()

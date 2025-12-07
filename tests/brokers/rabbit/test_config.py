@@ -26,8 +26,9 @@ def test_ack_first() -> None:
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
-    assert config.ack_policy is AckPolicy.MANUAL
     assert config.ack_first
+    assert config.auto_ack_disabled
+    assert config.ack_policy is AckPolicy.ACK_FIRST
 
 
 @pytest.mark.rabbit()
@@ -53,3 +54,4 @@ def test_no_ack() -> None:
 
     assert config.ack_policy is AckPolicy.MANUAL
     assert not config.ack_first
+    assert config.auto_ack_disabled

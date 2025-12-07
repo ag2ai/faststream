@@ -247,12 +247,13 @@ We created a logger that prints messages to the console in a user-friendly forma
 
 To integrate this logger with our **FastStream** application, we just need to access it through context information and pass it to our objects:
 
-```python linenums="1" hl_lines="8 16-19 32"
+```python linenums="1" hl_lines="9 17-20 33"
 import logging
 
 import structlog
 
-from faststream import FastStream, ContextRepo
+from faststream import FastStream
+from faststream.context import ContextRepo
 from faststream.kafka import KafkaBroker
 
 context = ContextRepo()

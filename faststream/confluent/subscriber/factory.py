@@ -64,7 +64,6 @@ def create_subscriber(
         _auto_commit=auto_commit,
         _no_ack=no_ack,
     )
-
     calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
@@ -135,8 +134,15 @@ def _validate_input_for_misconfigure(
 
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.ACK_FIRST
+    if ack_policy is AckPolicy.REJECT_ON_ERROR:
+        warnings.warn(
+            "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
+            "Consider using ACK for clarity.",
+            UserWarning,
+            stacklevel=4,
+        )
 
-    if AckPolicy.ACK_FIRST is not AckPolicy.ACK_FIRST and max_workers > 1:
+    if ack_policy is not AckPolicy.ACK_FIRST and max_workers > 1:
         msg = "Max workers not work with manual commit mode."
         raise SetupError(msg)
 

@@ -25,7 +25,7 @@ from faststream._internal.types import (
 )
 from faststream._internal.utils.functions import FakeContext, to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
-from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
+from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
@@ -86,7 +86,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
+
         self.ack_policy = config.ack_policy
+        self.__auto_ack_disabled = config.auto_ack_disabled
 
         self._call_options = _CallOptions(
             parser=None,
@@ -416,7 +418,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
         logger_state = self._outer_config.logger
 
-        if self.ack_policy is AckPolicy.MANUAL:
+        if self.__auto_ack_disabled:
             broker_middlewares = (
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,

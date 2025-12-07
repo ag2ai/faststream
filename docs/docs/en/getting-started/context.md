@@ -74,7 +74,8 @@ In this case, the field becomes a global context field: it does not depend on th
     Alternatively you can setup global context objects in `FastStream` object constructor:
 
     ```python
-    from faststream import FastStream, ContextRepo
+    from faststream import FastStream
+    from faststream.context import ContextRepo
 
     app = FastStream(context=ContextRepo({
         "secret_str": "my-perfect-secret"
@@ -310,55 +311,55 @@ However, you can set default values if needed.
 By default, context fields are **NOT CAST** to the type specified in their annotation.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="7 12 14"
-    {!> docs_src/getting_started/context/kafka/cast.py [ln:1-14] !}
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/kafka/cast.py [ln:1-15] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="7 12 14"
-    {!> docs_src/getting_started/context/confluent/cast.py [ln:1-14] !}
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/confluent/cast.py [ln:1-15] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="7 12 14"
-    {!> docs_src/getting_started/context/rabbit/cast.py [ln:1-14] !}
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/rabbit/cast.py [ln:1-15] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="7 12 14"
-    {!> docs_src/getting_started/context/nats/cast.py [ln:1-14] !}
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/nats/cast.py [ln:1-15] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="7 12 14"
-    {!> docs_src/getting_started/context/redis/cast.py [ln:1-14] !}
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/redis/cast.py [ln:1-15] !}
     ```
 
 If you require this functionality, you can enable the appropriate flag.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/kafka/cast.py [ln:15-19] !}
+    {!> docs_src/getting_started/context/kafka/cast.py [ln:16-21] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/confluent/cast.py [ln:15-19] !}
+    {!> docs_src/getting_started/context/confluent/cast.py [ln:16-21] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/rabbit/cast.py [ln:15-19] !}
+    {!> docs_src/getting_started/context/rabbit/cast.py [ln:16-21] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/nats/cast.py [ln:15-19] !}
+    {!> docs_src/getting_started/context/nats/cast.py [ln:16-21] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="3 5"
-    {!> docs_src/getting_started/context/redis/cast.py [ln:15-19] !}
+    {!> docs_src/getting_started/context/redis/cast.py [ln:16-21] !}
     ```
 
 ### Initial Value

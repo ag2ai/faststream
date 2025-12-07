@@ -6,7 +6,7 @@ from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema import ServerVariable, Tag
 from faststream.specification.asyncapi.v2_6_0.schema.utils import Reference
 
-SecurityRequirement = list[dict[str, list[str]]]
+SecurityRequirement = list[Reference]
 
 
 __all__ = (

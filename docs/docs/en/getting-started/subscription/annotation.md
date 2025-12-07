@@ -92,7 +92,7 @@ For this reason, **FastStream** supports per-argument message serialization: you
 
 
 !!! tip
-    By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} or [**ujson**](https://github.com/ultrajson/ultrajson){.external-link target="_blank"}, just install it and framework will use it automatically.
+    By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} just install it and framework will use it automatically.
 
 ### Serialization details
 

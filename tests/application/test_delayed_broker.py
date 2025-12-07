@@ -36,3 +36,12 @@ async def test_start_not_setup_broker() -> None:
 
     with pytest.raises(AssertionError, match="You should setup a broker"):
         await app._start_broker()
+
+
+@pytest.mark.asyncio()
+async def test_di_reconfigured() -> None:
+    broker = RabbitBroker()
+    app = StartAbleApplication()
+    app.set_broker(broker)
+
+    assert broker.context.get("app") is app
