@@ -54,7 +54,7 @@ classifiers = [
     "Framework :: Pydantic :: 2",
 ]
 
-version = "0.6.3"
+version = "0.6.4"
 
 dependencies = [
     "fast-depends[pydantic]>=3.0.0",
