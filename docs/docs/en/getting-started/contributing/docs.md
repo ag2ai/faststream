@@ -74,6 +74,16 @@ When contributing code examples to the documentation, follow these rules to keep
 
 - **Write Python files in `docs/docs_src/`**: Place all example Python code in the `docs/docs_src/` directory. Organize files by topic and subtopic, e.g., `docs/docs_src/getting_started/basic.py` for a basic FastStream app example.
 
+    See below how to use this code examples in the documentation MD file:
+
+    ```
+        ````python linenums="1" hl_lines="10 20"
+        \{!> docs_src/getting_started/publishing/kafka/broker.py !}
+        ```
+    ```
+
+    if yours file has more than 3 a lines, use the keyword `linenums`. If you need to highlight certain lines to record line numbers using a `space` separator to `hl_lines` keyword.
+
 - **Add tests in `tests/docs/`**: For every example file in `docs/docs_src/`, create corresponding test files in `tests/docs/`. These tests verify that the examples run correctly and behave as expected. Use pytest, mark tests appropriately (e.g., with broker-specific marks if needed), and ensure they pass before submitting changes.
 
 - **Include examples using [`mdx_include`](https://github.com/neurobin/mdx_include){.external-link target="_blank"}**: To embed the code examples directly into Markdown documentation files, use the `mdx_include` Markdown extension. This allows including the content of Python files (local or remote) at arbitrary positions in the docs.

@@ -115,6 +115,12 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | **published_messages_duration_seconds**          | **Histogram** | {{ published_messages_duration_seconds_description }}          | `app_name`, `broker`, `destination`                   |
 | **published_messages_exceptions_total**          | **Counter**   | {{ published_messages_exceptions_total_description }}          | `app_name`, `broker`, `destination`, `exception_type` |
 
+!!! warning
+    When using `no_confirm=True` in Kafka publishers, publishing exceptions are not tracked by built-in Prometheus metrics. This is because with `no_confirm=True`, FastStream does not wait for the delivery confirmation from Kafka, so any errors that happen after sending the message (e.g. network issues, broker rejections) are not caught by the KafkaPrometheusMiddleware. The middleware only captures errors that occur during a call to `publish` with `no_confirm=False` (by default).
+
+    To ensure accurate observability, use `no_confirm=False` when publishing messages, or implement custom error tracking using future callbacks.
+
+
 ### Labels
 
 | Label                             | Description                                                     | Values                                            |
