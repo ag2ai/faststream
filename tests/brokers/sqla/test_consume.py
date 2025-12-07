@@ -191,6 +191,49 @@ class TestConsume(SqlaTestcaseConfig):
         assert result["archived_at"] < datetime.now(tz=timezone.utc) and result["archived_at"] > result["first_attempt_at"]
     
     @pytest.mark.asyncio()
+    async def test_consume_full_retry_flow(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        attempted = []
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=1,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=0.01, max_total_delay_seconds=None, max_attempts=3),
+            max_fetch_interval=0.01,
+            min_fetch_interval=0.01,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: Any) -> None:
+            nonlocal attempted
+            attempted.append(msg)
+            return 1/0
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+
+        assert len(attempted) == 3
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().one()
+        assert result["queue"] == "default1"
+        assert json.loads(result["payload"]) == {"message": "hello1"}
+        assert result["state"] == SqlaMessageState.FAILED.name
+        assert result["attempts_count"] == 3
+        assert result["created_at"] < datetime.now(tz=timezone.utc)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["last_attempt_at"] > result["first_attempt_at"]
+
+    @pytest.mark.asyncio()
     async def test_consume_by_queues(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
         broker = self.get_broker(engine=engine)
 

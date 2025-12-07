@@ -36,26 +36,26 @@ class SqlaRegistrator(Registrator[Any, Any]):
             max_workers:
                 Number of workers to process messages concurrently.
             min_fetch_interval:
-                The minimum allowed interval between consecutive fetches. The minimum
-                interval is used if the last fetch returned the same number of messages
-                as the fetch's limit.
+                The minimum allowed interval between consecutive fetches. The
+                minimum interval is used if the last fetch returned the same number
+                of messages as the fetch's limit.
             max_fetch_interval:
-                The maximum allowed interval between consecutive fetches. The maximum
-                interval is used if the last fetch returned fewer messages than the
-                fetch's limit.
+                The maximum allowed interval between consecutive fetches. The
+                maximum interval is used if the last fetch returned fewer messages
+                than the fetch's limit.
             fetch_batch_size:
-                The maximum allowed number of messages to fetch in a single batch. A 
-                fetch's actual limit might be lower if the free capacity of the
+                The maximum allowed number of messages to fetch in a single batch.
+                A fetch's actual limit might be lower if the free capacity of the
                 acquired-but-not-yet-in-processing buffer is smaller.
             overfetch_factor:
-                The factor by which the fetch_batch_size is multiplied to determine the
-                capacity of the acquired-but-not-yet-in-processing buffer.
+                The factor by which the fetch_batch_size is multiplied to determine
+                the capacity of the acquired-but-not-yet-in-processing buffer.
             flush_interval:
                 The interval at which the state of messages for which the processing
                 attempt has been completed or aborted is flushed to the database.
             release_stuck_interval:
-                The interval at which the PROCESSING-state messages are marked back as
-                PENDING if the release_stuck_timeout since acquired_at has passed.
+                The interval at which the PROCESSING-state messages are marked back
+                as PENDING if the release_stuck_timeout since acquired_at has passed.
 
         Flow:
             On start, the subscriber spawns four types of concurrent loops:
@@ -63,51 +63,56 @@ class SqlaRegistrator(Registrator[Any, Any]):
             1. Fetch loop:
                Periodically fetches PENDING or RETRYABLE messages from the database,
                simultaneously updating them in the database: marking as PROCESSING,
-               setting acquired_at to now, and incrementing attempts_count. Only messages
-               with next_attempt_at <= now are fetched, ordered by next_attempt_at. The
-               fetched messages are placed into an internal queue. The fetch limit is
-               the minimum of fetch_batch_size and the free buffer capacity (fetch_batch_size
-               * overfetch_factor minus currently queued messages). If the last fetch was
-               "full" (returned as many messages as the limit), the next fetch happens
-               after min_fetch_interval; otherwise after max_fetch_interval.
+               setting acquired_at to now, and incrementing attempts_count. Only
+               messages with next_attempt_at <= now are fetched, ordered by
+               next_attempt_at. The fetched messages are placed into an internal
+               queue. The fetch limit is the minimum of fetch_batch_size and the
+               free buffer capacity (fetch_batch_size * overfetch_factor minus
+               currently queued messages). If the last fetch was "full" (returned
+               as many messages as the limit), the next fetch happens after
+               min_fetch_interval; otherwise after max_fetch_interval.
 
             2. Worker loops (max_workers instances):
-               Each worker takes a message from the internal queue and checks if the
-               attempt is allowed by the retry_strategy. If allowed, the message is
-               processed, if not, Reject'ed. Depending on the processing result, AckPolicy,
-               and manual Ack/Nack/Reject, the message is Ack'ed, Nack'ed, or Reject'ed.
-               For Nack'ed messages the retry_strategy is consulted to determine if and
-               when the message might be retried. If allowed to be retried, the message is
-               marked as RETRYABLE, otherwise as FAILED. Ack'ed messages are marked as
-               COMPLETED and Reject'ed messages are marked as FAILED. The message is then
-               buffered for flushing.
+               Each worker takes a message from the internal queue and checks if
+               the attempt is allowed by the retry_strategy. If allowed, the message
+               is processed, if not, Reject'ed. Depending on the processing result,
+               AckPolicy, and manual Ack/Nack/Reject, the message is Ack'ed, Nack'ed,
+               or Reject'ed. For Nack'ed messages the retry_strategy is consulted to
+               determine if and when the message might be retried. If allowed to be
+               retried, the message is marked as RETRYABLE, otherwise as FAILED.
+               Ack'ed messages are marked as COMPLETED and Reject'ed messages are
+               marked as FAILED. The message is then buffered for flushing.
 
             3. Flush loop:
-               Periodically flushes the buffered message state changes to the database.
-               COMPLETED and FAILED messages are moved from the primary table to the archive
-               table. The state of RETRYABLE messages is updated in the primary table.
+               Periodically flushes the buffered message state changes to the
+               database. COMPLETED and FAILED messages are moved from the primary
+               table to the archive table. The state of RETRYABLE messages is
+               updated in the primary table.
 
             4. Release stuck loop:
-               Periodically releases messages that have been stuck in PROCESSING state
-               for longer than release_stuck_timeout since acquired_at. These messages
-               are marked back as PENDING.
+               Periodically releases messages that have been stuck in PROCESSING
+               state for longer than release_stuck_timeout since acquired_at. These
+               messages are marked back as PENDING.
 
-            On stop, all loops are gracefully stopped. Messages that have been acquired
-            but are not yet being processed are drained from the internal queue and marked
-            back as PENDING. The subscriber waits for all tasks to complete within
-            graceful_shutdown_timeout, then performs a final flush.
-        
+            On stop, all loops are gracefully stopped. Messages that have been
+            acquired but are not yet being processed are drained from the internal
+            queue and marked back as PENDING. The subscriber waits for all tasks to
+            complete within graceful_shutdown_timeout, then performs a final flush.
+
         Notes:
-            This design adheres to the "at least once" processing guarantee because flushing
-            changes to the database happens only after a processing attempt. Messages might
-            be processed more times than allowed by the retry_strategy if, among other
-            things, the flush doesn't happen due to crash or failure after a message is
-            processed.
+            This design allows for work sharing between processes/nodes because
+            "select for update skip locked" is utilized.
 
-            This design handles the poison message problem (messages that crash the worker
-            without the ability to catch the exception due to e.g. OOM terminations) because
-            attempts_count is incremented and retry_strategy is consulted with prior to
-            processing attempt.
+            This design adheres to the "at least once" processing guarantee because
+            flushing changes to the database happens only after a processing
+            attempt. Messages might be processed more times than allowed by the
+            retry_strategy if, among other things, the flush doesn't happen due to
+            crash or failure after a message is processed.
+
+            This design handles the poison message problem (messages that crash the
+            worker without the ability to catch the exception due to e.g. OOM
+            terminations) because attempts_count is incremented and retry_strategy
+            is consulted with prior to processing attempt.
         
         SQL queries:
             Fetch:

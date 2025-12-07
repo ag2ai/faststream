@@ -147,6 +147,7 @@ testing = [
     "psutil==7.1.3",
     "prometheus-client>=0.20.0,<0.30.0",
     "opentelemetry-sdk>=1.24.0,<2.0.0",
+    "freezegun>=1.5.5",
 ]
 
 dev = [
