@@ -37,7 +37,7 @@ class RabbitResponse(Response):
             correlation_id=correlation_id,
         )
 
-        self.exchange = RabbitExchange.validate(exchange)
+        self.exchange = None if exchange is None else RabbitExchange.validate(exchange)
         self.message_options: BasicMessageOptions = message_options
         self.publish_options: PublishOptions = {
             "mandatory": mandatory,
@@ -86,10 +86,7 @@ class RabbitPublishCommand(PublishCommand):
             _publish_type=_publish_type,
         )
 
-        if exchange is not None:
-            self._exchange: RabbitExchange | None = RabbitExchange.validate(exchange)
-        else:
-            self._exchange = None
+        self._exchange = exchange
 
         self.timeout = timeout
 

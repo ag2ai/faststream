@@ -1,5 +1,6 @@
 import asyncio
 import datetime as dt
+import logging
 import uuid
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -212,7 +213,7 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2651."""
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
 
         exchange_name = str(uuid.uuid4())
 
@@ -248,14 +249,14 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2651."""
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
 
         exchange_name = str(uuid.uuid4())
 
         @broker.subscriber(queue)
         @broker.publisher(queue + "1", exchange=exchange_name)
-        async def handle() -> int:
-            return 1
+        async def handle() -> RabbitResponse:
+            return RabbitResponse(1)
 
         @broker.subscriber(queue + "1", exchange=exchange_name)
         async def handle_next(msg: RabbitMessage) -> None:
@@ -284,7 +285,7 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2651."""
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
         exchange_name, exchange_name_2 = str(uuid.uuid4()), str(uuid.uuid4())
 
         @broker.subscriber(queue)
@@ -320,7 +321,7 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2651."""
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
         exchange_name = str(uuid.uuid4())
 
         @broker.subscriber(queue)
