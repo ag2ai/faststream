@@ -181,7 +181,20 @@ def get_broker_channels(
 
             channels[channel_key] = channel_obj
 
-            operations[f"{channel_key}Subscribe"] = Operation.from_sub(
+            operation_key = (
+                f"{channel_key}Subscribe"
+                if sub.specification.config.title_ is None
+                or sub.specification.config.title_ == "/"
+                else sub.specification.config.title_
+            )
+            if operation_key in operations:
+                warnings.warn(
+                    f"Overwrite channel handler, operations have the same names: `{operation_key}`",
+                    RuntimeWarning,
+                    stacklevel=1,
+                )
+
+            operations[operation_key] = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",

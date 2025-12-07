@@ -107,6 +107,9 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         elif self.ack_policy is AckPolicy.NACK_ON_ERROR:
             await self.__nack()
 
+        elif self.ack_policy is AckPolicy.ACK:
+            await self.__ack()
+
         # Exception was not processed
         return False
 
