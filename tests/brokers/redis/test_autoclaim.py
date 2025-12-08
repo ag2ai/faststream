@@ -1,12 +1,14 @@
 import asyncio
 from contextlib import suppress
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from redis.asyncio import Redis
 
 from faststream.exceptions import NackMessage
 from faststream.redis import StreamSub
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
+from tests.tools import spy_decorator
 
 from .basic import RedisTestcaseConfig
 
@@ -102,31 +104,22 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 )
             )
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                message = await subscriber.get_one(timeout=3)
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
-
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            message = await subscriber.get_one(timeout=3)
-
-            assert message is not None
-            decoded = await message.decode()
-            assert decoded == {"data": "pending"}
-            # Should use XAUTOCLAIM, not XREADGROUP
-            assert len(xautoclaim_calls) > 0
-            assert len(xreadgroup_calls) == 0
+                assert message is not None
+                decoded = await message.decode()
+                assert decoded == {"data": "pending"}
+                # Should use XAUTOCLAIM, not XREADGROUP
+                assert xautoclaim.mock.called
+                assert not xreadgroup.mock.called
 
     @pytest.mark.slow()
     async def test_get_one_with_min_idle_time_no_pending(
@@ -195,37 +188,28 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 )
             )
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                count = 0
+                async for msg in subscriber:
+                    decoded = await msg.decode()
+                    mock(decoded)
+                    count += 1
+                    if count >= 2:
+                        break
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
-
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            count = 0
-            async for msg in subscriber:
-                decoded = await msg.decode()
-                mock(decoded)
-                count += 1
-                if count >= 2:
-                    break
-
-            assert count == 2
-            mock.assert_any_call({"data": "msg1"})
-            mock.assert_any_call({"data": "msg2"})
-            # Should use XAUTOCLAIM, not XREADGROUP
-            assert len(xautoclaim_calls) > 0
-            assert len(xreadgroup_calls) == 0
+                assert count == 2
+                mock.assert_any_call({"data": "msg1"})
+                mock.assert_any_call({"data": "msg2"})
+                # Should use XAUTOCLAIM, not XREADGROUP
+                assert xautoclaim.mock.called
+                assert not xreadgroup.mock.called
 
     @pytest.mark.slow()
     async def test_consume_stream_batch_with_min_idle_time(
@@ -271,40 +255,31 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.sleep(0.1)
 
             # Now start subscriber and track calls
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
+                # Now the subscriber should reclaim it
+                await asyncio.wait(
+                    (asyncio.create_task(event.wait()),),
+                    timeout=3,
+                )
 
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            await br.start()
-
-            # Now the subscriber should reclaim it
-            await asyncio.wait(
-                (asyncio.create_task(event.wait()),),
-                timeout=3,
-            )
-
-            assert event.is_set()
-            # In batch mode, should receive list
-            assert mock.call_count == 1
-            called_with = mock.call_args[0][0]
-            assert isinstance(called_with, list)
-            assert len(called_with) > 0
-            # Should use XAUTOCLAIM, not XREADGROUP
-            assert len(xautoclaim_calls) > 0
-            assert len(xreadgroup_calls) == 0
+                assert event.is_set()
+                # In batch mode, should receive list
+                assert mock.call_count == 1
+                called_with = mock.call_args[0][0]
+                assert isinstance(called_with, list)
+                assert len(called_with) > 0
+                # Should use XAUTOCLAIM, not XREADGROUP
+                assert xautoclaim.mock.called
+                assert not xreadgroup.mock.called
 
     @pytest.mark.slow()
     async def test_xautoclaim_with_deleted_messages(
@@ -448,29 +423,20 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             mock(msg)
 
         async with self.patch_broker(consume_broker) as br:
-            await br.start()
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+                await asyncio.sleep(0.3)
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
-
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            await asyncio.sleep(0.3)
-
-            assert len(xautoclaim_calls) > 0
-            assert len(xreadgroup_calls) == 0
+                assert xautoclaim.mock.called
+                assert not xreadgroup.mock.called
 
     @pytest.mark.slow()
     async def test_without_min_idle_time_uses_xreadgroup(
@@ -496,37 +462,28 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         async with self.patch_broker(consume_broker) as br:
             # Track calls before starting subscriber
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("test", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
 
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            await br.start()
-
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("test", stream=queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=3,
-            )
-
-            assert event.is_set()
-            mock.assert_called_once_with("test")
-            assert len(xreadgroup_calls) > 0
-            assert len(xautoclaim_calls) == 0
+                assert event.is_set()
+                mock.assert_called_once_with("test")
+                assert xreadgroup.mock.called
+                assert not xautoclaim.mock.called
 
     @pytest.mark.slow()
     async def test_batch_without_min_idle_time_uses_xreadgroup(
@@ -553,36 +510,27 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         async with self.patch_broker(consume_broker) as br:
             # Track calls before starting subscriber
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("test_batch", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
 
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            await br.start()
-
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("test_batch", stream=queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=3,
-            )
-
-            assert event.is_set()
-            assert len(xreadgroup_calls) > 0
-            assert len(xautoclaim_calls) == 0
+                assert event.is_set()
+                assert xreadgroup.mock.called
+                assert not xautoclaim.mock.called
 
     @pytest.mark.slow()
     async def test_get_one_without_min_idle_time_uses_xreadgroup(
@@ -609,30 +557,21 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 )
             )
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                # Publish a message and try to get it
+                await br.publish({"data": "test"}, stream=queue)
+                message = await subscriber.get_one(timeout=3)
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
-
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            # Publish a message and try to get it
-            await br.publish({"data": "test"}, stream=queue)
-            message = await subscriber.get_one(timeout=3)
-
-            assert message is not None
-            assert len(xreadgroup_calls) > 0
-            assert len(xautoclaim_calls) == 0
+                assert message is not None
+                assert xreadgroup.mock.called
+                assert not xautoclaim.mock.called
 
     @pytest.mark.slow()
     async def test_iterator_without_min_idle_time_uses_xreadgroup(
@@ -660,40 +599,27 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 )
             )
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                # Publish a message
+                await br.publish({"data": "msg1"}, stream=queue)
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
+                # Use get_one - it should call xreadgroup
+                await subscriber.get_one(timeout=3)
 
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append(True)
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append(True)
-                result = await original_xreadgroup(*args, **kwargs)
-                # Return empty tuple if no messages to avoid unpacking errors
-                if not result or (result and len(result) > 0 and not result[0][1]):
-                    return ()
-                return result
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            # Publish a message
-            await br.publish({"data": "msg1"}, stream=queue)
-
-            # Use get_one - it should call xreadgroup
-            await subscriber.get_one(timeout=3)
-
-            # Even if message is None (due to empty result), we should verify xreadgroup was called
-            assert len(xreadgroup_calls) > 0, (
-                "xreadgroup should be called when min_idle_time is None"
-            )
-            assert len(xautoclaim_calls) == 0, (
-                "xautoclaim should NOT be called when min_idle_time is None"
-            )
+                # Even if message is None (due to empty result), we should verify xreadgroup was called
+                assert xreadgroup.mock.called, (
+                    "xreadgroup should be called when min_idle_time is None"
+                )
+                assert not xautoclaim.mock.called, (
+                    "xautoclaim should NOT be called when min_idle_time is None"
+                )
 
     @pytest.mark.slow()
     async def test_claiming_handler_example_scenario(
@@ -716,36 +642,28 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             mock(msg)
 
         async with self.patch_broker(consume_broker) as br:
-            await br.start()
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            original_xautoclaim = br._connection.xautoclaim
-            original_xreadgroup = br._connection.xreadgroup
+                await asyncio.sleep(0.3)
 
-            xautoclaim_calls = []
-            xreadgroup_calls = []
+                # Should use XAUTOCLAIM, not XREADGROUP
+                assert xautoclaim.mock.called, (
+                    "XAUTOCLAIM should be called when min_idle_time is set"
+                )
+                assert not xreadgroup.mock.called, (
+                    "XREADGROUP should NOT be called when min_idle_time is set"
+                )
 
-            async def tracked_xautoclaim(*args, **kwargs):
-                xautoclaim_calls.append((args, kwargs))
-                return await original_xautoclaim(*args, **kwargs)
-
-            async def tracked_xreadgroup(*args, **kwargs):
-                xreadgroup_calls.append((args, kwargs))
-                return await original_xreadgroup(*args, **kwargs)
-
-            br._connection.xautoclaim = tracked_xautoclaim
-            br._connection.xreadgroup = tracked_xreadgroup
-
-            await asyncio.sleep(0.3)
-
-            # Should use XAUTOCLAIM, not XREADGROUP
-            assert len(xautoclaim_calls) > 0, (
-                "XAUTOCLAIM should be called when min_idle_time is set"
-            )
-            assert len(xreadgroup_calls) == 0, (
-                "XREADGROUP should NOT be called when min_idle_time is set"
-            )
-
-            # Verify XAUTOCLAIM was called with correct parameters
-            assert any(
-                call[1].get("min_idle_time") == 10000 for call in xautoclaim_calls
-            ), "XAUTOCLAIM should be called with min_idle_time=10000"
+                # Verify XAUTOCLAIM was called with correct parameters
+                assert any(
+                    call.kwargs.get("min_idle_time") == 10000
+                    for call in xautoclaim.mock.call_args_list
+                ), "XAUTOCLAIM should be called with min_idle_time=10000"
