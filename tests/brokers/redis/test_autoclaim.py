@@ -21,7 +21,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test consuming messages using XAUTOCLAIM with min_idle_time."""
+        """Verify that subscribers with min_idle_time use XAUTOCLAIM to reclaim pending messages."""
         event = asyncio.Event()
 
         consume_broker = self.get_broker(apply_types=True)
@@ -68,7 +68,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str,
     ) -> None:
-        """Test get_one() with min_idle_time uses XAUTOCLAIM."""
+        """Verify that get_one() method uses XAUTOCLAIM when min_idle_time is configured."""
         broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(broker) as br:
@@ -134,7 +134,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test get_one() with min_idle_time when no pending messages."""
+        """Verify that get_one() returns None when no pending messages are available for claiming."""
         broker = self.get_broker(apply_types=True)
 
         subscriber = broker.subscriber(
@@ -161,7 +161,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test async iterator with min_idle_time uses XAUTOCLAIM."""
+        """Verify that async iterator uses XAUTOCLAIM when min_idle_time is configured."""
         broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(broker) as br:
@@ -233,7 +233,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test batch consuming with min_idle_time uses XAUTOCLAIM."""
+        """Verify that batch subscribers use XAUTOCLAIM when min_idle_time is configured."""
         event = asyncio.Event()
 
         consume_broker = self.get_broker(apply_types=True)
@@ -312,7 +312,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test XAUTOCLAIM behavior when messages are deleted from stream."""
+        """Verify that XAUTOCLAIM handles deleted messages gracefully without errors."""
         consume_broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(consume_broker) as br:
@@ -362,7 +362,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test that XAUTOCLAIM scans circularly and claims messages as they become idle."""
+        """Verify that XAUTOCLAIM performs circular scanning and claims messages as they become idle."""
         consume_broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(consume_broker) as br:
@@ -433,7 +433,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Regression test: min_idle_time triggers XAUTOCLAIM."""
+        """Verify that subscribers with min_idle_time parameter use XAUTOCLAIM instead of XREADGROUP."""
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
@@ -478,7 +478,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Without min_idle_time, XREADGROUP is used."""
+        """Verify that subscribers without min_idle_time parameter use XREADGROUP instead of XAUTOCLAIM."""
         event = asyncio.Event()
 
         consume_broker = self.get_broker()
@@ -534,7 +534,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Batch subscriber without min_idle_time should use XREADGROUP."""
+        """Verify that batch subscribers without min_idle_time use XREADGROUP instead of XAUTOCLAIM."""
         event = asyncio.Event()
 
         consume_broker = self.get_broker()
@@ -589,7 +589,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str,
     ) -> None:
-        """get_one() without min_idle_time should use XREADGROUP."""
+        """Verify that get_one() method uses XREADGROUP when min_idle_time is not configured."""
         broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(broker) as br:
@@ -640,7 +640,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Subscriber without min_idle_time should use XREADGROUP in get_one."""
+        """Verify that subscribers without min_idle_time use XREADGROUP in get_one() method."""
         broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(broker) as br:
@@ -701,7 +701,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        """Test the exact scenario from user's example: claiming handler with min_idle_time."""
+        """Verify that a claiming handler with min_idle_time uses XAUTOCLAIM with correct parameters."""
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
