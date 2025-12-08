@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import suppress
 import contextlib
+import logging
 from typing import Any, Callable, Coroutine, Sequence, TypeVar
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -64,12 +65,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
     async def stop(self) -> None:
         print("stop")
         self._stop_event.set()
-        drained = self._drain_acquired()
-        if drained:
-            for message in drained:
-                message._mark_pending()
-            self._buffer_results(drained)
-            self.add_task(self._flush_results)
+        await self._draing_and_flush_acquired()
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(self._stop(), timeout=self._graceful_shutdown_timeout)
         await super().stop()
@@ -101,7 +97,16 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             free_slots = self._buffer_capacity - self._message_queue.qsize()
             if free_slots > 0:
                 limit = min(self._fetch_batch_size, free_slots)
-                batch = await self._repo.fetch(self._queues, limit=limit)
+                
+                try:
+                    batch = await self._repo.fetch(self._queues, limit=limit)
+                except asyncio.CancelledError:
+                    return
+                except Exception as exc:
+                    self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
+                    await asyncio.sleep(5)
+                    continue
+                
                 for row in batch:
                     await self._message_queue.put(row)
 
@@ -139,10 +144,19 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         while True:
             if self._stop_event.is_set():
                 break
+
             try:
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self._flush_interval)
             except asyncio.TimeoutError:
-                await self._flush_results()
+                try:
+                    await self._flush_results()
+                except asyncio.CancelledError:
+                    return
+                except Exception as exc:
+                    self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
+                    await asyncio.sleep(5)
+                    continue
+                
                 continue
             else:
                 break
@@ -154,7 +168,16 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         while True:
             if self._stop_event.is_set():
                 break
-            await self._repo.release_stuck(timeout=self._release_stuck_timeout)
+            
+            try:
+                await self._repo.release_stuck(timeout=self._release_stuck_timeout)
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
+                await asyncio.sleep(5)
+                continue
+
             try:
                 await asyncio.wait_for(
                     self._stop_event.wait(), timeout=self._release_stuck_interval
@@ -191,3 +214,11 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             drained.append(message)
             self._message_queue.task_done()
         return drained
+
+    async def _draing_and_flush_acquired(self) -> None:
+        drained = self._drain_acquired()
+        if drained:
+            for message in drained:
+                message._mark_pending()
+            self._buffer_results(drained)
+            self.add_task(self._flush_results)

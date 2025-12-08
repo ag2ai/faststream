@@ -169,7 +169,9 @@ class SqlaClient:
         stmt = select(updated).order_by(updated.c.next_attempt_at)
         async with self._engine.begin() as conn:
             result = await conn.execute(stmt)
-            return [SqlaMessage(**row) for row in result.mappings()]
+            res =  [SqlaMessage(**row) for row in result.mappings()]
+            print('fetch', res)
+            return res
 
     async def retry(self, messages: Sequence[SqlaMessage]) -> None:
         if not messages:
@@ -196,6 +198,7 @@ class SqlaClient:
             )
         )
         async with self._engine.begin() as conn:
+            print('retry', params)
             await conn.execute(stmt, params)
 
     async def archive(self, messages: Sequence[SqlaMessage]) -> None:
@@ -216,8 +219,10 @@ class SqlaClient:
                 for item in messages
             ]
             stmt = message_archive.insert().values(values)
+            print('archive', values)
             await conn.execute(stmt)
             delete_stmt = delete(message).where(message.c.id.in_([item.id for item in messages]))
+            print('delete', messages)
             await conn.execute(delete_stmt)
 
     async def release_stuck(self, timeout: int) -> None:

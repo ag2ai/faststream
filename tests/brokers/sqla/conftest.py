@@ -44,7 +44,7 @@ def settings() -> Settings:
 
 @pytest_asyncio.fixture
 async def engine(settings: Settings) -> AsyncGenerator[AsyncEngine, None]:
-    engine = create_async_engine(settings.url, echo=True)
+    engine = create_async_engine(settings.url)
     try:
         yield engine
     finally:

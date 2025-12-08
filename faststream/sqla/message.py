@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import enum
+from typing import Any, Callable, Coroutine
 
 from faststream.message.message import StreamMessage
 from faststream.sqla.retry import RetryStrategyProto
@@ -49,10 +50,19 @@ class SqlaMessage(StreamMessage):
         self.last_attempt_at = last_attempt_at
         self.acquired_at = acquired_at
         
-        self.decision_recorded = False
+        self.state_locked = False
         self.to_archive = False
         
         super().__init__(raw_message=self, body=payload)
+
+    async def ack(self) -> None:
+        await self._update_state_if_not_locked(self._ack)
+
+    async def nack(self) -> None:
+        await self._update_state_if_not_locked(self._nack)
+
+    async def reject(self) -> None:
+        await self._update_state_if_not_locked(self._reject)
 
     def _mark_completed(self) -> None:
         self.state = SqlaMessageState.COMPLETED
@@ -84,17 +94,18 @@ class SqlaMessage(StreamMessage):
             return False
         return True
 
-    async def ack(self) -> None:
-        if self.decision_recorded:
+    async def _update_state_if_not_locked(self, method: Callable[[], Coroutine[Any, Any, None]]) -> None:
+        if self.state_locked:
             return
+        
+        await method()
+        
+        self.state_locked = True
 
+    async def _ack(self) -> None:
         self._mark_completed()
-        self.decision_recorded = True
 
-    async def nack(self) -> None:
-        if self.decision_recorded:
-            return
-
+    async def _nack(self) -> None:
         if not (
             next_attempt_at := self.retry_strategy.get_next_attempt_at(
                 first_attempt_at=self.first_attempt_at,
@@ -105,14 +116,9 @@ class SqlaMessage(StreamMessage):
             self._mark_failed()
         else:
             self._mark_retryable(next_attempt_at=next_attempt_at)
-        self.decision_recorded = True
 
-    async def reject(self) -> None:
-        if self.decision_recorded:
-            return
-
+    async def _reject(self) -> None:
         self._mark_failed()
-        self.decision_recorded = True
-    
+
     def __repr__(self) -> str: # TODO
         return f"SqlaMessage(id={self.id}, queue={self.queue})"

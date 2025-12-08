@@ -6,7 +6,9 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from faststream.sqla.message import SqlaMessageState
+from faststream.sqla.message import SqlaMessage, SqlaMessageState
+from faststream.sqla.annotations import SqlaMessage as SqlaMessageAnnotation
+from faststream.sqla.annotations import SqlaBroker as SqlaBrokerAnnotation
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
 
@@ -300,3 +302,168 @@ class TestConsume(SqlaTestcaseConfig):
         await asyncio.sleep(0.5)
         
         assert messages == ["hello3", "hello1"]
+    
+    @pytest.mark.asyncio()
+    async def test_consume_stop_current_messages_are_flushed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=2,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.01,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=2,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: Any) -> None:
+            event.set()
+            await asyncio.sleep(1)
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.publish({"message": "hello2"}, queue="default1")
+        await broker.start()
+        await asyncio.wait_for(event.wait(), timeout=self.timeout)
+        await broker.stop()
+        
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().all()
+        assert len(result) == 2
+        assert result[0]["state"] == SqlaMessageState.COMPLETED.name
+
+    @pytest.mark.asyncio()
+    async def test_consume_manual_ack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=2,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.01,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=2,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
+            await msg.ack()
+            return 1/0
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.publish({"message": "hello2"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+        
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().all()
+        assert len(result) == 2
+        assert result[0]["state"] == SqlaMessageState.COMPLETED.name
+        assert result[1]["state"] == SqlaMessageState.COMPLETED.name
+
+    @pytest.mark.asyncio()
+    async def test_consume_manual_nack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=2,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=0, max_total_delay_seconds=None, max_attempts=3),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.01,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=2,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
+            await msg.nack()
+            return
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.publish({"message": "hello2"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+        
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message;"))
+        result = result.mappings().all()
+        assert len(result) == 2
+        assert result[0]["state"] == SqlaMessageState.RETRYABLE.name
+        assert result[1]["state"] == SqlaMessageState.RETRYABLE.name
+
+    @pytest.mark.asyncio()
+    async def test_consume_manual_reject_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=2,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=0, max_total_delay_seconds=None, max_attempts=3),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.01,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=2,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
+            await msg.reject()
+            return
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.publish({"message": "hello2"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+        
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().all()
+        assert len(result) == 2
+        assert result[0]["state"] == SqlaMessageState.FAILED.name
+        assert result[1]["state"] == SqlaMessageState.FAILED.name
+
+    @pytest.mark.asyncio()
+    async def test_consume_context_fields(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=2,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.01,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=2,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: SqlaMessageAnnotation, broker: SqlaBrokerAnnotation) -> None:
+            event.set()
+            breakpoint()
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.start()
+        await asyncio.wait_for(event.wait(), timeout=self.timeout)
