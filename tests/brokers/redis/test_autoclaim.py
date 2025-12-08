@@ -411,9 +411,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
             # Should have claimed all 5 messages in order
             assert len(claimed_messages_first_pass) == 5
-            assert claimed_messages_first_pass == [
-                {"data": f"msg{i}"} for i in range(5)
-            ]
+            assert claimed_messages_first_pass == [{"data": f"msg{i}"} for i in range(5)]
 
             # After reaching the end, XAUTOCLAIM should restart from "0-0"
             # and scan circularly - messages are still pending since we didn't ACK them
@@ -472,7 +470,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.sleep(0.3)
 
             assert len(xautoclaim_calls) > 0
-            assert len([c for c in xreadgroup_calls]) == 0
+            assert len(xreadgroup_calls) == 0
 
     @pytest.mark.slow()
     async def test_without_min_idle_time_uses_xreadgroup(
@@ -687,11 +685,15 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await br.publish({"data": "msg1"}, stream=queue)
 
             # Use get_one - it should call xreadgroup
-            message = await subscriber.get_one(timeout=3)
+            await subscriber.get_one(timeout=3)
 
             # Even if message is None (due to empty result), we should verify xreadgroup was called
-            assert len(xreadgroup_calls) > 0, "xreadgroup should be called when min_idle_time is None"
-            assert len(xautoclaim_calls) == 0, "xautoclaim should NOT be called when min_idle_time is None"
+            assert len(xreadgroup_calls) > 0, (
+                "xreadgroup should be called when min_idle_time is None"
+            )
+            assert len(xautoclaim_calls) == 0, (
+                "xautoclaim should NOT be called when min_idle_time is None"
+            )
 
     @pytest.mark.slow()
     async def test_claiming_handler_example_scenario(
@@ -736,11 +738,14 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.sleep(0.3)
 
             # Should use XAUTOCLAIM, not XREADGROUP
-            assert len(xautoclaim_calls) > 0, "XAUTOCLAIM should be called when min_idle_time is set"
-            assert len(xreadgroup_calls) == 0, "XREADGROUP should NOT be called when min_idle_time is set"
+            assert len(xautoclaim_calls) > 0, (
+                "XAUTOCLAIM should be called when min_idle_time is set"
+            )
+            assert len(xreadgroup_calls) == 0, (
+                "XREADGROUP should NOT be called when min_idle_time is set"
+            )
 
             # Verify XAUTOCLAIM was called with correct parameters
             assert any(
-                call[1].get("min_idle_time") == 10000
-                for call in xautoclaim_calls
+                call[1].get("min_idle_time") == 10000 for call in xautoclaim_calls
             ), "XAUTOCLAIM should be called with min_idle_time=10000"
