@@ -41,6 +41,15 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    ports:
+      - 1883:1883
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./dev/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
   faststream:
     build: .
     volumes:

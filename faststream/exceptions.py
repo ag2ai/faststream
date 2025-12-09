@@ -195,6 +195,11 @@ To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
 """
 
+INSTALL_FASTSTREAM_MQTT = """
+To use MQTT with FastStream, please install dependencies:\n
+pip install "faststream[mqtt]"
+"""
+
 INSTALL_UVICORN = """
 To run FastStream ASGI App via CLI, please install uvicorn:\n
 pip install uvicorn
