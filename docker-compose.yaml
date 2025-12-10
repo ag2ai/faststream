@@ -50,6 +50,16 @@ services:
     ports:
       - "5432:5432"
 
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_DATABASE: broker
+      MYSQL_USER: broker
+      MYSQL_PASSWORD: brokerpass
+      MYSQL_ROOT_PASSWORD: brokerpass
+    ports:
+      - "3306:3306"
+
   faststream:
     build: .
     volumes:
