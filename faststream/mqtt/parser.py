@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, cast
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream._internal.constants import ContentTypes
+from faststream._internal.constants import ContentType, ContentTypes
 from faststream.message import decode_message
 from faststream.mqtt.message import MQTTMessage
 
@@ -16,7 +16,7 @@ class MQTTParser:
     async def parse_message(self, message: "Message") -> MQTTMessage:
         payload = message.payload
         ct = (
-            message.properties.ContentType  # type: ignore[attr-defined]
+            getattr(message.properties, "ContentType", ContentTypes.TEXT.value)  # type: ignore[attr-defined]
             if message.properties
             else ContentTypes.TEXT.value
         )

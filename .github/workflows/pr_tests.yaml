@@ -492,12 +492,12 @@ jobs:
     # - test-basic
     # - test-mqtt-smoke
     services:
-      mosquitto:
-        image: eclipse-mosquitto:latest
+      artemis:
+        image: apache/activemq-artemis:latest-alpine
+        env:
+          ANONYMOUS_LOGIN: "true"
         ports:
           - 1883:1883
-        volumes:
-          - ./dev/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
