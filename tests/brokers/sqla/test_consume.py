@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from faststream.sqla.message import SqlaMessage, SqlaMessageState
 from faststream.sqla.annotations import SqlaMessage as SqlaMessageAnnotation
 from faststream.sqla.annotations import SqlaBroker as SqlaBrokerAnnotation
+from faststream.sqla.broker.broker import SqlaBroker as SqlaBroker
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
 
@@ -446,6 +447,9 @@ class TestConsume(SqlaTestcaseConfig):
     async def test_consume_context_fields(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
         broker = self.get_broker(engine=engine)
 
+        message_ = None
+        broker_ = None
+
         @broker.subscriber(
             engine=engine,
             queues=["default1"],
@@ -461,9 +465,59 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_timeout=10,
         )
         async def handler(msg: SqlaMessageAnnotation, broker: SqlaBrokerAnnotation) -> None:
+            nonlocal message_
+            nonlocal broker_
+            message_ = msg
+            broker_ = broker
             event.set()
-            breakpoint()
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
         await asyncio.wait_for(event.wait(), timeout=self.timeout)
+        assert isinstance(message_, SqlaMessage)
+        assert isinstance(broker_, SqlaBroker)
+    
+    @pytest.mark.asyncio()
+    async def test_consume_concurrency(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        attempted = []
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=4,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=0,
+            fetch_batch_size=4,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: Any) -> None:
+            await asyncio.sleep(1)
+            nonlocal attempted
+            attempted.append(msg)
+
+        for idx in range(8):
+            await broker.publish({"message": f"hello{idx+1}"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(1.5)
+        assert len(attempted) == 4
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive WHERE state = 'COMPLETED';"))
+        result = result.mappings().all()
+        assert len(result) == 4
+
+        await asyncio.sleep(1)
+        assert len(attempted) == 8
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive WHERE state = 'COMPLETED';"))
+        result = result.mappings().all()
+        assert len(result) == 8

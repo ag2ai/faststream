@@ -1,12 +1,14 @@
 from datetime import datetime
 import logging
 from typing import Any, Iterable, Optional, Union, override
-
+from fast_depends import Provider, dependency_provider
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
-
+from faststream._internal.context.repository import ContextRepo
+from fast_depends.library.serializer import SerializerProto
 from faststream._internal.basic_types import LoggerProto, SendableMessage
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.di.config import FastDependsConfig
 from faststream.security import BaseSecurity
 from faststream.specification.schema.broker import BrokerSpec
 from faststream.specification.schema.extra.tag import Tag, TagDict
@@ -42,6 +44,11 @@ class SqlaBroker(
         # logging args
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
+        # FastDepends args
+        # apply_types: bool = True,
+        # serializer: Optional["SerializerProto"] = EMPTY,
+        # provider: Optional["Provider"] = None,
+        # context: Optional["ContextRepo"] = None,
     ) -> None:
 
         super().__init__(
@@ -54,6 +61,15 @@ class SqlaBroker(
                     logger=logger,
                     log_level=log_level,
                 ),
+                # fd_config=FastDependsConfig(
+                #     use_fastdepends=apply_types,
+                #     serializer=serializer,
+                #     provider=provider or dependency_provider,
+                #     context=context or ContextRepo(),
+                # ),
+                extra_context={
+                    "broker": self,
+                },
             ),
             specification=BrokerSpec(
                 description=description,
