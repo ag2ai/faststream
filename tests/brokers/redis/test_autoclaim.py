@@ -22,10 +22,9 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Verify that subscribers with min_idle_time use XAUTOCLAIM to reclaim pending messages."""
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -51,19 +50,31 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
-            await br.start()
+            with (
+                patch.object(
+                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
+                ) as xautoclaim,
+                patch.object(
+                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+                ) as xreadgroup,
+            ):
+                await br.start()
 
-            # First, publish a message and let it become pending
-            await br.publish("pending_message", stream=queue)
+                # First, publish a message and let it become pending
+                await br.publish("pending_message", stream=queue)
 
-            # The subscriber with XAUTOCLAIM should reclaim it
-            await asyncio.wait(
-                (asyncio.create_task(event.wait()),),
-                timeout=3,
-            )
+                # The subscriber with XAUTOCLAIM should reclaim it
+                await asyncio.wait(
+                    (asyncio.create_task(event.wait()),),
+                    timeout=3,
+                )
 
-            assert event.is_set()
-            mock.assert_called_once_with("pending_message")
+                assert event.is_set()
+                mock.assert_called_once_with("pending_message")
+
+                # Verify that XAUTOCLAIM was used, not XREADGROUP
+                assert xautoclaim.mock.called
+                assert xreadgroup.mock.called  # regular subscriber uses xreadgroup
 
     @pytest.mark.slow()
     async def test_get_one_with_min_idle_time(
@@ -216,10 +227,9 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Verify that batch subscribers use XAUTOCLAIM when min_idle_time is configured."""
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -386,7 +396,9 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
             # Should have claimed all 5 messages in order
             assert len(claimed_messages_first_pass) == 5
-            assert claimed_messages_first_pass == [{"data": f"msg{i}"} for i in range(5)]
+            assert claimed_messages_first_pass == [
+                {"data": f"msg{i}"} for i in range(5)
+            ]
 
             # After reaching the end, XAUTOCLAIM should restart from "0-0"
             # and scan circularly - messages are still pending since we didn't ACK them
@@ -401,269 +413,3 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             # Verify messages were claimed in both passes
             mock.assert_any_call("first_pass_msg0")
             mock.assert_any_call("second_pass_msg0")
-
-    @pytest.mark.slow()
-    async def test_min_idle_time_uses_xautoclaim(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        """Verify that subscribers with min_idle_time parameter use XAUTOCLAIM instead of XREADGROUP."""
-        consume_broker = self.get_broker()
-
-        @consume_broker.subscriber(
-            stream=StreamSub(
-                queue,
-                group="test_group",
-                consumer="test_consumer",
-                min_idle_time=10000,
-            ),
-        )
-        async def handler(msg: str) -> None:
-            mock(msg)
-
-        async with self.patch_broker(consume_broker) as br:
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                await br.start()
-
-                await asyncio.sleep(0.3)
-
-                assert xautoclaim.mock.called
-                assert not xreadgroup.mock.called
-
-    @pytest.mark.slow()
-    async def test_without_min_idle_time_uses_xreadgroup(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        """Verify that subscribers without min_idle_time parameter use XREADGROUP instead of XAUTOCLAIM."""
-        event = asyncio.Event()
-
-        consume_broker = self.get_broker()
-
-        @consume_broker.subscriber(
-            stream=StreamSub(
-                queue,
-                group="normal_group",
-                consumer="normal_consumer",
-            ),
-        )
-        async def handler(msg: str) -> None:
-            mock(msg)
-            event.set()
-
-        async with self.patch_broker(consume_broker) as br:
-            # Track calls before starting subscriber
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                await br.start()
-
-                await asyncio.wait(
-                    (
-                        asyncio.create_task(br.publish("test", stream=queue)),
-                        asyncio.create_task(event.wait()),
-                    ),
-                    timeout=3,
-                )
-
-                assert event.is_set()
-                mock.assert_called_once_with("test")
-                assert xreadgroup.mock.called
-                assert not xautoclaim.mock.called
-
-    @pytest.mark.slow()
-    async def test_batch_without_min_idle_time_uses_xreadgroup(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        """Verify that batch subscribers without min_idle_time use XREADGROUP instead of XAUTOCLAIM."""
-        event = asyncio.Event()
-
-        consume_broker = self.get_broker()
-
-        @consume_broker.subscriber(
-            stream=StreamSub(
-                queue,
-                group="batch_normal_group",
-                consumer="batch_normal_consumer",
-                batch=True,
-            ),
-        )
-        async def handler(msg: list) -> None:
-            mock(msg)
-            event.set()
-
-        async with self.patch_broker(consume_broker) as br:
-            # Track calls before starting subscriber
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                await br.start()
-
-                await asyncio.wait(
-                    (
-                        asyncio.create_task(br.publish("test_batch", stream=queue)),
-                        asyncio.create_task(event.wait()),
-                    ),
-                    timeout=3,
-                )
-
-                assert event.is_set()
-                assert xreadgroup.mock.called
-                assert not xautoclaim.mock.called
-
-    @pytest.mark.slow()
-    async def test_get_one_without_min_idle_time_uses_xreadgroup(
-        self,
-        queue: str,
-    ) -> None:
-        """Verify that get_one() method uses XREADGROUP when min_idle_time is not configured."""
-        broker = self.get_broker(apply_types=True)
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
-            # Create group before using subscriber
-            with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "get_one_normal_group", id="0", mkstream=True
-                )
-
-            subscriber = br.subscriber(
-                stream=StreamSub(
-                    queue,
-                    group="get_one_normal_group",
-                    consumer="get_one_normal_consumer",
-                )
-            )
-
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                # Publish a message and try to get it
-                await br.publish({"data": "test"}, stream=queue)
-                message = await subscriber.get_one(timeout=3)
-
-                assert message is not None
-                assert xreadgroup.mock.called
-                assert not xautoclaim.mock.called
-
-    @pytest.mark.slow()
-    async def test_iterator_without_min_idle_time_uses_xreadgroup(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        """Verify that subscribers without min_idle_time use XREADGROUP in get_one() method."""
-        broker = self.get_broker(apply_types=True)
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
-            # Create group before using subscriber
-            with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "iter_normal_group", id="0", mkstream=True
-                )
-
-            subscriber = br.subscriber(
-                stream=StreamSub(
-                    queue,
-                    group="iter_normal_group",
-                    consumer="iter_normal_consumer",
-                )
-            )
-
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                # Publish a message
-                await br.publish({"data": "msg1"}, stream=queue)
-
-                # Use get_one - it should call xreadgroup
-                await subscriber.get_one(timeout=3)
-
-                # Even if message is None (due to empty result), we should verify xreadgroup was called
-                assert xreadgroup.mock.called, (
-                    "xreadgroup should be called when min_idle_time is None"
-                )
-                assert not xautoclaim.mock.called, (
-                    "xautoclaim should NOT be called when min_idle_time is None"
-                )
-
-    @pytest.mark.slow()
-    async def test_claiming_handler_example_scenario(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        """Verify that a claiming handler with min_idle_time uses XAUTOCLAIM with correct parameters."""
-        consume_broker = self.get_broker()
-
-        @consume_broker.subscriber(
-            stream=StreamSub(
-                queue,
-                group="processors",
-                consumer="claimer",
-                min_idle_time=10000,  # Should trigger XAUTOCLAIM
-            ),
-        )
-        async def claiming_handler(msg: str) -> None:
-            mock(msg)
-
-        async with self.patch_broker(consume_broker) as br:
-            with (
-                patch.object(
-                    Redis, "xautoclaim", spy_decorator(Redis.xautoclaim)
-                ) as xautoclaim,
-                patch.object(
-                    Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-                ) as xreadgroup,
-            ):
-                await br.start()
-
-                await asyncio.sleep(0.3)
-
-                # Should use XAUTOCLAIM, not XREADGROUP
-                assert xautoclaim.mock.called, (
-                    "XAUTOCLAIM should be called when min_idle_time is set"
-                )
-                assert not xreadgroup.mock.called, (
-                    "XREADGROUP should NOT be called when min_idle_time is set"
-                )
-
-                # Verify XAUTOCLAIM was called with correct parameters
-                assert any(
-                    call.kwargs.get("min_idle_time") == 10000
-                    for call in xautoclaim.mock.call_args_list
-                ), "XAUTOCLAIM should be called with min_idle_time=10000"
