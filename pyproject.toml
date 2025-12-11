@@ -92,7 +92,7 @@ docs = [
     "mkdocs-material==9.7.0",
     "mkdocs-static-i18n==1.3.0",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==0.30.1",
+    "mkdocstrings[python]==1.0.0",
     "mkdocs-literate-nav==0.6.2",
     "mkdocs-git-revision-date-localized-plugin==1.5.0",
     "mike==2.1.3",                                      # versioning
@@ -105,12 +105,12 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.14.6",
+    "ruff==0.14.7",
     "bandit==1.9.2",
     "semgrep==1.144.0",
     "codespell==2.4.1",
-    "zizmor==1.16.3",
-    "mypy==1.18.2",
+    "zizmor==1.18.0",
+    "mypy==1.19.0",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -135,7 +135,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.121.3",
+    "fastapi==0.123.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
