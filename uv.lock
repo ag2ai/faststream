@@ -748,7 +748,7 @@ wheels = [
 
 [[package]]
 name = "faststream"
-version = "0.6.3"
+version = "0.6.4"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
