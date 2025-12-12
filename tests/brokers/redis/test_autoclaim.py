@@ -396,9 +396,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
             # Should have claimed all 5 messages in order
             assert len(claimed_messages_first_pass) == 5
-            assert claimed_messages_first_pass == [
-                {"data": f"msg{i}"} for i in range(5)
-            ]
+            assert claimed_messages_first_pass == [{"data": f"msg{i}"} for i in range(5)]
 
             # After reaching the end, XAUTOCLAIM should restart from "0-0"
             # and scan circularly - messages are still pending since we didn't ACK them

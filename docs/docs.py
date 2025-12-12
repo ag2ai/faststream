@@ -5,7 +5,6 @@ import subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-import mkdocs.commands.build
 import mkdocs.commands.serve
 import typer
 from create_api_docs import create_api_docs, remove_api_dir, render_navigation
