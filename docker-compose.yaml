@@ -41,6 +41,15 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  artemis:
+    image: apache/activemq-artemis:latest-alpine
+    environment:
+      ANONYMOUS_LOGIN: "true"
+    ports:
+      - 1883:1883
+    security_opt:
+      - no-new-privileges:true
+
   faststream:
     build: .
     volumes:
