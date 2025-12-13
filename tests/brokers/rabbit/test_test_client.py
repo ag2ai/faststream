@@ -16,11 +16,14 @@ from faststream.rabbit.testing import FakeProducer, _is_handler_matches, apply_p
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 
 from .basic import RabbitMemoryTestcaseConfig
+from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
 
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
+class TestTestclient(
+    PublishWithExchangeCase, RabbitMemoryTestcaseConfig, BrokerTestclientTestcase
+):
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,

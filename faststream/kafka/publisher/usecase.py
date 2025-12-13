@@ -298,11 +298,20 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
+    def __init__(
+        self,
+        config: "KafkaPublisherConfig",
+        specification: "PublisherSpecification[Any, Any]",
+    ) -> None:
+        super().__init__(config, specification)
+        self.key = config.key
+
     @overload
     async def publish(
         self,
         *messages: "SendableMessage",
         topic: str = "",
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -316,6 +325,7 @@ class BatchPublisher(LogicPublisher):
         self,
         *messages: "SendableMessage",
         topic: str = "",
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -329,6 +339,7 @@ class BatchPublisher(LogicPublisher):
         self,
         *messages: "SendableMessage",
         topic: str = "",
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -342,6 +353,7 @@ class BatchPublisher(LogicPublisher):
         self,
         *messages: "SendableMessage",
         topic: str = "",
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -356,6 +368,13 @@ class BatchPublisher(LogicPublisher):
                 Messages bodies to send.
             topic:
                 Topic where the message will be published.
+            key:
+                A single key to associate with every message in this batch. If a
+                partition is not specified and the producer uses the default
+                partitioner, messages with the same key will be routed to the
+                same partition. Must be bytes or serializable to bytes via the
+                configured key serializer. If omitted, falls back to the
+                publisher's default key (if configured).
             partition:
                 Specify a partition. If not set, the partition will be
                 selected using the configured `partitioner`
@@ -378,7 +397,7 @@ class BatchPublisher(LogicPublisher):
         """
         cmd = KafkaPublishCommand(
             *messages,
-            key=None,
+            key=key or self.key,
             topic=topic or self.topic,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
@@ -410,6 +429,7 @@ class BatchPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
+        cmd.key = cmd.key or self.key
 
         await self._basic_publish_batch(
             cmd,

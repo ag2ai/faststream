@@ -170,8 +170,8 @@ class _StreamHandlerMixin(LogicSubscriber):
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
-        if self.min_idle_time is None:
-            if self.stream_sub.group and self.stream_sub.consumer:
+        if self.stream_sub.group and self.stream_sub.consumer:
+            if self.min_idle_time is None:
                 stream_message = await self._client.xreadgroup(
                     groupname=self.stream_sub.group,
                     consumername=self.stream_sub.consumer,
@@ -179,32 +179,36 @@ class _StreamHandlerMixin(LogicSubscriber):
                     block=math.ceil(timeout * 1000),
                     count=1,
                 )
+                if not stream_message:
+                    return None
+
+                ((stream_name, ((message_id, raw_message),)),) = stream_message
             else:
-                stream_message = await self._client.xread(
-                    {self.stream_sub.name: self.last_id},
-                    block=math.ceil(timeout * 1000),
+                stream_message = await self._client.xautoclaim(
+                    name=self.stream_sub.name,
+                    groupname=self.stream_sub.group,
+                    consumername=self.stream_sub.consumer,
+                    min_idle_time=self.min_idle_time,
+                    start_id=self.autoclaim_start_id,
                     count=1,
                 )
+                (next_id, messages, _) = stream_message
+                # Update start_id for next call
+                self.autoclaim_start_id = next_id
+                if not messages:
+                    return None
+                stream_name = self.stream_sub.name.encode()
+                ((message_id, raw_message),) = messages
+        else:
+            stream_message = await self._client.xread(
+                {self.stream_sub.name: self.last_id},
+                block=math.ceil(timeout * 1000),
+                count=1,
+            )
             if not stream_message:
                 return None
 
             ((stream_name, ((message_id, raw_message),)),) = stream_message
-        else:
-            stream_message = await self._client.xautoclaim(
-                name=self.stream_sub.name,
-                groupname=self.stream_sub.group,
-                consumername=self.stream_sub.consumer,
-                min_idle_time=self.min_idle_time,
-                start_id=self.autoclaim_start_id,
-                count=1,
-            )
-            (next_id, messages, _) = stream_message
-            # Update start_id for next call
-            self.autoclaim_start_id = next_id
-            if not messages:
-                return None
-            stream_name = self.stream_sub.name.encode()
-            ((message_id, raw_message),) = messages
 
         self.last_id = message_id.decode()
 
@@ -240,8 +244,8 @@ class _StreamHandlerMixin(LogicSubscriber):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
-            if self.min_idle_time is None:
-                if self.stream_sub.group and self.stream_sub.consumer:
+            if self.stream_sub.group and self.stream_sub.consumer:
+                if self.min_idle_time is None:
                     stream_message = await self._client.xreadgroup(
                         groupname=self.stream_sub.group,
                         consumername=self.stream_sub.consumer,
@@ -249,32 +253,36 @@ class _StreamHandlerMixin(LogicSubscriber):
                         block=math.ceil(timeout * 1000),
                         count=1,
                     )
+                    if not stream_message:
+                        continue
+
+                    ((stream_name, ((message_id, raw_message),)),) = stream_message
                 else:
-                    stream_message = await self._client.xread(
-                        {self.stream_sub.name: self.last_id},
-                        block=math.ceil(timeout * 1000),
+                    stream_message = await self._client.xautoclaim(
+                        name=self.stream_sub.name,
+                        groupname=self.stream_sub.group,
+                        consumername=self.stream_sub.consumer,
+                        min_idle_time=self.min_idle_time,
+                        start_id=self.autoclaim_start_id,
                         count=1,
                     )
+                    (next_id, messages, _) = stream_message
+                    # Update start_id for next call
+                    self.autoclaim_start_id = next_id
+                    if not messages:
+                        continue
+                    stream_name = self.stream_sub.name.encode()
+                    ((message_id, raw_message),) = messages
+            else:
+                stream_message = await self._client.xread(
+                    {self.stream_sub.name: self.last_id},
+                    block=math.ceil(timeout * 1000),
+                    count=1,
+                )
                 if not stream_message:
                     continue
 
                 ((stream_name, ((message_id, raw_message),)),) = stream_message
-            else:
-                stream_message = await self._client.xautoclaim(
-                    name=self.stream_sub.name,
-                    groupname=self.stream_sub.group,
-                    consumername=self.stream_sub.consumer,
-                    min_idle_time=self.min_idle_time,
-                    start_id=self.autoclaim_start_id,
-                    count=1,
-                )
-                (next_id, messages, _) = stream_message
-                # Update start_id for next call
-                self.autoclaim_start_id = next_id
-                if not messages:
-                    continue
-                stream_name = self.stream_sub.name.encode()
-                ((message_id, raw_message),) = messages
 
             self.last_id = message_id.decode()
 

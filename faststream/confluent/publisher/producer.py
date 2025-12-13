@@ -157,7 +157,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        for msg in cmd.batch_bodies:
+        for message_position, msg in enumerate(cmd.batch_bodies):
             message, content_type = encode_message(msg, serializer=self.serializer)
 
             if content_type:
@@ -169,7 +169,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
                 final_headers = headers_to_send.copy()
 
             batch.append(
-                key=None,
+                key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
