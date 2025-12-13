@@ -39,6 +39,7 @@ class TestNatsTestCase:
         await nc.subscribe("in", cb=message_handler)
         start_time = time.time()
         
+
         await nc.publish(
             "in",
             json.dumps({
