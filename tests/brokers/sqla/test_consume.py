@@ -1,7 +1,8 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
 import json
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -55,10 +56,10 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.COMPLETED.name
         assert result["attempts_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
-        assert result["archived_at"] < datetime.now(tz=timezone.utc) and result["archived_at"] > result["first_attempt_at"]
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
     
     @pytest.mark.asyncio()
     async def test_consume_retry_allowed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -93,11 +94,11 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.RETRYABLE.name
         assert result["attempts_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert result["next_attempt_at"] > datetime.now(tz=timezone.utc) + timedelta(seconds=5)
+        assert result["next_attempt_at"] > datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None) + timedelta(seconds=5)
         assert result["acquired_at"] == None
     
     @pytest.mark.asyncio()
@@ -135,11 +136,11 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == end_state.name
         assert result["attempts_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
         
-        assert result["archived_at"] < datetime.now(tz=timezone.utc) and result["archived_at"] > result["first_attempt_at"]
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
     
     @pytest.mark.asyncio()
     async def test_consume_retry_not_allowed_prior_to_attempt(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -167,12 +168,21 @@ class TestConsume(SqlaTestcaseConfig):
 
         await broker.publish({"message": "hello1"}, queue="default1")
         async with engine.begin() as conn:
+            match engine.dialect.name:
+                case "postgresql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, first_attempt_at = NOW() "
+                        "WHERE id = 1;"
+                    )
+                case "mysql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, first_attempt_at = UTC_TIMESTAMP(3) "
+                        "WHERE id = 1;"
+                    )
             result = await conn.execute(
-                text(
-                    "UPDATE message "
-                    "SET attempts_count = 1, first_attempt_at = NOW() "
-                    "WHERE id = 1;"
-                )
+                stmt
             )
         await broker.start()
 
@@ -187,11 +197,11 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 2
-        assert result["created_at"] < datetime.now(tz=timezone.utc)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] > result["first_attempt_at"]
         
-        assert result["archived_at"] < datetime.now(tz=timezone.utc) and result["archived_at"] > result["first_attempt_at"]
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
     
     @pytest.mark.asyncio()
     async def test_consume_full_retry_flow(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -232,8 +242,8 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 3
-        assert result["created_at"] < datetime.now(tz=timezone.utc)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
@@ -295,9 +305,9 @@ class TestConsume(SqlaTestcaseConfig):
             nonlocal messages
             messages.append(msg["message"])
 
-        await broker.publish({"message": "hello1"}, queue="default1", next_attempt_at=datetime.now() - timedelta(seconds=10))
-        await broker.publish({"message": "hello2"}, queue="default1", next_attempt_at=datetime.now() + timedelta(seconds=10))        
-        await broker.publish({"message": "hello3"}, queue="default1", next_attempt_at=datetime.now() - timedelta(seconds=20))        
+        await broker.publish({"message": "hello1"}, queue="default1", next_attempt_at=datetime.now(tz=timezone.utc) - timedelta(seconds=10))
+        await broker.publish({"message": "hello2"}, queue="default1", next_attempt_at=datetime.now(tz=timezone.utc) + timedelta(seconds=10))        
+        await broker.publish({"message": "hello3"}, queue="default1", next_attempt_at=datetime.now(tz=timezone.utc) - timedelta(seconds=20))        
         await broker.start()
 
         await asyncio.sleep(0.5)
@@ -521,3 +531,116 @@ class TestConsume(SqlaTestcaseConfig):
             result = await conn.execute(text("SELECT * FROM message_archive WHERE state = 'COMPLETED';"))
         result = result.mappings().all()
         assert len(result) == 8
+
+    @pytest.mark.asyncio()
+    async def test_consume_fetch_intervals(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        attempted = []
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=4,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=0,
+            fetch_batch_size=4,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=10,
+        )
+        async def handler(msg: Any) -> None:
+            nonlocal attempted
+            attempted.append(msg)
+        
+        for idx in range(7):
+            await broker.publish({"message": f"hello{idx+1}"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+        await broker.publish({"message": f"hello{idx+1}"}, queue="default1")
+        await asyncio.sleep(0.1)
+
+        assert len(attempted) == 7
+    
+    @pytest.mark.asyncio()
+    async def test_consume_release_stuck(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        broker = self.get_broker(engine=engine)
+
+        attempted = []
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=1,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=0, max_total_delay_seconds=None, max_attempts=2),
+            max_fetch_interval=0,
+            min_fetch_interval=0,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=60,
+        )
+        async def handler(msg: Any) -> None:
+            nonlocal attempted
+            attempted.append(msg)
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.publish({"message": "hello2"}, queue="default1")
+        async with engine.begin() as conn:
+            match engine.dialect.name:
+                case "postgresql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, "
+                        "first_attempt_at = NOW() - INTERVAL '100 seconds', "
+                        "acquired_at = NOW() - INTERVAL '100 seconds', "
+                        "state = 'PROCESSING' "
+                        "WHERE id = 1;"
+                    )
+                case "mysql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, "
+                        "first_attempt_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 100 SECOND), "
+                        "acquired_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 100 SECOND), "
+                        "state = 'PROCESSING' "
+                        "WHERE id = 1;"
+                    )
+            await conn.execute(
+                stmt
+            )
+
+            match engine.dialect.name:
+                case "postgresql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, "
+                        "first_attempt_at = NOW() - INTERVAL '10 seconds', "
+                        "acquired_at = NOW() - INTERVAL '10 seconds', "
+                        "state = 'PROCESSING' "
+                        "WHERE id = 2;"
+                    )
+                case "mysql":
+                    stmt = text(
+                        "UPDATE message "
+                        "SET attempts_count = 1, "
+                        "first_attempt_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 10 SECOND), "
+                        "acquired_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 10 SECOND), "
+                        "state = 'PROCESSING' "
+                        "WHERE id = 2;"
+                    )
+            await conn.execute(
+                stmt
+            )
+
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+
+        assert len(attempted) == 1

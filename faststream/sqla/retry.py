@@ -63,7 +63,7 @@ class RetryStrategyTemplate(ABC):
     ) -> bool:
         if self.max_attempts and attempts_count > self.max_attempts:
             return False
-        if self.max_total_delay_seconds and datetime.now(timezone.utc) - first_attempt_at > timedelta(
+        if self.max_total_delay_seconds and datetime.now(tz=timezone.utc).replace(tzinfo=None) - first_attempt_at > timedelta(
             seconds=self.max_total_delay_seconds
         ):
             return False

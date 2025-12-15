@@ -6,6 +6,8 @@ from faststream.response.publish_type import PublishType
 from faststream.response.response import PublishCommand
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from faststream.sqla.exceptions import DatetimeMissingTimezoneException
+
 
 class SqlaPublishCommand(PublishCommand):
     def __init__(
@@ -16,12 +18,17 @@ class SqlaPublishCommand(PublishCommand):
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
+        if next_attempt_at and next_attempt_at.tzinfo is None:
+            raise DatetimeMissingTimezoneException
+
         super().__init__(
             body=message,
             destination=queue,
             _publish_type=PublishType.PUBLISH,
         )
         self.next_attempt_at = next_attempt_at
+        if self.next_attempt_at:
+            self.next_attempt_at = self.next_attempt_at.replace(tzinfo=None)
         self.connection = connection
         
     def add_headers(

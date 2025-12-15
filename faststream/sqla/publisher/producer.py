@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message.utils import encode_message
-from faststream.sqla.client import SqlaClient
+from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
 from faststream.sqla.response import SqlaPublishCommand
 
 
@@ -42,7 +42,7 @@ class SqlaProducer(SqlaProducerProto):
         # parser: Optional["CustomCallable"],
         # decoder: Optional["CustomCallable"],
     ) -> None:
-        self.client = SqlaClient(engine)
+        self.client = create_sqla_client(engine)
 
         self.serializer: SerializerProto | None = None
 

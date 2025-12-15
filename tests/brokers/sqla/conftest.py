@@ -1,50 +1,44 @@
-from typing import Any, AsyncGenerator, Generator
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import os
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import (
     BigInteger,
     Column,
     DateTime,
     Enum,
-    Index,
     LargeBinary,
     MetaData,
     SmallInteger,
     String,
     Table,
-    bindparam,
-    delete,
     func,
-    insert,
-    or_,
-    select,
     text,
-    update,
 )
+from sqlalchemy.dialects import mysql, postgresql
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from faststream.sqla.message import SqlaMessageState
 
-from dataclasses import dataclass
 
-import pytest
+@pytest_asyncio.fixture(params=["postgresql", "mysql"])
+async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, None]:
+    backend = request.param
+    match backend:
+        case "postgresql":
+            url = "postgresql+asyncpg://broker:brokerpass@localhost:5432/broker"
+        case "mysql":
+            url = "mysql+asyncmy://broker:brokerpass@localhost:3306/broker"
+        case _:
+            raise ValueError
 
+    engine = create_async_engine(url)
 
-@dataclass
-class Settings:
-    url: str = "postgresql+asyncpg://broker:brokerpass@localhost:5432/broker"
-
-
-@pytest.fixture(scope="session")
-def settings() -> Settings:
-    return Settings()
-
-
-@pytest_asyncio.fixture
-async def engine(settings: Settings) -> AsyncGenerator[AsyncEngine, None]:
-    engine = create_async_engine(settings.url)
     try:
         yield engine
     finally:
@@ -53,9 +47,17 @@ async def engine(settings: Settings) -> AsyncGenerator[AsyncEngine, None]:
 
 @pytest_asyncio.fixture
 async def recreate_tables(engine: AsyncEngine) -> None:
+    match engine.dialect.name:
+        case "postgresql":
+            timestamp_type = postgresql.TIMESTAMP(precision=3)
+        case "mysql":
+            timestamp_type = mysql.TIMESTAMP(fsp=3)
+        case _:
+            raise ValueError
+
     metadata = MetaData()
 
-    Table(
+    message = Table(
         "message",
         metadata,
         Column("id", BigInteger, primary_key=True),
@@ -68,21 +70,22 @@ async def recreate_tables(engine: AsyncEngine) -> None:
             index=True,
             server_default=SqlaMessageState.PENDING.name,
         ),
-        Column("attempts_count", SmallInteger, nullable=False, server_default="0"),
-        Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
-        Column("first_attempt_at", DateTime(timezone=True)),
+        Column("attempts_count", SmallInteger, nullable=False, default=0),
+        Column("created_at", timestamp_type, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
+        Column("first_attempt_at", timestamp_type),
         Column(
             "next_attempt_at",
-            DateTime(timezone=True),
+            timestamp_type,
             nullable=False,
-            server_default=func.now(),
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
             index=True,
         ),
-        Column("last_attempt_at", DateTime(timezone=True)),
-        Column("acquired_at", DateTime(timezone=True)),
+        Column("last_attempt_at", timestamp_type),
+        Column("acquired_at", timestamp_type),
     )
 
-    Table(
+
+    message_archive = Table(
         "message_archive",
         metadata,
         Column("id", BigInteger, primary_key=True),
@@ -90,19 +93,12 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         Column("payload", LargeBinary, nullable=False),
         Column("state", Enum(SqlaMessageState), nullable=False, index=True),
         Column("attempts_count", SmallInteger, nullable=False),
-        Column("created_at", DateTime(timezone=True), nullable=False),
-        Column("first_attempt_at", DateTime(timezone=True)),
-        Column("last_attempt_at", DateTime(timezone=True)),
-        Column(
-            "archived_at",
-            DateTime(timezone=True),
-            nullable=False,
-            server_default=func.now(),
-        ),
+        Column("created_at", timestamp_type, nullable=False),
+        Column("first_attempt_at", timestamp_type),
+        Column("last_attempt_at", timestamp_type),
+        Column("archived_at", timestamp_type, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
     )
 
     async with engine.begin() as conn:
-        await conn.execute(text("DROP TABLE IF EXISTS message CASCADE"))
-        await conn.execute(text("DROP TABLE IF EXISTS message_archive CASCADE"))
+        await conn.run_sync(metadata.drop_all, checkfirst=True)
         await conn.run_sync(metadata.create_all)
-        

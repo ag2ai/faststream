@@ -17,7 +17,7 @@ from faststream.sqla.retry import (
 def check_allow_attempt(
     strategy: RetryStrategyTemplate, max_attempts: int, max_total_delay_seconds: int
 ) -> None:
-    first_attempt_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    first_attempt_at = datetime(2024, 1, 1, 12, 0, 0)
 
     with freeze_time(first_attempt_at):
         assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=1) is True

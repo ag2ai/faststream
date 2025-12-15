@@ -83,7 +83,8 @@ class SqlaMessage(StreamMessage):
         self.acquired_at = None
 
     def _allow_attempt(self) -> bool:
-        self.last_attempt_at = datetime.now(timezone.utc)
+        self.last_attempt_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        print('last_attempt_at', self.last_attempt_at, "++++++++++++++++++++++++++++")
         if self.attempts_count == 1:
             self.first_attempt_at = self.last_attempt_at
         if not self.retry_strategy.allow_attempt(

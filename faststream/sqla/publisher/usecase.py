@@ -36,6 +36,10 @@ class LogicPublisher(PublisherUsecase):
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
+        """
+        Args:
+            next_attempt_at: datetime with timezone
+        """
         cmd = SqlaPublishCommand(
             message,
             queue=queue,

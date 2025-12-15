@@ -9,7 +9,7 @@ from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.specification import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream.sqla.client import SqlaClient
+from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 from faststream.sqla.message import SqlaMessage
 from faststream.sqla.parser import SqlaParser
@@ -34,7 +34,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
-        self._repo = SqlaClient(config.engine)
+        self._repo = create_sqla_client(config.engine)
         self._queues = config.queues
         self._max_fetch_interval = config.max_fetch_interval
         self._min_fetch_interval = config.min_fetch_interval

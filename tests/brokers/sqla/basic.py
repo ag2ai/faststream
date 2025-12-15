@@ -27,7 +27,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from faststream.sqla.broker.broker import SqlaBroker
 from faststream.sqla.message import SqlaMessageState
 from tests.brokers.base.basic import BaseTestcaseConfig
-from tests.brokers.sqla.conftest import Settings
 
 
 class SqlaTestcaseConfig(BaseTestcaseConfig):
