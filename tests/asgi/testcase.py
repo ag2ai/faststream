@@ -241,9 +241,14 @@ class AsgiTestcase:
 
         async with self.get_test_broker(broker):
             with TestClient(app) as client:
-                response = client.options("/test", headers={"Origin": "http://example.com"})
+                response = client.options(
+                    "/test", headers={"Origin": "http://example.com"}
+                )
                 assert response.status_code == 204
-                assert response.headers["access-control-allow-origin"] == "http://example.com"
+                assert (
+                    response.headers["access-control-allow-origin"]
+                    == "http://example.com"
+                )
                 assert "access-control-allow-methods" in response.headers
 
     def test_asyncapi_pure_asgi(self) -> None:
@@ -255,4 +260,3 @@ class AsgiTestcase:
             response = client.get("/")
             assert response.status_code == 200
             assert response.text.strip().startswith("<!DOCTYPE html>")
-            
