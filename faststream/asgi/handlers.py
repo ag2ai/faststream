@@ -40,7 +40,56 @@ class HttpHandler:
         self.fd_config = fd_config or FastDependsConfig()
         self.logger: LoggerProto | None = None
 
+    def _get_cors_headers(self, scope: "Scope") -> dict[str, str]:
+        headers: dict[str, str] = {}
+        
+        origin = None
+        for key, value in scope.get("headers", []):
+            if key.decode("latin-1").lower() == "origin":
+                origin = value.decode("latin-1")
+                break
+        
+        if origin:
+            headers["access-control-allow-origin"] = origin
+            headers["access-control-allow-methods"] = ", ".join(self.methods) or "OPTIONS"
+            headers["access-control-allow-headers"] = "Content-Type"
+        
+        return headers
+
+    def _merge_cors_headers(self, response: AsgiResponse, scope: "Scope") -> AsgiResponse:
+        cors_headers = self._get_cors_headers(scope)
+        if not cors_headers:
+            return response
+        
+        existing_keys = set()
+        existing_headers = {}
+        if response.raw_headers:
+            for key_bytes, value_bytes in response.raw_headers:
+                key = key_bytes.decode("latin-1").lower()
+                existing_keys.add(key)
+                existing_headers[key] = value_bytes.decode("latin-1")
+        
+        merged_cors = {
+            k: v for k, v in cors_headers.items() if k not in existing_keys
+        }
+        merged_headers = {**merged_cors, **existing_headers}
+        
+        return AsgiResponse(
+            body=response.body,
+            status_code=response.status_code,
+            headers=merged_headers,
+        )
+
     async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
+        if scope["method"] == "OPTIONS":
+            response = AsgiResponse(
+                body=b"",
+                status_code=204,
+                headers=self._get_cors_headers(scope),
+            )
+            await response(scope, receive, send)
+            return
+
         if scope["method"] not in self.methods:
             response: ASGIApp = _get_method_not_allowed_response(self.methods)
 
@@ -74,6 +123,10 @@ class HttpHandler:
                     response = AsgiResponse(
                         body=b"Internal Server Error", status_code=500
                     )
+        
+        if isinstance(response, AsgiResponse):
+            response = self._merge_cors_headers(response, scope)
+        
         await response(scope, receive, send)
 
     def update_fd_config(self, config: FastDependsConfig) -> None:
