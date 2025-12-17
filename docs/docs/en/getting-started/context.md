@@ -58,6 +58,10 @@ You can store your own objects in the `Context`.
 
 ### Global
 
+Global context fields can be set at both the application-level and the broker-level.
+
+#### Application-level
+
 To declare an application-level context field, you need to call the `context.set_global` method with a key to indicate where the object will be placed in the context.
 
 === "AIOKafka"
@@ -131,6 +135,63 @@ To remove a field from the context use the `reset_global` method:
 ```python
 context.reset_global("my_key")
 ```
+
+#### Broker-level
+
+There are cases when you may need to use broker without using the `FastStream` application class.
+In such cases, the context can be set separately for the broker by passing it through the constructor.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/kafka/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/confluent/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/rabbit/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/nats/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/redis/custom_broker_context.py [ln:1-8] !}
+    ```
+
+At the same time, access to the context remains unchanged.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/kafka/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/confluent/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/rabbit/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/nats/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/redis/custom_broker_context.py [ln:10-14] !}
+    ```
 
 ### Local
 
