@@ -221,6 +221,31 @@ class AsgiTestcase:
                 assert response.status_code == 422
                 assert response.text == "Validation error"
 
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("decorator", "client_method"),
+        (
+            pytest.param(get, "get", id="get"),
+            pytest.param(post, "post", id="post"),
+        ),
+    )
+    async def test_options_request(
+        self, decorator: Callable[..., ASGIApp], client_method: str
+    ) -> None:
+        @decorator
+        async def some_handler(scope: Scope) -> AsgiResponse:
+            return AsgiResponse(body=b"test", status_code=200)
+
+        broker = self.get_broker()
+        app = AsgiFastStream(broker, asgi_routes=[("/test", some_handler)])
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.options("/test", headers={"Origin": "http://example.com"})
+                assert response.status_code == 204
+                assert response.headers["access-control-allow-origin"] == "http://example.com"
+                assert "access-control-allow-methods" in response.headers
+
     def test_asyncapi_pure_asgi(self) -> None:
         broker = self.get_broker()
 
@@ -230,3 +255,4 @@ class AsgiTestcase:
             response = client.get("/")
             assert response.status_code == 200
             assert response.text.strip().startswith("<!DOCTYPE html>")
+            
