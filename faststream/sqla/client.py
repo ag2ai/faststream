@@ -137,7 +137,6 @@ class SqlaPostgresClient:
         limit: int,
     ) -> list[SqlaMessage]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        print('now', now, "++++++++++++++++++++++++++++")
         ready = (
             select(*_MESSAGE_SELECT_COLUMNS)
             .where(
@@ -160,8 +159,14 @@ class SqlaPostgresClient:
                 state=SqlaMessageState.PROCESSING,
                 attempts_count=message.c.attempts_count + 1,
                 acquired_at=now,
-                last_attempt_at=now,
-                first_attempt_at=case((message.c.attempts_count == 0, now), else_=message.c.first_attempt_at),
+                first_attempt_at=case(
+                    (message.c.attempts_count == 0, now),
+                    else_=message.c.first_attempt_at
+                ),
+                last_attempt_at=case(
+                    (message.c.attempts_count == 0, now),
+                    else_=message.c.last_attempt_at
+                ),
             )
             .returning(message)
             .cte("updated")
@@ -178,6 +183,7 @@ class SqlaPostgresClient:
             {
                 "message_id": message.id,
                 "state": message.state,
+                "attempts_count": message.attempts_count,
                 "first_attempt_at": message.first_attempt_at,
                 "next_attempt_at": message.next_attempt_at,
                 "last_attempt_at": message.last_attempt_at,
@@ -282,10 +288,13 @@ class SqlaMySqlClient(SqlaPostgresClient):
                     state=SqlaMessageState.PROCESSING,
                     attempts_count=message.c.attempts_count + 1,
                     acquired_at=now,
-                    last_attempt_at=now,
                     first_attempt_at=case(
-                        (message.c.attempts_count == 0, now),
+                        (message.c.attempts_count == 1, now), # diff from postgres
                         else_=message.c.first_attempt_at,
+                    ),
+                    last_attempt_at=case(
+                        (message.c.attempts_count == 1, now), # diff from postgres
+                        else_=message.c.last_attempt_at,
                     ),
                 )
             )

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import enum
-from typing import Any, Callable, Coroutine
+from typing import Any, Callable, Coroutine, cast
 
 from faststream.message.message import StreamMessage
 from faststream.sqla.retry import RetryStrategyProto
@@ -34,7 +34,7 @@ class SqlaMessage(StreamMessage):
         payload: bytes,
         attempts_count: int,
         created_at: datetime,
-        first_attempt_at: datetime | None,
+        first_attempt_at: datetime,
         next_attempt_at: datetime | None,
         last_attempt_at: datetime | None,
         acquired_at: datetime | None,
@@ -81,18 +81,20 @@ class SqlaMessage(StreamMessage):
     def _mark_pending(self) -> None:
         self.state = SqlaMessageState.PENDING
         self.acquired_at = None
+        self.attempts_count -= 1
 
     def _allow_attempt(self) -> bool:
-        self.last_attempt_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        print('last_attempt_at', self.last_attempt_at, "++++++++++++++++++++++++++++")
-        if self.attempts_count == 1:
-            self.first_attempt_at = self.last_attempt_at
         if not self.retry_strategy.allow_attempt(
             first_attempt_at=self.first_attempt_at,
             attempts_count=self.attempts_count,
         ):
             self._mark_failed()
+            self.attempts_count -= 1
             return False
+        
+        if self.attempts_count > 1: # otherwise it's set on fetch
+            self.last_attempt_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        
         return True
 
     async def _update_state_if_not_locked(self, method: Callable[[], Coroutine[Any, Any, None]]) -> None:
@@ -110,7 +112,7 @@ class SqlaMessage(StreamMessage):
         if not (
             next_attempt_at := self.retry_strategy.get_next_attempt_at(
                 first_attempt_at=self.first_attempt_at,
-                last_attempt_at=self.last_attempt_at,
+                last_attempt_at=cast(datetime, self.last_attempt_at),
                 attempts_count=self.attempts_count,
             )
         ):

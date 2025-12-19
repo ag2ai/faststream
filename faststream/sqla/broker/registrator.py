@@ -114,6 +114,11 @@ class SqlaRegistrator(Registrator[Any, Any]):
             terminations) because attempts_count is incremented and retry_strategy
             is consulted with prior to processing attempt.
         
+        Warning:
+            If message processing began but couldn't complete due to a crash or due 
+            to processing lasting longer that the graceful shutdown timeout,
+            `last_attempt_at` will not be persisted to the database.
+        
         SQL queries:
             Fetch:
                 WITH ready AS

@@ -153,55 +153,52 @@ class TestConsume(SqlaTestcaseConfig):
             queues=["default1"],
             max_workers=1,
             retry_strategy=NoRetryStrategy(),
-            max_fetch_interval=10,
-            min_fetch_interval=10,
+            max_fetch_interval=0.1,
+            min_fetch_interval=0.1,
             fetch_batch_size=5,
             overfetch_factor=1,
             flush_interval=0.1,
             release_stuck_interval=10,
-            graceful_shutdown_timeout=10,
-            release_stuck_timeout=10,
+            graceful_shutdown_timeout=0.1,
+            release_stuck_timeout=1,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
             attempted.append(msg)
+            await asyncio.sleep(1)
 
         await broker.publish({"message": "hello1"}, queue="default1")
-        async with engine.begin() as conn:
-            match engine.dialect.name:
-                case "postgresql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, first_attempt_at = NOW() "
-                        "WHERE id = 1;"
-                    )
-                case "mysql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, first_attempt_at = UTC_TIMESTAMP(3) "
-                        "WHERE id = 1;"
-                    )
-            result = await conn.execute(
-                stmt
-            )
         await broker.start()
-
+        await asyncio.sleep(0.5)
+        await broker.stop() # stop with short graceful_shutdown_timeout
+        assert len(attempted) == 1
         await asyncio.sleep(0.5)
 
-        assert len(attempted) == 0
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message;"))
+        
+        result = result.mappings().one()
+        assert result["state"] == SqlaMessageState.PROCESSING.name
+        assert result["attempts_count"] == 1
+        
+        await broker.start()
+        await asyncio.sleep(0.5)
 
+        assert len(attempted) == 1
+        
         async with engine.begin() as conn:
             result = await conn.execute(text("SELECT * FROM message_archive;"))
+        
         result = result.mappings().one()
         assert result["queue"] == "default1"
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
-        assert result["attempts_count"] == 2
+        assert result["attempts_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] > result["first_attempt_at"]
+        assert result["first_attempt_at"] > result["created_at"]
+        assert result["last_attempt_at"] > result["created_at"]
         
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
     
     @pytest.mark.asyncio()
     async def test_consume_full_retry_flow(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -244,7 +241,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert result["attempts_count"] == 3
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] > result["first_attempt_at"]
+        assert result["last_attempt_at"] > result["first_attempt_at"] and result["last_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
 
     @pytest.mark.asyncio()
     async def test_consume_by_queues(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -325,7 +322,7 @@ class TestConsume(SqlaTestcaseConfig):
             retry_strategy=NoRetryStrategy(),
             max_fetch_interval=10,
             min_fetch_interval=10,
-            fetch_batch_size=5,
+            fetch_batch_size=4,
             overfetch_factor=1,
             flush_interval=0.01,
             release_stuck_interval=10,
@@ -338,15 +335,34 @@ class TestConsume(SqlaTestcaseConfig):
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.publish({"message": "hello2"}, queue="default1")
+        await broker.publish({"message": "hello3"}, queue="default1")
+        await broker.publish({"message": "hello4"}, queue="default1")
         await broker.start()
         await asyncio.wait_for(event.wait(), timeout=self.timeout)
         await broker.stop()
         
         async with engine.begin() as conn:
-            result = await conn.execute(text("SELECT * FROM message_archive;"))
-        result = result.mappings().all()
-        assert len(result) == 2
-        assert result[0]["state"] == SqlaMessageState.COMPLETED.name
+            result_1 = await conn.execute(text("SELECT * FROM message_archive;"))
+            result_2 = await conn.execute(text("SELECT * FROM message;"))
+        
+        result_1 = result_1.mappings().all()
+        assert len(result_1) == 2
+        assert result_1[0]["state"] == SqlaMessageState.COMPLETED.name
+        assert result_1[0]["attempts_count"] == 1
+        assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
+        assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
+        assert result_1[0]["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
+
+        result_2 = result_2.mappings().all()
+        assert len(result_2) == 2
+        assert result_2[0]["state"] == SqlaMessageState.PENDING.name
+        assert result_2[0]["attempts_count"] == 0
+        assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result_2[0]["acquired_at"] == None
+        assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
+        assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
+        assert result_1[0]["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
