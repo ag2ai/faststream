@@ -105,12 +105,12 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.14.8",
+    "ruff==0.14.9",
     "bandit==1.9.2",
-    "semgrep==1.145.0",
+    "semgrep==1.145.2",
     "codespell==2.4.1",
     "zizmor==1.18.0",
-    "mypy==1.19.0",
+    "mypy==1.19.1",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -135,7 +135,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.124.0",
+    "fastapi==0.124.4",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
