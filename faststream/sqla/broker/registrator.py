@@ -27,8 +27,8 @@ class SqlaRegistrator(Registrator[Any, Any]):
         overfetch_factor: float,
         flush_interval: float,
         release_stuck_interval: float,
+        release_stuck_timeout: float,
         graceful_shutdown_timeout: float,
-        release_stuck_timeout: int,
         ack_policy: AckPolicy = AckPolicy.NACK_ON_ERROR,
     ) -> Any:
         """

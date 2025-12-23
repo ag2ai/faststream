@@ -23,8 +23,8 @@ def create_subscriber(
     overfetch_factor: float,
     flush_interval: float,
     release_stuck_interval: float,
+    release_stuck_timeout: float,
     graceful_shutdown_timeout: float,
-    release_stuck_timeout: int,
     config: "SqlaBrokerConfig",
     ack_policy: AckPolicy,
 ) -> Any:

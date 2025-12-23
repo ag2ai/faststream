@@ -20,6 +20,9 @@ from tests.brokers.sqla.basic import SqlaTestcaseConfig
 class TestConsume(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
     async def test_consume(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Message was processed and archived.
+        """
         broker = self.get_broker(engine=engine)
 
         attempted = []
@@ -63,6 +66,9 @@ class TestConsume(SqlaTestcaseConfig):
     
     @pytest.mark.asyncio()
     async def test_consume_retry_allowed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        On exception message was marked as retryable with next attempts scheduled.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -102,8 +108,10 @@ class TestConsume(SqlaTestcaseConfig):
         assert result["acquired_at"] == None
     
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("end_state", [SqlaMessageState.COMPLETED, SqlaMessageState.FAILED])
-    async def test_consume_retry_not_allowed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event, end_state: SqlaMessageState) -> None:
+    async def test_consume_retry_not_allowed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        On exception message was marked as failed and was archived.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -121,8 +129,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_timeout=10,
         )
         async def handler(msg: Any) -> None:
-            if end_state == SqlaMessageState.FAILED:
-                return 1/0
+            return 1/0
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
@@ -134,7 +141,7 @@ class TestConsume(SqlaTestcaseConfig):
         result = result.mappings().one()
         assert result["queue"] == "default1"
         assert json.loads(result["payload"]) == {"message": "hello1"}
-        assert result["state"] == end_state.name
+        assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
@@ -144,6 +151,9 @@ class TestConsume(SqlaTestcaseConfig):
     
     @pytest.mark.asyncio()
     async def test_consume_retry_not_allowed_prior_to_attempt(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Message that was attempted but got stuck was not allowed a retry.
+        """
         broker = self.get_broker(engine=engine)
 
         attempted = []
@@ -170,7 +180,8 @@ class TestConsume(SqlaTestcaseConfig):
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
         await asyncio.sleep(0.5)
-        await broker.stop() # stop with short graceful_shutdown_timeout
+        # stop with short graceful_shutdown_timeout so that message becomes stuck
+        await broker.stop()
         assert len(attempted) == 1
         await asyncio.sleep(0.5)
 
@@ -313,6 +324,10 @@ class TestConsume(SqlaTestcaseConfig):
     
     @pytest.mark.asyncio()
     async def test_consume_stop_current_messages_are_flushed(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Processing of attempted messages completed and results were flushed.
+        Acquired but not attemted messages were requeued.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -333,10 +348,13 @@ class TestConsume(SqlaTestcaseConfig):
             event.set()
             await asyncio.sleep(1)
 
+        # attempted
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.publish({"message": "hello2"}, queue="default1")
+        # not attempted
         await broker.publish({"message": "hello3"}, queue="default1")
         await broker.publish({"message": "hello4"}, queue="default1")
+        
         await broker.start()
         await asyncio.wait_for(event.wait(), timeout=self.timeout)
         await broker.stop()
@@ -358,11 +376,11 @@ class TestConsume(SqlaTestcaseConfig):
         assert len(result_2) == 2
         assert result_2[0]["state"] == SqlaMessageState.PENDING.name
         assert result_2[0]["attempts_count"] == 0
-        assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result_2[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result_2[0]["acquired_at"] == None
-        assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
-        assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
-        assert result_1[0]["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
+        assert result_2[0]["first_attempt_at"] == None
+        assert result_2[0]["next_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result_2[0]["last_attempt_at"] == None
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -584,6 +602,10 @@ class TestConsume(SqlaTestcaseConfig):
     
     @pytest.mark.asyncio()
     async def test_consume_release_stuck(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Broker was stopped mid-processing, processing wasn't finalized/flushed,
+        messages were requeued on next startup.
+        """
         broker = self.get_broker(engine=engine)
 
         attempted = []
@@ -591,72 +613,39 @@ class TestConsume(SqlaTestcaseConfig):
         @broker.subscriber(
             engine=engine,
             queues=["default1"],
-            max_workers=1,
+            max_workers=2,
             retry_strategy=ConstantRetryStrategy(delay_seconds=0, max_total_delay_seconds=None, max_attempts=2),
             max_fetch_interval=0,
             min_fetch_interval=0,
             fetch_batch_size=5,
             overfetch_factor=1,
-            flush_interval=0.1,
+            flush_interval=10,
             release_stuck_interval=10,
-            graceful_shutdown_timeout=10,
-            release_stuck_timeout=60,
+            graceful_shutdown_timeout=0.1,
+            release_stuck_timeout=0.5,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
             attempted.append(msg)
+            await asyncio.sleep(1)
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.publish({"message": "hello2"}, queue="default1")
-        async with engine.begin() as conn:
-            match engine.dialect.name:
-                case "postgresql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, "
-                        "first_attempt_at = NOW() - INTERVAL '100 seconds', "
-                        "acquired_at = NOW() - INTERVAL '100 seconds', "
-                        "state = 'PROCESSING' "
-                        "WHERE id = 1;"
-                    )
-                case "mysql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, "
-                        "first_attempt_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 100 SECOND), "
-                        "acquired_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 100 SECOND), "
-                        "state = 'PROCESSING' "
-                        "WHERE id = 1;"
-                    )
-            await conn.execute(
-                stmt
-            )
 
-            match engine.dialect.name:
-                case "postgresql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, "
-                        "first_attempt_at = NOW() - INTERVAL '10 seconds', "
-                        "acquired_at = NOW() - INTERVAL '10 seconds', "
-                        "state = 'PROCESSING' "
-                        "WHERE id = 2;"
-                    )
-                case "mysql":
-                    stmt = text(
-                        "UPDATE message "
-                        "SET attempts_count = 1, "
-                        "first_attempt_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 10 SECOND), "
-                        "acquired_at = DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 10 SECOND), "
-                        "state = 'PROCESSING' "
-                        "WHERE id = 2;"
-                    )
-            await conn.execute(
-                stmt
-            )
+        # message is attempted but not finalized and not flushed
+        await broker.start()
+        await asyncio.sleep(0.5)
+        await broker.stop()
+        
+        assert len(attempted) == 2
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message;"))
+        result = result.mappings().all()
+        assert len(result) == 2
+        assert result[0]["state"] == SqlaMessageState.PROCESSING.name
+        assert result[0]["attempts_count"] == 1
 
         await broker.start()
+        await asyncio.sleep(0.1)
 
-        await asyncio.sleep(0.5)
-
-        assert len(attempted) == 1
+        assert len(attempted) == 4

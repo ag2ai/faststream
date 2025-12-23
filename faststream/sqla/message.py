@@ -82,6 +82,10 @@ class SqlaMessage(StreamMessage):
         self.state = SqlaMessageState.PENDING
         self.acquired_at = None
         self.attempts_count -= 1
+        
+        if self.attempts_count == 0: # these were set on fetch
+            self.first_attempt_at = None 
+            self.last_attempt_at = None
 
     def _allow_attempt(self) -> bool:
         if not self.retry_strategy.allow_attempt(

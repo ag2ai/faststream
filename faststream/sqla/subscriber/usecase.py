@@ -36,14 +36,16 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
 
         self._repo = create_sqla_client(config.engine)
         self._queues = config.queues
-        self._max_fetch_interval = config.max_fetch_interval
-        self._min_fetch_interval = config.min_fetch_interval
-        self._fetch_batch_size = config.fetch_batch_size
-        self._awaiting_consume_queue_capacity = int(config.fetch_batch_size * config.overfetch_factor)
-        self._flush_interval = config.flush_interval
-        self._release_stuck_interval = config.release_stuck_interval
         self._worker_count = config.max_workers
         self._retry_strategy = config.retry_strategy
+        
+        self._max_fetch_interval = config.max_fetch_interval
+        self._min_fetch_interval = config.min_fetch_interval
+        self._release_stuck_interval = config.release_stuck_interval
+        self._flush_interval = config.flush_interval
+        
+        self._fetch_batch_size = config.fetch_batch_size
+        self._awaiting_consume_queue_capacity = int(config.fetch_batch_size * config.overfetch_factor)
         self._graceful_shutdown_timeout = config.graceful_shutdown_timeout
         self._release_stuck_timeout = config.release_stuck_timeout
 
