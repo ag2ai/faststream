@@ -18,17 +18,9 @@ class RetryStrategyProto(Protocol):
     ) -> datetime | None:
         ...
 
-    def allow_attempt(
-        self,
-        *,
-        first_attempt_at: datetime,
-        attempts_count: int,
-    ) -> bool:
-        ...
-
 
 @dataclass(kw_only=True)
-class RetryStrategyTemplate(ABC):
+class RetryStrategyTemplate(ABC, RetryStrategyProto):
     max_total_delay_seconds: float | None
     max_attempts: int | None
 
@@ -54,20 +46,6 @@ class RetryStrategyTemplate(ABC):
         ):
             return None
         return next_attempt_at
-
-    def allow_attempt(
-        self,
-        *,
-        first_attempt_at: datetime,
-        attempts_count: int,
-    ) -> bool:
-        if self.max_attempts and attempts_count > self.max_attempts:
-            return False
-        if self.max_total_delay_seconds and datetime.now(tz=timezone.utc).replace(tzinfo=None) - first_attempt_at > timedelta(
-            seconds=self.max_total_delay_seconds
-        ):
-            return False
-        return True
 
 
 @dataclass(kw_only=True)
@@ -108,7 +86,7 @@ class ExponentialBackoffRetryStrategy(RetryStrategyTemplate):
 
 
 @dataclass(kw_only=True)
-class JitterRetryStrategy(RetryStrategyTemplate):
+class ConstantWithJitterRetryStrategy(RetryStrategyTemplate):
     base_delay_seconds: float
     jitter_seconds: float
     _random: random.Random = field(default_factory=random.Random)
@@ -122,7 +100,7 @@ class JitterRetryStrategy(RetryStrategyTemplate):
 
 
 @dataclass(kw_only=True)
-class ExponentialBackoffJitterRetryStrategy(RetryStrategyTemplate):
+class ExponentialBackoffWithJitterRetryStrategy(RetryStrategyTemplate):
     initial_delay_seconds: float
     multiplier: float = 2.0
     max_delay_seconds: float | None = None
@@ -154,13 +132,3 @@ class NoRetryStrategy(RetryStrategyProto):
         if attempts_count >= self.max_attempts:
             return None
         raise ValueError
-
-    def allow_attempt(
-        self,
-        *,
-        first_attempt_at: datetime,
-        attempts_count: int,
-    ) -> bool:
-        if attempts_count > self.max_attempts:
-            return False
-        return True

@@ -40,6 +40,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
@@ -59,6 +60,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.COMPLETED.name
         assert result["attempts_count"] == 1
+        assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
@@ -84,6 +86,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             return 1/0
@@ -100,6 +103,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.RETRYABLE.name
         assert result["attempts_count"] == 1
+        assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
@@ -127,6 +131,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             return 1/0
@@ -143,6 +148,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 1
+        assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
@@ -150,7 +156,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
     
     @pytest.mark.asyncio()
-    async def test_consume_retry_not_allowed_prior_to_attempt(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+    async def test_consume_retry_not_allowed_max_deliveries_exceeded(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
         """
         Message that was attempted but got stuck was not allowed a retry.
         """
@@ -162,7 +168,7 @@ class TestConsume(SqlaTestcaseConfig):
             engine=engine,
             queues=["default1"],
             max_workers=1,
-            retry_strategy=NoRetryStrategy(),
+            retry_strategy=ConstantRetryStrategy(delay_seconds=0, max_total_delay_seconds=None, max_attempts=None),
             max_fetch_interval=0.1,
             min_fetch_interval=0.1,
             fetch_batch_size=5,
@@ -171,6 +177,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=0.1,
             release_stuck_timeout=1,
+            max_deliveries=1,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
@@ -190,7 +197,8 @@ class TestConsume(SqlaTestcaseConfig):
         
         result = result.mappings().one()
         assert result["state"] == SqlaMessageState.PROCESSING.name
-        assert result["attempts_count"] == 1
+        assert result["attempts_count"] == 0
+        assert result["deliveries_count"] == 1
         
         await broker.start()
         await asyncio.sleep(0.5)
@@ -204,10 +212,11 @@ class TestConsume(SqlaTestcaseConfig):
         assert result["queue"] == "default1"
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
-        assert result["attempts_count"] == 1
+        assert result["attempts_count"] == 0
+        assert result["deliveries_count"] == 2
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] == None
+        assert result["last_attempt_at"] == None
         
         assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
     
@@ -230,6 +239,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
@@ -250,6 +260,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert json.loads(result["payload"]) == {"message": "hello1"}
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 3
+        assert result["deliveries_count"] == 3
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] > result["first_attempt_at"] and result["last_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
@@ -273,6 +284,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal messages
@@ -308,6 +320,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal messages
@@ -343,6 +356,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=2,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             event.set()
@@ -367,6 +381,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert len(result_1) == 2
         assert result_1[0]["state"] == SqlaMessageState.COMPLETED.name
         assert result_1[0]["attempts_count"] == 1
+        assert result_1[0]["deliveries_count"] == 1
         assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
         assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
@@ -376,6 +391,7 @@ class TestConsume(SqlaTestcaseConfig):
         assert len(result_2) == 2
         assert result_2[0]["state"] == SqlaMessageState.PENDING.name
         assert result_2[0]["attempts_count"] == 0
+        assert result_2[0]["deliveries_count"] == 0
         assert result_2[0]["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
         assert result_2[0]["acquired_at"] == None
         assert result_2[0]["first_attempt_at"] == None
@@ -399,6 +415,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=2,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
             await msg.ack()
@@ -434,6 +451,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=2,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
             await msg.nack()
@@ -469,6 +487,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=2,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
             await msg.reject()
@@ -507,6 +526,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=2,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: SqlaMessageAnnotation, broker: SqlaBrokerAnnotation) -> None:
             nonlocal message_
@@ -540,6 +560,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             await asyncio.sleep(1)
@@ -585,6 +606,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=10,
             release_stuck_timeout=10,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
@@ -623,6 +645,7 @@ class TestConsume(SqlaTestcaseConfig):
             release_stuck_interval=10,
             graceful_shutdown_timeout=0.1,
             release_stuck_timeout=0.5,
+            max_deliveries=20,
         )
         async def handler(msg: Any) -> None:
             nonlocal attempted
@@ -643,7 +666,8 @@ class TestConsume(SqlaTestcaseConfig):
         result = result.mappings().all()
         assert len(result) == 2
         assert result[0]["state"] == SqlaMessageState.PROCESSING.name
-        assert result[0]["attempts_count"] == 1
+        assert result[0]["attempts_count"] == 0
+        assert result[0]["deliveries_count"] == 1
 
         await broker.start()
         await asyncio.sleep(0.1)

@@ -25,6 +25,7 @@ def create_subscriber(
     release_stuck_interval: float,
     release_stuck_timeout: float,
     graceful_shutdown_timeout: float,
+    max_deliveries: int | None,
     config: "SqlaBrokerConfig",
     ack_policy: AckPolicy,
 ) -> Any:
@@ -41,6 +42,7 @@ def create_subscriber(
         release_stuck_interval=release_stuck_interval,
         graceful_shutdown_timeout=graceful_shutdown_timeout,
         release_stuck_timeout=release_stuck_timeout,
+        max_deliveries=max_deliveries,
         _outer_config=config,
         _ack_policy=ack_policy,
     )

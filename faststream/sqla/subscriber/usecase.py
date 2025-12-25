@@ -48,6 +48,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         self._awaiting_consume_queue_capacity = int(config.fetch_batch_size * config.overfetch_factor)
         self._graceful_shutdown_timeout = config.graceful_shutdown_timeout
         self._release_stuck_timeout = config.release_stuck_timeout
+        self._max_deliveries = config.max_deliveries
 
         self._awaiting_consume_queue: asyncio.Queue[SqlaMessage] = asyncio.Queue()
         self._result_buffer: list[SqlaMessage] = []
@@ -136,8 +137,8 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             except StopEventSetError:
                 break
 
-            message.retry_strategy = self._retry_strategy
-            if message._allow_attempt():
+            if message._check_max_deliveries(self._max_deliveries):
+                message.retry_strategy = self._retry_strategy
                 await self.consume(message)
 
             self._buffer_results(message)

@@ -24,6 +24,7 @@ class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     release_stuck_interval: float
     release_stuck_timeout: float
     graceful_shutdown_timeout: float
+    max_deliveries: int
 
     @property
     def ack_policy(self) -> AckPolicy:

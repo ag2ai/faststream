@@ -26,7 +26,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from faststream.sqla.message import SqlaMessageState
 
 
-@pytest_asyncio.fixture(params=["postgresql", "mysql"])
+@pytest_asyncio.fixture(
+    params=[
+        "postgresql",
+        "mysql"
+    ]
+)
 async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, None]:
     backend = request.param
     match backend:
@@ -71,6 +76,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
             server_default=SqlaMessageState.PENDING.name,
         ),
         Column("attempts_count", SmallInteger, nullable=False, default=0),
+        Column("deliveries_count", SmallInteger, nullable=False, default=0),
         Column("created_at", timestamp_type, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
         Column("first_attempt_at", timestamp_type),
         Column(
@@ -93,6 +99,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         Column("payload", LargeBinary, nullable=False),
         Column("state", Enum(SqlaMessageState), nullable=False, index=True),
         Column("attempts_count", SmallInteger, nullable=False),
+        Column("deliveries_count", SmallInteger, nullable=False),
         Column("created_at", timestamp_type, nullable=False),
         Column("first_attempt_at", timestamp_type),
         Column("last_attempt_at", timestamp_type),

@@ -5,32 +5,13 @@ from freezegun import freeze_time
 
 from faststream.sqla.retry import (
     ConstantRetryStrategy,
-    ExponentialBackoffJitterRetryStrategy,
+    ExponentialBackoffWithJitterRetryStrategy,
     ExponentialBackoffRetryStrategy,
-    JitterRetryStrategy,
+    ConstantWithJitterRetryStrategy,
     LinearRetryStrategy,
     NoRetryStrategy,
     RetryStrategyTemplate,
 )
-
-
-def check_allow_attempt(
-    strategy: RetryStrategyTemplate, max_attempts: int, max_total_delay_seconds: int
-) -> None:
-    first_attempt_at = datetime(2024, 1, 1, 12, 0, 0)
-
-    with freeze_time(first_attempt_at):
-        assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=1) is True
-        assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=max_attempts) is True
-        assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=max_attempts + 1) is False
-
-    within_limit = first_attempt_at + timedelta(seconds=max_total_delay_seconds // 2)
-    with freeze_time(within_limit):
-        assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=1) is True
-
-    past_limit = first_attempt_at + timedelta(seconds=max_total_delay_seconds + 1)
-    with freeze_time(past_limit):
-        assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=1) is False
 
 
 def test_no_retry_strategy() -> None:
@@ -42,8 +23,6 @@ def test_no_retry_strategy() -> None:
         last_attempt_at=first_attempt_at,
         attempts_count=1,
     ) is None
-    assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=1) is True
-    assert strategy.allow_attempt(first_attempt_at=first_attempt_at, attempts_count=2) is False
 
 
 def test_constant_retry_strategy() -> None:
@@ -78,8 +57,6 @@ def test_constant_retry_strategy() -> None:
         last_attempt_at=result3,
         attempts_count=4,
     ) is None
-
-    check_allow_attempt(strategy, max_attempts=4, max_total_delay_seconds=60)
 
 
 def test_linear_retry_strategy() -> None:
@@ -117,8 +94,6 @@ def test_linear_retry_strategy() -> None:
         last_attempt_at=result3,
         attempts_count=4,
     ) is None
-
-    check_allow_attempt(strategy, max_attempts=4, max_total_delay_seconds=60)
 
 
 def test_exponential_backoff_retry_strategy() -> None:
@@ -165,12 +140,10 @@ def test_exponential_backoff_retry_strategy() -> None:
         attempts_count=5,
     ) is None
 
-    check_allow_attempt(strategy, max_attempts=5, max_total_delay_seconds=60)
 
-
-def test_jitter_retry_strategy() -> None:
+def test_constant_with_jitter_retry_strategy() -> None:
     rng = random.Random(42)
-    strategy = JitterRetryStrategy(
+    strategy = ConstantWithJitterRetryStrategy(
         base_delay_seconds=10,
         jitter_seconds=2,
         max_total_delay_seconds=60,
@@ -209,12 +182,10 @@ def test_jitter_retry_strategy() -> None:
         attempts_count=4,
     ) is None
 
-    check_allow_attempt(strategy, max_attempts=4, max_total_delay_seconds=60)
 
-
-def test_exponential_backoff_jitter_retry_strategy() -> None:
+def test_exponential_backoff_with_jitter_retry_strategy() -> None:
     rng = random.Random(42)
-    strategy = ExponentialBackoffJitterRetryStrategy(
+    strategy = ExponentialBackoffWithJitterRetryStrategy(
         initial_delay_seconds=1,
         multiplier=2,
         max_delay_seconds=10,
@@ -254,5 +225,3 @@ def test_exponential_backoff_jitter_retry_strategy() -> None:
         last_attempt_at=result3,
         attempts_count=4,
     ) is None
-
-    check_allow_attempt(strategy, max_attempts=4, max_total_delay_seconds=60)

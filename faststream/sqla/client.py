@@ -57,6 +57,7 @@ message = Table(
         server_default=SqlaMessageState.PENDING.name,
     ),
     Column("attempts_count", SmallInteger, nullable=False, default=0),
+    Column("deliveries_count", SmallInteger, nullable=False, default=0),
     Column("created_at", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
     Column("first_attempt_at", DateTime),
     Column(
@@ -79,6 +80,7 @@ message_archive = Table(
     Column("payload", LargeBinary, nullable=False),
     Column("state", Enum(SqlaMessageState), nullable=False, index=True),
     Column("attempts_count", SmallInteger, nullable=False),
+    Column("deliveries_count", SmallInteger, nullable=False),
     Column("created_at", DateTime, nullable=False),
     Column("first_attempt_at", DateTime),
     Column("last_attempt_at", DateTime),
@@ -92,6 +94,7 @@ _MESSAGE_SELECT_COLUMNS = (
     message.c.payload.label("payload"),
     message.c.state.label("state"),
     message.c.attempts_count.label("attempts_count"),
+    message.c.deliveries_count.label("deliveries_count"),
     message.c.created_at.label("created_at"),
     message.c.first_attempt_at.label("first_attempt_at"),
     message.c.next_attempt_at.label("next_attempt_at"),
@@ -157,16 +160,8 @@ class SqlaPostgresClient:
             .where(message.c.id.in_(select(ready.c.id)))
             .values(
                 state=SqlaMessageState.PROCESSING,
-                attempts_count=message.c.attempts_count + 1,
+                deliveries_count=message.c.deliveries_count + 1,
                 acquired_at=now,
-                first_attempt_at=case(
-                    (message.c.attempts_count == 0, now),
-                    else_=message.c.first_attempt_at
-                ),
-                last_attempt_at=case(
-                    (message.c.attempts_count == 0, now),
-                    else_=message.c.last_attempt_at
-                ),
             )
             .returning(message)
             .cte("updated")
@@ -184,6 +179,7 @@ class SqlaPostgresClient:
                 "message_id": message.id,
                 "state": message.state,
                 "attempts_count": message.attempts_count,
+                "deliveries_count": message.deliveries_count,
                 "first_attempt_at": message.first_attempt_at,
                 "next_attempt_at": message.next_attempt_at,
                 "last_attempt_at": message.last_attempt_at,
@@ -195,6 +191,8 @@ class SqlaPostgresClient:
             .where(message.c.id == bindparam("message_id"))
             .values(
                 state=bindparam("state"),
+                attempts_count=bindparam("attempts_count"),
+                deliveries_count=bindparam("deliveries_count"),
                 first_attempt_at=bindparam("first_attempt_at"),
                 next_attempt_at=bindparam("next_attempt_at"),
                 last_attempt_at=bindparam("last_attempt_at"),
@@ -211,16 +209,17 @@ class SqlaPostgresClient:
         async with self._engine.begin() as conn:
             values = [
                 {
-                    "id": item.id,
-                    "queue": item.queue,
-                    "payload": item.payload,
-                    "state": item.state,
-                    "attempts_count": item.attempts_count,
-                    "created_at": item.created_at,
-                    "first_attempt_at": item.first_attempt_at,
-                    "last_attempt_at": item.last_attempt_at,
+                    "id": msg.id,
+                    "queue": msg.queue,
+                    "payload": msg.payload,
+                    "state": msg.state,
+                    "attempts_count": msg.attempts_count,
+                    "deliveries_count": msg.deliveries_count,
+                    "created_at": msg.created_at,
+                    "first_attempt_at": msg.first_attempt_at,
+                    "last_attempt_at": msg.last_attempt_at,
                 }
-                for item in messages
+                for msg in messages
             ]
             stmt = message_archive.insert().values(values)
             print('archive', values)
@@ -286,16 +285,8 @@ class SqlaMySqlClient(SqlaPostgresClient):
                 .where(message.c.id.in_(ready_ids))
                 .values(
                     state=SqlaMessageState.PROCESSING,
-                    attempts_count=message.c.attempts_count + 1,
+                    deliveries_count=message.c.deliveries_count + 1,
                     acquired_at=now,
-                    first_attempt_at=case(
-                        (message.c.attempts_count == 1, now), # diff from postgres
-                        else_=message.c.first_attempt_at,
-                    ),
-                    last_attempt_at=case(
-                        (message.c.attempts_count == 1, now), # diff from postgres
-                        else_=message.c.last_attempt_at,
-                    ),
                 )
             )
             await conn.execute(update_stmt)
@@ -304,9 +295,9 @@ class SqlaMySqlClient(SqlaPostgresClient):
                 select(*_MESSAGE_SELECT_COLUMNS)
                 .where(message.c.id.in_(ready_ids))
             )
-            fetched = await conn.execute(fetch_stmt)
-            rows = fetched.mappings().all()
-
+            fetched_result = await conn.execute(fetch_stmt)
+            rows = fetched_result.mappings().all()
+        
         rows_by_id = {row["id"]: row for row in rows}
         ordered_rows = [rows_by_id[id_] for id_ in ready_ids if id_ in rows_by_id]
         return [SqlaMessage(**row) for row in ordered_rows]

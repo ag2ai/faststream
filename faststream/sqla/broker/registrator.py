@@ -29,6 +29,7 @@ class SqlaRegistrator(Registrator[Any, Any]):
         release_stuck_interval: float,
         release_stuck_timeout: float,
         graceful_shutdown_timeout: float,
+        max_deliveries: int | None,
         ack_policy: AckPolicy = AckPolicy.NACK_ON_ERROR,
     ) -> Any:
         """
@@ -235,6 +236,7 @@ class SqlaRegistrator(Registrator[Any, Any]):
             release_stuck_interval=release_stuck_interval,
             graceful_shutdown_timeout=graceful_shutdown_timeout,
             release_stuck_timeout=release_stuck_timeout,
+            max_deliveries=max_deliveries,
             config=cast("SqlaBrokerConfig", self.config),
             ack_policy=ack_policy,
         )

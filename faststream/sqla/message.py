@@ -33,6 +33,7 @@ class SqlaMessage(StreamMessage):
         state: SqlaMessageState,
         payload: bytes,
         attempts_count: int,
+        deliveries_count: int,
         created_at: datetime,
         first_attempt_at: datetime,
         next_attempt_at: datetime | None,
@@ -44,29 +45,35 @@ class SqlaMessage(StreamMessage):
         self.state = state
         self.payload = payload
         self.attempts_count = attempts_count
+        self.deliveries_count = deliveries_count
         self.created_at = created_at
         self.first_attempt_at = first_attempt_at
         self.next_attempt_at = next_attempt_at
         self.last_attempt_at = last_attempt_at
         self.acquired_at = acquired_at
         
-        self.state_locked = False
+        self.state_set = False
         self.to_archive = False
         
         super().__init__(raw_message=self, body=payload)
 
     async def ack(self) -> None:
-        await self._update_state_if_not_locked(self._ack)
+        await self._update_state_if_not_set(self._ack)
 
     async def nack(self) -> None:
-        await self._update_state_if_not_locked(self._nack)
+        await self._update_state_if_not_set(self._nack)
 
     async def reject(self) -> None:
-        await self._update_state_if_not_locked(self._reject)
+        await self._update_state_if_not_set(self._reject)
+
+    def _record_attempt(self) -> None:
+        self.attempts_count += 1
+        self.last_attempt_at = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        if self.attempts_count == 1:
+            self.first_attempt_at = self.last_attempt_at
 
     def _mark_completed(self) -> None:
         self.state = SqlaMessageState.COMPLETED
-        self.next_attempt_at = None
         self.to_archive = True
 
     def _mark_retryable(self, *, next_attempt_at: datetime) -> None:
@@ -75,44 +82,32 @@ class SqlaMessage(StreamMessage):
 
     def _mark_failed(self) -> None:
         self.state = SqlaMessageState.FAILED
-        self.next_attempt_at = None
         self.to_archive = True
 
     def _mark_pending(self) -> None:
         self.state = SqlaMessageState.PENDING
-        self.acquired_at = None
-        self.attempts_count -= 1
-        
-        if self.attempts_count == 0: # these were set on fetch
-            self.first_attempt_at = None 
-            self.last_attempt_at = None
+        self.deliveries_count -= 1
 
-    def _allow_attempt(self) -> bool:
-        if not self.retry_strategy.allow_attempt(
-            first_attempt_at=self.first_attempt_at,
-            attempts_count=self.attempts_count,
-        ):
+    def _check_max_deliveries(self, max_deliveries: int | None) -> bool:
+        if max_deliveries and self.deliveries_count > max_deliveries:
             self._mark_failed()
-            self.attempts_count -= 1
             return False
-        
-        if self.attempts_count > 1: # otherwise it's set on fetch
-            self.last_attempt_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        
         return True
 
-    async def _update_state_if_not_locked(self, method: Callable[[], Coroutine[Any, Any, None]]) -> None:
-        if self.state_locked:
+    async def _update_state_if_not_set(self, update_method: Callable[[], Coroutine[Any, Any, None]]) -> None:
+        if self.state_set:
             return
         
-        await method()
+        await update_method()
         
-        self.state_locked = True
+        self.state_set = True
 
     async def _ack(self) -> None:
+        self._record_attempt()
         self._mark_completed()
 
     async def _nack(self) -> None:
+        self._record_attempt()
         if not (
             next_attempt_at := self.retry_strategy.get_next_attempt_at(
                 first_attempt_at=self.first_attempt_at,
@@ -125,6 +120,7 @@ class SqlaMessage(StreamMessage):
             self._mark_retryable(next_attempt_at=next_attempt_at)
 
     async def _reject(self) -> None:
+        self._record_attempt()
         self._mark_failed()
 
     def __repr__(self) -> str: # TODO
