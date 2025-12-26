@@ -1,31 +1,29 @@
+import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import pytest
+
 from fast_depends.msgspec import MsgSpecSerializer
-from msgspec import Struct
+from faststream.kafka import KafkaBroker
 
-from faststream.nats import NatsBroker
-
-
-class BaseSchema(Struct):
-    name: str
-    age: int
-    fullname: str
+from .schemas.msgspec import Schema
 
 
-class Schema(BaseSchema):
-    children: list[BaseSchema]
-
-
-class NatsTestCase:
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestKafkaCase:
     comment = "Consume Msgspec Struct"
-    broker_type = "NATS"
+    broker_type = "Kafka"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
-        broker = self.broker = NatsBroker(
+        broker = self.broker = KafkaBroker(
             logger=None,
             graceful_timeout=10,
             serializer=MsgSpecSerializer(use_fastdepends_errors=False),
@@ -55,3 +53,8 @@ class NatsTestCase:
             })
 
             yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start() as start_time:
+            await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED > 1
