@@ -29,7 +29,6 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
-        pydantic-version: ["pydantic-v1", "pydantic-v2"]
       fail-fast: false
 
     steps:
@@ -46,22 +45,16 @@ jobs:
       - name: Install Dependencies
         run: |
           uv pip install --system --group optionals --group testing .
-      - name: Install Pydantic v1
-        if: matrix.pydantic-version == 'pydantic-v1'
-        run: uv pip install --system "pydantic>=1.10.0,<2.0.0"
-      - name: Install Pydantic v2
-        if: matrix.pydantic-version == 'pydantic-v2'
-        run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
       - name: Test
         run: >
           pytest --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
       - name: Rename coverage file
-        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}
       - name: Store coverage files
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: .coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+          name: .coverage.${{ runner.os }}-py${{ matrix.python-version }}
           path: coverage
           if-no-files-found: error
           include-hidden-files: true
