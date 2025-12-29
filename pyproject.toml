@@ -13,6 +13,9 @@ authors = [
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 
+requires-python = ">=3.10"
+version = "0.6.5"
+
 keywords = [
     "rabbitmq",
     "kafka",
@@ -21,8 +24,6 @@ keywords = [
     "redis",
     "message brokers",
 ]
-
-requires-python = ">=3.10"
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -53,8 +54,6 @@ classifiers = [
     "Framework :: Pydantic :: 1",
     "Framework :: Pydantic :: 2",
 ]
-
-version = "0.6.4"
 
 dependencies = [
     "fast-depends[pydantic]>=3.0.0",
@@ -135,7 +134,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.127.0",
+    "fastapi==0.128.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
