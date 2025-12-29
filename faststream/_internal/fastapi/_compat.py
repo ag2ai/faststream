@@ -55,8 +55,7 @@ if FASTAPI_V128:
     from fastapi.exceptions import RequestValidationError
 
     def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
-        raise RequestValidationError(errors, body=body)  # type: ignore[misc]
-
+        raise RequestValidationError(errors, body=body)
 
 elif FASTAPI_V2:
     from fastapi._compat import _normalize_errors
