@@ -15,7 +15,7 @@ class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     engine: AsyncEngine
     queues: list[str]
     max_workers: int
-    retry_strategy: RetryStrategyProto
+    retry_strategy: RetryStrategyProto | None
     max_fetch_interval: float
     min_fetch_interval: float
     fetch_batch_size: int
@@ -24,7 +24,7 @@ class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     release_stuck_interval: float
     release_stuck_timeout: float
     graceful_shutdown_timeout: float
-    max_deliveries: int
+    max_deliveries: int | None
 
     @property
     def ack_policy(self) -> AckPolicy:

@@ -137,7 +137,10 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             except StopEventSetError:
                 break
 
-            if message._check_max_deliveries(self._max_deliveries):
+            if message._allow_delivery(
+                max_deliveries=self._max_deliveries,
+                logger=self._outer_config.logger.logger.logger
+            ):
                 message.retry_strategy = self._retry_strategy
                 await self.consume(message)
 

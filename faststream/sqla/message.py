@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import enum
+import logging
 from typing import Any, Callable, Coroutine, cast
 
+from faststream._internal.basic_types import LoggerProto
 from faststream.message.message import StreamMessage
 from faststream.sqla.retry import RetryStrategyProto
 
@@ -24,7 +26,7 @@ class SqlaMessageState(str, enum.Enum):
 
 
 class SqlaMessage(StreamMessage):
-    retry_strategy: RetryStrategyProto
+    retry_strategy: RetryStrategyProto | None
 
     def __init__(
         self,
@@ -88,9 +90,20 @@ class SqlaMessage(StreamMessage):
         self.state = SqlaMessageState.PENDING
         self.deliveries_count -= 1
 
-    def _check_max_deliveries(self, max_deliveries: int | None) -> bool:
+    def _allow_delivery(
+        self,
+        *,
+        max_deliveries: int | None,
+        logger: "LoggerProto | None",
+    ) -> bool:
         if max_deliveries and self.deliveries_count > max_deliveries:
             self._mark_failed()
+            if logger:
+                logger.log(
+                    logging.WARNING,
+                    f"Message delivery limit was exceeded for message {self.id} "
+                    f"and the message was rejected."
+                )
             return False
         return True
 
@@ -108,7 +121,9 @@ class SqlaMessage(StreamMessage):
 
     async def _nack(self) -> None:
         self._record_attempt()
-        if not (
+        if self.retry_strategy is None:
+            self._mark_failed()
+        elif not (
             next_attempt_at := self.retry_strategy.get_next_attempt_at(
                 first_attempt_at=self.first_attempt_at,
                 last_attempt_at=cast(datetime, self.last_attempt_at),

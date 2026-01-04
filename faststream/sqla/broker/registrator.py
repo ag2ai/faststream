@@ -10,7 +10,7 @@ from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.subscriber.factory import create_subscriber
-from faststream.sqla.retry import RetryStrategyProto
+from faststream.sqla.retry import NoRetryStrategy, RetryStrategyProto
 
 
 class SqlaRegistrator(Registrator[Any, Any]):
@@ -19,8 +19,8 @@ class SqlaRegistrator(Registrator[Any, Any]):
         queues: list[str],
         *,
         engine: AsyncEngine,
-        max_workers: int,
-        retry_strategy: RetryStrategyProto,
+        max_workers: int = 1,
+        retry_strategy: RetryStrategyProto | None = None,
         max_fetch_interval: float,
         min_fetch_interval: float,
         fetch_batch_size: int,
@@ -29,13 +29,17 @@ class SqlaRegistrator(Registrator[Any, Any]):
         release_stuck_interval: float,
         release_stuck_timeout: float,
         graceful_shutdown_timeout: float,
-        max_deliveries: int | None,
-        ack_policy: AckPolicy = AckPolicy.NACK_ON_ERROR,
+        max_deliveries: int | None = None,
+        ack_policy: AckPolicy = AckPolicy.REJECT_ON_ERROR,
     ) -> Any:
         """
         Args:
             max_workers:
                 Number of workers to process messages concurrently.
+            retry_strategy:
+                Called to determine if and when a message might be retried. If None,
+                AckPolicy.NACK_ON_ERROR has the same effect as
+                AckPolicy.REJECT_ON_ERROR.
             min_fetch_interval:
                 The minimum allowed interval between consecutive fetches. The
                 minimum interval is used if the last fetch returned the same number
@@ -57,6 +61,10 @@ class SqlaRegistrator(Registrator[Any, Any]):
             release_stuck_interval:
                 The interval at which the PROCESSING-state messages are marked back
                 as PENDING if the release_stuck_timeout since acquired_at has passed.
+            max_deliveries:
+                The maximum number of deliveries allowed for a message. If
+                set, messages that have reached this limit are Reject'ed without
+                processing.
 
         Flow:
             On start, the subscriber spawns four types of concurrent loops:
@@ -64,7 +72,7 @@ class SqlaRegistrator(Registrator[Any, Any]):
             1. Fetch loop:
                Periodically fetches PENDING or RETRYABLE messages from the database,
                simultaneously updating them in the database: marking as PROCESSING,
-               setting acquired_at to now, and incrementing attempts_count. Only
+               setting acquired_at to now, and incrementing deliveries_count. Only
                messages with next_attempt_at <= now are fetched, ordered by
                next_attempt_at. The fetched messages are placed into an internal
                queue. The fetch limit is the minimum of fetch_batch_size and the
@@ -74,15 +82,16 @@ class SqlaRegistrator(Registrator[Any, Any]):
                min_fetch_interval; otherwise after max_fetch_interval.
 
             2. Worker loops (max_workers instances):
-               Each worker takes a message from the internal queue and checks if
-               the attempt is allowed by the retry_strategy. If allowed, the message
-               is processed, if not, Reject'ed. Depending on the processing result,
-               AckPolicy, and manual Ack/Nack/Reject, the message is Ack'ed, Nack'ed,
-               or Reject'ed. For Nack'ed messages the retry_strategy is consulted to
-               determine if and when the message might be retried. If allowed to be
-               retried, the message is marked as RETRYABLE, otherwise as FAILED.
-               Ack'ed messages are marked as COMPLETED and Reject'ed messages are
-               marked as FAILED. The message is then buffered for flushing.
+               Each worker takes a message from the internal queue and first checks
+               if max_deliveries has been exceeded; if so, the message is Reject'ed
+               without processing. Otherwise, processing proceeds. Depending on the
+               processing result, AckPolicy, and manual Ack/Nack/Reject, the message
+               is Ack'ed, Nack'ed, or Reject'ed. For Nack'ed messages, the
+               retry_strategy is consulted to determine if and when the message
+               might be retried. If allowed to be retried, the message
+               is marked as RETRYABLE, otherwise as FAILED. Ack'ed messages are
+               marked as COMPLETED and Reject'ed messages are marked as FAILED.
+               The message is then buffered for flushing.
 
             3. Flush loop:
                Periodically flushes the buffered message state changes to the
@@ -106,123 +115,21 @@ class SqlaRegistrator(Registrator[Any, Any]):
 
             This design adheres to the "at least once" processing guarantee because
             flushing changes to the database happens only after a processing
-            attempt. Messages might be processed more times than allowed by the
-            retry_strategy if, among other things, the flush doesn't happen due to
-            crash or failure after a message is processed.
+            attempt. A flush might not happen due to e.g. a crash. This might
+            lead to messages being processed more times than allowed by the
+            retry_strategy, and to the database state being inconsistent with
+            the true number of attempts.
 
-            This design handles the poison message problem (messages that crash the
-            worker without the ability to catch the exception due to e.g. OOM
-            terminations) because attempts_count is incremented and retry_strategy
-            is consulted with prior to processing attempt.
-        
-        Warning:
-            If message processing began but couldn't complete due to a crash or due 
-            to processing lasting longer that the graceful shutdown timeout,
-            `last_attempt_at` will not be persisted to the database.
-        
-        SQL queries:
-            Fetch:
-                WITH ready AS
-                    (SELECT message.id AS id,
-                            message.queue AS queue,
-                            message.payload AS payload,
-                            message.state AS state,
-                            message.attempts_count AS attempts_count,
-                            message.created_at AS created_at,
-                            message.first_attempt_at AS first_attempt_at,
-                            message.next_attempt_at AS next_attempt_at,
-                            message.last_attempt_at AS last_attempt_at,
-                            message.acquired_at AS acquired_at
-                    FROM message
-                    WHERE (message.state = $3::sqlamessagestate
-                            OR message.state = $4::sqlamessagestate)
-                        AND message.next_attempt_at <= now()
-                        AND (message.queue = $5::VARCHAR OR message.queue = $6::VARCHAR) 
-                    ORDER BY message.next_attempt_at
-                    LIMIT $7::INTEGER
-                    FOR UPDATE SKIP LOCKED),
-                    updated AS
-                    (UPDATE message
-                    SET state=$1::sqlamessagestate,
-                        attempts_count=(message.attempts_count + $2::SMALLINT),
-                        acquired_at=now()
-                    WHERE message.id IN
-                            (SELECT ready.id
-                            FROM ready) RETURNING message.id,
-                                                  message.queue,
-                                                  message.payload,
-                                                  message.state,
-                                                  message.attempts_count,
-                                                  message.created_at,
-                                                  message.first_attempt_at,
-                                                  message.next_attempt_at,
-                                                  message.last_attempt_at,
-                                                  message.acquired_at)
-                SELECT updated.id,
-                       updated.queue,
-                       updated.payload,
-                       updated.state,
-                       updated.attempts_count,
-                       updated.created_at,
-                       updated.first_attempt_at,
-                       updated.next_attempt_at,
-                       updated.last_attempt_at,
-                       updated.acquired_at
-                FROM updated
-                ORDER BY updated.next_attempt_at;
-            
-            Flush:
-                For RETRYABLE messages:
-                    UPDATE message
-                    SET state=$1::sqlamessagestate,
-                        first_attempt_at=$2::datetime,
-                        next_attempt_at=$3::datetime,
-                        last_attempt_at=$4::datetime,
-                        acquired_at=$5::datetime
-                    WHERE message.id = $6::BIGINT;
-
-                For COMPLETED and FAILED messages:
-                    BEGIN;
-                    INSERT INTO message_archive (
-                        id,
-                        queue,
-                        payload,
-                        state,
-                        attempts_count,
-                        created_at,
-                        first_attempt_at,
-                        last_attempt_at,
-                        archived_at
-                    )
-                    VALUES (
-                        $1::BIGINT,
-                        $2::VARCHAR,
-                        $3::BYTEA,
-                        $4::sqlamessagestate,
-                        $5::SMALLINT,
-                        $6::TIMESTAMP WITH TIME ZONE,
-                        $7::TIMESTAMP WITH TIME ZONE,
-                        $8::TIMESTAMP WITH TIME ZONE,
-                        $9::TIMESTAMP WITH TIME ZONE
-                    );
-                    DELETE
-                    FROM message
-                    WHERE message.id IN ($1::BIGINT);
-                    COMMIT;
-            
-            Release stuck:
-                UPDATE message
-                SET state=$1::sqlamessagestate,
-                    next_attempt_at=now(),
-                    acquired_at=$2::TIMESTAMP WITH TIME ZONE
-                WHERE message.id IN
-                    (SELECT message.id
-                    FROM message
-                    WHERE message.state = $3::sqlamessagestate
-                        AND message.acquired_at < $4::TIMESTAMP WITH TIME ZONE)
+            Setting max_deliveries to a non-None value provides protection from
+            the poison message problem (messages that crash the worker without
+            the ability to catch the exception due to e.g. OOM terminations)
+            because deliveries_count is incremented and max_deliveries is
+            checked prior to a processing attempt. However, this comes
+            at the expense of violating the "at most once" processing guarantee,
+            especially for messages that are being processed at the same time
+            with the poison message (a crash would leave them with incremented
+            deliveries_count despite possibly not having been processed).
         """
-        workers = max_workers or 1
-
         subscriber = create_subscriber(
             engine=engine,
             queues=queues,
@@ -258,7 +165,8 @@ class SqlaRegistrator(Registrator[Any, Any]):
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
+                "This option was deprecated in 0.6.0. "
+                "Use router-level middlewares instead. "
                 "Scheduled to remove in 0.7.0",
             ),
         ] = (),
