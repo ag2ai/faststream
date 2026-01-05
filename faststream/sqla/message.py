@@ -68,6 +68,37 @@ class SqlaMessage(StreamMessage):
     async def reject(self) -> None:
         await self._update_state_if_not_set(self._reject)
 
+    async def _update_state_if_not_set(self, update_method: Callable[[], Coroutine[Any, Any, None]]) -> None:
+        if self.state_set:
+            return
+        
+        await update_method()
+        
+        self.state_set = True
+
+    async def _ack(self) -> None:
+        self._record_attempt()
+        self._mark_completed()
+
+    async def _nack(self) -> None:
+        self._record_attempt()
+        if self.retry_strategy is None:
+            self._mark_failed()
+        elif not (
+            next_attempt_at := self.retry_strategy.get_next_attempt_at(
+                first_attempt_at=self.first_attempt_at,
+                last_attempt_at=cast(datetime, self.last_attempt_at),
+                attempts_count=self.attempts_count,
+            )
+        ):
+            self._mark_failed()
+        else:
+            self._mark_retryable(next_attempt_at=next_attempt_at)
+
+    async def _reject(self) -> None:
+        self._record_attempt()
+        self._mark_failed()
+
     def _record_attempt(self) -> None:
         self.attempts_count += 1
         self.last_attempt_at = datetime.now(tz=timezone.utc).replace(tzinfo=None)
@@ -100,43 +131,22 @@ class SqlaMessage(StreamMessage):
             self._mark_failed()
             if logger:
                 logger.log(
-                    logging.WARNING,
-                    f"Message delivery limit was exceeded for message {self.id} "
+                    logging.ERROR,
+                    f"Message delivery limit was exceeded for message {self} "
                     f"and the message was rejected."
                 )
             return False
         return True
 
-    async def _update_state_if_not_set(self, update_method: Callable[[], Coroutine[Any, Any, None]]) -> None:
-        if self.state_set:
-            return
-        
-        await update_method()
-        
-        self.state_set = True
+    def _assert_state_updated(self, logger: "LoggerProto | None") -> None:
+        if not self.state_set:
+            if logger:
+                logger.log(
+                    logging.ERROR,
+                    f"State of message {self} was not updated after processing, "
+                    f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
+                    f"acknowledgement in the handler."
+                )
 
-    async def _ack(self) -> None:
-        self._record_attempt()
-        self._mark_completed()
-
-    async def _nack(self) -> None:
-        self._record_attempt()
-        if self.retry_strategy is None:
-            self._mark_failed()
-        elif not (
-            next_attempt_at := self.retry_strategy.get_next_attempt_at(
-                first_attempt_at=self.first_attempt_at,
-                last_attempt_at=cast(datetime, self.last_attempt_at),
-                attempts_count=self.attempts_count,
-            )
-        ):
-            self._mark_failed()
-        else:
-            self._mark_retryable(next_attempt_at=next_attempt_at)
-
-    async def _reject(self) -> None:
-        self._record_attempt()
-        self._mark_failed()
-
-    def __repr__(self) -> str: # TODO
+    def __repr__(self) -> str:
         return f"SqlaMessage(id={self.id}, queue={self.queue})"

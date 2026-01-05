@@ -9,10 +9,13 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from faststream._internal.context import ContextRepo
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.message import SqlaMessage, SqlaMessageState
 from faststream.sqla.annotations import SqlaMessage as SqlaMessageAnnotation
 from faststream.sqla.annotations import SqlaBroker as SqlaBrokerAnnotation
+from faststream.sqla.annotations import ContextRepo as ContextRepoAnnotation
+from faststream.sqla.annotations import Logger as LoggerAnnotation
 from faststream.sqla.broker.broker import SqlaBroker as SqlaBroker
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
@@ -165,7 +168,8 @@ class TestConsume(SqlaTestcaseConfig):
     @pytest.mark.parametrize("max_deliveries", [1, None])
     async def test_consume_max_deliveries(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event, max_deliveries: int | None) -> None:
         """
-        Message that was attempted but got stuck was not allowed a retry.
+        Message that was attempted but got stuck was not allowed a retry due to
+        reached delivery limit.
         """
         logger = MagicMock()
         broker = self.get_broker(engine=engine, logger=logger)
@@ -230,9 +234,9 @@ class TestConsume(SqlaTestcaseConfig):
             
             assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
 
-            warning_logs = [x for x in logger.log.call_args_list if x[0][0] == logging.WARNING]
-            assert len(warning_logs) == 1
-            assert "Message delivery limit was exceeded for message 1 and the message was rejected." == warning_logs[0][0][1]
+            logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
+            assert len(logs) == 2
+            assert "Message delivery limit was exceeded for message" in logs[-1][0][1]
         else:
             assert len(attempted) == 2
 
@@ -329,6 +333,9 @@ class TestConsume(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_by_queues(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Messages from the specified queues were consumed.
+        """
         broker = self.get_broker(engine=engine)
 
         messages = []
@@ -465,6 +472,9 @@ class TestConsume(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Manual Ack overrode automatic Reject.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -502,6 +512,9 @@ class TestConsume(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_nack_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Manual Nack overrode automatic Ack.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -539,6 +552,9 @@ class TestConsume(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_reject_takes_precedence(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Manual Reject overrode automatic Ack.
+        """
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -580,6 +596,8 @@ class TestConsume(SqlaTestcaseConfig):
 
         message_ = None
         broker_ = None
+        context_ = None
+        logger_ = None
 
         @broker.subscriber(
             engine=engine,
@@ -597,11 +615,15 @@ class TestConsume(SqlaTestcaseConfig):
             max_deliveries=20,
             ack_policy=AckPolicy.NACK_ON_ERROR,
         )
-        async def handler(msg: SqlaMessageAnnotation, broker: SqlaBrokerAnnotation) -> None:
+        async def handler(msg: SqlaMessageAnnotation, broker: SqlaBrokerAnnotation, context: ContextRepoAnnotation, logger: LoggerAnnotation) -> None:
             nonlocal message_
             nonlocal broker_
+            nonlocal context_
+            nonlocal logger_
             message_ = msg
             broker_ = broker
+            context_ = context
+            logger_ = logger
             event.set()
 
         await broker.publish({"message": "hello1"}, queue="default1")
@@ -609,6 +631,8 @@ class TestConsume(SqlaTestcaseConfig):
         await asyncio.wait_for(event.wait(), timeout=self.timeout)
         assert isinstance(message_, SqlaMessage)
         assert isinstance(broker_, SqlaBroker)
+        assert isinstance(context_, ContextRepo)
+        assert isinstance(logger_, logging.Logger)
     
     @pytest.mark.asyncio()
     async def test_consume_concurrency(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
@@ -885,3 +909,85 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["last_attempt_at"] == result["first_attempt_at"]
         
         assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
+    
+    @pytest.mark.asyncio()
+    async def test_consume_manual(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Message was manually Ack'ed.
+        """
+        broker = self.get_broker(engine=engine)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=1,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=5, max_total_delay_seconds=None, max_attempts=None),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.MANUAL,
+        )
+        async def handler(msg: SqlaMessageAnnotation) -> None:
+            await msg.ack()
+            return 1/0
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().one()
+        assert result["queue"] == "default1"
+        assert json.loads(result["payload"]) == {"message": "hello1"}
+        assert result["state"] == SqlaMessageState.COMPLETED.name
+        assert result["attempts_count"] == 1
+        assert result["deliveries_count"] == 1
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
+        assert result["last_attempt_at"] == result["first_attempt_at"]
+        
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
+    
+    @pytest.mark.asyncio()
+    async def test_consume_manual_no_manual_ack(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+        """
+        Error was logged because the message was neither manually nor automatically acknowledged.
+        """
+        logger = MagicMock()
+        broker = self.get_broker(engine=engine, logger=logger)
+
+        @broker.subscriber(
+            engine=engine,
+            queues=["default1"],
+            max_workers=1,
+            retry_strategy=ConstantRetryStrategy(delay_seconds=5, max_total_delay_seconds=None, max_attempts=None),
+            max_fetch_interval=10,
+            min_fetch_interval=10,
+            fetch_batch_size=5,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            graceful_shutdown_timeout=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.MANUAL,
+        )
+        async def handler(msg: SqlaMessageAnnotation) -> None:
+            return
+
+        await broker.publish({"message": "hello1"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+
+        logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
+        assert len(logs) == 1
+        assert "was not updated after processing" in logs[0][0][1]

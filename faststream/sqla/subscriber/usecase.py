@@ -143,6 +143,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
             ):
                 message.retry_strategy = self._retry_strategy
                 await self.consume(message)
+                message._assert_state_updated(self._outer_config.logger.logger.logger)
 
             self._buffer_results(message)
             self._awaiting_consume_queue.task_done()
