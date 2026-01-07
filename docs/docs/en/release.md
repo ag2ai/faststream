@@ -12,6 +12,21 @@ hide:
 ---
 
 # Release Notes
+## 0.6.5
+
+### What's Changed
+
+* fix: FastAPI 0.128 compatibility
+* fix(docs): dependencies installation by [@theseriff](https://github.com/theseriff){.external-link target="_blank"} in [#2710](https://github.com/ag2ai/faststream/pull/2710){.external-link target="_blank"}
+* Add tests for XREADGROUP vs XAUTOCLAIM selection based on min_idle_time by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+* fix: polish middleware types in favor to Pycharm by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2715](https://github.com/ag2ai/faststream/pull/2715){.external-link target="_blank"}
+* suppress `ServiceUnavailableError` for nats by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2720](https://github.com/ag2ai/faststream/pull/2720){.external-link target="_blank"}
+
+### New Contributors
+* [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} made their first contribution in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.4...0.6.5](https://github.com/ag2ai/faststream/compare/0.6.4...0.6.5){.external-link target="_blank"}
+
 ## 0.6.4
 
 ### What's Changed
