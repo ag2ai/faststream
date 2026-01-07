@@ -844,6 +844,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
+
     async def test_consume_from_group(
         self,
         queue: str,
@@ -862,8 +863,14 @@ class TestConsumeStream(RedisTestcaseConfig):
             await br.start()
             redis_client = br._connection
             with (
-                patch.object(redis_client, "xreadgroup", spy_decorator(redis_client.xreadgroup)) as m_readgroup,
-                patch.object(redis_client, "xgroup_create", spy_decorator(redis_client.xgroup_create)) as m_group_create
+                patch.object(
+                    redis_client, "xreadgroup", spy_decorator(redis_client.xreadgroup)
+                ) as m_readgroup,
+                patch.object(
+                    redis_client,
+                    "xgroup_create",
+                    spy_decorator(redis_client.xgroup_create),
+                ) as m_group_create,
             ):
                 await asyncio.wait(
                     (
