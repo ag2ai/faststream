@@ -115,7 +115,7 @@ class RabbitPublisher(PublisherUsecase):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
-            # NOTE: Need somehow pop kwargs for destination formating from publish_kwargs
+            # NOTE: Need somehow pop kwargs for destination formatting from publish_kwargs
             **publish_kwargs,
         )
         return frame
