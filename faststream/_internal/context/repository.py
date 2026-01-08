@@ -17,7 +17,7 @@ class ContextRepo:
             _global_context : a dictionary representing the global context
             _scope_context : a dictionary representing the scope context
         """
-        self._global_context: dict[str, Any] = {"context": self} | (initial or {})
+        self._global_context: dict[str, Any] = (initial or {}) | {"context": self}
         self._scope_context: dict[str, ContextVar[Any]] = {}
 
     @property
@@ -164,5 +164,21 @@ class ContextRepo:
         return v
 
     def clear(self) -> None:
+        """Reset global and scope contexts.
+
+        Returns:
+            None
+        """
         self._global_context = {"context": self}
         self._scope_context.clear()
+
+    def merge_global(self, other: "ContextRepo") -> None:
+        """Merge the global context of another repository into the current one.
+
+        Args:
+            other: Another ContextRepo instance.
+
+        Returns:
+            None
+        """
+        self._global_context |= other._global_context | {"context": self}
