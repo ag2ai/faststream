@@ -1,4 +1,5 @@
-from typing import Annotated, Any, Sequence, cast, override
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Optional, cast, override
 from faststream.sqla.publisher.usecase import LogicPublisher
 from typing_extensions import deprecated
 
@@ -11,6 +12,15 @@ from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.subscriber.factory import create_subscriber
 from faststream.sqla.retry import NoRetryStrategy, RetryStrategyProto
+
+if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+
+    from faststream._internal.types import (
+        CustomCallable,
+        SubscriberMiddleware,
+    )
+    from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
 
 class SqlaRegistrator(Registrator[Any, Any]):
@@ -31,7 +41,12 @@ class SqlaRegistrator(Registrator[Any, Any]):
         graceful_shutdown_timeout: float,
         max_deliveries: int | None = None,
         ack_policy: AckPolicy = AckPolicy.REJECT_ON_ERROR,
-    ) -> Any:
+        # broker args
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
+    ) -> "SqlaSubscriber":
         """
         Args:
             max_workers:
@@ -150,12 +165,12 @@ class SqlaRegistrator(Registrator[Any, Any]):
 
         super().subscriber(subscriber)
 
-        # subscriber.add_call(
-        #     parser_=parser,
-        #     decoder_=decoder,
-        #     dependencies_=dependencies,
-        #     middlewares_=middlewares,
-        # )
+        subscriber.add_call(
+            parser_=parser,
+            decoder_=decoder,
+            dependencies_=dependencies,
+            middlewares_=middlewares,
+        )
 
         return subscriber
     

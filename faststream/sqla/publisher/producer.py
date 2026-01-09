@@ -2,10 +2,13 @@ from abc import abstractmethod
 from typing import Any, Optional, override
 from fast_depends.library.serializer import SerializerProto
 from sqlalchemy.ext.asyncio import AsyncEngine
+from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import AsyncCallable, CustomCallable
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message.utils import encode_message
 from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
+from faststream.sqla.parser import SqlaParser
 from faststream.sqla.response import SqlaPublishCommand
 
 
@@ -32,23 +35,23 @@ class SqlaProducerProto(ProducerProto[SqlaPublishCommand]):
 
 
 class SqlaProducer(SqlaProducerProto):
-    # _decoder: "AsyncCallable"
-    # _parser: "AsyncCallable"
+    _decoder: "AsyncCallable"
+    _parser: "AsyncCallable"
 
     def __init__(
         self,
         *,
         engine: AsyncEngine,
-        # parser: Optional["CustomCallable"],
-        # decoder: Optional["CustomCallable"],
+        parser: Optional["CustomCallable"],
+        decoder: Optional["CustomCallable"],
     ) -> None:
         self.client = create_sqla_client(engine)
 
         self.serializer: SerializerProto | None = None
 
-        # default = NatsParser(pattern="", is_ack_disabled=True)
-        # self._parser = ParserComposition(parser, default.parse_message)
-        # self._decoder = ParserComposition(decoder, default.decode_message)
+        default = SqlaParser()
+        self._parser = ParserComposition(parser, default.parse_message)
+        self._decoder = ParserComposition(decoder, default.decode_message)
 
         # self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 
@@ -62,11 +65,18 @@ class SqlaProducer(SqlaProducerProto):
 
     @override
     async def publish(self, cmd: "SqlaPublishCommand") -> None:
-        payload, _ = encode_message(cmd.body, self.serializer)
+        payload, content_type = encode_message(cmd.body, self.serializer)
 
+        headers_to_add = {}
+        if content_type:
+            headers_to_add["content-type"] = content_type
+
+        cmd.add_headers(headers_to_add)
+        
         return await self.client.enqueue(
-            queue=cmd.destination,
             payload=payload,
+            queue=cmd.destination,
+            headers=cmd.headers,
             next_attempt_at=cmd.next_attempt_at,
             connection=cmd.connection,
         )

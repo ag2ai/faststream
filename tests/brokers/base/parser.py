@@ -163,6 +163,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
         @sub(filter=lambda m: m.content_type == "application/json")
         async def handle(m) -> None:
+            print("handle, +++++++++++++++++++++++++++")
             event.set()
 
         async def custom_parser(msg, original):
@@ -172,6 +173,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
         @sub(parser=custom_parser)
         async def handle2(m) -> None:
+            print("handle2, +++++++++++++++++++++++++++")
             event2.set()
 
         async with self.patch_broker(broker) as br:

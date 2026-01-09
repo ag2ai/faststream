@@ -14,6 +14,7 @@ import signal
 from time import perf_counter
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Column,
     DateTime,
@@ -37,7 +38,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.ext.asyncio import AsyncConnection
 from faststream.exceptions import FeatureNotSupportedException, SetupError
-from faststream.sqla.message import SqlaMessage, SqlaMessageState
+from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
 
 
 metadata = MetaData()
@@ -48,6 +49,7 @@ message = Table(
     metadata,
     Column("id", BigInteger, primary_key=True),
     Column("queue", String(255), nullable=False, index=True),
+    Column("headers", JSON, nullable=True),
     Column("payload", LargeBinary, nullable=False),
     Column(
         "state",
@@ -77,6 +79,7 @@ message_archive = Table(
     metadata,
     Column("id", BigInteger, primary_key=True),
     Column("queue", String(255), nullable=False, index=True),
+    Column("headers", JSON, nullable=True),
     Column("payload", LargeBinary, nullable=False),
     Column("state", Enum(SqlaMessageState), nullable=False, index=True),
     Column("attempts_count", SmallInteger, nullable=False),
@@ -91,6 +94,7 @@ message_archive = Table(
 _MESSAGE_SELECT_COLUMNS = (
     message.c.id.label("id"),
     message.c.queue.label("queue"),
+    message.c.headers.label("headers"),
     message.c.payload.label("payload"),
     message.c.state.label("state"),
     message.c.attempts_count.label("attempts_count"),
@@ -112,6 +116,7 @@ class SqlaPostgresClient:
         payload: bytes,
         *,
         queue: str,
+        headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
@@ -119,12 +124,14 @@ class SqlaPostgresClient:
             stmt = insert(message).values(
                 queue=queue,
                 payload=payload,
+                headers=headers,
                 next_attempt_at=next_attempt_at,
             )
         else:
             stmt = insert(message).values(
                 queue=queue,
                 payload=payload,
+                headers=headers,
             )
         
         if connection:
@@ -138,7 +145,7 @@ class SqlaPostgresClient:
         queues: list[str],
         *,
         limit: int,
-    ) -> list[SqlaMessage]:
+    ) -> list[SqlaInnerMessage]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         ready = (
             select(*_MESSAGE_SELECT_COLUMNS)
@@ -169,9 +176,9 @@ class SqlaPostgresClient:
         stmt = select(updated).order_by(updated.c.next_attempt_at)
         async with self._engine.begin() as conn:
             result = await conn.execute(stmt)
-            return [SqlaMessage(**row) for row in result.mappings()]
+            return [SqlaInnerMessage(**row) for row in result.mappings()]
 
-    async def retry(self, messages: Sequence[SqlaMessage]) -> None:
+    async def retry(self, messages: Sequence[SqlaInnerMessage]) -> None:
         if not messages:
             return
         params = [
@@ -203,7 +210,7 @@ class SqlaPostgresClient:
             print('retry', params)
             await conn.execute(stmt, params)
 
-    async def archive(self, messages: Sequence[SqlaMessage]) -> None:
+    async def archive(self, messages: Sequence[SqlaInnerMessage]) -> None:
         if not messages:
             return
         async with self._engine.begin() as conn:
@@ -212,6 +219,7 @@ class SqlaPostgresClient:
                     "id": msg.id,
                     "queue": msg.queue,
                     "payload": msg.payload,
+                    "headers": msg.headers,
                     "state": msg.state,
                     "attempts_count": msg.attempts_count,
                     "deliveries_count": msg.deliveries_count,
@@ -256,7 +264,7 @@ class SqlaMySqlClient(SqlaPostgresClient):
         queues: list[str],
         *,
         limit: int,
-    ) -> list[SqlaMessage]:
+    ) -> list[SqlaInnerMessage]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         
         async with self._engine.begin() as conn:
@@ -300,7 +308,7 @@ class SqlaMySqlClient(SqlaPostgresClient):
         
         rows_by_id = {row["id"]: row for row in rows}
         ordered_rows = [rows_by_id[id_] for id_ in ready_ids if id_ in rows_by_id]
-        return [SqlaMessage(**row) for row in ordered_rows]
+        return [SqlaInnerMessage(**row) for row in ordered_rows]
 
     async def release_stuck(self, timeout: int) -> None:
         now = datetime.now(timezone.utc).replace(tzinfo=None)

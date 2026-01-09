@@ -30,7 +30,7 @@ def create_subscriber(
     max_deliveries: int | None,
     config: "SqlaBrokerConfig",
     ack_policy: AckPolicy,
-) -> Any:
+) -> SqlaSubscriber:
     subscriber_config = SqlaSubscriberConfig(
         engine=engine,
         queues=queues,

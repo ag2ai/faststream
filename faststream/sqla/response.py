@@ -15,6 +15,7 @@ class SqlaPublishCommand(PublishCommand):
         message: "SendableMessage",
         *,
         queue: str,
+        headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
@@ -24,17 +25,10 @@ class SqlaPublishCommand(PublishCommand):
         super().__init__(
             body=message,
             destination=queue,
+            headers=headers,
             _publish_type=PublishType.PUBLISH,
         )
         self.next_attempt_at = next_attempt_at
         if self.next_attempt_at:
             self.next_attempt_at = self.next_attempt_at.replace(tzinfo=None)
         self.connection = connection
-        
-    def add_headers(
-        self,
-        headers: dict[str, Any],
-        *,
-        override: bool = True,
-    ) -> None:
-        raise FeatureNotSupportedException

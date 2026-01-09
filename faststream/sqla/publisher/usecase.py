@@ -33,6 +33,7 @@ class LogicPublisher(PublisherUsecase):
         self,
         message: "SendableMessage",
         queue: str,
+        headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
@@ -43,6 +44,7 @@ class LogicPublisher(PublisherUsecase):
         cmd = SqlaPublishCommand(
             message,
             queue=queue,
+            headers=headers,
             next_attempt_at=next_attempt_at,
             connection=connection,
         )

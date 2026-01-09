@@ -1,7 +1,8 @@
 from datetime import datetime
 import logging
-from typing import Any, Iterable, Optional, Union, override
+from typing import Any, Iterable, Optional, Sequence, Union, override
 from fast_depends import Provider, dependency_provider
+from fast_depends.dependencies import Dependant
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from faststream._internal.context.repository import ContextRepo
 from fast_depends.library.serializer import SerializerProto
@@ -9,6 +10,7 @@ from faststream._internal.basic_types import LoggerProto, SendableMessage
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.di.config import FastDependsConfig
+from faststream._internal.types import BrokerMiddleware, CustomCallable
 from faststream.security import BaseSecurity
 from faststream.specification.schema.broker import BrokerSpec
 from faststream.specification.schema.extra.tag import Tag, TagDict
@@ -33,6 +35,11 @@ class SqlaBroker(
         *,
         engine: AsyncEngine,
         # broker base args
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[SqlaRegistrator] = (),
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -45,10 +52,10 @@ class SqlaBroker(
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
         # FastDepends args
-        # apply_types: bool = True,
-        # serializer: Optional["SerializerProto"] = EMPTY,
-        # provider: Optional["Provider"] = None,
-        # context: Optional["ContextRepo"] = None,
+        apply_types: bool = True,
+        serializer: Optional["SerializerProto"] = EMPTY,
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
     ) -> None:
 
         super().__init__(
@@ -56,17 +63,23 @@ class SqlaBroker(
             config=SqlaBrokerConfig(
                 producer=SqlaProducer(
                     engine=engine,
+                    parser=parser,
+                    decoder=decoder,
                 ),
+                broker_parser=parser,
+                broker_decoder=decoder,
+                broker_middlewares=middlewares,
+                broker_dependencies=dependencies,
                 logger=make_sqla_logger_state(
                     logger=logger,
                     log_level=log_level,
                 ),
-                # fd_config=FastDependsConfig(
-                #     use_fastdepends=apply_types,
-                #     serializer=serializer,
-                #     provider=provider or dependency_provider,
-                #     context=context or ContextRepo(),
-                # ),
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
+                ),
                 extra_context={
                     "broker": self,
                 },
@@ -92,8 +105,9 @@ class SqlaBroker(
     async def publish(
         self,
         message: "SendableMessage",
+        queue: str = "",
         *,
-        queue: str,
+        headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
@@ -104,6 +118,7 @@ class SqlaBroker(
         cmd = SqlaPublishCommand(
             message=message,
             queue=queue,
+            headers=headers,
             next_attempt_at=next_attempt_at,
             connection=connection,
         )

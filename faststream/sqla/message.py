@@ -25,7 +25,7 @@ class SqlaMessageState(str, enum.Enum):
     RETRYABLE = "retryable"
 
 
-class SqlaMessage(StreamMessage):
+class SqlaInnerMessage:
     retry_strategy: RetryStrategyProto | None
 
     def __init__(
@@ -33,6 +33,7 @@ class SqlaMessage(StreamMessage):
         id: int,
         queue: str,
         state: SqlaMessageState,
+        headers: dict[str, Any],
         payload: bytes,
         attempts_count: int,
         deliveries_count: int,
@@ -45,6 +46,7 @@ class SqlaMessage(StreamMessage):
         self.id = id
         self.queue = queue
         self.state = state
+        self.headers = headers
         self.payload = payload
         self.attempts_count = attempts_count
         self.deliveries_count = deliveries_count
@@ -56,8 +58,6 @@ class SqlaMessage(StreamMessage):
         
         self.state_set = False
         self.to_archive = False
-        
-        super().__init__(raw_message=self, body=payload)
 
     async def ack(self) -> None:
         await self._update_state_if_not_set(self._ack)
@@ -150,3 +150,17 @@ class SqlaMessage(StreamMessage):
 
     def __repr__(self) -> str:
         return f"SqlaMessage(id={self.id}, queue={self.queue})"
+
+
+class SqlaMessage(StreamMessage[SqlaInnerMessage]):
+    async def ack(self) -> None:
+        await self.raw_message.ack()
+        await super().ack()
+
+    async def nack(self) -> None:
+        await self.raw_message.nack()
+        await super().nack()
+
+    async def reject(self) -> None:
+        await self.raw_message.reject()
+        await super().reject()

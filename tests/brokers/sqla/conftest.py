@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Column,
     DateTime,
@@ -42,7 +43,7 @@ async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, 
         case _:
             raise ValueError
 
-    engine = create_async_engine(url)
+    engine = create_async_engine(url, echo=True)
 
     try:
         yield engine
@@ -55,8 +56,10 @@ async def recreate_tables(engine: AsyncEngine) -> None:
     match engine.dialect.name:
         case "postgresql":
             timestamp_type = postgresql.TIMESTAMP(precision=3)
+            json_type = postgresql.JSONB
         case "mysql":
             timestamp_type = mysql.TIMESTAMP(fsp=3)
+            json_type = mysql.JSON
         case _:
             raise ValueError
 
@@ -67,6 +70,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         metadata,
         Column("id", BigInteger, primary_key=True),
         Column("queue", String(255), nullable=False, index=True),
+        Column("headers", json_type, nullable=True),
         Column("payload", LargeBinary, nullable=False),
         Column(
             "state",
@@ -96,6 +100,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         metadata,
         Column("id", BigInteger, primary_key=True),
         Column("queue", String(255), nullable=False, index=True),
+        Column("headers", json_type, nullable=True),
         Column("payload", LargeBinary, nullable=False),
         Column("state", Enum(SqlaMessageState), nullable=False, index=True),
         Column("attempts_count", SmallInteger, nullable=False),

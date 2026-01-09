@@ -11,7 +11,7 @@ from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
 from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
-from faststream.sqla.message import SqlaMessage
+from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.parser import SqlaParser
 
 
@@ -50,8 +50,8 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         self._release_stuck_timeout = config.release_stuck_timeout
         self._max_deliveries = config.max_deliveries
 
-        self._awaiting_consume_queue: asyncio.Queue[SqlaMessage] = asyncio.Queue()
-        self._result_buffer: list[SqlaMessage] = []
+        self._awaiting_consume_queue: asyncio.Queue[SqlaInnerMessage] = asyncio.Queue()
+        self._result_buffer: list[SqlaInnerMessage] = []
         self._stop_event = asyncio.Event()
         self._result_buffer_lock = asyncio.Lock()
         self._retry_on_client_error_delay = 5
@@ -198,7 +198,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
                 break
         print("release_stuck_loop exit")
 
-    def _buffer_results(self, result: SqlaMessage | Iterable[SqlaMessage]) -> None:
+    def _buffer_results(self, result: SqlaInnerMessage | Iterable[SqlaInnerMessage]) -> None:
         print("buffer_results")
         if isinstance(result, Iterable):
             self._result_buffer.extend(result)
