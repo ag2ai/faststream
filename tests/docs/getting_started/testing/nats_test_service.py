@@ -1,21 +1,25 @@
 import pytest
-from pydantic import ValidationError
 
-from faststream import FastStream
-from faststream.nats import NatsBroker, TestNatsBroker
-
-broker = NatsBroker("nats://localhost:4222")
-app = FastStream(broker)
+from tests.marks import require_nats
 
 
 @pytest.mark.asyncio()
-async def test_correct() -> None:
-    async with TestNatsBroker(broker) as br:
-        await br.publish(...)
+@pytest.mark.nats()
+@require_nats
+async def test_correct_nats() -> None:
+    from docs.docs_src.getting_started.testing.nats.test_example import (
+        test_correct as test_correct_n,
+    )
+
+    await test_correct_n()
 
 
 @pytest.mark.asyncio()
-async def test_invalid() -> None:
-    async with TestNatsBroker(broker) as br:  # noqa: F841
-        with pytest.raises(ValidationError):
-            ...
+@pytest.mark.nats()
+@require_nats
+async def test_invalid_nats() -> None:
+    from docs.docs_src.getting_started.testing.nats.test_example import (
+        test_invalid as test_invalid_n,
+    )
+
+    await test_invalid_n()

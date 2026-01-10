@@ -1,21 +1,25 @@
 import pytest
-from pydantic import ValidationError
 
-from faststream import FastStream
-from faststream.confluent import KafkaBroker, TestKafkaBroker
-
-broker = KafkaBroker("localhost:9092")
-app = FastStream(broker)
+from tests.marks import require_confluent
 
 
 @pytest.mark.asyncio()
-async def test_correct() -> None:
-    async with TestKafkaBroker(broker) as br:
-        await br.publish(...)
+@pytest.mark.confluent()
+@require_confluent
+async def test_correct_confluent() -> None:
+    from docs.docs_src.getting_started.testing.confluent.test_example import (
+        test_correct as test_correct_confluent,
+    )
+
+    await test_correct_confluent()
 
 
 @pytest.mark.asyncio()
-async def test_invalid() -> None:
-    async with TestKafkaBroker(broker) as br:  # noqa: F841
-        with pytest.raises(ValidationError):
-            ...
+@pytest.mark.confluent()
+@require_confluent
+async def test_invalid_confluent() -> None:
+    from docs.docs_src.getting_started.testing.confluent.test_example import (
+        test_invalid as test_invalid_confluent,
+    )
+
+    await test_invalid_confluent()

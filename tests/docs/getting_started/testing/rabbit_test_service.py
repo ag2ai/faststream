@@ -1,21 +1,25 @@
 import pytest
-from pydantic import ValidationError
 
-from faststream import FastStream
-from faststream.rabbit import RabbitBroker, TestRabbitBroker
-
-broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
-app = FastStream(broker)
+from tests.marks import require_aiopika
 
 
 @pytest.mark.asyncio()
-async def test_correct() -> None:
-    async with TestRabbitBroker(broker) as br:
-        await br.publish(...)
+@pytest.mark.rabbit()
+@require_aiopika
+async def test_correct_rabbit() -> None:
+    from docs.docs_src.getting_started.testing.rabbit.test_example import (
+        test_correct as test_correct_r,
+    )
+
+    await test_correct_r()
 
 
 @pytest.mark.asyncio()
-async def test_invalid() -> None:
-    async with TestRabbitBroker(broker) as br:  # noqa: F841
-        with pytest.raises(ValidationError):
-            ...
+@pytest.mark.rabbit()
+@require_aiopika
+async def test_invalid_rabbit() -> None:
+    from docs.docs_src.getting_started.testing.rabbit.test_example import (
+        test_invalid as test_invalid_r,
+    )
+
+    await test_invalid_r()
