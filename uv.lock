@@ -2773,7 +2773,7 @@ dependencies = [
     { name = "cffi" },
     { name = "filelock" },
     { name = "pytest" },
-    { name = "setuptools", marker = "python_full_version >= '3.13' },
+    { name = "setuptools", marker = "python_full_version >= '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/40/6a/ba0b067dba286443a04c9d32ff75ef3bc169617ee347d1a97972ada62665/pytest_codspeed-2.2.1.tar.gz", hash = "sha256:0adc24baf01c64a6ca0a0b83b3cd704351708997e09ec086b7776c32227d4e0a", size = 9163, upload-time = "2024-03-19T21:59:57.142Z" }
 wheels = [
