@@ -17,6 +17,7 @@ _FASTAPI_MAJOR, _FASTAPI_MINOR = int(major), int(minor)
 FASTAPI_V2 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR > 100
 FASTAPI_V106 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 106
 FASTAPI_V121 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 121
+FASTAPI_V128 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 128
 
 try:
     _FASTAPI_PATCH = int(patch)
@@ -50,7 +51,13 @@ class SolvedDependency:
     background_tasks: BackgroundTasks | None
 
 
-if FASTAPI_V2:
+if FASTAPI_V128:
+    from fastapi.exceptions import RequestValidationError
+
+    def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
+        raise RequestValidationError(errors, body=body)
+
+elif FASTAPI_V2:
     from fastapi._compat import _normalize_errors
     from fastapi.exceptions import RequestValidationError
 

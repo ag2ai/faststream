@@ -17,7 +17,7 @@ jobs:
         with:  # zizmor: ignore[artipacked]
           fetch-depth: 0
           token: ${{ secrets.AUTOMERGE_TOKEN }}
-      - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      - uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
         with:
           version: "latest"
       - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
@@ -67,7 +67,7 @@ jobs:
           fi
 
       - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
         with:
           branch: gh-pages
           push_options: "--force"  # force push to stay with clear gh-pages branch history
