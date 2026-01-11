@@ -892,6 +892,7 @@ dev = [
     { name = "pyyaml" },
     { name = "ruff" },
     { name = "semgrep" },
+    { name = "setuptools" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -1027,6 +1028,7 @@ dev = [
     { name = "pyyaml", specifier = "==6.0.3" },
     { name = "ruff", specifier = "==0.14.8" },
     { name = "semgrep", specifier = "==1.145.0" },
+    { name = "setuptools", specifier = ">=80.9.0" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -3315,6 +3317,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9b/b5/3ff52c46a3c64681cfe5354495dae88dc5cc173255b37bf4b29a8e54b66a/semgrep-1.145.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-musllinux_1_0_aarch64.manylinux2014_aarch64.whl", hash = "sha256:58cd9aab83e961236a07c3ce34902aad803340d848a0ad4c42faa826b8b84bf4", size = 54320541, upload-time = "2025-12-05T18:07:44.726Z" },
     { url = "https://files.pythonhosted.org/packages/4a/fd/08e731b69529a42bb95b72883848cc720b8669c781ca99bb623751a6df00/semgrep-1.145.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-musllinux_1_0_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5baa96a868aea8e25c040bd321b4c28f868c2cc88085a6c9db696576eddc011e", size = 50438121, upload-time = "2025-12-05T18:07:48.196Z" },
     { url = "https://files.pythonhosted.org/packages/03/9d/fc915842a7614cd347f1288d17439ce7764fc8eb771cda07baa8c91ac617/semgrep-1.145.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-win_amd64.whl", hash = "sha256:b10bbc8c8abb822bca9c6aaa735aafd7d917342a60e3f01e1c589bbfcaf3cb55", size = 42997287, upload-time = "2025-12-05T18:07:52.667Z" },
+]
+
+[[package]]
+name = "setuptools"
+version = "80.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
 ]
 
 [[package]]

@@ -156,6 +156,7 @@ dev = [
     "pre-commit==4.5.0",
     "detect-secrets==1.5.0",
     "pytest-codspeed>=2.2.1",
+    "setuptools>=80.9.0",
 ]
 
 [project.urls]
