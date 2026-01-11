@@ -57,12 +57,12 @@ if FASTAPI_V128:
     def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
         raise RequestValidationError(errors, body=body)
 
-elif FASTAPI_V2:
-    from fastapi._compat import _normalize_errors
-    from fastapi.exceptions import RequestValidationError
+# elif FASTAPI_V2:
+#     from fastapi._compat import _normalize_errors
+#     from fastapi.exceptions import RequestValidationError
 
-    def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
-        raise RequestValidationError(_normalize_errors(errors), body=body)
+#     def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
+#         raise RequestValidationError(_normalize_errors(errors), body=body)
 
 else:
     from pydantic import (  # type: ignore[assignment]
