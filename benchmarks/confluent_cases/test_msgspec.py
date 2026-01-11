@@ -4,8 +4,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import pytest
-
 from fast_depends.msgspec import MsgSpecSerializer
+
 from faststream.confluent import KafkaBroker
 
 from .schemas.msgspec import Schema
