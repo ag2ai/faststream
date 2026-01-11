@@ -884,6 +884,7 @@ dev = [
     { name = "pydantic-settings" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-codspeed" },
     { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-timeout" },
@@ -1018,6 +1019,7 @@ dev = [
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "pytest-asyncio", specifier = "==1.3.0" },
+    { name = "pytest-codspeed", specifier = ">=2.2.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
@@ -2759,6 +2761,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/90/2c/8af215c0f776415f3590cac4f9086ccefd6fd463befeae41cd4d3f193e5a/pytest_asyncio-1.3.0.tar.gz", hash = "sha256:d7f52f36d231b80ee124cd216ffb19369aa168fc10095013c6b014a34d3ee9e5", size = 50087, upload-time = "2025-11-10T16:07:47.256Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/35/f8b19922b6a25bc0880171a2f1a003eaeb93657475193ab516fd87cac9da/pytest_asyncio-1.3.0-py3-none-any.whl", hash = "sha256:611e26147c7f77640e6d0a92a38ed17c3e9848063698d5c93d5aa7aa11cebff5", size = 15075, upload-time = "2025-11-10T16:07:45.537Z" },
+]
+
+[[package]]
+name = "pytest-codspeed"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cffi" },
+    { name = "filelock" },
+    { name = "pytest" },
+    { name = "setuptools", marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/6a/ba0b067dba286443a04c9d32ff75ef3bc169617ee347d1a97972ada62665/pytest_codspeed-2.2.1.tar.gz", hash = "sha256:0adc24baf01c64a6ca0a0b83b3cd704351708997e09ec086b7776c32227d4e0a", size = 9163, upload-time = "2024-03-19T21:59:57.142Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/0b/e3541064afcf24ed54bcabfa6eb5f8083eb335d5c58c7b5b95bc31127f86/pytest_codspeed-2.2.1-py3-none-any.whl", hash = "sha256:aad08033015f3e6c8c14c8bf0eca475921a9b088e92c98b626bf8af8f516471e", size = 10126, upload-time = "2024-03-19T21:59:55.388Z" },
 ]
 
 [[package]]
