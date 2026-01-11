@@ -1,5 +1,9 @@
 name: Benchmarks
 
+permissions:
+  contents: read
+  id-token: write # for OpenID Connect authentication with CodSpeed
+
 on:
   workflow_dispatch:
 
@@ -54,7 +58,6 @@ jobs:
       - name: Install Pydantic v2
         run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
       - name: Run the benchmarks
-        uses: GitHubSecurityLab/actions-permissions/monitor@main
         uses: CodSpeedHQ/action@dbda7111f8ac363564b0c51b992d4ce76bb89f2f # v4.5.2
         with:
           mode: walltime
