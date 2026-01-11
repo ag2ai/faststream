@@ -87,6 +87,6 @@ class TestConfluentCase:
             await run_in_executor(None, self.consumer.close)
 
     async def test_consume_message(self) -> None:
-        async with self.start() as start_time:
+        async with self.start():
             await asyncio.sleep(6.0)
         assert self.EVENTS_PROCESSED > 1

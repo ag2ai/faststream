@@ -55,6 +55,6 @@ class TestNatsTestCase:
             yield start_time
 
     async def test_consume_message(self) -> None:
-        async with self.start() as start_time:
+        async with self.start():
             await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1

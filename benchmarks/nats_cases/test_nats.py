@@ -39,7 +39,6 @@ class TestNatsTestCase:
         await nc.subscribe("in", cb=message_handler)
         start_time = time.time()
 
-
         await nc.publish(
             "in",
             json.dumps({
@@ -54,6 +53,6 @@ class TestNatsTestCase:
         await nc.close()
 
     async def test_consume_message(self) -> None:
-        async with self.start() as start_time:
+        async with self.start():
             await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1

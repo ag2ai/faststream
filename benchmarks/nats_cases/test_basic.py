@@ -18,7 +18,7 @@ class TestNatsCase:
     comment = "Consume Any Message"
     broker_type = "NATS"
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         broker = self.broker = NatsBroker(logger=None, graceful_timeout=10)
         self.EVENTS_PROCESSED = 0
 
@@ -48,6 +48,6 @@ class TestNatsCase:
             yield start_time
 
     async def test_consume_message(self) -> None:
-        async with self.start() as start_time:
+        async with self.start():
             await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1

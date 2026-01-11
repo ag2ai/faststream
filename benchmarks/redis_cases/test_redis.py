@@ -33,7 +33,7 @@ class TestRedisCase:
                 if msg["type"] != "message":
                     continue
                 self.EVENTS_PROCESSED += 1
-                data = json.loads( msg["data"].decode())
+                data = json.loads(msg["data"].decode())
                 validated = Schema(**data)
                 await client.publish("in", validated.model_dump_json())
 
@@ -60,6 +60,6 @@ class TestRedisCase:
             await client.aclose()
 
     async def test_consume_message(self) -> None:
-        async with self.start() as start_time:
+        async with self.start():
             await asyncio.sleep(1)
         assert self.EVENTS_PROCESSED > 1
