@@ -27,7 +27,9 @@ class TestKafkaCase:
         admin = AIOKafkaAdminClient(bootstrap_servers="localhost:9092")
         await admin.start()
         try:
-            await admin.create_topics([NewTopic(name="in", num_partitions=1, replication_factor=1)])
+            await admin.create_topics([
+                NewTopic(name="in", num_partitions=1, replication_factor=1)
+            ])
         finally:
             await admin.close()
 
@@ -47,18 +49,15 @@ class TestKafkaCase:
         start_time = time.time()
         stop_event = asyncio.Event()
 
-        await producer.send_and_wait("in", json.dumps({
-            "name": "John",
-            "age": 39,
-            "fullname": "LongString" * 8,
-            "children": [
-                {
-                    "name": "Mike",
-                    "age": 8,
-                    "fullname": "LongString" * 8
-                }
-            ]
-        }).encode())
+        await producer.send_and_wait(
+            "in",
+            json.dumps({
+                "name": "John",
+                "age": 39,
+                "fullname": "LongString" * 8,
+                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
+            }).encode(),
+        )
 
         async def message_loop() -> None:
             try:
@@ -68,10 +67,7 @@ class TestKafkaCase:
                     self.EVENTS_PROCESSED += 1
                     data = json.loads(msg.value.decode())
                     parsed = Schema(**data)
-                    await producer.send_and_wait(
-                        "in",
-                        parsed.model_dump_json().encode()
-                    )
+                    await producer.send_and_wait("in", parsed.model_dump_json().encode())
             except asyncio.CancelledError:
                 pass
 

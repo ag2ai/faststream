@@ -46,7 +46,7 @@ class TestRedisCase:
                 "age": 39,
                 "fullname": "LongString" * 8,
                 "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
+            }),
         )
 
         handler_task = asyncio.create_task(handler())

@@ -32,7 +32,7 @@ class TestConfluentCase:
             "bootstrap.servers": "localhost:9092",
             "group.id": "test-group",
             "enable.auto.commit": True,
-            "auto.offset.reset": "earliest"
+            "auto.offset.reset": "earliest",
         })
         self.consumer.assign([TopicPartition("in", 0, 0)])
 
@@ -55,7 +55,9 @@ class TestConfluentCase:
                 self.EVENTS_PROCESSED += 1
                 data = json.loads(msg.value().decode("utf-8"))
                 parsed = Schema(**data)
-                self.producer.produce("in", value=parsed.model_dump_json().encode("utf-8"), callback=acked)
+                self.producer.produce(
+                    "in", value=parsed.model_dump_json().encode("utf-8"), callback=acked
+                )
                 self.producer.flush()
 
         loop = asyncio.get_event_loop()
@@ -66,13 +68,7 @@ class TestConfluentCase:
             "name": "John",
             "age": 39,
             "fullname": "LongString" * 8,
-            "children": [
-                {
-                    "name": "Mike",
-                    "age": 8,
-                    "fullname": "LongString" * 8
-                }
-            ]
+            "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
         }).encode("utf-8")
 
         await run_in_executor(None, self.producer.produce, "in", value=value)

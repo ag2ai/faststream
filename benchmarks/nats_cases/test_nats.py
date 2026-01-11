@@ -32,10 +32,8 @@ class TestNatsTestCase:
             data = json.loads(msg.data.decode("utf-8"))
             parsed = Schema(**data)
 
-            await nc.publish(
-                "in",
-                parsed.model_dump_json().encode()
-            )
+            await nc.publish("in", parsed.model_dump_json().encode())
+
         await nc.subscribe("in", cb=message_handler)
         start_time = time.time()
 
@@ -46,7 +44,7 @@ class TestNatsTestCase:
                 "age": 39,
                 "fullname": "LongString" * 8,
                 "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            }).encode("utf-8")
+            }).encode("utf-8"),
         )
         yield start_time
 
