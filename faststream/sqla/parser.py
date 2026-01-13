@@ -18,9 +18,7 @@ class SqlaParser:
             body=message.payload,
             headers=message.headers,
             content_type=message.headers.get("content-type"),
-            # reply_to=message.reply_to,
-            # message_id=message.message_id,
-            # correlation_id=message.correlation_id,
+            correlation_id=message.headers.get("correlation_id"),
         )
 
     async def decode_message(

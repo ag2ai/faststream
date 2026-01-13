@@ -43,7 +43,7 @@ async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, 
         case _:
             raise ValueError
 
-    engine = create_async_engine(url, echo=True)
+    engine = create_async_engine(url)
 
     try:
         yield engine

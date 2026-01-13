@@ -27,24 +27,26 @@ class LogicPublisher(PublisherUsecase):
         specification: "PublisherSpecification[Any, Any]",
     ) -> None:
         super().__init__(config, specification)
+        self._queue = config.queue
+        self.headers = config.headers or {}
+
+    @property
+    def queue(self) -> str:
+        return self._queue
 
     @override
     async def publish(
         self,
         message: "SendableMessage",
-        queue: str,
+        queue: str = "",
         headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
-        """
-        Args:
-            next_attempt_at: datetime with timezone
-        """
         cmd = SqlaPublishCommand(
             message,
-            queue=queue,
-            headers=headers,
+            queue=queue or self.queue,
+            headers=self.headers | (headers or {}),
             next_attempt_at=next_attempt_at,
             connection=connection,
         )
@@ -56,13 +58,22 @@ class LogicPublisher(PublisherUsecase):
         )
     
     @override
-    async def _publish( # TODO
+    async def _publish(
         self,
         cmd: Union["PublishCommand", "SqlaPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
-        raise FeatureNotSupportedException
+        cmd = SqlaPublishCommand.from_cmd(cmd)
+
+        cmd.destination = self.queue
+        cmd.add_headers(self.headers, override=False)
+
+        await self._basic_publish(
+            cmd,
+            producer=self._outer_config.producer,
+            _extra_middlewares=_extra_middlewares,
+        )
 
     @override
     async def request(

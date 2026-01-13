@@ -14,4 +14,6 @@ class SqlaPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class SqlaPublisherConfig(PublisherUsecaseConfig):
+    queue: str = ""
+    headers: dict[str, str] | None = None
     _outer_config: "SqlaBrokerConfig" = field(default_factory=SqlaBrokerConfig)

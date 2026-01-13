@@ -176,6 +176,9 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
     @override
     def publisher(
         self,
+        queue: str = "",
+        *,
+        headers: dict[str, str] | None = None,
         middlewares: Annotated[
             Sequence["PublisherMiddleware"],
             deprecated(
@@ -190,6 +193,8 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         include_in_schema: bool = True,
     ) -> "LogicPublisher":
         publisher = create_publisher(
+            queue=queue,
+            headers=headers,
             # Specific
             broker_config=cast("SqlaBrokerConfig", self.config),
             middlewares=middlewares,

@@ -15,7 +15,6 @@ from faststream.security import BaseSecurity
 from faststream.specification.schema.broker import BrokerSpec
 from faststream.specification.schema.extra.tag import Tag, TagDict
 from faststream.sqla.broker.registrator import SqlaRegistrator
-from faststream.sqla.client import create_sqla_client
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.broker.logging import make_sqla_logger_state
 from faststream.sqla.publisher.producer import SqlaProducer
@@ -129,10 +128,6 @@ class SqlaBroker(
 
         return await super()._basic_publish(cmd, producer=self.config.producer)
     
-    async def _connect(self) -> Any:
-        await self._validate_schema()
-
-    async def _validate_schema(self) -> None:
-        if self.config.broker_config.validate_schema_on_start:
-            client = create_sqla_client(self.config.broker_config.engine)
-            await client.validate_schema()
+    @override
+    async def _connect(self) -> None:
+        await self.config.connect(**self._connection_kwargs)

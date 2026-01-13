@@ -67,16 +67,15 @@ class SqlaProducer(SqlaProducerProto):
     async def publish(self, cmd: "SqlaPublishCommand") -> None:
         payload, content_type = encode_message(cmd.body, self.serializer)
 
-        headers_to_add = {}
-        if content_type:
-            headers_to_add["content-type"] = content_type
+        headers_to_send = {
+            **({"content-type": content_type} if content_type else {}),
+            **cmd.headers_to_publish(),
+        }
 
-        cmd.add_headers(headers_to_add)
-        
         return await self.client.enqueue(
             payload=payload,
             queue=cmd.destination,
-            headers=cmd.headers,
+            headers=headers_to_send,
             next_attempt_at=cmd.next_attempt_at,
             connection=cmd.connection,
         )
