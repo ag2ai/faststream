@@ -15,6 +15,7 @@ from faststream.security import BaseSecurity
 from faststream.specification.schema.broker import BrokerSpec
 from faststream.specification.schema.extra.tag import Tag, TagDict
 from faststream.sqla.broker.registrator import SqlaRegistrator
+from faststream.sqla.client import create_sqla_client
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.broker.logging import make_sqla_logger_state
 from faststream.sqla.publisher.producer import SqlaProducer
@@ -34,6 +35,7 @@ class SqlaBroker(
         self,
         *,
         engine: AsyncEngine,
+        validate_schema_on_start: bool = True,
         # broker base args
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
@@ -61,15 +63,17 @@ class SqlaBroker(
         super().__init__(
             routers=routers,
             config=SqlaBrokerConfig(
+                engine=engine,
                 producer=SqlaProducer(
                     engine=engine,
                     parser=parser,
                     decoder=decoder,
                 ),
-                broker_parser=parser,
+                validate_schema_on_start=validate_schema_on_start,
+                # both args,
                 broker_decoder=decoder,
+                broker_parser=parser,
                 broker_middlewares=middlewares,
-                broker_dependencies=dependencies,
                 logger=make_sqla_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -80,6 +84,9 @@ class SqlaBroker(
                     provider=provider or dependency_provider,
                     context=context or ContextRepo(),
                 ),
+                # subscriber args
+                graceful_timeout=graceful_timeout,
+                broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
                 },
@@ -93,9 +100,6 @@ class SqlaBroker(
                 tags=tags,
             ),
         )
-    
-    async def _connect(self) -> Any:
-        return True
 
     async def start(self) -> None:
         await self.connect()
@@ -124,3 +128,11 @@ class SqlaBroker(
         )
 
         return await super()._basic_publish(cmd, producer=self.config.producer)
+    
+    async def _connect(self) -> Any:
+        await self._validate_schema()
+
+    async def _validate_schema(self) -> None:
+        if self.config.broker_config.validate_schema_on_start:
+            client = create_sqla_client(self.config.broker_config.engine)
+            await client.validate_schema()

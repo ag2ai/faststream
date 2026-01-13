@@ -41,7 +41,7 @@ class SqlaProducer(SqlaProducerProto):
     def __init__(
         self,
         *,
-        engine: AsyncEngine,
+        engine: AsyncEngine, # todo
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:

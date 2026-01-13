@@ -29,6 +29,7 @@ from sqlalchemy import (
     delete,
     func,
     insert,
+    inspect,
     or_,
     select,
     text,
@@ -256,6 +257,69 @@ class SqlaPostgresClient:
         )
         async with self._engine.begin() as conn:
             await conn.execute(stmt)
+
+    async def validate_schema(self) -> None:
+        async with self._engine.connect() as conn:
+            errors = await conn.run_sync(self._check_schema)
+            if errors:
+                raise SetupError(f"Schema validation failed: {'; '.join(errors)}")
+
+    def _check_schema(self, connection) -> list[str]:
+        inspector = inspect(connection)
+        errors: list[str] = []
+
+        for table_def in (message, message_archive):
+            table_name = table_def.name
+            if not inspector.has_table(table_name):
+                errors.append(f"Table '{table_name}' does not exist")
+                continue
+
+            db_columns = {c["name"]: c["type"] for c in inspector.get_columns(table_name)}
+            expected_columns = {c.name: c.type for c in table_def.columns}
+
+            missing = set(expected_columns.keys()) - set(db_columns.keys())
+            if missing:
+                errors.append(f"Table '{table_name}' missing columns: {missing}")
+
+            for col_name, expected_type in expected_columns.items():
+                if col_name not in db_columns:
+                    continue
+                db_type = db_columns[col_name]
+                if not self._types_compatible(expected_type, db_type):
+                    errors.append(
+                        f"Table '{table_name}' column '{col_name}' has type "
+                        f"{type(db_type).__name__}, expected {type(expected_type).__name__}"
+                    )
+
+        return errors
+
+    def _types_compatible(self, expected, actual) -> bool:
+        from sqlalchemy.types import (
+            BigInteger, SmallInteger, Integer,
+            String, Text, VARCHAR,
+            DateTime, TIMESTAMP,
+            LargeBinary, BLOB,
+            JSON, TypeDecorator,
+        )
+        from sqlalchemy.dialects.postgresql import JSONB
+
+        if isinstance(expected, TypeDecorator):
+            expected = expected.impl
+
+        integer_types = (BigInteger, SmallInteger, Integer)
+        string_types = (String, Text, VARCHAR)
+        datetime_types = (DateTime, TIMESTAMP)
+        binary_types = (LargeBinary, BLOB)
+        json_types = (JSON, JSONB)
+
+        for type_group in (integer_types, string_types, datetime_types, binary_types, json_types):
+            if isinstance(expected, type_group) and isinstance(actual, type_group):
+                return True
+
+        if isinstance(expected, Enum) and isinstance(actual, Enum):
+            return True
+
+        return type(expected) == type(actual)
 
 
 class SqlaMySqlClient(SqlaPostgresClient):

@@ -22,12 +22,12 @@ class StopEventSetError(Exception):
     pass
 
 
-class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
+class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
     def __init__(
         self,
         config: "SqlaSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[MsgType]",
+        calls: "CallsCollection[SqlaInnerMessage]",
     ) -> None:
         self.parser = SqlaParser()
         config.parser = self.parser.parse_message
@@ -46,7 +46,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         
         self._fetch_batch_size = config.fetch_batch_size
         self._awaiting_consume_queue_capacity = int(config.fetch_batch_size * config.overfetch_factor)
-        self._graceful_shutdown_timeout = config.graceful_shutdown_timeout
+        self.graceful_timeout = self._outer_config.graceful_timeout
         self._release_stuck_timeout = config.release_stuck_timeout
         self._max_deliveries = config.max_deliveries
 
@@ -72,11 +72,14 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[Any]):
         print("stop")
         self._stop_event.set()
         await self._requeue_awaiting_consume_queue()
+        print("with suppress(asyncio.TimeoutError):")
         with suppress(asyncio.TimeoutError):
-            await asyncio.wait_for(self._stop(), timeout=self._graceful_shutdown_timeout)
+            await asyncio.wait_for(self._stop(), timeout=self.graceful_timeout)
+        print("await super().stop()")
         await super().stop()
 
     async def _stop(self) -> None:
+        print("await asyncio.gather(*self.tasks)")
         await asyncio.gather(*self.tasks)
         task_flush = self.add_task(self._flush_results)
         await task_flush

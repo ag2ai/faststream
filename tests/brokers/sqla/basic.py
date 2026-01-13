@@ -70,7 +70,6 @@ class SqlaTestcaseConfig(BaseTestcaseConfig):
         kwargs.setdefault("overfetch_factor", 1)
         kwargs.setdefault("flush_interval", 0.01)
         kwargs.setdefault("release_stuck_interval", 10)
-        kwargs.setdefault("graceful_shutdown_timeout", 10)
         kwargs.setdefault("release_stuck_timeout", 10)
         kwargs.setdefault("max_deliveries", 20)
         kwargs.setdefault("ack_policy", AckPolicy.NACK_ON_ERROR)

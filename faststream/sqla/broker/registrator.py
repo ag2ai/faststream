@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, cast, override
+from faststream.sqla.message import SqlaInnerMessage, SqlaMessage
 from faststream.sqla.publisher.usecase import LogicPublisher
 from typing_extensions import deprecated
 
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
 
-class SqlaRegistrator(Registrator[Any, Any]):
+class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
     def subscriber(
         self,
         queues: list[str],
@@ -38,7 +39,6 @@ class SqlaRegistrator(Registrator[Any, Any]):
         flush_interval: float,
         release_stuck_interval: float,
         release_stuck_timeout: float,
-        graceful_shutdown_timeout: float,
         max_deliveries: int | None = None,
         ack_policy: AckPolicy = AckPolicy.REJECT_ON_ERROR,
         # broker args
@@ -156,7 +156,6 @@ class SqlaRegistrator(Registrator[Any, Any]):
             overfetch_factor=overfetch_factor,
             flush_interval=flush_interval,
             release_stuck_interval=release_stuck_interval,
-            graceful_shutdown_timeout=graceful_shutdown_timeout,
             release_stuck_timeout=release_stuck_timeout,
             max_deliveries=max_deliveries,
             config=cast("SqlaBrokerConfig", self.config),

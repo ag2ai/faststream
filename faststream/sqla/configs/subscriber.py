@@ -11,7 +11,7 @@ from faststream.sqla.retry import RetryStrategyProto
 @dataclass(kw_only=True)
 class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "SqlaBrokerConfig" = field(default_factory=SqlaBrokerConfig)
-    
+
     engine: AsyncEngine
     queues: list[str]
     max_workers: int
@@ -23,7 +23,6 @@ class SqlaSubscriberConfig(SubscriberUsecaseConfig):
     flush_interval: float
     release_stuck_interval: float
     release_stuck_timeout: float
-    graceful_shutdown_timeout: float
     max_deliveries: int | None
 
     @property
