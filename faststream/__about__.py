@@ -1,4 +1,4 @@
-"""Simple and fast framework to create message brokers based microservices."""
+"""Simple and fast framework to create message brokers based microservices. test"""
 
 from importlib.metadata import version
 
