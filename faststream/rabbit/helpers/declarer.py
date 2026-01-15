@@ -1,9 +1,6 @@
 from typing import TYPE_CHECKING, Optional, Protocol, cast
 
-import aio_pika
-
 from faststream._internal.constants import EMPTY
-from faststream.rabbit.schemas import Channel, RabbitQueue
 
 if TYPE_CHECKING:
     import aio_pika
