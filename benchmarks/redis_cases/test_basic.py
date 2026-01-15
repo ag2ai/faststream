@@ -1,19 +1,27 @@
+import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from faststream.kafka import KafkaBroker
+import pytest
+
+from faststream.redis import RedisBroker
 
 
-class KafkaTestCase:
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestRedisCase:
     comment = "Consume Any Message"
-    broker_type = "Kafka"
+    broker_type = "Redis"
 
-    def __init__(self) -> None:
+    def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
-        broker = self.broker = KafkaBroker(logger=None, graceful_timeout=10)
+        broker = self.broker = RedisBroker(logger=None, graceful_timeout=10)
 
         p = self.publisher = broker.publisher("in")
 
@@ -39,3 +47,8 @@ class KafkaTestCase:
             })
 
             yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start():
+            await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED > 1
