@@ -105,11 +105,20 @@ class BrokerUsecase(
 
         self.config.logger._setup(self.config.fd_config.context)
 
+    def setup_logger(self) -> None:
+        self._setup_logger()
+
+    def resolve_settings(self) -> None:
+        for sub in self.subscribers:
+            sub.resolve_settings()
+
+        for pub in self.publishers:
+            pub.resolve_settings()
+
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
             self._connection = await self._connect()
-            self._setup_logger()
 
         return self._connection
 
