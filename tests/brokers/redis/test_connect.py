@@ -13,7 +13,7 @@ from .conftest import Settings
 class TestConnection(BrokerConnectionTestcase):
     broker = RedisBroker
 
-    def get_broker_args(self, settings: Settings) -> dict[str, Any]:
+    def _get_broker_args(self, settings: Settings) -> dict[str, Any]:
         return {
             "url": settings.url,
             "host": settings.host,
@@ -27,4 +27,4 @@ class TestConnection(BrokerConnectionTestcase):
             host=settings.host,
             port=settings.port,
         ) as broker:
-            assert await self.ping(broker)
+            assert await self._ping(broker)

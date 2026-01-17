@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
+import anyio
 from fast_depends import Provider
 from typing_extensions import Self, deprecated
 
@@ -145,7 +146,24 @@ class BrokerUsecase(
         """Closes the object."""
         await self.stop(exc_type, exc_val, exc_tb)
 
-    @abstractmethod
     async def ping(self, timeout: float | None) -> bool:
-        """Check connection alive."""
-        raise NotImplementedError
+        sleep_time = (timeout or 10) / 10
+
+        with anyio.move_on_after(timeout) as cancel_scope:
+            if self._connection is None:
+                return False
+
+            while True:
+                if cancel_scope.cancel_called:
+                    return False
+
+                if await self._ping():
+                    return True
+
+                await anyio.sleep(sleep_time)
+
+        return False
+
+    @abstractmethod
+    async def _ping(self) -> bool:
+        ...

@@ -2,16 +2,16 @@ from typing import Any
 
 import pytest
 
-from faststream.kafka import KafkaBroker
+from faststream.sqla.broker.broker import SqlaBroker
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
 from .conftest import Settings
 
 
-@pytest.mark.kafka()
+@pytest.mark.sqla()
 @pytest.mark.connected()
 class TestConnection(BrokerConnectionTestcase):
-    broker = KafkaBroker
+    broker = SqlaBroker
 
     def _get_broker_args(self, settings: Settings) -> dict[str, Any]:
-        return {"bootstrap_servers": settings.url}
+        return {"engine": settings.engine}

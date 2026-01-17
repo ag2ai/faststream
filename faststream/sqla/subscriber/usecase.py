@@ -9,7 +9,7 @@ from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.specification import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
+from faststream.sqla.client import SqlaBaseClient, SqlaPostgresClient, create_sqla_client
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.parser import SqlaParser
@@ -30,11 +30,11 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         calls: "CallsCollection[SqlaInnerMessage]",
     ) -> None:
         self.parser = SqlaParser()
+        self.config = config
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
-        self._repo = create_sqla_client(config.engine)
         self._queues = config.queues
         self._worker_count = config.max_workers
         self._retry_strategy = config.retry_strategy
@@ -56,15 +56,18 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         self._result_buffer_lock = asyncio.Lock()
         self._retry_on_client_error_delay = 5
 
+    @property
+    def _repo(self) -> SqlaBaseClient:
+        return self.config._outer_config.client
+
     async def start(self) -> None:
         print("start")
         self._stop_event.clear()
         for _ in range(self._worker_count):
             self.add_task(self._worker_loop)
         self._post_start()
-        self.add_task(self._fetch_loop)
-        self.add_task(self._flush_loop)
-        self.add_task(self._release_stuck_loop)
+        for loop in [self._fetch_loop, self._flush_loop, self._release_stuck_loop]:
+            self.add_task(loop)
         self._stop_task = self.add_task(self._stop_event.wait)
         await super().start()
 

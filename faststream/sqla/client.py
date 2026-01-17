@@ -12,6 +12,7 @@ import os
 import random
 import signal
 from time import perf_counter
+from typing import Any
 
 from sqlalchemy import (
     JSON,
@@ -108,9 +109,10 @@ _MESSAGE_SELECT_COLUMNS = (
 )
 
 
-class SqlaPostgresClient:
+class SqlaBaseClient:
     def __init__(self, engine: AsyncEngine):
         self._engine = engine
+        self._schema_validator = SchemaValidator()
 
     async def enqueue(
         self,
@@ -260,66 +262,21 @@ class SqlaPostgresClient:
 
     async def validate_schema(self) -> None:
         async with self._engine.connect() as conn:
-            errors = await conn.run_sync(self._check_schema)
+            errors = await conn.run_sync(self._schema_validator)
             if errors:
                 raise SetupError(f"Schema validation failed: {'; '.join(errors)}")
 
-    def _check_schema(self, connection) -> list[str]:
-        inspector = inspect(connection)
-        errors: list[str] = []
-
-        for table_def in (message, message_archive):
-            table_name = table_def.name
-            if not inspector.has_table(table_name):
-                errors.append(f"Table '{table_name}' does not exist")
-                continue
-
-            db_columns = {c["name"]: c["type"] for c in inspector.get_columns(table_name)}
-            expected_columns = {c.name: c.type for c in table_def.columns}
-
-            missing = set(expected_columns.keys()) - set(db_columns.keys())
-            if missing:
-                errors.append(f"Table '{table_name}' missing columns: {missing}")
-
-            for col_name, expected_type in expected_columns.items():
-                if col_name not in db_columns:
-                    continue
-                db_type = db_columns[col_name]
-                if not self._types_compatible(expected_type, db_type):
-                    errors.append(
-                        f"Table '{table_name}' column '{col_name}' has type "
-                        f"{type(db_type).__name__}, expected {type(expected_type).__name__}"
-                    )
-
-        return errors
-
-    def _types_compatible(self, expected, actual) -> bool:
-        from sqlalchemy.types import (
-            BigInteger, SmallInteger, Integer,
-            String, Text, VARCHAR,
-            DateTime, TIMESTAMP,
-            LargeBinary, BLOB,
-            JSON, TypeDecorator,
-        )
-        from sqlalchemy.dialects.postgresql import JSONB
-
-        if isinstance(expected, TypeDecorator):
-            expected = expected.impl
-
-        integer_types = (BigInteger, SmallInteger, Integer)
-        string_types = (String, Text, VARCHAR)
-        datetime_types = (DateTime, TIMESTAMP)
-        binary_types = (LargeBinary, BLOB)
-        json_types = (JSON, JSONB)
-
-        for type_group in (integer_types, string_types, datetime_types, binary_types, json_types):
-            if isinstance(expected, type_group) and isinstance(actual, type_group):
-                return True
-
-        if isinstance(expected, Enum) and isinstance(actual, Enum):
+    async def ping(self) -> bool:
+        try:
+            async with self._engine.connect() as conn:
+                (await conn.execute(text("SELECT 1"))).scalar()
             return True
+        except Exception:
+            return False
 
-        return type(expected) == type(actual)
+
+class SqlaPostgresClient(SqlaBaseClient):
+    ...
 
 
 class SqlaMySqlClient(SqlaPostgresClient):
@@ -396,6 +353,67 @@ class SqlaMySqlClient(SqlaPostgresClient):
         )
         async with self._engine.begin() as conn:
             await conn.execute(stmt)
+
+
+
+
+class SchemaValidator:
+    def __call__(self, connection: AsyncConnection) -> list[str]:
+        inspector = inspect(connection)
+        errors: list[str] = []
+
+        for table_def in (message, message_archive):
+            table_name = table_def.name
+            if not inspector.has_table(table_name):
+                errors.append(f"Table '{table_name}' does not exist")
+                continue
+
+            db_columns = {c["name"]: c["type"] for c in inspector.get_columns(table_name)}
+            expected_columns = {c.name: c.type for c in table_def.columns}
+
+            missing = set(expected_columns.keys()) - set(db_columns.keys())
+            if missing:
+                errors.append(f"Table '{table_name}' missing columns: {missing}")
+
+            for col_name, expected_type in expected_columns.items():
+                if col_name not in db_columns:
+                    continue
+                db_type = db_columns[col_name]
+                if not self._types_compatible(expected_type, db_type):
+                    errors.append(
+                        f"Table '{table_name}' column '{col_name}' has type "
+                        f"{type(db_type).__name__}, expected {type(expected_type).__name__}"
+                    )
+
+        return errors
+
+    def _types_compatible(self, expected: Any, actual: Any) -> bool:
+        from sqlalchemy.types import (
+            BigInteger, SmallInteger, Integer,
+            String, Text, VARCHAR,
+            DateTime, TIMESTAMP,
+            LargeBinary, BLOB,
+            JSON, TypeDecorator,
+        )
+        from sqlalchemy.dialects.postgresql import JSONB
+
+        if isinstance(expected, TypeDecorator):
+            expected = expected.impl
+
+        integer_types = (BigInteger, SmallInteger, Integer)
+        string_types = (String, Text, VARCHAR)
+        datetime_types = (DateTime, TIMESTAMP)
+        binary_types = (LargeBinary, BLOB)
+        json_types = (JSON, JSONB)
+
+        for type_group in (integer_types, string_types, datetime_types, binary_types, json_types):
+            if isinstance(expected, type_group) and isinstance(actual, type_group):
+                return True
+
+        if isinstance(expected, Enum) and isinstance(actual, Enum):
+            return True
+
+        return type(expected) == type(actual)
 
 
 def create_sqla_client(engine: AsyncEngine) -> SqlaPostgresClient:

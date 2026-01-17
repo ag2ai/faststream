@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import os
 from typing import AsyncGenerator
@@ -49,6 +50,16 @@ async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, 
         yield engine
     finally:
         await engine.dispose()
+
+
+@dataclass
+class Settings:
+    engine: AsyncEngine
+
+
+@pytest_asyncio.fixture
+async def settings(engine: AsyncEngine) -> Settings:
+    return Settings(engine=engine)
 
 
 @pytest_asyncio.fixture

@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import Any, Iterable, Optional, Sequence, Union, override
+from typing import Any, Iterable, Literal, Optional, Sequence, Union, override
 from fast_depends import Provider, dependency_provider
 from fast_depends.dependencies import Dependant
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -17,6 +17,7 @@ from faststream.specification.schema.extra.tag import Tag, TagDict
 from faststream.sqla.broker.registrator import SqlaRegistrator
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.broker.logging import make_sqla_logger_state
+from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.publisher.producer import SqlaProducer
 from faststream.sqla.response import SqlaPublishCommand
 
@@ -24,7 +25,7 @@ from faststream.sqla.response import SqlaPublishCommand
 class SqlaBroker(
     SqlaRegistrator,
     BrokerUsecase[
-        Any,
+        SqlaInnerMessage,
         Any,
     ],
 ):
@@ -129,5 +130,10 @@ class SqlaBroker(
         return await super()._basic_publish(cmd, producer=self.config.producer)
     
     @override
-    async def _connect(self) -> None:
+    async def _connect(self) -> Literal[True]:
         await self.config.connect(**self._connection_kwargs)
+        return True
+    
+    @override
+    async def _ping(self) -> bool:
+        return await self.config.broker_config.client.ping()

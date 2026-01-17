@@ -14,7 +14,7 @@ from .conftest import Settings
 class TestConnection(BrokerConnectionTestcase):
     broker = NatsBroker
 
-    def get_broker_args(self, settings: Settings) -> dict[str, Any]:
+    def _get_broker_args(self, settings: Settings) -> dict[str, Any]:
         return {"servers": settings.url}
 
     def test_js_options(self, mock: MagicMock) -> None:
