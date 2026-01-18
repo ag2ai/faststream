@@ -57,7 +57,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         self._retry_on_client_error_delay = 5
 
     @property
-    def _repo(self) -> SqlaBaseClient:
+    def _client(self) -> SqlaBaseClient:
         return self.config._outer_config.client
 
     async def start(self) -> None:
@@ -111,7 +111,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                 limit = min(self._fetch_batch_size, free_slots)
                 
                 try:
-                    batch = await self._repo.fetch(self._queues, limit=limit)
+                    batch = await self._client.fetch(self._queues, limit=limit)
                 except asyncio.CancelledError:
                     return
                 except Exception as exc:
@@ -186,7 +186,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                 break
             
             try:
-                await self._repo.release_stuck(timeout=self._release_stuck_timeout)
+                await self._client.release_stuck(timeout=self._release_stuck_timeout)
             except asyncio.CancelledError:
                 return
             except Exception as exc:
@@ -222,13 +222,13 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         to_archive = [msg for msg in messages if msg.to_archive]
 
         try:
-            await self._repo.retry(to_update)
+            await self._client.retry(to_update)
         except Exception:
             self._buffer_results(to_update)
             raise
         
         try:
-            await self._repo.archive(to_archive)
+            await self._client.archive(to_archive)
         except Exception:
             self._buffer_results(to_archive)
             raise

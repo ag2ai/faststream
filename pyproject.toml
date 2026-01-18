@@ -60,8 +60,6 @@ dependencies = [
     "fast-depends[pydantic]>=3.0.0",
     "typing-extensions>=4.12.0",
     "anyio>=4.0,<5",
-    "sqlalchemy>=2.0.44",
-    "asyncmy>=0.2.10",
 ]
 
 [project.optional-dependencies]
@@ -78,6 +76,12 @@ nats = ["nats-py>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<7.0.0"]
 
+sqla = [
+    "sqlalchemy>=2.0.44",
+    "asyncmy>=0.2.10",
+    "asyncpg>=0.31.0",
+]
+
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
@@ -88,7 +92,7 @@ cli = [
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,sqla,otel,cli,prometheus]"]
 
 docs = [
     "mkdocs-material==9.7.0",
