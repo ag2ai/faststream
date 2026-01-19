@@ -77,6 +77,9 @@ If you want to write your own simple **HTTP**-endpoint, you can use our `#!pytho
 {! docs_src/getting_started/asgi/custom_app.py !}
 ```
 
+!!! note
+    **OPTIONS** requests are automatically handled for all routes created with `#!python @get` or `#!python @post` decorators. This provides basic CORS preflight support, allowing cross-origin requests from browsers to work without requiring manual OPTIONS route definitions.
+
 !!! tip
     You do not need to setup all routes using the `asgi_routes=[]` parameter.<br/>
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
