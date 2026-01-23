@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.broker.broker import SqlaBroker
+from faststream.sqla.broker.router import SqlaRouter
 from faststream.sqla.message import SqlaMessageState
 from faststream.sqla.retry import NoRetryStrategy
 from tests.brokers.base.basic import BaseTestcaseConfig
@@ -49,8 +50,8 @@ class SqlaTestcaseConfig(BaseTestcaseConfig):
     def patch_broker(self, broker: SqlaBroker, **kwargs: Any) -> SqlaBroker:
         return broker
 
-    def get_router(self, **kwargs: Any) -> None:
-        raise NotImplementedError
+    def get_router(self, **kwargs: Any) -> SqlaRouter:
+        return SqlaRouter(**kwargs)
 
     def get_subscriber_params(
         self,

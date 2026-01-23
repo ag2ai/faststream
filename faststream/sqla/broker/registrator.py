@@ -46,6 +46,10 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
+        # AsyncAPI args
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
     ) -> "SqlaSubscriber":
         """
         Args:

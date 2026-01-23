@@ -35,7 +35,6 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
-        self._queues = config.queues
         self._worker_count = config.max_workers
         self._retry_strategy = config.retry_strategy
         
@@ -59,6 +58,10 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
     @property
     def _client(self) -> SqlaBaseClient:
         return self.config._outer_config.client
+
+    @property
+    def _queues(self) -> list[str]:
+        return [f"{self._outer_config.prefix}{q}" for q in self.config.queues]
 
     async def start(self) -> None:
         print("start")

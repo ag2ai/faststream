@@ -32,7 +32,7 @@ class LogicPublisher(PublisherUsecase):
 
     @property
     def queue(self) -> str:
-        return self._queue
+        return f"{self._outer_config.prefix}{self._queue}"
 
     @override
     async def publish(
