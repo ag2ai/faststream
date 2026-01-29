@@ -176,6 +176,35 @@ Also, you can run the `FastStream` application manually, as a regular async func
     {!> docs_src/getting_started/manual_run/redis_base_run.py!}
     ```
 
+### Testing
+
+The service can be tested using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/testing/kafka_test_service.py!}
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/testing/confluent_test_service.py!}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/testing/rabbit_test_service.py!}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/testing/nats_test_service.py!}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/testing/redis_test_service.py!}
+    ```
+
 ### Other tools integrations
 
 If you want to use **FastStream** as part of another framework service, you probably don't need to utilize the `FastStream` object at all, as it is primarily intended as a **CLI** tool target. Instead, you can start and stop your broker as part of another framework's lifespan. You can find such examples in the [integrations section](./integrations/frameworks/index.md){.internal-link}.
