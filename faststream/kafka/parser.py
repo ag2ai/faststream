@@ -38,7 +38,7 @@ class AioKafkaParser:
         message: Union["ConsumerRecord", "KafkaRawMessage"],
     ) -> "StreamMessage[ConsumerRecord]":
         """Parses a Kafka message."""
-        headers = {i: j.decode() for i, j in message.headers}
+        headers = {i: j.decode(errors="replace") for i, j in message.headers}
 
         return self.msg_class(
             body=message.value or b"",
