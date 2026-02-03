@@ -1,16 +1,18 @@
+from typing import Self
+
 import pytest
 
 from faststream._internal.testing.ast import is_contains_context_name
 
 
 class Context:
-    def __enter__(self) -> "Context":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args):
         pass
 
-    async def __aenter__(self) -> "Context":
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args):
