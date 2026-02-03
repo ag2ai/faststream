@@ -1,6 +1,7 @@
-from typing import Self
+from typing import Any
 
 import pytest
+from typing_extensions import Self
 
 from faststream._internal.testing.ast import is_contains_context_name
 
@@ -9,13 +10,13 @@ class Context:
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         pass
 
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: Any) -> None:
         pass
 
 
