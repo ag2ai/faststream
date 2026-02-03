@@ -1,16 +1,24 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from faststream.message import StreamMessage, decode_message
 
 from .message import FAKE_CONSUMER, KafkaMessage
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from confluent_kafka import Message
 
     from faststream._internal.basic_types import DecodedMessage
 
     from .message import ConsumerProtocol
+
+    # Type of headers returned by confluent_kafka Message.headers()
+    _HeadersInput = (
+        dict[str, str | bytes | None]
+        | list[tuple[str, str | bytes | None]]
+        | tuple[tuple[str, str | bytes | None], ...]
+    )
 
 
 class AsyncConfluentParser:
@@ -28,7 +36,7 @@ class AsyncConfluentParser:
         message: "Message",
     ) -> KafkaMessage:
         """Parses a Kafka message."""
-        headers = _parse_msg_headers(message.headers() or ())
+        headers = _parse_msg_headers(cast("_HeadersInput", message.headers() or ()))
 
         body = message.value() or b""
         offset = message.offset()
@@ -59,7 +67,9 @@ class AsyncConfluentParser:
 
         for m in message:
             body.append(m.value() or b"")
-            batch_headers.append(_parse_msg_headers(m.headers() or ()))
+            batch_headers.append(
+                _parse_msg_headers(cast("_HeadersInput", m.headers() or ()))
+            )
 
         headers = next(iter(batch_headers), {})
 
@@ -93,7 +103,13 @@ class AsyncConfluentParser:
         return [decode_message(await self.parse_message(m)) for m in msg.raw_message]
 
 
-def _parse_msg_headers(
-    headers: Sequence[tuple[str, bytes | str]],
-) -> dict[str, str]:
-    return {i: j if isinstance(j, str) else j.decode() for i, j in headers}
+def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:
+    if isinstance(headers, dict):
+        seq: Sequence[tuple[str, bytes | str | None]] = list(headers.items())
+    else:
+        seq = headers
+    return {
+        i: (j if isinstance(j, str) else (j.decode() if j is not None else ""))
+        for i, j in seq
+        if j is not None
+    }
