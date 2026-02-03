@@ -79,7 +79,9 @@ just test-all
 To run tests with coverage:
 
 ```bash
-just coverage-test
+just test-coverage
+# or
+just test-coverage-all
 ```
 If you need test only specific folder or broker:
 
