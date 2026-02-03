@@ -221,7 +221,7 @@ class KafkaBroker(
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
         protocol: str | None = None,
-        protocol_version: str | None = "auto",
+        protocol_version: str | None = None,
         description: str | None = None,
         tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args
@@ -369,7 +369,6 @@ class KafkaBroker(
             bootstrap_servers=servers,
             # both args
             client_id=client_id,
-            api_version=protocol_version,
             request_timeout_ms=request_timeout_ms,
             retry_backoff_ms=retry_backoff_ms,
             metadata_max_age_ms=metadata_max_age_ms,
@@ -392,6 +391,9 @@ class KafkaBroker(
             transaction_timeout_ms=transaction_timeout_ms,
             **parse_security(security),
         )
+
+        if protocol_version:
+            connection_params["api_version"] = protocol_version
 
         consumer_options, _ = filter_by_dict(
             ConsumerConnectionParams,
@@ -434,7 +436,7 @@ class KafkaBroker(
                 description=description,
                 url=specification_url,
                 protocol=protocol,
-                protocol_version=protocol_version,
+                protocol_version=protocol_version or "auto",
                 security=security,
                 tags=tags,
             ),
