@@ -30,16 +30,13 @@ from faststream.sqla.message import SqlaMessageState
 
 @pytest_asyncio.fixture
 async def worker_id() -> str:
-    return os.environ.get('PYTEST_XDIST_WORKER', 'main')
+    return os.environ.get("PYTEST_XDIST_WORKER", "main")
 
 
-@pytest_asyncio.fixture(
-    params=[
-        "postgresql",
-        "mysql"
-    ]
-)
-async def master_engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, None]:
+@pytest_asyncio.fixture(params=["postgresql", "mysql"])
+async def master_engine(
+    request: pytest.FixtureRequest,
+) -> AsyncGenerator[AsyncEngine, None]:
     backend = request.param
     match backend:
         case "postgresql":
@@ -58,13 +55,16 @@ async def master_engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncE
 
 
 @pytest_asyncio.fixture
-async def engine(master_engine: AsyncEngine, worker_id: str) -> AsyncGenerator[AsyncEngine, None]:
+async def engine(
+    master_engine: AsyncEngine, worker_id: str
+) -> AsyncGenerator[AsyncEngine, None]:
     async with master_engine.connect() as conn:
         await conn.execution_options(isolation_level="AUTOCOMMIT")
         match master_engine.dialect.name:
             case "postgresql":
                 result = await conn.execute(
-                    text(f'SELECT 1 FROM pg_database WHERE datname = :database'), {'database': worker_id}
+                    text(f"SELECT 1 FROM pg_database WHERE datname = :database"),
+                    {"database": worker_id},
                 )
                 if not result.scalar():
                     await conn.execute(text(f"CREATE DATABASE {worker_id}"))
@@ -122,7 +122,12 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         ),
         Column("attempts_count", SmallInteger, nullable=False, default=0),
         Column("deliveries_count", SmallInteger, nullable=False, default=0),
-        Column("created_at", timestamp_type, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
+        Column(
+            "created_at",
+            timestamp_type,
+            nullable=False,
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        ),
         Column("first_attempt_at", timestamp_type),
         Column(
             "next_attempt_at",
@@ -134,7 +139,6 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         Column("last_attempt_at", timestamp_type),
         Column("acquired_at", timestamp_type),
     )
-
 
     message_archive = Table(
         "message_archive",
@@ -149,7 +153,12 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         Column("created_at", timestamp_type, nullable=False),
         Column("first_attempt_at", timestamp_type),
         Column("last_attempt_at", timestamp_type),
-        Column("archived_at", timestamp_type, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
+        Column(
+            "archived_at",
+            timestamp_type,
+            nullable=False,
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        ),
     )
 
     async with engine.begin() as conn:

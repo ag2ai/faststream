@@ -73,21 +73,21 @@ def _validate_input_for_misconfiguration(
 ) -> None:
     if max_deliveries and max_deliveries <= 0:
         raise SetupError("max_deliveries must be a positive integer or None.")
-    
+
     if max_deliveries:
         warnings.warn(
             "Be aware the setting max_deliveries violates the at most once processing guarantee.",
             UserWarning,
             stacklevel=4,
         )
-    
+
     if ack_policy is AckPolicy.REJECT_ON_ERROR and retry_strategy is not None:
         warnings.warn(
             "Be aware that retry_strategy is ignored when AckPolicy.REJECT_ON_ERROR is used.",
             UserWarning,
             stacklevel=4,
         )
-    
+
     if retry_strategy is None and ack_policy is AckPolicy.NACK_ON_ERROR:
         warnings.warn(
             "Be aware that if retry_strategy is None, AckPolicy.NACK_ON_ERROR has the same "
@@ -95,7 +95,7 @@ def _validate_input_for_misconfiguration(
             UserWarning,
             stacklevel=4,
         )
-    
+
     if ack_policy is AckPolicy.ACK_FIRST:
         warnings.warn(
             "Be aware that AckPolicy.ACK_FIRST is the same as AckPolicy.ACK for this broker.",

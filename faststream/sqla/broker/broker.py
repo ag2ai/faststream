@@ -104,7 +104,7 @@ class SqlaBroker(
     async def start(self) -> None:
         await self.connect()
         await super().start()
-    
+
     @override
     async def publish(
         self,
@@ -128,12 +128,12 @@ class SqlaBroker(
         )
 
         return await super()._basic_publish(cmd, producer=self.config.producer)
-    
+
     @override
     async def _connect(self) -> Literal[True]:
         await self.config.connect(**self._connection_kwargs)
         return True
-    
+
     @override
     async def _ping(self) -> bool:
         return await self.config.broker_config.client.ping()

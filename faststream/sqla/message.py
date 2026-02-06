@@ -18,6 +18,7 @@ class SqlaMessageState(str, enum.Enum):
     that is COMPLETED or FAILED is archived and will not be processed again. A RETRYABLE
     message might be retried.
     """
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -55,7 +56,7 @@ class SqlaInnerMessage:
         self.next_attempt_at = next_attempt_at
         self.last_attempt_at = last_attempt_at
         self.acquired_at = acquired_at
-        
+
         self.state_set = False
         self.to_archive = False
 
@@ -68,12 +69,14 @@ class SqlaInnerMessage:
     async def reject(self) -> None:
         await self._update_state_if_not_set(self._reject)
 
-    async def _update_state_if_not_set(self, update_method: Callable[[], Coroutine[Any, Any, None]]) -> None:
+    async def _update_state_if_not_set(
+        self, update_method: Callable[[], Coroutine[Any, Any, None]]
+    ) -> None:
         if self.state_set:
             return
-        
+
         await update_method()
-        
+
         self.state_set = True
 
     async def _ack(self) -> None:
@@ -133,7 +136,7 @@ class SqlaInnerMessage:
                 logger.log(
                     logging.ERROR,
                     f"Message delivery limit was exceeded for message {self} "
-                    f"and the message was rejected."
+                    f"and the message was rejected.",
                 )
             return False
         return True
@@ -145,7 +148,7 @@ class SqlaInnerMessage:
                     logging.ERROR,
                     f"State of message {self} was not updated after processing, "
                     f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
-                    f"acknowledgement in the handler."
+                    f"acknowledgement in the handler.",
                 )
 
     def __repr__(self) -> str:

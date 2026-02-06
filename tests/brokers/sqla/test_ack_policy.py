@@ -26,7 +26,9 @@ from tests.brokers.sqla.basic import SqlaTestcaseConfig
 @pytest.mark.slow()
 class TestConsumeAckPolicy(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
-    async def test_consume_nack_on_error(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+    async def test_consume_nack_on_error(
+        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+    ) -> None:
         """
         Message was Nack'ed.
         """
@@ -36,7 +38,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             engine=engine,
             queues=["default1"],
             max_workers=1,
-            retry_strategy=ConstantRetryStrategy(delay_seconds=5, max_total_delay_seconds=None, max_attempts=None),
+            retry_strategy=ConstantRetryStrategy(
+                delay_seconds=5, max_total_delay_seconds=None, max_attempts=None
+            ),
             max_fetch_interval=10,
             min_fetch_interval=10,
             fetch_batch_size=5,
@@ -48,7 +52,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             ack_policy=AckPolicy.NACK_ON_ERROR,
         )
         async def handler(msg: Any) -> None:
-            return 1/0
+            return 1 / 0
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
@@ -63,15 +67,25 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["state"] == SqlaMessageState.RETRYABLE.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
+        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        ).replace(tzinfo=None)
+        assert (
+            result["first_attempt_at"]
+            < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
+            and result["first_attempt_at"] > result["created_at"]
+        )
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(seconds=5)
+        assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(
+            seconds=5
+        )
         assert result["acquired_at"] == None
 
     @pytest.mark.asyncio()
-    async def test_consume_reject_on_error(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+    async def test_consume_reject_on_error(
+        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+    ) -> None:
         """
         Message was Reject'ed despite the retry strategy.
         """
@@ -81,7 +95,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             engine=engine,
             queues=["default1"],
             max_workers=1,
-            retry_strategy=ConstantRetryStrategy(delay_seconds=1, max_total_delay_seconds=None, max_attempts=3),
+            retry_strategy=ConstantRetryStrategy(
+                delay_seconds=1, max_total_delay_seconds=None, max_attempts=3
+            ),
             max_fetch_interval=10,
             min_fetch_interval=10,
             fetch_batch_size=5,
@@ -93,7 +109,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: Any) -> None:
-            return 1/0
+            return 1 / 0
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
@@ -109,14 +125,27 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
+        assert (
+            result["first_attempt_at"]
+            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["first_attempt_at"] > result["created_at"]
+        )
         assert result["last_attempt_at"] == result["first_attempt_at"]
-        
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
+
+        assert (
+            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["archived_at"] > result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("ack_policy", [AckPolicy.ACK_FIRST, AckPolicy.ACK])
-    async def test_consume_ack_and_ack_first(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event, ack_policy: AckPolicy) -> None:
+    async def test_consume_ack_and_ack_first(
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        ack_policy: AckPolicy,
+    ) -> None:
         """
         Message was Ack'ed despite the error.
         """
@@ -138,7 +167,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             ack_policy=ack_policy,
         )
         async def handler(msg: Any) -> None:
-            return 1/0
+            return 1 / 0
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
@@ -154,13 +183,22 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
+        assert (
+            result["first_attempt_at"]
+            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["first_attempt_at"] > result["created_at"]
+        )
         assert result["last_attempt_at"] == result["first_attempt_at"]
-        
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
-    
+
+        assert (
+            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["archived_at"] > result["first_attempt_at"]
+        )
+
     @pytest.mark.asyncio()
-    async def test_consume_manual(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+    async def test_consume_manual(
+        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+    ) -> None:
         """
         Message was manually Ack'ed.
         """
@@ -170,7 +208,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             engine=engine,
             queues=["default1"],
             max_workers=1,
-            retry_strategy=ConstantRetryStrategy(delay_seconds=5, max_total_delay_seconds=None, max_attempts=None),
+            retry_strategy=ConstantRetryStrategy(
+                delay_seconds=5, max_total_delay_seconds=None, max_attempts=None
+            ),
             max_fetch_interval=10,
             min_fetch_interval=10,
             fetch_batch_size=5,
@@ -183,7 +223,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         )
         async def handler(msg: SqlaMessageAnnotation) -> None:
             await msg.ack()
-            return 1/0
+            return 1 / 0
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
@@ -199,13 +239,22 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["first_attempt_at"] > result["created_at"]
+        assert (
+            result["first_attempt_at"]
+            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["first_attempt_at"] > result["created_at"]
+        )
         assert result["last_attempt_at"] == result["first_attempt_at"]
-        
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None) and result["archived_at"] > result["first_attempt_at"]
-    
+
+        assert (
+            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+            and result["archived_at"] > result["first_attempt_at"]
+        )
+
     @pytest.mark.asyncio()
-    async def test_consume_manual_no_manual_ack(self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event) -> None:
+    async def test_consume_manual_no_manual_ack(
+        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+    ) -> None:
         """
         Error was logged because the message was neither manually nor automatically acknowledged.
         """
@@ -216,7 +265,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             engine=engine,
             queues=["default1"],
             max_workers=1,
-            retry_strategy=ConstantRetryStrategy(delay_seconds=5, max_total_delay_seconds=None, max_attempts=None),
+            retry_strategy=ConstantRetryStrategy(
+                delay_seconds=5, max_total_delay_seconds=None, max_attempts=None
+            ),
             max_fetch_interval=10,
             min_fetch_interval=10,
             fetch_batch_size=5,

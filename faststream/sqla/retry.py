@@ -6,8 +6,7 @@ from typing import Protocol
 
 
 class RetryStrategyProto(Protocol):
-    def __init__(self, *args, **kwargs) -> None:
-        ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
     def get_next_attempt_at(
         self,
@@ -15,8 +14,7 @@ class RetryStrategyProto(Protocol):
         first_attempt_at: datetime,
         last_attempt_at: datetime,
         attempts_count: int,
-    ) -> datetime | None:
-        ...
+    ) -> datetime | None: ...
 
 
 @dataclass(kw_only=True)
@@ -41,8 +39,10 @@ class RetryStrategyTemplate(ABC, RetryStrategyProto):
         next_attempt_at = self._get_next_attempt_at(
             first_attempt_at, last_attempt_at, attempts_count
         )
-        if self.max_total_delay_seconds and next_attempt_at - first_attempt_at > timedelta(
-            seconds=self.max_total_delay_seconds
+        if (
+            self.max_total_delay_seconds
+            and next_attempt_at - first_attempt_at
+            > timedelta(seconds=self.max_total_delay_seconds)
         ):
             return None
         return next_attempt_at

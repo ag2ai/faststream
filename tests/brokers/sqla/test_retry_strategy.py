@@ -20,11 +20,14 @@ def test_no_retry_strategy() -> None:
     strategy = NoRetryStrategy()
     first_attempt_at = datetime.now(timezone.utc)
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=first_attempt_at,
-        attempts_count=1,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=first_attempt_at,
+            attempts_count=1,
+        )
+        is None
+    )
 
 
 @pytest.mark.sqla()
@@ -55,11 +58,14 @@ def test_constant_retry_strategy() -> None:
     )
     assert result3 == result2 + timedelta(seconds=10)
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=result3,
-        attempts_count=4,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=result3,
+            attempts_count=4,
+        )
+        is None
+    )
 
 
 @pytest.mark.sqla()
@@ -93,11 +99,14 @@ def test_linear_retry_strategy() -> None:
     )
     assert result3 == result2 + timedelta(seconds=5)
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=result3,
-        attempts_count=4,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=result3,
+            attempts_count=4,
+        )
+        is None
+    )
 
 
 @pytest.mark.sqla()
@@ -139,11 +148,14 @@ def test_exponential_backoff_retry_strategy() -> None:
     )
     assert result4 == result3 + timedelta(seconds=5)
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=result4,
-        attempts_count=5,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=result4,
+            attempts_count=5,
+        )
+        is None
+    )
 
 
 @pytest.mark.sqla()
@@ -182,11 +194,14 @@ def test_constant_with_jitter_retry_strategy() -> None:
     delay3 = (result3 - result2).total_seconds()
     assert 8 <= delay3 <= 12
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=result3,
-        attempts_count=4,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=result3,
+            attempts_count=4,
+        )
+        is None
+    )
 
 
 @pytest.mark.sqla()
@@ -227,8 +242,11 @@ def test_exponential_backoff_with_jitter_retry_strategy() -> None:
     delay3 = (result3 - result2).total_seconds()
     assert 4 <= delay3 <= 6
 
-    assert strategy.get_next_attempt_at(
-        first_attempt_at=first_attempt_at,
-        last_attempt_at=result3,
-        attempts_count=4,
-    ) is None
+    assert (
+        strategy.get_next_attempt_at(
+            first_attempt_at=first_attempt_at,
+            last_attempt_at=result3,
+            attempts_count=4,
+        )
+        is None
+    )

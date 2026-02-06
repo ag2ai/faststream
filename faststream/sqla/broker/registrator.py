@@ -176,7 +176,7 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         )
 
         return subscriber
-    
+
     @override
     def publisher(
         self,

@@ -165,5 +165,4 @@ class BrokerUsecase(
         return False
 
     @abstractmethod
-    async def _ping(self) -> bool:
-        ...
+    async def _ping(self) -> bool: ...

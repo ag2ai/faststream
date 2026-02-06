@@ -22,8 +22,7 @@ class SqlaProducerProto(ProducerProto[SqlaPublishCommand]):
     def disconnect(self) -> None: ...
 
     @abstractmethod
-    async def publish(self, cmd: "SqlaPublishCommand") -> None:
-        ...
+    async def publish(self, cmd: "SqlaPublishCommand") -> None: ...
 
     async def request(self, cmd: "SqlaPublishCommand") -> None:
         msg = "SqlaBroker doesn't support synchronous requests."
@@ -41,7 +40,7 @@ class SqlaProducer(SqlaProducerProto):
     def __init__(
         self,
         *,
-        engine: AsyncEngine, # todo
+        engine: AsyncEngine,  # todo
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:

@@ -32,7 +32,9 @@ from tests.brokers.sqla.basic import SqlaTestcaseConfig
 @pytest.mark.slow()
 class TestSchemaValidation(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
-    async def test_schema_validation_passes(self, engine: AsyncEngine, recreate_tables: None) -> None:
+    async def test_schema_validation_passes(
+        self, engine: AsyncEngine, recreate_tables: None
+    ) -> None:
         broker = self.get_broker(engine=engine, validate_schema_on_start=True)
 
         await broker.start()
@@ -50,7 +52,9 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         await broker.stop()
 
     @pytest.mark.asyncio()
-    async def test_schema_validation_fails_missing_table(self, engine: AsyncEngine) -> None:
+    async def test_schema_validation_fails_missing_table(
+        self, engine: AsyncEngine
+    ) -> None:
         async with engine.begin() as conn:
             await conn.execute(text("DROP TABLE IF EXISTS message_archive"))
             await conn.execute(text("DROP TABLE IF EXISTS message"))
@@ -59,11 +63,13 @@ class TestSchemaValidation(SqlaTestcaseConfig):
 
         with pytest.raises(SetupError) as exc_info:
             await broker.start()
-        
+
         assert "Table 'message' does not exist" in str(exc_info.value)
 
     @pytest.mark.asyncio()
-    async def test_schema_validation_fails_missing_column(self, engine: AsyncEngine) -> None:
+    async def test_schema_validation_fails_missing_column(
+        self, engine: AsyncEngine
+    ) -> None:
         async with engine.begin() as conn:
             await conn.execute(text("DROP TABLE IF EXISTS message_archive"))
             await conn.execute(text("DROP TABLE IF EXISTS message"))
@@ -123,7 +129,9 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         assert "acquired_at" in str(exc_info.value)
 
     @pytest.mark.asyncio()
-    async def test_schema_validation_fails_wrong_column_type(self, engine: AsyncEngine) -> None:
+    async def test_schema_validation_fails_wrong_column_type(
+        self, engine: AsyncEngine
+    ) -> None:
         async with engine.begin() as conn:
             await conn.execute(text("DROP TABLE IF EXISTS message_archive"))
             await conn.execute(text("DROP TABLE IF EXISTS message"))
@@ -145,11 +153,15 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("id", SmallInteger, primary_key=True),  # wrong: should be BigInteger
             Column("queue", Integer, nullable=False),  # wrong: should be String
             Column("headers", json_type, nullable=True),
-            Column("payload", String(255), nullable=False),  # wrong: should be LargeBinary
+            Column(
+                "payload", String(255), nullable=False
+            ),  # wrong: should be LargeBinary
             Column("state", Enum(SqlaMessageState), nullable=False),
             Column("attempts_count", SmallInteger, nullable=False),
             Column("deliveries_count", SmallInteger, nullable=False),
-            Column("created_at", String(255), nullable=False),  # wrong: should be DateTime
+            Column(
+                "created_at", String(255), nullable=False
+            ),  # wrong: should be DateTime
             Column("first_attempt_at", timestamp_type),
             Column("next_attempt_at", timestamp_type, nullable=False),
             Column("last_attempt_at", timestamp_type),

@@ -62,7 +62,12 @@ message = Table(
     ),
     Column("attempts_count", SmallInteger, nullable=False, default=0),
     Column("deliveries_count", SmallInteger, nullable=False, default=0),
-    Column("created_at", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
+    Column(
+        "created_at",
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    ),
     Column("first_attempt_at", DateTime),
     Column(
         "next_attempt_at",
@@ -89,7 +94,12 @@ message_archive = Table(
     Column("created_at", DateTime, nullable=False),
     Column("first_attempt_at", DateTime),
     Column("last_attempt_at", DateTime),
-    Column("archived_at", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)),
+    Column(
+        "archived_at",
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    ),
 )
 
 
@@ -124,19 +134,25 @@ class SqlaBaseClient:
         connection: AsyncConnection | None = None,
     ) -> None:
         if next_attempt_at:
-            stmt = insert(message).values(
-                queue=queue,
-                payload=payload,
-                headers=headers,
-                next_attempt_at=next_attempt_at,
-            )
+            stmt = (
+                insert(message)
+                .values(
+                    queue=queue,
+                    payload=payload,
+                    headers=headers,
+                    next_attempt_at=next_attempt_at,
+                )
+            )  # fmt: skip
         else:
-            stmt = insert(message).values(
-                queue=queue,
-                payload=payload,
-                headers=headers,
-            )
-        
+            stmt = (
+                insert(message)
+                .values(
+                    queue=queue,
+                    payload=payload,
+                    headers=headers,
+                )
+            )  # fmt: skip
+
         if connection:
             await connection.execute(stmt)
         else:
@@ -210,7 +226,6 @@ class SqlaBaseClient:
             )
         )
         async with self._engine.begin() as conn:
-            print('retry', params)
             await conn.execute(stmt, params)
 
     async def archive(self, messages: Sequence[SqlaInnerMessage]) -> None:
@@ -233,10 +248,13 @@ class SqlaBaseClient:
                 for msg in messages
             ]
             stmt = message_archive.insert().values(values)
-            print('archive', values)
             await conn.execute(stmt)
-            delete_stmt = delete(message).where(message.c.id.in_([item.id for item in messages]))
-            print('delete', messages)
+            delete_stmt = (
+                delete(message)
+                .where(
+                    message.c.id.in_([item.id for item in messages])
+                )
+            )  # fmt: skip
             await conn.execute(delete_stmt)
 
     async def release_stuck(self, timeout: int) -> None:
@@ -247,7 +265,7 @@ class SqlaBaseClient:
                 message.c.state == SqlaMessageState.PROCESSING,
                 message.c.acquired_at < now - timedelta(seconds=timeout),
             )
-        )
+        )  # fmt: skip
         stmt = (
             update(message)
             .where(message.c.id.in_(select_stuck))
@@ -275,8 +293,7 @@ class SqlaBaseClient:
             return False
 
 
-class SqlaPostgresClient(SqlaBaseClient):
-    ...
+class SqlaPostgresClient(SqlaBaseClient): ...
 
 
 class SqlaMySqlClient(SqlaPostgresClient):
@@ -287,7 +304,7 @@ class SqlaMySqlClient(SqlaPostgresClient):
         limit: int,
     ) -> list[SqlaInnerMessage]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        
+
         async with self._engine.begin() as conn:
             ready_stmt = (
                 select(message.c.id.label("id"))
@@ -323,10 +340,10 @@ class SqlaMySqlClient(SqlaPostgresClient):
             fetch_stmt = (
                 select(*_MESSAGE_SELECT_COLUMNS)
                 .where(message.c.id.in_(ready_ids))
-            )
+            )  # fmt: skip
             fetched_result = await conn.execute(fetch_stmt)
             rows = fetched_result.mappings().all()
-        
+
         rows_by_id = {row["id"]: row for row in rows}
         ordered_rows = [rows_by_id[id_] for id_ in ready_ids if id_ in rows_by_id]
         return [SqlaInnerMessage(**row) for row in ordered_rows]
@@ -353,8 +370,6 @@ class SqlaMySqlClient(SqlaPostgresClient):
         )
         async with self._engine.begin() as conn:
             await conn.execute(stmt)
-
-
 
 
 class SchemaValidator:
@@ -389,11 +404,18 @@ class SchemaValidator:
 
     def _types_compatible(self, expected: Any, actual: Any) -> bool:
         from sqlalchemy.types import (
-            BigInteger, SmallInteger, Integer,
-            String, Text, VARCHAR,
-            DateTime, TIMESTAMP,
-            LargeBinary, BLOB,
-            JSON, TypeDecorator,
+            BigInteger,
+            SmallInteger,
+            Integer,
+            String,
+            Text,
+            VARCHAR,
+            DateTime,
+            TIMESTAMP,
+            LargeBinary,
+            BLOB,
+            JSON,
+            TypeDecorator,
         )
         from sqlalchemy.dialects.postgresql import JSONB
 
@@ -406,7 +428,13 @@ class SchemaValidator:
         binary_types = (LargeBinary, BLOB)
         json_types = (JSON, JSONB)
 
-        for type_group in (integer_types, string_types, datetime_types, binary_types, json_types):
+        for type_group in (
+            integer_types,
+            string_types,
+            datetime_types,
+            binary_types,
+            json_types,
+        ):
             if isinstance(expected, type_group) and isinstance(actual, type_group):
                 return True
 

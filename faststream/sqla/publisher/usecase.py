@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherSpecification
 
 
-
 class LogicPublisher(PublisherUsecase):
     _outer_config: "SqlaBrokerConfig"
 
@@ -56,7 +55,7 @@ class LogicPublisher(PublisherUsecase):
             producer=self._outer_config.producer,
             _extra_middlewares=(),
         )
-    
+
     @override
     async def _publish(
         self,
