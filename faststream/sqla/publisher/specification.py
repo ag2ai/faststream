@@ -1,6 +1,6 @@
 from faststream._internal.endpoint.publisher import PublisherSpecification
-from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.specification.schema import Message, Operation, PublisherSpec
+from faststream.sqla.configs.broker import SqlaBrokerConfig
 
 from .config import SqlaPublisherSpecificationConfig
 
@@ -16,7 +16,7 @@ class SqlaPublisherSpecification(
         return f"{self.config.queue}:Publisher"
 
     def get_schema(self) -> dict[str, PublisherSpec]:
-        payloads = self.get_payloads()
+        self.get_payloads()
 
         return {
             self.name: PublisherSpec(

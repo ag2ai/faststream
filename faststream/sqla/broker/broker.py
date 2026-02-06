@@ -1,25 +1,31 @@
-from datetime import datetime
 import logging
-from typing import Any, Iterable, Literal, Optional, Sequence, Union, override
+from collections.abc import Iterable, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, override
+
 from fast_depends import Provider, dependency_provider
-from fast_depends.dependencies import Dependant
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
-from faststream._internal.context.repository import ContextRepo
-from fast_depends.library.serializer import SerializerProto
-from faststream._internal.basic_types import LoggerProto, SendableMessage
+
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
-from faststream._internal.types import BrokerMiddleware, CustomCallable
-from faststream.security import BaseSecurity
 from faststream.specification.schema.broker import BrokerSpec
-from faststream.specification.schema.extra.tag import Tag, TagDict
+from faststream.sqla.broker.logging import make_sqla_logger_state
 from faststream.sqla.broker.registrator import SqlaRegistrator
 from faststream.sqla.configs.broker import SqlaBrokerConfig
-from faststream.sqla.broker.logging import make_sqla_logger_state
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.publisher.producer import SqlaProducer
 from faststream.sqla.response import SqlaPublishCommand
+
+if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+    from fast_depends.library.serializer import SerializerProto
+
+    from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.security import BaseSecurity
+    from faststream.specification.schema.extra.tag import Tag, TagDict
 
 
 class SqlaBroker(
@@ -115,9 +121,8 @@ class SqlaBroker(
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
     ) -> None:
-        """
-        Args:
-            next_attempt_at: datetime with timezone
+        """Args:
+        next_attempt_at: datetime with timezone.
         """
         cmd = SqlaPublishCommand(
             message=message,

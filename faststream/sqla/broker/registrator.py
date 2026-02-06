@@ -1,26 +1,26 @@
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, cast, override
-from faststream.sqla.message import SqlaInnerMessage, SqlaMessage
-from faststream.sqla.publisher.usecase import LogicPublisher
+
+from sqlalchemy.ext.asyncio import AsyncEngine
 from typing_extensions import deprecated
 
-from faststream._internal.types import PublisherMiddleware
-from faststream.sqla.publisher.factory import create_publisher
-from sqlalchemy.ext.asyncio import AsyncEngine
 from faststream._internal.broker.registrator import Registrator
-from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.broker import SqlaBrokerConfig
+from faststream.sqla.message import SqlaInnerMessage
+from faststream.sqla.publisher.factory import create_publisher
+from faststream.sqla.retry import RetryStrategyProto
 from faststream.sqla.subscriber.factory import create_subscriber
-from faststream.sqla.retry import NoRetryStrategy, RetryStrategyProto
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.types import (
         CustomCallable,
+        PublisherMiddleware,
         SubscriberMiddleware,
     )
+    from faststream.sqla.publisher.usecase import LogicPublisher
     from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
 
@@ -51,8 +51,7 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
     ) -> "SqlaSubscriber":
-        """
-        Args:
+        """Args:
             max_workers:
                 Number of workers to process messages concurrently.
             retry_strategy:

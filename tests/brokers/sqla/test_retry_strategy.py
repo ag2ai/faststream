@@ -2,16 +2,14 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from freezegun import freeze_time
 
 from faststream.sqla.retry import (
     ConstantRetryStrategy,
-    ExponentialBackoffWithJitterRetryStrategy,
-    ExponentialBackoffRetryStrategy,
     ConstantWithJitterRetryStrategy,
+    ExponentialBackoffRetryStrategy,
+    ExponentialBackoffWithJitterRetryStrategy,
     LinearRetryStrategy,
     NoRetryStrategy,
-    RetryStrategyTemplate,
 )
 
 

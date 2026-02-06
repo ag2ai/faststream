@@ -1,12 +1,12 @@
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Protocol
+from datetime import datetime, timedelta
+from typing import Any, Protocol
 
 
 class RetryStrategyProto(Protocol):
-    def __init__(self, *args, **kwargs) -> None: ...
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
     def get_next_attempt_at(
         self,
@@ -89,7 +89,7 @@ class ExponentialBackoffRetryStrategy(RetryStrategyTemplate):
 class ConstantWithJitterRetryStrategy(RetryStrategyTemplate):
     base_delay_seconds: float
     jitter_seconds: float
-    _random: random.Random = field(default_factory=random.Random)
+    _random: random.Random = field(default_factory=random.Random)  # noqa: S311
 
     def _get_next_attempt_at(
         self, first_attempt_at: datetime, last_attempt_at: datetime, attempts_count: int
@@ -105,7 +105,7 @@ class ExponentialBackoffWithJitterRetryStrategy(RetryStrategyTemplate):
     multiplier: float = 2.0
     max_delay_seconds: float | None = None
     jitter_factor: float = 0.5
-    _random: random.Random = field(default_factory=random.Random)
+    _random: random.Random = field(default_factory=random.Random)  # noqa: S311
 
     def _get_next_attempt_at(
         self, first_attempt_at: datetime, last_attempt_at: datetime, attempts_count: int
@@ -114,13 +114,13 @@ class ExponentialBackoffWithJitterRetryStrategy(RetryStrategyTemplate):
         if self.max_delay_seconds is not None:
             delay = min(delay, self.max_delay_seconds)
         jitter = self._random.uniform(0, delay * self.jitter_factor)
-        delay = delay + jitter
+        delay += jitter
         return last_attempt_at + timedelta(seconds=delay)
 
 
 @dataclass(kw_only=True)
 class NoRetryStrategy(RetryStrategyProto):
-    max_attempts = 1
+    max_attempts: int = 1
 
     def get_next_attempt_at(
         self,

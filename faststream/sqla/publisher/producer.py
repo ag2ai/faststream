@@ -1,15 +1,20 @@
 from abc import abstractmethod
-from typing import Any, Optional, override
-from fast_depends.library.serializer import SerializerProto
+from typing import TYPE_CHECKING, Any, Optional, override
+
 from sqlalchemy.ext.asyncio import AsyncEngine
+
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
-from faststream._internal.types import AsyncCallable, CustomCallable
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message.utils import encode_message
-from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
+from faststream.sqla.client import create_sqla_client
 from faststream.sqla.parser import SqlaParser
 from faststream.sqla.response import SqlaPublishCommand
+
+if TYPE_CHECKING:
+    from fast_depends.library.serializer import SerializerProto
+
+    from faststream._internal.types import AsyncCallable, CustomCallable
 
 
 class SqlaProducerProto(ProducerProto[SqlaPublishCommand]):
@@ -52,15 +57,12 @@ class SqlaProducer(SqlaProducerProto):
         self._parser = ParserComposition(parser, default.parse_message)
         self._decoder = ParserComposition(decoder, default.decode_message)
 
-        # self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
-
     def connect(
         self,
         connection: Any,
         serializer: Optional["SerializerProto"],
     ) -> None:
         self.serializer = serializer
-        # self.__state = ConnectedState(connection)
 
     @override
     async def publish(self, cmd: "SqlaPublishCommand") -> None:

@@ -1,18 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-import asyncio
-import enum
-import json
-import logging
-from collections.abc import Awaitable, Callable, Sequence
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-import os
-import random
-import signal
-from time import perf_counter
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     JSON,
@@ -20,7 +9,6 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
-    Index,
     LargeBinary,
     MetaData,
     SmallInteger,
@@ -28,20 +16,21 @@ from sqlalchemy import (
     Table,
     bindparam,
     delete,
-    func,
     insert,
     inspect,
     or_,
     select,
     text,
     update,
-    case,
 )
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from sqlalchemy.ext.asyncio import AsyncConnection
+
 from faststream.exceptions import FeatureNotSupportedException, SetupError
 from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 metadata = MetaData()
 
@@ -120,7 +109,7 @@ _MESSAGE_SELECT_COLUMNS = (
 
 
 class SqlaBaseClient:
-    def __init__(self, engine: AsyncEngine):
+    def __init__(self, engine: AsyncEngine) -> None:
         self._engine = engine
         self._schema_validator = SchemaValidator()
 
@@ -282,15 +271,16 @@ class SqlaBaseClient:
         async with self._engine.connect() as conn:
             errors = await conn.run_sync(self._schema_validator)
             if errors:
-                raise SetupError(f"Schema validation failed: {'; '.join(errors)}")
+                msg = f"Schema validation failed: {'; '.join(errors)}"
+                raise SetupError(msg)
 
     async def ping(self) -> bool:
         try:
             async with self._engine.connect() as conn:
                 (await conn.execute(text("SELECT 1"))).scalar()
-            return True
         except Exception:
             return False
+        return True
 
 
 class SqlaPostgresClient(SqlaBaseClient): ...
@@ -403,21 +393,21 @@ class SchemaValidator:
         return errors
 
     def _types_compatible(self, expected: Any, actual: Any) -> bool:
+        from sqlalchemy.dialects.postgresql import JSONB
         from sqlalchemy.types import (
-            BigInteger,
-            SmallInteger,
-            Integer,
-            String,
-            Text,
-            VARCHAR,
-            DateTime,
-            TIMESTAMP,
-            LargeBinary,
             BLOB,
             JSON,
+            TIMESTAMP,
+            VARCHAR,
+            BigInteger,
+            DateTime,
+            Integer,
+            LargeBinary,
+            SmallInteger,
+            String,
+            Text,
             TypeDecorator,
         )
-        from sqlalchemy.dialects.postgresql import JSONB
 
         if isinstance(expected, TypeDecorator):
             expected = expected.impl
@@ -441,7 +431,7 @@ class SchemaValidator:
         if isinstance(expected, Enum) and isinstance(actual, Enum):
             return True
 
-        return type(expected) == type(actual)
+        return type(expected) is type(actual)
 
 
 def create_sqla_client(engine: AsyncEngine) -> SqlaPostgresClient:

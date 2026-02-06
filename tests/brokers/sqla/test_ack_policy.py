@@ -1,7 +1,7 @@
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -9,15 +9,12 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from faststream._internal.context import ContextRepo
 from faststream.middlewares.acknowledgement.config import AckPolicy
-from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
-from faststream.sqla.annotations import SqlaMessage as SqlaMessageAnnotation
-from faststream.sqla.annotations import SqlaBroker as SqlaBrokerAnnotation
-from faststream.sqla.annotations import ContextRepo as ContextRepoAnnotation
-from faststream.sqla.annotations import Logger as LoggerAnnotation
-from faststream.sqla.broker.broker import SqlaBroker as SqlaBroker
-from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
+from faststream.sqla.annotations import (
+    SqlaMessage as SqlaMessageAnnotation,
+)
+from faststream.sqla.message import SqlaMessageState
+from faststream.sqla.retry import ConstantRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
 
 
@@ -29,9 +26,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
     async def test_consume_nack_on_error(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Message was Nack'ed.
-        """
+        """Message was Nack'ed."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -70,25 +65,22 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         ).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
-        )
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        ).replace(tzinfo=None)
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
         assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(
             seconds=5
         )
-        assert result["acquired_at"] == None
+        assert result["acquired_at"] is None
 
     @pytest.mark.asyncio()
     async def test_consume_reject_on_error(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Message was Reject'ed despite the retry strategy.
-        """
+        """Message was Reject'ed despite the retry strategy."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -125,20 +117,17 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("ack_policy", [AckPolicy.ACK_FIRST, AckPolicy.ACK])
+    @pytest.mark.parametrize("ack_policy", (AckPolicy.ACK_FIRST, AckPolicy.ACK))
     async def test_consume_ack_and_ack_first(
         self,
         engine: AsyncEngine,
@@ -146,9 +135,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         event: asyncio.Event,
         ack_policy: AckPolicy,
     ) -> None:
-        """
-        Message was Ack'ed despite the error.
-        """
+        """Message was Ack'ed despite the error."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -183,25 +170,20 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
     async def test_consume_manual(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Message was manually Ack'ed.
-        """
+        """Message was manually Ack'ed."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -239,25 +221,20 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
     async def test_consume_manual_no_manual_ack(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Error was logged because the message was neither manually nor automatically acknowledged.
-        """
+        """Error was logged because the message was neither manually nor automatically acknowledged."""
         logger = MagicMock()
         broker = self.get_broker(engine=engine, logger=logger)
 

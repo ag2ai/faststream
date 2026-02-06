@@ -9,7 +9,6 @@ from typing import (
 )
 from urllib.parse import urlparse
 
-import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
 from fast_depends import Provider, dependency_provider
 from typing_extensions import deprecated, override

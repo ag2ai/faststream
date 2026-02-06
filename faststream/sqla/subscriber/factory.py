@@ -1,24 +1,25 @@
-from typing import Any
 import warnings
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream._internal.endpoint.subscriber.specification import SubscriberSpecification
 from faststream.exceptions import SetupError
 from faststream.middlewares.acknowledgement.config import AckPolicy
-from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
-from faststream.sqla.retry import RetryStrategyProto
 from faststream.sqla.subscriber.specification import SqlaSubscriberSpecification
 from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
+if TYPE_CHECKING:
+    from faststream.sqla.configs.broker import SqlaBrokerConfig
+    from faststream.sqla.retry import RetryStrategyProto
+
 
 def create_subscriber(
-    engine: AsyncEngine,
+    engine: "AsyncEngine",
     queues: list[str],
     max_workers: int,
-    retry_strategy: RetryStrategyProto | None,
+    retry_strategy: "RetryStrategyProto | None",
     max_fetch_interval: float,
     min_fetch_interval: float,
     fetch_batch_size: int,
@@ -28,7 +29,7 @@ def create_subscriber(
     release_stuck_timeout: float,
     max_deliveries: int | None,
     config: "SqlaBrokerConfig",
-    ack_policy: AckPolicy,
+    ack_policy: "AckPolicy",
 ) -> SqlaSubscriber:
     subscriber_config = SqlaSubscriberConfig(
         engine=engine,
@@ -58,7 +59,7 @@ def _validate_input_for_misconfiguration(
     engine: AsyncEngine,
     queues: list[str],
     max_workers: int,
-    retry_strategy: RetryStrategyProto | None,
+    retry_strategy: "RetryStrategyProto | None",
     max_fetch_interval: float,
     min_fetch_interval: float,
     fetch_batch_size: int,
@@ -72,7 +73,8 @@ def _validate_input_for_misconfiguration(
     ack_policy: AckPolicy,
 ) -> None:
     if max_deliveries and max_deliveries <= 0:
-        raise SetupError("max_deliveries must be a positive integer or None.")
+        msg = "max_deliveries must be a positive integer or None."
+        raise SetupError(msg)
 
     if max_deliveries:
         warnings.warn(

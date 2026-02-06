@@ -1,40 +1,17 @@
-from typing import Any, AsyncGenerator, Optional
+from typing import Any
 
-import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy import (
-    BigInteger,
-    Column,
-    DateTime,
-    Enum,
-    Index,
-    LargeBinary,
-    MetaData,
-    SmallInteger,
-    String,
-    Table,
-    bindparam,
-    delete,
-    func,
-    insert,
-    or_,
-    select,
-    text,
-    update,
-)
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.broker.broker import SqlaBroker
 from faststream.sqla.broker.router import SqlaRouter
-from faststream.sqla.message import SqlaMessageState
 from faststream.sqla.retry import NoRetryStrategy
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class SqlaTestcaseConfig(BaseTestcaseConfig):
-    _engine: Optional[AsyncEngine] = None
+    _engine: AsyncEngine | None = None
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup_engine(self, engine: AsyncEngine, recreate_tables: None) -> None:

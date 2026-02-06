@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from sqlalchemy.ext.asyncio import AsyncEngine
+
 from faststream._internal.configs.broker import BrokerConfig
 from faststream.sqla.client import SqlaBaseClient, create_sqla_client
 

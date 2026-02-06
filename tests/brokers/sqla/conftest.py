@@ -1,31 +1,31 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import os
-from typing import AsyncGenerator
+from typing import TYPE_CHECKING
 
-import pytest
 import pytest_asyncio
 from sqlalchemy import (
-    JSON,
     BigInteger,
     Column,
-    DateTime,
     Enum,
     LargeBinary,
     MetaData,
     SmallInteger,
     String,
     Table,
-    func,
     text,
 )
 from sqlalchemy.dialects import mysql, postgresql
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from faststream.sqla.message import SqlaMessageState
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    import pytest
 
 
 @pytest_asyncio.fixture
@@ -63,7 +63,7 @@ async def engine(
         match master_engine.dialect.name:
             case "postgresql":
                 result = await conn.execute(
-                    text(f"SELECT 1 FROM pg_database WHERE datname = :database"),
+                    text("SELECT 1 FROM pg_database WHERE datname = :database"),
                     {"database": worker_id},
                 )
                 if not result.scalar():

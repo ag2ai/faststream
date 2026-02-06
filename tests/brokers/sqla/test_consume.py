@@ -1,7 +1,7 @@
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -11,12 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from faststream._internal.context import ContextRepo
 from faststream.middlewares.acknowledgement.config import AckPolicy
-from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState, SqlaMessage
-from faststream.sqla.annotations import SqlaMessage as SqlaMessageAnnotation
-from faststream.sqla.annotations import SqlaBroker as SqlaBrokerAnnotation
-from faststream.sqla.annotations import ContextRepo as ContextRepoAnnotation
-from faststream.sqla.annotations import Logger as LoggerAnnotation
-from faststream.sqla.broker.broker import SqlaBroker as SqlaBroker
+from faststream.annotations import (
+    ContextRepo as ContextRepoAnnotation,
+    Logger as LoggerAnnotation,
+)
+from faststream.sqla.annotations import (
+    SqlaBroker as SqlaBrokerAnnotation,
+    SqlaMessage as SqlaMessageAnnotation,
+)
+from faststream.sqla.broker.broker import SqlaBroker
+from faststream.sqla.message import SqlaMessage, SqlaMessageState
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
@@ -38,9 +42,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Message was processed and archived.
-        """
+        """Message was processed and archived."""
         broker = self.get_broker(engine=engine)
 
         attempted = []
@@ -80,24 +82,19 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
     async def test_consume_nack_retry(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        On exception message was marked as retryable with next attempts scheduled.
-        """
+        """On exception message was marked as retryable with next attempts scheduled."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -136,25 +133,22 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         ).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
-        )
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        ).replace(tzinfo=None)
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
         assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(
             seconds=10
         )
-        assert result["acquired_at"] == None
+        assert result["acquired_at"] is None
 
     @pytest.mark.asyncio()
     async def test_consume_nack_no_retry(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        On exception message was marked as failed and was archived.
-        """
+        """On exception message was marked as failed and was archived."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -189,20 +183,17 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("max_deliveries", [1, None])
+    @pytest.mark.parametrize("max_deliveries", (1, None))
     async def test_consume_max_deliveries(
         self,
         engine: AsyncEngine,
@@ -210,8 +201,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         event: asyncio.Event,
         max_deliveries: int | None,
     ) -> None:
-        """
-        Message that was attempted but got stuck was not allowed a retry due to
+        """Message that was attempted but got stuck was not allowed a retry due to
         reached delivery limit.
         """
         logger = MagicMock()
@@ -275,8 +265,8 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
             assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
                 tzinfo=None
             )
-            assert result["first_attempt_at"] == None
-            assert result["last_attempt_at"] == None
+            assert result["first_attempt_at"] is None
+            assert result["last_attempt_at"] is None
 
             assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(
                 tzinfo=None
@@ -334,22 +324,20 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["attempts_count"] == 3
         assert result["deliveries_count"] == 3
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
-        assert result["last_attempt_at"] > result["first_attempt_at"] and result[
-            "last_attempt_at"
-        ] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["first_attempt_at"] > result["created_at"]
+        assert result["last_attempt_at"] > result["first_attempt_at"]
+        assert result["last_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
 
     @pytest.mark.asyncio()
     async def test_consume_no_retry_strategy(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        On exception message was marked as failed and was archived.
-        """
+        """On exception message was marked as failed and was archived."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -384,25 +372,20 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
         assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert (
-            result["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["first_attempt_at"] > result["created_at"]
+        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result["first_attempt_at"] > result["created_at"]
         assert result["last_attempt_at"] == result["first_attempt_at"]
 
-        assert (
-            result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result["archived_at"] > result["first_attempt_at"]
-        )
+        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
+        assert result["archived_at"] > result["first_attempt_at"]
 
     @pytest.mark.asyncio()
     async def test_consume_by_queues(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Messages from the specified queues were consumed.
-        """
+        """Messages from the specified queues were consumed."""
         broker = self.get_broker(engine=engine)
 
         messages = []
@@ -489,9 +472,8 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_current_messages_are_flushed_on_stop(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Processing of attempted messages completed and results were flushed.
-        Acquired but not attemted messages were requeued.
+        """Processing of attempted messages completed and results were flushed.
+        Acquired but not attempted messages were requeued.
         """
         broker = self.get_broker(engine=engine, graceful_timeout=2)
 
@@ -537,17 +519,15 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert (
-            result_1[0]["first_attempt_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
+        assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
         assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
-        assert (
-            result_1[0]["archived_at"]
-            < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-            and result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
+        assert result_1[0]["archived_at"] < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
         )
+        assert result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
 
         result_2 = result_2.mappings().all()
         assert len(result_2) == 2
@@ -557,20 +537,18 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result_2[0]["created_at"] < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result_2[0]["acquired_at"] == None
-        assert result_2[0]["first_attempt_at"] == None
+        assert result_2[0]["acquired_at"] is None
+        assert result_2[0]["first_attempt_at"] is None
         assert result_2[0]["next_attempt_at"] < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result_2[0]["last_attempt_at"] == None
+        assert result_2[0]["last_attempt_at"] is None
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack_takes_precedence(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Manual Ack overrode automatic Reject.
-        """
+        """Manual Ack overrode automatic Reject."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -609,9 +587,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_manual_nack_takes_precedence(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Manual Nack overrode automatic Ack.
-        """
+        """Manual Nack overrode automatic Ack."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -633,7 +609,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         )
         async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
             await msg.nack()
-            return
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.publish({"message": "hello2"}, queue="default1")
@@ -652,9 +627,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_manual_reject_takes_precedence(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Manual Reject overrode automatic Ack.
-        """
+        """Manual Reject overrode automatic Ack."""
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
@@ -676,7 +649,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         )
         async def handler(msg: SqlaMessageAnnotation, msg_body: dict) -> None:
             await msg.reject()
-            return
 
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.publish({"message": "hello2"}, queue="default1")
@@ -725,11 +697,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
             context: ContextRepoAnnotation,
             logger: LoggerAnnotation,
         ) -> None:
-            nonlocal body_
-            nonlocal message_
-            nonlocal broker_
-            nonlocal context_
-            nonlocal logger_
+            nonlocal body_, message_, broker_, context_, logger_
             body_ = body
             message_ = message
             broker_ = broker
@@ -846,8 +814,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_release_stuck(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """
-        Broker was stopped mid-processing, processing wasn't finalized/flushed,
+        """Broker was stopped mid-processing, processing wasn't finalized/flushed,
         messages were requeued on next startup.
         """
         broker = self.get_broker(engine=engine, graceful_timeout=0.1)

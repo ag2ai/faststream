@@ -1,15 +1,7 @@
-import asyncio
-from typing import Any
-from unittest.mock import MagicMock, patch
-
 import pytest
-from aiokafka.structs import RecordMetadata
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from faststream import Context
-from faststream.kafka import KafkaPublishMessage, KafkaResponse
-from faststream.kafka.exceptions import BatchBufferOverflowException
 from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import SqlaTestcaseConfig
@@ -30,7 +22,7 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
 @pytest.mark.connected()
 class TestPublishTransaction(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("mode", ["publish", "publisher"])
+    @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_wo_transaction(self, engine: AsyncEngine, mode: str) -> None:
         broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
@@ -46,7 +38,7 @@ class TestPublishTransaction(SqlaTestcaseConfig):
         assert len(result.all()) == 1
 
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("mode", ["publish", "publisher"])
+    @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_in_transaction(self, engine: AsyncEngine, mode: str) -> None:
         broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
@@ -65,7 +57,7 @@ class TestPublishTransaction(SqlaTestcaseConfig):
         assert len(result.all()) == 1
 
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("mode", ["publish", "publisher"])
+    @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_in_transaction_rollback(
         self, engine: AsyncEngine, mode: str
     ) -> None:

@@ -1,11 +1,7 @@
-import asyncio
-from typing import Any
-
 import pytest
 from sqlalchemy import (
     BigInteger,
     Column,
-    DateTime,
     Enum,
     Integer,
     LargeBinary,
@@ -19,11 +15,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from faststream.exceptions import SetupError
-from faststream.middlewares.acknowledgement.config import AckPolicy
-from faststream.sqla.broker.broker import SqlaBroker
-from faststream.sqla.client import SqlaPostgresClient, create_sqla_client
 from faststream.sqla.message import SqlaMessageState
-from faststream.sqla.retry import NoRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
 
 
@@ -99,7 +91,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("first_attempt_at", timestamp_type),
             Column("next_attempt_at", timestamp_type, nullable=False),
             Column("last_attempt_at", timestamp_type),
-            # missing: acquired_at
+            # missing: acquired_at # noqa: ERA001
         )
         Table(
             "message_archive",

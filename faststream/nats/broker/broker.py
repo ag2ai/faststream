@@ -8,7 +8,6 @@ from typing import (
     cast,
 )
 
-import anyio
 import nats
 from fast_depends import Provider, dependency_provider
 from nats.aio.client import (

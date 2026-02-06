@@ -1,19 +1,22 @@
 import asyncio
-from contextlib import suppress
 import contextlib
 import logging
-from typing import Any, Callable, Coroutine, Iterable, Sequence, TypeVar
+from collections.abc import Coroutine, Iterable
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
-from faststream._internal.endpoint.subscriber.specification import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream._internal.types import MsgType
-from faststream.sqla.client import SqlaBaseClient, SqlaPostgresClient, create_sqla_client
-from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
+from faststream.sqla.client import SqlaBaseClient
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.parser import SqlaParser
 
+if TYPE_CHECKING:
+    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.endpoint.subscriber.specification import (
+        SubscriberSpecification,
+    )
+    from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 
 _CoroutineReturnType = TypeVar("_CoroutineReturnType")
 
@@ -103,6 +106,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
             with contextlib.suppress(asyncio.CancelledError):
                 await coro_task
             raise StopEventSetError
+        return None
 
     async def _fetch_loop(self) -> None:
         while True:

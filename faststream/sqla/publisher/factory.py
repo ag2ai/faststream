@@ -1,14 +1,13 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from faststream.sqla.configs.broker import SqlaBrokerConfig
-
 from .config import SqlaPublisherConfig, SqlaPublisherSpecificationConfig
 from .specification import SqlaPublisherSpecification
 from .usecase import LogicPublisher
 
 if TYPE_CHECKING:
     from faststream._internal.types import PublisherMiddleware
+    from faststream.sqla.configs.broker import SqlaBrokerConfig
 
 
 def create_publisher(

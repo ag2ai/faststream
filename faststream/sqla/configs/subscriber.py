@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from sqlalchemy.ext.asyncio import AsyncEngine
+
 from faststream._internal.configs.endpoint import SubscriberUsecaseConfig
 from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy

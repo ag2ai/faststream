@@ -1,17 +1,18 @@
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 import enum
 import logging
-from typing import Any, Callable, Coroutine, cast
+from collections.abc import Callable, Coroutine
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, cast
 
-from faststream._internal.basic_types import LoggerProto
 from faststream.message.message import StreamMessage
 from faststream.sqla.retry import RetryStrategyProto
 
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import LoggerProto
+
 
 class SqlaMessageState(str, enum.Enum):
-    """
-    The message starts out as PENDING. When it is acquired by a worker, it is marked as
+    """The message starts out as PENDING. When it is acquired by a worker, it is marked as
     PROCESSING. After being acquired, depending on processing result, AckPolicy, retry
     strategy, and presence of manual acknowledgement, the message can be marked as
     COMPLETED, FAILED, or RETRYABLE prior to or after a processing attempt. A message
@@ -85,12 +86,10 @@ class SqlaInnerMessage:
 
     async def _nack(self) -> None:
         self._record_attempt()
-        if self.retry_strategy is None:
-            self._mark_failed()
-        elif not (
+        if self.retry_strategy is None or not (
             next_attempt_at := self.retry_strategy.get_next_attempt_at(
                 first_attempt_at=self.first_attempt_at,
-                last_attempt_at=cast(datetime, self.last_attempt_at),
+                last_attempt_at=cast("datetime", self.last_attempt_at),
                 attempts_count=self.attempts_count,
             )
         ):
@@ -142,14 +141,13 @@ class SqlaInnerMessage:
         return True
 
     def _assert_state_updated(self, logger: "LoggerProto | None") -> None:
-        if not self.state_set:
-            if logger:
-                logger.log(
-                    logging.ERROR,
-                    f"State of message {self} was not updated after processing, "
-                    f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
-                    f"acknowledgement in the handler.",
-                )
+        if not self.state_set and logger:
+            logger.log(
+                logging.ERROR,
+                f"State of message {self} was not updated after processing, "
+                f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
+                f"acknowledgement in the handler.",
+            )
 
     def __repr__(self) -> str:
         return f"SqlaMessage(id={self.id}, queue={self.queue})"
