@@ -62,8 +62,8 @@ class SqlaBroker(
 
         super().__init__(
             routers=routers,
+            engine=engine,
             config=SqlaBrokerConfig(
-                engine=engine,
                 producer=SqlaProducer(
                     engine=engine,
                     parser=parser,
