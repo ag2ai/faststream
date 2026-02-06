@@ -59,6 +59,8 @@ services:
       MYSQL_ROOT_PASSWORD: brokerpass
     ports:
       - "3306:3306"
+    volumes:
+      - ./tests/brokers/sqla/docker/init.sql:/docker-entrypoint-initdb.d/99-grant-all.sql:ro
 
   faststream:
     build: .

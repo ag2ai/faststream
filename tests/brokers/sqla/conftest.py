@@ -28,13 +28,18 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from faststream.sqla.message import SqlaMessageState
 
 
+@pytest_asyncio.fixture
+async def worker_id() -> str:
+    return os.environ.get('PYTEST_XDIST_WORKER', 'main')
+
+
 @pytest_asyncio.fixture(
     params=[
         "postgresql",
         "mysql"
     ]
 )
-async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, None]:
+async def master_engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, None]:
     backend = request.param
     match backend:
         case "postgresql":
@@ -46,6 +51,31 @@ async def engine(request: pytest.FixtureRequest) -> AsyncGenerator[AsyncEngine, 
 
     engine = create_async_engine(url)
 
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def engine(master_engine: AsyncEngine, worker_id: str) -> AsyncGenerator[AsyncEngine, None]:
+    async with master_engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        match master_engine.dialect.name:
+            case "postgresql":
+                result = await conn.execute(
+                    text(f'SELECT 1 FROM pg_database WHERE datname = :database'), {'database': worker_id}
+                )
+                if not result.scalar():
+                    await conn.execute(text(f"CREATE DATABASE {worker_id}"))
+                url = f"postgresql+asyncpg://broker:brokerpass@localhost:5432/{worker_id}"
+            case "mysql":
+                await conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {worker_id}"))
+                url = f"mysql+asyncmy://broker:brokerpass@localhost:3306/{worker_id}"
+            case _:
+                raise ValueError
+
+    engine = create_async_engine(url)
     try:
         yield engine
     finally:
