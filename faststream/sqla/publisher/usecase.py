@@ -52,7 +52,7 @@ class LogicPublisher(PublisherUsecase):
             connection=connection,
         )
 
-        return await self._basic_publish(
+        await self._basic_publish(
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
@@ -80,7 +80,9 @@ class LogicPublisher(PublisherUsecase):
     async def request(
         self,
         message: "SendableMessage",
-        queue: str,
-        next_attempt_at: datetime | None = None,
-    ) -> None:
-        raise FeatureNotSupportedException
+        /,
+        *,
+        correlation_id: str | None = None,
+    ) -> Any | None:
+        msg = "SqlaBroker doesn't support synchronous requests."
+        raise FeatureNotSupportedException(msg)

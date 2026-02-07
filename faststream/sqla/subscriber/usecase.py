@@ -1,12 +1,13 @@
 import asyncio
 import contextlib
 import logging
-from collections.abc import Coroutine, Iterable
+from collections.abc import AsyncIterator, Coroutine, Iterable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
+from faststream.exceptions import FeatureNotSupportedException
 from faststream.sqla.client import SqlaBaseClient
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.parser import SqlaParser
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.specification import (
         SubscriberSpecification,
     )
+    from faststream._internal.endpoint.publisher.proto import PublisherProto
+    from faststream.message import StreamMessage
     from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 
 _CoroutineReturnType = TypeVar("_CoroutineReturnType")
@@ -59,6 +62,23 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         self._stop_event = asyncio.Event()
         self._result_buffer_lock = asyncio.Lock()
         self._retry_on_client_error_delay = 5
+
+    async def get_one(
+        self, *, timeout: float = 5,
+    ) -> Optional["StreamMessage[SqlaInnerMessage]"]:
+        msg = "SqlaBroker doesn't support `get_one`."
+        raise FeatureNotSupportedException(msg)
+
+    async def __aiter__(self) -> AsyncIterator["StreamMessage[SqlaInnerMessage]"]:  # type: ignore[override]
+        msg = "SqlaBroker doesn't support async iteration."
+        raise FeatureNotSupportedException(msg)
+        yield  # pragma: no cover
+
+    def _make_response_publisher(
+        self,
+        message: "StreamMessage[SqlaInnerMessage]",
+    ) -> Iterable["PublisherProto"]:
+        return ()
 
     @property
     def _client(self) -> SqlaBaseClient:
@@ -106,7 +126,8 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
             with contextlib.suppress(asyncio.CancelledError):
                 await coro_task
             raise StopEventSetError
-        return None
+        
+        raise ValueError
 
     async def _fetch_loop(self) -> None:
         while True:
@@ -126,7 +147,8 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                     return
                 except Exception as exc:
                     self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
-                    await asyncio.sleep(self._retry_on_client_error_delay)
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.wait_for(self._stop_event.wait(), timeout=self._retry_on_client_error_delay)
                     continue
 
                 for msg in batch:
@@ -137,12 +159,8 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
             else:
                 timeout_ = self._max_fetch_interval
 
-            try:
+            with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._stop_event.wait(), timeout=timeout_)
-            except asyncio.TimeoutError:
-                continue
-            else:
-                break
 
     async def _worker_loop(self) -> None:
         while True:
@@ -180,12 +198,9 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                     return
                 except Exception as exc:
                     self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
-                    await asyncio.sleep(self._retry_on_client_error_delay)
-                    continue
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.wait_for(self._stop_event.wait(), timeout=self._retry_on_client_error_delay)
 
-                continue
-            else:
-                break
         await self._flush_results()
 
     async def _release_stuck_loop(self) -> None:
@@ -199,17 +214,14 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                 return
             except Exception as exc:
                 self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
-                await asyncio.sleep(self._retry_on_client_error_delay)
+                with suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(self._stop_event.wait(), timeout=self._retry_on_client_error_delay)
                 continue
 
-            try:
+            with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(
                     self._stop_event.wait(), timeout=self._release_stuck_interval
                 )
-            except asyncio.TimeoutError:
-                continue
-            else:
-                break
 
     def _buffer_results(
         self, result: SqlaInnerMessage | Iterable[SqlaInnerMessage]

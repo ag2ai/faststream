@@ -100,7 +100,7 @@ class SqlaBroker(
             ),
             specification=BrokerSpec(
                 description=description,
-                url=specification_url,
+                url=[specification_url] if isinstance(specification_url, str) else list(specification_url) if specification_url else [],
                 protocol=protocol,
                 protocol_version=protocol_version,
                 security=security,

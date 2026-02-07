@@ -10,7 +10,7 @@ from faststream.sqla.publisher.producer import SqlaProducer
 
 @dataclass(kw_only=True)
 class SqlaBrokerConfig(BrokerConfig):
-    producer: "SqlaProducer" = field(default_factory=ProducerUnset)
+    producer: "SqlaProducer" = field(default_factory=ProducerUnset)  # type: ignore[assignment]
     validate_schema_on_start: bool = True
     client: SqlaBaseClient = field(init=False)
 

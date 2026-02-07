@@ -52,7 +52,7 @@ def create_subscriber(
 
     specification = SqlaSubscriberSpecification()
 
-    return SqlaSubscriber(subscriber_config, specification, calls)
+    return SqlaSubscriber(subscriber_config, specification, calls)  # type: ignore[arg-type]
 
 
 def _validate_input_for_misconfiguration(

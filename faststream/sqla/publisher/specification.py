@@ -24,7 +24,7 @@ class SqlaPublisherSpecification(
                 operation=Operation(
                     message=Message(
                         title=f"{self.name}:Message",
-                        payload=None,
+                        payload={},
                     ),
                     bindings=None,
                 ),

@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, cast, override
+from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
 
 from sqlalchemy.ext.asyncio import AsyncEngine
-from typing_extensions import deprecated
+from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream.middlewares.acknowledgement.config import AckPolicy
@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
 
 class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
-    @overload  # type: ignore[override]
-    def subscriber(
+    @override
+    def subscriber(  # type: ignore[override]
         self,
         queues: list[str],
         *,
@@ -179,7 +179,7 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         return subscriber
 
     @override
-    def publisher(
+    def publisher(  # type: ignore[override]
         self,
         queue: str = "",
         *,

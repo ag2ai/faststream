@@ -30,6 +30,7 @@ from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from sqlalchemy import Connection
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 metadata = MetaData()
@@ -246,7 +247,7 @@ class SqlaBaseClient:
             )  # fmt: skip
             await conn.execute(delete_stmt)
 
-    async def release_stuck(self, timeout: int) -> None:
+    async def release_stuck(self, timeout: float) -> None:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         select_stuck = (
             select(message.c.id)
@@ -338,7 +339,7 @@ class SqlaMySqlClient(SqlaPostgresClient):
         ordered_rows = [rows_by_id[id_] for id_ in ready_ids if id_ in rows_by_id]
         return [SqlaInnerMessage(**row) for row in ordered_rows]
 
-    async def release_stuck(self, timeout: int) -> None:
+    async def release_stuck(self, timeout: float) -> None:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         select_stuck = (
@@ -363,17 +364,17 @@ class SqlaMySqlClient(SqlaPostgresClient):
 
 
 class SchemaValidator:
-    def __call__(self, connection: AsyncConnection) -> list[str]:
-        inspector = inspect(connection)
+    def __call__(self, connection: Connection) -> list[str]:
+        insp = inspect(connection)
         errors: list[str] = []
 
         for table_def in (message, message_archive):
             table_name = table_def.name
-            if not inspector.has_table(table_name):
+            if not insp.has_table(table_name):
                 errors.append(f"Table '{table_name}' does not exist")
                 continue
 
-            db_columns = {c["name"]: c["type"] for c in inspector.get_columns(table_name)}
+            db_columns = {c["name"]: c["type"] for c in insp.get_columns(table_name)}
             expected_columns = {c.name: c.type for c in table_def.columns}
 
             missing = set(expected_columns.keys()) - set(db_columns.keys())
