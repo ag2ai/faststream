@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union, override
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing_extensions import override
 
 from fast_depends import Provider, dependency_provider
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -132,7 +133,7 @@ class SqlaBroker(
             connection=connection,
         )
 
-        return await super()._basic_publish(cmd, producer=self.config.producer)
+        return await super()._basic_publish(cmd, producer=self.config.producer) # type: ignore[no-any-return]
 
     @override
     async def _connect(self) -> Literal[True]:

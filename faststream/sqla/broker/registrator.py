@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 
 class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
+    @overload  # type: ignore[override]
     def subscriber(
         self,
         queues: list[str],
@@ -42,6 +43,7 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         max_deliveries: int | None = None,
         ack_policy: AckPolicy = AckPolicy.REJECT_ON_ERROR,
         # broker args
+        persistent: bool = True,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
@@ -165,7 +167,7 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
             ack_policy=ack_policy,
         )
 
-        super().subscriber(subscriber)
+        super().subscriber(subscriber, persistent=persistent)
 
         subscriber.add_call(
             parser_=parser,

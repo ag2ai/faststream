@@ -42,6 +42,7 @@ class LogicPublisher(PublisherUsecase):
         headers: dict[str, str] | None = None,
         next_attempt_at: datetime | None = None,
         connection: AsyncConnection | None = None,
+        correlation_id: str | None = None,
     ) -> None:
         cmd = SqlaPublishCommand(
             message,
