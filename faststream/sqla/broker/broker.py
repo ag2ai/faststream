@@ -2,10 +2,10 @@ import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
-from typing_extensions import override
 
 from fast_depends import Provider, dependency_provider
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
+from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -100,7 +100,11 @@ class SqlaBroker(
             ),
             specification=BrokerSpec(
                 description=description,
-                url=[specification_url] if isinstance(specification_url, str) else list(specification_url) if specification_url else [],
+                url=[specification_url]
+                if isinstance(specification_url, str)
+                else list(specification_url)
+                if specification_url
+                else [],
                 protocol=protocol,
                 protocol_version=protocol_version,
                 security=security,
@@ -133,7 +137,7 @@ class SqlaBroker(
             connection=connection,
         )
 
-        return await super()._basic_publish(cmd, producer=self.config.producer) # type: ignore[no-any-return]
+        return await super()._basic_publish(cmd, producer=self.config.producer)  # type: ignore[no-any-return]
 
     @override
     async def _connect(self) -> Literal[True]:

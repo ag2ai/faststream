@@ -10,11 +10,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from faststream._internal.context import ContextRepo
-from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.annotations import (
     ContextRepo as ContextRepoAnnotation,
     Logger as LoggerAnnotation,
 )
+from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.annotations import (
     SqlaBroker as SqlaBrokerAnnotation,
     SqlaMessage as SqlaMessageAnnotation,

@@ -106,7 +106,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
 
     metadata = MetaData()
 
-    message = Table(
+    message = Table(  # noqa: F841
         "message",
         metadata,
         Column("id", BigInteger, primary_key=True),
@@ -140,7 +140,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
         Column("acquired_at", timestamp_type),
     )
 
-    message_archive = Table(
+    message_archive = Table(  # noqa: F841
         "message_archive",
         metadata,
         Column("id", BigInteger, primary_key=True),

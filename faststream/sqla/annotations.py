@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from faststream._internal.context import Context
-from faststream.sqla.message import SqlaMessage as SM
 from faststream.sqla.broker.broker import SqlaBroker as SB
 from faststream.sqla.message import SqlaMessage as SM
 
