@@ -46,7 +46,7 @@ services:
     environment:
       POSTGRES_DB: broker
       POSTGRES_USER: broker
-      POSTGRES_PASSWORD: brokerpass
+      POSTGRES_PASSWORD: brokerpass # pragma: allowlist secret
     ports:
       - "5432:5432"
 
@@ -55,8 +55,8 @@ services:
     environment:
       MYSQL_DATABASE: broker
       MYSQL_USER: broker
-      MYSQL_PASSWORD: brokerpass
-      MYSQL_ROOT_PASSWORD: brokerpass
+      MYSQL_PASSWORD: brokerpass # pragma: allowlist secret
+      MYSQL_ROOT_PASSWORD: brokerpass # pragma: allowlist secret
     ports:
       - "3306:3306"
     volumes:

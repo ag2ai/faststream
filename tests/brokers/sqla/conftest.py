@@ -40,9 +40,9 @@ async def master_engine(
     backend = request.param
     match backend:
         case "postgresql":
-            url = "postgresql+asyncpg://broker:brokerpass@localhost:5432/broker"
+            url = "postgresql+asyncpg://broker:brokerpass@localhost:5432/broker"  # pragma: allowlist secret
         case "mysql":
-            url = "mysql+asyncmy://broker:brokerpass@localhost:3306/broker"
+            url = "mysql+asyncmy://broker:brokerpass@localhost:3306/broker"  # pragma: allowlist secret
         case _:
             raise ValueError
 
@@ -68,10 +68,10 @@ async def engine(
                 )
                 if not result.scalar():
                     await conn.execute(text(f"CREATE DATABASE {worker_id}"))
-                url = f"postgresql+asyncpg://broker:brokerpass@localhost:5432/{worker_id}"
+                url = f"postgresql+asyncpg://broker:brokerpass@localhost:5432/{worker_id}"  # pragma: allowlist secret
             case "mysql":
                 await conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {worker_id}"))
-                url = f"mysql+asyncmy://broker:brokerpass@localhost:3306/{worker_id}"
+                url = f"mysql+asyncmy://broker:brokerpass@localhost:3306/{worker_id}"  # pragma: allowlist secret
             case _:
                 raise ValueError
 
