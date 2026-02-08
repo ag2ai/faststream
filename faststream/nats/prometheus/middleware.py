@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class NatsPrometheusMiddleware(
-    PrometheusMiddleware[NatsPublishCommand, Msg | Sequence[Msg]],
+    PrometheusMiddleware[Msg | Sequence[Msg], NatsPublishCommand],
 ):
     def __init__(
         self,

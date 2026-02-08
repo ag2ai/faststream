@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class RedisPrometheusMiddleware(
-    PrometheusMiddleware[RedisPublishCommand, dict[str, Any]]
+    PrometheusMiddleware[dict[str, Any], RedisPublishCommand]
 ):
     def __init__(
         self,

@@ -4,6 +4,7 @@ import logging
 from collections.abc import AsyncIterator, Coroutine, Iterable
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
+
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin

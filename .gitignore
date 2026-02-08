@@ -18,6 +18,7 @@ htmlcov
 token
 .DS_Store
 *.egg-info
+.codspeed
 
 docs/site/
 docs/site_build/

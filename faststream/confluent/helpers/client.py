@@ -4,7 +4,7 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
@@ -43,7 +43,7 @@ class AsyncConfluentProducer:
         self.logger_state = logger
 
         self.config = config.producer_config
-        self.producer = Producer(
+        self.producer = Producer(  # type: ignore[call-arg]
             self.config,
             logger=self.logger_state.logger.logger,
         )
@@ -105,7 +105,31 @@ class AsyncConfluentProducer:
         kwargs["on_delivery"] = ack_callback
 
         # should be sync to prevent segfault
-        self.producer.produce(topic, **kwargs)
+        # confluent stub expects bytes|None for value/key; we accept str and encode
+        produce_value: bytes | None = (
+            kwargs["value"]
+            if isinstance(kwargs["value"], (bytes, type(None)))
+            else kwargs["value"].encode()
+        )
+        produce_key: bytes | None = (
+            kwargs["key"]
+            if isinstance(kwargs["key"], (bytes, type(None)))
+            else (kwargs["key"].encode() if kwargs["key"] is not None else None)
+        )
+        produce_headers: (
+            dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
+        ) = cast("Any", kwargs["headers"]) if kwargs.get("headers") is not None else None
+        produce_kwargs: dict[str, Any] = {
+            "value": produce_value,
+            "key": produce_key,
+            "headers": produce_headers,
+            "on_delivery": kwargs["on_delivery"],
+        }
+        if kwargs.get("partition") is not None:
+            produce_kwargs["partition"] = kwargs["partition"]
+        if kwargs.get("timestamp") is not None:
+            produce_kwargs["timestamp"] = kwargs["timestamp"]
+        self.producer.produce(topic, **produce_kwargs)
 
         if no_confirm:
             return result_future
@@ -233,7 +257,9 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
+        self.consumer = Consumer(  # type: ignore[call-arg]
+            self.config, logger=self.logger_state.logger.logger
+        )
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
@@ -287,8 +313,7 @@ class AsyncConfluentConsumer:
         """Commits the offsets of all messages returned by the last poll operation."""
         await run_in_executor(
             self._thread_pool,
-            self.consumer.commit,
-            asynchronous=asynchronous,
+            lambda: self.consumer.commit(asynchronous=asynchronous),  # type: ignore[call-overload]
         )
 
     async def stop(self) -> None:
@@ -334,9 +359,13 @@ class AsyncConfluentConsumer:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
         raw_messages: list[Message | None] = await run_in_executor(
             self._thread_pool,
-            self.consumer.consume,
-            num_messages=max_records or 10,
-            timeout=timeout,
+            cast(
+                "Callable[..., list[Message | None]]",
+                lambda: self.consumer.consume(
+                    num_messages=max_records or 10,
+                    timeout=timeout,
+                ),
+            ),
         )
         return tuple(x for x in map(check_msg_error, raw_messages) if x is not None)
 
@@ -380,7 +409,7 @@ class BatchBuilder:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""
         if key is None and value is None:
             raise KafkaException(
-                KafkaError(40, reason="Both key and value can't be None"),
+                KafkaError(40, "Both key and value can't be None"),
             )
 
         self._builder.append(

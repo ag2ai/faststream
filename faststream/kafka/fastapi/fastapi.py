@@ -110,7 +110,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
         protocol: str | None = None,
-        protocol_version: str | None = "auto",
+        protocol_version: str | None = None,
         description: str | None = None,
         specification_tags: Iterable[Union["Tag", "TagDict"]] = (),
         # logging args

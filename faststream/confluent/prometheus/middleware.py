@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 class KafkaPrometheusMiddleware(
     PrometheusMiddleware[
-        KafkaPublishCommand,
         Message | Sequence[Message],
+        KafkaPublishCommand,
     ],
 ):
     def __init__(
