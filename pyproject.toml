@@ -75,10 +75,14 @@ nats = ["nats-py>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<8.0.0"]
 
-sqla = [
+sqla-postgres = [
+    "sqlalchemy>=2.0.44",
+    "asyncpg>=0.31.0",
+]
+
+sqla-mysql = [
     "sqlalchemy>=2.0.44",
     "asyncmy>=0.2.10",
-    "asyncpg>=0.31.0",
 ]
 
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
@@ -91,7 +95,7 @@ cli = [
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,sqla,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,sqla-postgres,sqla-mysql,otel,cli,prometheus]"]
 
 docs = [
     "mkdocs-material==9.7.1",
@@ -110,9 +114,9 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.14.5",
-    "bandit==1.8.6",
-    "semgrep>=1",
+    "ruff==0.14.14",
+    "bandit==1.9.3",
+    "semgrep==1.149.0",
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "mypy==1.19.1",
