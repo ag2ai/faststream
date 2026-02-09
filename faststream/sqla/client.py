@@ -278,7 +278,7 @@ class SqlaBaseClient:
     async def ping(self) -> bool:
         try:
             async with self._engine.connect() as conn:
-                (await conn.execute(text("SELECT 1"))).scalar() # nosemgrep
+                (await conn.execute(text("SELECT 1"))).scalar()  # nosemgrep
         except Exception:
             return False
         return True

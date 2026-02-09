@@ -120,8 +120,6 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
 
                 try:
                     batch = await self._client.fetch(self._queues, limit=limit)
-                except asyncio.CancelledError:
-                    return
                 except Exception as exc:
                     self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
                     with suppress(asyncio.TimeoutError):
@@ -164,27 +162,23 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
 
     async def _flush_loop(self) -> None:
         while True:
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    self._stop_event.wait(), timeout=self._flush_interval
+                )
+
             if self._stop_event.is_set():
                 break
 
             try:
-                await asyncio.wait_for(
-                    self._stop_event.wait(), timeout=self._flush_interval
-                )
-            except asyncio.TimeoutError:
-                try:
-                    await self._flush_results()
-                except asyncio.CancelledError:
-                    return
-                except Exception as exc:
-                    self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
-                    with suppress(asyncio.TimeoutError):
-                        await asyncio.wait_for(
-                            self._stop_event.wait(),
-                            timeout=self._retry_on_client_error_delay,
-                        )
-
-        await self._flush_results()
+                await self._flush_results()
+            except Exception as exc:
+                self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
+                with suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        self._stop_event.wait(),
+                        timeout=self._retry_on_client_error_delay,
+                    )
 
     async def _release_stuck_loop(self) -> None:
         while True:
@@ -193,8 +187,6 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
 
             try:
                 await self._client.release_stuck(timeout=self._release_stuck_timeout)
-            except asyncio.CancelledError:
-                return
             except Exception as exc:
                 self._log(logging.ERROR, "SqlaClient error", exc_info=exc)
                 with suppress(asyncio.TimeoutError):
@@ -228,7 +220,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         try:
             await self._client.retry(to_update)
         except Exception:
-            self._buffer_results(to_update)
+            self._buffer_results(messages)
             raise
 
         try:
