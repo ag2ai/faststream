@@ -106,7 +106,7 @@ docs = [
 lint = [
     "ruff==0.14.14",
     "bandit==1.9.3",
-    "semgrep==1.149.0",
+    "semgrep==1.150.0",
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "mypy==1.19.1",
@@ -142,7 +142,7 @@ testing = [
     "uvicorn>=0.34.3; python_version >= '3.9'",
     "uvicorn==0.33.0; python_version < '3.9'",
     "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
-    "psutil==7.2.1",
+    "psutil==7.2.2",
     "prometheus-client>=0.20.0,<0.30.0",
     "opentelemetry-sdk>=1.24.0,<2.0.0",
 ]
