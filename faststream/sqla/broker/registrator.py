@@ -140,6 +140,12 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
             retry_strategy, and to the database state being inconsistent with
             the true number of attempts.
 
+            This design opts for two short-lived transactions instead of a single
+            one. This first one fetches messages with SELECT FOR UPDATE SKIP LOCKED
+            and sets their state to PROCESSING, which prevents them from being
+            fetched by other processes/nodes. The second transaction flushes
+            the message state updates to the database.
+
             Setting max_deliveries to a non-None value provides protection from
             the poison message problem (messages that crash the worker without
             the ability to catch the exception due to e.g. OOM terminations)
