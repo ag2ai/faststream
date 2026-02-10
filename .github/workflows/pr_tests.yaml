@@ -462,14 +462,31 @@ jobs:
     needs:
       - test-basic
     services:
-      nats:
-        image: redis:alpine
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: broker
+          POSTGRES_USER: broker
+          POSTGRES_PASSWORD: brokerpass
         ports:
-          - 6379:6379
+          - 5432:5432
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: broker
+          MYSQL_USER: broker
+          MYSQL_PASSWORD: brokerpass
+          MYSQL_ROOT_PASSWORD: brokerpass
+        ports:
+          - 3306:3306
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+      - name: Grant MySQL privileges
+        run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do sleep 1; done
+          mysql -h 127.0.0.1 -u root -pbrokerpass < tests/brokers/sqla/docker/init.sql
       - uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
         with:
           version: "latest"
