@@ -83,6 +83,7 @@ sqla-postgres = [
 sqla-mysql = [
     "sqlalchemy>=2.0.44",
     "asyncmy>=0.2.10",
+    "cryptography>=43.0.0",
 ]
 
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
