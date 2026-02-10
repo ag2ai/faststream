@@ -30,7 +30,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -84,7 +83,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -139,7 +137,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=None,
@@ -187,7 +184,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -239,7 +235,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine, logger=logger)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(

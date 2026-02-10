@@ -6,7 +6,6 @@ from typing import (
     Optional,
 )
 
-from sqlalchemy.ext.asyncio import AsyncEngine
 from typing_extensions import deprecated
 
 from faststream._internal.broker.router import (
@@ -92,7 +91,6 @@ class SqlaRoute(SubscriberRoute):
         queues: list[str],
         *,
         publishers: Iterable[SqlaPublisher] = (),
-        engine: AsyncEngine,
         max_workers: int = 1,
         retry_strategy: RetryStrategyProto | None = None,
         max_fetch_interval: float,
@@ -128,7 +126,6 @@ class SqlaRoute(SubscriberRoute):
                 to wrap the same with `@broker.subscriber(...)` way.
             queues: Queue names to consume messages from.
             publishers: Sqla publishers to broadcast the handler result.
-            engine: SQLAlchemy async engine.
             max_workers: Number of workers to process messages concurrently.
             retry_strategy:
                 Called to determine if and when a message might be retried.
@@ -161,7 +158,6 @@ class SqlaRoute(SubscriberRoute):
             call,
             publishers=publishers,
             queues=queues,
-            engine=engine,
             max_workers=max_workers,
             retry_strategy=retry_strategy,
             max_fetch_interval=max_fetch_interval,

@@ -84,7 +84,6 @@ When `connection` is provided, the message insert participates in the same datab
 #### Subscriber parameters
 
 - **`queues`** — List of queue names to consume from.
-- **`engine`** — SQLAlchemy `AsyncEngine` to use for DB requests.
 - **`max_workers`** — Number of workers to process messages concurrently.
 - **`retry_strategy`** — Called to determine if and when a Nack'ed message is retried. If `None`, `AckPolicy.NACK_ON_ERROR` has the same effect as `AckPolicy.REJECT_ON_ERROR`.
 - **`min_fetch_interval`** — Minimum interval between consecutive fetches, used if the last fetch was full (returned as many messages as the fetch's limit).
@@ -94,7 +93,7 @@ When `connection` is provided, the message insert participates in the same datab
 - **`flush_interval`** — Interval between flushes of processed message state to the database.
 - **`release_stuck_interval`** — Interval between checks for stuck `PROCESSING` messages.
 - **`release_stuck_timeout`** — Interval since `acquired_at` after which a `PROCESSING` message is considered stuck and is released back to `PENDING`.
-- **`max_deliveries`** — Maximum number of deliveries allowed for a message. If set, messages that have reached this limit are Reject'ed to `FAILED` without processing.
+- **`max_deliveries`** — Maximum number of deliveries allowed for a message. If set, messages that have reached this limit are Reject'ed to `FAILED` without processing. Note that this might violate the [at-least-once](../sqla/design.md#poison-message-protection){.internal-link} processing semantics.
 - **`ack_policy`** — Controls acknowledgement behavior. See [AckPolicy](../getting-started/acknowledgement.md){.internal-link}.
 
 ### Delayed retries

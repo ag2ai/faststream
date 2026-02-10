@@ -1,7 +1,6 @@
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
 
-from sqlalchemy.ext.asyncio import AsyncEngine
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
@@ -30,7 +29,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         self,
         queues: list[str],
         *,
-        engine: AsyncEngine,
         max_workers: int = 1,
         retry_strategy: RetryStrategyProto | None = None,
         max_fetch_interval: float,
@@ -56,8 +54,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         """Args:
         queues:
             List of queue names to consume from.
-        engine:
-            SQLAlchemy `AsyncEngine` to use for DB requests.
         max_workers:
             Number of workers to process messages concurrently.
         retry_strategy:
@@ -90,7 +86,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
             Controls acknowledgement behavior.
         """
         subscriber = create_subscriber(
-            engine=engine,
             queues=queues,
             max_workers=max_workers,
             retry_strategy=retry_strategy,

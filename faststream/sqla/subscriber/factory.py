@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    engine: "AsyncEngine",
     queues: list[str],
     max_workers: int,
     retry_strategy: "RetryStrategyProto | None",
@@ -32,7 +31,6 @@ def create_subscriber(
     ack_policy: "AckPolicy",
 ) -> SqlaSubscriber:
     subscriber_config = SqlaSubscriberConfig(
-        engine=engine,
         queues=queues,
         max_workers=max_workers,
         retry_strategy=retry_strategy,

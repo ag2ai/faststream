@@ -12,7 +12,6 @@ app = FastStream(broker)
 
 @broker.subscriber(
     queues=["my_queue"],
-    engine=engine,
     max_workers=4,
     retry_strategy=ConstantRetryStrategy(
         delay_seconds=5,

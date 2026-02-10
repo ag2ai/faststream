@@ -39,7 +39,6 @@ class SqlaTestcaseConfig(BaseTestcaseConfig):
             kwargs.setdefault("queues", [args[0]])
             args = args[1:]
 
-        kwargs.setdefault("engine", self._engine)
         kwargs.setdefault("max_workers", 5)
         kwargs.setdefault("retry_strategy", NoRetryStrategy())
         kwargs.setdefault("max_fetch_interval", 0.1)

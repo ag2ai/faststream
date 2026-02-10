@@ -48,7 +48,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=NoRetryStrategy(),
@@ -98,7 +97,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -152,7 +150,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=NoRetryStrategy(),
@@ -210,7 +207,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -287,7 +283,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=ConstantRetryStrategy(
@@ -341,7 +336,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=None,
@@ -391,7 +385,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         messages = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1", "default2"],
             max_workers=1,
             retry_strategy=NoRetryStrategy(),
@@ -429,7 +422,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         messages = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=1,
             retry_strategy=NoRetryStrategy(),
@@ -478,7 +470,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine, graceful_timeout=2)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=NoRetryStrategy(),
@@ -552,7 +543,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=NoRetryStrategy(),
@@ -591,7 +581,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=ConstantRetryStrategy(
@@ -631,7 +620,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=ConstantRetryStrategy(
@@ -676,7 +664,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         logger_ = None
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=NoRetryStrategy(),
@@ -730,7 +717,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=4,
             retry_strategy=NoRetryStrategy(),
@@ -782,7 +768,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=4,
             retry_strategy=NoRetryStrategy(),
@@ -822,7 +807,6 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         attempted = []
 
         @broker.subscriber(
-            engine=engine,
             queues=["default1"],
             max_workers=2,
             retry_strategy=ConstantRetryStrategy(
