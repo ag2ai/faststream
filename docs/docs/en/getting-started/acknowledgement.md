@@ -41,8 +41,8 @@ async def handler(msg: str, logger: Logger) -> None:
 | --- | --- | --- | --- |
 | `ACK_FIRST` | ACK upon receipt, prior to processing | ACK | ACK |
 | `ACK` | ACK after processing, regardless of exceptions | ACK | ACK |
-| `REJECT_ON_ERROR` | ACK on successfull processing, REJECT on exception (no redelivery) | ACK | REJECT |
-| `NACK_ON_ERROR` | ACK on successfull processing, NACK on exception (with redelivery) | ACK | NACK |
+| `REJECT_ON_ERROR` | ACK on successful processing, REJECT on exception (no redelivery) | ACK | REJECT |
+| `NACK_ON_ERROR` | ACK on successful processing, NACK on exception (with redelivery) | ACK | NACK |
 | `MANUAL` | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | |
 
 ### Broker Behaviors
@@ -102,4 +102,3 @@ async def handle_event(msg: str) -> None:
 ```
 
 You can also manage manual acknowledgement using middleware. For more information, [error handling middleware documentation](./middlewares/exception.md){.internal-link}.
-

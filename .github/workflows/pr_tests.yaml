@@ -463,20 +463,20 @@ jobs:
       - test-basic
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:latest # zizmor: ignore[unpinned-images]
         env:
           POSTGRES_DB: broker
           POSTGRES_USER: broker
-          POSTGRES_PASSWORD: brokerpass
+          POSTGRES_PASSWORD: brokerpass # pragma: allowlist secret
         ports:
           - 5432:5432
       mysql:
-        image: mysql:latest
+        image: mysql:latest # zizmor: ignore[unpinned-images]
         env:
           MYSQL_DATABASE: broker
           MYSQL_USER: broker
-          MYSQL_PASSWORD: brokerpass
-          MYSQL_ROOT_PASSWORD: brokerpass
+          MYSQL_PASSWORD: brokerpass # pragma: allowlist secret
+          MYSQL_ROOT_PASSWORD: brokerpass # pragma: allowlist secret
         ports:
           - 3306:3306
     steps:
