@@ -54,37 +54,40 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         include_in_schema: bool = True,
     ) -> "SqlaSubscriber":
         """Args:
+        queues:
+            List of queue names to consume from.
+        engine:
+            SQLAlchemy `AsyncEngine` to use for DB requests.
         max_workers:
             Number of workers to process messages concurrently.
         retry_strategy:
-            Called to determine if and when a message might be retried. If None,
-            AckPolicy.NACK_ON_ERROR has the same effect as
-            AckPolicy.REJECT_ON_ERROR.
+            Called to determine if and when a Nack'ed message is retried. If None,
+            `AckPolicy.NACK_ON_ERROR` has the same effect as
+            `AckPolicy.REJECT_ON_ERROR`.
         min_fetch_interval:
-            The minimum allowed interval between consecutive fetches. The
-            minimum interval is used if the last fetch returned the same number
-            of messages as the fetch's limit.
+            Minimum interval between consecutive fetches, used if the last fetch
+            was full (returned as many messages as the fetch's limit).
         max_fetch_interval:
-            The maximum allowed interval between consecutive fetches. The
-            maximum interval is used if the last fetch returned fewer messages
-            than the fetch's limit.
+            Maximum interval between consecutive fetches.
         fetch_batch_size:
-            The maximum allowed number of messages to fetch in a single batch.
-            A fetch's actual limit might be lower if the free capacity of the
+            Maximum number of messages to fetch in a single batch. A fetch's actual
+            limit might be lower if the free capacity of the
             acquired-but-not-yet-in-processing buffer is smaller.
         overfetch_factor:
-            The factor by which the fetch_batch_size is multiplied to determine
-            the capacity of the acquired-but-not-yet-in-processing buffer.
+            Multiplier for `fetch_batch_size` to size the internal buffer of
+            acquired-but-not-yet-processing messages.
         flush_interval:
-            The interval at which the state of messages for which the processing
-            attempt has been completed or aborted is flushed to the database.
+            Interval between flushes of processed message state to the database.
         release_stuck_interval:
-            The interval at which the PROCESSING-state messages are marked back
-            as PENDING if the release_stuck_timeout since acquired_at has passed.
+            Interval between checks for stuck `PROCESSING` messages.
+        release_stuck_timeout:
+            Interval since `acquired_at` after which a `PROCESSING` message is considered
+            stuck and is released back to `PENDING`.
         max_deliveries:
-            The maximum number of deliveries allowed for a message. If
-            set, messages that have reached this limit are Reject'ed without
-            processing.
+            Maximum number of deliveries allowed for a message. If set, messages that
+            have reached this limit are Reject'ed to `FAILED` without processing.
+        ack_policy:
+            Controls acknowledgement behavior.
         """
         subscriber = create_subscriber(
             engine=engine,
