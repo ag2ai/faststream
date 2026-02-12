@@ -101,6 +101,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
+        **kwargs,
     ) -> asyncio.Future[Message | None]: ...
 
     @overload
@@ -116,6 +117,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
+        **kwargs,
     ) -> Message | None: ...
 
     @overload
@@ -131,6 +133,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        **kwargs,
     ) -> asyncio.Future[Message | None] | Message | None: ...
 
     @override
@@ -146,6 +149,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        **kwargs,
     ) -> asyncio.Future[Message | None] | Message | None:
         cmd = KafkaPublishCommand(
             message,
@@ -163,6 +167,7 @@ class DefaultPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
+            **kwargs,
         )
         return msg
 
@@ -172,6 +177,7 @@ class DefaultPublisher(LogicPublisher):
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd)
@@ -187,6 +193,7 @@ class DefaultPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=_extra_middlewares,
+            **kwargs,
         )
 
     @override
@@ -235,6 +242,7 @@ class BatchPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        **kwargs,
     ) -> None:
         cmd = KafkaPublishCommand(
             *messages,
@@ -253,6 +261,7 @@ class BatchPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
+            **kwargs,
         )
 
     @override
@@ -261,6 +270,7 @@ class BatchPublisher(LogicPublisher):
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd, batch=True)
@@ -276,4 +286,5 @@ class BatchPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=_extra_middlewares,
+            **kwargs,
         )
