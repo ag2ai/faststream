@@ -195,6 +195,11 @@ To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
 """
 
+INSTALL_FASTSTREAM_SQLA = """
+To use SQLA with FastStream, please install dependencies:\n
+pip install "faststream[sqla-postgres]" or pip install "faststream[sqla-mysql]"
+"""
+
 INSTALL_UVICORN = """
 To run FastStream ASGI App via CLI, please install uvicorn:\n
 pip install uvicorn

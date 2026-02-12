@@ -81,5 +81,5 @@ def test_correct_config_with_dict() -> None:
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker
 
-    def get_broker_args(self, settings: Settings) -> dict[str, str]:
+    def _get_broker_args(self, settings: Settings) -> dict[str, str]:
         return {"bootstrap_servers": settings.url}

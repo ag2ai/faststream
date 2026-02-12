@@ -1,0 +1,149 @@
+import logging
+from collections.abc import Iterable, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+
+from fast_depends import Provider, dependency_provider
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
+from typing_extensions import override
+
+from faststream._internal.broker import BrokerUsecase
+from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
+from faststream._internal.di.config import FastDependsConfig
+from faststream.specification.schema.broker import BrokerSpec
+from faststream.sqla.broker.logging import make_sqla_logger_state
+from faststream.sqla.broker.registrator import SqlaRegistrator
+from faststream.sqla.configs.broker import SqlaBrokerConfig
+from faststream.sqla.message import SqlaInnerMessage
+from faststream.sqla.publisher.producer import SqlaProducer
+from faststream.sqla.response import SqlaPublishCommand
+
+if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+    from fast_depends.library.serializer import SerializerProto
+
+    from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.security import BaseSecurity
+    from faststream.specification.schema.extra.tag import Tag, TagDict
+
+
+class SqlaBroker(
+    SqlaRegistrator,
+    BrokerUsecase[
+        SqlaInnerMessage,
+        Any,
+    ],
+):
+    url: list[str]
+
+    def __init__(
+        self,
+        *,
+        engine: AsyncEngine,
+        validate_schema_on_start: bool = True,
+        # broker base args
+        graceful_timeout: float | None = 15.0,
+        decoder: Optional["CustomCallable"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
+        routers: Iterable[SqlaRegistrator] = (),
+        # AsyncAPI args
+        security: Optional["BaseSecurity"] = None,
+        specification_url: str | Iterable[str] | None = None,
+        protocol: str | None = None,
+        protocol_version: str | None = "auto",
+        description: str | None = None,
+        tags: Iterable[Union["Tag", "TagDict"]] = (),
+        # logging args
+        logger: Optional["LoggerProto"] = EMPTY,
+        log_level: int = logging.INFO,
+        # FastDepends args
+        apply_types: bool = True,
+        serializer: Optional["SerializerProto"] = EMPTY,
+        provider: Optional["Provider"] = None,
+        context: Optional["ContextRepo"] = None,
+    ) -> None:
+
+        super().__init__(
+            routers=routers,
+            engine=engine,
+            config=SqlaBrokerConfig(
+                producer=SqlaProducer(
+                    engine=engine,
+                    parser=parser,
+                    decoder=decoder,
+                ),
+                validate_schema_on_start=validate_schema_on_start,
+                # both args,
+                broker_decoder=decoder,
+                broker_parser=parser,
+                broker_middlewares=middlewares,
+                logger=make_sqla_logger_state(
+                    logger=logger,
+                    log_level=log_level,
+                ),
+                fd_config=FastDependsConfig(
+                    use_fastdepends=apply_types,
+                    serializer=serializer,
+                    provider=provider or dependency_provider,
+                    context=context or ContextRepo(),
+                ),
+                # subscriber args
+                graceful_timeout=graceful_timeout,
+                broker_dependencies=dependencies,
+                extra_context={
+                    "broker": self,
+                },
+            ),
+            specification=BrokerSpec(
+                description=description,
+                url=[specification_url]
+                if isinstance(specification_url, str)
+                else list(specification_url)
+                if specification_url
+                else [],
+                protocol=protocol,
+                protocol_version=protocol_version,
+                security=security,
+                tags=tags,
+            ),
+        )
+
+    async def start(self) -> None:
+        await self.connect()
+        await super().start()
+
+    @override
+    async def publish(
+        self,
+        message: "SendableMessage",
+        queue: str = "",
+        *,
+        headers: dict[str, str] | None = None,
+        next_attempt_at: datetime | None = None,
+        connection: AsyncConnection | None = None,
+    ) -> None:
+        """Args:
+        next_attempt_at: datetime with timezone.
+        """
+        cmd = SqlaPublishCommand(
+            message=message,
+            queue=queue,
+            headers=headers,
+            next_attempt_at=next_attempt_at,
+            connection=connection,
+        )
+
+        return await super()._basic_publish(cmd, producer=self.config.producer)  # type: ignore[no-any-return]
+
+    @override
+    async def _connect(self) -> Literal[True]:
+        await self.config.connect(**self._connection_kwargs)
+        return True
+
+    @override
+    async def _ping(self) -> bool:
+        return await self.config.broker_config.client.ping()
