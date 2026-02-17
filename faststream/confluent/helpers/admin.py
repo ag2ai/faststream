@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from confluent_kafka.admin import AdminClient, NewTopic
+from confluent_kafka.admin import (  # type: ignore[attr-defined]
+    AdminClient,
+    NewTopic,
+)
 
 if TYPE_CHECKING:
     from .config import ConfluentFastConfig

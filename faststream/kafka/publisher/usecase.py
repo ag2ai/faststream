@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.kafka.message import KafkaMessage
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType

@@ -12,6 +12,39 @@ hide:
 ---
 
 # Release Notes
+## 0.6.6
+
+### What's Changed
+
+* Add support for aiokafka 0.13 by [@dolfinus](https://github.com/dolfinus){.external-link target="_blank"} in [#2754](https://github.com/ag2ai/faststream/pull/2754){.external-link target="_blank"}
+* docs: replaced missing coverage commands with existing ones by @literally-user in [#2734](https://github.com/ag2ai/faststream/pull/2734){.external-link target="_blank"}
+* Feature: Add raw client bench by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2645](https://github.com/ag2ai/faststream/pull/2645){.external-link target="_blank"}
+* chore: revert fastapi v128 check by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2740](https://github.com/ag2ai/faststream/pull/2740){.external-link target="_blank"}
+* chore: ruff `F811` by [@chirizxc](https://github.com/chirizxc){.external-link target="_blank"} in [#2737](https://github.com/ag2ai/faststream/pull/2737){.external-link target="_blank"}
+* chore: add hash to actions by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2741](https://github.com/ag2ai/faststream/pull/2741){.external-link target="_blank"}
+* fix: xautoclaim compatibility with old version redis by [@ksayer](https://github.com/ksayer){.external-link target="_blank"} in [#2750](https://github.com/ag2ai/faststream/pull/2750){.external-link target="_blank"}
+
+### New Contributors
+* @literally-user made their first contribution in [#2734](https://github.com/ag2ai/faststream/pull/2734){.external-link target="_blank"}
+* [@ksayer](https://github.com/ksayer){.external-link target="_blank"} made their first contribution in [#2750](https://github.com/ag2ai/faststream/pull/2750){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.5...0.6.6](https://github.com/ag2ai/faststream/compare/0.6.5...0.6.6){.external-link target="_blank"}
+
+## 0.6.5
+
+### What's Changed
+
+* fix: FastAPI 0.128 compatibility
+* fix(docs): dependencies installation by [@theseriff](https://github.com/theseriff){.external-link target="_blank"} in [#2710](https://github.com/ag2ai/faststream/pull/2710){.external-link target="_blank"}
+* Add tests for XREADGROUP vs XAUTOCLAIM selection based on min_idle_time by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+* fix: polish middleware types in favor to Pycharm by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2715](https://github.com/ag2ai/faststream/pull/2715){.external-link target="_blank"}
+* suppress `ServiceUnavailableError` for nats by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2720](https://github.com/ag2ai/faststream/pull/2720){.external-link target="_blank"}
+
+### New Contributors
+* [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} made their first contribution in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.4...0.6.5](https://github.com/ag2ai/faststream/compare/0.6.4...0.6.5){.external-link target="_blank"}
+
 ## 0.6.4
 
 ### What's Changed
