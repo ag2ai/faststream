@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 from sqlalchemy import (
     BigInteger,
@@ -31,6 +33,115 @@ class TestSchemaValidation(SqlaTestcaseConfig):
 
         await broker.start()
         await broker.stop()
+
+    @pytest.mark.asyncio()
+    async def test_custom_table_names(self, engine: AsyncEngine) -> None:
+        custom_message_table = "custom_message"
+        custom_archive_table = "custom_message_archive"
+
+        async with engine.begin() as conn:
+            for table_name in (
+                custom_archive_table,
+                custom_message_table,
+                "message_archive",
+                "message",
+            ):
+                await conn.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
+
+        match engine.dialect.name:
+            case "postgresql":
+                timestamp_type = postgresql.TIMESTAMP(precision=3)
+                json_type = postgresql.JSONB
+            case "mysql":
+                timestamp_type = mysql.TIMESTAMP(fsp=3)
+                json_type = mysql.JSON
+            case _:
+                raise ValueError
+
+        metadata = MetaData()
+        Table(
+            custom_message_table,
+            metadata,
+            Column("id", BigInteger, primary_key=True),
+            Column("queue", String(255), nullable=False, index=True),
+            Column("headers", json_type, nullable=True),
+            Column("payload", LargeBinary, nullable=False),
+            Column(
+                "state",
+                Enum(SqlaMessageState),
+                nullable=False,
+                index=True,
+                server_default=SqlaMessageState.PENDING.name,
+            ),
+            Column("attempts_count", SmallInteger, nullable=False, default=0),
+            Column("deliveries_count", SmallInteger, nullable=False, default=0),
+            Column(
+                "created_at",
+                timestamp_type,
+                nullable=False,
+                default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+            ),
+            Column("first_attempt_at", timestamp_type),
+            Column(
+                "next_attempt_at",
+                timestamp_type,
+                nullable=False,
+                default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+                index=True,
+            ),
+            Column("last_attempt_at", timestamp_type),
+            Column("acquired_at", timestamp_type),
+        )
+        Table(
+            custom_archive_table,
+            metadata,
+            Column("id", BigInteger, primary_key=True),
+            Column("queue", String(255), nullable=False, index=True),
+            Column("headers", json_type, nullable=True),
+            Column("payload", LargeBinary, nullable=False),
+            Column("state", Enum(SqlaMessageState), nullable=False, index=True),
+            Column("attempts_count", SmallInteger, nullable=False),
+            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("created_at", timestamp_type, nullable=False),
+            Column("first_attempt_at", timestamp_type),
+            Column("last_attempt_at", timestamp_type),
+            Column(
+                "archived_at",
+                timestamp_type,
+                nullable=False,
+                default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+            ),
+        )
+
+        async with engine.begin() as conn:
+            await conn.run_sync(metadata.create_all)
+
+        broker = self.get_broker(
+            engine=engine,
+            validate_schema_on_start=True,
+            message_table_name=custom_message_table,
+            message_archive_table_name=custom_archive_table,
+        )
+
+        try:
+            await broker.connect()
+            await broker.start()
+            await broker.publish(message=b"payload", queue="custom-queue")
+            async with engine.connect() as conn:
+                result = await conn.execute(
+                    text(f"SELECT queue FROM {custom_message_table}")
+                )
+                assert result.scalar() == "custom-queue"
+        finally:
+            await broker.stop()
+            async with engine.begin() as conn:
+                for table_name in (
+                    custom_archive_table,
+                    custom_message_table,
+                    "message_archive",
+                    "message",
+                ):
+                    await conn.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
 
     @pytest.mark.asyncio()
     async def test_schema_validation_disabled(self, engine: AsyncEngine) -> None:

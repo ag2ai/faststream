@@ -44,6 +44,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """Message was processed and archived."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         attempted = []
 
@@ -95,6 +96,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """On exception message was marked as retryable with next attempts scheduled."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -148,6 +150,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """On exception message was marked as failed and was archived."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -203,6 +206,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         """
         logger = MagicMock()
         broker = self.get_broker(engine=engine, logger=logger, graceful_timeout=0.1)
+        await broker.connect()
 
         attempted = []
 
@@ -279,6 +283,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         attempted = []
 
@@ -334,6 +339,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """On exception message was marked as failed and was archived."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -381,6 +387,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """Messages from the specified queues were consumed."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         messages = []
 
@@ -418,6 +425,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         messages = []
 
@@ -468,6 +476,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         Acquired but not attempted messages were requeued.
         """
         broker = self.get_broker(engine=engine, graceful_timeout=2)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -541,6 +550,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """Manual Ack overrode automatic Reject."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -579,6 +589,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """Manual Nack overrode automatic Ack."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -618,6 +629,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         """Manual Reject overrode automatic Ack."""
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -656,6 +668,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         body_ = None
         message_ = None
@@ -713,6 +726,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         attempted = []
 
@@ -764,6 +778,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
         broker = self.get_broker(engine=engine)
+        await broker.connect()
 
         attempted = []
 
@@ -803,6 +818,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         messages were requeued on next startup.
         """
         broker = self.get_broker(engine=engine, graceful_timeout=0.1)
+        await broker.connect()
 
         attempted = []
 

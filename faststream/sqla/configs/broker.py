@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class SqlaBrokerConfig(BrokerConfig):
     producer: "SqlaProducer" = field(default_factory=ProducerUnset)  # type: ignore[assignment]
     validate_schema_on_start: bool = True
+    message_table_name: str = "message"
+    message_archive_table_name: str = "message_archive"
     client: SqlaBaseClient = field(init=False)
 
     async def connect(self, *, engine: AsyncEngine) -> None:
@@ -22,6 +24,10 @@ class SqlaBrokerConfig(BrokerConfig):
             connection=None,
             serializer=self.fd_config._serializer,
         )
-        self.client = create_sqla_client(engine)
+        self.client = create_sqla_client(
+            engine,
+            message_table_name=self.message_table_name,
+            message_archive_table_name=self.message_archive_table_name,
+        )
         if self.validate_schema_on_start:
             await self.client.validate_schema()

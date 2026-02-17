@@ -24,7 +24,7 @@ search:
 
 ## Database Tables
 
-The SQLA broker requires two tables — `message` (active messages) and `message_archive` (completed/failed messages). You can customize them to your liking (partition them, add indices, specify more specific data types, etc.) as long as they generally conform to the following schemas. Schema check is done on startup if `SqlaBroker`'s `validate_schema_on_start` is `True`.
+The SQLA broker requires two tables — `message` (active messages) and `message_archive` (completed/failed messages), with table names customizable via the broker's `message_table_name` and `message_archive_table_name` parameters. You can customize the tables to your liking (partition them, add indices, specify more specific data types like `JSONB`, etc.) as long as they generally conform to the following schemas. Schema check is done on startup if the brokers's `validate_schema_on_start` is `True`.
 
 ```python linenums="1"
 {!> docs_src/sqla/tables.py !}
@@ -44,7 +44,9 @@ broker = SqlaBroker(engine=engine)
 #### Broker parameters
 
 - **`engine`** — SQLAlchemy `AsyncEngine` to use for requests to the database.
-- **`validate_schema_on_start`** — If `True` (default), validates that the `message` and `message_archive` tables exist and conform to the expected schema.
+- **`message_table_name`** — Name of the table containing active messages. Defaults to `message`.
+- **`message_archive_table_name`** — Name of the table containing completed/failed messages. Defaults to `message_archive`.
+- **`validate_schema_on_start`** — If `True` (default), validates that the configured tables exist and conform to the expected schema.
 - **`graceful_timeout`** — Seconds to wait for in-flight messages to finish processing during shutdown.
 
 ## Publishing

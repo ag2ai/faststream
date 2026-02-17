@@ -42,6 +42,8 @@ class SqlaBroker(
         self,
         *,
         engine: AsyncEngine,
+        message_table_name: str = "message",
+        message_archive_table_name: str = "message_archive",
         validate_schema_on_start: bool = True,
         # broker base args
         graceful_timeout: float | None = 15.0,
@@ -66,38 +68,44 @@ class SqlaBroker(
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
+        config = SqlaBrokerConfig(
+            producer=None,  # type: ignore[arg-type]
+            validate_schema_on_start=validate_schema_on_start,
+            message_table_name=message_table_name,
+            message_archive_table_name=message_archive_table_name,
+            # both args,
+            broker_decoder=decoder,
+            broker_parser=parser,
+            broker_middlewares=middlewares,
+            logger=make_sqla_logger_state(
+                logger=logger,
+                log_level=log_level,
+            ),
+            fd_config=FastDependsConfig(
+                use_fastdepends=apply_types,
+                serializer=serializer,
+                provider=provider or dependency_provider,
+                context=context or ContextRepo(),
+            ),
+            # subscriber args
+            graceful_timeout=graceful_timeout,
+            broker_dependencies=dependencies,
+            extra_context={
+                "broker": self,
+            },
+        )
+        producer = SqlaProducer(
+            engine=engine,
+            parser=parser,
+            decoder=decoder,
+            config=config,
+        )
+        config.producer = producer
 
         super().__init__(
             routers=routers,
             engine=engine,
-            config=SqlaBrokerConfig(
-                producer=SqlaProducer(
-                    engine=engine,
-                    parser=parser,
-                    decoder=decoder,
-                ),
-                validate_schema_on_start=validate_schema_on_start,
-                # both args,
-                broker_decoder=decoder,
-                broker_parser=parser,
-                broker_middlewares=middlewares,
-                logger=make_sqla_logger_state(
-                    logger=logger,
-                    log_level=log_level,
-                ),
-                fd_config=FastDependsConfig(
-                    use_fastdepends=apply_types,
-                    serializer=serializer,
-                    provider=provider or dependency_provider,
-                    context=context or ContextRepo(),
-                ),
-                # subscriber args
-                graceful_timeout=graceful_timeout,
-                broker_dependencies=dependencies,
-                extra_context={
-                    "broker": self,
-                },
-            ),
+            config=config,
             specification=BrokerSpec(
                 description=description,
                 url=[specification_url]

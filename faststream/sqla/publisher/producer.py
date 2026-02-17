@@ -8,7 +8,6 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message.utils import encode_message
-from faststream.sqla.client import create_sqla_client
 from faststream.sqla.parser import SqlaParser
 from faststream.sqla.response import SqlaPublishCommand
 
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import AsyncCallable, CustomCallable
+    from faststream.sqla.configs.broker import SqlaBrokerConfig
 
 
 class SqlaProducerProto(ProducerProto[SqlaPublishCommand]):
@@ -49,8 +49,12 @@ class SqlaProducer(SqlaProducerProto):
         engine: AsyncEngine,  # todo
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        # message_table_name: str,
+        # message_archive_table_name: str,
+        # validate_schema_on_start: bool,
+        config: "SqlaBrokerConfig",
     ) -> None:
-        self.client = create_sqla_client(engine)
+        self.config = config
 
         self.serializer: SerializerProto | None = None
 
@@ -74,7 +78,7 @@ class SqlaProducer(SqlaProducerProto):
             **cmd.headers_to_publish(),
         }
 
-        return await self.client.enqueue(
+        return await self.config.client.enqueue(
             payload=payload,
             queue=cmd.destination,
             headers=headers_to_send,

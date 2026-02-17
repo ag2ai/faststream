@@ -48,6 +48,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
+        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -101,6 +102,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
+        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -153,6 +155,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
+        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -203,6 +206,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             await msg.ack()
             return 1 / 0
 
+        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -253,6 +257,7 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: SqlaMessageAnnotation) -> None:
             return
 
+        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 

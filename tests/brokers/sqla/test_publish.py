@@ -27,6 +27,8 @@ class TestPublishTransaction(SqlaTestcaseConfig):
         broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
 
+        await broker.connect()
+
         match mode:
             case "publish":
                 await broker.publish({"message": "hello1"}, queue="default1")
@@ -42,6 +44,8 @@ class TestPublishTransaction(SqlaTestcaseConfig):
     async def test_publish_in_transaction(self, engine: AsyncEngine, mode: str) -> None:
         broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
+
+        await broker.connect()
 
         async with engine.begin() as conn:
             match mode:
@@ -63,6 +67,8 @@ class TestPublishTransaction(SqlaTestcaseConfig):
     ) -> None:
         broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
+
+        await broker.connect()
 
         async with engine.begin() as conn:
             match mode:

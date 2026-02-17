@@ -7,6 +7,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Column,
+    ColumnElement,
     DateTime,
     Enum,
     LargeBinary,
@@ -33,86 +34,103 @@ if TYPE_CHECKING:
     from sqlalchemy import Connection
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
-metadata = MetaData()
+
+def _create_tables(
+    message_table_name: str,
+    message_archive_table_name: str,
+) -> tuple[Table, Table]:
+    metadata = MetaData()
+    message = Table(
+        message_table_name,
+        metadata,
+        Column("id", BigInteger, primary_key=True),
+        Column("queue", String(255), nullable=False, index=True),
+        Column("headers", JSON, nullable=True),
+        Column("payload", LargeBinary, nullable=False),
+        Column(
+            "state",
+            Enum(SqlaMessageState),
+            nullable=False,
+            index=True,
+            server_default=SqlaMessageState.PENDING.name,
+        ),
+        Column("attempts_count", SmallInteger, nullable=False, default=0),
+        Column("deliveries_count", SmallInteger, nullable=False, default=0),
+        Column(
+            "created_at",
+            DateTime,
+            nullable=False,
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        ),
+        Column("first_attempt_at", DateTime),
+        Column(
+            "next_attempt_at",
+            DateTime,
+            nullable=False,
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+            index=True,
+        ),
+        Column("last_attempt_at", DateTime),
+        Column("acquired_at", DateTime),
+    )
+
+    message_archive = Table(
+        message_archive_table_name,
+        metadata,
+        Column("id", BigInteger, primary_key=True),
+        Column("queue", String(255), nullable=False, index=True),
+        Column("headers", JSON, nullable=True),
+        Column("payload", LargeBinary, nullable=False),
+        Column("state", Enum(SqlaMessageState), nullable=False, index=True),
+        Column("attempts_count", SmallInteger, nullable=False),
+        Column("deliveries_count", SmallInteger, nullable=False),
+        Column("created_at", DateTime, nullable=False),
+        Column("first_attempt_at", DateTime),
+        Column("last_attempt_at", DateTime),
+        Column(
+            "archived_at",
+            DateTime,
+            nullable=False,
+            default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        ),
+    )
+
+    return message, message_archive
 
 
-message = Table(
-    "message",
-    metadata,
-    Column("id", BigInteger, primary_key=True),
-    Column("queue", String(255), nullable=False, index=True),
-    Column("headers", JSON, nullable=True),
-    Column("payload", LargeBinary, nullable=False),
-    Column(
-        "state",
-        Enum(SqlaMessageState),
-        nullable=False,
-        index=True,
-        server_default=SqlaMessageState.PENDING.name,
-    ),
-    Column("attempts_count", SmallInteger, nullable=False, default=0),
-    Column("deliveries_count", SmallInteger, nullable=False, default=0),
-    Column(
-        "created_at",
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-    ),
-    Column("first_attempt_at", DateTime),
-    Column(
-        "next_attempt_at",
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-        index=True,
-    ),
-    Column("last_attempt_at", DateTime),
-    Column("acquired_at", DateTime),
-)
-
-
-message_archive = Table(
-    "message_archive",
-    metadata,
-    Column("id", BigInteger, primary_key=True),
-    Column("queue", String(255), nullable=False, index=True),
-    Column("headers", JSON, nullable=True),
-    Column("payload", LargeBinary, nullable=False),
-    Column("state", Enum(SqlaMessageState), nullable=False, index=True),
-    Column("attempts_count", SmallInteger, nullable=False),
-    Column("deliveries_count", SmallInteger, nullable=False),
-    Column("created_at", DateTime, nullable=False),
-    Column("first_attempt_at", DateTime),
-    Column("last_attempt_at", DateTime),
-    Column(
-        "archived_at",
-        DateTime,
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-    ),
-)
-
-
-_MESSAGE_SELECT_COLUMNS = (
-    message.c.id.label("id"),
-    message.c.queue.label("queue"),
-    message.c.headers.label("headers"),
-    message.c.payload.label("payload"),
-    message.c.state.label("state"),
-    message.c.attempts_count.label("attempts_count"),
-    message.c.deliveries_count.label("deliveries_count"),
-    message.c.created_at.label("created_at"),
-    message.c.first_attempt_at.label("first_attempt_at"),
-    message.c.next_attempt_at.label("next_attempt_at"),
-    message.c.last_attempt_at.label("last_attempt_at"),
-    message.c.acquired_at.label("acquired_at"),
-)
+def _message_select_columns(message: Table) -> tuple[ColumnElement[Any], ...]:
+    return (
+        message.c.id.label("id"),
+        message.c.queue.label("queue"),
+        message.c.headers.label("headers"),
+        message.c.payload.label("payload"),
+        message.c.state.label("state"),
+        message.c.attempts_count.label("attempts_count"),
+        message.c.deliveries_count.label("deliveries_count"),
+        message.c.created_at.label("created_at"),
+        message.c.first_attempt_at.label("first_attempt_at"),
+        message.c.next_attempt_at.label("next_attempt_at"),
+        message.c.last_attempt_at.label("last_attempt_at"),
+        message.c.acquired_at.label("acquired_at"),
+    )
 
 
 class SqlaBaseClient:
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        *,
+        message_table: Table,
+        message_archive_table: Table,
+    ) -> None:
         self._engine = engine
-        self._schema_validator = SchemaValidator()
+        self._message_table = message_table
+        self._message_archive_table = message_archive_table
+        self._message_select_columns = _message_select_columns(message_table)
+        self._schema_validator = SchemaValidator(
+            message_table=message_table,
+            message_archive_table=message_archive_table,
+        )
 
     async def enqueue(
         self,
@@ -125,7 +143,7 @@ class SqlaBaseClient:
     ) -> None:
         if next_attempt_at:
             stmt = (
-                insert(message)
+                insert(self._message_table)
                 .values(
                     queue=queue,
                     payload=payload,
@@ -135,7 +153,7 @@ class SqlaBaseClient:
             )  # fmt: skip
         else:
             stmt = (
-                insert(message)
+                insert(self._message_table)
                 .values(
                     queue=queue,
                     payload=payload,
@@ -157,29 +175,29 @@ class SqlaBaseClient:
     ) -> list[SqlaInnerMessage]:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         ready = (
-            select(*_MESSAGE_SELECT_COLUMNS)
+            select(*self._message_select_columns)
             .where(
                 or_(
-                    message.c.state == SqlaMessageState.PENDING,
-                    message.c.state == SqlaMessageState.RETRYABLE,
+                    self._message_table.c.state == SqlaMessageState.PENDING,
+                    self._message_table.c.state == SqlaMessageState.RETRYABLE,
                 ),
-                message.c.next_attempt_at <= now,
-                or_(*(message.c.queue == queue for queue in queues)),
+                self._message_table.c.next_attempt_at <= now,
+                or_(*(self._message_table.c.queue == queue for queue in queues)),
             )
-            .order_by(message.c.next_attempt_at)
+            .order_by(self._message_table.c.next_attempt_at)
             .limit(limit)
             .with_for_update(skip_locked=True)
             .cte("ready")
         )
         updated = (
-            update(message)
-            .where(message.c.id.in_(select(ready.c.id)))
+            update(self._message_table)
+            .where(self._message_table.c.id.in_(select(ready.c.id)))
             .values(
                 state=SqlaMessageState.PROCESSING,
-                deliveries_count=message.c.deliveries_count + 1,
+                deliveries_count=self._message_table.c.deliveries_count + 1,
                 acquired_at=now,
             )
-            .returning(message)
+            .returning(self._message_table)
             .cte("updated")
         )
         stmt = select(updated).order_by(updated.c.next_attempt_at)
@@ -203,8 +221,8 @@ class SqlaBaseClient:
             for message in messages
         ]
         stmt = (
-            update(message)
-            .where(message.c.id == bindparam("message_id"))
+            update(self._message_table)
+            .where(self._message_table.c.id == bindparam("message_id"))
             .values(
                 state=bindparam("state"),
                 attempts_count=bindparam("attempts_count"),
@@ -237,12 +255,12 @@ class SqlaBaseClient:
                 }
                 for msg in messages
             ]
-            stmt = message_archive.insert().values(values)
+            stmt = self._message_archive_table.insert().values(values)
             await conn.execute(stmt)
             delete_stmt = (
-                delete(message)
+                delete(self._message_table)
                 .where(
-                    message.c.id.in_([item.id for item in messages])
+                    self._message_table.c.id.in_([item.id for item in messages])
                 )
             )  # fmt: skip
             await conn.execute(delete_stmt)
@@ -250,15 +268,15 @@ class SqlaBaseClient:
     async def release_stuck(self, timeout: float) -> None:
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         select_stuck = (
-            select(message.c.id)
+            select(self._message_table.c.id)
             .where(
-                message.c.state == SqlaMessageState.PROCESSING,
-                message.c.acquired_at < now - timedelta(seconds=timeout),
+                self._message_table.c.state == SqlaMessageState.PROCESSING,
+                self._message_table.c.acquired_at < now - timedelta(seconds=timeout),
             )
         )  # fmt: skip
         stmt = (
-            update(message)
-            .where(message.c.id.in_(select_stuck))
+            update(self._message_table)
+            .where(self._message_table.c.id.in_(select_stuck))
             .values(
                 state=SqlaMessageState.PENDING,
                 next_attempt_at=now,
@@ -298,16 +316,16 @@ class SqlaMySqlClient(SqlaPostgresClient):
 
         async with self._engine.begin() as conn:
             ready_stmt = (
-                select(message.c.id.label("id"))
+                select(self._message_table.c.id.label("id"))
                 .where(
                     or_(
-                        message.c.state == SqlaMessageState.PENDING,
-                        message.c.state == SqlaMessageState.RETRYABLE,
+                        self._message_table.c.state == SqlaMessageState.PENDING,
+                        self._message_table.c.state == SqlaMessageState.RETRYABLE,
                     ),
-                    message.c.next_attempt_at <= now,
-                    or_(*(message.c.queue == queue for queue in queues)),
+                    self._message_table.c.next_attempt_at <= now,
+                    or_(*(self._message_table.c.queue == queue for queue in queues)),
                 )
-                .order_by(message.c.next_attempt_at)
+                .order_by(self._message_table.c.next_attempt_at)
                 .limit(limit)
                 .with_for_update(skip_locked=True)
             )
@@ -318,19 +336,19 @@ class SqlaMySqlClient(SqlaPostgresClient):
                 return []
 
             update_stmt = (
-                update(message)
-                .where(message.c.id.in_(ready_ids))
+                update(self._message_table)
+                .where(self._message_table.c.id.in_(ready_ids))
                 .values(
                     state=SqlaMessageState.PROCESSING,
-                    deliveries_count=message.c.deliveries_count + 1,
+                    deliveries_count=self._message_table.c.deliveries_count + 1,
                     acquired_at=now,
                 )
             )
             await conn.execute(update_stmt)
 
             fetch_stmt = (
-                select(*_MESSAGE_SELECT_COLUMNS)
-                .where(message.c.id.in_(ready_ids))
+                select(*self._message_select_columns)
+                .where(self._message_table.c.id.in_(ready_ids))
             )  # fmt: skip
             fetched_result = await conn.execute(fetch_stmt)
             rows = fetched_result.mappings().all()
@@ -343,16 +361,16 @@ class SqlaMySqlClient(SqlaPostgresClient):
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         select_stuck = (
-            select(message.c.id)
+            select(self._message_table.c.id)
             .where(
-                message.c.state == SqlaMessageState.PROCESSING,
-                message.c.acquired_at < now - timedelta(seconds=timeout),
+                self._message_table.c.state == SqlaMessageState.PROCESSING,
+                self._message_table.c.acquired_at < now - timedelta(seconds=timeout),
             )
             .subquery()
         )
         stmt = (
-            update(message)
-            .where(message.c.id.in_(select(select_stuck.c.id)))
+            update(self._message_table)
+            .where(self._message_table.c.id.in_(select(select_stuck.c.id)))
             .values(
                 state=SqlaMessageState.PENDING,
                 next_attempt_at=now,
@@ -364,11 +382,19 @@ class SqlaMySqlClient(SqlaPostgresClient):
 
 
 class SchemaValidator:
+    def __init__(
+        self,
+        *,
+        message_table: Table,
+        message_archive_table: Table,
+    ) -> None:
+        self._tables = (message_table, message_archive_table)
+
     def __call__(self, connection: Connection) -> list[str]:
         insp = inspect(connection)
         errors: list[str] = []
 
-        for table_def in (message, message_archive):
+        for table_def in self._tables:
             table_name = table_def.name
             if not insp.has_table(table_name):
                 errors.append(f"Table '{table_name}' does not exist")
@@ -435,11 +461,26 @@ class SchemaValidator:
         return type(expected) is type(actual)
 
 
-def create_sqla_client(engine: AsyncEngine) -> SqlaPostgresClient:
+def create_sqla_client(
+    engine: AsyncEngine,
+    *,
+    message_table_name: str,
+    message_archive_table_name: str,
+) -> SqlaBaseClient:
+    message_table, message_archive_table = _create_tables(
+        message_table_name=message_table_name,
+        message_archive_table_name=message_archive_table_name,
+    )
+    client_cls: type[SqlaBaseClient]
     match engine.dialect.name.lower():
         case "mysql":
-            return SqlaMySqlClient(engine)
+            client_cls = SqlaMySqlClient
         case "postgresql":
-            return SqlaPostgresClient(engine)
+            client_cls = SqlaPostgresClient
         case _:
             raise FeatureNotSupportedException
+    return client_cls(
+        engine,
+        message_table=message_table,
+        message_archive_table=message_archive_table,
+    )
