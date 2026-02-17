@@ -147,3 +147,17 @@ No retries — the message is marked as [`FAILED`](../sqla/design.md#message-lif
 ```python linenums="1"
 {!> docs_src/sqla/retry.py [ln:47]!}
 ```
+
+## Transactional outbox
+
+Implementing the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html){.external-link target="_blank"} becomes as simple as the following.
+
+Publish messages transactionally with your other database operations.
+```python linenums="1"
+{!> docs_src/sqla/transactional_outbox.py [ln:1-23]!}
+```
+
+And relay the messages from the database to another broker.
+```python linenums="1"
+{!> docs_src/sqla/transactional_outbox.py [ln:26-51]!}
+```
