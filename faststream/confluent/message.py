@@ -76,9 +76,13 @@ class KafkaMessage(
                 if isinstance(self.raw_message, tuple)
                 else self.raw_message
             )
-            await self.consumer.seek(
-                topic=raw_message.topic(),
-                partition=raw_message.partition(),
-                offset=raw_message.offset(),
-            )
+            topic = raw_message.topic()
+            partition = raw_message.partition()
+            offset = raw_message.offset()
+            if topic is not None and partition is not None and offset is not None:
+                await self.consumer.seek(
+                    topic=topic,
+                    partition=partition,
+                    offset=offset,
+                )
         await super().nack()

@@ -1,24 +1,31 @@
+import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+import pytest
+
 from faststream.nats import NatsBroker
 
 
-class NatsTestCase:
-    comment = "Consume from JetStream"
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestNatsCase:
+    comment = "Consume Any Message"
     broker_type = "NATS"
 
-    def __init__(self) -> None:
-        self.EVENTS_PROCESSED = 0
-
+    def setup_method(self) -> None:
         broker = self.broker = NatsBroker(logger=None, graceful_timeout=10)
+        self.EVENTS_PROCESSED = 0
 
         p = self.publisher = broker.publisher("in")
 
         @p
-        @broker.subscriber("in", stream="streamname")
+        @broker.subscriber("in")
         async def handle(message: Any) -> Any:
             self.EVENTS_PROCESSED += 1
             return message
@@ -39,3 +46,8 @@ class NatsTestCase:
             })
 
             yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start():
+            await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED > 1

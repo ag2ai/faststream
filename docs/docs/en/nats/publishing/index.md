@@ -48,3 +48,4 @@ The `publish` method accepts the following arguments:
 
 * `#!python stream: str | None = None` - validate that the subject is in the stream.
 * `#!python timeout: float | None = None` - wait for the NATS server response.
+* `#!python schedule: Optional[Schedule] = None` - Schedule to publish message at a specific time.

@@ -137,7 +137,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                         count=1,
                     )
                     stream_name = self.stream_sub.name.encode()
-                    (next_id, messages, _) = stream_message
+                    (next_id, messages, *_) = stream_message
 
                     # Update start_id for next call
                     self.autoclaim_start_id = next_id
@@ -192,7 +192,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     start_id=self.autoclaim_start_id,
                     count=1,
                 )
-                (next_id, messages, _) = stream_message
+                (next_id, messages, *_) = stream_message
                 # Update start_id for next call
                 self.autoclaim_start_id = next_id
                 if not messages:
@@ -266,7 +266,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                         start_id=self.autoclaim_start_id,
                         count=1,
                     )
-                    (next_id, messages, _) = stream_message
+                    (next_id, messages, *_) = stream_message
                     # Update start_id for next call
                     self.autoclaim_start_id = next_id
                     if not messages:
