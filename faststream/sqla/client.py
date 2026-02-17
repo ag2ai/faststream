@@ -35,11 +35,12 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 
-def _create_tables(
+def _define_tables(
     message_table_name: str,
     message_archive_table_name: str,
 ) -> tuple[Table, Table]:
     metadata = MetaData()
+
     message = Table(
         message_table_name,
         metadata,
@@ -98,7 +99,7 @@ def _create_tables(
     return message, message_archive
 
 
-def _message_select_columns(message: Table) -> tuple[ColumnElement[Any], ...]:
+def _get_message_select_columns(message: Table) -> tuple[ColumnElement[Any], ...]:
     return (
         message.c.id.label("id"),
         message.c.queue.label("queue"),
@@ -126,7 +127,7 @@ class SqlaBaseClient:
         self._engine = engine
         self._message_table = message_table
         self._message_archive_table = message_archive_table
-        self._message_select_columns = _message_select_columns(message_table)
+        self._message_select_columns = _get_message_select_columns(message_table)
         self._schema_validator = SchemaValidator(
             message_table=message_table,
             message_archive_table=message_archive_table,
@@ -467,7 +468,7 @@ def create_sqla_client(
     message_table_name: str,
     message_archive_table_name: str,
 ) -> SqlaBaseClient:
-    message_table, message_archive_table = _create_tables(
+    message_table, message_archive_table = _define_tables(
         message_table_name=message_table_name,
         message_archive_table_name=message_archive_table_name,
     )
