@@ -9,12 +9,13 @@ engine = create_async_engine("postgresql+asyncpg://user:pass@localhost/mydb")
 broker = SqlaBroker(engine=engine)
 app = FastStream(broker)
 
+publisher = broker.publisher()
 
 @app.after_startup
 async def publish_examples():
-    await broker.publish("Hello, SQLA!", queue="my_queue")
+    await publisher.publish("Hello, SQLA!", queue="my_queue")
 
-    await broker.publish(
+    await publisher.publish(
         "Process me later",
         queue="my_queue",
         next_attempt_at=datetime.now(timezone.utc) + timedelta(minutes=5),
@@ -22,7 +23,7 @@ async def publish_examples():
 
     async with engine.begin() as connection:
         # ... your other database operations using `connection` ...
-        await broker.publish(
+        await publisher.publish(
             "Transactional message",
             queue="my_queue",
             connection=connection,

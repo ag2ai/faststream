@@ -50,7 +50,7 @@ This design adheres to the **"at least once"** processing guarantee because flus
 
 ### Work Sharing
 
-This design allows for work sharing between processes and nodes because `SELECT ... FOR UPDATE SKIP LOCKED` is utilized. Multiple subscriber instances (in different processes or on different machines) can safely consume from the same queue without double-processing.
+Multiple subscriber instances (in different processes or on different machines) can safely consume from the same queue without double-processing because `SELECT ... FOR UPDATE SKIP LOCKED` is utilized
 
 ### Transactions
 
@@ -63,3 +63,283 @@ Setting `max_deliveries` to a non-`None` value provides protection from the [poi
 ### Why Not LISTEN/NOTIFY?
 
 `LISTEN/NOTIFY` is specific to PostgreSQL, while it is preferable to start with functionality universal to any supported database. When using multiple nodes/processes, distributing messages among them would still require `SELECT ... FOR UPDATE SKIP LOCKED`, because the notification will be delivered to all nodes/processes. A notification may also fail to arrive, especially if a node restarts. That is, polling is needed in any case. Once polling is in place, `LISTEN/NOTIFY` can be integrated to "wake up" the polling loop earlier than as per the interval-based schedule.
+
+### SQL Statements
+
+#### Acquire Messages
+
+=== "PostgreSQL"
+    ```sql linenums="1"
+    WITH
+      ready AS (
+        SELECT
+          message.id AS id,
+          message.queue AS queue,
+          message.headers AS headers,
+          message.payload AS payload,
+          message.state AS state,
+          message.attempts_count AS attempts_count,
+          message.deliveries_count AS deliveries_count,
+          message.created_at AS created_at,
+          message.first_attempt_at AS first_attempt_at,
+          message.next_attempt_at AS next_attempt_at,
+          message.last_attempt_at AS last_attempt_at,
+          message.acquired_at AS acquired_at
+        FROM
+          message
+        WHERE
+          (
+            message.state = $4::sqlamessagestate
+            OR message.state = $5::sqlamessagestate
+          )
+          AND message.next_attempt_at <= $6::TIMESTAMP WITHOUT TIME ZONE
+          AND (
+            message.queue = $7::VARCHAR
+            OR message.queue = $8::VARCHAR
+          )
+        ORDER BY
+          message.next_attempt_at
+        LIMIT
+          $9::INTEGER
+        FOR UPDATE
+          SKIP LOCKED
+      ),
+      updated AS (
+        UPDATE message
+        SET
+          state = $1::sqlamessagestate,
+          deliveries_count = (message.deliveries_count + $2::SMALLINT),
+          acquired_at = $3::TIMESTAMP WITHOUT TIME ZONE
+        WHERE
+          message.id IN (
+            SELECT
+              ready.id
+            FROM
+              ready
+          )
+        RETURNING
+          message.id,
+          message.queue,
+          message.headers,
+          message.payload,
+          message.state,
+          message.attempts_count,
+          message.deliveries_count,
+          message.created_at,
+          message.first_attempt_at,
+          message.next_attempt_at,
+          message.last_attempt_at,
+          message.acquired_at
+      )
+    SELECT
+      updated.id,
+      updated.queue,
+      updated.headers,
+      updated.payload,
+      updated.state,
+      updated.attempts_count,
+      updated.deliveries_count,
+      updated.created_at,
+      updated.first_attempt_at,
+      updated.next_attempt_at,
+      updated.last_attempt_at,
+      updated.acquired_at
+    FROM
+      updated
+    ORDER BY
+      updated.next_attempt_at
+    ```
+
+=== "MySQL"
+    ```sql linenums="1"
+    BEGIN;
+
+    SELECT
+      message.id AS id
+    FROM
+      message
+    WHERE
+      (
+        message.state = % s
+        OR message.state = % s
+      )
+      AND message.next_attempt_at <= % s
+      AND (
+        message.queue = % s
+        OR message.queue = % s
+      )
+    ORDER BY
+      message.next_attempt_at
+    LIMIT
+      % s FOR
+    UPDATE SKIP LOCKED;
+
+    UPDATE message
+    SET
+      state = % s,
+      deliveries_count = (message.deliveries_count + % s),
+      acquired_at = % s
+    WHERE
+      message.id IN (% s);
+
+    COMMIT;
+    ```
+
+#### Archive Messages
+
+=== "PostgreSQL"
+    ```sql linenums="1"
+    BEGIN;
+
+    INSERT INTO
+      message_archive (
+        id,
+        queue,
+        headers,
+        payload,
+        state,
+        attempts_count,
+        deliveries_count,
+        created_at,
+        first_attempt_at,
+        last_attempt_at,
+        archived_at
+      )
+    VALUES
+      (
+        $1::BIGINT,
+        $2::VARCHAR,
+        $3::JSON,
+        $4::BYTEA,
+        $5::sqlamessagestate,
+        $6::SMALLINT,
+        $7::SMALLINT,
+        $8::TIMESTAMP WITHOUT TIME ZONE,
+        $9::TIMESTAMP WITHOUT TIME ZONE,
+        $10::TIMESTAMP WITHOUT TIME ZONE,
+        $11::TIMESTAMP WITHOUT TIME ZONE
+      );
+
+    DELETE FROM message
+    WHERE
+      message.id IN ($1::BIGINT);
+
+    COMMIT;
+    ```
+
+=== "MySQL"
+    ```sql linenums="1"
+    BEGIN;
+
+    INSERT INTO
+      message_archive (
+        id,
+        queue,
+        headers,
+        payload,
+        state,
+        attempts_count,
+        deliveries_count,
+        created_at,
+        first_attempt_at,
+        last_attempt_at,
+        archived_at
+      )
+    VALUES
+      (
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s,
+        % s
+      );
+
+    DELETE FROM message
+    WHERE
+      message.id IN (% s);
+    ```
+
+#### Requeue Messages
+
+=== "PostgreSQL"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = $1::sqlamessagestate,
+      attempts_count = $2::SMALLINT,
+      deliveries_count = $3::SMALLINT,
+      first_attempt_at = $4::TIMESTAMP WITHOUT TIME ZONE,
+      next_attempt_at = $5::TIMESTAMP WITHOUT TIME ZONE,
+      last_attempt_at = $6::TIMESTAMP WITHOUT TIME ZONE,
+      acquired_at = $7::TIMESTAMP WITHOUT TIME ZONE
+    WHERE
+      message.id = $8::BIGINT
+    ```
+
+=== "MySQL"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = % s,
+      attempts_count = % s,
+      deliveries_count = % s,
+      first_attempt_at = % s,
+      next_attempt_at = % s,
+      last_attempt_at = % s,
+      acquired_at = % s
+    WHERE
+      message.id = % s
+    ```
+
+Note that for bulk updates the arguments are sent in a batch in a single network call using `execute_many()`.
+
+#### Requeue Stuck Messages
+
+=== "PostgreSQL"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = $1::sqlamessagestate,
+      next_attempt_at = $2::TIMESTAMP WITHOUT TIME ZONE,
+      acquired_at = $3::TIMESTAMP WITHOUT TIME ZONE
+    WHERE
+      message.id IN (
+        SELECT
+          message.id
+        FROM
+          message
+        WHERE
+          message.state = $4::sqlamessagestate
+          AND message.acquired_at < $5::TIMESTAMP WITHOUT TIME ZONE
+      )
+    ```
+
+=== "MySQL"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = % s,
+      next_attempt_at = % s,
+      acquired_at = % s
+    WHERE
+      message.id IN (
+        SELECT
+          anon_1.id
+        FROM
+          (
+            SELECT
+              message.id AS id
+            FROM
+              message
+            WHERE
+              message.state = % s
+              AND message.acquired_at < % s
+          ) AS anon_1
+      )
+    ```

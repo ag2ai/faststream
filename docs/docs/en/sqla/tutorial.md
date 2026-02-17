@@ -50,29 +50,29 @@ broker = SqlaBroker(engine=engine)
 ## Publishing
 
 ```python linenums="1"
-{!> docs_src/sqla/publish.py [ln:1-15]!}
+{!> docs_src/sqla/publish.py [ln:1-16]!}
 ```
 
-The `broker.publish()` method accepts:
+The broker's and publisher's (see [publishing](../getting-started/publishing/index.md){.internal-link}) `.publish()` methods accept:
 
-- **`message`** — The message body. Any serializable type.
+- **`message`** — The message body.
 - **`queue`** — The target queue name.
 - **`headers`** — Optional `dict[str, str]` of message headers.
 - **`next_attempt_at`** — Optional `datetime` (with timezone) for delayed delivery.
-- **`connection`** — Optional `AsyncConnection` for transactional publishing.
+- **`connection`** — Optional SQLAlchemy `AsyncConnection` for transactional publishing.
 
 ### Delayed delivery
 
 The message won't be fetched until `next_attempt_at` if it is provided.
 ```python linenums="1"
-{!> docs_src/sqla/publish.py [ln:17-21]!}
+{!> docs_src/sqla/publish.py [ln:18-22]!}
 ```
 
 ### Transactional publishing
 
 When `connection` is provided, the message insert participates in the same database transaction as your other operations, enabling the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html){.external-link target="_blank"}.
 ```python linenums="1"
-{!> docs_src/sqla/publish.py [ln:23-29]!}
+{!> docs_src/sqla/publish.py [ln:24-30]!}
 ```
 
 ## Subscribing
@@ -91,14 +91,14 @@ When `connection` is provided, the message insert participates in the same datab
 - **`fetch_batch_size`** — Maximum number of messages to fetch in a single batch. A fetch's actual limit might be lower if the free capacity of the acquired-but-not-yet-in-processing buffer is smaller.
 - **`overfetch_factor`** — Multiplier for `fetch_batch_size` to size the internal buffer of acquired-but-not-yet-processing messages.
 - **`flush_interval`** — Interval between flushes of processed message state to the database.
-- **`release_stuck_interval`** — Interval between checks for stuck `PROCESSING` messages.
-- **`release_stuck_timeout`** — Interval since `acquired_at` after which a `PROCESSING` message is considered stuck and is released back to `PENDING`.
-- **`max_deliveries`** — Maximum number of deliveries allowed for a message. If set, messages that have reached this limit are Reject'ed to `FAILED` without processing. Note that this might violate the [at-least-once](../sqla/design.md#poison-message-protection){.internal-link} processing semantics.
-- **`ack_policy`** — Controls acknowledgement behavior. See [AckPolicy](../getting-started/acknowledgement.md){.internal-link}.
+- **`release_stuck_interval`** — Interval between checks for stuck [`PROCESSING`](../sqla/design.md#message-lifecycle){.internal-link} messages.
+- **`release_stuck_timeout`** — Interval since `acquired_at` after which a [`PROCESSING`](../sqla/design.md#message-lifecycle){.internal-link} message is considered stuck and is released back to [`PENDING`](../sqla/design.md#message-lifecycle){.internal-link}.
+- **`max_deliveries`** — Maximum number of deliveries allowed for a message. If set, messages that have reached this limit are Reject'ed to [`FAILED`](../sqla/design.md#message-lifecycle){.internal-link} without processing. Note that this might violate the [at-least-once](../sqla/design.md#poison-message-protection){.internal-link} processing semantics.
+- **`ack_policy`** — [AckPolicy](../getting-started/acknowledgement.md){.internal-link} that controls acknowledgement behavior.
 
 ### Delayed retries
 
-When a message is Nack'ed (either manually or by `AckPolicy.NACK_ON_ERROR`), the `retry_strategy` determines if and when the message should be retried. All strategies accept `max_attempts` and `max_total_delay_seconds` as common parameters — if either limit is reached, the message is marked as `FAILED` instead of `RETRYABLE`. Otherwise, the strategy schedules the message for a retry determined by the returned `next_attempt_at`.
+When a message is Nack'ed (either manually or by `AckPolicy.NACK_ON_ERROR`), the `retry_strategy` determines if and when the message should be retried. All strategies accept `max_attempts` and `max_total_delay_seconds` as common parameters — if either limit is reached, the message is marked as [`FAILED`](../sqla/design.md#message-lifecycle){.internal-link} instead of [`RETRYABLE`](../sqla/design.md#message-lifecycle){.internal-link}. Otherwise, the strategy schedules the message for a retry determined by the returned `next_attempt_at`.
 
 #### `ConstantRetryStrategy`
 
@@ -142,7 +142,7 @@ Retries after `base_delay_seconds` plus random jitter in the range `[-jitter_sec
 
 #### `NoRetryStrategy`
 
-No retries — the message is marked as `FAILED` on the first Nack.
+No retries — the message is marked as [`FAILED`](../sqla/design.md#message-lifecycle){.internal-link} on the first Nack.
 
 ```python linenums="1"
 {!> docs_src/sqla/retry.py [ln:47]!}
