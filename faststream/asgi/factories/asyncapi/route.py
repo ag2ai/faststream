@@ -60,7 +60,9 @@ class AsyncAPIRoute(AsyncAPIRouteFactory):
         self.try_it_out = try_it_out
 
     @classmethod
-    def ensure_route(cls, path: Union[str, "AsyncAPIRoute"], *, try_it_out: bool = True) -> "AsyncAPIRoute":
+    def ensure_route(
+        cls, path: Union[str, "AsyncAPIRoute"], *, try_it_out: bool = True
+    ) -> "AsyncAPIRoute":
         if isinstance(path, AsyncAPIRoute):
             return path
         return AsyncAPIRoute(path, try_it_out=try_it_out)

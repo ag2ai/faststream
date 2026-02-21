@@ -12,9 +12,9 @@ from starlette.websockets import WebSocketDisconnect
 from faststream._internal.context import Context
 from faststream.annotations import FastStream, Logger
 from faststream.asgi import (
-    AsyncAPIRoute,
     AsgiFastStream,
     AsgiResponse,
+    AsyncAPIRoute,
     Request,
     get,
     make_asyncapi_asgi,
@@ -24,7 +24,6 @@ from faststream.asgi import (
 from faststream.asgi.params import Header, Query
 from faststream.asgi.types import ASGIApp, Scope
 from faststream.specification import AsyncAPI
-from faststream.specification.asyncapi.site import get_asyncapi_html
 
 
 class AsgiTestcase:
@@ -342,7 +341,11 @@ class AsgiTestcase:
                 assert client.get("/custom/docs").status_code == 200
                 response = client.post(
                     "/custom/docs/try",
-                    json={"channelName": channel, "message": {}, "options": {"sendToRealBroker": False}},
+                    json={
+                        "channelName": channel,
+                        "message": {},
+                        "options": {"sendToRealBroker": False},
+                    },
                 )
                 assert response.status_code == 200
                 assert response.json()["status"] == "ok"
