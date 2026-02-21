@@ -148,7 +148,53 @@ app = AsgiFastStream(
 )
 ```
 
-Now, your **AsyncAPI HTML** representation can be found by the `/docs` url.
+Now, your **AsyncAPI HTML** representation can be found by the `/docs/asyncapi` url.
+
+#### Try It Out
+
+The AsyncAPI documentation page includes a built-in **Try It Out** feature that lets you publish test messages directly from the browser UI, without leaving the docs page.
+
+By default, when you set `asyncapi_path`, a companion `POST` endpoint is automatically registered at `{asyncapi_path}/try`. The UI sends the message payload to this endpoint, which publishes it to your broker in test mode (without requiring a real broker connection).
+
+```python linenums="1" hl_lines="7"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream
+
+broker = NatsBroker()
+
+# POST /docs/asyncapi/try is registered automatically
+app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi")
+```
+
+To disable the feature, pass `try_it_out=False` to `AsgiFastStream`:
+
+```python linenums="1" hl_lines="6"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream
+
+broker = NatsBroker()
+
+app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi", try_it_out=False)
+```
+
+If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass it through `AsyncAPI`:
+
+```python linenums="1" hl_lines="3 8"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream
+from faststream.specification import AsyncAPI
+
+broker = NatsBroker()
+
+app = AsgiFastStream(
+    broker,
+    specification=AsyncAPI(try_it_out_endpoint_base="https://api.example.com/asyncapi/try"),
+    asyncapi_path="/docs/asyncapi",
+)
+```
+
+!!! note
+    When `try_it_out_endpoint_base` is set on `AsyncAPI`, it overrides the auto-derived endpoint URL in the HTML — but the local `POST /try` endpoint is still registered unless you pass `try_it_out=False` to `AsgiFastStream`.
 
 ### FastStream Object Reuse
 

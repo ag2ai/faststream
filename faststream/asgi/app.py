@@ -17,7 +17,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
-from .factories import AsyncAPIRoute
+from .factories import AsyncAPIRoute, make_try_it_out_handler
 from .handlers import HttpHandler
 from .response import AsgiResponse
 from .websocket import WebSocketClose
@@ -104,6 +104,7 @@ class AsgiFastStream(Application):
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
         asyncapi_path: str | AsyncAPIRoute | None = None,
+        try_it_out: bool = True,
     ) -> None:
         self.routes = list(asgi_routes)
 
@@ -124,10 +125,15 @@ class AsgiFastStream(Application):
         )
 
         if asyncapi_path:
-            asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path)
+            asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path, try_it_out=try_it_out)
             handler = asyncapi_route(self.schema)
             handler.set_logger(logger)  # type: ignore[attr-defined]
             self.routes.append((asyncapi_route.path, handler))
+
+            if asyncapi_route.try_it_out and self.broker is not None:
+                try_path = asyncapi_route.path.rstrip("/") + "/try"
+                try_handler = make_try_it_out_handler(self.broker)
+                self.routes.append((try_path, try_handler))
 
         self._server = OuterRunState()
 

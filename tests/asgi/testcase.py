@@ -12,6 +12,7 @@ from starlette.websockets import WebSocketDisconnect
 from faststream._internal.context import Context
 from faststream.annotations import FastStream, Logger
 from faststream.asgi import (
+    AsyncAPIRoute,
     AsgiFastStream,
     AsgiResponse,
     Request,
@@ -23,6 +24,7 @@ from faststream.asgi import (
 from faststream.asgi.params import Header, Query
 from faststream.asgi.types import ASGIApp, Scope
 from faststream.specification import AsyncAPI
+from faststream.specification.asyncapi.site import get_asyncapi_html
 
 
 class AsgiTestcase:
@@ -31,6 +33,10 @@ class AsgiTestcase:
 
     def get_test_broker(self, broker: Any) -> Any:
         raise NotImplementedError
+
+    def get_try_it_out_channel_name(self) -> str:
+        """Channel/topic/queue/subject name for try-it-out tests. Override per broker if needed."""
+        return "test_channel"
 
     @pytest.mark.asyncio()
     async def test_not_found(self) -> None:
@@ -230,3 +236,133 @@ class AsgiTestcase:
             response = client.get("/")
             assert response.status_code == 200
             assert response.text.strip().startswith("<!DOCTYPE html>")
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_endpoint_registered(self) -> None:
+        """AsgiFastStream with try_it_out=True registers POST /path/try endpoint."""
+        broker = self.get_broker()
+        channel = self.get_try_it_out_channel_name()
+
+        @broker.subscriber(channel)
+        async def handler(msg: dict[str, Any]) -> None:
+            pass
+
+        route = AsyncAPIRoute("/docs")
+        app = AsgiFastStream(broker, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                assert client.get("/docs").status_code == 200
+                # Endpoint exists: returns 400 (validation), not 404
+                response = client.post("/docs/try", json={})
+                assert response.status_code == 400
+                assert response.status_code != 404
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_endpoint_post_success(self) -> None:
+        """POST to try-it-out with valid payload returns 200 and mode=test."""
+        broker = self.get_broker()
+        channel = self.get_try_it_out_channel_name()
+
+        @broker.subscriber(channel)
+        async def handler(msg: dict[str, Any]) -> None:
+            pass
+
+        route = AsyncAPIRoute("/asyncapi", try_it_out=True)
+        app = AsgiFastStream(broker, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": channel,
+                        "message": {"data": "hello"},
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+                assert response.status_code == 200
+                assert response.json() == {"status": "ok", "mode": "test"}
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_message_delivered_to_subscriber(self) -> None:
+        """POST with sendToRealBroker=False routes message through TestBroker to subscriber."""
+        broker = self.get_broker()
+        channel = self.get_try_it_out_channel_name()
+        received: list[Any] = []
+
+        @broker.subscriber(channel)
+        async def handler(msg: Any) -> None:
+            received.append(msg)
+
+        route = AsyncAPIRoute("/asyncapi", try_it_out=True)
+        app = AsgiFastStream(broker, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": channel,
+                        "message": {"text": "hello"},
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+        assert response.status_code == 200
+        assert len(received) == 1
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_missing_channel_returns_400(self) -> None:
+        """POST without channelName returns 400 with descriptive error."""
+        broker = self.get_broker()
+        route = AsyncAPIRoute("/docs", try_it_out=True)
+        app = AsgiFastStream(broker, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.post("/docs/try", json={"message": {}})
+                assert response.status_code == 400
+                assert "channelname" in response.json().get("error", "").lower()
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_path_follows_asyncapi_path(self) -> None:
+        """Try-it-out endpoint is registered at {asyncapi_path}/try."""
+        broker = self.get_broker()
+        channel = self.get_try_it_out_channel_name()
+
+        @broker.subscriber(channel)
+        async def handler(msg: dict[str, Any]) -> None:
+            pass
+
+        route = AsyncAPIRoute("/custom/docs", try_it_out=True)
+        app = AsgiFastStream(broker, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                assert client.get("/custom/docs").status_code == 200
+                response = client.post(
+                    "/custom/docs/try",
+                    json={"channelName": channel, "message": {}, "options": {"sendToRealBroker": False}},
+                )
+                assert response.status_code == 200
+                assert response.json()["status"] == "ok"
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_spec_endpoint_base_overrides_route_default(self) -> None:
+        """AsyncAPI spec's try_it_out_endpoint_base overrides the route's derived default."""
+        broker = self.get_broker()
+        channel = self.get_try_it_out_channel_name()
+
+        @broker.subscriber(channel)
+        async def handler(msg: dict[str, Any]) -> None:
+            pass
+
+        spec = AsyncAPI(broker, try_it_out_endpoint_base="https://api.example.com/try")
+        route = AsyncAPIRoute("/docs", try_it_out=True)
+        app = AsgiFastStream(broker, specification=spec, asyncapi_path=route)
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/docs")
+                assert response.status_code == 200
+                assert "https://api.example.com/try" in response.text
