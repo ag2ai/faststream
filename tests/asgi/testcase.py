@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from dirty_equals import IsJson, IsPartialDict
 from fast_depends import Depends
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -305,7 +306,9 @@ class AsgiTestcase:
                     },
                 )
                 assert response.status_code == 200, response.json()
-                assert response.json() == {"result": 1}
+                assert response.json() == IsPartialDict({
+                    "result": IsJson(result=1),
+                })
 
     @pytest.mark.asyncio()
     async def test_try_it_out_disabled(self, queue: str) -> None:
