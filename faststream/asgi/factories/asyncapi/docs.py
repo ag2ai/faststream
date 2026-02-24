@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
-from faststream.asgi.handlers import get
+from faststream.asgi.handlers import GetHandler, get
 from faststream.asgi.response import AsgiResponse
-from faststream.asgi.types import ASGIApp, Scope
+from faststream.asgi.types import Scope
 from faststream.specification.asyncapi.site import (
     ASYNCAPI_CSS_DEFAULT_URL,
     ASYNCAPI_JS_DEFAULT_URL,
@@ -33,8 +33,8 @@ def make_asyncapi_asgi(
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
     try_it_out: bool = True,
-    try_it_out_endpoint_base: str = "asyncapi/try",
-) -> ASGIApp:
+    try_it_out_url: str = "asyncapi/try",
+) -> "GetHandler":
     """Create AsyncAPI documentation ASGI handler."""
     cached_docs: str | None = None
 
@@ -60,7 +60,7 @@ def make_asyncapi_asgi(
                 asyncapi_js_url=asyncapi_js_url,
                 asyncapi_css_url=asyncapi_css_url,
                 try_it_out=try_it_out,
-                try_it_out_endpoint_base=try_it_out_endpoint_base,
+                try_it_out_url=try_it_out_url,
             )
         return AsgiResponse(
             cached_docs.encode("utf-8"),

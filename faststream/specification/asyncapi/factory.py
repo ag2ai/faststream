@@ -25,7 +25,6 @@ class AsyncAPI(SpecificationFactory):
         external_docs: Union["ExternalDocs", "dict[str, Any]"] | None = None,
         identifier: str | None = None,
         schema_version: Literal["3.0.0", "2.6.0"] | str = "3.0.0",
-        try_it_out_endpoint_base: str | None = None,
     ) -> None:
         self.title = title
         self.version = version
@@ -37,7 +36,6 @@ class AsyncAPI(SpecificationFactory):
         self.external_docs = external_docs
         self.identifier = identifier
         self.schema_version = schema_version
-        self.try_it_out_endpoint_base = try_it_out_endpoint_base
 
         self.brokers: list[BrokerUsecase[Any, Any]] = []
         if broker:

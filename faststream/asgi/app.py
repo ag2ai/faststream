@@ -104,7 +104,6 @@ class AsgiFastStream(Application):
         after_shutdown: Sequence["AnyCallable"] = (),
         specification: Optional["SpecificationFactory"] = None,
         asyncapi_path: str | AsyncAPIRoute | None = None,
-        try_it_out: bool = True,
     ) -> None:
         self.routes = list(asgi_routes)
 
@@ -125,17 +124,24 @@ class AsgiFastStream(Application):
         )
 
         if asyncapi_path:
-            asyncapi_route = AsyncAPIRoute.ensure_route(
-                asyncapi_path, try_it_out=try_it_out
-            )
+            asyncapi_route = AsyncAPIRoute.ensure_route(asyncapi_path)
             handler = asyncapi_route(self.schema)
-            handler.set_logger(logger)  # type: ignore[attr-defined]
+            handler.set_logger(logger)
             self.routes.append((asyncapi_route.path, handler))
 
             if asyncapi_route.try_it_out and self.broker is not None:
-                try_path = asyncapi_route.path.rstrip("/") + "/try"
-                try_handler = make_try_it_out_handler(self.broker)
-                self.routes.append((try_path, try_handler))
+                try_it_out_route = make_try_it_out_handler(
+                    self.broker,
+                    include_in_schema=asyncapi_route.include_in_schema,
+                )
+
+                try_it_out_route.update_fd_config(self.config)
+                try_it_out_route.set_logger(logger)
+
+                self.routes.append((
+                    asyncapi_route.try_it_out_url,
+                    try_it_out_route,
+                ))
 
         self._server = OuterRunState()
 

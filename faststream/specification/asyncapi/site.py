@@ -45,7 +45,7 @@ def get_asyncapi_html(
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
     try_it_out: bool = True,
-    try_it_out_endpoint_base: str = "asyncapi/try",
+    try_it_out_url: str = "asyncapi/try",
     try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
     react_url: str = REACT_JS_URL,
     react_dom_url: str = REACT_DOM_JS_URL,
@@ -72,7 +72,6 @@ def get_asyncapi_html(
 
     if try_it_out:
         # Use React-based @asyncapi/react-component with try-it-out plugin
-        schema_obj = schema.to_jsonable()
         plugins_js = f"""
         <script src="{react_url}"></script>
         <script src="{react_dom_url}"></script>
@@ -80,17 +79,17 @@ def get_asyncapi_html(
         <script src="{try_it_out_plugin_url}"></script>
         <script>
             (function() {{
-                var schema = {json_dumps(schema_obj).decode()};
-                var config = {json_dumps(config).decode()};
-                var plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
-                    endpointBase: {json_dumps(try_it_out_endpoint_base).decode()},
+                const schema = {schema.to_json()};
+                const config = {json_dumps(config).decode()};
+                const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
+                    endpointBase: {try_it_out_url.lstrip("/")!r},
                     showPayloadSchema: true,
                     showEndpointInput: false,
                     showRealBrokerToggle: true
                 }});
-                var AsyncApiModule = window.AsyncApiComponent;
-                var AsyncApi = AsyncApiModule.default || AsyncApiModule;
-                var root = window.ReactDOM.createRoot(document.getElementById('asyncapi'));
+                const AsyncApiModule = window.AsyncApiComponent;
+                const AsyncApi = AsyncApiModule.default || AsyncApiModule;
+                const root = window.ReactDOM.createRoot(document.getElementById('asyncapi'));
                 root.render(window.React.createElement(AsyncApi, {{
                     schema: schema,
                     config: config,

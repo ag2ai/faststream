@@ -2,19 +2,18 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream.asgi.factories.asyncapi.docs import make_asyncapi_asgi
-from faststream.asgi.factories.base import AsyncAPIRouteFactory
 from faststream.specification.asyncapi.site import (
     ASYNCAPI_CSS_DEFAULT_URL,
     ASYNCAPI_JS_DEFAULT_URL,
 )
 
 if TYPE_CHECKING:
-    from faststream.asgi.types import ASGIApp
+    from faststream.asgi.handlers import GetHandler
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema import Tag, TagDict
 
 
-class AsyncAPIRoute(AsyncAPIRouteFactory):
+class AsyncAPIRoute:
     """Configuration for AsyncAPI documentation route with try-it-out support."""
 
     def __init__(
@@ -36,11 +35,9 @@ class AsyncAPIRoute(AsyncAPIRouteFactory):
         asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
         asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
         try_it_out: bool = True,
-        try_it_out_endpoint_base: str | None = None,
+        try_it_out_url: str | None = None,
     ) -> None:
         self.path = path
-        base = (path.strip("/") + "/try") if path.strip("/") else "asyncapi/try"
-        self.try_it_out_endpoint_base = try_it_out_endpoint_base or base
 
         self.description = description
         self.tags = tags
@@ -57,19 +54,19 @@ class AsyncAPIRoute(AsyncAPIRouteFactory):
         self.expand_message_examples = expand_message_examples
         self.asyncapi_js_url = asyncapi_js_url
         self.asyncapi_css_url = asyncapi_css_url
+
         self.try_it_out = try_it_out
+        if not try_it_out_url:
+            try_it_out_url = path.rstrip("/") + "/try"
+        self.try_it_out_url = try_it_out_url
 
     @classmethod
-    def ensure_route(
-        cls, path: Union[str, "AsyncAPIRoute"], *, try_it_out: bool = True
-    ) -> "AsyncAPIRoute":
+    def ensure_route(cls, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
         if isinstance(path, AsyncAPIRoute):
             return path
-        return AsyncAPIRoute(path, try_it_out=try_it_out)
+        return AsyncAPIRoute(path)
 
-    def __call__(self, schema: "SpecificationFactory") -> "ASGIApp":
-        schema_endpoint = getattr(schema, "try_it_out_endpoint_base", None)
-        endpoint_base = schema_endpoint or self.try_it_out_endpoint_base
+    def __call__(self, schema: "SpecificationFactory") -> "GetHandler":
         return make_asyncapi_asgi(
             schema,
             description=self.description,
@@ -87,5 +84,5 @@ class AsyncAPIRoute(AsyncAPIRouteFactory):
             asyncapi_js_url=self.asyncapi_js_url,
             asyncapi_css_url=self.asyncapi_css_url,
             try_it_out=self.try_it_out,
-            try_it_out_endpoint_base=endpoint_base,
+            try_it_out_url=self.try_it_out_url,
         )

@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
-from faststream.asgi.handlers import get
+from faststream.asgi.handlers import GetHandler, get
 from faststream.asgi.response import AsgiResponse
-from faststream.asgi.types import ASGIApp, Scope
+from faststream.asgi.types import Scope
 
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
@@ -18,7 +18,7 @@ def make_ping_asgi(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> ASGIApp:
+) -> "GetHandler":
     """Create healthcheck ASGI handler for the given broker."""
     healthy_response = AsgiResponse(b"", 204)
     unhealthy_response = AsgiResponse(b"", 500)
