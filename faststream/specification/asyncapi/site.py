@@ -10,11 +10,16 @@ if TYPE_CHECKING:
     from faststream.specification import Specification
 
 ASYNCAPI_JS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"
+    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"
 )
 
 ASYNCAPI_CSS_DEFAULT_URL = (
     "https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
+)
+
+# React bundle used for ASGI try-it-out mode.
+ASYNCAPI_REACT_JS_DEFAULT_URL = (
+    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"
 )
 
 ASYNCAPI_TRY_IT_PLUGIN_URL = (
@@ -23,13 +28,6 @@ ASYNCAPI_TRY_IT_PLUGIN_URL = (
 
 REACT_JS_URL = "https://unpkg.com/react@18/umd/react.production.min.js"
 REACT_DOM_JS_URL = "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
-
-# Standalone bundle used for CLI serve (no React, no try-it-out plugin).
-# Intentionally pinned separately from ASYNCAPI_JS_DEFAULT_URL — they are
-# different bundles with different APIs.
-_ASYNCAPI_STANDALONE_JS_URL = (
-    "https://unpkg.com/@asyncapi/react-component@2.6.4/browser/standalone/index.js"
-)
 
 
 def get_asyncapi_html(
@@ -42,8 +40,8 @@ def get_asyncapi_html(
     schemas: bool = True,
     errors: bool = True,
     expand_message_examples: bool = True,
-    asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
-    asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    asyncapi_js_url: str | None = None,
+    asyncapi_css_url: str | None = None,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
     try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
@@ -51,6 +49,15 @@ def get_asyncapi_html(
     react_dom_url: str = REACT_DOM_JS_URL,
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
+    # React mode is only used when try_it_out=True *and* asyncapi_js_url is not
+    # explicitly overridden.  An explicit URL means the caller controls the
+    # bundle (e.g. a standalone URL for backward-compatibility), so we fall back
+    # to standalone rendering to avoid mismatching the bundle with the wrong API.
+    use_react_mode = try_it_out and asyncapi_js_url is None
+    if asyncapi_js_url is None:
+        asyncapi_js_url = ASYNCAPI_REACT_JS_DEFAULT_URL if try_it_out else ASYNCAPI_JS_DEFAULT_URL
+    if asyncapi_css_url is None:
+        asyncapi_css_url = ASYNCAPI_CSS_DEFAULT_URL
     config = {
         "show": {
             "sidebar": sidebar,
@@ -70,7 +77,7 @@ def get_asyncapi_html(
         },
     }
 
-    if try_it_out:
+    if use_react_mode:
         # Use React-based @asyncapi/react-component with try-it-out plugin
         plugins_js = f"""
         <script src="{react_url}"></script>
@@ -102,7 +109,7 @@ def get_asyncapi_html(
         # Used by CLI serve which has no broker.
         standalone_config = {"schema": schema.to_json(), "config": config}
         plugins_js = f"""
-        <script src="{_ASYNCAPI_STANDALONE_JS_URL}"></script>
+        <script src="{asyncapi_js_url}"></script>
         <script>
             AsyncApiStandalone.render({json_dumps(standalone_config).decode()}, document.getElementById('asyncapi'));
         </script>"""
