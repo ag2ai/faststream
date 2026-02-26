@@ -60,10 +60,10 @@ def get_asyncapi_html(
             if asyncapi_js_react_url is not None
             else ASYNCAPI_REACT_JS_DEFAULT_URL
         )
-    else:
-        # Standalone mode: uses asyncapi_js_url (default: standalone bundle)
-        if asyncapi_js_url is None:
-            asyncapi_js_url = ASYNCAPI_JS_DEFAULT_URL
+    # Standalone mode: uses asyncapi_js_url (default: standalone bundle)
+    elif asyncapi_js_url is None:
+        asyncapi_js_url = ASYNCAPI_JS_DEFAULT_URL
+
     config = {
         "show": {
             "sidebar": sidebar,
