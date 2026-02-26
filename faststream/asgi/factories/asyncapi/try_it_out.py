@@ -52,16 +52,16 @@ class TryItOutProcessor:
         options = body.get("options", {})
         use_real_broker = options.get("sendToRealBroker", False)
 
-        result = ""
         try:
             if use_real_broker:
                 await self._broker.publish(payload, destination)
+                return JSONResponse("ok", 200)
 
             else:
                 async with self._test_broker as br:
                     data = await br.request(payload, destination)
                     with suppress(Exception):
-                        result = data.body.decode()
+                        return JSONResponse(await data.decode(), 200)
 
         except SubscriberNotFound:
             return JSONResponse({"details": f"{destination} destination not found."}, 404)
@@ -69,11 +69,6 @@ class TryItOutProcessor:
         except Exception as e:
             return JSONResponse({"details": str(e)}, 500)
 
-        mode = "real" if use_real_broker else "test"
-        answer = {"status": "ok", "mode": mode}
-        if result:
-            answer["result"] = result
-        return JSONResponse(answer, 200)
 
 
 def make_try_it_out_handler(
