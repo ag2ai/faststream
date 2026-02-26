@@ -41,6 +41,7 @@ def get_asyncapi_html(
     errors: bool = True,
     expand_message_examples: bool = True,
     asyncapi_js_url: str | None = None,
+    asyncapi_js_react_url: str | None = None,
     asyncapi_css_url: str | None = None,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
@@ -49,17 +50,20 @@ def get_asyncapi_html(
     react_dom_url: str = REACT_DOM_JS_URL,
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
-    # React mode is only used when try_it_out=True *and* asyncapi_js_url is not
-    # explicitly overridden.  An explicit URL means the caller controls the
-    # bundle (e.g. a standalone URL for backward-compatibility), so we fall back
-    # to standalone rendering to avoid mismatching the bundle with the wrong API.
-    use_react_mode = try_it_out and asyncapi_js_url is None
-    if asyncapi_js_url is None:
-        asyncapi_js_url = (
-            ASYNCAPI_REACT_JS_DEFAULT_URL if try_it_out else ASYNCAPI_JS_DEFAULT_URL
-        )
     if asyncapi_css_url is None:
         asyncapi_css_url = ASYNCAPI_CSS_DEFAULT_URL
+
+    if try_it_out:
+        # React mode: uses asyncapi_js_react_url (default: React bundle)
+        asyncapi_js_url = (
+            asyncapi_js_react_url
+            if asyncapi_js_react_url is not None
+            else ASYNCAPI_REACT_JS_DEFAULT_URL
+        )
+    else:
+        # Standalone mode: uses asyncapi_js_url (default: standalone bundle)
+        if asyncapi_js_url is None:
+            asyncapi_js_url = ASYNCAPI_JS_DEFAULT_URL
     config = {
         "show": {
             "sidebar": sidebar,
@@ -79,7 +83,7 @@ def get_asyncapi_html(
         },
     }
 
-    if use_react_mode:
+    if try_it_out:
         # Use React-based @asyncapi/react-component with try-it-out plugin
         plugins_js = f"""
         <script src="{react_url}"></script>
