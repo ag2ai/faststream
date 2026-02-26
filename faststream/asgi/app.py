@@ -246,7 +246,7 @@ class AsgiFastStream(Application):
 
             except ExceptionGroup as e:
                 for ex in e.exceptions:
-                    raise ex from None
+                    raise ex from ex.__cause__
 
     async def __start(
         self,
