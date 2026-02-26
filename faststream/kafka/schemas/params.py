@@ -62,6 +62,7 @@ class ConsumerConnectionParams(TypedDict, total=False):
         bootstrap_servers : Required. The bootstrap servers to connect to.
         loop : Optional. The event loop to use for asynchronous operations.
         client_id : The client ID to use for the connection.
+        group_instance_id : Name of the group instance ID used for static membership (KIP-345).
         request_timeout_ms : The timeout for network requests in milliseconds.
         retry_backoff_ms : The backoff time in milliseconds for retrying failed requests.
         metadata_max_age_ms : The maximum age of metadata in milliseconds.
@@ -78,6 +79,7 @@ class ConsumerConnectionParams(TypedDict, total=False):
     """
 
     bootstrap_servers: str | list[str]
+    group_instance_id: str | None
     loop: AbstractEventLoop | None
     client_id: str
     request_timeout_ms: int
