@@ -19,9 +19,27 @@ class TryItOutOptions(TypedDict, total=False):
     timestamp: str
 
 
+class TryItOutMessage(TypedDict, total=False):
+    """Wrapper sent by asyncapi-try-it-plugin.
+
+    The plugin always wraps the user's payload inside a nested ``message``
+    field together with operation metadata::
+
+        {
+            "operation_id": "...",
+            "operation_type": "...",
+            "message": <actual_user_payload>
+        }
+    """
+
+    operation_id: str
+    operation_type: str
+    message: Any
+
+
 class TryItOutForm(TypedDict):
     channelName: str
-    message: dict[str, Any]
+    message: TryItOutMessage
     options: TryItOutOptions
 
 
@@ -48,7 +66,10 @@ class TryItOutProcessor:
         if not destination:
             return JSONResponse({"details": "Missing channelName"}, 400)
 
-        payload = body.get("message", {})
+        # The plugin wraps the user payload in a nested structure:
+        # body["message"] = {"operation_id": ..., "operation_type": ..., "message": <payload>}
+        message_wrapper = body.get("message", {})
+        payload: Any = message_wrapper.get("message", {})
         options = body.get("options", {})
         use_real_broker = options.get("sendToRealBroker", False)
 

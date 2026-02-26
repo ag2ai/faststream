@@ -250,7 +250,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"data": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -278,12 +282,46 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"text": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
 
         mock.assert_called_once_with({"text": "hello"})
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_string_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Plugin wraps primitive payloads in message.message — ensure they arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": "hello",
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with("hello")
 
     @pytest.mark.asyncio()
     async def test_try_it_out_memory_subsricber_returns_result(self, queue: str) -> None:
@@ -301,7 +339,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"data": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -325,7 +367,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"text": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -355,7 +401,11 @@ class AsgiTestcase:
                     "/docs/try",
                     json={
                         "channelName": queue,
-                        "message": {"text": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -378,7 +428,11 @@ class AsgiTestcase:
                     "/custom/docs/try",
                     json={
                         "channelName": queue,
-                        "message": {},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )

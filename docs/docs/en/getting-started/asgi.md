@@ -166,35 +166,33 @@ broker = NatsBroker()
 app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi")
 ```
 
-To disable the feature, pass `try_it_out=False` to `AsgiFastStream`:
+To disable the feature, use `AsyncAPIRoute` with `try_it_out=False`:
 
-```python linenums="1" hl_lines="6"
+```python linenums="1" hl_lines="2 6"
 from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
 
 broker = NatsBroker()
 
-app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi", try_it_out=False)
+app = AsgiFastStream(broker, asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out=False))
 ```
 
-If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass it through `AsyncAPI`:
+If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_url` via `AsyncAPIRoute`:
 
-```python linenums="1" hl_lines="3 8"
+```python linenums="1" hl_lines="2 7"
 from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream
-from faststream.specification import AsyncAPI
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
 
 broker = NatsBroker()
 
 app = AsgiFastStream(
     broker,
-    specification=AsyncAPI(try_it_out_endpoint_base="https://api.example.com/asyncapi/try"),
-    asyncapi_path="/docs/asyncapi",
+    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out_url="https://api.example.com/asyncapi/try"),
 )
 ```
 
 !!! note
-    When `try_it_out_endpoint_base` is set on `AsyncAPI`, it overrides the auto-derived endpoint URL in the HTML — but the local `POST /try` endpoint is still registered unless you pass `try_it_out=False` to `AsgiFastStream`.
+    When `try_it_out_url` is set on `AsyncAPIRoute`, it overrides the URL the browser sends requests to. The local `POST {asyncapi_path}/try` endpoint is still registered and reachable regardless of `try_it_out_url`, unless you also pass `try_it_out=False`.
 
 ### FastStream Object Reuse
 
@@ -204,7 +202,7 @@ You may also use regular `FastStream` application object for similar result.
 from faststream import FastStream
 from faststream.nats import NatsBroker
 from faststream.specification import AsyncAPI
-from faststream.asgi import make_ping_asgi, AsgiResponse
+from faststream.asgi import make_ping_asgi, AsgiResponse, get
 
 broker = NatsBroker()
 
@@ -257,5 +255,5 @@ async def start_broker(app):
 app = FastAPI(lifespan=start_broker)
 
 app.mount("/health", make_ping_asgi(broker, timeout=5.0))
-app.mount("/asyncapi", make_asyncapi_asgi(asyncapi))
+app.mount("/asyncapi", make_asyncapi_asgi(asyncapi, try_it_out=False))
 ```

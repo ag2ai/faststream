@@ -2,10 +2,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream.asgi.factories.asyncapi.docs import make_asyncapi_asgi
-from faststream.specification.asyncapi.site import (
-    ASYNCAPI_CSS_DEFAULT_URL,
-    ASYNCAPI_JS_DEFAULT_URL,
-)
 
 if TYPE_CHECKING:
     from faststream.asgi.handlers import GetHandler
@@ -32,8 +28,8 @@ class AsyncAPIRoute:
         schemas: bool = True,
         errors: bool = True,
         expand_message_examples: bool = True,
-        asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
-        asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+        asyncapi_js_url: str | None = None,
+        asyncapi_css_url: str | None = None,
         try_it_out: bool = True,
         try_it_out_url: str | None = None,
     ) -> None:
