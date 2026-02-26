@@ -250,7 +250,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {"data": "hello"}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -278,7 +282,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {"text": "hello"}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -304,7 +312,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": "hello"},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": "hello",
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -327,7 +339,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {"data": "hello"}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -351,7 +367,11 @@ class AsgiTestcase:
                     "/asyncapi/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {"text": "hello"}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -381,7 +401,11 @@ class AsgiTestcase:
                     "/docs/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {"text": "hello"}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"text": "hello"},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )
@@ -404,7 +428,11 @@ class AsgiTestcase:
                     "/custom/docs/try",
                     json={
                         "channelName": queue,
-                        "message": {"operation_id": "op", "operation_type": "subscribe", "message": {}},
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {},
+                        },
                         "options": {"sendToRealBroker": False},
                     },
                 )

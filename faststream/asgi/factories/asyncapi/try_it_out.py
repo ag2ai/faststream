@@ -69,7 +69,7 @@ class TryItOutProcessor:
         # The plugin wraps the user payload in a nested structure:
         # body["message"] = {"operation_id": ..., "operation_type": ..., "message": <payload>}
         message_wrapper = body.get("message", {})
-        payload = message_wrapper.get("message", {})
+        payload: Any = message_wrapper.get("message", {})
         options = body.get("options", {})
         use_real_broker = options.get("sendToRealBroker", False)
 

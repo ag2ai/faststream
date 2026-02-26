@@ -55,7 +55,9 @@ def get_asyncapi_html(
     # to standalone rendering to avoid mismatching the bundle with the wrong API.
     use_react_mode = try_it_out and asyncapi_js_url is None
     if asyncapi_js_url is None:
-        asyncapi_js_url = ASYNCAPI_REACT_JS_DEFAULT_URL if try_it_out else ASYNCAPI_JS_DEFAULT_URL
+        asyncapi_js_url = (
+            ASYNCAPI_REACT_JS_DEFAULT_URL if try_it_out else ASYNCAPI_JS_DEFAULT_URL
+        )
     if asyncapi_css_url is None:
         asyncapi_css_url = ASYNCAPI_CSS_DEFAULT_URL
     config = {
