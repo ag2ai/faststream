@@ -197,6 +197,11 @@ class KafkaRoute(SubscriberRoute):
                 partition assignment (if enabled), and to use for fetching and
                 committing offsets. If `None`, auto-partition assignment (via
                 group coordinator) and offset commits are disabled.
+            group_instance_id:
+                Name of the group instance ID used for static
+                membership (KIP-345). If set, the consumer is treated as a
+                static member, which means it does not join/leave the group
+                on each restart, avoiding unnecessary rebalances.
             key_deserializer:
                     Any callable that takes a raw message `bytes`
                     key and returns a deserialized one.
