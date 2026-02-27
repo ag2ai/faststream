@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING, Any, Union
 from faststream.asgi.handlers import GetHandler, get
 from faststream.asgi.response import AsgiResponse
 from faststream.asgi.types import Scope
-from faststream.specification.asyncapi.site import get_asyncapi_html
+from faststream.specification.asyncapi.site import (
+    get_asyncapi_html,
+)
 
 if TYPE_CHECKING:
     from faststream.specification.base import SpecificationFactory
@@ -29,6 +31,9 @@ def make_asyncapi_asgi(
     asyncapi_js_url: str | None = None,
     asyncapi_js_react_url: str | None = None,
     asyncapi_css_url: str | None = None,
+    try_it_out_plugin_url: str | None = None,
+    react_url: str | None = None,
+    react_dom_url: str | None = None,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
 ) -> "GetHandler":
@@ -57,6 +62,9 @@ def make_asyncapi_asgi(
                 asyncapi_js_url=asyncapi_js_url,
                 asyncapi_js_react_url=asyncapi_js_react_url,
                 asyncapi_css_url=asyncapi_css_url,
+                try_it_out_plugin_url=try_it_out_plugin_url,
+                react_url=react_url,
+                react_dom_url=react_dom_url,
                 try_it_out=try_it_out,
                 try_it_out_url=try_it_out_url,
             )

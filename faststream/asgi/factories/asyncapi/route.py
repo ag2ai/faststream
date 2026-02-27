@@ -31,6 +31,9 @@ class AsyncAPIRoute:
         asyncapi_js_url: str | None = None,
         asyncapi_js_react_url: str | None = None,
         asyncapi_css_url: str | None = None,
+        try_it_out_plugin_url: str | None = None,
+        react_url: str | None = None,
+        react_dom_url: str | None = None,
         try_it_out: bool = True,
         try_it_out_url: str | None = None,
     ) -> None:
@@ -52,7 +55,9 @@ class AsyncAPIRoute:
         self.asyncapi_js_url = asyncapi_js_url
         self.asyncapi_js_react_url = asyncapi_js_react_url
         self.asyncapi_css_url = asyncapi_css_url
-
+        self.try_it_out_plugin_url = try_it_out_plugin_url
+        self.react_url = react_url
+        self.react_dom_url = react_dom_url
         self.try_it_out = try_it_out
         if not try_it_out_url:
             try_it_out_url = path.rstrip("/") + "/try"
@@ -82,6 +87,9 @@ class AsyncAPIRoute:
             asyncapi_js_url=self.asyncapi_js_url,
             asyncapi_js_react_url=self.asyncapi_js_react_url,
             asyncapi_css_url=self.asyncapi_css_url,
+            try_it_out_plugin_url=self.try_it_out_plugin_url,
+            react_url=self.react_url,
+            react_dom_url=self.react_dom_url,
             try_it_out=self.try_it_out,
             try_it_out_url=self.try_it_out_url,
         )

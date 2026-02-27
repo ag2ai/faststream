@@ -22,9 +22,7 @@ ASYNCAPI_REACT_JS_DEFAULT_URL = (
     "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"
 )
 
-ASYNCAPI_TRY_IT_PLUGIN_URL = (
-    "https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.1.0-beta.0/dist/index.iife.js"
-)
+ASYNCAPI_TRY_IT_PLUGIN_URL = "https://cdn.jsdelivr.net/npm/@vvlrff/asyncapi-try-it-plugin@0.1.0-beta.0/dist/index.iife.js"
 
 REACT_JS_URL = "https://unpkg.com/react@18/umd/react.production.min.js"
 REACT_DOM_JS_URL = "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
@@ -43,17 +41,24 @@ def get_asyncapi_html(
     asyncapi_js_url: str | None = None,
     asyncapi_js_react_url: str | None = None,
     asyncapi_css_url: str | None = None,
+    try_it_out_plugin_url: str | None = None,
+    react_url: str | None = None,
+    react_dom_url: str | None = None,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
-    try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
-    react_url: str = REACT_JS_URL,
-    react_dom_url: str = REACT_DOM_JS_URL,
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
     if asyncapi_css_url is None:
         asyncapi_css_url = ASYNCAPI_CSS_DEFAULT_URL
 
     if try_it_out:
+        if try_it_out_plugin_url is None:
+            try_it_out_plugin_url = ASYNCAPI_TRY_IT_PLUGIN_URL
+        if react_url is None:
+            react_url = REACT_JS_URL
+        if react_dom_url is None:
+            react_dom_url = REACT_DOM_JS_URL
+
         # React mode: uses asyncapi_js_react_url (default: React bundle)
         asyncapi_js_url = (
             asyncapi_js_react_url

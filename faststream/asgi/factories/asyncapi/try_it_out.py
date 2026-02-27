@@ -52,7 +52,7 @@ class TryItOutProcessor:
         registry = _get_broker_registry()
         for br_cls, test_broker_cls in registry.items():
             if isinstance(self._broker, br_cls):
-                self._test_broker = test_broker_cls(broker)
+                self._test_broker_cls = test_broker_cls
                 break
 
         else:
@@ -66,10 +66,8 @@ class TryItOutProcessor:
         if not destination:
             return JSONResponse({"details": "Missing channelName"}, 400)
 
-        # The plugin wraps the user payload in a nested structure:
-        # body["message"] = {"operation_id": ..., "operation_type": ..., "message": <payload>}
         message_wrapper = body.get("message", {})
-        payload: Any = message_wrapper.get("message", {})
+        payload: Any = message_wrapper.get("message")
         options = body.get("options", {})
         use_real_broker = options.get("sendToRealBroker", False)
 
@@ -78,18 +76,18 @@ class TryItOutProcessor:
                 await self._broker.publish(payload, destination)
                 return JSONResponse("ok", 200)
 
-            else:
-                async with self._test_broker as br:
-                    data = await br.request(payload, destination)
-                    with suppress(Exception):
-                        return JSONResponse(await data.decode(), 200)
+            async with self._test_broker_cls(self._broker) as br:
+                data = await br.request(payload, destination)
+                decoded = None
+                with suppress(Exception):
+                    decoded = await data.decode()
+                return JSONResponse(decoded if decoded not in (None, b"") else "ok", 200)
 
         except SubscriberNotFound:
             return JSONResponse({"details": f"{destination} destination not found."}, 404)
 
         except Exception as e:
             return JSONResponse({"details": str(e)}, 500)
-
 
 
 def make_try_it_out_handler(
