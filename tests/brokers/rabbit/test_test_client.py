@@ -1,5 +1,7 @@
 import asyncio
+import datetime as dt
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -186,6 +188,40 @@ class TestTestclient(
         queue: str,
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("expiration", "expected"),
+        (
+            pytest.param(None, None, id="none"),
+            pytest.param(1, 1, id="int"),
+            pytest.param(1.5, 1.5, id="float"),
+            pytest.param(dt.timedelta(seconds=1.1), 1.1, id="timedelta"),
+            pytest.param(dt.datetime.now(tz=dt.timezone.utc), 10, id="datetime"),
+        ),
+    )
+    async def test_publish_expiration_propagated(
+        self, expiration: Any, expected: Any, queue: str, mock: MagicMock
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def m(msg: RabbitMessage) -> None:
+            mock(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue, expiration=expiration)
+            msg = mock.call_args[0][0]
+            if isinstance(expiration, dt.datetime):
+                # reduce chance of flaky test. when expiration is datetime,
+                # aio_pika first subtracts datetime.now() from it to get timedelta,
+                # then converts it to milliseconds. This leads to small variations in the expiration
+                assert -expected < msg.raw_message.expiration < expected
+            else:
+                assert msg.raw_message.expiration == expected
 
 
 @pytest.mark.parametrize(
