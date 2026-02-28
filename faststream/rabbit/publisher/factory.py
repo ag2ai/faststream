@@ -1,5 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
+
+from faststream._internal.configs.settings import Settings
 
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
 from .specification import RabbitPublisherSpecification
@@ -15,10 +17,10 @@ if TYPE_CHECKING:
 
 def create_publisher(
     *,
-    routing_key: str,
-    queue: "RabbitQueue",
-    exchange: "RabbitExchange",
-    message_kwargs: "PublishKwargs",
+    routing_key: str | Settings,
+    queue: Union["RabbitQueue", Settings],
+    exchange: Union["RabbitExchange", Settings],
+    message_kwargs: Union["PublishKwargs", Settings],
     # Broker args
     config: "RabbitBrokerConfig",
     # Publisher args

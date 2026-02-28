@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,6 +16,7 @@ from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
+from faststream._internal.configs import make_settings_container
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
@@ -108,6 +109,7 @@ class RabbitBroker(
         # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
+        settings: Mapping[str, Any] | None = None,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
@@ -141,6 +143,7 @@ class RabbitBroker(
             log_level: Service messages log level.
             apply_types: Whether to use FastDepends or not.
             serializer: FastDepends-compatible serializer to validate incoming messages.
+            settings: Container for configuration publisher and subscriber.
             provider: Provider for FastDepends.
             context: Context for FastDepends.
         """
@@ -185,6 +188,7 @@ class RabbitBroker(
             # Basic args
             routers=routers,
             config=RabbitBrokerConfig(
+                settings=make_settings_container(settings),
                 channel_manager=cm,
                 producer=producer,
                 declarer=declarer,
@@ -274,6 +278,9 @@ class RabbitBroker(
     async def start(self) -> None:
         """Connect broker to RabbitMQ and startup all subscribers."""
         await self.connect()
+        # can merge it into one operation, something like br.initialize or br.initialize_pipe
+        self.resolve_settings()
+        self.setup_logger()
         await self.declare_queue(RABBIT_REPLY)
         await super().start()
 

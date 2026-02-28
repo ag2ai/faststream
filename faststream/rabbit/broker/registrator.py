@@ -5,6 +5,7 @@ from aio_pika import IncomingMessage
 from typing_extensions import deprecated, override
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.configs import Settings
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -38,11 +39,11 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: Union[str, "RabbitQueue"],
-        exchange: Union[str, "RabbitExchange", None] = None,
+        queue: Union[str, "RabbitQueue", Settings],
+        exchange: Union[str, "RabbitExchange", Settings, None] = None,
         *,
-        channel: Optional["Channel"] = None,
-        consume_args: dict[str, Any] | None = None,
+        channel: Optional["Channel"] | Settings = None,
+        consume_args: dict[str, Any] | Settings | None = None,
         no_ack: Annotated[
             bool,
             deprecated(
@@ -120,16 +121,16 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        queue: Union["RabbitQueue", str] = "",
-        exchange: Union["RabbitExchange", str, None] = None,
+        queue: Union["RabbitQueue", str, Settings] = "",
+        exchange: Union["RabbitExchange", str, Settings, None] = None,
         *,
-        routing_key: str = "",
-        mandatory: bool = True,
-        immediate: bool = False,
+        routing_key: str | Settings = "",
+        mandatory: bool | Settings = True,
+        immediate: bool | Settings = False,
+        persist: bool | Settings = False,
+        reply_to: str | Settings | None = None,
+        priority: int | Settings | None = None,
         timeout: "TimeoutType" = None,
-        persist: bool = False,
-        reply_to: str | None = None,
-        priority: int | None = None,
         persistent: bool = True,
         # specific
         middlewares: Annotated[
@@ -145,12 +146,12 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         schema: Any | None = None,
         include_in_schema: bool = True,
         # message args
-        headers: Optional["HeadersType"] = None,
-        content_type: str | None = None,
-        content_encoding: str | None = None,
-        expiration: Optional["DateType"] = None,
-        message_type: str | None = None,
-        user_id: str | None = None,
+        headers: Optional["HeadersType"] | Settings = None,
+        content_type: str | Settings | None = None,
+        content_encoding: str | Settings | None = None,
+        expiration: Optional["DateType"] | Settings = None,
+        message_type: str | Settings | None = None,
+        user_id: str | Settings | None = None,
     ) -> "RabbitPublisher":
         """Creates long-living and AsyncAPI-documented publisher object.
 

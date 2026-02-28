@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from typing_extensions import Unpack, override
 
@@ -79,7 +79,17 @@ class RabbitPublisher(PublisherUsecase):
 
         return routing_key
 
+    def resolve_settings(self) -> None:
+        resolver: Callable[..., Any] = self._outer_config.settings.resolve
+        self.routing_key = resolver(self.routing_key)
+        self.queue = RabbitQueue.validate(resolver(self.queue))
+        self.exchange = RabbitExchange.validate(resolver(self.exchange))
+        self.headers = resolver(self.headers)
+        self.reply_to = resolver(self.reply_to)
+        self.timeout = resolver(self.timeout)
+
     async def start(self) -> None:
+        """Starts the consumer for the RabbitMQ queue."""
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()

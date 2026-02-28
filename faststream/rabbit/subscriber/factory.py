@@ -1,6 +1,7 @@
 import warnings
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
+from faststream._internal.configs.settings import Settings
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
@@ -20,10 +21,10 @@ if TYPE_CHECKING:
 
 def create_subscriber(
     *,
-    queue: "RabbitQueue",
-    exchange: "RabbitExchange",
-    consume_args: dict[str, Any] | None,
-    channel: Optional["Channel"],
+    queue: Union["RabbitQueue", Settings],
+    exchange: Union["RabbitExchange", Settings],
+    consume_args: dict[str, Any] | Settings | None,
+    channel: Optional["Channel"] | Settings,
     # Subscriber args
     no_reply: bool,
     ack_policy: "AckPolicy",

@@ -8,6 +8,8 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
 
+from .settings import SettingsContainer, make_settings_container
+
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
@@ -18,6 +20,8 @@ if TYPE_CHECKING:
 class BrokerConfig:
     prefix: str = ""
     include_in_schema: bool | None = True
+
+    settings: SettingsContainer = field(default_factory=make_settings_container)
 
     broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["CustomCallable"] = None
