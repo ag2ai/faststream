@@ -10,12 +10,15 @@ if TYPE_CHECKING:
     from faststream.specification import Specification
 
 ASYNCAPI_JS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@2.6.4/browser/standalone/index.js"
+    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"
 )
 
 ASYNCAPI_CSS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@2.6.4/styles/default.min.css"
+    "https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
 )
+
+
+ASYNCAPI_TRY_IT_PLUGIN_URL = "https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.3.0-standalone.0/dist/index.iife.min.js"
 
 
 def get_asyncapi_html(
@@ -30,76 +33,88 @@ def get_asyncapi_html(
     expand_message_examples: bool = True,
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
+    try_it_out: bool = True,
+    try_it_out_url: str = "asyncapi/try",
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
-    schema_json = schema.to_json()
-
     config = {
-        "schema": schema_json,
-        "config": {
-            "show": {
-                "sidebar": sidebar,
-                "info": info,
-                "servers": servers,
-                "operations": operations,
-                "messages": messages,
-                "schemas": schemas,
-                "errors": errors,
-            },
-            "expand": {
-                "messageExamples": expand_message_examples,
-            },
-            "sidebar": {
-                "showServers": "byDefault",
-                "showOperations": "byDefault",
-            },
+        "show": {
+            "sidebar": sidebar,
+            "info": info,
+            "servers": servers,
+            "operations": operations,
+            "messages": messages,
+            "schemas": schemas,
+            "errors": errors,
+        },
+        "expand": {
+            "messageExamples": expand_message_examples,
+        },
+        "sidebar": {
+            "showServers": "byDefault",
+            "showOperations": "byDefault",
         },
     }
 
-    return (
-        """
-    <!DOCTYPE html>
-    <html>
-        <head>
-    """
-        f"""
+    if try_it_out:
+        plugins_js = f"""
+        <script src="{asyncapi_js_url}"></script>
+        <script src="{try_it_out_plugin_url}"></script>
+        <script>
+            const schema = {schema.to_json()};
+            const config = {json_dumps(config).decode()};
+            const endpoint = {try_it_out_url!r};
+            const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
+                endpointBase: endpoint.replace(/^\\//, ""),
+                resolveEndpoint: () => endpoint,
+                showPayloadSchema: true,
+                showEndpointInput: false,
+                showRealBrokerToggle: true
+            }});
+
+            window.AsyncApiStandalone.render(
+                {{
+                    schema,
+                    config,
+                    plugins: [plugin]
+                }},
+                document.getElementById("asyncapi")
+            );
+        </script>"""
+
+    else:
+        standalone_config = {"schema": schema.to_json(), "config": config}
+        plugins_js = f"""
+        <script src="{asyncapi_js_url}"></script>
+        <script>
+            window.AsyncApiStandalone.render(
+                {json_dumps(standalone_config).decode()},
+                document.getElementById("asyncapi")
+            );
+        </script>"""
+
+    return f"""<!DOCTYPE html>
+<html>
+    <head>
         <title>{schema.title} AsyncAPI</title>
-    """
-        """
         <link rel="icon" href="https://www.asyncapi.com/favicon.ico">
         <link rel="icon" type="image/png" sizes="16x16" href="https://www.asyncapi.com/favicon-16x16.png">
         <link rel="icon" type="image/png" sizes="32x32" href="https://www.asyncapi.com/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="194x194" href="https://www.asyncapi.com/favicon-194x194.png">
-    """
-        f"""
         <link rel="stylesheet" href="{asyncapi_css_url}">
-    """
-        """
-        </head>
-
-        <style>
-        html {
-            font-family: ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
-            line-height: 1.5;
-        }
-        </style>
-
-        <body>
+    </head>
+    <style>
+    html {{
+        font-family: ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+        line-height: 1.5;
+    }}
+    </style>
+    <body>
         <div id="asyncapi"></div>
-    """
-        f"""
-        <script src="{asyncapi_js_url}"></script>
-        <script>
-    """
-        f"""
-            AsyncApiStandalone.render({json_dumps(config).decode()}, document.getElementById('asyncapi'));
-    """
-        """
-        </script>
-        </body>
-    </html>
-    """
-    )
+        {plugins_js}
+    </body>
+</html>"""
 
 
 def serve_app(
@@ -148,6 +163,7 @@ class _Handler(server.BaseHTTPRequestHandler):
             schemas=query_dict.get("schemas", True),
             errors=query_dict.get("errors", True),
             expand_message_examples=query_dict.get("expandMessageExamples", True),
+            try_it_out=False,  # CLI serve has no broker — use AsgiFastStream for try-it
         )
         body = html.encode(encoding=encoding)
 
