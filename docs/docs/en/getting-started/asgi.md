@@ -91,7 +91,7 @@ If you want to write your own simple **HTTP**-endpoint, you can use our `#!pytho
 
 You can also use helper functions to access query parameters and headers:
 
-```python linenums="1" hl_lines="1 8-9 19"
+```python linenums="1" hl_lines="1 8-9 18"
 {! docs_src/getting_started/asgi/auth_app.py !}
 ```
 
@@ -106,18 +106,19 @@ Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/Fa
 
 By default, any ASGI routes will be added to your AsyncAPI documentation. If you wish to exclude these routes, just do the following:
 
-```python linenums="1"
+```python linenums="1" hl_lines="5"
 app = AsgiFastStream(
     broker,
-    asgi_routes=[
-        ("/health", make_ping_asgi(broker, timeout=5.0, include_in_schema=False)),
-    ]
+    asgi_routes=[(
+        "/health",
+        make_ping_asgi(broker, timeout=5.0, include_in_schema=False)
+    )]
 )
 ```
 
 Or, for custom ASGI routes:
 
-```python linenums="1"
+```python linenums="1" hl_lines="1"
 @get(include_in_schema=False)
 async def liveness_ping(scope):
     return AsgiResponse(b"", status_code=200)
@@ -168,18 +169,7 @@ app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi")
 
 To disable the feature, use `AsyncAPIRoute` with `try_it_out=False`:
 
-```python linenums="1" hl_lines="2 6"
-from faststream.nats import NatsBroker
-from faststream.asgi import AsgiFastStream, AsyncAPIRoute
-
-broker = NatsBroker()
-
-app = AsgiFastStream(broker, asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out=False))
-```
-
-If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_url` via `AsyncAPIRoute`:
-
-```python linenums="1" hl_lines="2 7"
+```python linenums="1" hl_lines="2 8"
 from faststream.nats import NatsBroker
 from faststream.asgi import AsgiFastStream, AsyncAPIRoute
 
@@ -187,7 +177,24 @@ broker = NatsBroker()
 
 app = AsgiFastStream(
     broker,
-    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out_url="https://api.example.com/asyncapi/try"),
+    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out=False),
+)
+```
+
+If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_url` via `AsyncAPIRoute`:
+
+```python linenums="1" hl_lines="2 10"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
+
+broker = NatsBroker()
+
+app = AsgiFastStream(
+    broker,
+    asyncapi_path=AsyncAPIRoute(
+        "/docs/asyncapi",
+        try_it_out_url="https://api.example.com/asyncapi/try",
+    ),
 )
 ```
 
@@ -196,9 +203,9 @@ app = AsgiFastStream(
 
 ### FastStream Object Reuse
 
-You may also use regular `FastStream` application object for similar result.
+You may also use regular `FastStream.as_asgi()` method for similar result.
 
-```python linenums="1" hl_lines="2 12"
+```python linenums="1" hl_lines="1 12"
 from faststream import FastStream
 from faststream.nats import NatsBroker
 from faststream.specification import AsyncAPI
