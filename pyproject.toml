@@ -19,9 +19,10 @@ version = "0.6.7"
 keywords = [
     "rabbitmq",
     "kafka",
-    "framework",
     "nats",
     "redis",
+    "asyncapi",
+    "framework",
     "message brokers",
 ]
 
