@@ -130,6 +130,7 @@ test-core = [
     "pytest-xdist>=3.8.0",
     "pytest-cov>=6.2.1",
     "covdefaults>=2.3.0",
+    "freezegun>=1.5.5",
 ]
 
 testing = [

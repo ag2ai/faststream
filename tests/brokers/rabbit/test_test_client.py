@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from freezegun import freeze_time
 
 from faststream import BaseMiddleware
 from faststream.exceptions import SubscriberNotFound
@@ -19,6 +20,8 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 
 from .basic import RabbitMemoryTestcaseConfig
 from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
+
+_frozen_time = dt.datetime(2026, 2, 10, 12, 0, 0, tzinfo=dt.timezone.utc)
 
 
 @pytest.mark.rabbit()
@@ -197,9 +200,10 @@ class TestTestclient(
             pytest.param(1, 1, id="int"),
             pytest.param(1.5, 1.5, id="float"),
             pytest.param(dt.timedelta(seconds=1.1), 1.1, id="timedelta"),
-            pytest.param(dt.datetime.now(tz=dt.timezone.utc), 10, id="datetime"),
+            pytest.param(_frozen_time, 0, id="datetime"),
         ),
     )
+    @freeze_time(_frozen_time)
     async def test_publish_expiration_propagated(
         self, expiration: Any, expected: Any, queue: str, mock: MagicMock
     ) -> None:
@@ -215,13 +219,7 @@ class TestTestclient(
             await br.start()
             await br.publish("hello", queue, expiration=expiration)
             msg = mock.call_args[0][0]
-            if isinstance(expiration, dt.datetime):
-                # reduce chance of flaky test. when expiration is datetime,
-                # aio_pika first subtracts datetime.now() from it to get timedelta,
-                # then converts it to milliseconds. This leads to small variations in the expiration
-                assert -expected < msg.raw_message.expiration < expected
-            else:
-                assert msg.raw_message.expiration == expected
+            assert msg.raw_message.expiration == expected
 
 
 @pytest.mark.parametrize(
