@@ -2,6 +2,11 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream.asgi.factories.asyncapi.docs import make_asyncapi_asgi
+from faststream.specification.asyncapi.site import (
+    ASYNCAPI_CSS_DEFAULT_URL,
+    ASYNCAPI_JS_DEFAULT_URL,
+    ASYNCAPI_TRY_IT_PLUGIN_URL,
+)
 
 if TYPE_CHECKING:
     from faststream.asgi.handlers import GetHandler
@@ -28,12 +33,9 @@ class AsyncAPIRoute:
         schemas: bool = True,
         errors: bool = True,
         expand_message_examples: bool = True,
-        asyncapi_js_url: str | None = None,
-        asyncapi_js_react_url: str | None = None,
-        asyncapi_css_url: str | None = None,
-        try_it_out_plugin_url: str | None = None,
-        react_url: str | None = None,
-        react_dom_url: str | None = None,
+        asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
+        asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+        try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
         try_it_out: bool = True,
         try_it_out_url: str | None = None,
     ) -> None:
@@ -53,11 +55,8 @@ class AsyncAPIRoute:
         self.errors = errors
         self.expand_message_examples = expand_message_examples
         self.asyncapi_js_url = asyncapi_js_url
-        self.asyncapi_js_react_url = asyncapi_js_react_url
         self.asyncapi_css_url = asyncapi_css_url
         self.try_it_out_plugin_url = try_it_out_plugin_url
-        self.react_url = react_url
-        self.react_dom_url = react_dom_url
         self.try_it_out = try_it_out
         if not try_it_out_url:
             try_it_out_url = path.rstrip("/") + "/try"
@@ -85,11 +84,8 @@ class AsyncAPIRoute:
             errors=self.errors,
             expand_message_examples=self.expand_message_examples,
             asyncapi_js_url=self.asyncapi_js_url,
-            asyncapi_js_react_url=self.asyncapi_js_react_url,
             asyncapi_css_url=self.asyncapi_css_url,
             try_it_out_plugin_url=self.try_it_out_plugin_url,
-            react_url=self.react_url,
-            react_dom_url=self.react_dom_url,
             try_it_out=self.try_it_out,
             try_it_out_url=self.try_it_out_url,
         )

@@ -9,23 +9,14 @@ from faststream._internal.logger import logger
 if TYPE_CHECKING:
     from faststream.specification import Specification
 
-ASYNCAPI_JS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"
-)
+ASYNCAPI_JS_DEFAULT_URL = "https://cdn.jsdelivr.net/npm/@asyncapi/react-component@3.0.2/browser/standalone/index.min.js"
 
 ASYNCAPI_CSS_DEFAULT_URL = (
     "https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
 )
 
-# React bundle used for ASGI try-it-out mode.
-ASYNCAPI_REACT_JS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/index.js"
-)
 
-ASYNCAPI_TRY_IT_PLUGIN_URL = "https://cdn.jsdelivr.net/npm/@vvlrff/asyncapi-try-it-plugin@0.1.0-beta.0/dist/index.iife.js"
-
-REACT_JS_URL = "https://unpkg.com/react@18/umd/react.production.min.js"
-REACT_DOM_JS_URL = "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+ASYNCAPI_TRY_IT_PLUGIN_URL = "https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.3.0-standalone.0/dist/index.iife.min.js"
 
 
 def get_asyncapi_html(
@@ -38,37 +29,13 @@ def get_asyncapi_html(
     schemas: bool = True,
     errors: bool = True,
     expand_message_examples: bool = True,
-    asyncapi_js_url: str | None = None,
-    asyncapi_js_react_url: str | None = None,
-    asyncapi_css_url: str | None = None,
-    try_it_out_plugin_url: str | None = None,
-    react_url: str | None = None,
-    react_dom_url: str | None = None,
+    asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
+    asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
-    if asyncapi_css_url is None:
-        asyncapi_css_url = ASYNCAPI_CSS_DEFAULT_URL
-
-    if try_it_out:
-        if try_it_out_plugin_url is None:
-            try_it_out_plugin_url = ASYNCAPI_TRY_IT_PLUGIN_URL
-        if react_url is None:
-            react_url = REACT_JS_URL
-        if react_dom_url is None:
-            react_dom_url = REACT_DOM_JS_URL
-
-        # React mode: uses asyncapi_js_react_url (default: React bundle)
-        asyncapi_js_url = (
-            asyncapi_js_react_url
-            if asyncapi_js_react_url is not None
-            else ASYNCAPI_REACT_JS_DEFAULT_URL
-        )
-    # Standalone mode: uses asyncapi_js_url (default: standalone bundle)
-    elif asyncapi_js_url is None:
-        asyncapi_js_url = ASYNCAPI_JS_DEFAULT_URL
-
     config = {
         "show": {
             "sidebar": sidebar,
@@ -89,40 +56,40 @@ def get_asyncapi_html(
     }
 
     if try_it_out:
-        # Use React-based @asyncapi/react-component with try-it-out plugin
         plugins_js = f"""
-        <script src="{react_url}"></script>
-        <script src="{react_dom_url}"></script>
         <script src="{asyncapi_js_url}"></script>
         <script src="{try_it_out_plugin_url}"></script>
         <script>
-            (function() {{
-                const schema = {schema.to_json()};
-                const config = {json_dumps(config).decode()};
-                const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
-                    endpointBase: {try_it_out_url.lstrip("/")!r},
-                    showPayloadSchema: true,
-                    showEndpointInput: false,
-                    showRealBrokerToggle: true
-                }});
-                const AsyncApiModule = window.AsyncApiComponent;
-                const AsyncApi = AsyncApiModule.default || AsyncApiModule;
-                const root = window.ReactDOM.createRoot(document.getElementById('asyncapi'));
-                root.render(window.React.createElement(AsyncApi, {{
-                    schema: schema,
-                    config: config,
+            const schema = {schema.to_json()};
+            const config = {json_dumps(config).decode()};
+            const endpoint = {try_it_out_url!r};
+            const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
+                endpointBase: endpoint.replace(/^\\//, ""),
+                resolveEndpoint: () => endpoint,
+                showPayloadSchema: true,
+                showEndpointInput: false,
+                showRealBrokerToggle: true
+            }});
+
+            window.AsyncApiStandalone.render(
+                {{
+                    schema,
+                    config,
                     plugins: [plugin]
-                }}));
-            }})();
+                }},
+                document.getElementById("asyncapi")
+            );
         </script>"""
+
     else:
-        # Fallback to standalone bundle (no React, no try-it-out plugin).
-        # Used by CLI serve which has no broker.
         standalone_config = {"schema": schema.to_json(), "config": config}
         plugins_js = f"""
         <script src="{asyncapi_js_url}"></script>
         <script>
-            AsyncApiStandalone.render({json_dumps(standalone_config).decode()}, document.getElementById('asyncapi'));
+            window.AsyncApiStandalone.render(
+                {json_dumps(standalone_config).decode()},
+                document.getElementById("asyncapi")
+            );
         </script>"""
 
     return f"""<!DOCTYPE html>

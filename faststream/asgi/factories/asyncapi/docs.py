@@ -5,6 +5,9 @@ from faststream.asgi.handlers import GetHandler, get
 from faststream.asgi.response import AsgiResponse
 from faststream.asgi.types import Scope
 from faststream.specification.asyncapi.site import (
+    ASYNCAPI_CSS_DEFAULT_URL,
+    ASYNCAPI_JS_DEFAULT_URL,
+    ASYNCAPI_TRY_IT_PLUGIN_URL,
     get_asyncapi_html,
 )
 
@@ -28,12 +31,9 @@ def make_asyncapi_asgi(
     schemas: bool = True,
     errors: bool = True,
     expand_message_examples: bool = True,
-    asyncapi_js_url: str | None = None,
-    asyncapi_js_react_url: str | None = None,
-    asyncapi_css_url: str | None = None,
-    try_it_out_plugin_url: str | None = None,
-    react_url: str | None = None,
-    react_dom_url: str | None = None,
+    asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
+    asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
+    try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
     try_it_out: bool = True,
     try_it_out_url: str = "asyncapi/try",
 ) -> "GetHandler":
@@ -60,14 +60,12 @@ def make_asyncapi_asgi(
                 errors=errors,
                 expand_message_examples=expand_message_examples,
                 asyncapi_js_url=asyncapi_js_url,
-                asyncapi_js_react_url=asyncapi_js_react_url,
                 asyncapi_css_url=asyncapi_css_url,
                 try_it_out_plugin_url=try_it_out_plugin_url,
-                react_url=react_url,
-                react_dom_url=react_dom_url,
                 try_it_out=try_it_out,
                 try_it_out_url=try_it_out_url,
             )
+
         return AsgiResponse(
             cached_docs.encode("utf-8"),
             200,
