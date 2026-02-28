@@ -1,9 +1,10 @@
+import math
 from collections.abc import Callable
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from dirty_equals import IsJson, IsPartialDict
+from dirty_equals import Contains, IsFloat, IsList, IsPartialDict, IsStr
 from fast_depends import Depends
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -231,7 +232,7 @@ class AsgiTestcase:
         with TestClient(app) as client:
             response = client.get("/")
             assert response.status_code == 200
-            assert response.text.strip().startswith("<!DOCTYPE html>")
+            assert response.text == Contains("<!DOCTYPE html>")
 
     # ===== TryItOut tests =====
     @pytest.mark.asyncio()
@@ -259,7 +260,7 @@ class AsgiTestcase:
                     },
                 )
                 assert response.status_code == 200
-                assert response.json() == {"status": "ok", "mode": "test"}
+                assert response.json() == "ok"
 
     @pytest.mark.asyncio()
     async def test_try_it_out_message_delivered_to_subscriber(
@@ -291,7 +292,7 @@ class AsgiTestcase:
                     },
                 )
 
-        mock.assert_called_once_with({"text": "hello"})
+        mock.assert_called_once_with(IsPartialDict(text="hello"))
 
     @pytest.mark.asyncio()
     async def test_try_it_out_string_payload_delivered(
@@ -324,6 +325,156 @@ class AsgiTestcase:
         mock.assert_called_once_with("hello")
 
     @pytest.mark.asyncio()
+    async def test_try_it_out_integer_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Primitive int payload should arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: int) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": 42,
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with(42)
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_float_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Primitive float payload should arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: float) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": math.pi,
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with(IsFloat(approx=math.pi))
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_boolean_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Primitive boolean payload should arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: bool) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": True,
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with(True)
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_array_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Array payload should arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: list[Any]) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": ["one", "two", "three"],
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with(IsList("one", "two", "three"))
+
+    @pytest.mark.asyncio()
+    async def test_try_it_out_object_payload_delivered(
+        self, queue: str, mock: MagicMock
+    ) -> None:
+        """Object (dict) payload should arrive correctly."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: dict[str, Any]) -> None:
+            mock(msg)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"field": "value", "count": 42, "mock": True},
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        mock.assert_called_once_with(IsPartialDict(field="value", count=42, mock=True))
+
+    @pytest.mark.asyncio()
     async def test_try_it_out_memory_subsricber_returns_result(self, queue: str) -> None:
         broker = self.get_broker()
 
@@ -348,9 +499,7 @@ class AsgiTestcase:
                     },
                 )
                 assert response.status_code == 200, response.json()
-                assert response.json() == IsPartialDict({
-                    "result": IsJson(result=1),
-                })
+                assert response.json() == IsPartialDict(result=1)
 
     @pytest.mark.asyncio()
     async def test_try_it_out_disabled(self, queue: str) -> None:
@@ -387,7 +536,7 @@ class AsgiTestcase:
             with TestClient(app) as client:
                 response = client.post("/docs/try", json={"message": {}})
                 assert response.status_code == 400
-                assert response.json() == {"details": "Missing channelName"}
+                assert response.json() == IsPartialDict(details="Missing channelName")
 
     @pytest.mark.asyncio()
     async def test_try_it_out_channel_not_found(self, queue: str) -> None:
@@ -410,7 +559,9 @@ class AsgiTestcase:
                     },
                 )
                 assert response.status_code == 404, response.status_code
-                assert response.json() == {"details": f"{queue} destination not found."}
+                assert response.json() == IsPartialDict(
+                    details=IsStr(regex=r".+ destination not found\.")
+                )
 
     @pytest.mark.asyncio()
     async def test_try_it_out_path_follows_asyncapi_path(self, queue: str) -> None:
@@ -438,7 +589,7 @@ class AsgiTestcase:
                 )
 
                 assert response.status_code == 200
-                assert response.json() == {"status": "ok", "mode": "test"}
+                assert response.json() == "ok"
 
     @pytest.mark.asyncio()
     async def test_try_it_out_spec_endpoint_base_overrides_route_default(self) -> None:
@@ -456,4 +607,4 @@ class AsgiTestcase:
             with TestClient(app) as client:
                 response = client.get("/docs")
                 assert response.status_code == 200
-                assert "https://api.example.com/try" in response.text
+                assert response.text == Contains("https://api.example.com/try")

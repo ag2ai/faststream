@@ -81,7 +81,9 @@ class TryItOutProcessor:
                 decoded = None
                 with suppress(Exception):
                     decoded = await data.decode()
-                return JSONResponse(decoded if decoded not in {None, b""} else "ok", 200)
+                return JSONResponse(
+                    decoded if decoded is not None and decoded != b"" else "ok", 200
+                )
 
         except SubscriberNotFound:
             return JSONResponse({"details": f"{destination} destination not found."}, 404)
