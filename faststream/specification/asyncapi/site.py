@@ -9,14 +9,18 @@ from faststream._internal.logger import logger
 if TYPE_CHECKING:
     from faststream.specification import Specification
 
-ASYNCAPI_JS_DEFAULT_URL = "https://cdn.jsdelivr.net/npm/@asyncapi/react-component@3.0.2/browser/standalone/index.min.js"
+ASYNCAPI_JS_DEFAULT_URL = (
+    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"
+)
 
 ASYNCAPI_CSS_DEFAULT_URL = (
     "https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
 )
 
 
-ASYNCAPI_TRY_IT_PLUGIN_URL = "https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.3.0-standalone.0/dist/index.iife.min.js"
+ASYNCAPI_TRY_IT_PLUGIN_URL = (
+    "https://cdn.jsdelivr.net/npm/asyncapi-try-it-plugin@0.3.0-standalone.0/dist/index.iife.min.js"
+)
 
 
 def get_asyncapi_html(
