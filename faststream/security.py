@@ -165,7 +165,7 @@ class SASLOAuthBearer(BaseSecurity):
 
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/OAUTHBEARER authentication."""
-        return {"oauthbearer": {"type": "oauth2", "$ref": ""}}
+        return {"oauthbearer": {"type": "oauth2"}}
 
 
 class SASLGSSAPI(BaseSecurity):

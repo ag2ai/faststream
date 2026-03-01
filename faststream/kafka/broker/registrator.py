@@ -60,6 +60,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: Literal[False] = False,
         group_id: str | None = None,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -128,6 +129,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: Literal[True] = ...,
         group_id: str | None = None,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -196,6 +198,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: Literal[False] = False,
         group_id: None = None,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -264,6 +267,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: Literal[False] = False,
         group_id: str = ...,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -332,6 +336,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: bool = False,
         group_id: str | None = None,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -405,6 +410,7 @@ class KafkaRegistrator(
         *topics: str,
         batch: bool = False,
         group_id: str | None = None,
+        group_instance_id: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -481,6 +487,11 @@ class KafkaRegistrator(
                 partition assignment (if enabled), and to use for fetching and
                 committing offsets. If `None`, auto-partition assignment (via
                 group coordinator) and offset commits are disabled.
+            group_instance_id:
+                Name of the group instance ID used for static
+                membership (KIP-345). If set, the consumer is treated as a
+                static member, which means it does not join/leave the group
+                on each restart, avoiding unnecessary rebalances.
             key_deserializer:
                 Any callable that takes a raw message `bytes`
                 key and returns a deserialized one.
@@ -669,6 +680,7 @@ class KafkaRegistrator(
             listener=listener,
             pattern=pattern,
             connection_args={
+                "group_instance_id": group_instance_id,
                 "key_deserializer": key_deserializer,
                 "value_deserializer": value_deserializer,
                 "fetch_max_wait_ms": fetch_max_wait_ms,

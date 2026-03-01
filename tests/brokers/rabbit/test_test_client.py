@@ -1,7 +1,10 @@
 import asyncio
+import datetime as dt
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from freezegun import freeze_time
 
 from faststream import BaseMiddleware
 from faststream.exceptions import SubscriberNotFound
@@ -17,6 +20,8 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 
 from .basic import RabbitMemoryTestcaseConfig
 from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
+
+_frozen_time = dt.datetime(2026, 2, 10, 12, 0, 0, tzinfo=dt.timezone.utc)
 
 
 @pytest.mark.rabbit()
@@ -186,6 +191,35 @@ class TestTestclient(
         queue: str,
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("expiration", "expected"),
+        (
+            pytest.param(None, None, id="none"),
+            pytest.param(1, 1, id="int"),
+            pytest.param(1.5, 1.5, id="float"),
+            pytest.param(dt.timedelta(seconds=1.1), 1.1, id="timedelta"),
+            pytest.param(_frozen_time, 0, id="datetime"),
+        ),
+    )
+    @freeze_time(_frozen_time)
+    async def test_publish_expiration_propagated(
+        self, expiration: Any, expected: Any, queue: str, mock: MagicMock
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def m(msg: RabbitMessage) -> None:
+            mock(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue, expiration=expiration)
+            msg = mock.call_args[0][0]
+            assert msg.raw_message.expiration == expected
 
 
 @pytest.mark.parametrize(

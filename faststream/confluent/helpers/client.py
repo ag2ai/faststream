@@ -215,9 +215,17 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
     ) -> None:
         self.admin_client = admin_service
         self.logger_state = logger
+
+        self._on_assign = on_assign
+        self._on_revoke = on_revoke
+        self._on_lost = on_lost
 
         self.topics = list(topics)
         self.partitions = partitions
@@ -292,10 +300,17 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
+            subscribe_kwargs: dict[str, Any] = {"topics": self.topics}
+            if self._on_assign is not None:
+                subscribe_kwargs["on_assign"] = self._on_assign
+            if self._on_revoke is not None:
+                subscribe_kwargs["on_revoke"] = self._on_revoke
+            if self._on_lost is not None:
+                subscribe_kwargs["on_lost"] = self._on_lost
             await run_in_executor(
                 self._thread_pool,
                 self.consumer.subscribe,
-                topics=self.topics,
+                **subscribe_kwargs,
             )
 
         elif self.partitions:
