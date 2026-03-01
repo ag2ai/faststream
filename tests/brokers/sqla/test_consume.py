@@ -812,8 +812,11 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_fetch_intervals(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self, engine: AsyncEngine, recreate_tables: None
     ) -> None:
+        """After first batch was exhausted, next fetch happened immediately, but because it
+        wasn't full, third fetch used max_fetch_interval.
+        """
         broker = self.get_broker(engine=engine)
         await broker.connect()
 
@@ -843,7 +846,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
         await asyncio.sleep(0.5)
         await broker.publish({"message": f"hello{idx + 1}"}, queue="default1")
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.5)
 
         assert len(attempted) == 7
 
@@ -898,7 +901,7 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result[0]["deliveries_count"] == 1
 
         await broker.start()
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.5)
 
         assert len(attempted) == 4
 

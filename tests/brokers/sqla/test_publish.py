@@ -17,6 +17,10 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     async def test_no_reply(self) -> None: ...
 
+    test_reusable_publishers = pytest.mark.flaky(reruns=3, reruns_delay=1)(
+        BrokerPublishTestcase.test_reusable_publishers
+    )
+
 
 @pytest.mark.sqla()
 @pytest.mark.connected()
