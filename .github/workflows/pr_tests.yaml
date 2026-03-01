@@ -486,7 +486,7 @@ jobs:
       - name: Grant MySQL privileges
         run: |
           until mysqladmin ping -h 127.0.0.1 --silent; do sleep 1; done
-          mysql -h 127.0.0.1 -u root -pbrokerpass < tests/brokers/sqla/docker/init.sql
+          mysql -h 127.0.0.1 -u root -pbrokerpass < tests/brokers/sqla/infra/init_mysql.sql
       - uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
         with:
           version: "latest"
