@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -78,6 +78,10 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
@@ -138,6 +142,10 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[True] = ...,
         max_records: int | None = None,
         # broker args
@@ -198,6 +206,10 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
@@ -258,6 +270,10 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
@@ -322,6 +338,10 @@ class KafkaRegistrator(
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
@@ -464,6 +484,12 @@ class KafkaRegistrator(
                 return the ALSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
+            on_assign: Callback called when partitions are assigned to the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_revoke: Callback called when partitions are revoked from the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_lost: Callback called when partitions are lost (e.g., due to session
+                timeout). Receives ``(consumer, partitions)`` arguments.
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
@@ -506,6 +532,9 @@ class KafkaRegistrator(
                 "session_timeout_ms": session_timeout_ms,
                 "heartbeat_interval_ms": heartbeat_interval_ms,
                 "isolation_level": isolation_level,
+                "on_assign": on_assign,
+                "on_revoke": on_revoke,
+                "on_lost": on_lost,
             },
             auto_commit=auto_commit,
             # subscriber args
