@@ -96,7 +96,10 @@ class ExceptionMiddleware:
             def pub_wrapper(
                 func: PublishingExceptionHandler,
             ) -> PublishingExceptionHandler:
-                self._publish_handlers[exc] = apply_types(to_async(func), serializer_cls=None)
+                self._publish_handlers[exc] = apply_types(
+                    to_async(func),
+                    serializer_cls=None,
+                )
                 return func
 
             return pub_wrapper
@@ -104,7 +107,10 @@ class ExceptionMiddleware:
         def default_wrapper(
             func: GeneralExceptionHandler,
         ) -> GeneralExceptionHandler:
-            self._handlers[exc] = apply_types(to_async(func), serializer_cls=None)
+            self._handlers[exc] = apply_types(
+                to_async(func),
+                serializer_cls=None,
+            )
             return func
 
         return default_wrapper
