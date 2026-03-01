@@ -8,7 +8,6 @@ from typing import (
     cast,
 )
 
-import anyio
 import nats
 from fast_depends import Provider, dependency_provider
 from nats.aio.client import (
@@ -757,23 +756,10 @@ class NatsBroker(
         return self.connection.new_inbox()
 
     @override
-    async def ping(self, timeout: float | None) -> bool:
-        sleep_time = (timeout or 10) / 10
-
-        with anyio.move_on_after(timeout) as cancel_scope:
-            if self._connection is None:
-                return False
-
-            while True:
-                if cancel_scope.cancel_called:
-                    return False
-
-                if self._connection.is_connected:
-                    return True
-
-                await anyio.sleep(sleep_time)
-
-        return False
+    async def _ping(self) -> bool:
+        if self._connection is None:
+            return False
+        return self._connection.is_connected
 
     @property
     def connection(self) -> "Client":

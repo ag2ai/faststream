@@ -80,6 +80,7 @@ ignore = [
     "D105",     # missing docstring in magic methods
     "D106",     # missing docstring in public nested class
     "D107",     # missing docstring in __init__
+    "D205",     # 1 blank line required between summary line and description
     "DOC201",
     "DOC202",
     "DOC402",

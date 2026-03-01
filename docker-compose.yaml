@@ -41,6 +41,31 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: broker
+      POSTGRES_USER: broker
+      POSTGRES_PASSWORD: brokerpass # pragma: allowlist secret
+    ports:
+      - "5432:5432"
+    security_opt:
+      - no-new-privileges:true
+
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_DATABASE: broker
+      MYSQL_USER: broker
+      MYSQL_PASSWORD: brokerpass # pragma: allowlist secret
+      MYSQL_ROOT_PASSWORD: brokerpass # pragma: allowlist secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./tests/brokers/sqla/infra/init_mysql.sql:/docker-entrypoint-initdb.d/99-grant-all.sql:ro
+    security_opt:
+      - no-new-privileges:true
+
   faststream:
     build: .
     volumes:
