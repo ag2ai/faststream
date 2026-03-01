@@ -8,37 +8,85 @@ search:
   boost: 10
 ---
 
-# Context Fields Declaration
+# Context
 
-You can also store your own objects in the `Context`.
+**FastStreams** has its own Dependency Injection container - **Context**, used to store application runtime objects and variables.
 
-## Global
+With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](./dependencies/index.md){.internal-link} usage.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/kafka/annotated.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/confluent/annotated.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/rabbit/annotated.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/nats/annotated.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/redis/annotated.py !}
+    ```
+
+By default, the context is available in the same place as `Depends`:
+
+* at lifespan hooks
+* message subscribers
+* nested dependencies
+
+!!! tip
+    You can also get access to the **Context**:
+
+    * in [Middlewares](../middlewares/#context-access){.internal-link} as `#!python self.context`
+    * through the application property `#!python app.context`
+    * through the broker property `#!python broker.context`
+
+## Fields Declaration
+
+You can store your own objects in the `Context`.
+
+### Global
+
+Global context fields can be set at both the application-level and the broker-level.
+
+#### Application-level
 
 To declare an application-level context field, you need to call the `context.set_global` method with a key to indicate where the object will be placed in the context.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="8-9"
-    {!> docs_src/getting_started/context/kafka/custom_global_context.py [ln:1-5,13-16] !}
+    {!> docs_src/getting_started/context/kafka/custom_global_context.py [ln:1-6,13-16] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="8-9"
-    {!> docs_src/getting_started/context/confluent/custom_global_context.py [ln:1-5,13-16] !}
+    {!> docs_src/getting_started/context/confluent/custom_global_context.py [ln:1-6,13-16] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="8-9"
-    {!> docs_src/getting_started/context/rabbit/custom_global_context.py [ln:1-5,13-16] !}
+    {!> docs_src/getting_started/context/rabbit/custom_global_context.py [ln:1-6,13-16] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="8-9"
-    {!> docs_src/getting_started/context/nats/custom_global_context.py [ln:1-5,13-16] !}
+    {!> docs_src/getting_started/context/nats/custom_global_context.py [ln:1-6,13-16] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="8-9"
-    {!> docs_src/getting_started/context/redis/custom_global_context.py [ln:1-5,13-16] !}
+    {!> docs_src/getting_started/context/redis/custom_global_context.py [ln:1-6,13-16] !}
     ```
 
 Afterward, you can access your `secret` field in the usual way:
@@ -68,7 +116,7 @@ Afterward, you can access your `secret` field in the usual way:
     {!> docs_src/getting_started/context/redis/custom_global_context.py [ln:8-13] !}
     ```
 
-In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
+In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`).
 
 !!! tip
     Alternatively you can setup global context objects in `FastStream` object constructor:
@@ -88,7 +136,64 @@ To remove a field from the context use the `reset_global` method:
 context.reset_global("my_key")
 ```
 
-## Local
+#### Broker-level
+
+There are cases when you may need to use broker without using the `FastStream` application class.
+In such cases, the context can be set separately for the broker by passing it through the constructor.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/kafka/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/confluent/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/rabbit/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/nats/custom_broker_context.py [ln:1-8] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="7"
+    {!> docs_src/getting_started/context/redis/custom_broker_context.py [ln:1-8] !}
+    ```
+
+At the same time, access to the context remains unchanged.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/kafka/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/confluent/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/rabbit/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/nats/custom_broker_context.py [ln:10-14] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/redis/custom_broker_context.py [ln:10-14] !}
+    ```
+
+### Local
 
 To set a local context (available only within the message processing scope), use the context manager `scope`. It could me extremely uselful to fill context with additional options in [Middlewares](../middlewares/){.internal-link}
 
@@ -156,6 +261,47 @@ By default, the context searches for an object based on the argument name.
     ```python linenums="1" hl_lines="1 8-11"
     {!> docs_src/getting_started/context/redis/existed_context.py [ln:1-2,9-12,14-23] !}
     ```
+
+### Access by Name
+
+Sometimes, you may need to use a different name for the argument (not the one under which it is stored in the context) or get access to specific parts of the object. To do this, simply specify the name of what you want to access, and the context will provide you with the object.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/kafka/fields_access.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/confluent/fields_access.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/rabbit/fields_access.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/nats/fields_access.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/redis/fields_access.py !}
+    ```
+
+This way you can get access to context object specific field
+
+```python
+{! docs_src/getting_started/context/kafka/fields_access.py [ln:11] !}
+```
+
+Or even to a dict key
+
+```python
+{! docs_src/getting_started/context/kafka/fields_access.py [ln:12] !}
+```
 
 ### Annotated Aliases
 
@@ -390,89 +536,3 @@ Also, `Context` provides you with a `initial` option to setup base context value
     ```python linenums="1" hl_lines="4 6"
     {!> docs_src/getting_started/context/redis/initial.py [ln:7-12] !}
     ```
-
-## Access by Name
-
-Sometimes, you may need to use a different name for the argument (not the one under which it is stored in the context) or get access to specific parts of the object. To do this, simply specify the name of what you want to access, and the context will provide you with the object.
-
-=== "AIOKafka"
-    ```python linenums="1" hl_lines="11-12"
-    {!> docs_src/getting_started/context/kafka/fields_access.py !}
-    ```
-
-=== "Confluent"
-    ```python linenums="1" hl_lines="11-12"
-    {!> docs_src/getting_started/context/confluent/fields_access.py !}
-    ```
-
-=== "RabbitMQ"
-    ```python linenums="1" hl_lines="11-12"
-    {!> docs_src/getting_started/context/rabbit/fields_access.py !}
-    ```
-
-=== "NATS"
-    ```python linenums="1" hl_lines="11-12"
-    {!> docs_src/getting_started/context/nats/fields_access.py !}
-    ```
-
-
-=== "Redis"
-    ```python linenums="1" hl_lines="11-12"
-    {!> docs_src/getting_started/context/redis/fields_access.py !}
-    ```
-
-This way you can get access to context object specific field
-
-
-```python
-{! docs_src/getting_started/context/kafka/fields_access.py [ln:11] !}
-```
-
-Or even to a dict key
-
-
-```python
-{! docs_src/getting_started/context/kafka/fields_access.py [ln:12] !}
-```
-
-## Application Context
-
-**FastStreams** has its own Dependency Injection container - **Context**, used to store application runtime objects and variables.
-
-With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](../dependencies/index.md){.internal-link} usage.
-
-=== "AIOKafka"
-    ```python linenums="1" hl_lines="2 4 12"
-    {!> docs_src/getting_started/context/kafka/annotated.py !}
-    ```
-
-=== "Confluent"
-    ```python linenums="1" hl_lines="2 4 12"
-    {!> docs_src/getting_started/context/confluent/annotated.py !}
-    ```
-
-=== "RabbitMQ"
-    ```python linenums="1" hl_lines="2 4 12"
-    {!> docs_src/getting_started/context/rabbit/annotated.py !}
-    ```
-
-=== "NATS"
-    ```python linenums="1" hl_lines="2 4 12"
-    {!> docs_src/getting_started/context/nats/annotated.py !}
-    ```
-
-=== "Redis"
-    ```python linenums="1" hl_lines="2 4 12"
-    {!> docs_src/getting_started/context/redis/annotated.py !}
-    ```
-
-### Usages
-
-By default, the context is available in the same place as `Depends`:
-
-* at lifespan hooks
-* message subscribers
-* nested dependencies
-
-!!! tip
-    You can get access to the **Context** in [Middlewares](../middlewares/#context-access){.internal-link} as `#!python self.context`
