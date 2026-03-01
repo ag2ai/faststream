@@ -1,11 +1,9 @@
-from faststream.rabbit import RabbitBroker, RabbitMessage
+from faststream.rabbit import RabbitBroker
 
 async def main():
     async with RabbitBroker() as broker:
         subscriber = broker.subscriber("test-queue", persistent=False)
-        await subscriber.start()
 
-        async for msg in subscriber: # msg is RabbitMessage type
-            ... # do message process
-
-        await subscriber.stop()
+        async with subscriber:
+            async for msg in subscriber: # msg is RabbitMessage type
+                ... # do message process

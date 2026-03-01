@@ -17,9 +17,8 @@ However, the framework still allows you to do so in a suitable manner.
         async with TestKafkaBroker(broker) as br:
             subscriber = br.subscriber("test-topic", persistent=False)
 
-            await subscriber.start()
-            message = await subscriber.get_one()  # does not work
-            await subscriber.stop()
+            async with subscriber:
+                message = await subscriber.get_one()  # does not work
         ```
     === "Confluent"
         ```python linenums="1"
@@ -28,9 +27,9 @@ However, the framework still allows you to do so in a suitable manner.
         async with TestKafkaBroker(broker) as br:
             subscriber = br.subscriber("test-topic", persistent=False)
 
-            await subscriber.start()
-            message = await subscriber.get_one()  # does not work
-            await subscriber.stop()
+            async with subscriber:
+                message = await subscriber.get_one()  # does not work
+
         ```
     === "RabbitMQ"
         ```python linenums="1"
@@ -39,9 +38,8 @@ However, the framework still allows you to do so in a suitable manner.
         async with TestRabbitBroker(broker) as br:
             subscriber = br.subscriber("test-queue", persistent=False)
 
-            await subscriber.start()
-            message = await subscriber.get_one()  # does not work
-            await subscriber.stop()
+            async with subscriber:
+                message = await subscriber.get_one()  # does not work
         ```
     === "NATS"
         ```python linenums="1"
@@ -50,9 +48,8 @@ However, the framework still allows you to do so in a suitable manner.
         async with TestNatsBroker(broker) as br:
             subscriber = br.subscriber("test-subject", persistent=False)
 
-            await subscriber.start()
-            message = await subscriber.get_one()  # does not work
-            await subscriber.stop()
+            async with subscriber:
+                message = await subscriber.get_one()  # does not work
         ```
     === "Redis"
         ```python linenums="1"
@@ -61,9 +58,8 @@ However, the framework still allows you to do so in a suitable manner.
         async with TestRedisBroker(broker) as br:
             subscriber = br.subscriber("test-channel", persistent=False)
 
-            await subscriber.start()
-            message = await subscriber.get_one()  # does not work
-            await subscriber.stop()
+            async with subscriber:
+                message = await subscriber.get_one()  # does not work
         ```
 
 ## Consuming a Single Message
@@ -81,6 +77,10 @@ To process a single message, you should create a subscriber and call the appropr
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:6-10] !}
         ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:12-13] !}
+        ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="8"
@@ -93,6 +93,11 @@ To process a single message, you should create a subscriber and call the appropr
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/confluent/dynamic.py [ln:6-10] !}
         ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/confluent/dynamic.py [ln:12-13] !}
+        ```
+
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="8"
@@ -104,6 +109,10 @@ To process a single message, you should create a subscriber and call the appropr
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/rabbit/dynamic.py [ln:6-10] !}
+        ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/rabbit/dynamic.py [ln:12-13] !}
         ```
 
 === "NATS"
@@ -117,6 +126,10 @@ To process a single message, you should create a subscriber and call the appropr
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/nats/dynamic.py [ln:6-10] !}
         ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/nats/dynamic.py [ln:12-13] !}
+        ```
 
 === "Redis"
     ```python linenums="1" hl_lines="8"
@@ -128,6 +141,10 @@ To process a single message, you should create a subscriber and call the appropr
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/redis/dynamic.py [ln:6-10] !}
+        ```
+        Or so
+        ```python linenums="1" hl_lines="1"
+        {!> docs_src/getting_started/subscription/redis/dynamic.py [ln:12-13] !}
         ```
 
 ## Iteration over messages
