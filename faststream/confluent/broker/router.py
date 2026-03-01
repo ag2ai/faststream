@@ -135,6 +135,10 @@ class KafkaRoute(SubscriberRoute):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
@@ -274,6 +278,9 @@ class KafkaRoute(SubscriberRoute):
                 return the ALSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
+            on_assign: Callback called when partitions are assigned to the consumer.
+            on_revoke: Callback called when partitions are revoked from the consumer.
+            on_lost: Callback called when partitions are lost.
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
@@ -309,6 +316,9 @@ class KafkaRoute(SubscriberRoute):
             session_timeout_ms=session_timeout_ms,
             heartbeat_interval_ms=heartbeat_interval_ms,
             isolation_level=isolation_level,
+            on_assign=on_assign,
+            on_revoke=on_revoke,
+            on_lost=on_lost,
             max_records=max_records,
             batch=batch,
             # basic args
