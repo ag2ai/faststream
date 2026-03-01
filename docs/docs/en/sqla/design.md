@@ -8,9 +8,9 @@ search:
   boost: 10
 ---
 
-# Design
+# Design and Features
 
-### Message Lifecycle
+## Message Lifecycle
 
 A published message starts out as `PENDING`. When it is acquired by a worker, it is marked as `PROCESSING`, which prevents it from being acquired by other worker processes. If the maximum allowed number of deliveries is configured and exceeded, the message is marked as `FAILED`. If not, the message is processed. If processing didn't raise an exception or if the message was manually Ack'ed in the handler, it is marked as `COMPLETED`. If the message was manually Nack'ed or Reject'ed or if processing raised an exception and [`AckPolicy`](../getting-started/acknowledgement.md){.internal-link} was set to `REJECT_ON_ERROR` or `NACK_ON_ERROR`, the message is Nack'ed or Reject'ed. Reject'ed messages are marked as `FAILED`. For Nack'ed messages, the retry policy determines if the message is allowed to be retried. If retry is allowed, the message is marked as `RETRYABLE`. If not, the message is marked as `FAILED`.
 
@@ -30,7 +30,7 @@ flowchart TD
     RETRYABLE -->|acquired by worker| PROCESSING
 ```
 
-### Subscriber Internals
+## Subscriber Internals
 
 On start, the subscriber spawns four types of concurrent loops:
 
@@ -44,6 +44,12 @@ On start, the subscriber spawns four types of concurrent loops:
 
 On stop, all loops are gracefully stopped. Messages that have been acquired but are not yet being processed are drained from the internal queue and marked back as `PENDING`. The subscriber waits for all tasks to complete within `graceful_timeout`, then performs a final flush.
 
+## Features
+
+### Supported Databases
+
+PostgreSQL, MySQL, and SQLite are currently supported.
+
 ### Processing Guarantees
 
 This design adheres to the **"at least once"** processing guarantee because flushing changes to the database happens only after a processing attempt. A flush might not happen due to e.g. a crash. This might lead to messages being processed more times than allowed by the `retry_strategy`, and to the database state being inconsistent with the true number of attempts.
@@ -52,7 +58,7 @@ This design adheres to the **"at least once"** processing guarantee because flus
 
 Multiple subscriber instances (in different processes or on different machines) can safely consume from the same queue without double-processing because `SELECT ... FOR UPDATE SKIP LOCKED` is utilized
 
-### Transactions
+### Short-Lived Transactions
 
 This design opts for separate short-lived transactions instead of a single one. This first one fetches messages with `SELECT ... FOR UPDATE SKIP LOCKED` and sets their state to `PROCESSING`, which prevents them from being fetched by other processes/nodes. The other two transactions flush message state updates to the database.
 
@@ -60,13 +66,25 @@ This design opts for separate short-lived transactions instead of a single one. 
 
 Setting `max_deliveries` to a non-`None` value provides protection from the [poison message problem](https://www.rabbitmq.com/docs/quorum-queues#poison-message-handling){.external-link target="_blank"} (messages that crash the worker without the ability to catch the exception, e.g. due to OOM terminations) because `deliveries_count` is incremented and `max_deliveries` is checked prior to a processing attempt. However, this comes at the expense of potentially over-counting deliveries, especially for messages that are being processed concurrently with the poison message (a crash would leave them with incremented `deliveries_count` despite possibly not having been processed), and violating the at-most-once processing semantics.
 
-### Why Not LISTEN/NOTIFY?
+### Ordered Processing
 
-`LISTEN/NOTIFY` is specific to PostgreSQL, while it is preferable to start with functionality universal to any supported database. When using multiple nodes/processes, distributing messages among them would still require `SELECT ... FOR UPDATE SKIP LOCKED`, because the notification will be delivered to all nodes/processes. A notification may also fail to arrive, especially if a node restarts. That is, polling is needed in any case. Once polling is in place, `LISTEN/NOTIFY` can be integrated to "wake up" the polling loop earlier than as per the interval-based schedule.
+As of now, to achieve processing strictly in the order of `next_attempt_at` (or in the order of publishing if no `next_attempt_at` was provided), only one process should be consuming from the same queue and its concurrency should be set to 1 with `max_workers=1`.
 
-### SQL Statements
+### Delayed Delivery and Retries
 
-#### Acquire Messages
+[Delayed delivery](../sqla/tutorial.md#delayed-delivery){.internal-link} is supported with the use of `next_attempt_at`, and the same field is set by retry strategies for [delayed retries](../sqla/tutorial.md#delayed-retries){.internal-link}.
+
+### No Fanout
+
+As of now, fanout, where each of the consumer groups processes every message, is not supported.
+
+### No LISTEN/NOTIFY
+
+As of now, `LISTEN/NOTIFY` is not supported.
+
+## SQL Statements
+
+### Acquire Messages
 
 === "PostgreSQL"
     ```sql linenums="1"
@@ -185,7 +203,7 @@ Setting `max_deliveries` to a non-`None` value provides protection from the [poi
     COMMIT;
     ```
 
-#### Archive Messages
+### Archive Messages
 
 === "PostgreSQL"
     ```sql linenums="1"
@@ -265,7 +283,7 @@ Setting `max_deliveries` to a non-`None` value provides protection from the [poi
       message.id IN (% s);
     ```
 
-#### Requeue Messages
+### Requeue Messages
 
 === "PostgreSQL"
     ```sql linenums="1"
@@ -299,7 +317,7 @@ Setting `max_deliveries` to a non-`None` value provides protection from the [poi
 
 Note that for bulk updates the arguments are sent in a batch in a single network call using `execute_many()`.
 
-#### Requeue Stuck Messages
+### Requeue Stuck Messages
 
 === "PostgreSQL"
     ```sql linenums="1"

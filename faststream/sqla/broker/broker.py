@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from fast_depends import Provider, dependency_provider
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -20,6 +20,8 @@ from faststream.sqla.publisher.producer import SqlaProducer
 from faststream.sqla.response import SqlaPublishCommand
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra.tag import Tag, TagDict
+    from faststream.sqla.client import SqlaBaseClient
 
 
 class SqlaBroker(
@@ -124,6 +127,16 @@ class SqlaBroker(
         await self.connect()
         await super().start()
 
+    async def stop(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await super().stop(exc_type, exc_val, exc_tb)
+        if self.config.broker_config.engine:
+            await self.config.broker_config.engine.dispose(close=True)
+
     @override
     async def publish(
         self,
@@ -154,4 +167,4 @@ class SqlaBroker(
 
     @override
     async def _ping(self) -> bool:
-        return await self.config.broker_config.client.ping()
+        return await cast("SqlaBaseClient", self.config.broker_config.client).ping()

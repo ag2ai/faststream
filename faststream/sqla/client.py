@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -382,6 +383,46 @@ class SqlaMySqlClient(SqlaPostgresClient):
             await conn.execute(stmt)
 
 
+class SqlaSqliteClient(SqlaBaseClient):
+    async def fetch(
+        self,
+        queues: list[str],
+        *,
+        limit: int,
+    ) -> list[SqlaInnerMessage]:
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        ready = (
+            select(self._message_table.c.id)
+            .where(
+                or_(
+                    self._message_table.c.state == SqlaMessageState.PENDING,
+                    self._message_table.c.state == SqlaMessageState.RETRYABLE,
+                ),
+                self._message_table.c.next_attempt_at <= now,
+                or_(*(self._message_table.c.queue == queue for queue in queues)),
+            )
+            .order_by(self._message_table.c.next_attempt_at)
+            .limit(limit)
+            .cte("ready")
+        )
+        claim_stmt = (
+            update(self._message_table)
+            .where(self._message_table.c.id.in_(select(ready.c.id)))
+            .values(
+                state=SqlaMessageState.PROCESSING,
+                deliveries_count=self._message_table.c.deliveries_count + 1,
+                acquired_at=now,
+            )
+            .returning(*self._message_select_columns)
+        )
+        async with self._engine.begin() as conn:
+            result = await conn.execute(claim_stmt)
+            rows = result.mappings().all()
+
+        rows = sorted(rows, key=operator.itemgetter("next_attempt_at"))
+        return [SqlaInnerMessage(**row) for row in rows]
+
+
 class SchemaValidator:
     def __init__(
         self,
@@ -476,6 +517,8 @@ def create_sqla_client(
     match engine.dialect.name.lower():
         case "mysql":
             client_cls = SqlaMySqlClient
+        case "sqlite":
+            client_cls = SqlaSqliteClient
         case "postgresql":
             client_cls = SqlaPostgresClient
         case _:

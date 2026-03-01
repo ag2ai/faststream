@@ -78,6 +78,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosqlite"
+version = "0.22.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -966,6 +975,10 @@ sqla-postgres = [
     { name = "asyncpg" },
     { name = "sqlalchemy" },
 ]
+sqla-sqlite = [
+    { name = "aiosqlite" },
+    { name = "sqlalchemy" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -977,7 +990,7 @@ dev = [
     { name = "dirty-equals" },
     { name = "email-validator" },
     { name = "fastapi" },
-    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis", "sqla-mysql", "sqla-postgres"] },
+    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis", "sqla-mysql", "sqla-postgres", "sqla-sqlite"] },
     { name = "freezegun" },
     { name = "httpx" },
     { name = "mdx-include" },
@@ -1051,7 +1064,7 @@ lint = [
     { name = "zizmor" },
 ]
 optionals = [
-    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis", "sqla-mysql", "sqla-postgres"] },
+    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis", "sqla-mysql", "sqla-postgres", "sqla-sqlite"] },
 ]
 test-core = [
     { name = "covdefaults" },
@@ -1091,6 +1104,7 @@ testing = [
 requires-dist = [
     { name = "aio-pika", marker = "extra == 'rabbit'", specifier = ">=9,<10" },
     { name = "aiokafka", marker = "extra == 'kafka'", specifier = ">=0.9,<0.14" },
+    { name = "aiosqlite", marker = "extra == 'sqla-sqlite'", specifier = ">=0.22.1" },
     { name = "anyio", specifier = ">=4.0,<5" },
     { name = "asyncmy", marker = "extra == 'sqla-mysql'", specifier = ">=0.2.10" },
     { name = "asyncpg", marker = "extra == 'sqla-postgres'", specifier = ">=0.31.0" },
@@ -1104,11 +1118,12 @@ requires-dist = [
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.0.0,<8.0.0" },
     { name = "sqlalchemy", marker = "extra == 'sqla-mysql'", specifier = ">=2.0.44" },
     { name = "sqlalchemy", marker = "extra == 'sqla-postgres'", specifier = ">=2.0.44" },
+    { name = "sqlalchemy", marker = "extra == 'sqla-sqlite'", specifier = ">=2.0.44" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.9,!=0.12,<=0.21.1" },
     { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "watchfiles", marker = "extra == 'cli'", specifier = ">=0.15.0,<1.2.0" },
 ]
-provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "otel", "cli", "prometheus"]
+provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "sqla-sqlite", "otel", "cli", "prometheus"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1120,7 +1135,7 @@ dev = [
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "email-validator", specifier = "==2.3.0" },
     { name = "fastapi", specifier = "==0.128.0" },
-    { name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "otel", "cli", "prometheus"] },
+    { name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "sqla-sqlite", "otel", "cli", "prometheus"] },
     { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mdx-include", specifier = "==1.4.2" },
@@ -1194,7 +1209,7 @@ lint = [
     { name = "types-setuptools" },
     { name = "zizmor", specifier = "==1.22.0" },
 ]
-optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "otel", "cli", "prometheus"] }]
+optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "sqla-postgres", "sqla-mysql", "sqla-sqlite", "otel", "cli", "prometheus"] }]
 test-core = [
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "dirty-equals", specifier = "==0.11" },

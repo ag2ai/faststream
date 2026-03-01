@@ -86,6 +86,11 @@ sqla-mysql = [
     "cryptography>=43.0.0",
 ]
 
+sqla-sqlite = [
+    "sqlalchemy>=2.0.44",
+    "aiosqlite>=0.22.1",
+]
+
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
@@ -96,7 +101,7 @@ cli = [
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,sqla-postgres,sqla-mysql,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,sqla-postgres,sqla-mysql,sqla-sqlite,otel,cli,prometheus]"]
 
 docs = [
     "mkdocs-material==9.7.1",

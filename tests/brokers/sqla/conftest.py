@@ -7,9 +7,12 @@ from typing import TYPE_CHECKING
 
 import pytest_asyncio
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Column,
+    DateTime,
     Enum,
+    Integer,
     LargeBinary,
     MetaData,
     SmallInteger,
@@ -28,14 +31,23 @@ if TYPE_CHECKING:
     import pytest
 
 
+BACKENDS = (
+    "postgresql",
+    "mysql",
+    "sqlite",
+)  # fmt: skip
+
+
 @pytest_asyncio.fixture
 async def worker_id() -> str:
     return os.environ.get("PYTEST_XDIST_WORKER", "main")
 
 
-@pytest_asyncio.fixture(params=["postgresql", "mysql"])
+@pytest_asyncio.fixture(params=BACKENDS)
 async def master_engine(
     request: pytest.FixtureRequest,
+    worker_id: str,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> AsyncGenerator[AsyncEngine, None]:
     backend = request.param
     match backend:
@@ -43,10 +55,15 @@ async def master_engine(
             url = "postgresql+asyncpg://broker:brokerpass@localhost:5432/broker"  # pragma: allowlist secret
         case "mysql":
             url = "mysql+asyncmy://broker:brokerpass@localhost:3306/broker"  # pragma: allowlist secret
+        case "sqlite":
+            db_root = tmp_path_factory.mktemp(f"sqla-{worker_id}")
+            url = f"sqlite+aiosqlite:///{db_root / 'broker.db'}"
         case _:
             raise ValueError
 
-    engine = create_async_engine(url)
+    engine = create_async_engine(
+        url,
+    )  # fmt: skip
 
     try:
         yield engine
@@ -58,6 +75,10 @@ async def master_engine(
 async def engine(
     master_engine: AsyncEngine, worker_id: str
 ) -> AsyncGenerator[AsyncEngine, None]:
+    if master_engine.dialect.name == "sqlite":
+        yield master_engine
+        return
+
     async with master_engine.connect() as conn:
         await conn.execution_options(isolation_level="AUTOCOMMIT")
         match master_engine.dialect.name:
@@ -75,7 +96,10 @@ async def engine(
             case _:
                 raise ValueError
 
-    engine = create_async_engine(url)
+    engine = create_async_engine(
+        url,
+    )  # fmt: skip
+
     try:
         yield engine
     finally:
@@ -88,19 +112,20 @@ class Settings:
 
 
 @pytest_asyncio.fixture
-async def settings(engine: AsyncEngine) -> Settings:
-    return Settings(engine=engine)
-
-
-@pytest_asyncio.fixture
 async def recreate_tables(engine: AsyncEngine) -> None:
     match engine.dialect.name:
         case "postgresql":
             timestamp_type = postgresql.TIMESTAMP(precision=3)
             json_type = postgresql.JSONB
+            pk_type = BigInteger
         case "mysql":
             timestamp_type = mysql.TIMESTAMP(fsp=3)
             json_type = mysql.JSON
+            pk_type = BigInteger
+        case "sqlite":
+            timestamp_type = DateTime
+            json_type = JSON
+            pk_type = BigInteger().with_variant(Integer, "sqlite")
         case _:
             raise ValueError
 
@@ -109,7 +134,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
     message = Table(  # noqa: F841
         "message",
         metadata,
-        Column("id", BigInteger, primary_key=True),
+        Column("id", pk_type, primary_key=True),
         Column("queue", String(255), nullable=False, index=True),
         Column("headers", json_type, nullable=True),
         Column("payload", LargeBinary, nullable=False),
@@ -143,7 +168,7 @@ async def recreate_tables(engine: AsyncEngine) -> None:
     message_archive = Table(  # noqa: F841
         "message_archive",
         metadata,
-        Column("id", BigInteger, primary_key=True),
+        Column("id", pk_type, primary_key=True),
         Column("queue", String(255), nullable=False, index=True),
         Column("headers", json_type, nullable=True),
         Column("payload", LargeBinary, nullable=False),
@@ -164,3 +189,18 @@ async def recreate_tables(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(metadata.drop_all, checkfirst=True)
         await conn.run_sync(metadata.create_all)
+
+
+@pytest_asyncio.fixture
+async def settings(engine: AsyncEngine, recreate_tables: None) -> Settings:
+    return Settings(engine=engine)
+
+
+def as_datetime(value: datetime | str) -> datetime:
+    match value:
+        case datetime():
+            return value
+        case str():
+            return datetime.fromisoformat(value)
+        case _:
+            raise ValueError

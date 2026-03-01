@@ -3,7 +3,7 @@ import contextlib
 import logging
 from collections.abc import AsyncIterator, Coroutine, Iterable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 
 from typing_extensions import override
 
@@ -67,7 +67,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
 
     @property
     def _client(self) -> SqlaBaseClient:
-        return self.config._outer_config.client
+        return cast("SqlaBaseClient", self.config._outer_config.client)
 
     @property
     def _queues(self) -> list[str]:

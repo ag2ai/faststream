@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Column,
+    DateTime,
     Enum,
     Integer,
     LargeBinary,
@@ -52,9 +54,15 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             case "postgresql":
                 timestamp_type = postgresql.TIMESTAMP(precision=3)
                 json_type = postgresql.JSONB
+                pk_type = BigInteger
             case "mysql":
                 timestamp_type = mysql.TIMESTAMP(fsp=3)
                 json_type = mysql.JSON
+                pk_type = BigInteger
+            case "sqlite":
+                timestamp_type = DateTime
+                json_type = JSON
+                pk_type = BigInteger().with_variant(Integer, "sqlite")
             case _:
                 raise ValueError
 
@@ -62,7 +70,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         Table(
             custom_message_table,
             metadata,
-            Column("id", BigInteger, primary_key=True),
+            Column("id", pk_type, primary_key=True),
             Column("queue", String(255), nullable=False, index=True),
             Column("headers", json_type, nullable=True),
             Column("payload", LargeBinary, nullable=False),
@@ -95,7 +103,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         Table(
             custom_archive_table,
             metadata,
-            Column("id", BigInteger, primary_key=True),
+            Column("id", pk_type, primary_key=True),
             Column("queue", String(255), nullable=False, index=True),
             Column("headers", json_type, nullable=True),
             Column("payload", LargeBinary, nullable=False),
@@ -184,6 +192,9 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             case "mysql":
                 timestamp_type = mysql.TIMESTAMP(fsp=3)
                 json_type = mysql.JSON
+            case "sqlite":
+                timestamp_type = DateTime
+                json_type = JSON
             case _:
                 raise ValueError
 
@@ -246,6 +257,9 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             case "mysql":
                 timestamp_type = mysql.TIMESTAMP(fsp=3)
                 json_type = mysql.JSON
+            case "sqlite":
+                timestamp_type = DateTime
+                json_type = JSON
             case _:
                 raise ValueError
 

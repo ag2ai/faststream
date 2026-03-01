@@ -17,9 +17,11 @@ class SqlaBrokerConfig(BrokerConfig):
     validate_schema_on_start: bool = True
     message_table_name: str = "message"
     message_archive_table_name: str = "message_archive"
-    client: SqlaBaseClient = field(init=False)
+    engine: AsyncEngine | None = None
+    client: SqlaBaseClient | None = None
 
     async def connect(self, *, engine: AsyncEngine) -> None:
+        self.engine = engine
         self.producer.connect(
             connection=None,
             serializer=self.fd_config._serializer,

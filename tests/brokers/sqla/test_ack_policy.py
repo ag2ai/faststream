@@ -16,6 +16,7 @@ from faststream.sqla.annotations import (
 from faststream.sqla.message import SqlaMessageState
 from faststream.sqla.retry import ConstantRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
+from tests.brokers.sqla.conftest import as_datetime
 
 
 @pytest.mark.sqla()
@@ -62,18 +63,20 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["state"] == SqlaMessageState.RETRYABLE.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         ).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
-        ).replace(tzinfo=None)
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
-
-        assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(
-            seconds=5
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
         )
+
+        assert as_datetime(result["next_attempt_at"]) >= as_datetime(
+            result["first_attempt_at"]
+        ) + timedelta(seconds=5)
         assert result["acquired_at"] is None
 
     @pytest.mark.asyncio()
@@ -116,15 +119,23 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
 
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("ack_policy", (AckPolicy.ACK_FIRST, AckPolicy.ACK))
@@ -169,15 +180,23 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["state"] == SqlaMessageState.COMPLETED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
 
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     async def test_consume_manual(
@@ -220,15 +239,23 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         assert result["state"] == SqlaMessageState.COMPLETED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
 
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     async def test_consume_manual_no_manual_ack(

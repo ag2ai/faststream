@@ -24,6 +24,7 @@ from faststream.sqla.message import SqlaMessage, SqlaMessageState
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
+from tests.brokers.sqla.conftest import as_datetime
 
 
 @pytest.mark.sqla()
@@ -81,14 +82,22 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["state"] == SqlaMessageState.COMPLETED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     async def test_consume_nack_retry(
@@ -130,18 +139,20 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["state"] == SqlaMessageState.RETRYABLE.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         ).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
-        ).replace(tzinfo=None)
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
-
-        assert result["next_attempt_at"] >= result["first_attempt_at"] + timedelta(
-            seconds=10
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
         )
+
+        assert as_datetime(result["next_attempt_at"]) >= as_datetime(
+            result["first_attempt_at"]
+        ) + timedelta(seconds=10)
         assert result["acquired_at"] is None
 
     @pytest.mark.asyncio()
@@ -182,15 +193,23 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
 
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("max_deliveries", (1, None))
@@ -262,15 +281,15 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
             assert result["state"] == SqlaMessageState.FAILED.name
             assert result["attempts_count"] == 0
             assert result["deliveries_count"] == 2
-            assert result["created_at"] < datetime.now(tz=timezone.utc).replace(
-                tzinfo=None
-            )
+            assert as_datetime(result["created_at"]) < datetime.now(
+                tz=timezone.utc
+            ).replace(tzinfo=None)
             assert result["first_attempt_at"] is None
             assert result["last_attempt_at"] is None
 
-            assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(
-                tzinfo=None
-            )
+            assert as_datetime(result["archived_at"]) < datetime.now(
+                tz=timezone.utc
+            ).replace(tzinfo=None)
 
             logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
             assert len(logs) == 2
@@ -323,15 +342,19 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 3
         assert result["deliveries_count"] == 3
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] > result["first_attempt_at"]
-        assert result["last_attempt_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) > as_datetime(
+            result["first_attempt_at"]
         )
+        assert as_datetime(result["last_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
 
     @pytest.mark.asyncio()
     async def test_consume_no_retry_strategy(
@@ -371,15 +394,23 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result["state"] == SqlaMessageState.FAILED.name
         assert result["attempts_count"] == 1
         assert result["deliveries_count"] == 1
-        assert result["created_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
+        assert as_datetime(result["created_at"]) < datetime.now(tz=timezone.utc).replace(
             tzinfo=None
         )
-        assert result["first_attempt_at"] > result["created_at"]
-        assert result["last_attempt_at"] == result["first_attempt_at"]
+        assert as_datetime(result["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result["first_attempt_at"]) > as_datetime(result["created_at"])
+        assert as_datetime(result["last_attempt_at"]) == as_datetime(
+            result["first_attempt_at"]
+        )
 
-        assert result["archived_at"] < datetime.now(tz=timezone.utc).replace(tzinfo=None)
-        assert result["archived_at"] > result["first_attempt_at"]
+        assert as_datetime(result["archived_at"]) < datetime.now(tz=timezone.utc).replace(
+            tzinfo=None
+        )
+        assert as_datetime(result["archived_at"]) > as_datetime(
+            result["first_attempt_at"]
+        )
 
     @pytest.mark.asyncio()
     async def test_consume_by_queues(
@@ -516,32 +547,38 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert result_1[0]["state"] == SqlaMessageState.COMPLETED.name
         assert result_1[0]["attempts_count"] == 1
         assert result_1[0]["deliveries_count"] == 1
-        assert result_1[0]["created_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
+        assert as_datetime(result_1[0]["created_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result_1[0]["first_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result_1[0]["first_attempt_at"]) > as_datetime(
+            result_1[0]["created_at"]
         )
-        assert result_1[0]["first_attempt_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
+        assert as_datetime(result_1[0]["last_attempt_at"]) == as_datetime(
+            result_1[0]["first_attempt_at"]
         )
-        assert result_1[0]["first_attempt_at"] > result_1[0]["created_at"]
-        assert result_1[0]["last_attempt_at"] == result_1[0]["first_attempt_at"]
-        assert result_1[0]["archived_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
+        assert as_datetime(result_1[0]["archived_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
+        assert as_datetime(result_1[0]["archived_at"]) > as_datetime(
+            result_1[0]["first_attempt_at"]
         )
-        assert result_1[0]["archived_at"] > result_1[0]["first_attempt_at"]
 
         result_2 = result_2.mappings().all()
         assert len(result_2) == 2
         assert result_2[0]["state"] == SqlaMessageState.PENDING.name
         assert result_2[0]["attempts_count"] == 0
         assert result_2[0]["deliveries_count"] == 0
-        assert result_2[0]["created_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
-        )
+        assert as_datetime(result_2[0]["created_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
         assert result_2[0]["acquired_at"] is None
         assert result_2[0]["first_attempt_at"] is None
-        assert result_2[0]["next_attempt_at"] < datetime.now(tz=timezone.utc).replace(
-            tzinfo=None
-        )
+        assert as_datetime(result_2[0]["next_attempt_at"]) < datetime.now(
+            tz=timezone.utc
+        ).replace(tzinfo=None)
         assert result_2[0]["last_attempt_at"] is None
 
     @pytest.mark.asyncio()
@@ -864,3 +901,79 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         await asyncio.sleep(0.1)
 
         assert len(attempted) == 4
+
+    @pytest.mark.asyncio()
+    async def test_consume_work_sharing(
+        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+    ) -> None:
+        broker_1 = self.get_broker(engine=engine)
+        broker_2 = self.get_broker(engine=engine)
+        broker_3 = self.get_broker(engine=engine)
+        await broker_1.connect()
+        await broker_2.connect()
+        await broker_3.connect()
+
+        attempt_counts = {}
+
+        @broker_3.subscriber(
+            queues=["default1"],
+            max_workers=10,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=0,
+            min_fetch_interval=0,
+            fetch_batch_size=10,
+            overfetch_factor=1,
+            flush_interval=1,
+            release_stuck_interval=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.NACK_ON_ERROR,
+        )
+        @broker_2.subscriber(
+            queues=["default1"],
+            max_workers=10,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=0,
+            min_fetch_interval=0,
+            fetch_batch_size=10,
+            overfetch_factor=1,
+            flush_interval=1,
+            release_stuck_interval=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.NACK_ON_ERROR,
+        )
+        @broker_1.subscriber(
+            queues=["default1"],
+            max_workers=10,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=0,
+            min_fetch_interval=0,
+            fetch_batch_size=10,
+            overfetch_factor=1,
+            flush_interval=1,
+            release_stuck_interval=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.NACK_ON_ERROR,
+        )
+        async def handler(msg: Any) -> None:
+            nonlocal attempt_counts
+            attempt_counts[msg["message"]] = attempt_counts.get(msg["message"], 0) + 1
+
+        msg_count = 1000
+        for idx in range(msg_count):
+            await broker_1.publish({"message": f"{idx + 1}"}, queue="default1")
+
+        await broker_1.start()
+        await broker_2.start()
+        await broker_3.start()
+
+        while True:
+            if len(attempt_counts) != msg_count:
+                await asyncio.sleep(0.1)
+            else:
+                break
+
+        for idx in attempt_counts.values():
+            assert idx == 1

@@ -12,6 +12,8 @@ search:
 
 ## Installation
 
+PostgreSQL, MySQL, and SQLite are currently supported.
+
 === "PostgreSQL"
     ```bash
     pip install "faststream[sqla-postgres]"
@@ -20,6 +22,11 @@ search:
 === "MySQL"
     ```bash
     pip install "faststream[sqla-mysql]"
+    ```
+
+=== "SQLite"
+    ```bash
+    pip install "faststream[sqla-sqlite]"
     ```
 
 ## Database Tables

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 from typing_extensions import override
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.types import AsyncCallable, CustomCallable
+    from faststream.sqla.client import SqlaBaseClient
     from faststream.sqla.configs.broker import SqlaBrokerConfig
 
 
@@ -78,7 +79,7 @@ class SqlaProducer(SqlaProducerProto):
             **cmd.headers_to_publish(),
         }
 
-        return await self.config.client.enqueue(
+        await cast("SqlaBaseClient", self.config.client).enqueue(
             payload=payload,
             queue=cmd.destination,
             headers=headers_to_send,
