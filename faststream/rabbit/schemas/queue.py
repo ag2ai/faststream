@@ -54,14 +54,29 @@ class RabbitQueue(NameRequired):
 
         return f"{self.__class__.__name__}({self.name}{body})"
 
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, RabbitQueue):
+            return NotImplemented
+
+        return (
+            self.name == value.name
+            and self.durable == value.durable
+            and self.exclusive == value.exclusive
+            and self.auto_delete == value.auto_delete
+            and self.robust == value.robust
+            and self.arguments == value.arguments
+        )
+
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
-        return sum(
+        return hash(
             (
-                hash(self.name),
-                int(self.durable),
-                int(self.exclusive),
-                int(self.auto_delete),
+                self.name,
+                self.durable,
+                self.exclusive,
+                self.auto_delete,
+                self.robust,
+                frozenset((self.arguments or {}).items()),
             ),
         )
 
