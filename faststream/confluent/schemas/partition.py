@@ -46,7 +46,7 @@ class TopicPartition:
             kwargs["metadata"] = self.metadata
         if self.leader_epoch is not None:
             kwargs["leader_epoch"] = self.leader_epoch
-        return ConfluentPartition(**kwargs)
+        return ConfluentPartition(**kwargs)  # type: ignore[misc]
 
     def add_prefix(self, prefix: str) -> "TopicPartition":
         return TopicPartition(

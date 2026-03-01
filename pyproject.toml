@@ -13,16 +13,18 @@ authors = [
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 
+requires-python = ">=3.10"
+version = "0.6.7"
+
 keywords = [
     "rabbitmq",
     "kafka",
-    "framework",
     "nats",
     "redis",
+    "asyncapi",
+    "framework",
     "message brokers",
 ]
-
-requires-python = ">=3.10"
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -54,8 +56,6 @@ classifiers = [
     "Framework :: Pydantic :: 2",
 ]
 
-version = "0.6.3"
-
 dependencies = [
     "fast-depends[pydantic]>=3.0.0",
     "typing-extensions>=4.12.0",
@@ -65,7 +65,7 @@ dependencies = [
 [project.optional-dependencies]
 rabbit = ["aio-pika>=9,<10"]
 
-kafka = ["aiokafka>=0.9,<0.13"]
+kafka = ["aiokafka>=0.9,<0.14"]
 
 confluent = [
     "confluent-kafka>=2,!=2.8.1,<3; python_version < '3.13'",
@@ -79,7 +79,7 @@ redis = ["redis>=5.0.0,<8.0.0"]
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 cli = [
-    "typer>=0.9,!=0.12,<=0.20.0",
+    "typer>=0.9,!=0.12,<=0.21.1",
     "watchfiles>=0.15.0,<1.2.0"
 ]
 
@@ -89,12 +89,12 @@ prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
 
 docs = [
-    "mkdocs-material==9.7.0",
+    "mkdocs-material==9.7.1",
     "mkdocs-static-i18n==1.3.0",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==0.30.1",
+    "mkdocstrings[python]==1.0.2",
     "mkdocs-literate-nav==0.6.2",
-    "mkdocs-git-revision-date-localized-plugin==1.5.0",
+    "mkdocs-git-revision-date-localized-plugin==1.5.1",
     "mike==2.1.3",                                      # versioning
     "mkdocs-minify-plugin==0.8.0",
     "mkdocs-macros-plugin==1.5.0",                      # includes with variables
@@ -105,12 +105,12 @@ docs = [
 ]
 
 lint = [
-    "ruff==0.14.6",
-    "bandit==1.9.2",
-    "semgrep==1.144.0",
+    "ruff==0.14.14",
+    "bandit==1.9.3",
+    "semgrep==1.150.0",
     "codespell==2.4.1",
-    "zizmor==1.16.3",
-    "mypy==1.18.2",
+    "zizmor==1.22.0",
+    "mypy==1.19.1",
     # mypy extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -124,18 +124,19 @@ lint = [
 test-core = [
     "dirty-equals==0.11",
     "httpx==0.28.1",
-    "pytest==9.0.1",
+    "pytest==9.0.2",
     "pytest-asyncio==1.3.0",
     "pytest-rerunfailures>=15.1",
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.8.0",
     "pytest-cov>=6.2.1",
     "covdefaults>=2.3.0",
+    "freezegun>=1.5.5",
 ]
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.121.3",
+    "fastapi==0.128.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
@@ -143,7 +144,7 @@ testing = [
     "uvicorn>=0.34.3; python_version >= '3.9'",
     "uvicorn==0.33.0; python_version < '3.9'",
     "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
-    "psutil==7.1.3",
+    "psutil==7.2.2",
     "prometheus-client>=0.20.0,<0.30.0",
     "opentelemetry-sdk>=1.24.0,<2.0.0",
 ]
@@ -153,8 +154,10 @@ dev = [
     {include-group = "lint"},
     {include-group = "testing"},
     {include-group = "docs"},
-    "pre-commit==4.5.0",
+    "pre-commit==4.5.1",
     "detect-secrets==1.5.0",
+    "pytest-codspeed>=2.2.1",
+    "setuptools>=80.9.0",
 ]
 
 [project.urls]
@@ -206,6 +209,7 @@ markers = [
     "slow",
     "connected",
     "all",
+    "benchmark",
 ]
 asyncio_default_fixture_loop_scope = "function"
 

@@ -4,6 +4,8 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Use sh on Unix-like systems
 set shell := ["sh", "-c"]
 
+export VIRTUAL_ENV := ".venv"  # this requires a pre-commit
+
 
 [doc("All command information")]
 default:
@@ -56,7 +58,7 @@ test-coverage-all +param="tests/":
 
 # Docs
 _docs *params:
-  cd docs && uv run --no-dev --group docs --frozen python docs.py {{params}}
+  cd docs && uv run --frozen python docs.py {{params}}
 
 [doc("Build docs")]
 [group("docs")]

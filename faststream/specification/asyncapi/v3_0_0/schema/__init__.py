@@ -15,7 +15,6 @@ __all__ = (
     "ApplicationInfo",
     "ApplicationSchema",
     "Channel",
-    "Channel",
     "Components",
     "Contact",
     "CorrelationId",
