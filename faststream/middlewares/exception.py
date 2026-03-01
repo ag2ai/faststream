@@ -29,17 +29,13 @@ PublishingExceptionHandler: TypeAlias = Callable[..., Any]
 
 CastedGeneralExceptionHandler: TypeAlias = Callable[..., Awaitable[None]]
 CastedPublishingExceptionHandler: TypeAlias = Callable[..., Awaitable[Any]]
-CastedHandlers: TypeAlias = list[
-    tuple[
-        type[Exception],
-        CastedGeneralExceptionHandler,
-    ]
+CastedHandlers: TypeAlias = dict[
+    type[Exception],
+    CastedGeneralExceptionHandler,
 ]
-CastedPublishingHandlers: TypeAlias = list[
-    tuple[
-        type[Exception],
-        CastedPublishingExceptionHandler,
-    ]
+CastedPublishingHandlers: TypeAlias = dict[
+    type[Exception],
+    CastedPublishingExceptionHandler,
 ]
 
 
@@ -54,27 +50,24 @@ class ExceptionMiddleware:
         handlers: dict[type[Exception], GeneralExceptionHandler] | None = None,
         publish_handlers: dict[type[Exception], PublishingExceptionHandler] | None = None,
     ) -> None:
-        self._handlers: CastedHandlers = [
-            (IgnoredException, ignore_handler),
-            *(
-                (
-                    exc_type,
-                    apply_types(
-                        cast("Callable[..., Awaitable[None]]", to_async(handler)),
-                        serializer_cls=None,
-                    ),
+        self._handlers: CastedHandlers = {
+            IgnoredException: ignore_handler,
+            **{
+                exc_type: apply_types(
+                    cast("Callable[..., Awaitable[None]]", to_async(handler)),
+                    serializer_cls=None,
                 )
                 for exc_type, handler in (handlers or {}).items()
-            ),
-        ]
+            },
+        }
 
-        self._publish_handlers: CastedPublishingHandlers = [
-            (IgnoredException, ignore_handler),
-            *(
-                (exc_type, apply_types(to_async(handler), serializer_cls=None))
+        self._publish_handlers: CastedPublishingHandlers = {
+            IgnoredException: ignore_handler,
+            **{
+                exc_type: apply_types(to_async(handler), serializer_cls=None)
                 for exc_type, handler in (publish_handlers or {}).items()
-            ),
-        ]
+            },
+        }
 
     @overload
     def add_handler(
@@ -103,12 +96,7 @@ class ExceptionMiddleware:
             def pub_wrapper(
                 func: PublishingExceptionHandler,
             ) -> PublishingExceptionHandler:
-                self._publish_handlers.append(
-                    (
-                        exc,
-                        apply_types(to_async(func), serializer_cls=None),
-                    ),
-                )
+                self._publish_handlers[exc] = apply_types(to_async(func), serializer_cls=None)
                 return func
 
             return pub_wrapper
@@ -116,12 +104,7 @@ class ExceptionMiddleware:
         def default_wrapper(
             func: GeneralExceptionHandler,
         ) -> GeneralExceptionHandler:
-            self._handlers.append(
-                (
-                    exc,
-                    apply_types(to_async(func), serializer_cls=None),
-                ),
-            )
+            self._handlers[exc] = apply_types(to_async(func), serializer_cls=None)
             return func
 
         return default_wrapper
@@ -164,11 +147,9 @@ class _BaseExceptionMiddleware(BaseMiddleware):
             return await call_next(await self.on_consume(msg))
 
         except Exception as exc:
-            exc_type = type(exc)
-
-            for handler_type, handler in self._publish_handlers:
-                if issubclass(exc_type, handler_type):
-                    return await handler(exc, context__=self.context)
+            for cls in type(exc).__mro__:
+                if cls in self._publish_handlers:
+                    return await self._publish_handlers[cls](exc, context__=self.context)
 
             raise
 
@@ -179,8 +160,9 @@ class _BaseExceptionMiddleware(BaseMiddleware):
         exc_tb: Optional["TracebackType"] = None,
     ) -> bool | None:
         if exc_type:
-            for handler_type, handler in self._handlers:
-                if issubclass(exc_type, handler_type):
+            for cls in exc_type.__mro__:
+                if cls in self._handlers:
+                    handler = self._handlers[cls]
                     # TODO: remove it after context will be moved to middleware
                     # In case parser/decoder error occurred
                     scope: AbstractContextManager[Any]
