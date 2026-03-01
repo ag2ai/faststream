@@ -20,7 +20,7 @@ The main feature of this release is the **Try It Out** feature for your **Async 
 
 Now you can test your developing application directly from the web, just like Swagger for HTTP. It supports in-memory publication to test a subscriber and real broker publication to verify behavior in real scenarios.
 
-<img width="1467" height="640" alt="Снимок экрана 2026-03-01 в 11 16 10" src="[#>](https://github.com/user-attachments/assets/4320e674-24d5-4ead-9820-4bb979e340e7" />){.external-link target="_blank"}
+<img width="1467" height="640" alt="" src="https://github.com/user-attachments/assets/4320e674-24d5-4ead-9820-4bb979e340e7">
 
 * feat: Add Try It Out feature for AsyncAPI documentation by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2777](https://github.com/ag2ai/faststream/pull/2777){.external-link target="_blank"}
 
