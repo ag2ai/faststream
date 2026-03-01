@@ -1,0 +1,54 @@
+people:
+  - name: "Pastukhov Nikita"
+    username: Lancetnik
+    github: https://github.com/Lancetnik
+    avatar: https://avatars.githubusercontent.com/u/44573917?v=4
+    include:
+      - team
+      - kafka
+      - rabbitmq
+      - nats
+      - redis
+  - name: "Davor Runje"
+    username: davorrunje
+    github: https://github.com/davorrunje
+    avatar: https://avatars.githubusercontent.com/u/24715380?v=4
+    include:
+      - team
+  - name: "Kumaran Rajendhiran"
+    username: kumaranvpl
+    github: https://github.com/kumaranvpl
+    avatar: https://avatars.githubusercontent.com/u/7011056?v=4
+    include:
+      - team
+      - kafka
+      - redis
+  - name: "Tvrtko Sternak"
+    username: sternakt
+    github: https://github.com/sternakt
+    avatar: https://avatars.githubusercontent.com/u/117077296?v=4
+    include:
+      - team
+      - kafka
+  - name: "Harish Mohan Raj"
+    username: harishmohanraj
+    github: https://github.com/harishmohanraj
+    avatar: https://avatars.githubusercontent.com/u/8857109?v=4
+    include:
+      - team
+  - name: "Robert Jambrecic"
+    username: rjambrecic
+    github: https://github.com/rjambrecic
+    avatar: https://avatars.githubusercontent.com/u/32619626?v=4
+    include:
+      - team
+  - username: spataphore1337
+    github: https://github.com/spataphore1337
+    avatar: https://avatars.githubusercontent.com/u/93342746?v=4
+    include:
+      - kafka
+  - username: sheldygg
+    github: https://github.com/sheldygg
+    avatar: https://avatars.githubusercontent.com/u/85823514?v=4
+    include:
+      - nats

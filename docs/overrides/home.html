@@ -1,0 +1,947 @@
+<!-- Elements added to "home.html" will only be displayed on the home page -->
+
+{% extends "main.html" %}
+
+{% block styles %}
+{{ super() }}
+
+<style>
+   .md-main .md-content {
+      display: none;
+   }
+
+   .md-main .md-main__inner {
+      margin: 0;
+   }
+
+   .tx-container {
+      padding-top: .0rem;
+      background: linear-gradient(180deg, #60bee4, #1173a4);
+      overflow: hidden;
+      padding: 2rem 0;
+      position: relative;
+      text-align: center;
+   }
+
+   .tx-hero {
+      margin: 32px 42px;
+      color: var(--md-primary-bg-color);
+      justify-content: center;
+   }
+
+   .tx-hero h1 {
+      margin-bottom: 1rem;
+      color: currentColor;
+      font-weight: 700
+   }
+
+   .tx-hero__content {
+      /* padding-bottom: 1rem; */
+      margin: 0 auto;
+   }
+
+   .tx-hero__content>p.large-screen-only {
+      display: none;
+   }
+
+   .tx-hero__content>p {
+      font-size: 20px;
+      font-style: italic;
+      line-height: 1.4rem;
+      margin-bottom: 0;
+   }
+
+   .tx-hero__content>a {
+      background: #003257;
+      border-radius: 50px;
+      color: #fff;
+      font-size: 16px;
+      margin-top: 1.5rem;
+      padding: 0.5rem 2rem;
+      font-weight: bold;
+      display: inline-block;
+   }
+
+   .tx-hero__content>a:hover {
+      background: #3e99c5;
+      color: #fff;
+   }
+
+   .tx-hero__image {
+      width: 100%;
+      height: auto;
+      margin: 0 auto;
+      /* order:1; */
+   }
+
+   .tx-hero .md-button {
+      margin-top: .5rem;
+      margin-right: .5rem;
+      color: var(--md-primary-bg-color)
+   }
+
+   .tx-hero .md-button--primary {
+      background-color: var(--md-primary-bg-color);
+      color: hsla(280deg, 37%, 48%, 1);
+      border-color: var(--md-primary-bg-color)
+   }
+
+   .tx-hero .md-button:focus,
+   .tx-hero .md-button:hover {
+      background-color: var(--md-accent-fg-color);
+      color: var(--md-default-bg-color);
+      border-color: var(--md-accent-fg-color)
+   }
+
+   /* custom styles starts */
+
+   section.features {
+      background: #1474a6;
+      background: linear-gradient(180deg, #1474a6 50%, #2E8CBB);
+   }
+
+   section.features .tx-container {
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+   }
+
+   section.features .title {
+      color: #fff;
+      font-size: 32px;
+      text-align: center;
+   }
+
+   section.features .featureSvg {
+      height: 250px;
+      margin: 10px 0;
+      width: 300px;
+   }
+
+   section.features .hero__subtitle,
+   .textContainer {
+      color: #fff;
+      padding: 1rem 3rem;
+      text-align: center;
+   }
+
+   section.features .hero__subtitle,
+   .textContainer h3 {
+      font-size: 24px;
+   }
+
+   section.features .hero__subtitle,
+   .textContainer p {
+      font-size: 16px;
+   }
+
+   section.features .col.col--4,
+   section.features .col.col--6 {
+      width: 100%;
+   }
+
+   .feature-item h2 svg {
+      height: 30px;
+      float: left;
+      margin-right: 10px;
+      transform: translateY(10%);
+   }
+
+   section.features.community,
+   section.features.what-you-get,
+   section.features .title,
+   section.features.stay-in-touch {
+      padding: 0px 0.6rem;
+   }
+
+   section.features.what-you-get {
+      align-items: center;
+      background: #52afd8;
+      background: linear-gradient(180deg, #2E8CBB 50%, #52afd8);
+      border-bottom: 1px solid #8bcae5;
+      border-top: 1px solid #8bcae5;
+      width: 100%;
+   }
+
+   section.features.what-you-get .title {
+      margin-bottom: 0px;
+   }
+
+   section.features.what-you-get .textContainer {
+      padding: 0.5rem 2.2rem;
+   }
+
+   section.features.community {
+      align-items: center;
+      background: linear-gradient(180deg, #52afd8 50%, #60bee4);
+      border-bottom: 1px solid #8bcae5;
+   }
+
+   section.features.community .tx-container {
+      padding-top: 0;
+   }
+
+   section.features.community .testimonialAnchor_iYyG {
+      margin: 1rem 0.5rem 0.3rem;
+      background-color: #fff;
+      border-radius: 5px;
+      color: #1c1e21;
+      display: block;
+      padding: 1.6rem;
+   }
+
+   section.features.community .testimonialAnchor_iYyG.hidden {
+      display: none;
+   }
+
+   section.features.community .testimonialHeader_iSI8 {
+      display: flex;
+      height: 45px;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      text-align: left;
+   }
+
+   section.features.community .testimonialUserInfo_th5k {
+      display: flex;
+   }
+
+   section.features.community .testimonialProfilePic_wg0d {
+      border-radius: 50%;
+      height: auto;
+      width: 45px;
+   }
+
+   section.features.community .testimonialUserInfo_th5k h6,
+   section.features.community .testimonialUserInfo_th5k p {
+      margin-bottom: 0;
+      margin-left: 10px;
+      font-size: 13.6px;
+      margin-top: 0;
+   }
+
+   section.features.community .testimonialUserInfo_th5k p {
+      font-size: 16px;
+   }
+
+   section.features.community .testimonialSourceIcon_RwqW {
+      height: auto;
+      width: 20px;
+   }
+
+   section.features.community .testimonialWrapper_gvoa .testimonialDescription_MWAM {
+      font-size: 16px;
+      line-height: 26px;
+   }
+
+   section.features.what-you-get .col.col--4 .textContainer {
+      text-align: left;
+   }
+
+   section.features.stay-in-touch {
+      background: #60bee4;
+   }
+
+   section.features.stay-in-touch .title {
+      margin-bottom: 0;
+   }
+
+   section.features.stay-in-touch .tx-container {
+      padding-top: 0px;
+   }
+
+   section.features.stay-in-touch .tx-hero__content p {
+      color: white;
+      font-style: normal;
+      font-size: 16px;
+   }
+
+   section.features.stay-in-touch .tx-hero__content p a {
+      text-decoration: underline;
+   }
+
+   .buttons_AeoN,
+   .buttons_E9Qp {
+      align-items: center;
+      display: flex;
+      justify-content: center;
+      margin-top: 55px;
+   }
+
+   .heroButton_F0GI,
+   .heroButton_GTT_ {
+      background: #003257;
+      border-radius: 25px;
+      color: #fff;
+      font-size: 16px;
+      margin-top: -24px;
+      padding: 11px 40px;
+      cursor: pointer;
+      font-weight: bold;
+   }
+
+   .heroButton_F0GI:hover,
+   .heroButton_GTT_:hover {
+      background: #3e99c5;
+   }
+
+   /*Custom style ends*/
+
+   .top-hr {
+      margin-top: 42px;
+   }
+
+   .feature-item {
+      border-radius: 20px;
+      margin-top: .5rem;
+      margin-right: .5rem;
+      background-color: var(--md-primary-bg-color);
+      font-family: 'Lato', sans-serif;
+      font-weight: 300;
+      box-sizing: border-box;
+      padding: 0 15px;
+      word-break: break-word
+   }
+
+   .feature-item h2 {
+      color: #333;
+      font-weight: 300;
+      font-size: 25px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: normal;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-family: inherit;
+   }
+
+   .feature-item p {
+      font-size: 16px;
+      line-height: 1.8em;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      color: #111;
+      margin: 0 0 10px;
+      display: block;
+   }
+
+   @media screen and (max-width:30em) {
+      .tx-hero h1 {
+         font-size: 1.4rem
+      }
+   }
+
+   @media screen and (min-width:60em) {
+      .md-sidebar--secondary {
+         display: none
+      }
+
+      .tx-hero {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         flex-direction: column;
+      }
+
+      .tx-hero__content>p.small-screen-only {
+         display: none;
+      }
+
+      .tx-hero__content>p.large-screen-only {
+         display: block;
+         line-height: 0.5rem;
+         font-size: 24px;
+      }
+
+      /* .tx-hero__content {
+            max-width: 22rem;
+            margin-top: 3.5rem;
+            margin-bottom: 3.5rem;
+            margin-left: 1.0rem;
+            margin-right: 4.0rem;
+            align-items: center;
+        } */
+      .tx-hero__image {
+         width: 37rem;
+         padding-right: 2.5rem;
+      }
+
+
+      /* Custom style starts*/
+      section.features .title {
+         font-size: 48px;
+      }
+
+      section.features .col.col--4 {
+         width: 100%;
+      }
+
+      section.features .tx-container {
+         flex-direction: row;
+         max-width: 1320px;
+         margin: 0 auto;
+      }
+
+      section.features.community .tx-container {
+         flex-direction: column;
+      }
+
+      section.features.community .row {
+         display: flex;
+      }
+
+      section.features.what-you-get .tx-container {
+         flex-wrap: wrap;
+      }
+
+      section.features.what-you-get .col.col--4 {
+         width: 33%;
+      }
+
+      .md-sidebar--secondary:not([hidden]) {
+         display: none;
+      }
+
+      section.features.stay-in-touch .tx-hero__content p {
+         font-size: 20px;
+      }
+
+      /* Custom style ends*/
+   }
+
+   @media screen and (min-width:76.25em) {
+      .md-sidebar--primary {
+         display: none
+      }
+
+      .top-hr {
+         width: 100%;
+         display: flex;
+         max-width: 61rem;
+         margin-right: auto;
+         margin-left: auto;
+         padding: 0 .2rem;
+      }
+
+      .bottom-hr {
+         margin-top: 10px;
+         width: 100%;
+         display: flex;
+         max-width: 61rem;
+         margin-right: auto;
+         margin-left: auto;
+         padding: 0 .2rem;
+      }
+
+      .feature-item {
+         flex: 1;
+         min-width: 0;
+      }
+
+      .feature-item:hover {
+         background-color: #526cfe47;
+         border-radius: 3px;
+      }
+   }
+
+   .hr {
+      border-bottom: 1px solid #eee;
+      width: 100%;
+      margin: 20px 0;
+   }
+
+   .text-center {
+      text-align: center;
+      padding-right: 15px;
+      padding-left: 15px;
+      margin-right: auto;
+      margin-left: auto;
+      margin-top: 15px;
+      font-family: 'Lato', sans-serif;
+      font-size: 23px;
+      font-weight: 300;
+      padding-bottom: 10px;
+   }
+
+   .logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-flow: row wrap;
+      margin: 0 auto;
+   }
+
+   .logos img {
+      flex: 1 1 auto;
+      padding: 25px;
+      max-height: 130px;
+      vertical-align: middle;
+   }
+
+   .hr-logos {
+      margin-top: 0;
+      margin-bottom: 30px;
+   }
+
+   .no-margin {
+      margin: 0;
+   }
+
+   .little-font {
+      font-size: 0.7rem;
+   }
+
+   .md-footer {
+      background-color: var(--md-primary-fg-color);
+      color: var(--md-footer-fg-color);
+   }
+</style>
+{% endblock %}
+
+{% block tabs %}
+<!-- Main site entry button descriptions -->
+<section class="tx-container">
+   <div class="md-grid md-typeset">
+      <div class="tx-hero">
+         <!-- Custom Image -->
+         <div class="tx-hero__image">
+            <img src="assets/img/robot-hero-2.svg" draggable="false">
+         </div>
+         <!-- Main Tagline -->
+         <div class="tx-hero__content">
+            <p class="large-screen-only">Open-source framework for building asynchronous web</p>
+            <p class="large-screen-only">services that interact with event streams</p>
+            <p class="small-screen-only">Open-source framework for building asynchronous web services that interact with
+               event streams</p>
+            <a href="faststream/" title="Getting Started" class="">
+               Get Started
+            </a>
+         </div>
+      </div>
+   </div>
+</section>
+
+<section class="features">
+   <h2 class="title">Swim with the stream…ing services</h2>
+   <div class="tx-container">
+      <div class="col col--4">
+         <div class="text--center"><img class="featureSvg" src="assets/img/write.svg"></div>
+         <div class="textContainer">
+            <h3>WRITE</h3>
+            <p>producers &amp; consumers for message queues in a simplified way</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="text--center"><img class="featureSvg" src="assets/img/Robot_chilling_transparent.svg"></div>
+         <div class="textContainer">
+            <h3>AUTOMATE</h3>
+            <p>parsing, networking, and documentation generation</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="text--center"><img class="featureSvg" src="assets/img/Robot_wins_first_prize_transparent.svg">
+         </div>
+         <div class="textContainer">
+            <h3>STREAMLINE</h3>
+            <p>your workflow &amp; accelerate your progress</p>
+         </div>
+      </div>
+   </div>
+</section>
+
+<section class="features what-you-get">
+   <h2 class="title">Go-to framework for modern, data-centric <br /> microservices</h2>
+   <div class="tx-container">
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Multiple Brokers</h3>
+            <p>FastStream provides a unified API to work across multiple message brokers (Kafka [AIOKafka & Confluent], RabbitMQ, NATS, Redis support)</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Pydantic Validation</h3>
+            <p>Leverage Pydantic's validation capabilities to serialize and validates incoming messages</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Automatic Docs</h3>
+            <p>Stay ahead with automatic AsyncAPI documentation</p>
+         </div>
+      </div>
+
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Intuitive</h3>
+            <p>Full-typed editor support makes your development experience smooth, catching errors before they reach
+               runtime</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Powerful Dependency Injection System</h3>
+            <p>Manage your service dependencies efficiently with FastStream's built-in DI system</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Testable</h3>
+            <p>Supports in-memory tests, making your CI/CD pipeline faster and more reliable</p>
+         </div>
+      </div>
+
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Extensible</h3>
+            <p>Use extensions for lifespans, custom serialization and middleware</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Integrations</h3>
+            <p>FastStream is fully compatible with any HTTP framework you want (FastAPI especially)</p>
+         </div>
+      </div>
+      <div class="col col--4">
+         <div class="textContainer">
+            <h3>Built for Automatic Code Generation</h3>
+            <p>FastStream is optimized for automatic code generation using advanced models like GPT and Llama</p>
+         </div>
+      </div>
+
+
+   </div>
+</section>
+
+<section class="features community">
+   <h2 class="title">The community has spoken!</h2>
+   <div class="container tx-container">
+      <div class="row">
+         <div class="col col--4 testimonialWrapper_gvoa">
+            <a href="https://x.com/nats_io/status/1716460663734759831" target="_blank" rel="noopener noreferrer"
+               class="testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="assets/img/nats-twitter-logo.jpeg" class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>NATS.io</h6>
+                           <p>@nats_io</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/twitter-logo.svg" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">New Blog Post | Streamlining Asynchronous Services with
+                        FastStream 🌟<br /><br />
+
+                        For the NATS Python client users, check out this community contribution from
+                        @ag2oss. FastStream streamlines the entire process of working with message queues in
+                        microservices.</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1q7u9u/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="ElasticFluffyMagnet testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://i.redd.it/snoovatar/avatars/94af58fe-18a7-47ec-bce3-832bd9360aa7.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>ElasticFluffyMagnet</h6>
+                           <p>u/ElasticFluffyMagnet</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Looks very interesting. Going to have a look when I'm done
+                        with my current project!</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k7jbppc/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="phphater7 testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://i.redd.it/snoovatar/avatars/b4eb22a9-8c9e-4d78-8500-4d10767741c2.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>phphater7</h6>
+                           <p>u/phphater7</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">This is awesome. Svaka čast</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1ryqaf/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="grudev testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_5.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>grudev</h6>
+                           <p>u/grudev</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Any chance you can write some examples on how to integrate
+                        with Django (if that's possible at all)?<br /><br />Great work, btw!</p>
+                  </div>
+               </div>
+            </a>
+         </div>
+         <div class="col col--4 testimonialWrapper_gvoa">
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1tfhv4/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="ryanstephendavis testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_0.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>ryanstephendavis</h6>
+                           <p>u/ryanstephendavis</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Hell yeah, I've been wondering about good ways to setup
+                        streams with FastAPI... will have to try this out next time I get a good project fit</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1tpcwo/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="moosethemucha testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://i.redd.it/snoovatar/avatars/dd49b941-0a83-4815-aba3-76b83abdee62.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>moosethemucha</h6>
+                           <p>u/moosethemucha</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">This looks really cool - as someone who had to create a
+                        distributed application using rabbitmq and aiopika - this would have saved me a lot of time - I
+                        love the decorations for pub sub.</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1sglo8/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="TheGodfatherCC testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/desktop2x/img/avatar_over18_square.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>TheGodfatherCC</h6>
+                           <p>u/TheGodfatherCC</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">This looks awesome! I had already been evaluating Propan for
+                        a project.</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k98mmta/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="__Timtam__ testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_5.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>__Timtam__</h6>
+                           <p>u/__Timtam__</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Very nice package! Do you have any plans on implementing
+                        support for MQTT?</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k1sx7zo/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="bachkhois testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://i.redd.it/snoovatar/avatars/d32fa526-1f2d-4311-9584-34be8c0a358a.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>bachkhois</h6>
+                           <p>u/bachkhois</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Great!</p>
+                  </div>
+               </div>
+            </a>
+         </div>
+         <div class="col col--4 testimonialWrapper_gvoa">
+            <a href="https://www.reddit.com/r/Python/comments/16pc38l/comment/k25cm1e/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="robot__eyes testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_6.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>robot__eyes</h6>
+                           <p>u/robot__eyes</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">This is fantastic. I've been looking for something with
+                        asyncio support to replace celery. Big plus that it supports rabbitMQ and kafka.</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://x.com/edwardkens50830/status/1710248156540145979" target="_blank"
+               rel="noopener noreferrer" class="testimonialAnchor_iYyG">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="assets/img/letter-e.png" class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>Edward Kensington</h6>
+                           <p>@EdwardKens50830</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/twitter-logo.svg" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Congrats on trending in the Python category on GitHub! 🎉
+                        Your FastStream framework seems awesome and useful! Way to go! 💪 #achievement</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://www.reddit.com/r/FastAPI/comments/16rn1mg/comment/k2446oi/?utm_source=share&utm_medium=web2x&context=3"
+               target="_blank" rel="noopener noreferrer" class="Pale-Cantaloupe3878 testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_6.png"
+                           class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>Pale-Cantaloupe3878</h6>
+                           <p>u/Pale-Cantaloupe3878</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/reddit-logo.png" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Great job, I like the idea and will try it out for sure!</p>
+                  </div>
+               </div>
+            </a>
+            <a href="https://x.com/dev_raj4522/status/1706417606956343529" target="_blank"
+               rel="noopener noreferrer" class="testimonialAnchor_iYyG hidden">
+               <div>
+                  <div class="testimonialHeader_iSI8">
+                     <div class="testimonialUserInfo_th5k">
+                        <img src="assets/img/letter-d.png" class="testimonialProfilePic_wg0d">
+                        <div>
+                           <h6>Dev Raj Singh</h6>
+                           <p>@Dev_raj4522</p>
+                        </div>
+                     </div>
+                     <div><img class="testimonialSourceIcon_RwqW" src="assets/img/twitter-logo.svg" alt=""></div>
+                  </div>
+                  <div class="text--center padding-horiz--md">
+                     <p class="testimonialDescription_MWAM">Fastapi with kafka</p>
+                  </div>
+               </div>
+            </a>
+         </div>
+      </div>
+      <div id="community-load-more" class="buttons_E9Qp"><button class="button button--lg heroButton_F0GI">Load
+            More</button></div>
+   </div>
+</section>
+
+<section class="features stay-in-touch">
+   <h2 class="title">STAY IN TOUCH</h2>
+   <div class="container tx-container">
+      <div class="tx-hero__content">
+         <p>
+            Show us some love by giving our
+            <a href="{{ config.repo_url }}" target="_blank">GitHub repository</a> <!-- nosem: var-in-href,template-href-var -->
+            a star, and joining our
+            <a href="{{ (config.extra.social|first).link }}" target="_blank">Discord server</a> <!-- nosem: var-in-href,template-href-var -->
+            .
+         </p>
+
+         <p>This helps us to stay in touch with you and encourages us to continue developing and improving the
+            framework. Thank you for your support!</p>
+      </div>
+   </div>
+</section>
+{% endblock %}
+
+{% block footer %}
+<footer class="md-footer">
+   {% if "navigation.footer" in features %}
+   {% if page.meta and page.meta.hide %}
+   {% set hidden = "hidden" if "footer" in page.meta.hide %}
+   {% endif %}
+
+   <nav class="md-footer__inner md-grid" aria-label="{{ lang.t('footer') }}" {{ hidden }}>
+      {% set direction = lang.t("footer.next") %}
+      <a href="faststream/" class="md-footer__link md-footer__link--next"
+         aria-label="{{ direction }}: {{ Features | e }}">
+         <div class="md-footer__title">
+            <span class="md-footer__direction">
+               {{ direction }}
+            </span>
+            <div class="md-ellipsis">
+               Features
+            </div>
+         </div>
+         <div class="md-footer__button md-icon">
+            {% set icon = config.theme.icon.next or "material/arrow-right" %}
+            {% include ".icons/" ~ icon ~ ".svg" %}
+         </div>
+      </a>
+   </nav>
+   {% endif %}
+
+   <div class="md-footer-meta md-typeset">
+      <div class="md-footer-meta__inner md-grid">
+         {% include "partials/copyright.html" %}
+         {% if config.extra.social %}
+         {% include "partials/social.html" %}
+         {% endif %}
+      </div>
+   </div>
+</footer>
+{% endblock %}

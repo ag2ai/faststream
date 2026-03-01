@@ -1,0 +1,179 @@
+site_name: FastStream
+# description to improve website indexing
+site_description: FastStream Python messaging framework documentation
+site_url: https://faststream.ag2.ai/
+site_author: AG2AI Inc.
+copyright: '&copy; 2025 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
+
+docs_dir: docs
+
+watch:
+  - docs
+  - docs_src
+  - includes
+  - overrides
+
+repo_name: ag2ai/faststream
+repo_url: https://github.com/ag2ai/faststream
+edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs
+
+exclude_docs: |
+  navigation_template.txt
+  SUMMARY.md
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/img/logo.svg
+  favicon: assets/img/logo.svg
+  font:
+    text: Roboto
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil-circle-outline
+  features:
+    - search.suggest
+    - search.highlight
+    - navigation.tabs            # navbar navigation
+    - navigation.tabs.sticky     # navbar always expanded
+    - navigation.tracking        # show current TOC section in the page url
+    - navigation.prune           # reduce render size
+    - navigation.top             # back-to-top btn
+    - navigation.footer          # show footer with next/prev btns
+    # - navigation.path            # (insiders) breadcrumbs
+    - content.tabs.link          # sync total page tabs
+    # - content.tooltips           # (insiders) improved tooltips
+    - content.code.copy
+    - content.code.annotate      # code annotations with # (1)
+    # - content.code.select        # (insiders) highlight line under cursor
+    - content.action.edit        # add edit btn at every page
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
+  - javascripts/gurubase-widget.js
+  - javascripts/theme-switch.js
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  # - meta                         # (insiders) use .meta.yml files
+  - glightbox:                   # image zoom
+      manual: true
+  - macros:                      # Jinja templates
+      include_dir: includes
+      include_yaml:
+        - people: ../docs/data/people.yml
+  - mkdocstrings:                # Generate References
+      default_handler: python
+      handlers:
+        python:
+          import:
+          - https://docs.python.org/3/objects.inv
+          options:
+            preload_modules:
+            - httpx
+            - starlette
+            - fastapi
+            filters:
+            - '!^_'
+            show_root_heading: true
+            show_if_no_docstring: true
+            inherited_members: true
+            members_order: source
+            separate_signature: true
+            unwrap_annotated: true
+            merge_init_into_class: true
+            docstring_section_style: spacy
+            signature_crossrefs: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_docstring_attributes: false
+            show_signature_annotations: true
+            load_external_modules: true
+  - i18n:
+      docs_structure: folder
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: en - English
+          build: true
+  - git-revision-date-localized: # show page edition date
+      enabled: !ENV [CI, false]
+      type: timeago
+  - literate-nav:                # .md importable navigation
+      nav_file: SUMMARY.md
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      css_files:
+        - stylesheets/extra.css
+  - mike:                        # versioning
+      alias_type: copy
+      redirect_template: templates/redirect.html
+      canonical_version: latest
+
+hooks:
+  - create_api_docs.py
+
+markdown_extensions:
+  - toc:
+      permalink: "#"             # replace TOC block symbol
+      toc_depth: 3
+  - mdx_include:
+      base_path: .
+      line_slice_separator: []
+  - extra
+  - admonition                   # !!! note blocks support
+  - pymdownx.details             # admonition collapsible
+  - pymdownx.superfences         # highlight code syntax
+  - pymdownx.highlight:
+      anchor_linenums: true      # allows link to codeline
+  - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
+  - pymdownx.tabbed:
+      alternate_style: true      # create tabs group
+  - attr_list                    # specify html attrs in markdown
+  - md_in_html                   # render md wrapped to html tags
+  - pymdownx.emoji:              # render material icons
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  analytics:
+    provider: google
+    property: G-HDTMP5FFHP
+  social_image: https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream
+  social:
+    # Discord link should be first
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/qFm6aSqq59
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/ag2ai/faststream
+    - icon: fontawesome/brands/twitter
+      link: https://x.com/ag2oss
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/ag2ai/
+
+  version:
+    provider: mike

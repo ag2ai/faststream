@@ -1,0 +1,9 @@
+{
+    "type": "record",
+    "namespace": "Person",
+    "name": "Person",
+    "fields": [
+        {"doc": "Name", "type": "string", "name": "name"},
+        {"doc": "Age", "type": "int", "name": "age"}
+    ]
+}

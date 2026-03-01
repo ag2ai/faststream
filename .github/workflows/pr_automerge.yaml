@@ -1,0 +1,34 @@
+name: Automerge
+
+on:
+  pull_request_target:
+
+jobs:
+  automerge:
+    name: Enable pull request automerge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: alexwilson/enable-github-automerge-action@56e3117d1ae1540309dc8f7a9f2825bc3c5f06ff # 2.0.0
+        with:
+          github-token: ${{ secrets.AUTOMERGE_TOKEN }}
+          merge-method: REBASE
+
+  autoapprove:
+    name: Automatically approve pull request
+    needs: [automerge]
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 # v4.0.0
+        with:
+          github-token: ${{ secrets.AUTOMERGE_TOKEN }}

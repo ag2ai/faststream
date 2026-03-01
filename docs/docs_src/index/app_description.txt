@@ -1,0 +1,9 @@
+Create a FastStream application using localhost broker for testing and use the
+default port number.
+
+It should consume messages from the 'input_data' topic, where each message is a
+JSON encoded object containing a single attribute: 'data'.
+
+While consuming from the topic, increment the value of the data attribute by 1.
+
+Finally, send message to the 'output_data' topic.

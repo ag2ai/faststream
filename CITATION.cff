@@ -1,0 +1,92 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: FastStream
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Nikita
+    family-names: Pastukhov
+    email: nikita@pastukhov-dev.ru
+  - given-names: Davor
+    family-names: Runje
+    email: davor@ag2.ai
+    affiliation: AG2AI Inc.
+    orcid: 'https://orcid.org/0000-0001-6912-9900'
+  - given-names: Tvrtko
+    family-names: Sternak
+    email: tvrtko@ag2.ai
+    affiliation: AG2AI Inc.
+    orcid: 'https://orcid.org/0009-0001-0720-2356'
+  - given-names: Kumaran
+    family-names: Rajendhiran
+    email: kumaran@ag2.ai
+    affiliation: AG2AI Inc.
+  - given-names: Harish Mohan
+    family-names: Raj
+    email: harish@ag2.ai
+    affiliation: AG2AI Inc.
+  - given-names: Robert
+    family-names: Jambrecic
+    email: robert@ag2.ai
+    affiliation: AG2AI Inc.
+  - name: AG2AI Inc.
+    city: Seattle
+    country: United States
+    email: support@ag2.ai
+    website: 'https://ag2.ai'
+repository-code: 'https://github.com/ag2/faststream'
+url: 'https://faststream.ag2.ai/'
+repository-artifact: 'https://pypistats.org/packages/faststream'
+abstract: >
+  FastStream simplifies the process of writing producers and
+  consumers for message queues, handling all the parsing,
+  networking and documentation generation automatically.
+
+  Making streaming microservices has never been easier.
+  Designed with junior developers in mind, FastStream
+  simplifies your work while keeping the door open for more
+  advanced use cases. Here's a look at the core features
+  that make FastStream a go-to framework for modern,
+  data-centric microservices.
+
+  - Multiple Brokers: FastStream provides a unified API to
+  work across multiple message brokers (Apache Kafka,
+  RabbitMQ, NATS and Redis support)
+
+  - Pydantic Validation: Leverage Pydantic's validation
+  capabilities to serialize and validate incoming messages
+
+  - Automatic Docs: Stay ahead with automatic AsyncAPI
+  documentation
+
+  - Intuitive: Full-typed editor support makes your
+  development experience smooth, catching errors before they
+  reach runtime
+
+  - Powerful Dependency Injection System: Manage your
+  service dependencies efficiently with FastStream's
+  built-in DI system
+
+  - Testable: Supports in-memory tests, making your CI/CD
+  pipeline faster and more reliable
+
+  - Extensible: Use extensions for lifespans, custom
+  serialization and middleware
+
+  - Integrations: FastStream is fully compatible with any
+  HTTP framework you want (FastAPI especially)
+keywords:
+  - python
+  - redis
+  - distributed-systems
+  - apache kafka
+  - rabbitmq
+  - nats
+  - stream-processing
+  - asyncio
+  - asyncapi
+license: Apache-2.0

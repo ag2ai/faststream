@@ -1,0 +1,59 @@
+name: Updated Release Notes
+
+on:
+  workflow_dispatch: null
+  release:
+    types:
+      - published
+
+jobs:
+  update-release-notes:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        pull-requests: write
+    env:
+      TAG_NAME: ${{ github.ref_name }}
+      BRANCH_NAME: update-release-notes-${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system httpx
+
+      - name: Run update_releases.py script
+        run: python ./docs/update_releases.py
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --quiet || echo "::set-output name=changes_detected::true"
+
+      - name: Show git diff
+        run: git diff
+
+      - name: Create Pull Request
+        if: steps.git-check.outputs.changes_detected
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
+        with:
+          token: ${{ secrets.AUTOMERGE_TOKEN }}
+          branch: ${{ env.BRANCH_NAME }}
+          base: "main" # The branch you want to merge into
+          title: "Update Release Notes for ${{ env.TAG_NAME }}"
+          commit-message: "Update Release Notes for ${{ env.TAG_NAME }}"
+          body: "This is an automated pull request to update the release notes for ${{ env.TAG_NAME }}"
+          labels: documentation
+          reviewers: Lancetnik, kumaranvpl

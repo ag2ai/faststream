@@ -1,0 +1,57 @@
+documentation:
+  - all:
+    - changed-files:
+      - any-glob-to-any-file:
+        - docs/**
+      - all-globs-to-all-files:
+        - '!docs/en/docs/api/**'
+        - '!docs/create_api_docs.py'
+        - '!docs/update_releases.py'
+        - '!docs/docs.py'
+
+github_actions:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/workflows/**
+
+AioKafka:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/kafka/**
+      - docs/docs/en/kafka/**
+
+Confluent:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/confluent/**
+      - docs/docs/en/confluent/**
+
+NATS:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/nats/**
+      - docs/docs/en/nats/**
+
+RabbitMQ:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/rabbitmq/**
+      - docs/docs/en/rabbitmq/**
+
+Redis:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/redis/**
+      - docs/docs/en/redis/**
+
+Observability:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/opentelemetry/**
+      - faststream/prometheus/**
+      - docs/docs/en/getting-started/observability/**
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - pyproject.toml
