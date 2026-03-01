@@ -29,4 +29,10 @@ class Channel:
     when mandatory message will be returned"""
 
     def __hash__(self) -> int:
-        return id(self)
+        return hash((
+            self.prefetch_count,
+            self.global_qos,
+            self.channel_number,
+            self.publisher_confirms,
+            self.on_return_raises,
+        ))

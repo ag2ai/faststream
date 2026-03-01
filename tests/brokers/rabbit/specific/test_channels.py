@@ -12,7 +12,7 @@ async def test_subscriber_use_shared_channel() -> None:
     broker = RabbitBroker(logger=None)
 
     sub1 = broker.subscriber(uuid4().hex)
-    sub2 = broker.subscriber(uuid4().hex, channel=Channel())
+    sub2 = broker.subscriber(uuid4().hex, channel=Channel(prefetch_count=1))
 
     shared_channel = Channel()
     sub3 = broker.subscriber(uuid4().hex, channel=shared_channel)
