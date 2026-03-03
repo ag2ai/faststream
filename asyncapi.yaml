@@ -1,0 +1,127 @@
+info:
+  title: FastStream
+  version: 0.1.0
+asyncapi: 3.0.0
+defaultContentType: application/json
+servers:
+  development:
+    host: guest:guest@localhost:5672
+    pathname: /
+    protocol: amqp
+    protocolVersion: 0.9.1
+channels:
+  RPC:_:RpcHandler:
+    address: RPC:_:RpcHandler
+    description: This queue is used to for RPC
+    servers:
+    - $ref: '#/servers/development'
+    messages:
+      SubscribeMessage:
+        $ref: '#/components/messages/RPC:_:RpcHandler:SubscribeMessage'
+    bindings:
+      amqp:
+        is: queue
+        bindingVersion: 0.3.0
+        queue:
+          name: RPC
+          durable: false
+          exclusive: false
+          autoDelete: false
+          vhost: /
+  RPC_OUT:_:Publisher:
+    address: RPC_OUT:_:Publisher
+    description: This queue is used to for RPC
+    servers:
+    - $ref: '#/servers/development'
+    messages:
+      Message:
+        $ref: '#/components/messages/RPC_OUT:_:Publisher:Message'
+    bindings:
+      amqp:
+        is: routingKey
+        bindingVersion: 0.3.0
+        exchange:
+          type: default
+          vhost: /
+operations:
+  RPC:_:RpcHandlerSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/RPC:_:RpcHandler'
+    bindings:
+      amqp:
+        cc:
+        - RPC
+        ack: true
+        bindingVersion: 0.3.0
+    messages:
+    - $ref: '#/channels/RPC:_:RpcHandler/messages/SubscribeMessage'
+    reply:
+      messages:
+      - $ref: '#/components/messages/RPC:_:RpcHandler:ReplyMessage'
+      channel:
+        $ref: '#/channels/RPC_OUT:_:Publisher'
+      address:
+        location: $message.header#/replyTo
+  RPC_OUT:_:Publisher:
+    action: send
+    channel:
+      $ref: '#/channels/RPC_OUT:_:Publisher'
+    bindings:
+      amqp:
+        cc:
+        - RPC_OUT
+        ack: true
+        deliveryMode: 1
+        mandatory: true
+        bindingVersion: 0.3.0
+    messages:
+    - $ref: '#/channels/RPC_OUT:_:Publisher/messages/Message'
+components:
+  messages:
+    RPC:_:RpcHandler:SubscribeMessage:
+      title: RPC:_:RpcHandler:SubscribeMessage
+      correlationId:
+        location: $message.header#/correlation_id
+      payload:
+        $ref: '#/components/schemas/In'
+    RPC_OUT:_:Publisher:Message:
+      title: RPC_OUT:_:Publisher:Message
+      correlationId:
+        location: $message.header#/correlation_id
+      payload:
+        $ref: '#/components/schemas/Out'
+    RPC:_:RpcHandler:ReplyMessage:
+      title: RPC:_:RpcHandler:ReplyMessage
+      correlationId:
+        location: $message.header#/correlation_id
+      payload:
+        $ref: '#/components/schemas/Out'
+  schemas:
+    In:
+      properties:
+        i:
+          title: I
+          type: string
+        j:
+          exclusiveMinimum: 0
+          title: J
+          type: integer
+      required:
+      - i
+      - j
+      title: In
+      type: object
+    Out:
+      properties:
+        k:
+          title: K
+          type: string
+        l:
+          title: L
+          type: number
+      required:
+      - k
+      - l
+      title: Out
+      type: object
