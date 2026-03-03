@@ -15,7 +15,6 @@ async def test_correct() -> None:
             }, "in-topic",
         )
 
-
 @pytest.mark.asyncio
 async def test_invalid() -> None:
     async with TestKafkaBroker(broker) as br:

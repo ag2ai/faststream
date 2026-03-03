@@ -1,9 +1,10 @@
 import logging
+import os
 import sys
 import warnings
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import anyio
 import typer
@@ -37,7 +38,18 @@ from .utils.parser import parse_cli_args
 if TYPE_CHECKING:
     from faststream._internal.broker import BrokerUsecase
 
-cli = typer.Typer(pretty_exceptions_short=True)
+rich_mode = os.getenv("FASTSTREAM_CLI_RICH_MODE", "rich")
+if rich_mode == "none":
+    rich_markup_mode: Literal["markdown", "rich"] | None = None
+elif rich_mode in {"md", "markdown"}:
+    rich_markup_mode = "markdown"
+elif rich_mode == "rich":
+    rich_markup_mode = "rich"
+else:
+    msg = f"Invalid rich mode: {rich_mode}"
+    raise ValueError(msg)
+
+cli = typer.Typer(pretty_exceptions_short=True, rich_markup_mode=rich_markup_mode)
 cli.add_typer(docs_app, name="docs", help="Documentations commands")
 
 

@@ -25,6 +25,7 @@ class RabbitResponse(Response):
         timeout: "TimeoutType" = None,
         mandatory: bool = True,
         immediate: bool = False,
+        exchange: RabbitExchange | str | None = None,
         **message_options: Unpack["MessageOptions"],
     ) -> None:
         headers = message_options.pop("headers", {})
@@ -36,6 +37,7 @@ class RabbitResponse(Response):
             correlation_id=correlation_id,
         )
 
+        self.exchange = None if exchange is None else RabbitExchange.validate(exchange)
         self.message_options: BasicMessageOptions = message_options
         self.publish_options: PublishOptions = {
             "mandatory": mandatory,
@@ -47,11 +49,12 @@ class RabbitResponse(Response):
     def as_publish_command(self) -> "RabbitPublishCommand":
         return RabbitPublishCommand(
             message=self.body,
-            headers=self.headers,
-            correlation_id=self.correlation_id,
             _publish_type=PublishType.PUBLISH,
             routing_key="",
+            exchange=self.exchange,
             **self.publish_options,
+            headers=self.headers,
+            correlation_id=self.correlation_id,
             **self.message_options,
         )
 
@@ -82,7 +85,8 @@ class RabbitPublishCommand(PublishCommand):
             reply_to=reply_to,
             _publish_type=_publish_type,
         )
-        self.exchange = exchange or RabbitExchange()
+
+        self._exchange = exchange
 
         self.timeout = timeout
 
@@ -91,6 +95,16 @@ class RabbitPublishCommand(PublishCommand):
             "mandatory": mandatory,
             "immediate": immediate,
         }
+
+    @property
+    def exchange(self) -> RabbitExchange:
+        if self._exchange is not None:
+            return self._exchange
+        return RabbitExchange()
+
+    @exchange.setter
+    def exchange(self, value: RabbitExchange) -> None:
+        self._exchange = value
 
     @classmethod
     def from_cmd(

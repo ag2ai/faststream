@@ -1,5 +1,7 @@
 import asyncio
 import datetime as dt
+import logging
+import uuid
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -7,7 +9,7 @@ import pytest
 from dirty_equals import IsNow
 
 from faststream import Context
-from faststream.rabbit import RabbitResponse
+from faststream.rabbit import RabbitExchange, RabbitMessage, RabbitResponse
 from faststream.rabbit.publisher.producer import AioPikaFastProducerImpl
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
@@ -198,3 +200,152 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         assert event.is_set()
         mock.assert_called_with("Hello!")
+
+
+@pytest.mark.rabbit()
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+class TestPublishWithExchange(RabbitTestcaseConfig):
+    async def test_response_with_exchange(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
+
+        exchange_name = str(uuid.uuid4())
+
+        @broker.subscriber(queue)
+        @broker.publisher(queue + "1")
+        async def handle() -> RabbitResponse:
+            return RabbitResponse(1, exchange=exchange_name)
+
+        @broker.subscriber(queue + "1", exchange=exchange_name)
+        async def handle_next(msg: RabbitMessage) -> None:
+            mock(body=msg.body)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3.0,
+            )
+
+        assert event.is_set()
+
+        mock.assert_called_once_with(body=b"1")
+
+    async def test_publisher_with_exchange(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
+
+        exchange_name = str(uuid.uuid4())
+
+        @broker.subscriber(queue)
+        @broker.publisher(queue + "1", exchange=exchange_name)
+        async def handle() -> RabbitResponse:
+            return RabbitResponse(1)
+
+        @broker.subscriber(queue + "1", exchange=exchange_name)
+        async def handle_next(msg: RabbitMessage) -> None:
+            mock(body=msg.body)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3.0,
+            )
+
+        assert event.is_set()
+
+        mock.assert_called_once_with(body=b"1")
+
+    async def test_response_exchange_override_publisher(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
+        exchange_name, exchange_name_2 = str(uuid.uuid4()), str(uuid.uuid4())
+
+        @broker.subscriber(queue)
+        @broker.publisher(queue + "1", exchange=exchange_name)
+        async def handle() -> RabbitResponse:
+            return RabbitResponse(1, exchange=exchange_name_2)
+
+        @broker.subscriber(queue + "1", exchange=exchange_name_2)
+        async def handle_next(msg: RabbitMessage) -> None:
+            mock(body=msg.body)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3.0,
+            )
+
+        assert event.is_set()
+
+        mock.assert_called_once_with(body=b"1")
+        assert not mock.error.called
+
+    async def test_response_default_exchange_override_publisher(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
+        broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
+        exchange_name = str(uuid.uuid4())
+
+        @broker.subscriber(queue)
+        @broker.publisher(queue + "1", exchange=exchange_name)
+        async def handle() -> RabbitResponse:
+            return RabbitResponse(1, exchange=RabbitExchange())
+
+        @broker.subscriber(queue + "1")
+        async def handle_next(msg: int) -> None:
+            mock(body=msg)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3.0,
+            )
+
+        assert event.is_set()
+
+        mock.assert_called_once_with(body=1)
+        assert not mock.error.called

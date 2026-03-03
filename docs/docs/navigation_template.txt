@@ -27,7 +27,7 @@ search:
         - [Examples](getting-started/serialization/examples.md)
     - [Lifespan](getting-started/lifespan/index.md)
         - [Hooks](getting-started/lifespan/hooks.md)
-        - [Context](getting-started/lifespan/context.md)
+        - [Lifespan Option](getting-started/lifespan/context.md)
         - [Testing](getting-started/lifespan/test.md)
     - [Middlewares](getting-started/middlewares/index.md)
         - [Exception Middleware](getting-started/middlewares/exception.md)

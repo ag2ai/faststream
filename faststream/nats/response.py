@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import override
 
@@ -7,6 +7,7 @@ from faststream.response.response import PublishCommand, Response
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
+    from faststream.nats.schemas.schedule import Schedule
 
 
 class NatsResponse(Response):
@@ -17,6 +18,7 @@ class NatsResponse(Response):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         stream: str | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> None:
         super().__init__(
             body=body,
@@ -24,6 +26,7 @@ class NatsResponse(Response):
             correlation_id=correlation_id,
         )
         self.stream = stream
+        self.schedule = schedule
 
     @override
     def as_publish_command(self) -> "NatsPublishCommand":
@@ -35,6 +38,7 @@ class NatsResponse(Response):
             # Nats specific
             subject="",
             stream=self.stream,
+            schedule=self.schedule,
         )
 
 
@@ -49,6 +53,7 @@ class NatsPublishCommand(PublishCommand):
         reply_to: str = "",
         stream: str | None = None,
         timeout: float = 0.5,
+        schedule: Optional["Schedule"] = None,
         _publish_type: PublishType,
     ) -> None:
         super().__init__(
@@ -62,6 +67,7 @@ class NatsPublishCommand(PublishCommand):
 
         self.stream = stream
         self.timeout = timeout
+        self.schedule = schedule
 
     def headers_to_publish(self, *, js: bool = False) -> dict[str, str]:
         headers = {}
@@ -71,6 +77,10 @@ class NatsPublishCommand(PublishCommand):
 
         if js and self.reply_to:
             headers["reply_to"] = self.reply_to
+
+        if self.schedule:
+            headers["Nats-Schedule"] = f"@at {self.schedule.time.isoformat()}"
+            headers["Nats-Schedule-Target"] = self.schedule.target
 
         return headers | self.headers
 

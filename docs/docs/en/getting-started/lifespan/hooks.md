@@ -25,6 +25,9 @@ There are **four types of hooks**:
 3. `on_shutdown` — before the broker is disconnected
 4. `after_shutdown` — after the broker is disconnected
 
+!!! tip
+    If you prefer to use `FastStream(lifespan=...)`, refer to the [Lifespan Options](./context.md){.internal-link} section instead.
+
 ## Resource availability by hooks
 
 The table below summarizes what is available in each of the hooks at different stages of the broker's life.

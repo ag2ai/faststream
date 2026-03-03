@@ -113,7 +113,7 @@ class SecurityTestcase(AsyncAPI26Mixin):
                     }),
                     "components": IsPartialDict({
                         "securitySchemes": {
-                            "oauthbearer": {"type": "oauth2", "$ref": ""},
+                            "oauthbearer": {"type": "oauth2"},
                         },
                     }),
                 }),

@@ -30,6 +30,26 @@ from faststream.rabbit.utils import build_url
             URL("amqp://guest:guest@localhost:5672//test"),
             id="exotic virtualhost",
         ),
+        pytest.param(
+            {"virtualhost": "/test"},
+            URL("amqp://guest:guest@localhost:5672//test"),
+            id="virtualhost with leading slash",
+        ),
+        pytest.param(
+            {"url": "amqp://guest:guest@localhost:5672", "virtualhost": "/test"},
+            URL("amqp://guest:guest@localhost:5672//test"),
+            id="url combined with slashed virtualhost",
+        ),
+        pytest.param(
+            {"url": "amqp://guest:guest@localhost:5672", "virtualhost": "test"},
+            URL("amqp://guest:guest@localhost:5672/test"),
+            id="url no slash virtualhost without slash",
+        ),
+        pytest.param(
+            {"virtualhost": "test"},
+            URL("amqp://guest:guest@localhost:5672/test"),
+            id="url with slash virtualhost without slash",
+        ),
     ),
 )
 def test_unpack_args(url_kwargs: dict[str, Any], expected_url: URL) -> None:

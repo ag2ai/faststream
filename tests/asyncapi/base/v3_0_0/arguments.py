@@ -23,6 +23,20 @@ class FastAPICompatible(AsyncAPI300Factory):
     broker_class: BrokerUsecase | StreamRouter
     dependency_builder = staticmethod(APIDepends)
 
+    def test_default_naming(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("test")
+        async def handle(msg) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+
+        assert channel_key == IsStr(regex=r"test[\w:]*:Handle"), channel_key
+        assert operation_key == IsStr(regex=r"test[\w:]*:HandleSubscribe"), operation_key
+
     def test_custom_naming(self) -> None:
         broker = self.broker_class()
 
@@ -30,10 +44,14 @@ class FastAPICompatible(AsyncAPI300Factory):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert key == "custom_name"
-        assert schema["channels"][key]["description"] == "test description"
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+
+        assert channel_key == "custom_name"
+        assert operation_key == "custom_name"
+
+        assert schema["channels"][channel_key]["description"] == "test description"
 
     def test_slash_in_title(self) -> None:
         broker = self.broker_class()
@@ -43,10 +61,13 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert next(iter(schema["channels"].keys())) == "."
-        assert schema["channels"]["."]["address"] == "/"
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
 
-        assert next(iter(schema["operations"].keys())) == ".Subscribe"
+        assert channel_key == "."
+        assert schema["channels"][channel_key]["address"] == "/"
+
+        assert operation_key == ".Subscribe"
 
         assert next(iter(schema["components"]["messages"].keys())) == ".:SubscribeMessage"
         assert (

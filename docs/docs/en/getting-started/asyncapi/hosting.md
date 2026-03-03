@@ -95,6 +95,59 @@ app = AsgiFastStream(
 
 After running the script, the **AsyncAPI** docs will be available at: <http://localhost:8000/docs/asyncapi>
 
+## Try It Out
+
+The AsyncAPI documentation page includes a built-in **Try It Out** feature that lets you publish test messages directly from the browser UI, without leaving the docs page.
+
+!!! note
+    The Try It Out UI is powered by the [asyncapi-try-it-plugin](https://github.com/Shepard2154/asyncapi-try-it-plugin){.external-link target="_blank"} — a plugin for AsyncAPI that adds a Swagger-like interface to send test messages to message brokers. Thanks to the maintainers for this functionality.
+
+By default, when you set `asyncapi_path`, a companion `POST` endpoint is automatically registered at `{asyncapi_path}/try`. The UI sends the message payload to this endpoint, which publishes it to your broker in test mode (without requiring a real broker connection).
+
+```python linenums="1" hl_lines="7"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream
+
+broker = NatsBroker()
+
+# POST /docs/asyncapi/try is registered automatically
+app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi")
+```
+
+To disable the feature, use `AsyncAPIRoute` with `try_it_out=False`:
+
+```python linenums="1" hl_lines="2 8"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
+
+broker = NatsBroker()
+
+app = AsgiFastStream(
+    broker,
+    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out=False),
+)
+```
+
+If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_url` via `AsyncAPIRoute`:
+
+```python linenums="1" hl_lines="2 10"
+from faststream.nats import NatsBroker
+from faststream.asgi import AsgiFastStream, AsyncAPIRoute
+
+broker = NatsBroker()
+
+app = AsgiFastStream(
+    broker,
+    asyncapi_path=AsyncAPIRoute(
+        "/docs/asyncapi",
+        try_it_out_url="https://api.example.com/asyncapi/try",
+    ),
+)
+```
+
+!!! note
+    When `try_it_out_url` is set on `AsyncAPIRoute`, it overrides the URL the browser sends requests to. The local `POST {asyncapi_path}/try` endpoint is still registered and reachable regardless of `try_it_out_url`, unless you also pass `try_it_out=False`.
+
 ## Integration with Different HTTP Frameworks (**FastAPI** Example)
 
 **FastStream** provides two robust approaches to combine your message broker documentation with any **ASGI** web frameworks.

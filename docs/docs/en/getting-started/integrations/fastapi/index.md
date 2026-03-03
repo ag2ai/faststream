@@ -22,7 +22,7 @@ Just import a **StreamRouter** you need and declare the message handler in the s
 
     Note that the code below uses `fastapi.Depends`, not `faststream.Depends`.
 
-    Also, instead original `faststream.Context` you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context/existed.md#annotated-aliases){.internal-link})
+    Also, instead original `faststream.Context` you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context.md#annotated-aliases){.internal-link})
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6 14-18 24-25"

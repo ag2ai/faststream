@@ -31,7 +31,7 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
 4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. otherwise, the event will be passed to another handler.
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
-5. [**publish_scope**](#important-information-about-publishscope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
+5. [**publish_scope**](#important-information-about-publish_scope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
     - [**publish**](../publishing/index.md){.internal-link} - The publish_scope calls the publish method, and the result of `consume_scope` will be used as the argument for sending the message.
 6. **after_processed** - Final cleanup and post-processing stage.
 

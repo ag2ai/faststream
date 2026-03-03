@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from functools import singledispatch
 from typing import Any
 
 from typing_extensions import Self
@@ -27,6 +28,17 @@ class Response:
             correlation_id=self.correlation_id,
             _publish_type=PublishType.PUBLISH,
         )
+
+    def get_publish_key(self) -> Any | None:
+        """Get the key for publishing this message.
+
+        Override this method in subclasses to provide broker-specific keys.
+        Default implementation returns None (no key).
+
+        Returns:
+            The key for publishing, or None if this Response type doesn't use keys.
+        """
+        return None
 
 
 class PublishCommand(Response):
@@ -126,3 +138,82 @@ class BatchPublishCommand(PublishCommand):
             else:
                 body = None
         return body, tuple(extra_bodies)
+
+
+@singledispatch
+def _extract_body_and_key(item: Any) -> tuple[Any, Any | None]:
+    """Extract body and key from a plain message.
+
+    Default implementation for non-Response objects.
+    Returns the item as-is for body and None for key.
+    """
+    return item, None
+
+
+@_extract_body_and_key.register
+def _(item: Response) -> tuple[Any, Any | None]:
+    """Extract body and key from a Response object.
+
+    Uses polymorphic get_publish_key() method to retrieve the key.
+    """
+    return item.body, item.get_publish_key()
+
+
+def extract_per_message_keys_and_bodies(
+    batch_bodies: Sequence[Any],
+) -> tuple[tuple[Any | None, ...], tuple[Any, ...] | None]:
+    """Extract per-message keys and optionally normalized bodies from a batch.
+
+    Returns a pair (keys, normalized_bodies_or_None):
+    - If no Response objects are present, returns ((), None)
+      so callers can reuse the original bodies without extra allocations.
+    - Otherwise returns (keys_tuple, normalized_bodies_tuple), where normalized bodies
+      contain the extracted 'body' values from Response objects (or the original item).
+
+    Supports passing Response objects (e.g., KafkaResponse) to set per-message keys:
+        await broker.publish_batch(
+            KafkaResponse("body1", key=b"key1"),
+            KafkaResponse("body2", key=b"key2"),
+            "plain message"  # uses default key
+        )
+
+    Uses singledispatch for type-based polymorphism without isinstance checks.
+    """
+    if not batch_bodies:
+        return (), None
+
+    bodies: list[Any] = []
+    keys: list[Any | None] = []
+    has_key: bool = False
+
+    for item in batch_bodies:
+        body, key = _extract_body_and_key(item)
+        bodies.append(body)
+        keys.append(key)
+        if key is not None:
+            has_key = True
+
+    if not has_key:
+        return (), None
+
+    return tuple(keys), tuple(bodies)
+
+
+def key_for_index(
+    keys: Sequence[Any | None], default_key: Any | None, index: int
+) -> Any | None:
+    """Return the effective key for a given message index.
+
+    Prefers a per-message key at the given index when it is not None;
+    otherwise falls back to ``default_key``. If the index is out of bounds
+    or negative, ``default_key`` is returned.
+    """
+    if index < 0:
+        return default_key
+
+    try:
+        k = keys[index]
+    except IndexError:
+        return default_key
+
+    return k if k is not None else default_key

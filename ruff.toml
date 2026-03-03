@@ -66,6 +66,7 @@ ignore = [
     "PLR6301",
     "PLW1641",
     "RUF029",
+    "RUF067",
 
     # pep8-naming
     "N817",     # CamelCase `*` imported as acronym `*`

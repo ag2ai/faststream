@@ -217,7 +217,7 @@ def get_broker_channels(
                     stacklevel=1,
                 )
 
-            operation = Operation.from_sub(
+            operations[operation_key] = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",

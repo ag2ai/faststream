@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import aiormq
 import anyio
-from aio_pika.message import IncomingMessage
+from aio_pika.message import IncomingMessage, encode_expiration
 from pamqp import commands as spec
 from pamqp.header import ContentHeader
 from typing_extensions import override
@@ -178,6 +178,7 @@ def build_message(
                     content_encoding=msg.content_encoding,
                     priority=msg.priority,
                     correlation_id=msg.correlation_id,
+                    expiration=encode_expiration(msg.expiration),
                     message_id=msg.message_id,
                     timestamp=msg.timestamp,
                     message_type=message_type,

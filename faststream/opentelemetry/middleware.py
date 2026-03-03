@@ -2,7 +2,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable
 from copy import copy
-from typing import TYPE_CHECKING, Any, Generic, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from opentelemetry import baggage, context, metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
@@ -12,7 +12,7 @@ from opentelemetry.trace import Link, Span
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import PublishCommandType
+from faststream._internal.types import BrokerMiddleware, PublishCommandType
 from faststream.opentelemetry.baggage import Baggage
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
@@ -42,7 +42,7 @@ _BAGGAGE_PROPAGATOR = W3CBaggagePropagator()
 _TRACE_PROPAGATOR = TraceContextTextMapPropagator()
 
 
-class TelemetryMiddleware(Generic[PublishCommandType]):
+class TelemetryMiddleware(BrokerMiddleware[Any, PublishCommandType]):
     __slots__ = (
         "_meter",
         "_metrics",

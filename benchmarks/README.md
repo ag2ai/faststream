@@ -13,6 +13,6 @@ docker run --rm \
   --network=host \
   python:3.12-slim \
   /bin/bash -c "
-  pip install 'faststream[rabbit,redis,nats,kafka,confluent]==0.6.0rc0' fast-depends psutil && \
+  pip install 'faststream[rabbit,redis,nats,kafka,confluent]==0.6.0rc0' fast-depends psutil pytest && \
   python bench.py"
 ```

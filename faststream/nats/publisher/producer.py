@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
 import nats
+from nats.aio.client import NO_RESPONDERS_STATUS
+from nats.js.api import Header
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
@@ -193,11 +195,7 @@ class NatsJSFastProducer(NatsFastProducer):
             msg = await future
 
             if (  # pragma: no cover
-                msg.headers
-                and (
-                    msg.headers.get(nats.js.api.Header.STATUS)
-                    == nats.aio.client.NO_RESPONDERS_STATUS
-                )
+                msg.headers and (msg.headers.get(Header.STATUS) == NO_RESPONDERS_STATUS)
             ):
                 raise nats.errors.NoRespondersError
 

@@ -56,6 +56,7 @@ class JStream(NameRequired):
         republish: Optional["RePublish"] = None,
         allow_direct: bool | None = None,
         mirror_direct: bool | None = None,
+        allow_msg_schedules: bool | None = None,
         declare: bool = True,
     ) -> None:
         """Initialized JSrream.
@@ -128,6 +129,8 @@ class JStream(NameRequired):
                 Should direct requests be allowed. Note: you can get stale data.
             mirror_direct:
                 Should direct mirror requests be allowed
+            allow_msg_schedules:
+                Should allow message schedules.
             declare:
                 Whether to create stream automatically or just connect to it.
         """
@@ -162,6 +165,7 @@ class JStream(NameRequired):
             republish=republish,
             allow_direct=allow_direct,
             mirror_direct=mirror_direct,
+            allow_msg_schedules=allow_msg_schedules,
             subjects=[],  # use subjects from builder in declaration
         )
 

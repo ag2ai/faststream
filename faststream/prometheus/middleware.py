@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Generic
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import AnyMsg, PublishCommandType
+from faststream._internal.types import AnyMsg, BrokerMiddleware, PublishCommandType
 from faststream.exceptions import IgnoredException
 from faststream.message import SourceType
 from faststream.prometheus.consts import (
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from faststream.message.message import StreamMessage
 
 
-class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
+class PrometheusMiddleware(BrokerMiddleware[AnyMsg, PublishCommandType]):
     __slots__ = (
         "_dynamic_labels",
         "_metrics_container",

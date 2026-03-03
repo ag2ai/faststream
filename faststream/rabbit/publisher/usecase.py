@@ -128,6 +128,8 @@ class RabbitPublisher(PublisherUsecase):
         """This method should be called in subscriber flow only."""
         cmd = RabbitPublishCommand.from_cmd(cmd)
 
+        cmd.exchange = RabbitExchange.validate(cmd._exchange or self.exchange)
+
         cmd.destination = self.routing()
         cmd.reply_to = cmd.reply_to or self.reply_to
         cmd.add_headers(self.headers, override=False)

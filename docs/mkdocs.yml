@@ -83,8 +83,8 @@ plugins:
       default_handler: python
       handlers:
         python:
-          # import:
-          # - https://docs.python.org/3/objects.inv
+          import:
+          - https://docs.python.org/3/objects.inv
           options:
             preload_modules:
             - httpx
@@ -103,9 +103,9 @@ plugins:
             signature_crossrefs: true
             show_symbol_type_heading: true
             show_symbol_type_toc: true
-            # show_docstring_attributes: false
-            # show_signature_annotations: true
-            # load_external_modules: true
+            show_docstring_attributes: false
+            show_signature_annotations: true
+            load_external_modules: true
   - i18n:
       docs_structure: folder
       reconfigure_material: true
@@ -115,20 +115,20 @@ plugins:
           default: true
           name: en - English
           build: true
-  # - git-revision-date-localized: # show page edition date
-  #     enabled: !ENV [CI, false]
-  #     type: timeago
+  - git-revision-date-localized: # show page edition date
+      enabled: !ENV [CI, false]
+      type: timeago
   - literate-nav:                # .md importable navigation
       nav_file: SUMMARY.md
-  # - minify:
-  #     minify_html: true
-  #     minify_js: true
-  #     minify_css: true
-  #     htmlmin_opts:
-  #       remove_comments: true
-  #     cache_safe: true
-  #     css_files:
-  #       - stylesheets/extra.css
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      css_files:
+        - stylesheets/extra.css
   - mike:                        # versioning
       alias_type: copy
       redirect_template: templates/redirect.html
@@ -155,9 +155,9 @@ markdown_extensions:
       alternate_style: true      # create tabs group
   - attr_list                    # specify html attrs in markdown
   - md_in_html                   # render md wrapped to html tags
-  # - pymdownx.emoji:              # render material icons
-  #     emoji_index: !!python/name:material.extensions.emoji.twemoji
-  #     emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.emoji:              # render material icons
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
   analytics:

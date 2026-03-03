@@ -29,15 +29,16 @@ MD_API_META = "---\n" + API_META + "\n---\n\n"
 
 
 PUBLIC_API_FILES = [
-    "faststream/opentelemetry/__init__.py",
-    "faststream/asgi/__init__.py",
-    "faststream/asyncapi/__init__.py",
     "faststream/__init__.py",
     "faststream/nats/__init__.py",
     "faststream/rabbit/__init__.py",
     "faststream/confluent/__init__.py",
     "faststream/kafka/__init__.py",
     "faststream/redis/__init__.py",
+    "faststream/asgi/__init__.py",
+    "faststream/prometheus/__init__.py",
+    "faststream/opentelemetry/__init__.py",
+    "faststream/specification/__init__.py",
 ]
 
 

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 # prevent circular imports
 MsgType = TypeVar("MsgType")
 
+_NOT_CACHED = object()
+
 
 class AckStatus(str, Enum):
     ACKED = "ACKED"
@@ -96,7 +98,9 @@ class StreamMessage(Generic[MsgType]):
         """
         assert self.__decoder, "You should call `set_decoder()` method first."
 
-        if (result := self.__decoded_caches.get(self.__decoder)) is None:
+        if (
+            result := self.__decoded_caches.get(self.__decoder, _NOT_CACHED)
+        ) is _NOT_CACHED:
             result = self.__decoded_caches[self.__decoder] = await self.__decoder(self)
 
         return result

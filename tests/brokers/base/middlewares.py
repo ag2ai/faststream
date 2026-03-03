@@ -879,7 +879,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         mid2 = ExceptionMiddleware(handlers={ValueError: value_error_handler})
 
-        assert [x[0] for x in mid1._handlers] == [x[0] for x in mid2._handlers]
+        assert list(mid1._handlers.keys()) == list(mid2._handlers.keys())
 
     async def test_exception_middleware_init_publish_handler_same(self) -> None:
         mid1 = ExceptionMiddleware()
@@ -890,9 +890,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         mid2 = ExceptionMiddleware(publish_handlers={ValueError: value_error_handler})
 
-        assert [x[0] for x in mid1._publish_handlers] == [
-            x[0] for x in mid2._publish_handlers
-        ]
+        assert list(mid1._publish_handlers.keys()) == list(mid2._publish_handlers.keys())
 
     async def test_exception_middleware_decoder_error(
         self,
@@ -931,3 +929,56 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
             )
 
         assert event.is_set()
+
+    async def test_exception_middleware_mro_resolution(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Test MRO-based resolution picks the most specific handler."""
+
+        class ExcAError(Exception):
+            pass
+
+        class ExcBError(ExcAError):
+            pass
+
+        mid = ExceptionMiddleware()
+
+        # Register parent handler BEFORE child handler
+        @mid.add_handler(ExcAError, publish=True)
+        async def handle_a(exc) -> str:
+            return "parent"
+
+        @mid.add_handler(ExcBError, publish=True)
+        async def handle_b(exc) -> str:
+            return "child"
+
+        broker = self.get_broker(apply_types=True, middlewares=(mid,))
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        @broker.publisher(queue + "1")
+        async def subscriber1(m):
+            raise ExcBError
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "1")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def subscriber2(msg=Context("message")) -> None:
+            mock(await msg.decode())
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with("child")

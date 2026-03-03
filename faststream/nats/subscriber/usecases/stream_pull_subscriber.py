@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from nats.errors import ConnectionClosedError, TimeoutError
+from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
@@ -76,7 +77,7 @@ class PullStreamSubscriber(
 
         while self.running:  # pragma: no branch
             messages = []
-            with suppress(TimeoutError, ConnectionClosedError):
+            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,
@@ -224,7 +225,7 @@ class BatchPullStreamSubscriber(
         assert self.subscription, "You should call `create_subscription` at first."
 
         while self.running:  # pragma: no branch
-            with suppress(TimeoutError, ConnectionClosedError):
+            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,

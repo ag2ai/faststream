@@ -22,6 +22,7 @@ from faststream.response import Response, ensure_response
 
 from ._compat import (
     FASTAPI_V106,
+    FASTAPI_V121,
     create_response_field,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
@@ -222,11 +223,18 @@ def make_fastapi_execution(
     ) -> Response:
         """Consume StreamMessage and return user function result."""
         async with AsyncExitStack() as stack:
+            kwargs = {}
+            if FASTAPI_V121:
+                request.scope["fastapi_inner_astack"] = stack
+                function_stack = AsyncExitStack()
+                await stack.enter_async_context(function_stack)
+                request.scope["fastapi_function_astack"] = function_stack
+
             if FASTAPI_V106:
                 kwargs = {"async_exit_stack": stack}
+
             else:
                 request.scope["fastapi_astack"] = stack
-                kwargs = {}
 
             request.scope["app"] = fastapi_config.application
 

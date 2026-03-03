@@ -12,6 +12,139 @@ hide:
 ---
 
 # Release Notes
+## 0.6.7
+
+### What's Changed
+
+The main feature of this release is the **Try It Out** feature for your **Async API** documentation!
+
+Now you can test your developing application directly from the web, just like Swagger for HTTP. It supports in-memory publication to test a subscriber and real broker publication to verify behavior in real scenarios.
+
+<img width="1467" height="640" alt="" src="https://github.com/user-attachments/assets/4320e674-24d5-4ead-9820-4bb979e340e7">
+
+* feat: Add Try It Out feature for AsyncAPI documentation by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2777](https://github.com/ag2ai/faststream/pull/2777){.external-link target="_blank"}
+
+Full updates:
+
+* feat: Static membership for aiokafka broker (group_instance_id) by [@tmlnv](https://github.com/tmlnv){.external-link target="_blank"} in [#2783](https://github.com/ag2ai/faststream/pull/2783){.external-link target="_blank"}
+* feat: add on_assign, on_revoke, on_lost callbacks for Confluent subscriber by [@Br1an67](https://github.com/Br1an67){.external-link target="_blank"} in [#2789](https://github.com/ag2ai/faststream/pull/2789){.external-link target="_blank"}
+* feat: use MRO-based exception handler resolution by [@Br1an67](https://github.com/Br1an67){.external-link target="_blank"} in [#2788](https://github.com/ag2ai/faststream/pull/2788){.external-link target="_blank"}
+* fix: Bug: AsyncAPI documentation fails when Confluent uses oauth bearer authentication by @yann-combarnous in [#2775](https://github.com/ag2ai/faststream/pull/2775){.external-link target="_blank"}
+* fix: preserve exception chains in AsgiFastStream startup by [@zoni](https://github.com/zoni){.external-link target="_blank"} in [#2781](https://github.com/ag2ai/faststream/pull/2781){.external-link target="_blank"}
+* fix: use sentinel in StreamMessage.decode() to cache None results by @benedikt-bartscher in [#2784](https://github.com/ag2ai/faststream/pull/2784){.external-link target="_blank"}
+* fix: propagate expiration property in rabbit test broker by @marcm-ml in [#2787](https://github.com/ag2ai/faststream/pull/2787){.external-link target="_blank"}
+* docs: Add schedule parameter for NATS publishing by [@Majajashka](https://github.com/Majajashka){.external-link target="_blank"} in [#2763](https://github.com/ag2ai/faststream/pull/2763){.external-link target="_blank"}
+* docs: fix publish_scope by [@kurrbanov](https://github.com/kurrbanov){.external-link target="_blank"} in [#2768](https://github.com/ag2ai/faststream/pull/2768){.external-link target="_blank"}
+
+### New Contributors
+* [@kurrbanov](https://github.com/kurrbanov){.external-link target="_blank"} made their first contribution in [#2768](https://github.com/ag2ai/faststream/pull/2768){.external-link target="_blank"}
+* @yann-combarnous made their first contribution in [#2775](https://github.com/ag2ai/faststream/pull/2775){.external-link target="_blank"}
+* [@zoni](https://github.com/zoni){.external-link target="_blank"} made their first contribution in [#2781](https://github.com/ag2ai/faststream/pull/2781){.external-link target="_blank"}
+* [@tmlnv](https://github.com/tmlnv){.external-link target="_blank"} made their first contribution in [#2783](https://github.com/ag2ai/faststream/pull/2783){.external-link target="_blank"}
+* @benedikt-bartscher made their first contribution in [#2784](https://github.com/ag2ai/faststream/pull/2784){.external-link target="_blank"}
+* @marcm-ml made their first contribution in [#2787](https://github.com/ag2ai/faststream/pull/2787){.external-link target="_blank"}
+* [@Br1an67](https://github.com/Br1an67){.external-link target="_blank"} made their first contribution in [#2789](https://github.com/ag2ai/faststream/pull/2789){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.6...0.6.7](https://github.com/ag2ai/faststream/compare/0.6.6...0.6.7){.external-link target="_blank"}
+
+## 0.6.6
+
+### What's Changed
+
+* Add support for aiokafka 0.13 by [@dolfinus](https://github.com/dolfinus){.external-link target="_blank"} in [#2754](https://github.com/ag2ai/faststream/pull/2754){.external-link target="_blank"}
+* docs: replaced missing coverage commands with existing ones by @literally-user in [#2734](https://github.com/ag2ai/faststream/pull/2734){.external-link target="_blank"}
+* Feature: Add raw client bench by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2645](https://github.com/ag2ai/faststream/pull/2645){.external-link target="_blank"}
+* chore: revert fastapi v128 check by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2740](https://github.com/ag2ai/faststream/pull/2740){.external-link target="_blank"}
+* chore: ruff `F811` by [@chirizxc](https://github.com/chirizxc){.external-link target="_blank"} in [#2737](https://github.com/ag2ai/faststream/pull/2737){.external-link target="_blank"}
+* chore: add hash to actions by [@Flosckow](https://github.com/Flosckow){.external-link target="_blank"} in [#2741](https://github.com/ag2ai/faststream/pull/2741){.external-link target="_blank"}
+* fix: xautoclaim compatibility with old version redis by [@ksayer](https://github.com/ksayer){.external-link target="_blank"} in [#2750](https://github.com/ag2ai/faststream/pull/2750){.external-link target="_blank"}
+
+### New Contributors
+* @literally-user made their first contribution in [#2734](https://github.com/ag2ai/faststream/pull/2734){.external-link target="_blank"}
+* [@ksayer](https://github.com/ksayer){.external-link target="_blank"} made their first contribution in [#2750](https://github.com/ag2ai/faststream/pull/2750){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.5...0.6.6](https://github.com/ag2ai/faststream/compare/0.6.5...0.6.6){.external-link target="_blank"}
+
+## 0.6.5
+
+### What's Changed
+
+* fix: FastAPI 0.128 compatibility
+* fix(docs): dependencies installation by [@theseriff](https://github.com/theseriff){.external-link target="_blank"} in [#2710](https://github.com/ag2ai/faststream/pull/2710){.external-link target="_blank"}
+* Add tests for XREADGROUP vs XAUTOCLAIM selection based on min_idle_time by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+* fix: polish middleware types in favor to Pycharm by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2715](https://github.com/ag2ai/faststream/pull/2715){.external-link target="_blank"}
+* suppress `ServiceUnavailableError` for nats by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2720](https://github.com/ag2ai/faststream/pull/2720){.external-link target="_blank"}
+
+### New Contributors
+* [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} made their first contribution in [#2713](https://github.com/ag2ai/faststream/pull/2713){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.4...0.6.5](https://github.com/ag2ai/faststream/compare/0.6.4...0.6.5){.external-link target="_blank"}
+
+## 0.6.4
+
+### What's Changed
+
+* feat: Enables message keys for batch publishing by [@ozeranskii](https://github.com/ozeranskii){.external-link target="_blank"} in [#2586](https://github.com/ag2ai/faststream/pull/2586){.external-link target="_blank"}
+* feat: add env variable to disable rich CLI output by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2654](https://github.com/ag2ai/faststream/pull/2654){.external-link target="_blank"}
+* feat: Add api for nats message scheduling by [@sheldygg](https://github.com/sheldygg){.external-link target="_blank"} in [#2640](https://github.com/ag2ai/faststream/pull/2640){.external-link target="_blank"}
+* feat: trace is printed only once by [@fil1n](https://github.com/fil1n){.external-link target="_blank"} in [#2661](https://github.com/ag2ai/faststream/pull/2661){.external-link target="_blank"}
+* fix: update fast depends config when setting a broker by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2701](https://github.com/ag2ai/faststream/pull/2701){.external-link target="_blank"}
+* fix: Dont raise on unknown content types by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2702](https://github.com/ag2ai/faststream/pull/2702){.external-link target="_blank"}
+* fix(redis): fix xautoclaim consumption by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2628](https://github.com/ag2ai/faststream/pull/2628){.external-link target="_blank"}
+* fix: bug in AsyncAPI schema by [@kittywaresz](https://github.com/kittywaresz){.external-link target="_blank"} in [#2638](https://github.com/ag2ai/faststream/pull/2638){.external-link target="_blank"}
+* fix(rabbit): handle leading slash in virtualhost correctly by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#2707](https://github.com/ag2ai/faststream/pull/2707){.external-link target="_blank"}
+* fix: use publisher's exchange when applicable to send reply by [@lachaib](https://github.com/lachaib){.external-link target="_blank"} in [#2655](https://github.com/ag2ai/faststream/pull/2655){.external-link target="_blank"}
+* fix: kafka ack policies` behaviour by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2644](https://github.com/ag2ai/faststream/pull/2644){.external-link target="_blank"}
+* refactor: streamline conditional logic in `get_one` method of stream … by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2667](https://github.com/ag2ai/faststream/pull/2667){.external-link target="_blank"}
+* refactor: restructure justfile and unify cross-platform commands by [@suiseriff](https://github.com/suiseriff){.external-link target="_blank"} in [#2690](https://github.com/ag2ai/faststream/pull/2690){.external-link target="_blank"}
+* refactor(docs): actualize kafka how to by [@WorkHardes](https://github.com/WorkHardes){.external-link target="_blank"} in [#2692](https://github.com/ag2ai/faststream/pull/2692){.external-link target="_blank"}
+* docs: Added a Code examples article by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2670](https://github.com/ag2ai/faststream/pull/2670){.external-link target="_blank"}
+* docs: Fix kafka subscribe docs and llms.txt by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2700](https://github.com/ag2ai/faststream/pull/2700){.external-link target="_blank"}
+* docs: Fix link reference in FastAPI integration docs by [@supadrupa](https://github.com/supadrupa){.external-link target="_blank"} in [#2681](https://github.com/ag2ai/faststream/pull/2681){.external-link target="_blank"}
+* chore: LICENSE copying added by [@ZoRex15](https://github.com/ZoRex15){.external-link target="_blank"} in [#2685](https://github.com/ag2ai/faststream/pull/2685){.external-link target="_blank"}
+* chore: Add warning when using AckPolicy.REJECT_ON_ERROR with kafka by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2686](https://github.com/ag2ai/faststream/pull/2686){.external-link target="_blank"}
+* chore: skip relator notifications for dependabot events by @if-i in [#2669](https://github.com/ag2ai/faststream/pull/2669){.external-link target="_blank"}
+* chore: added no_confirm=True warning by @roma-frolov in [#2703](https://github.com/ag2ai/faststream/pull/2703){.external-link target="_blank"}
+* chore: update relator by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2650](https://github.com/ag2ai/faststream/pull/2650){.external-link target="_blank"}
+
+### New Contributors
+* @if-i made their first contribution in [#2669](https://github.com/ag2ai/faststream/pull/2669){.external-link target="_blank"}
+* [@supadrupa](https://github.com/supadrupa){.external-link target="_blank"} made their first contribution in [#2681](https://github.com/ag2ai/faststream/pull/2681){.external-link target="_blank"}
+* [@ZoRex15](https://github.com/ZoRex15){.external-link target="_blank"} made their first contribution in [#2685](https://github.com/ag2ai/faststream/pull/2685){.external-link target="_blank"}
+* [@WorkHardes](https://github.com/WorkHardes){.external-link target="_blank"} made their first contribution in [#2692](https://github.com/ag2ai/faststream/pull/2692){.external-link target="_blank"}
+* [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} made their first contribution in [#2707](https://github.com/ag2ai/faststream/pull/2707){.external-link target="_blank"}
+* [@lachaib](https://github.com/lachaib){.external-link target="_blank"} made their first contribution in [#2655](https://github.com/ag2ai/faststream/pull/2655){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.3...0.6.4](https://github.com/ag2ai/faststream/compare/0.6.3...0.6.4){.external-link target="_blank"}
+
+## 0.6.3
+
+### What's Changed
+
+* Fix annotation for group_instance_id parameter by [@gandhis1](https://github.com/gandhis1){.external-link target="_blank"} in [#2606](https://github.com/ag2ai/faststream/pull/2606){.external-link target="_blank"}
+* Add support for `min_idle_time` in Redis StreamSub and XAUTOCLAIM by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2607](https://github.com/ag2ai/faststream/pull/2607){.external-link target="_blank"}
+* fix incorrect nats annotations by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2619](https://github.com/ag2ai/faststream/pull/2619){.external-link target="_blank"}
+* docs(healthchecks): Fix typing example by [@redb0](https://github.com/redb0){.external-link target="_blank"} in [#2624](https://github.com/ag2ai/faststream/pull/2624){.external-link target="_blank"}
+* add nats kv message annotation by [@swelborn](https://github.com/swelborn){.external-link target="_blank"} in [#2626](https://github.com/ag2ai/faststream/pull/2626){.external-link target="_blank"}
+* redis: allow tasks to be added to subscribers by [@JonathanSerafini](https://github.com/JonathanSerafini){.external-link target="_blank"} in [#2622](https://github.com/ag2ai/faststream/pull/2622){.external-link target="_blank"}
+* Reusing router in multiple brokers or routers by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2591](https://github.com/ag2ai/faststream/pull/2591){.external-link target="_blank"}
+* fix: remove UltraJSON (ujson) dependency by [@Sehat1137](https://github.com/Sehat1137){.external-link target="_blank"} in [#2634](https://github.com/ag2ai/faststream/pull/2634){.external-link target="_blank"}
+* fix: allow explicit publishing to partition #0 of a topic from a Kafka publisher by [@antoinehumbert](https://github.com/antoinehumbert){.external-link target="_blank"} in [#2629](https://github.com/ag2ai/faststream/pull/2629){.external-link target="_blank"}
+* docs: Versioning policy by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2623](https://github.com/ag2ai/faststream/pull/2623){.external-link target="_blank"}
+* docs: Update faststream.md by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2631](https://github.com/ag2ai/faststream/pull/2631){.external-link target="_blank"}
+* docs: Added reference to broker's RPC modes by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2636](https://github.com/ag2ai/faststream/pull/2636){.external-link target="_blank"}
+* docs: Add Guidilines: Links in documentation by [@RenameMe1](https://github.com/RenameMe1){.external-link target="_blank"} in [#2637](https://github.com/ag2ai/faststream/pull/2637){.external-link target="_blank"}
+* fix enable.auto.commit kafka setting by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2612](https://github.com/ag2ai/faststream/pull/2612){.external-link target="_blank"}
+* docs: fix checkboxes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2643](https://github.com/ag2ai/faststream/pull/2643){.external-link target="_blank"}
+* fix: FastAPI 0.121 compat by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2648](https://github.com/ag2ai/faststream/pull/2648){.external-link target="_blank"}
+
+### New Contributors
+* [@gandhis1](https://github.com/gandhis1){.external-link target="_blank"} made their first contribution in [#2606](https://github.com/ag2ai/faststream/pull/2606){.external-link target="_blank"}
+* [@swelborn](https://github.com/swelborn){.external-link target="_blank"} made their first contribution in [#2619](https://github.com/ag2ai/faststream/pull/2619){.external-link target="_blank"}
+* [@redb0](https://github.com/redb0){.external-link target="_blank"} made their first contribution in [#2624](https://github.com/ag2ai/faststream/pull/2624){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.2...0.6.3](https://github.com/ag2ai/faststream/compare/0.6.2...0.6.3){.external-link target="_blank"}
+
 ## 0.6.2
 
 ### What's Changed

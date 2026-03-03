@@ -94,12 +94,15 @@ class TestBroker(Generic[Broker]):
 
         with context:
             async with self.broker:
+                saved_running = {sub: sub.running for sub in self.broker.subscribers}
                 try:
                     if not self.connect_only:
                         await self.broker.start()
                     yield self.broker
                 finally:
                     self._fake_close(self.broker)
+                    for sub, was_running in saved_running.items():
+                        sub.running = was_running
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Iterator[None]:

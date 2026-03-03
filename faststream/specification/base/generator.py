@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Protocol, Union
 
-from faststream._internal.broker import BrokerUsecase
-
 from .specification import Specification
 
 if TYPE_CHECKING:

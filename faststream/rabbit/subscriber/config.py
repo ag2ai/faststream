@@ -32,17 +32,14 @@ class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
 
     @property
     def ack_first(self) -> bool:
-        return self.__ack_policy is AckPolicy.ACK_FIRST
+        return self.ack_policy is AckPolicy.ACK_FIRST
+
+    @property
+    def auto_ack_disabled(self) -> bool:
+        return self.ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
 
     @property
     def ack_policy(self) -> AckPolicy:
-        if (policy := self.__ack_policy) is AckPolicy.ACK_FIRST:
-            return AckPolicy.MANUAL
-
-        return policy
-
-    @property
-    def __ack_policy(self) -> AckPolicy:
         if self._no_ack is not EMPTY and self._no_ack:
             return AckPolicy.MANUAL
 

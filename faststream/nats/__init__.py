@@ -19,7 +19,7 @@ try:
     from .annotations import NatsMessage
     from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
     from .response import NatsPublishCommand, NatsResponse
-    from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub
+    from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub, Schedule
     from .testing import TestNatsBroker
 
 except ImportError as e:
@@ -53,6 +53,7 @@ __all__ = (
     "RePublish",
     "ReplayPolicy",
     "RetentionPolicy",
+    "Schedule",
     "StorageType",
     "StreamConfig",
     "StreamSource",

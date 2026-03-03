@@ -6,7 +6,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream.middlewares import AckPolicy
 from faststream.nats.parser import NatsParser
 
 from .basic import DefaultSubscriber
@@ -36,7 +35,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
     ) -> None:
         parser = NatsParser(
             pattern=config.subject,
-            is_ack_disabled=config.ack_policy is not AckPolicy.MANUAL,
+            is_ack_disabled=True,  # core subscriber has no ack policy
         )
         config.parser = parser.parse_message
         config.decoder = parser.decode_message

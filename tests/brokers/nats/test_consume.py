@@ -221,7 +221,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
                 assert not m.mock.called
 
         assert event.is_set()
-        mock.assert_called_once_with(False)
+        mock.assert_called_once_with(True)  # True was set by parser
 
     async def test_consume_ack(
         self,
