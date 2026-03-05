@@ -31,6 +31,7 @@ class KafkaSubscriberSpecification(
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
+        reply_payloads = self.get_reply_payloads()
 
         channels = {}
         for t in self.topics:
@@ -42,6 +43,10 @@ class KafkaSubscriberSpecification(
                     message=Message(
                         title=f"{handler_name}:Message",
                         payload=resolve_payloads(payloads),
+                    ),
+                    reply_message=Message(
+                        title=f"{handler_name}:ReplyMessage",
+                        payload=resolve_payloads(reply_payloads),
                     ),
                     bindings=None,
                 ),
