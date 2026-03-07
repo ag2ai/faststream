@@ -13,5 +13,5 @@ from .conftest import Settings
 class TestConnection(BrokerConnectionTestcase):
     broker = KafkaBroker
 
-    def get_broker_args(self, settings: Settings) -> dict[str, Any]:
+    def _get_broker_args(self, settings: Settings) -> dict[str, Any]:
         return {"bootstrap_servers": settings.url}

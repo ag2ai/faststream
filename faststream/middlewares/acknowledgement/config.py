@@ -3,10 +3,10 @@ from enum import Enum
 
 class AckPolicy(str, Enum):
     ACK_FIRST = "ack_first"
-    """Ack message on consume."""
+    """Ack message prior to processing."""
 
     ACK = "ack"
-    """Ack message after all process."""
+    """Ack message after processing, whether it raised or not."""
 
     REJECT_ON_ERROR = "reject_on_error"
     """Reject message on unhandled exceptions."""
@@ -15,4 +15,4 @@ class AckPolicy(str, Enum):
     """Nack message on unhandled exceptions."""
 
     MANUAL = "manual"
-    """Disable default FastStream Acknowledgement logic. User should confirm all actions manually."""
+    """Disable default FastStream Acknowledgement logic. User should provide an action manually."""
