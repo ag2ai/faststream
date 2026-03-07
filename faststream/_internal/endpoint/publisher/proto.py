@@ -21,6 +21,7 @@ class PublisherProto(Protocol[PublishCommandType_contra]):
         /,
         *,
         correlation_id: str | None = None,
+        **kwargs,
     ) -> Any | None:
         """Public method to publish a message.
 
@@ -34,6 +35,7 @@ class PublisherProto(Protocol[PublishCommandType_contra]):
         cmd: "PublishCommandType_contra",
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """Private method to publish a message.
 
