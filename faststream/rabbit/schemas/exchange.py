@@ -34,15 +34,35 @@ class RabbitExchange(NameRequired):
 
         return f"{self.__class__.__name__}({self.name}, type={self.type}, routing_key='{self.routing()}'{body})"
 
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, RabbitExchange):
+            return NotImplemented
+
+        return (
+            self.name == value.name
+            and self.type == value.type
+            and self.routing_key == value.routing_key
+            and self.durable == value.durable
+            and self.auto_delete == value.auto_delete
+            and self.arguments == value.arguments
+        )
+
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
-        return sum(
+
+        def _hash_dict(d: Any) -> Any:
+            if isinstance(d, dict):
+                return frozenset((k, _hash_dict(v)) for k, v in d.items())
+            return d
+
+        return hash(
             (
-                hash(self.name),
-                hash(self.type),
-                hash(self.routing_key),
-                int(self.durable),
-                int(self.auto_delete),
+                self.name,
+                self.type,
+                self.routing_key,
+                self.durable,
+                self.auto_delete,
+                _hash_dict(self.arguments or {}),
             ),
         )
 

@@ -104,11 +104,11 @@ class ContextRepo:
             key: The key of the local variable
             value: The value to set the local variable to
 
-        Yields:
-            None
-
         Returns:
             An iterator that yields None
+
+        Yields:
+            None
         """
         token = self.set_local(key, value)
         try:
