@@ -68,13 +68,19 @@ class RabbitQueue(NameRequired):
 
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
+
+        def _hash_dict(d: Any) -> Any:
+            if isinstance(d, dict):
+                return frozenset((k, _hash_dict(v)) for k, v in d.items())
+            return d
+
         return hash(
             (
                 self.name,
                 self.durable,
                 self.exclusive,
                 self.auto_delete,
-                frozenset((self.arguments or {}).items()),
+                _hash_dict(self.arguments or {}),
             ),
         )
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(eq=False)
 class Channel:
     """Channel class that represents a RabbitMQ channel."""
 
