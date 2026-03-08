@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy import text
@@ -811,11 +811,11 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         assert len(result) == 8
 
     @pytest.mark.asyncio()
-    async def test_consume_fetch_intervals(
+    async def test_consume_fetch_intervals_fetch_on_freed_capacity(
         self, engine: AsyncEngine, recreate_tables: None
     ) -> None:
-        """After first batch was exhausted, next fetch happened immediately, but because it
-        wasn't full, third fetch used max_fetch_interval.
+        """After first batch was fully processed, next fetch
+        happened immediately.
         """
         broker = self.get_broker(engine=engine)
         await broker.connect()
@@ -840,15 +840,92 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
             nonlocal attempted
             attempted.append(msg)
 
-        for idx in range(7):
-            await broker.publish({"message": f"hello{idx + 1}"}, queue="default1")
+        for _ in range(7):
+            await broker.publish({"message": "hello"}, queue="default1")
         await broker.start()
 
         await asyncio.sleep(0.5)
-        await broker.publish({"message": f"hello{idx + 1}"}, queue="default1")
-        await asyncio.sleep(0.5)
 
         assert len(attempted) == 7
+
+    @pytest.mark.asyncio()
+    async def test_consume_fetch_intervals_immediate_fetch_to_fill_capacity(
+        self, engine: AsyncEngine, recreate_tables: None
+    ) -> None:
+        """After first fetch, next fetch happened immediately to
+        fill up capacity, because of the overfetch factor.
+        """
+        broker = self.get_broker(engine=engine)
+        await broker.connect()
+
+        client = broker.config.broker_config.client
+        client.fetch = AsyncMock(wraps=client.fetch)
+
+        @broker.subscriber(
+            queues=["default1"],
+            max_workers=4,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=0,
+            fetch_batch_size=4,
+            overfetch_factor=2,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.NACK_ON_ERROR,
+        )
+        async def handler(msg: Any) -> None:
+            await asyncio.sleep(4)
+
+        for _ in range(7):
+            await broker.publish({"message": "hello"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+
+        assert client.fetch.await_count == 2
+
+    @pytest.mark.asyncio()
+    async def test_consume_fetch_intervals_nonfull_fetch(
+        self, engine: AsyncEngine, recreate_tables: None
+    ) -> None:
+        """Because the first fetch wasn't full, next fetch happened after
+        max_fetch_interval despite batch being exhausted.
+        """
+        broker = self.get_broker(engine=engine)
+        await broker.connect()
+
+        attempted = []
+
+        @broker.subscriber(
+            queues=["default1"],
+            max_workers=4,
+            retry_strategy=NoRetryStrategy(),
+            max_fetch_interval=10,
+            min_fetch_interval=0,
+            fetch_batch_size=4,
+            overfetch_factor=1,
+            flush_interval=0.1,
+            release_stuck_interval=10,
+            release_stuck_timeout=10,
+            max_deliveries=20,
+            ack_policy=AckPolicy.NACK_ON_ERROR,
+        )
+        async def handler(msg: Any) -> None:
+            nonlocal attempted
+            attempted.append(msg)
+
+        for _ in range(3):
+            await broker.publish({"message": "hello"}, queue="default1")
+        await broker.start()
+
+        await asyncio.sleep(0.5)
+        await broker.publish({"message": "hello"}, queue="default1")
+
+        await asyncio.sleep(0.5)
+
+        assert len(attempted) == 3
 
     @pytest.mark.asyncio()
     async def test_consume_release_stuck(
