@@ -203,6 +203,43 @@ As of now, `LISTEN/NOTIFY` is not supported.
     COMMIT;
     ```
 
+=== "SQLite"
+    ```sql linenums="1"
+    WITH ready AS (
+      SELECT
+        message.id AS id
+      FROM
+        message
+      WHERE
+        (message.state = ? OR message.state = ?)
+        AND message.next_attempt_at <= ?
+        AND message.queue = ?
+      ORDER BY
+        message.next_attempt_at
+      LIMIT ? OFFSET ?
+    )
+    UPDATE message
+    SET
+      state = ?,
+      deliveries_count = (message.deliveries_count + ?),
+      acquired_at = ?
+    WHERE
+      message.id IN (SELECT ready.id FROM ready)
+    RETURNING
+      id AS id,
+      queue AS queue,
+      headers AS headers,
+      payload AS payload,
+      state AS state,
+      attempts_count AS attempts_count,
+      deliveries_count AS deliveries_count,
+      created_at AS created_at,
+      first_attempt_at AS first_attempt_at,
+      next_attempt_at AS next_attempt_at,
+      last_attempt_at AS last_attempt_at,
+      acquired_at AS acquired_at
+    ```
+
 ### Archive Messages
 
 === "PostgreSQL"
@@ -283,6 +320,33 @@ As of now, `LISTEN/NOTIFY` is not supported.
       message.id IN (% s);
     ```
 
+=== "SQLite"
+    ```sql linenums="1"
+    BEGIN;
+
+    INSERT INTO message_archive (
+      id,
+      queue,
+      headers,
+      payload,
+      state,
+      attempts_count,
+      deliveries_count,
+      created_at,
+      first_attempt_at,
+      last_attempt_at,
+      archived_at
+    )
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+    DELETE FROM message
+    WHERE
+      message.id IN (?);
+
+    COMMIT;
+    ```
+
 ### Requeue Messages
 
 === "PostgreSQL"
@@ -313,6 +377,21 @@ As of now, `LISTEN/NOTIFY` is not supported.
       acquired_at = % s
     WHERE
       message.id = % s
+    ```
+
+=== "SQLite"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = ?,
+      attempts_count = ?,
+      deliveries_count = ?,
+      first_attempt_at = ?,
+      next_attempt_at = ?,
+      last_attempt_at = ?,
+      acquired_at = ?
+    WHERE
+      message.id = ?
     ```
 
 Note that for bulk updates the arguments are sent in a batch in a single network call using `execute_many()`.
@@ -359,5 +438,24 @@ Note that for bulk updates the arguments are sent in a batch in a single network
               message.state = % s
               AND message.acquired_at < % s
           ) AS anon_1
+      )
+    ```
+
+=== "SQLite"
+    ```sql linenums="1"
+    UPDATE message
+    SET
+      state = ?,
+      next_attempt_at = ?,
+      acquired_at = ?
+    WHERE
+      message.id IN (
+        SELECT
+          message.id
+        FROM
+          message
+        WHERE
+          message.state = ?
+          AND message.acquired_at < ?
       )
     ```

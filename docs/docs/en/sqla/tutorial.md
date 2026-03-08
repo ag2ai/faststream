@@ -93,17 +93,17 @@ When `connection` is provided, the message insert participates in the same datab
 #### Subscriber parameters
 
 - **`queues`** — List of queue names to consume from.
-- **`max_workers`** — Number of workers to process messages concurrently.
-- **`retry_strategy`** — Called to determine if and when a Nack'ed message is retried. If `None`, `AckPolicy.NACK_ON_ERROR` has the same effect as `AckPolicy.REJECT_ON_ERROR`.
-- **`min_fetch_interval`** — Minimum interval between consecutive fetches, used if the last fetch was full (returned as many messages as the fetch's limit).
+- **`max_workers`** — Number of concurrent handler coroutines.
+- **`retry_strategy`** — Called to determine if and how soon a Nack'ed message is retried. If `None`, `AckPolicy.NACK_ON_ERROR` has the same effect as `AckPolicy.REJECT_ON_ERROR`.
+- **`fetch_batch_size`** — Maximum number of messages to fetch in a single batch. A fetch's actual limit might be lower if the free capacity of the acquired-but-not-yet-processed messages set is smaller.
+- **`overfetch_factor`** — Multiplier for `fetch_batch_size` to size the maximum size of the set of acquired-but-not-yet-processed messages.
+- **`min_fetch_interval`** — Minimum interval between consecutive fetches. If the last fetch was full (returned as many messages as the fetch's limit), the next fetch happens after both (i) minimum fetch interval has passed, and (ii) capacity equal to the fetch batch size has freed up in the set of acquired-but-not-yet-processed messages.
 - **`max_fetch_interval`** — Maximum interval between consecutive fetches.
-- **`fetch_batch_size`** — Maximum number of messages to fetch in a single batch. A fetch's actual limit might be lower if the free capacity of the acquired-but-not-yet-in-processing buffer is smaller.
-- **`overfetch_factor`** — Multiplier for `fetch_batch_size` to size the internal buffer of acquired-but-not-yet-processing messages.
 - **`flush_interval`** — Interval between flushes of processed message state to the database.
 - **`release_stuck_interval`** — Interval between checks for stuck [`PROCESSING`](../sqla/design.md#message-lifecycle){.internal-link} messages.
 - **`release_stuck_timeout`** — Interval since `acquired_at` after which a [`PROCESSING`](../sqla/design.md#message-lifecycle){.internal-link} message is considered stuck and is released back to [`PENDING`](../sqla/design.md#message-lifecycle){.internal-link}.
 - **`max_deliveries`** — Maximum number of deliveries allowed for a message. If set, messages that have reached this limit are Reject'ed to [`FAILED`](../sqla/design.md#message-lifecycle){.internal-link} without processing. Note that this might violate the [at-least-once](../sqla/design.md#poison-message-protection){.internal-link} processing semantics.
-- **`ack_policy`** — [AckPolicy](../getting-started/acknowledgement.md){.internal-link} that controls acknowledgement behavior.
+- **`ack_policy`** — [`AckPolicy`](../getting-started/acknowledgement.md){.internal-link} that controls acknowledgement behavior.
 
 ### Delayed retries
 

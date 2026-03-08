@@ -2,15 +2,12 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import (
-    AsyncGenerator,
     AsyncIterator,
     Awaitable,
-    Callable,
-    Coroutine,
     Iterable,
 )
-from contextlib import asynccontextmanager, suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, cast
 
 from typing_extensions import override
 
@@ -147,7 +144,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                     await self._sleep_until_stop_event(self._max_fetch_interval)
                     continue
 
-            async with self._local_task(
+            async with self.task_context(
                 asyncio.sleep, func_args=(self._min_fetch_interval,)
             ) as min_fetch_interval_reached_task:
                 match await self._wait_for_first_event_or_timeout(
@@ -156,10 +153,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                     timeout=self._max_fetch_interval,
                 ):
                     case self._may_fetch_event:
-                        with suppress(StopEventSetError):
-                            await self._wait_until_stop_event(
-                                min_fetch_interval_reached_task
-                            )
+                        await self._wait_until_stop_event(min_fetch_interval_reached_task)
                         continue
                     case self._stop_event | None:
                         continue
@@ -168,11 +162,10 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
 
     async def _worker_loop(self) -> None:
         while True:
-            try:
-                message = await self._wait_until_stop_event(
-                    self._pending_consume_queue.get()
-                )
-            except StopEventSetError:
+            message, _ = await self._wait_until_stop_event(
+                self._pending_consume_queue.get()
+            )
+            if not message:
                 break
 
             if message._allow_delivery(
@@ -265,7 +258,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
     async def _wait_until_stop_event(
         self,
         awaitable: Awaitable[_CoroutineReturnType],
-    ) -> _CoroutineReturnType:
+    ) -> tuple[_CoroutineReturnType, Literal[False]] | tuple[None, Literal[True]]:
         if isinstance(awaitable, asyncio.Task):
             coro_task: asyncio.Task[_CoroutineReturnType] = awaitable
         else:
@@ -280,13 +273,13 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         )
 
         if coro_task in done:
-            return await coro_task
+            return await coro_task, False
 
         if self._stop_task in done:
             coro_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await coro_task
-            raise StopEventSetError
+            return None, True
 
         raise ValueError
 
@@ -324,19 +317,6 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                 if not task.done():
                     task.cancel()
             await asyncio.gather(*task_to_event.keys(), return_exceptions=True)
-
-    @asynccontextmanager
-    async def _local_task(
-        self,
-        func: Callable[..., Coroutine[Any, Any, Any]],
-        func_args: tuple[Any, ...] | None = None,
-        func_kwargs: dict[str, Any] | None = None,
-    ) -> AsyncGenerator[asyncio.Task[Any], None]:
-        task = self.add_task(func, func_args, func_kwargs)
-        yield task
-        task.cancel()
-        with suppress(asyncio.CancelledError):
-            await task
 
     async def get_one(
         self,
