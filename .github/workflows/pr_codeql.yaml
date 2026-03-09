@@ -12,6 +12,11 @@
 name: "CodeQL"
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - faststream/**
   pull_request:
     types:
       - opened
