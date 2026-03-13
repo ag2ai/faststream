@@ -78,6 +78,8 @@ class TestRouterLocal(RabbitMemoryTestcaseConfig, FastAPILocalTestcase):
         async def hello(name):
             return name
 
+        await router.broker.start()
+
         async with self.patch_broker(router.broker) as br:
             r = await br.request(
                 "hi",
