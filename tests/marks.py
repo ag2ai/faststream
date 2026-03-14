@@ -90,3 +90,16 @@ require_nats = pytest.mark.skipif(
     not HAS_NATS,
     reason="requires nats-py",
 )
+
+
+try:
+    from faststream.sqla import SqlaBroker  # noqa: F401
+except ImportError:
+    HAS_SQLA = False
+else:
+    HAS_SQLA = True
+
+require_sqla = pytest.mark.skipif(
+    not HAS_SQLA,
+    reason="requires sqlalchemy",
+)

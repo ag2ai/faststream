@@ -456,6 +456,61 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
+  test-sqla-real:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs:
+      - test-basic
+    services:
+      postgres:
+        image: postgres:latest # zizmor: ignore[unpinned-images]
+        env:
+          POSTGRES_DB: broker
+          POSTGRES_USER: broker
+          POSTGRES_PASSWORD: brokerpass # pragma: allowlist secret
+        ports:
+          - 5432:5432
+      mysql:
+        image: mysql:latest # zizmor: ignore[unpinned-images]
+        env:
+          MYSQL_DATABASE: broker
+          MYSQL_USER: broker
+          MYSQL_PASSWORD: brokerpass # pragma: allowlist secret
+          MYSQL_ROOT_PASSWORD: brokerpass # pragma: allowlist secret
+        ports:
+          - 3306:3306
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Grant MySQL privileges
+        run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do sleep 1; done
+          mysql -h 127.0.0.1 -u root -pbrokerpass < tests/brokers/sqla/infra/init_mysql.sql
+      - uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest --cov --cov-report=
+          -vv -m "(slow and sqla and connected) or (sqla and connected)"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.sqla-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: .coverage.sqla-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
   coverage-combine:
     if: github.event.pull_request.draft == false
     needs:

@@ -1,5 +1,6 @@
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncGenerator, Callable, Coroutine
+from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Any, Generic
 
 import anyio
@@ -41,6 +42,19 @@ class TasksMixin(SubscriberUsecase[Any]):
                 task.cancel()
 
         self.tasks.clear()
+
+    @asynccontextmanager
+    async def task_context(
+        self,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: tuple[Any, ...] | None = None,
+        func_kwargs: dict[str, Any] | None = None,
+    ) -> AsyncGenerator[asyncio.Task[Any], None]:
+        task = self.add_task(func, func_args, func_kwargs)
+        yield task
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 class ConcurrentMixin(TasksMixin, Generic[MsgType]):
