@@ -174,7 +174,9 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
             ):
                 message.retry_strategy = self._retry_strategy
                 await self.consume(message)
-                message._assert_state_updated(self._outer_config.logger.logger.logger)
+                await message._assert_state_updated(
+                    self._outer_config.logger.logger.logger
+                )
 
             self._not_processed_count -= 1
             self._check_if_may_fetch()

@@ -140,14 +140,17 @@ class SqlaInnerMessage:
             return False
         return True
 
-    def _assert_state_updated(self, logger: "LoggerProto | None") -> None:
-        if not self.state_set and logger:
-            logger.log(
-                logging.ERROR,
-                f"State of message {self} was not updated after processing, "
-                f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
-                f"acknowledgement in the handler.",
-            )
+    async def _assert_state_updated(self, logger: "LoggerProto | None") -> None:
+        if not self.state_set:
+            if logger:
+                logger.log(
+                    logging.ERROR,
+                    f"State of message {self} was not updated after processing, "
+                    f"perhaps due to the AckPolicy.MANUAL policy and lack of manual "
+                    f"acknowledgement in the handler. As a precaution, the message "
+                    f"was Reject'ed.",
+                )
+            await self.reject()
 
     def __repr__(self) -> str:
         return f"SqlaMessage(id={self.id}, queue={self.queue})"

@@ -261,7 +261,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
     async def test_consume_manual_no_manual_ack(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        """Error was logged because the message was neither manually nor automatically acknowledged."""
+        """Error was logged because the message was neither manually nor automatically acknowledged.
+        The message was Reject'ed.
+        """
         logger = MagicMock()
         broker = self.get_broker(engine=engine, logger=logger)
 
@@ -293,3 +295,10 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
         assert len(logs) == 1
         assert "was not updated after processing" in logs[0][0][1]
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message_archive;"))
+        result = result.mappings().one()
+        assert result["queue"] == "default1"
+        assert json.loads(result["payload"]) == {"message": "hello1"}
+        assert result["state"] == SqlaMessageState.FAILED.name
