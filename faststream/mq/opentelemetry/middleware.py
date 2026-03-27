@@ -8,7 +8,7 @@ from faststream.mq.response import MQPublishCommand
 from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
-class MQTelemetryMiddleware(TelemetryMiddleware[Any, MQPublishCommand]):
+class MQTelemetryMiddleware(TelemetryMiddleware[MQPublishCommand]):
     def __init__(
         self,
         *,

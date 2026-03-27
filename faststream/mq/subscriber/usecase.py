@@ -42,6 +42,7 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         self.wait_interval = config.wait_interval
         self._consumer: AsyncMQConnection | None = None
         self._consumer_task: asyncio.Task[None] | None = None
+        self._test_messages: asyncio.Queue[MQRawMessage] | None = None
 
     def routing(self) -> str:
         return f"{self._outer_config.prefix}{self.queue.routing()}"
@@ -49,6 +50,11 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
     @override
     async def start(self) -> None:
         await super().start()
+
+        if getattr(self._outer_config.producer, "is_test_producer", False):
+            self._test_messages = asyncio.Queue()
+            self._post_start()
+            return
 
         self._consumer = AsyncMQConnection(
             connection_config=self._outer_config.connection_config,
@@ -80,6 +86,10 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
     async def stop(self) -> None:
         await super().stop()
 
+        if self._test_messages is not None:
+            self._test_messages = None
+            return
+
         if self._consumer_task is not None:
             self._consumer_task.cancel()
             with anyio.CancelScope(shield=True):
@@ -97,12 +107,19 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         *,
         timeout: float = 5.0,
     ) -> "MQMessage | None":
-        assert self._consumer is not None, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
-        raw_message = await self._consumer.get_message(timeout=timeout)
+        if self._test_messages is not None:
+            try:
+                raw_message = await asyncio.wait_for(self._test_messages.get(), timeout)
+            except asyncio.TimeoutError:
+                return None
+        else:
+            assert self._consumer is not None, "You should start subscriber at first."
+            raw_message = await self._consumer.get_message(timeout=timeout)
+
         if raw_message is None:
             return None
 
@@ -120,7 +137,6 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["MQMessage"]:
-        assert self._consumer is not None, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator method if subscriber has registered handlers."
         )
@@ -129,7 +145,18 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while self.running:
-            raw_message = await self._consumer.get_message(timeout=self.wait_interval)
+            if self._test_messages is not None:
+                try:
+                    raw_message = await asyncio.wait_for(
+                        self._test_messages.get(),
+                        self.wait_interval,
+                    )
+                except asyncio.TimeoutError:
+                    continue
+            else:
+                assert self._consumer is not None, "You should start subscriber at first."
+                raw_message = await self._consumer.get_message(timeout=self.wait_interval)
+
             if raw_message is None:
                 continue
             msg = await process_msg(
@@ -169,3 +196,7 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         message: Optional["StreamMessage[Any]"],
     ) -> dict[str, str]:
         return self.build_log_context(message=message, queue=self.queue)
+
+    async def put_test_message(self, message: "MQRawMessage") -> None:
+        assert self._test_messages is not None, "Test buffer is not initialized."
+        await self._test_messages.put(message)
