@@ -67,6 +67,19 @@ require_aiopika = pytest.mark.skipif(
 
 
 try:
+    import ibmmq  # noqa: F401
+except ImportError:
+    HAS_IBMMQ = False
+else:
+    HAS_IBMMQ = True
+
+require_ibmmq = pytest.mark.skipif(
+    not HAS_IBMMQ,
+    reason="requires ibmmq",
+)
+
+
+try:
     from faststream.redis import RedisBroker  # noqa: F401
 except ImportError:
     HAS_REDIS = False
