@@ -65,6 +65,8 @@ dependencies = [
 [project.optional-dependencies]
 rabbit = ["aio-pika>=9,<10"]
 
+mq = ["ibmmq>=2,<3"]
+
 kafka = ["aiokafka>=0.9,<0.14"]
 
 confluent = [
@@ -205,6 +207,7 @@ addopts = "--strict-markers --strict-config -q -m 'not slow'"
 testpaths = ["tests"]
 markers = [
     "rabbit",
+    "mq",
     "kafka",
     "confluent",
     "nats",

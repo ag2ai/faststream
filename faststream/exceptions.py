@@ -174,6 +174,11 @@ To use RabbitMQ with FastStream, please install dependencies:\n
 pip install "faststream[rabbit]"
 """
 
+INSTALL_FASTSTREAM_MQ = """
+To use IBM MQ with FastStream, please install dependencies:\n
+pip install "faststream[mq]"
+"""
+
 INSTALL_FASTSTREAM_KAFKA = """
 To use Apache Kafka with FastStream, please install dependencies:\n
 pip install "faststream[kafka]"
