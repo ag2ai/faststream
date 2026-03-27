@@ -117,7 +117,7 @@ class MQPublisher(PublisherUsecase):
         expiry: int | None = None,
         message_type: str | None = None,
         message_id: str | None = None,
-        timeout: float = 0.5,
+        timeout: float = 5.0,
     ) -> Any:
         cmd = MQPublishCommand(
             message,

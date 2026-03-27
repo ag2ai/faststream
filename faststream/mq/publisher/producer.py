@@ -33,6 +33,26 @@ class AsyncMQFastProducer(ProducerProto[MQPublishCommand]):
     async def ping(self, timeout: float) -> bool: ...
 
 
+class AsyncMQConnectionProducer(ProducerProto[MQPublishCommand]):
+    def __init__(
+        self,
+        connection: "AsyncMQConnection",
+        serializer: Optional["SerializerProto"],
+    ) -> None:
+        self.connection = connection
+        self.serializer = serializer
+
+    async def publish(self, cmd: MQPublishCommand) -> None:
+        await self.connection.publish(cmd, serializer=self.serializer)
+
+    async def request(self, cmd: MQPublishCommand) -> Any:
+        return await self.connection.request(cmd, serializer=self.serializer)
+
+    async def publish_batch(self, cmd: MQPublishCommand) -> None:
+        msg = "IBM MQ doesn't support publishing in batches."
+        raise NotImplementedError(msg)
+
+
 class FakeMQFastProducer(AsyncMQFastProducer):
     async def connect(
         self,
