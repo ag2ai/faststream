@@ -1,3 +1,3 @@
-from .provider import MQMetricsSettingsProvider
+from .middleware import MQPrometheusMiddleware
 
-__all__ = ("MQMetricsSettingsProvider",)
+__all__ = ("MQPrometheusMiddleware",)

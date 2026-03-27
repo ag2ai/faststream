@@ -1,3 +1,3 @@
-from .provider import MQTelemetrySettingsProvider
+from .middleware import MQTelemetryMiddleware
 
-__all__ = ("MQTelemetrySettingsProvider",)
+__all__ = ("MQTelemetryMiddleware",)

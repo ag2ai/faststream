@@ -54,6 +54,13 @@ class AsyncMQConnection:
         if self._qmgr is not None:
             return
 
+        if (
+            self.connection_config.use_ssl
+            or self.connection_config.ssl_context is not None
+        ):
+            msg = "SSL-enabled IBM MQ connections are not supported yet."
+            raise NotImplementedError(msg)
+
         mq = _load_ibmmq()
 
         qmgr = mq.QueueManager(None)
@@ -237,8 +244,6 @@ class AsyncMQConnection:
                 )
             if cmd.expiry is not None:
                 md.Expiry = cmd.expiry
-            if cmd.message_type is not None:
-                md.PutApplType = mq.CMQC.MQAT_USER
 
             if cmd.native_correlation_id is not None:
                 md.CorrelId = cmd.native_correlation_id
