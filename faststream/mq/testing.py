@@ -63,6 +63,8 @@ class TestMQBroker(TestBroker[MQBroker]):
 
 
 class FakeProducer(AsyncMQFastProducer):
+    is_test_producer = True
+
     def __init__(self, broker: MQBroker) -> None:
         self.broker = broker
 
@@ -95,7 +97,10 @@ class FakeProducer(AsyncMQFastProducer):
             handler = cast("MQSubscriber", handler)
             if handler.routing() == cmd.destination:
                 called = True
-                await self._execute_handler(incoming, handler)
+                if handler.calls:
+                    await self._execute_handler(incoming, handler)
+                else:
+                    await handler.put_test_message(incoming)
 
         if not called:
             raise SubscriberNotFound
