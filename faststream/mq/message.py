@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -34,12 +35,18 @@ class MQRawMessage:
 class MQMessage(StreamMessage[MQRawMessage]):
     async def ack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
-            await self.raw_message.connection.commit()
+            try:
+                await asyncio.shield(self.raw_message.connection.commit())
+            except asyncio.CancelledError:
+                pass
         await super().ack()
 
     async def nack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
-            await self.raw_message.connection.backout()
+            try:
+                await asyncio.shield(self.raw_message.connection.backout())
+            except asyncio.CancelledError:
+                pass
         await super().nack()
 
     async def reject(self) -> None:

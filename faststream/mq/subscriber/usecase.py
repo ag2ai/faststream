@@ -12,6 +12,7 @@ from faststream._internal.endpoint.utils import process_msg
 from faststream.mq.helpers import AsyncMQConnection
 from faststream.mq.parser import MQParser
 from faststream.mq.publisher.fake import MQFakePublisher
+from faststream.mq.publisher.producer import AsyncMQConnectionProducer
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -173,9 +174,16 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         self,
         message: "StreamMessage[Any]",
     ) -> Sequence["PublisherProto"]:
+        producer = self._outer_config.producer
+        if message.raw_message.connection is not None:
+            producer = AsyncMQConnectionProducer(
+                message.raw_message.connection,
+                serializer=self._outer_config.fd_config._serializer,
+            )
+
         return (
             MQFakePublisher(
-                self._outer_config.producer,
+                producer,
                 queue=message.reply_to,
                 native_correlation_id=message.raw_message.native_message_id,
             ),

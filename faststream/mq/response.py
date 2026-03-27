@@ -71,7 +71,7 @@ class MQPublishCommand(PublishCommand):
         persistence: bool | None = None,
         expiry: int | None = None,
         message_type: str | None = None,
-        timeout: float = 0.5,
+        timeout: float = 5.0,
         native_correlation_id: bytes | None = None,
     ) -> None:
         super().__init__(

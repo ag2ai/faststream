@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
+import os
 from typing import TYPE_CHECKING, Any, cast
 
 from faststream._internal.utils.functions import run_in_executor
@@ -17,9 +18,21 @@ if TYPE_CHECKING:
 
 def _load_ibmmq() -> Any:
     try:
+        os.environ.setdefault("MQIPY_NOOTEL", "true")
         import ibmmq as mq
     except ImportError as e:  # pragma: no cover - depends on optional dependency
         raise ImportError(INSTALL_FASTSTREAM_MQ) from e
+
+    otel_functions = getattr(mq, "OTelFunctions", None)
+    if otel_functions is not None:
+        otel_functions.disc = None
+        otel_functions.open = None
+        otel_functions.close = None
+        otel_functions.put_trace_before = None
+        otel_functions.put_trace_after = None
+        otel_functions.get_trace_before = None
+        otel_functions.get_trace_after = None
+
     return mq
 
 
@@ -390,8 +403,8 @@ class AsyncMQConnection:
                 mq.CMQC.MQGMO_WAIT
                 | mq.CMQC.MQGMO_NO_SYNCPOINT
                 | mq.CMQC.MQGMO_PROPERTIES_IN_HANDLE
-                | mq.CMQC.MQGMO_MATCH_CORREL_ID
             )
+            gmo.MatchOptions = mq.CMQC.MQMO_MATCH_CORREL_ID
             gmo.WaitInterval = _to_wait_interval(cmd.timeout)
 
             get_handle = mq.MessageHandle(self._qmgr)
@@ -435,8 +448,8 @@ def _headers_to_publish(
         headers.setdefault("content-type", content_type)
     if cmd.correlation_id:
         headers.setdefault("correlation_id", cmd.correlation_id)
-    if cmd.message_id:
-        headers.setdefault("message_id", cmd.message_id)
+    if cmd.message_id or cmd.correlation_id:
+        headers.setdefault("message_id", cmd.message_id or cmd.correlation_id)
     if cmd.message_type:
         headers.setdefault("message_type", cmd.message_type)
     return headers
