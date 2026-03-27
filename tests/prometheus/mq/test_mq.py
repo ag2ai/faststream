@@ -11,6 +11,7 @@ from .basic import MQPrometheusSettings
 
 
 @require_ibmmq
+@pytest.mark.connected()
 @pytest.mark.mq()
 class TestPrometheus(
     MQPrometheusSettings,

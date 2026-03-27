@@ -3,10 +3,10 @@ from typing import Any
 from faststream.mq.prometheus import MQPrometheusMiddleware
 from faststream.mq.prometheus.provider import MQMetricsSettingsProvider
 from faststream.prometheus import MetricsSettingsProvider
-from tests.brokers.mq.basic import MQMemoryTestcaseConfig
+from tests.brokers.mq.basic import MQTestcaseConfig
 
 
-class MQPrometheusSettings(MQMemoryTestcaseConfig):
+class MQPrometheusSettings(MQTestcaseConfig):
     messaging_system = "ibm_mq"
 
     def get_middleware(self, **kwargs: Any) -> MQPrometheusMiddleware:
