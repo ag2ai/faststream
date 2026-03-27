@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from faststream._internal.configs import (
     PublisherSpecificationConfig,

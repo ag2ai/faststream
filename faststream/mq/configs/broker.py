@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from faststream._internal.configs import BrokerConfig
 from faststream.mq.helpers.client import MQConnectionConfig
