@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import MagicMock
 
 import anyio
 

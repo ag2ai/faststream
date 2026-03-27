@@ -7,7 +7,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.producer import ProducerProto
-from faststream.message import encode_message
 from faststream.mq.parser import MQParser
 from faststream.mq.response import MQPublishCommand
 
