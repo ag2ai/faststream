@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+import json
 from typing import TYPE_CHECKING, Any, cast
 
 from faststream._internal.utils.functions import run_in_executor
@@ -172,17 +173,23 @@ class AsyncMQConnection:
         gmo.MsgHandle = msg_handle.msg_handle
 
         md = mq.MD(Version=mq.CMQC.MQMD_CURRENT_VERSION)
+        body: bytes | None = None
 
         try:
             body = cast(bytes, self._consumer_queue.get(None, md, gmo))
         except mq.MQMIError as e:
             if e.reason == mq.CMQC.MQRC_NO_MSG_AVAILABLE:
+                msg_handle.dlt()
                 return None
+            msg_handle.dlt()
             raise
 
-        headers = _read_headers(msg_handle)
-        msg_handle.dlt()
+        try:
+            headers = _read_headers(msg_handle)
+        finally:
+            msg_handle.dlt()
 
+        assert body is not None
         return _build_raw_message(
             body=body,
             md=md,
@@ -240,7 +247,10 @@ class AsyncMQConnection:
             if headers:
                 msg_handle = mq.MessageHandle(self._qmgr)
                 for key, value in headers.items():
-                    msg_handle.properties.set(f"usr.{key}", value)
+                    msg_handle.properties.set(
+                        f"usr.{key}",
+                        _normalize_property_value(value),
+                    )
                 pmo.OriginalMsgHandle = msg_handle.msg_handle
 
             queue.put(body, md, pmo)
@@ -297,7 +307,10 @@ class AsyncMQConnection:
                 if headers:
                     put_handle = mq.MessageHandle(self._qmgr)
                     for key, value in headers.items():
-                        put_handle.properties.set(f"usr.{key}", value)
+                        put_handle.properties.set(
+                            f"usr.{key}",
+                            _normalize_property_value(value),
+                        )
                     pmo.OriginalMsgHandle = put_handle.msg_handle
 
                 queue.put(body, md, pmo)
@@ -327,11 +340,15 @@ class AsyncMQConnection:
                 reply_body = cast(bytes, reply_queue.get(None, md_get, gmo))
             except mq.MQMIError as e:
                 if e.reason == mq.CMQC.MQRC_NO_MSG_AVAILABLE:
+                    get_handle.dlt()
                     raise TimeoutError from e
+                get_handle.dlt()
                 raise
 
-            headers = _read_headers(get_handle)
-            get_handle.dlt()
+            try:
+                headers = _read_headers(get_handle)
+            finally:
+                get_handle.dlt()
 
             return _build_raw_message(
                 body=reply_body,
@@ -356,7 +373,15 @@ def _headers_to_publish(
         headers.setdefault("correlation_id", cmd.correlation_id)
     if cmd.message_id:
         headers.setdefault("message_id", cmd.message_id)
+    if cmd.message_type:
+        headers.setdefault("message_type", cmd.message_type)
     return headers
+
+
+def _normalize_property_value(value: Any) -> str | bytes | bool | int | float | None:
+    if value is None or isinstance(value, (str, bytes, bool, int, float)):
+        return value
+    return json.dumps(value)
 
 
 def _read_headers(msg_handle: Any) -> dict[str, Any]:

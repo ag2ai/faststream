@@ -32,7 +32,7 @@ parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/) support)
+- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/), [**IBM MQ**](https://www.ibm.com/products/mq) support)
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
 
@@ -101,6 +101,8 @@ pip install 'faststream[kafka]'
 # or
 pip install 'faststream[confluent]'
 # or
+pip install 'faststream[mq]'
+# or
 pip install 'faststream[rabbit]'
 # or
 pip install 'faststream[nats]'
@@ -130,11 +132,13 @@ Here is an example Python app using **FastStream** that consumes data from an in
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
 # from faststream.confluent import KafkaBroker
+# from faststream.mq import MQBroker
 # from faststream.rabbit import RabbitBroker
 # from faststream.nats import NatsBroker
 # from faststream.redis import RedisBroker
 
 broker = KafkaBroker("localhost:9092")
+# broker = MQBroker(queue_manager="QM1", conn_name="localhost(1414)")
 # broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 # broker = NatsBroker("nats://localhost:4222/")
 # broker = RedisBroker("redis://localhost:6379/")
