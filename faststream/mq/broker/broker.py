@@ -41,7 +41,7 @@ class MQBroker(
 ):
     def __init__(
         self,
-        queue_manager: str,
+        queue_manager: str = "QM1",
         *,
         channel: str = "DEV.APP.SVRCONN",
         conn_name: str | None = None,
@@ -51,6 +51,11 @@ class MQBroker(
         password: str | None = None,
         reply_model_queue: str = "DEV.APP.MODEL.QUEUE",
         wait_interval: float = 1.0,
+        declare_queues: bool = False,
+        admin_channel: str | None = None,
+        admin_conn_name: str | None = None,
+        admin_username: str | None = None,
+        admin_password: str | None = None,
         graceful_timeout: float | None = None,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
@@ -96,6 +101,11 @@ class MQBroker(
                     wait_interval=wait_interval,
                     use_ssl=bool(security_args.get("use_ssl", False)),
                     ssl_context=security_args.get("ssl_context"),
+                    declare_queues=declare_queues,
+                    admin_channel=admin_channel,
+                    admin_conn_name=admin_conn_name,
+                    admin_username=admin_username,
+                    admin_password=admin_password,
                 ),
                 producer=AsyncMQFastProducerImpl(
                     parser=parser,

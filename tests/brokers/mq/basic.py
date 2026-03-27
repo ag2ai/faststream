@@ -12,8 +12,15 @@ class MQTestcaseConfig(BaseTestcaseConfig):
     ) -> MQBroker:
         return MQBroker(
             queue_manager="QM1",
-            channel="DEV.APP.SVRCONN",
+            channel="DEV.ADMIN.SVRCONN",
             conn_name="127.0.0.1(1414)",
+            username="admin",
+            password="password",
+            declare_queues=True,
+            admin_channel="DEV.ADMIN.SVRCONN",
+            admin_conn_name="127.0.0.1(1414)",
+            admin_username="admin",
+            admin_password="password",
             apply_types=apply_types,
             **kwargs,
         )

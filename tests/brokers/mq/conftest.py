@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from uuid import uuid4
 
 import pytest
 
@@ -28,3 +29,8 @@ def settings() -> Settings:
 @pytest.fixture()
 def router() -> MQRouter:
     return MQRouter()
+
+
+@pytest.fixture()
+def queue() -> str:
+    return f"DEV.Q{uuid4().hex[:20].upper()}"
