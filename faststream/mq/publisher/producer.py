@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -79,14 +80,17 @@ class FakeMQFastProducer(AsyncMQFastProducer):
 
 
 class AsyncMQFastProducerImpl(AsyncMQFastProducer):
-    _connection: "AsyncMQConnection | None"
+    _publish_connection: "AsyncMQConnection | None"
+    _request_connection: "AsyncMQConnection | None"
 
     def __init__(
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
     ) -> None:
-        self._connection = None
+        self._publish_connection = None
+        self._request_connection = None
+        self._connection_config: MQConnectionConfig | None = None
         self.serializer: SerializerProto | None = None
 
         default_parser = MQParser()
@@ -95,7 +99,7 @@ class AsyncMQFastProducerImpl(AsyncMQFastProducer):
 
     @property
     def connection(self) -> "AsyncMQConnection | None":
-        return self._connection
+        return self._publish_connection
 
     async def connect(
         self,
@@ -106,30 +110,55 @@ class AsyncMQFastProducerImpl(AsyncMQFastProducer):
         from faststream.mq.helpers.client import AsyncMQConnection
 
         self.serializer = serializer
-        self._connection = AsyncMQConnection(connection_config=connection_config)
-        await self._connection.connect()
+        self._connection_config = connection_config
+        self._publish_connection = AsyncMQConnection(connection_config=connection_config)
+        self._request_connection = None
+        await self._publish_connection.connect()
 
     async def disconnect(self) -> None:
-        if self._connection is not None:
-            await self._connection.disconnect()
-        self._connection = None
+        disconnect_tasks = []
+
+        if self._publish_connection is not None:
+            disconnect_tasks.append(self._publish_connection.disconnect())
+
+        if self._request_connection is not None:
+            disconnect_tasks.append(self._request_connection.disconnect())
+
+        if disconnect_tasks:
+            await asyncio.gather(*disconnect_tasks)
+
+        self._publish_connection = None
+        self._request_connection = None
+        self._connection_config = None
 
     async def ping(self, timeout: float) -> bool:
-        if self._connection is None:
+        if self._publish_connection is None:
             return False
-        return await self._connection.ping(timeout)
+        return await self._publish_connection.ping(timeout)
 
     @override
     async def publish(self, cmd: MQPublishCommand) -> None:
-        assert self._connection is not None, "Producer is not connected yet."
-        await self._connection.publish(cmd, serializer=self.serializer)
+        assert self._publish_connection is not None, "Producer is not connected yet."
+        await self._publish_connection.publish(cmd, serializer=self.serializer)
 
     @override
     async def request(self, cmd: MQPublishCommand) -> Any:
-        assert self._connection is not None, "Producer is not connected yet."
-        return await self._connection.request(cmd, serializer=self.serializer)
+        connection = await self._get_request_connection()
+        return await connection.request(cmd, serializer=self.serializer)
 
     @override
     async def publish_batch(self, cmd: MQPublishCommand) -> None:
         msg = "IBM MQ doesn't support publishing in batches."
         raise NotImplementedError(msg)
+
+    async def _get_request_connection(self) -> "AsyncMQConnection":
+        from faststream.mq.helpers.client import AsyncMQConnection
+
+        if self._request_connection is None:
+            assert self._connection_config is not None, "Producer is not connected yet."
+            self._request_connection = AsyncMQConnection(
+                connection_config=self._connection_config,
+            )
+            await self._request_connection.connect()
+
+        return self._request_connection
