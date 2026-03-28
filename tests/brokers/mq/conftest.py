@@ -14,6 +14,9 @@ class Settings:
     port: int = 1414
     username: str = "app"
     password: str = "password"
+    admin_channel: str = "DEV.ADMIN.SVRCONN"
+    admin_username: str = "admin"
+    admin_password: str = "password"
     reply_model_queue: str = "DEV.APP.MODEL.QUEUE"
 
     @property

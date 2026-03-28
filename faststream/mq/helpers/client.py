@@ -47,11 +47,6 @@ class MQConnectionConfig:
     wait_interval: float = 1.0
     use_ssl: bool = False
     ssl_context: Any = None
-    declare_queues: bool = False
-    admin_channel: str | None = None
-    admin_conn_name: str | None = None
-    admin_username: str | None = None
-    admin_password: str | None = None
 
 
 class AsyncMQConnection:
@@ -59,7 +54,6 @@ class AsyncMQConnection:
         self.connection_config = connection_config
         self._executor: ThreadPoolExecutor | None = None
         self._qmgr: Any = None
-        self._admin_qmgr: Any = None
         self._consumer_queue: Any = None
         self._consumer_queue_name: str = ""
 
@@ -117,12 +111,6 @@ class AsyncMQConnection:
             finally:
                 self._qmgr = None
 
-        if self._admin_qmgr is not None:
-            try:
-                self._admin_qmgr.disconnect()
-            finally:
-                self._admin_qmgr = None
-
     async def ping(self, timeout: float | None = None) -> bool:
         if self._executor is None:
             return False
@@ -164,8 +152,6 @@ class AsyncMQConnection:
         if self._consumer_queue is not None:
             self._consumer_queue.close()
 
-        self._ensure_queue_sync(queue_name)
-
         assert self._qmgr is not None
         self._consumer_queue = mq.Queue(
             self._qmgr,
@@ -185,51 +171,6 @@ class AsyncMQConnection:
             self._consumer_queue.close()
             self._consumer_queue = None
             self._consumer_queue_name = ""
-
-    def _ensure_queue_sync(self, queue_name: str) -> None:
-        if not self.connection_config.declare_queues:
-            return
-
-        mq = _load_ibmmq()
-
-        if self._admin_qmgr is None:
-            admin_channel = (
-                self.connection_config.admin_channel or self.connection_config.channel
-            )
-            admin_conn_name = (
-                self.connection_config.admin_conn_name or self.connection_config.conn_name
-            )
-            admin_username = (
-                self.connection_config.admin_username or self.connection_config.username
-            )
-            admin_password = (
-                self.connection_config.admin_password or self.connection_config.password
-            )
-
-            qmgr = mq.QueueManager(None)
-            qmgr.connect_tcp_client(
-                self.connection_config.queue_manager,
-                mq.CD(),
-                admin_channel,
-                admin_conn_name,
-                admin_username,
-                admin_password,
-            )
-            self._admin_qmgr = qmgr
-
-        pcf = mq.PCFExecute(self._admin_qmgr)
-        try:
-            pcf.MQCMD_CREATE_Q(
-                {
-                    mq.CMQC.MQCA_Q_NAME: queue_name.encode(),
-                    mq.CMQC.MQIA_Q_TYPE: mq.CMQC.MQQT_LOCAL,
-                    mq.CMQCFC.MQIACF_REPLACE: mq.CMQCFC.MQRP_YES,
-                },
-            )
-        finally:
-            disconnect = getattr(pcf, "disconnect", None)
-            if disconnect is not None:
-                disconnect()
 
     async def get_message(self, *, timeout: float) -> MQRawMessage | None:
         assert self._executor is not None, "Connection is not started yet."

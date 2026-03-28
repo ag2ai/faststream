@@ -12,8 +12,6 @@ class MQBrokerConfig(BrokerConfig):
             queue_manager="",
             channel="",
             conn_name="",
-            admin_channel="",
-            admin_conn_name="",
         ),
     )
     producer: AsyncMQFastProducer = field(default_factory=FakeMQFastProducer)

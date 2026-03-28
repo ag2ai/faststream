@@ -49,7 +49,7 @@ class TestRouter(MQMemoryTestcaseConfig, RouterTestcase):
             stopped_event.set()
             return data
 
-        async with broker:
+        async with self.patch_broker(broker):
             task = asyncio.create_task(iter_messages())
 
             with anyio.move_on_after(self.timeout):
@@ -80,7 +80,7 @@ class TestRouter(MQMemoryTestcaseConfig, RouterTestcase):
             await sub.stop()
             return msg
 
-        async with broker:
+        async with self.patch_broker(broker):
             task = asyncio.create_task(get_msg())
 
             with anyio.move_on_after(self.timeout):

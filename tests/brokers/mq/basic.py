@@ -3,6 +3,8 @@ from typing import Any
 from faststream.mq import MQBroker, MQRouter, TestMQBroker
 from tests.brokers.base.basic import BaseTestcaseConfig
 
+from .utils import MQAdminConfig, ManagedMQBroker
+
 
 class MQTestcaseConfig(BaseTestcaseConfig):
     def get_broker(
@@ -12,21 +14,19 @@ class MQTestcaseConfig(BaseTestcaseConfig):
     ) -> MQBroker:
         return MQBroker(
             queue_manager="QM1",
-            channel="DEV.ADMIN.SVRCONN",
+            channel="DEV.APP.SVRCONN",
             conn_name="127.0.0.1(1414)",
-            username="admin",
+            username="app",
             password="password",
-            declare_queues=True,
-            admin_channel="DEV.ADMIN.SVRCONN",
-            admin_conn_name="127.0.0.1(1414)",
-            admin_username="admin",
-            admin_password="password",
             apply_types=apply_types,
             **kwargs,
         )
 
-    def patch_broker(self, broker: MQBroker, **kwargs: Any) -> MQBroker:
-        return broker
+    def patch_broker(self, broker: MQBroker, **kwargs: Any) -> ManagedMQBroker:
+        return ManagedMQBroker(
+            broker,
+            admin_config=MQAdminConfig(),
+        )
 
     def get_router(self, **kwargs: Any) -> MQRouter:
         return MQRouter(**kwargs)
