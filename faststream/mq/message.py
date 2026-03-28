@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from faststream.message import StreamMessage
+from faststream.message import AckStatus, StreamMessage
 
 
 class MQAcknowledger(Protocol):
@@ -30,6 +30,7 @@ class MQRawMessage:
     expiry: int | None = None
     metadata: Any = None
     connection: MQAcknowledger | None = None
+    settled: AckStatus | None = None
 
 
 class MQMessage(StreamMessage[MQRawMessage]):
@@ -40,6 +41,7 @@ class MQMessage(StreamMessage[MQRawMessage]):
             except asyncio.CancelledError:
                 pass
         await super().ack()
+        self.raw_message.settled = self.committed
 
     async def nack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
@@ -48,6 +50,7 @@ class MQMessage(StreamMessage[MQRawMessage]):
             except asyncio.CancelledError:
                 pass
         await super().nack()
+        self.raw_message.settled = self.committed
 
     async def reject(self) -> None:
         await self.ack()
