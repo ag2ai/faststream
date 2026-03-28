@@ -320,6 +320,8 @@ class AsyncMQConnection:
                         if cmd.persistence
                         else mq.CMQC.MQPER_NOT_PERSISTENT
                     )
+                if cmd.expiry is not None:
+                    md.Expiry = cmd.expiry
 
                 pmo = mq.PMO(Version=mq.CMQC.MQPMO_VERSION_3)
                 if headers:
