@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import anyio
 from typing_extensions import override
 
+from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream.exceptions import AckMessage, NackMessage, RejectMessage, StopConsume
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from .config import MQSubscriberConfig
 
 
-class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
+class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
     def __init__(
         self,
         config: "MQSubscriberConfig",
@@ -46,7 +47,6 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         self.queue = config.queue
         self.wait_interval = config.wait_interval
         self._consumer: AsyncMQConnection | None = None
-        self._consumer_task: asyncio.Task[None] | None = None
         self._test_messages: asyncio.Queue[MQRawMessage] | None = None
 
     def routing(self) -> str:
@@ -67,10 +67,10 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         await self._consumer.connect()
         await self._consumer.start_consumer(self.routing())
 
-        if self.calls:
-            self._consumer_task = asyncio.create_task(self._consume_loop())
-
         self._post_start()
+
+        if self.calls:
+            self.add_task(self._consume_loop)
 
     async def _consume_loop(self) -> None:
         assert self._consumer is not None
@@ -111,17 +111,23 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
             await self._settle_unresolved_message(msg, exc)
 
     async def stop(self) -> None:
-        await super().stop()
+        tasks = tuple(self.tasks)
+
+        await SubscriberUsecase.stop(self)
 
         if self._test_messages is not None:
             self._test_messages = None
             return
 
-        if self._consumer_task is not None:
-            self._consumer_task.cancel()
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+
+        if tasks:
             with anyio.CancelScope(shield=True):
-                await asyncio.gather(self._consumer_task, return_exceptions=True)
-            self._consumer_task = None
+                await asyncio.gather(*tasks, return_exceptions=True)
+
+        self.tasks.clear()
 
         if self._consumer is not None:
             await self._consumer.stop_consumer()
