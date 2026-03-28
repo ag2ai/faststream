@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Awaitable, Protocol
 
 from faststream.message import AckStatus, StreamMessage
 
@@ -36,21 +36,24 @@ class MQRawMessage:
 class MQMessage(StreamMessage[MQRawMessage]):
     async def ack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
-            try:
-                await asyncio.shield(self.raw_message.connection.commit())
-            except asyncio.CancelledError:
-                pass
+            await self._wait_for_broker_settle(self.raw_message.connection.commit())
         await super().ack()
         self.raw_message.settled = self.committed
 
     async def nack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
-            try:
-                await asyncio.shield(self.raw_message.connection.backout())
-            except asyncio.CancelledError:
-                pass
+            await self._wait_for_broker_settle(self.raw_message.connection.backout())
         await super().nack()
         self.raw_message.settled = self.committed
 
     async def reject(self) -> None:
         await self.ack()
+
+    async def _wait_for_broker_settle(self, operation: Awaitable[None]) -> None:
+        task = asyncio.create_task(operation)
+
+        try:
+            await asyncio.shield(task)
+
+        except asyncio.CancelledError:
+            await task
