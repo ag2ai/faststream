@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Sequence
+import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
@@ -9,6 +10,9 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream.exceptions import AckMessage, NackMessage, RejectMessage, StopConsume
+from faststream.message import AckStatus
+from faststream.middlewares import AckPolicy
 from faststream.mq.helpers import AsyncMQConnection
 from faststream.mq.parser import MQParser
 from faststream.mq.publisher.fake import MQFakePublisher
@@ -84,6 +88,28 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
 
             await self.consume(raw_message)
 
+    @override
+    async def consume(self, msg: "MQRawMessage") -> Any:
+        if not self.running:
+            return None
+
+        try:
+            return await self.process_message(msg)
+
+        except StopConsume as exc:
+            await self._settle_unresolved_message(msg, exc)
+            await self.stop()
+
+        except SystemExit as exc:
+            await self._settle_unresolved_message(msg, exc)
+            await self.stop()
+
+            if app := self._outer_config.fd_config.context.get("app"):
+                app.exit()
+
+        except Exception as exc:  # nosec B110
+            await self._settle_unresolved_message(msg, exc)
+
     async def stop(self) -> None:
         await super().stop()
 
@@ -127,14 +153,18 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
         context = self._outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
-        return await process_msg(
-            msg=raw_message,
-            middlewares=(
-                m(raw_message, context=context) for m in self._broker_middlewares
-            ),
-            parser=async_parser,
-            decoder=async_decoder,
-        )
+        try:
+            return await process_msg(
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=async_parser,
+                decoder=async_decoder,
+            )
+        except Exception as exc:
+            await self._settle_unresolved_message(raw_message, exc)
+            raise
 
     @override
     async def __aiter__(self) -> AsyncIterator["MQMessage"]:
@@ -160,14 +190,18 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
 
             if raw_message is None:
                 continue
-            msg = await process_msg(
-                msg=raw_message,
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
-                ),
-                parser=async_parser,
-                decoder=async_decoder,
-            )
+            try:
+                msg = await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=async_parser,
+                    decoder=async_decoder,
+                )
+            except Exception as exc:
+                await self._settle_unresolved_message(raw_message, exc)
+                raise
             yield msg
 
     def _make_response_publisher(
@@ -208,3 +242,38 @@ class MQSubscriber(SubscriberUsecase["MQRawMessage"]):
     async def put_test_message(self, message: "MQRawMessage") -> None:
         assert self._test_messages is not None, "Test buffer is not initialized."
         await self._test_messages.put(message)
+
+    async def _settle_unresolved_message(
+        self,
+        raw_message: "MQRawMessage",
+        exc: BaseException,
+    ) -> None:
+        if raw_message.connection is None or raw_message.settled is not None:
+            return
+
+        try:
+            if self._should_commit(exc):
+                await asyncio.shield(raw_message.connection.commit())
+                raw_message.settled = AckStatus.ACKED
+            else:
+                await asyncio.shield(raw_message.connection.backout())
+                raw_message.settled = AckStatus.NACKED
+
+        except asyncio.CancelledError:
+            pass
+
+        except Exception as err:
+            self._log(logging.CRITICAL, repr(err), exc_info=err)
+
+    def _should_commit(self, exc: BaseException) -> bool:
+        if isinstance(exc, (AckMessage, RejectMessage)):
+            return True
+
+        if isinstance(exc, NackMessage):
+            return False
+
+        return self.ack_policy in {
+            AckPolicy.ACK,
+            AckPolicy.ACK_FIRST,
+            AckPolicy.REJECT_ON_ERROR,
+        }
