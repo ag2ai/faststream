@@ -44,7 +44,7 @@ class MQRouter(StreamRouter[Any]):
 
     def __init__(
         self,
-        queue_manager: str,
+        queue_manager: str = "QM1",
         *,
         channel: str = "DEV.APP.SVRCONN",
         conn_name: str | None = None,
