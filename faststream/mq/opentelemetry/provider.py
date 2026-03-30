@@ -23,12 +23,13 @@ class MQTelemetrySettingsProvider(
         self,
         msg: "StreamMessage[MQRawMessage]",
     ) -> dict[str, Any]:
+        conversation_id = msg.correlation_id or msg.message_id
         return {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_DESTINATION_NAME: msg.raw_message.queue,
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.queue,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: conversation_id,
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
         }
 
@@ -36,11 +37,14 @@ class MQTelemetrySettingsProvider(
         return msg.raw_message.queue
 
     def get_publish_attrs_from_cmd(self, cmd: MQPublishCommand) -> dict[str, Any]:
-        return {
+        conversation_id = cmd.correlation_id or cmd.message_id
+        attrs = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
+        if conversation_id is not None:
+            attrs[SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID] = conversation_id
+        return attrs
 
     def get_publish_destination_name(self, cmd: MQPublishCommand) -> str:
         return cmd.destination

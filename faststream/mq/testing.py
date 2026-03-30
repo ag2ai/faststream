@@ -7,8 +7,9 @@ import anyio
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import encode_message
 from faststream.mq.broker import MQBroker
+from faststream.mq.helpers.ids import generate_mq_id, normalize_mq_id
 from faststream.mq.message import MQRawMessage
 from faststream.mq.parser import MQParser
 from faststream.mq.publisher.producer import AsyncMQFastProducer
@@ -138,7 +139,8 @@ class FakeProducer(AsyncMQFastProducer):
             queue=msg.queue,
             message=result.body,
             headers=result.headers,
-            correlation_id=result.correlation_id or gen_cor_id(),
+            correlation_id=msg.message_id,
+            message_id=getattr(result, "message_id", None),
             serializer=self.broker.config.fd_config._serializer,
         )
 
@@ -157,12 +159,22 @@ def build_message(
     headers = headers or {}
     if content_type:
         headers = {"content-type": content_type, **headers}
+
+    normalized_correlation_id = normalize_mq_id(
+        correlation_id,
+        field_name="correlation_id",
+    )
+    normalized_message_id = normalize_mq_id(
+        message_id,
+        field_name="message_id",
+    )
+
     return MQRawMessage(
         body=body,
         queue=MQQueue.validate(queue).routing(),
         headers=headers,
         reply_to=reply_to,
         content_type=content_type,
-        correlation_id=correlation_id or gen_cor_id(),
-        message_id=message_id or correlation_id or gen_cor_id(),
+        correlation_id=normalized_correlation_id,
+        message_id=normalized_message_id or generate_mq_id(),
     )

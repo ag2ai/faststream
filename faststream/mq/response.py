@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
 
+from faststream.mq.helpers.ids import normalize_mq_id
 from faststream.response import PublishCommand, Response
 from faststream.response.publish_type import PublishType
 
@@ -77,12 +78,15 @@ class MQPublishCommand(PublishCommand):
         super().__init__(
             body=message,
             destination=destination,
-            correlation_id=correlation_id,
+            correlation_id=normalize_mq_id(
+                correlation_id,
+                field_name="correlation_id",
+            ),
             headers=headers,
             reply_to=reply_to,
             _publish_type=_publish_type,
         )
-        self.message_id = message_id
+        self.message_id = normalize_mq_id(message_id, field_name="message_id")
         self.reply_to_qmgr = reply_to_qmgr
         self.priority = priority
         self.persistence = persistence
