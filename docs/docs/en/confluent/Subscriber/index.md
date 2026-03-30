@@ -57,3 +57,18 @@ The function decorated with the `#!python @broker.subscriber(...)` decorator wil
 The message will then be injected into the typed `msg` argument of the function, and its type will be used to parse the message.
 
 In this example case, when the message is sent to a `#!python "hello_world"` topic, it will be parsed into a `HelloWorld` class, and the `on_hello_world` function will be called with the parsed class as the `msg` argument value.
+
+## Multiple Topics
+
+You can subscribe to multiple topics with a single `#!python @broker.subscriber(...)` call by passing multiple topic names as positional arguments:
+
+```python linenums="1"
+{! docs_src/confluent/multiple_topics_subscription/app.py !}
+```
+
+A single handler will receive messages from all listed topics, under one consumer group.
+
+This differs from stacking multiple `#!python @broker.subscriber(...)` decorators, which creates separate independent handlers.
+
+!!! warning
+    `max_workers > 1` is only compatible with `AckPolicy.ACK_FIRST`. Using any other ack policy with `max_workers > 1` will raise a `SetupError` at startup, regardless of how many topics are subscribed to.
