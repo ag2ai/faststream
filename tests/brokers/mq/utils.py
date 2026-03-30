@@ -135,6 +135,18 @@ def delete_queue(queue_name: str, config: MQAdminConfig) -> None:
             raise
 
 
+def get_queue_depth(queue_name: str, config: MQAdminConfig) -> int:
+    with admin_pcf(config) as (mq, pcf):
+        response = pcf.MQCMD_INQUIRE_Q(
+            {
+                mq.CMQC.MQCA_Q_NAME: queue_name.encode(),
+                mq.CMQCFC.MQIACF_Q_ATTRS: [mq.CMQC.MQIA_CURRENT_Q_DEPTH],
+            },
+        )
+
+    return int(response[0][mq.CMQC.MQIA_CURRENT_Q_DEPTH])
+
+
 class ManagedMQBroker:
     def __init__(self, broker: "MQBroker", admin_config: MQAdminConfig) -> None:
         self._broker = broker
