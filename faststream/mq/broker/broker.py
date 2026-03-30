@@ -9,7 +9,6 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
-from faststream.message import gen_cor_id
 from faststream.mq.configs import MQBrokerConfig
 from faststream.mq.helpers import MQConnectionConfig
 from faststream.mq.publisher.producer import AsyncMQFastProducerImpl
@@ -176,7 +175,7 @@ class MQBroker(
             message,
             destination=MQQueue.validate(queue).add_prefix(self.config.prefix).routing(),
             headers=headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id,
             reply_to=reply_to,
             reply_to_qmgr=reply_to_qmgr,
             priority=priority,
@@ -207,7 +206,7 @@ class MQBroker(
             message,
             destination=MQQueue.validate(queue).add_prefix(self.config.prefix).routing(),
             headers=headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id,
             priority=priority,
             persistence=persistence,
             expiry=expiry,

@@ -34,6 +34,15 @@ class MQRawMessage:
 
 
 class MQMessage(StreamMessage[MQRawMessage]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        correlation_id = kwargs.get("correlation_id")
+        message_id = kwargs.get("message_id")
+
+        super().__init__(*args, **kwargs)
+
+        self.correlation_id = correlation_id
+        self.message_id = message_id
+
     async def ack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
             await self._wait_for_broker_settle(self.raw_message.connection.commit())

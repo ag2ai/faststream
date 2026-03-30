@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.message import gen_cor_id
 from faststream.mq.response import MQPublishCommand
 from faststream.mq.schemas import MQQueue
 from faststream.response.publish_type import PublishType
@@ -59,7 +58,7 @@ class MQPublisher(PublisherUsecase):
             message,
             destination=self.routing(queue=queue),
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id,
             message_id=message_id,
             reply_to=reply_to or self.reply_to,
             reply_to_qmgr=reply_to_qmgr or self.reply_to_qmgr,
@@ -121,7 +120,7 @@ class MQPublisher(PublisherUsecase):
             message,
             destination=self.routing(queue=queue),
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id,
             message_id=message_id,
             priority=priority if priority is not None else self.priority,
             persistence=persistence if persistence is not None else self.persistence,

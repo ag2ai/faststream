@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, cast
 from faststream._internal.utils.functions import run_in_executor
 from faststream.exceptions import INSTALL_FASTSTREAM_MQ
 from faststream.message import encode_message
+from faststream.mq.helpers.ids import mq_id_to_bytes, try_parse_mq_id
 from faststream.mq.message import MQRawMessage
 from faststream.mq.response import MQPublishCommand
 
@@ -258,8 +259,16 @@ class AsyncMQConnection:
             if cmd.expiry is not None:
                 md.Expiry = cmd.expiry
 
+            if cmd.message_id is not None:
+                md.MsgId = mq_id_to_bytes(cmd.message_id, field_name="message_id")
+
             if cmd.native_correlation_id is not None:
                 md.CorrelId = cmd.native_correlation_id
+            elif cmd.correlation_id is not None:
+                md.CorrelId = mq_id_to_bytes(
+                    cmd.correlation_id,
+                    field_name="correlation_id",
+                )
 
             pmo = mq.PMO(Version=mq.CMQC.MQPMO_VERSION_3)
             if headers:
@@ -322,6 +331,15 @@ class AsyncMQConnection:
                     )
                 if cmd.expiry is not None:
                     md.Expiry = cmd.expiry
+
+                if cmd.message_id is not None:
+                    md.MsgId = mq_id_to_bytes(cmd.message_id, field_name="message_id")
+
+                if cmd.correlation_id is not None:
+                    md.CorrelId = mq_id_to_bytes(
+                        cmd.correlation_id,
+                        field_name="correlation_id",
+                    )
 
                 pmo = mq.PMO(Version=mq.CMQC.MQPMO_VERSION_3)
                 if headers:
@@ -389,10 +407,6 @@ def _headers_to_publish(
     headers = dict(cmd.headers)
     if content_type:
         headers.setdefault("content-type", content_type)
-    if cmd.correlation_id:
-        headers.setdefault("correlation_id", cmd.correlation_id)
-    if cmd.message_id or cmd.correlation_id:
-        headers.setdefault("message_id", cmd.message_id or cmd.correlation_id)
     if cmd.message_type:
         headers.setdefault("message_type", cmd.message_type)
     return headers
@@ -450,9 +464,13 @@ def _build_raw_message(
     queue_name: str,
     connection: AsyncMQConnection | None,
 ) -> MQRawMessage:
-    header_message_id = headers.get("message_id")
-    header_correlation_id = headers.get("correlation_id")
+    headers = dict(headers)
+    header_message_id = try_parse_mq_id(headers.pop("message_id", None))
+    header_correlation_id = try_parse_mq_id(headers.pop("correlation_id", None))
     content_type = cast(str | None, headers.get("content-type"))
+
+    native_message_id = _to_bytes(getattr(md, "MsgId", None))
+    native_correlation_id = _to_bytes(getattr(md, "CorrelId", None))
 
     return MQRawMessage(
         body=body,
@@ -461,14 +479,10 @@ def _build_raw_message(
         reply_to=_mq_str(getattr(md, "ReplyToQ", b"")),
         reply_to_qmgr=_mq_str(getattr(md, "ReplyToQMgr", b"")),
         content_type=content_type,
-        correlation_id=cast(str | None, header_correlation_id)
-        or _normalize_mq_id(
-            getattr(md, "CorrelId", None),
-        ),
-        message_id=cast(str | None, header_message_id)
-        or _normalize_mq_id(getattr(md, "MsgId", None)),
-        native_message_id=_to_bytes(getattr(md, "MsgId", None)),
-        native_correlation_id=_to_bytes(getattr(md, "CorrelId", None)),
+        correlation_id=try_parse_mq_id(native_correlation_id) or header_correlation_id,
+        message_id=try_parse_mq_id(native_message_id) or header_message_id,
+        native_message_id=native_message_id,
+        native_correlation_id=native_correlation_id,
         priority=cast(int | None, getattr(md, "Priority", None)),
         persistence=_decode_persistence(getattr(md, "Persistence", None)),
         expiry=cast(int | None, getattr(md, "Expiry", None)),
@@ -484,13 +498,6 @@ def _decode_persistence(value: Any) -> bool | None:
     if value == mq.CMQC.MQPER_NOT_PERSISTENT:
         return False
     return None
-
-
-def _normalize_mq_id(value: Any) -> str | None:
-    raw = _to_bytes(value)
-    if not raw or not any(raw):
-        return None
-    return raw.hex()
 
 
 def _to_bytes(value: Any) -> bytes | None:
