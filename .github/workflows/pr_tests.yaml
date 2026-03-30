@@ -456,6 +456,42 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
+  test-mq-real:
+    if: github.event.pull_request.draft == false
+    needs:
+      - test-basic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Start MQ test environment
+        run: docker compose up -d --build faststream ibmmq ibmmq_ha2
+      - name: Test
+        run: >
+          docker compose exec -T faststream
+          uv run pytest --cov --cov-report=
+          -vv
+          tests/brokers/mq
+          tests/asyncapi/mq
+          tests/examples/mq
+          tests/docs/mq
+          tests/prometheus/mq
+          tests/opentelemetry/mq
+          tests/mypy/mq.py
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.mq-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: .coverage.mq-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+      - name: Stop MQ test environment
+        if: always()
+        run: docker compose down -v
+
   coverage-combine:
     if: github.event.pull_request.draft == false
     needs:
@@ -467,6 +503,7 @@ jobs:
       - test-rabbit-real
       - test-nats-real
       - test-redis-real
+      - test-mq-real
     runs-on: ubuntu-latest
 
     steps:

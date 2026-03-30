@@ -943,8 +943,11 @@ lint = [
     { name = "types-setuptools" },
     { name = "zizmor" },
 ]
+mq-dev = [
+    { name = "faststream", extra = ["mq"] },
+]
 optionals = [
-    { name = "faststream", extra = ["cli", "confluent", "kafka", "mq", "nats", "otel", "prometheus", "rabbit", "redis"] },
+    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis"] },
 ]
 test-core = [
     { name = "covdefaults" },
@@ -1010,7 +1013,8 @@ dev = [
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "email-validator", specifier = "==2.3.0" },
     { name = "fastapi", specifier = "==0.128.0" },
-    { name = "faststream", extras = ["rabbit", "mq", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] },
+    { name = "faststream", extras = ["mq"] },
+    { name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] },
     { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mdx-include", specifier = "==1.4.2" },
@@ -1084,7 +1088,8 @@ lint = [
     { name = "types-setuptools" },
     { name = "zizmor", specifier = "==1.22.0" },
 ]
-optionals = [{ name = "faststream", extras = ["rabbit", "mq", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] }]
+mq-dev = [{ name = "faststream", extras = ["mq"] }]
+optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] }]
 test-core = [
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "dirty-equals", specifier = "==0.11" },
