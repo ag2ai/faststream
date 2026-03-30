@@ -31,6 +31,6 @@ COPY ./faststream/__init__.py /src/faststream/__init__.py
 
 WORKDIR /src
 
-RUN uv sync --group dev
+RUN uv sync --group dev --group mq-dev
 
 ENV PATH="/src/.venv/bin:$PATH"

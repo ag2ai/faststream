@@ -91,7 +91,9 @@ otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,mq,kafka,confluent,nats,redis,mqtt,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometheus]"]
+
+mq-dev = ["faststream[mq]"]
 
 docs = [
     "mkdocs-material==9.7.1",
@@ -155,6 +157,7 @@ testing = [
 
 dev = [
     {include-group = "optionals"},
+    {include-group = "mq-dev"},
     {include-group = "lint"},
     {include-group = "testing"},
     {include-group = "docs"},
