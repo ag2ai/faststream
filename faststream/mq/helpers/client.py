@@ -351,32 +351,64 @@ class AsyncMQConnection:
         cmd: MQPublishCommand,
         serializer: "SerializerProto | None",
     ) -> MQRawMessage:
-        return self._run_with_reconnect_sync(
-            lambda: self.__request_sync(cmd, serializer),
-        )
+        mq = _load_ibmmq()
+        reply_queue = None
+        recover_after_error = False
 
-    def __request_sync(
+        try:
+            reply_queue, reply_queue_name, request_message_id = (
+                self._publish_request_sync(
+                    cmd,
+                    serializer,
+                )
+            )
+            return self._wait_for_reply_sync(
+                reply_queue=reply_queue,
+                reply_queue_name=reply_queue_name,
+                request_message_id=request_message_id,
+                timeout=cmd.timeout,
+            )
+
+        except mq.MQMIError as e:
+            if _is_reconnectable_reason(mq, e.reason):
+                recover_after_error = True
+            raise
+
+        finally:
+            if reply_queue is not None:
+                try:
+                    reply_queue.close()
+                except Exception:
+                    pass
+
+            if recover_after_error:
+                self._recover_connection_sync(reopen_consumer=False)
+
+    def _publish_request_sync(
         self,
         cmd: MQPublishCommand,
         serializer: "SerializerProto | None",
-    ) -> MQRawMessage:
+    ) -> tuple[Any, str, bytes]:
         mq = _load_ibmmq()
-        assert self._qmgr is not None
+        body, content_type = encode_message(cmd.body, serializer)
+        headers = _headers_to_publish(cmd, content_type)
 
-        dyn_od = mq.OD()
-        dyn_od.ObjectName = self.connection_config.reply_model_queue
-        dyn_od.DynamicQName = "FASTSTREAM.REPLY.*"
-        reply_queue = mq.Queue(self._qmgr, dyn_od, mq.CMQC.MQOO_INPUT_EXCLUSIVE)
-        reply_queue_name = _mq_str(dyn_od.ObjectName)
-
-        try:
-            body, content_type = encode_message(cmd.body, serializer)
-            headers = _headers_to_publish(cmd, content_type)
-
-            queue = mq.Queue(self._qmgr, cmd.destination, mq.CMQC.MQOO_OUTPUT)
+        for attempt in range(2):
+            reply_queue = None
+            queue = None
             put_handle = None
-
+            request_published = False
             try:
+                assert self._qmgr is not None
+
+                dyn_od = mq.OD()
+                dyn_od.ObjectName = self.connection_config.reply_model_queue
+                dyn_od.DynamicQName = "FASTSTREAM.REPLY.*"
+                reply_queue = mq.Queue(self._qmgr, dyn_od, mq.CMQC.MQOO_INPUT_EXCLUSIVE)
+                reply_queue_name = _mq_str(dyn_od.ObjectName)
+
+                queue = mq.Queue(self._qmgr, cmd.destination, mq.CMQC.MQOO_OUTPUT)
+
                 md = mq.MD(Version=mq.CMQC.MQMD_CURRENT_VERSION)
                 md.ReplyToQ = reply_queue_name
                 md.ReplyToQMgr = self.connection_config.queue_manager
@@ -412,51 +444,78 @@ class AsyncMQConnection:
 
                 queue.put(body, md, pmo)
                 request_message_id = bytes(md.MsgId)
+                request_published = True
+                return reply_queue, reply_queue_name, request_message_id
+
+            except mq.MQMIError as e:
+                if not _is_reconnectable_reason(mq, e.reason) or attempt == 1:
+                    raise
+                self._recover_connection_sync(reopen_consumer=False)
+                time.sleep(0.2)
 
             finally:
-                queue.close()
+                if queue is not None:
+                    try:
+                        queue.close()
+                    except Exception:
+                        pass
                 if put_handle is not None:
                     put_handle.dlt()
+                if reply_queue is not None and not request_published:
+                    try:
+                        reply_queue.close()
+                    except Exception:
+                        pass
 
-            gmo = mq.GMO(Version=mq.CMQC.MQGMO_CURRENT_VERSION)
-            gmo.Options = (
-                mq.CMQC.MQGMO_WAIT
-                | mq.CMQC.MQGMO_NO_SYNCPOINT
-                | mq.CMQC.MQGMO_PROPERTIES_IN_HANDLE
-            )
-            gmo.MatchOptions = mq.CMQC.MQMO_MATCH_CORREL_ID
-            gmo.WaitInterval = _to_wait_interval(cmd.timeout)
+        msg = "IBM MQ request publish retry exhausted."
+        raise RuntimeError(msg)
 
-            get_handle = mq.MessageHandle(self._qmgr)
-            gmo.MsgHandle = get_handle.msg_handle
+    def _wait_for_reply_sync(
+        self,
+        *,
+        reply_queue: Any,
+        reply_queue_name: str,
+        request_message_id: bytes,
+        timeout: float,
+    ) -> MQRawMessage:
+        mq = _load_ibmmq()
 
-            md_get = mq.MD(Version=mq.CMQC.MQMD_CURRENT_VERSION)
-            md_get.CorrelId = request_message_id
+        gmo = mq.GMO(Version=mq.CMQC.MQGMO_CURRENT_VERSION)
+        gmo.Options = (
+            mq.CMQC.MQGMO_WAIT
+            | mq.CMQC.MQGMO_NO_SYNCPOINT
+            | mq.CMQC.MQGMO_PROPERTIES_IN_HANDLE
+        )
+        gmo.MatchOptions = mq.CMQC.MQMO_MATCH_CORREL_ID
+        gmo.WaitInterval = _to_wait_interval(timeout)
 
-            try:
-                reply_body = cast(bytes, reply_queue.get(None, md_get, gmo))
-            except mq.MQMIError as e:
-                if e.reason == mq.CMQC.MQRC_NO_MSG_AVAILABLE:
-                    get_handle.dlt()
-                    raise TimeoutError from e
+        get_handle = mq.MessageHandle(self._qmgr)
+        gmo.MsgHandle = get_handle.msg_handle
+
+        md_get = mq.MD(Version=mq.CMQC.MQMD_CURRENT_VERSION)
+        md_get.CorrelId = request_message_id
+
+        try:
+            reply_body = cast(bytes, reply_queue.get(None, md_get, gmo))
+        except mq.MQMIError as e:
+            if e.reason == mq.CMQC.MQRC_NO_MSG_AVAILABLE:
                 get_handle.dlt()
-                raise
+                raise TimeoutError from e
+            get_handle.dlt()
+            raise
 
-            try:
-                headers = _read_headers(get_handle)
-            finally:
-                get_handle.dlt()
-
-            return _build_raw_message(
-                body=reply_body,
-                md=md_get,
-                headers=headers,
-                queue_name=reply_queue_name,
-                connection=None,
-            )
-
+        try:
+            headers = _read_headers(get_handle)
         finally:
-            reply_queue.close()
+            get_handle.dlt()
+
+        return _build_raw_message(
+            body=reply_body,
+            md=md_get,
+            headers=headers,
+            queue_name=reply_queue_name,
+            connection=None,
+        )
 
     def _run_with_reconnect_sync(
         self,
