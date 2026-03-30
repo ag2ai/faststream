@@ -10,8 +10,8 @@ class MQBrokerConfig(BrokerConfig):
     connection_config: MQConnectionConfig = field(
         default_factory=lambda: MQConnectionConfig(
             queue_manager="",
-            channel="",
-            conn_name="",
+            channel=None,
+            conn_name=None,
         ),
     )
     producer: AsyncMQFastProducer = field(default_factory=FakeMQFastProducer)

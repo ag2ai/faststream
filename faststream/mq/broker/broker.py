@@ -42,10 +42,12 @@ class MQBroker(
         self,
         queue_manager: str = "QM1",
         *,
-        channel: str = "DEV.APP.SVRCONN",
+        channel: str | None = None,
         conn_name: str | None = None,
         host: str | None = None,
         port: int | None = None,
+        ccdt_url: str | None = None,
+        reconnect: str = "disabled",
         username: str | None = None,
         password: str | None = None,
         reply_model_queue: str = "DEV.APP.MODEL.QUEUE",
@@ -71,15 +73,27 @@ class MQBroker(
     ) -> None:
         security_args = parse_security(security)
 
-        if conn_name is None:
-            host = host or "127.0.0.1"
-            port = port or 1414
-            conn_name = f"{host}({port})"
+        if ccdt_url is None:
+            channel = channel or "DEV.APP.SVRCONN"
+            if conn_name is None:
+                host = host or "127.0.0.1"
+                port = port or 1414
+                conn_name = f"{host}({port})"
+
+        else:
+            if any(v is not None for v in (conn_name, host, port)):
+                msg = "`ccdt_url` cannot be combined with `conn_name`, `host`, or `port`."
+                raise ValueError(msg)
+
+            conn_name = None
 
         username = security_args.get("username") or username
         password = security_args.get("password") or password
 
-        specification_url = specification_url or f"mq://{queue_manager}@{conn_name}"
+        specification_target = conn_name or ccdt_url or "ccdt"
+        specification_url = (
+            specification_url or f"mq://{queue_manager}@{specification_target}"
+        )
         protocol = protocol or "ibmmq"
 
         super().__init__(
@@ -89,6 +103,8 @@ class MQBroker(
                     queue_manager=queue_manager,
                     channel=channel,
                     conn_name=conn_name,
+                    ccdt_url=ccdt_url,
+                    reconnect_mode=reconnect,
                     username=username,
                     password=password,
                     reply_model_queue=reply_model_queue,

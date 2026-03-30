@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
+import time
 from typing import TYPE_CHECKING, Any, cast
 
 from faststream._internal.utils.functions import run_in_executor
@@ -28,14 +29,16 @@ def _load_ibmmq() -> Any:
 @dataclass(kw_only=True)
 class MQConnectionConfig:
     queue_manager: str
-    channel: str
-    conn_name: str
+    channel: str | None = None
+    conn_name: str | None = None
     username: str | None = None
     password: str | None = None
     reply_model_queue: str = "DEV.APP.MODEL.QUEUE"
     wait_interval: float = 1.0
     use_ssl: bool = False
     ssl_context: Any = None
+    ccdt_url: str | None = None
+    reconnect_mode: str = "disabled"
 
 
 class _OTelCompatibleHandle(int):
@@ -77,15 +80,49 @@ class AsyncMQConnection:
         mq = _load_ibmmq()
 
         qmgr = mq.QueueManager(None)
-        qmgr.connect_tcp_client(
-            self.connection_config.queue_manager,
-            mq.CD(),
-            self.connection_config.channel,
-            self.connection_config.conn_name,
-            self.connection_config.username,
-            self.connection_config.password,
-        )
+        cno = self._build_cno(mq)
+
+        if self.connection_config.ccdt_url:
+            qmgr.connect_with_options(
+                self.connection_config.queue_manager,
+                cno=cno,
+                user=self.connection_config.username,
+                password=self.connection_config.password,
+            )
+        else:
+            assert self.connection_config.channel is not None
+            assert self.connection_config.conn_name is not None
+
+            cd = mq.CD()
+            reconnect_default = _cd_reconnect_default(
+                mq,
+                self.connection_config.reconnect_mode,
+            )
+            if reconnect_default is not None:
+                cd.DefReconnect = reconnect_default
+
+            qmgr.connect_tcp_client(
+                self.connection_config.queue_manager,
+                cd,
+                self.connection_config.channel,
+                self.connection_config.conn_name,
+                self.connection_config.username,
+                self.connection_config.password,
+                cno=cno,
+            )
         self._qmgr = qmgr
+
+    def _build_cno(self, mq: Any) -> Any:
+        cno = mq.CNO()
+        cno.Options = _cno_reconnect_option(
+            mq,
+            self.connection_config.reconnect_mode,
+        )
+
+        if self.connection_config.ccdt_url:
+            cno.CCDTUrl = self.connection_config.ccdt_url
+
+        return cno
 
     async def disconnect(self) -> None:
         if self._executor is None:
@@ -98,18 +135,8 @@ class AsyncMQConnection:
             self._executor = None
 
     def _disconnect_sync(self) -> None:
-        if self._consumer_queue is not None:
-            try:
-                self._consumer_queue.close()
-            finally:
-                self._consumer_queue = None
-                self._consumer_queue_name = ""
-
-        if self._qmgr is not None:
-            try:
-                self._qmgr.disconnect()
-            finally:
-                self._qmgr = None
+        self._safe_close_consumer_sync()
+        self._safe_disconnect_qmgr_sync()
 
     async def ping(self, timeout: float | None = None) -> bool:
         if self._executor is None:
@@ -123,6 +150,11 @@ class AsyncMQConnection:
     def _ping_sync(self) -> bool:
         if self._qmgr is None:
             return False
+
+        return self._run_with_reconnect_sync(self.__ping_sync)
+
+    def __ping_sync(self) -> bool:
+        assert self._qmgr is not None
         self._qmgr.get_name()
         return True
 
@@ -147,10 +179,16 @@ class AsyncMQConnection:
         await run_in_executor(self._executor, self._start_consumer_sync, queue_name)
 
     def _start_consumer_sync(self, queue_name: str) -> None:
+        self._consumer_queue_name = queue_name
+        self._run_with_reconnect_sync(
+            lambda: self.__start_consumer_sync(queue_name),
+            reopen_consumer=True,
+        )
+
+    def __start_consumer_sync(self, queue_name: str) -> None:
         mq = _load_ibmmq()
 
-        if self._consumer_queue is not None:
-            self._consumer_queue.close()
+        self._safe_close_consumer_sync()
 
         assert self._qmgr is not None
         self._consumer_queue = mq.Queue(
@@ -177,6 +215,12 @@ class AsyncMQConnection:
         return await run_in_executor(self._executor, self._get_message_sync, timeout)
 
     def _get_message_sync(self, timeout: float) -> MQRawMessage | None:
+        return self._run_with_reconnect_sync(
+            lambda: self.__get_message_sync(timeout),
+            reopen_consumer=True,
+        )
+
+    def __get_message_sync(self, timeout: float) -> MQRawMessage | None:
         mq = _load_ibmmq()
         assert self._qmgr is not None
         assert self._consumer_queue is not None
@@ -228,6 +272,13 @@ class AsyncMQConnection:
         await run_in_executor(self._executor, self._publish_sync, cmd, serializer)
 
     def _publish_sync(
+        self,
+        cmd: MQPublishCommand,
+        serializer: "SerializerProto | None",
+    ) -> None:
+        self._run_with_reconnect_sync(lambda: self.__publish_sync(cmd, serializer))
+
+    def __publish_sync(
         self,
         cmd: MQPublishCommand,
         serializer: "SerializerProto | None",
@@ -296,6 +347,15 @@ class AsyncMQConnection:
         return await run_in_executor(self._executor, self._request_sync, cmd, serializer)
 
     def _request_sync(
+        self,
+        cmd: MQPublishCommand,
+        serializer: "SerializerProto | None",
+    ) -> MQRawMessage:
+        return self._run_with_reconnect_sync(
+            lambda: self.__request_sync(cmd, serializer),
+        )
+
+    def __request_sync(
         self,
         cmd: MQPublishCommand,
         serializer: "SerializerProto | None",
@@ -397,6 +457,51 @@ class AsyncMQConnection:
 
         finally:
             reply_queue.close()
+
+    def _run_with_reconnect_sync(
+        self,
+        func: Any,
+        *,
+        reopen_consumer: bool = False,
+    ) -> Any:
+        mq = _load_ibmmq()
+
+        try:
+            return func()
+
+        except mq.MQMIError as e:
+            if not _is_reconnectable_reason(mq, e.reason):
+                raise
+
+        self._recover_connection_sync(reopen_consumer=reopen_consumer)
+        time.sleep(0.2)
+        return func()
+
+    def _recover_connection_sync(self, *, reopen_consumer: bool) -> None:
+        queue_name = self._consumer_queue_name if reopen_consumer else ""
+        self._safe_close_consumer_sync()
+        self._safe_disconnect_qmgr_sync()
+        self._connect_sync()
+        if queue_name:
+            self.__start_consumer_sync(queue_name)
+
+    def _safe_close_consumer_sync(self) -> None:
+        if self._consumer_queue is not None:
+            try:
+                self._consumer_queue.close()
+            except Exception:
+                pass
+            finally:
+                self._consumer_queue = None
+
+    def _safe_disconnect_qmgr_sync(self) -> None:
+        if self._qmgr is not None:
+            try:
+                self._qmgr.disconnect()
+            except Exception:
+                pass
+            finally:
+                self._qmgr = None
 
 
 def _headers_to_publish(
@@ -520,3 +625,46 @@ def _mq_str(value: Any) -> str:
 def _to_wait_interval(timeout: float) -> int:
     milliseconds = int(timeout * 1000)
     return max(milliseconds, 1)
+
+
+def _cno_reconnect_option(mq: Any, reconnect_mode: str) -> int:
+    reconnect_map = {
+        "as_def": mq.CMQC.MQCNO_RECONNECT_AS_DEF,
+        "disabled": mq.CMQC.MQCNO_RECONNECT_DISABLED,
+        "reconnect": mq.CMQC.MQCNO_RECONNECT,
+        "qmgr": mq.CMQC.MQCNO_RECONNECT_Q_MGR,
+    }
+
+    try:
+        return reconnect_map[reconnect_mode]
+    except KeyError as e:
+        raise ValueError(f"Unknown MQ reconnect mode: {reconnect_mode}") from e
+
+
+def _cd_reconnect_default(mq: Any, reconnect_mode: str) -> int | None:
+    reconnect_map = {
+        "as_def": None,
+        "disabled": mq.CMQXC.MQRCN_DISABLED,
+        "reconnect": mq.CMQXC.MQRCN_YES,
+        "qmgr": mq.CMQXC.MQRCN_Q_MGR,
+    }
+
+    try:
+        return reconnect_map[reconnect_mode]
+    except KeyError as e:
+        raise ValueError(f"Unknown MQ reconnect mode: {reconnect_mode}") from e
+
+
+def _is_reconnectable_reason(mq: Any, reason: int) -> bool:
+    return reason in {
+        mq.CMQC.MQRC_CONNECTION_BROKEN,
+        mq.CMQC.MQRC_HCONN_ERROR,
+        mq.CMQC.MQRC_Q_MGR_NOT_AVAILABLE,
+        mq.CMQC.MQRC_HOST_NOT_AVAILABLE,
+        mq.CMQC.MQRC_RECONNECTING,
+        mq.CMQC.MQRC_RECONNECTED,
+        mq.CMQC.MQRC_RECONNECT_FAILED,
+        mq.CMQC.MQRC_CALL_INTERRUPTED,
+        mq.CMQC.MQRC_RECONNECT_Q_MGR_REQD,
+        mq.CMQC.MQRC_RECONNECT_TIMED_OUT,
+    }
