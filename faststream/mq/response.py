@@ -74,6 +74,7 @@ class MQPublishCommand(PublishCommand):
         message_type: str | None = None,
         timeout: float = 5.0,
         native_correlation_id: bytes | None = None,
+        syncpoint: bool = False,
     ) -> None:
         super().__init__(
             body=message,
@@ -94,6 +95,7 @@ class MQPublishCommand(PublishCommand):
         self.message_type = message_type
         self.timeout = timeout
         self.native_correlation_id = native_correlation_id
+        self.syncpoint = syncpoint
 
     @classmethod
     def from_cmd(

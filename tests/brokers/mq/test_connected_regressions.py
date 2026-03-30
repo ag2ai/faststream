@@ -5,6 +5,7 @@ from queue import Queue as ThreadQueue
 
 import pytest
 
+from faststream import BaseMiddleware
 from tests.marks import require_ibmmq
 
 from .basic import MQTestcaseConfig
@@ -211,6 +212,37 @@ class TestConnectedRegressions(MQTestcaseConfig):
             async with broker:
                 await broker.start()
                 await broker.publish("hello", queue)
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
+                await asyncio.sleep(0.2)
+
+            assert get_queue_depth(queue, admin_config) == 1
+
+        finally:
+            delete_queue(queue, admin_config)
+
+    async def test_reply_is_backed_out_with_failed_consume(self, queue: str) -> None:
+        admin_config = MQAdminConfig()
+        ensure_queue(queue, admin_config)
+        event = asyncio.Event()
+
+        class FailAfterProcessed(BaseMiddleware):
+            async def after_processed(self, exc_type=None, exc_val=None, exc_tb=None):
+                raise ValueError("boom")
+
+        broker = self.get_broker(middlewares=(FailAfterProcessed,))
+
+        @broker.subscriber(queue)
+        async def handler(msg: str) -> str:
+            event.set()
+            return "response"
+
+        try:
+            async with broker:
+                await broker.start()
+
+                with pytest.raises(TimeoutError):
+                    await broker.request("hello", queue, timeout=1.0)
+
                 await asyncio.wait_for(event.wait(), timeout=self.timeout)
                 await asyncio.sleep(0.2)
 
