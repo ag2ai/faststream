@@ -44,7 +44,7 @@ def test_publish_uses_mqmd_identity_fields(monkeypatch) -> None:
 
     class FakeMessageHandle:
         def __init__(self, qmgr) -> None:
-            self.msg_handle = object()
+            self.msg_handle = 1
             self.properties = FakeProperties()
 
         def dlt(self) -> None:

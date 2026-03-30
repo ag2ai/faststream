@@ -9,7 +9,6 @@ ARG MQ_VERSION
 ENV PYTHONUNBUFFERED=1
 ENV MQ_FILE_PATH=/opt/mqm
 ENV LD_LIBRARY_PATH=/opt/mqm/lib64
-ENV MQIPY_NOOTEL=true
 ENV genmqpkg_incnls=1
 ENV genmqpkg_incsdk=1
 ENV genmqpkg_inctls=1
