@@ -1,7 +1,3 @@
-import os
-
-os.environ.setdefault("MQIPY_NOOTEL", "true")
-
 from faststream._internal.testing.app import TestApp
 
 from .annotations import MQMessage, MQProducer

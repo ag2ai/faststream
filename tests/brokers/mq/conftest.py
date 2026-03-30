@@ -5,6 +5,8 @@ import pytest
 
 from faststream.mq.broker.router import MQRouter
 
+from .utils import disabled_ibmmq_otel_hooks
+
 
 @dataclass
 class Settings:
@@ -32,6 +34,12 @@ def settings() -> Settings:
 @pytest.fixture()
 def router() -> MQRouter:
     return MQRouter()
+
+
+@pytest.fixture(autouse=True)
+def disable_ibmmq_otel_hooks() -> None:
+    with disabled_ibmmq_otel_hooks():
+        yield
 
 
 @pytest.fixture()

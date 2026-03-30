@@ -32,6 +32,43 @@ def _load_ibmmq() -> Any:
 
 
 @contextmanager
+def disabled_ibmmq_otel_hooks() -> "Iterator[None]":
+    try:
+        mq = _load_ibmmq()
+    except ImportError:  # pragma: no cover - optional dependency
+        yield
+        return
+
+    hooks = getattr(mq, "OTelFunctions", None)
+    if hooks is None:
+        yield
+        return
+
+    saved = {
+        "disc": hooks.disc,
+        "open": hooks.open,
+        "close": hooks.close,
+        "put_trace_before": hooks.put_trace_before,
+        "put_trace_after": hooks.put_trace_after,
+        "get_trace_before": hooks.get_trace_before,
+        "get_trace_after": hooks.get_trace_after,
+    }
+
+    try:
+        hooks.disc = None
+        hooks.open = None
+        hooks.close = None
+        hooks.put_trace_before = None
+        hooks.put_trace_after = None
+        hooks.get_trace_before = None
+        hooks.get_trace_after = None
+        yield
+    finally:
+        for name, value in saved.items():
+            setattr(hooks, name, value)
+
+
+@contextmanager
 def admin_pcf(config: MQAdminConfig) -> "Iterator[tuple[Any, Any]]":
     mq = _load_ibmmq()
     qmgr = mq.QueueManager(None)

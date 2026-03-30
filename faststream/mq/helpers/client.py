@@ -3,7 +3,6 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
-import os
 from typing import TYPE_CHECKING, Any, cast
 
 from faststream._internal.utils.functions import run_in_executor
@@ -19,20 +18,9 @@ if TYPE_CHECKING:
 
 def _load_ibmmq() -> Any:
     try:
-        os.environ.setdefault("MQIPY_NOOTEL", "true")
         import ibmmq as mq
     except ImportError as e:  # pragma: no cover - depends on optional dependency
         raise ImportError(INSTALL_FASTSTREAM_MQ) from e
-
-    otel_functions = getattr(mq, "OTelFunctions", None)
-    if otel_functions is not None:
-        otel_functions.disc = None
-        otel_functions.open = None
-        otel_functions.close = None
-        otel_functions.put_trace_before = None
-        otel_functions.put_trace_after = None
-        otel_functions.get_trace_before = None
-        otel_functions.get_trace_after = None
 
     return mq
 
@@ -48,6 +36,17 @@ class MQConnectionConfig:
     wait_interval: float = 1.0
     use_ssl: bool = False
     ssl_context: Any = None
+
+
+class _OTelCompatibleHandle(int):
+    def __new__(cls, handle: Any) -> "_OTelCompatibleHandle":
+        return super().__new__(cls, handle.msg_handle)
+
+    def __init__(self, handle: Any) -> None:
+        self._handle = handle
+
+    def get(self, *args: Any, **kwargs: Any) -> Any:
+        return self._handle.properties.get(*args, **kwargs)
 
 
 class AsyncMQConnection:
@@ -278,7 +277,7 @@ class AsyncMQConnection:
                         _property_name_from_header(key),
                         _normalize_property_value(value),
                     )
-                pmo.OriginalMsgHandle = msg_handle.msg_handle
+                pmo.OriginalMsgHandle = _OTelCompatibleHandle(msg_handle)
 
             queue.put(body, md, pmo)
 
@@ -349,7 +348,7 @@ class AsyncMQConnection:
                             _property_name_from_header(key),
                             _normalize_property_value(value),
                         )
-                    pmo.OriginalMsgHandle = put_handle.msg_handle
+                    pmo.OriginalMsgHandle = _OTelCompatibleHandle(put_handle)
 
                 queue.put(body, md, pmo)
                 request_message_id = bytes(md.MsgId)

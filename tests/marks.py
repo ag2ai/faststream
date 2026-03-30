@@ -1,8 +1,4 @@
-import os
-
 import pytest
-
-os.environ.setdefault("MQIPY_NOOTEL", "true")
 
 from faststream._internal._compat import (
     IS_MACOS,
