@@ -31,6 +31,7 @@ class MQRawMessage:
     metadata: Any = None
     connection: MQAcknowledger | None = None
     settled: AckStatus | None = None
+    settled_event: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 class MQMessage(StreamMessage[MQRawMessage]):
@@ -48,12 +49,14 @@ class MQMessage(StreamMessage[MQRawMessage]):
             await self._wait_for_broker_settle(self.raw_message.connection.commit())
         await super().ack()
         self.raw_message.settled = self.committed
+        self.raw_message.settled_event.set()
 
     async def nack(self) -> None:
         if self.committed is None and self.raw_message.connection is not None:
             await self._wait_for_broker_settle(self.raw_message.connection.backout())
         await super().nack()
         self.raw_message.settled = self.committed
+        self.raw_message.settled_event.set()
 
     async def reject(self) -> None:
         await self.ack()
