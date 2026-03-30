@@ -48,6 +48,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
         self.wait_interval = config.wait_interval
         self._consumer: AsyncMQConnection | None = None
         self._test_messages: asyncio.Queue[MQRawMessage] | None = None
+        self._direct_message: MQRawMessage | None = None
 
     def routing(self) -> str:
         return f"{self._outer_config.prefix}{self.queue.routing()}"
@@ -88,6 +89,9 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
 
             await self.consume(raw_message)
 
+            if self.ack_policy is AckPolicy.MANUAL and raw_message.settled is None:
+                await raw_message.settled_event.wait()
+
     @override
     async def consume(self, msg: "MQRawMessage") -> Any:
         if not self.running:
@@ -114,6 +118,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
         tasks = tuple(self.tasks)
 
         await SubscriberUsecase.stop(self)
+        self._direct_message = None
 
         if self._test_messages is not None:
             self._test_messages = None
@@ -144,6 +149,8 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
+        self._ensure_no_unsettled_direct_message()
+
         if self._test_messages is not None:
             try:
                 raw_message = await asyncio.wait_for(self._test_messages.get(), timeout)
@@ -160,7 +167,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         try:
-            return await process_msg(
+            message = await process_msg(
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
@@ -168,6 +175,9 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
                 parser=async_parser,
                 decoder=async_decoder,
             )
+            if self.ack_policy is AckPolicy.MANUAL:
+                self._direct_message = raw_message
+            return message
         except Exception as exc:
             await self._settle_unresolved_message(raw_message, exc)
             raise
@@ -182,6 +192,8 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while self.running:
+            self._ensure_no_unsettled_direct_message()
+
             if self._test_messages is not None:
                 try:
                     raw_message = await asyncio.wait_for(
@@ -208,6 +220,9 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
             except Exception as exc:
                 await self._settle_unresolved_message(raw_message, exc)
                 raise
+
+            if self.ack_policy is AckPolicy.MANUAL:
+                self._direct_message = raw_message
             yield msg
 
     def _make_response_publisher(
@@ -264,6 +279,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
             else:
                 await asyncio.shield(raw_message.connection.backout())
                 raw_message.settled = AckStatus.NACKED
+            raw_message.settled_event.set()
 
         except asyncio.CancelledError:
             pass
@@ -283,3 +299,17 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
             AckPolicy.ACK_FIRST,
             AckPolicy.REJECT_ON_ERROR,
         }
+
+    def _ensure_no_unsettled_direct_message(self) -> None:
+        if self._direct_message is None:
+            return
+
+        if self._direct_message.settled is not None:
+            self._direct_message = None
+            return
+
+        msg = (
+            "IBM MQ manual settlement allows only one unsettled message per consumer "
+            "connection. Settle the previous message before fetching another one."
+        )
+        raise RuntimeError(msg)
