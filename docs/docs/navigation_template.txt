@@ -92,6 +92,7 @@ search:
     - [Publishing](mq/publishing.md)
     - [RPC](mq/rpc.md)
     - [Message Information](mq/message.md)
+    - [High Availability](mq/ha.md)
     - [Security Configuration](mq/security.md)
 - [NATS](nats/index.md)
     - Subscription
