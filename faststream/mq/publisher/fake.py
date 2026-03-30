@@ -27,4 +27,5 @@ class MQFakePublisher(FakePublisher):
         real_cmd = MQPublishCommand.from_cmd(super().patch_command(cmd))
         real_cmd.destination = self.queue
         real_cmd.native_correlation_id = self.native_correlation_id
+        real_cmd.syncpoint = True
         return real_cmd

@@ -275,3 +275,83 @@ def test_request_does_not_republish_after_post_put_failure(monkeypatch) -> None:
     assert exc.value.reason == FakeMQ.CMQC.MQRC_CONNECTION_BROKEN
     assert put_count == 1
     assert recoveries == 1
+
+
+@pytest.mark.mq()
+def test_reply_publish_uses_syncpoint_pmo(monkeypatch) -> None:
+    published_pmo = None
+
+    class FakeProperties:
+        def set(self, name, value) -> None:
+            return None
+
+    class FakeMessageHandle:
+        def __init__(self, qmgr) -> None:
+            self.msg_handle = 1
+            self.properties = FakeProperties()
+
+        def dlt(self) -> None:
+            return None
+
+    class FakeMD:
+        def __init__(self, Version=None) -> None:
+            self.ReplyToQ = ""
+            self.ReplyToQMgr = ""
+            self.Priority = None
+            self.Persistence = None
+            self.Expiry = None
+            self.CorrelId = None
+            self.MsgId = b"request-id"
+
+    class FakePMO:
+        def __init__(self, Version=None) -> None:
+            self.Options = 0
+            self.OriginalMsgHandle = None
+
+    class FakeQueue:
+        def __init__(self, qmgr, target, open_opts) -> None:
+            return None
+
+        def put(self, body, md, pmo) -> None:
+            nonlocal published_pmo
+            published_pmo = pmo
+
+        def close(self) -> None:
+            return None
+
+    class FakeMQ:
+        Queue = FakeQueue
+        MessageHandle = FakeMessageHandle
+        MD = FakeMD
+        PMO = FakePMO
+
+        class CMQC:
+            MQMD_CURRENT_VERSION = 1
+            MQPMO_VERSION_3 = 3
+            MQPMO_SYNCPOINT = 2
+            MQOO_OUTPUT = 2
+            MQPER_PERSISTENT = 1
+            MQPER_NOT_PERSISTENT = 0
+
+    monkeypatch.setattr("faststream.mq.helpers.client._load_ibmmq", lambda: FakeMQ)
+
+    connection = AsyncMQConnection(
+        connection_config=MQConnectionConfig(
+            queue_manager="QM1",
+            channel="DEV.APP.SVRCONN",
+            conn_name="127.0.0.1(1414)",
+        ),
+    )
+    connection._qmgr = object()
+
+    cmd = MQPublishCommand(
+        "reply",
+        destination="DEV.QUEUE.1",
+        _publish_type=PublishType.REPLY,
+        syncpoint=True,
+    )
+
+    connection._publish_sync(cmd, serializer=None)
+
+    assert published_pmo is not None
+    assert published_pmo.Options == FakeMQ.CMQC.MQPMO_SYNCPOINT

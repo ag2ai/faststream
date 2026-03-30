@@ -321,6 +321,8 @@ class AsyncMQConnection:
                 )
 
             pmo = mq.PMO(Version=mq.CMQC.MQPMO_VERSION_3)
+            if cmd.syncpoint:
+                pmo.Options |= mq.CMQC.MQPMO_SYNCPOINT
             if headers:
                 msg_handle = mq.MessageHandle(self._qmgr)
                 for key, value in headers.items():
