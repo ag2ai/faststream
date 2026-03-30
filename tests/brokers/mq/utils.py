@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+import os
+from pathlib import Path
+import subprocess
+import tempfile
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -23,6 +27,17 @@ class MQAdminConfig:
     @property
     def conn_name(self) -> str:
         return f"{self.host}({self.port})"
+
+
+@dataclass(frozen=True)
+class MQHAConfig:
+    primary: MQAdminConfig = MQAdminConfig(port=1414)
+    secondary: MQAdminConfig = MQAdminConfig(port=1415)
+    channel: str = "DEV.APP.SVRCONN"
+
+    @property
+    def connection_list(self) -> str:
+        return f"{self.primary.conn_name},{self.secondary.conn_name}"
 
 
 def _load_ibmmq() -> Any:
@@ -117,6 +132,11 @@ def ensure_queue(queue_name: str, config: MQAdminConfig) -> bool:
     return False
 
 
+def ensure_queue_on_many(queue_name: str, configs: tuple[MQAdminConfig, ...]) -> None:
+    for config in configs:
+        ensure_queue(queue_name, config)
+
+
 def delete_queue(queue_name: str, config: MQAdminConfig) -> None:
     with admin_pcf(config) as (mq, pcf):
         args = {
@@ -135,6 +155,11 @@ def delete_queue(queue_name: str, config: MQAdminConfig) -> None:
             raise
 
 
+def delete_queue_on_many(queue_name: str, configs: tuple[MQAdminConfig, ...]) -> None:
+    for config in configs:
+        delete_queue(queue_name, config)
+
+
 def get_queue_depth(queue_name: str, config: MQAdminConfig) -> int:
     with admin_pcf(config) as (mq, pcf):
         response = pcf.MQCMD_INQUIRE_Q(
@@ -145,6 +170,45 @@ def get_queue_depth(queue_name: str, config: MQAdminConfig) -> int:
         )
 
     return int(response[0][mq.CMQC.MQIA_CURRENT_Q_DEPTH])
+
+
+def set_channel_state(channel_name: str, *, config: MQAdminConfig, start: bool) -> None:
+    with admin_pcf(config) as (mq, pcf):
+        attrs = {mq.CMQCFC.MQCACH_CHANNEL_NAME: channel_name.encode()}
+        if start:
+            pcf.MQCMD_START_CHANNEL(attrs)
+        else:
+            pcf.MQCMD_STOP_CHANNEL(attrs)
+
+
+@contextmanager
+def generated_ccdt(config: MQHAConfig) -> "Iterator[str]":
+    tmpdir = Path(tempfile.mkdtemp(prefix="mq-ccdt-"))
+    ccdt_name = "AMQCLCHL.TAB"
+    env = os.environ.copy()
+    env["MQCHLLIB"] = str(tmpdir)
+    env["MQCHLTAB"] = ccdt_name
+
+    commands = (
+        f"DEFINE CHANNEL({config.channel}) CHLTYPE(CLNTCONN) "
+        f"QMNAME({config.primary.queue_manager}) CONNAME('{config.connection_list}')\n"
+        "END\n"
+    )
+
+    try:
+        subprocess.run(
+            ["/opt/mqm/bin/runmqsc", "-n"],
+            input=commands,
+            text=True,
+            env=env,
+            check=True,
+            capture_output=True,
+        )
+        yield f"file://{tmpdir / ccdt_name}"
+    finally:
+        for child in tmpdir.iterdir():
+            child.unlink()
+        tmpdir.rmdir()
 
 
 class ManagedMQBroker:

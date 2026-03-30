@@ -1,6 +1,8 @@
 ARG PYTHON_VERSION=3.10
 ARG MQ_VERSION=9.4.5.0
 
+FROM icr.io/ibm-messaging/mq:latest AS mq-admin-tools
+
 FROM python:$PYTHON_VERSION
 COPY --from=ghcr.io/astral-sh/uv:0.7.13 /uv /uvx /bin/
 
@@ -21,6 +23,8 @@ RUN apt-get update \
     && rm -f /tmp/ibmmq-redist.tar.gz \
     && /opt/mqm/bin/genmqpkg.sh -b /opt/mqm \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=mq-admin-tools /opt/mqm/bin/runmqsc /opt/mqm/bin/runmqsc
 
 COPY ./pyproject.toml ./README.md ./LICENSE /src/
 COPY ./faststream/__init__.py /src/faststream/__init__.py
