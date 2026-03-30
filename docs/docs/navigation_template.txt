@@ -73,6 +73,7 @@ search:
         - [Message Information](confluent/message.md)
         - [Security Configuration](confluent/security.md)
         - [Additional Configuration](confluent/additional-configuration.md)
+        - [How-To](howto/confluent/index.md)
     - [How-To](howto/kafka/index.md)
         - [Kafka RPC](howto/kafka/rpc.md)
 - [RabbitMQ](rabbit/index.md)
@@ -88,6 +89,7 @@ search:
     - [Declare Queue/Exchange](rabbit/declare.md)
     - [Message Information](rabbit/message.md)
     - [Security Configuration](rabbit/security.md)
+    - [How-To](howto/rabbit/index.md)
 - [NATS](nats/index.md)
     - Subscription
         - [Direct](nats/examples/direct.md)
@@ -122,6 +124,7 @@ search:
     - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
+    - [How-To](howto/redis/index.md)
 	- [Message Format](redis/message_format.md)
 - [Reference - Code API](api/index.md)
 {public_api}
