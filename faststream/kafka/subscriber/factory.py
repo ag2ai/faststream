@@ -84,6 +84,7 @@ def create_subscriber(
         specification_config=KafkaSubscriberSpecificationConfig(
             topics=topics,
             partitions=partitions,
+            pattern=pattern,
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
