@@ -41,10 +41,9 @@ class RabbitExchange(NameRequired):
         return (
             self.name == value.name
             and self.type == value.type
-            and self.routing_key == value.routing_key
             and self.durable == value.durable
             and self.auto_delete == value.auto_delete
-            and self.arguments == value.arguments
+            and (self.arguments or {}) == (value.arguments or {})
         )
 
     def __hash__(self) -> int:
@@ -59,7 +58,6 @@ class RabbitExchange(NameRequired):
             (
                 self.name,
                 self.type,
-                self.routing_key,
                 self.durable,
                 self.auto_delete,
                 _hash_dict(self.arguments or {}),

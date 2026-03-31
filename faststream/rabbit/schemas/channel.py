@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass(eq=False)
+@dataclass
 class Channel:
     """Channel class that represents a RabbitMQ channel."""
 
@@ -28,22 +28,5 @@ class Channel:
     """raise an :class:`aio_pika.exceptions.DeliveryError`
     when mandatory message will be returned"""
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Channel):
-            return NotImplemented
-        return (
-            self.prefetch_count == other.prefetch_count
-            and self.global_qos == other.global_qos
-            and self.channel_number == other.channel_number
-            and self.publisher_confirms == other.publisher_confirms
-            and self.on_return_raises == other.on_return_raises
-        )
-
     def __hash__(self) -> int:
-        return hash((
-            self.prefetch_count,
-            self.global_qos,
-            self.channel_number,
-            self.publisher_confirms,
-            self.on_return_raises,
-        ))
+        return id(self)

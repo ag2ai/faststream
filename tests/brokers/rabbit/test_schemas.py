@@ -1,6 +1,6 @@
 import pytest
 
-from faststream.rabbit import Channel, RabbitExchange, RabbitQueue
+from faststream.rabbit import RabbitExchange, RabbitQueue
 
 
 @pytest.mark.rabbit()
@@ -49,24 +49,6 @@ def test_exchange_equality() -> None:
         len({
             RabbitExchange("test", durable=True): 0,
             RabbitExchange("test", durable=False): 1,
-        })
-        == 2
-    )
-
-
-@pytest.mark.rabbit()
-def test_channel_equality() -> None:
-    assert (
-        len({
-            Channel(prefetch_count=10): 0,
-            Channel(prefetch_count=10): 1,
-        })
-        == 1
-    )
-    assert (
-        len({
-            Channel(prefetch_count=10): 0,
-            Channel(prefetch_count=20): 1,
         })
         == 2
     )

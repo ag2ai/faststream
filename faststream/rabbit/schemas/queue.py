@@ -63,7 +63,7 @@ class RabbitQueue(NameRequired):
             and self.durable == value.durable
             and self.exclusive == value.exclusive
             and self.auto_delete == value.auto_delete
-            and self.arguments == value.arguments
+            and (self.arguments or {}) == (value.arguments or {})
         )
 
     def __hash__(self) -> int:

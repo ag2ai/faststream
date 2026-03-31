@@ -1,3 +1,4 @@
+import math
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -230,8 +231,6 @@ def test_publish_nats_request_command(runner: CliRunner) -> None:
         )
 
         cmd: NatsPublishCommand = producer_mock.request.call_args.args[0]
-
-        import math
 
         assert cmd.destination == "subjectname"
         assert math.isclose(cmd.timeout, 1.0)
