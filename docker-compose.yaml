@@ -1,4 +1,30 @@
 services:
+  ibmmq:
+    image: icr.io/ibm-messaging/mq:latest
+    ports:
+      - "1414:1414"
+    environment:
+      LICENSE: accept
+      MQ_QMGR_NAME: QM1
+      MQ_APP_PASSWORD: password
+      MQ_ADMIN_PASSWORD: password
+      MQ_ENABLE_EMBEDDED_WEB_SERVER: "false"
+    security_opt:
+      - no-new-privileges:true
+
+  ibmmq_ha2:
+    image: icr.io/ibm-messaging/mq:latest
+    ports:
+      - "1415:1414"
+    environment:
+      LICENSE: accept
+      MQ_QMGR_NAME: QM1
+      MQ_APP_PASSWORD: password
+      MQ_ADMIN_PASSWORD: password
+      MQ_ENABLE_EMBEDDED_WEB_SERVER: "false"
+    security_opt:
+      - no-new-privileges:true
+
   rabbitmq:
     image: rabbitmq:alpine
     ports:

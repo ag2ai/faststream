@@ -65,6 +65,8 @@ dependencies = [
 [project.optional-dependencies]
 rabbit = ["aio-pika>=9,<10"]
 
+mq = ["ibmmq>=2,<3"]
+
 kafka = ["aiokafka>=0.9,<0.14"]
 
 confluent = [
@@ -87,6 +89,8 @@ prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
 optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
+
+mq-dev = ["faststream[mq]"]
 
 docs = [
     "mkdocs-material==9.7.1",
@@ -151,6 +155,7 @@ testing = [
 
 dev = [
     {include-group = "optionals"},
+    {include-group = "mq-dev"},
     {include-group = "lint"},
     {include-group = "testing"},
     {include-group = "docs"},
@@ -205,6 +210,7 @@ addopts = "--strict-markers --strict-config -q -m 'not slow'"
 testpaths = ["tests"]
 markers = [
     "rabbit",
+    "mq",
     "kafka",
     "confluent",
     "nats",

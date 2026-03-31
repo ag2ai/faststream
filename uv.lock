@@ -841,6 +841,9 @@ confluent = [
 kafka = [
     { name = "aiokafka" },
 ]
+mq = [
+    { name = "ibmmq" },
+]
 nats = [
     { name = "nats-py" },
 ]
@@ -867,7 +870,7 @@ dev = [
     { name = "dirty-equals" },
     { name = "email-validator" },
     { name = "fastapi" },
-    { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis"] },
+    { name = "faststream", extra = ["cli", "confluent", "kafka", "mq", "nats", "otel", "prometheus", "rabbit", "redis"] },
     { name = "freezegun" },
     { name = "httpx" },
     { name = "mdx-include" },
@@ -940,6 +943,9 @@ lint = [
     { name = "types-setuptools" },
     { name = "zizmor" },
 ]
+mq-dev = [
+    { name = "faststream", extra = ["mq"] },
+]
 optionals = [
     { name = "faststream", extra = ["cli", "confluent", "kafka", "nats", "otel", "prometheus", "rabbit", "redis"] },
 ]
@@ -986,6 +992,7 @@ requires-dist = [
     { name = "confluent-kafka", marker = "python_full_version >= '3.13' and extra == 'confluent'", specifier = ">=2.6,!=2.8.1,<3" },
     { name = "confluent-kafka", marker = "python_full_version < '3.13' and extra == 'confluent'", specifier = ">=2,!=2.8.1,<3" },
     { name = "fast-depends", extras = ["pydantic"], specifier = ">=3.0.0" },
+    { name = "ibmmq", marker = "extra == 'mq'", specifier = ">=2,<3" },
     { name = "nats-py", marker = "extra == 'nats'", specifier = ">=2.12.0,<=3.0.0" },
     { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.24.0,<2.0.0" },
     { name = "prometheus-client", marker = "extra == 'prometheus'", specifier = ">=0.20.0,<0.30.0" },
@@ -994,7 +1001,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "watchfiles", marker = "extra == 'cli'", specifier = ">=0.15.0,<1.2.0" },
 ]
-provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"]
+provides-extras = ["rabbit", "mq", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1006,6 +1013,7 @@ dev = [
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "email-validator", specifier = "==2.3.0" },
     { name = "fastapi", specifier = "==0.128.0" },
+    { name = "faststream", extras = ["mq"] },
     { name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] },
     { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = "==0.28.1" },
@@ -1080,6 +1088,7 @@ lint = [
     { name = "types-setuptools" },
     { name = "zizmor", specifier = "==1.22.0" },
 ]
+mq-dev = [{ name = "faststream", extras = ["mq"] }]
 optionals = [{ name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "otel", "cli", "prometheus"] }]
 test-core = [
     { name = "covdefaults", specifier = ">=2.3.0" },
@@ -1274,6 +1283,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/0f/4c/751061ffa58615a32
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/fd/6668e5aec43ab844de6fc74927e155a3b37bf40d7c3790e49fc0406b6578/httpx_sse-0.4.3-py3-none-any.whl", hash = "sha256:0ac1c9fe3c0afad2e0ebb25a934a59f4c7823b60792691f779fad2c5568830fc", size = 8960, upload-time = "2025-10-10T21:48:21.158Z" },
 ]
+
+[[package]]
+name = "ibmmq"
+version = "2.0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/b4/c726adbf3a095d00d632a152cec08b25d9c40fc62fe8ec98e0fb0325beac/ibmmq-2.0.5.tar.gz", hash = "sha256:f27cd23740fe0d1c5fa8ebed87ed19414ee3eaa91b9bac7b4204e7ccf419c062", size = 463215, upload-time = "2026-03-24T11:52:21.491Z" }
 
 [[package]]
 name = "identify"
