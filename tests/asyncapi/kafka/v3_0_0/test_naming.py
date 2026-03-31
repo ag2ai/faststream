@@ -80,5 +80,5 @@ class TestNaming(NamingTestCase):
         schema = self.get_spec(broker).to_jsonable()
 
         assert len(schema["channels"]) == 1
-        channel = list(schema["channels"].values())[0]
+        channel = next(iter(schema["channels"].values()))
         assert channel["bindings"]["kafka"]["topic"] == "events.*"
