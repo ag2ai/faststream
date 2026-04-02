@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence[str] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
+    pattern: str | None = None
 
 
 @dataclass(kw_only=True)

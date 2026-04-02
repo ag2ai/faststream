@@ -173,7 +173,7 @@ dev = [
     {include-group = "docs"},
     "pre-commit==4.5.1",
     "detect-secrets==1.5.0",
-    "pytest-codspeed>=2.2.1",
+    "pytest-codspeed>=4.3.0",
     "setuptools>=80.9.0",
 ]
 
@@ -186,6 +186,9 @@ Discord = "https://discord.gg/qFm6aSqq59"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"
+
+[tool.uv]
+override-dependencies = ["rich>=13.8.1"]
 
 [tool.uv.build-backend]
 module-root = "."

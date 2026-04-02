@@ -24,6 +24,19 @@ def import_from_string(
     return module_path, instance
 
 
+def _is_missing_requested_module(
+    module_str: str,
+    exc: ModuleNotFoundError,
+) -> bool:
+    if exc.name is None:
+        return False
+
+    requested_module = module_str.split(".")
+    missing_module = exc.name.split(".")
+
+    return missing_module == requested_module[: len(missing_module)]
+
+
 def _import_object_or_factory(import_str: str) -> tuple[Path, object]:
     """Import FastStream application from module specified by a string."""
     if not isinstance(import_str, str):
@@ -42,7 +55,10 @@ def _import_object_or_factory(import_str: str) -> tuple[Path, object]:
             module_str,
         )
 
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as e:
+        if not _is_missing_requested_module(module_str, e):
+            raise
+
         module_path, import_obj_name = _get_obj_path(import_str)
         instance = _try_import_app(module_path, import_obj_name)
 
