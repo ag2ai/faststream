@@ -1,10 +1,7 @@
 import warnings
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.ext.asyncio import AsyncEngine
-
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.exceptions import SetupError
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 from faststream.sqla.subscriber.specification import SqlaSubscriberSpecification
@@ -30,6 +27,22 @@ def create_subscriber(
     config: "SqlaBrokerConfig",
     ack_policy: "AckPolicy",
 ) -> SqlaSubscriber:
+    _validate_input_for_misconfiguration(
+        queues=queues,
+        max_workers=max_workers,
+        retry_strategy=retry_strategy,
+        max_fetch_interval=max_fetch_interval,
+        min_fetch_interval=min_fetch_interval,
+        fetch_batch_size=fetch_batch_size,
+        overfetch_factor=overfetch_factor,
+        flush_interval=flush_interval,
+        release_stuck_interval=release_stuck_interval,
+        release_stuck_timeout=release_stuck_timeout,
+        max_deliveries=max_deliveries,
+        config=config,
+        ack_policy=ack_policy,
+    )
+
     subscriber_config = SqlaSubscriberConfig(
         queues=queues,
         max_workers=max_workers,
@@ -54,7 +67,6 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfiguration(
-    engine: AsyncEngine,
     queues: list[str],
     max_workers: int,
     retry_strategy: "RetryStrategyProto | None",
@@ -65,40 +77,38 @@ def _validate_input_for_misconfiguration(
     flush_interval: float,
     release_stuck_interval: float,
     release_stuck_timeout: float,
-    graceful_shutdown_timeout: float,
     max_deliveries: int | None,
     config: "SqlaBrokerConfig",
     ack_policy: AckPolicy,
 ) -> None:
-    if max_deliveries and max_deliveries <= 0:
-        msg = "max_deliveries must be a positive integer or None."
-        raise SetupError(msg)
-
-    if max_deliveries:
+    if max_deliveries is not None:
         warnings.warn(
-            "Be aware the setting max_deliveries violates the at most once processing guarantee.",
+            "Be aware the setting max_deliveries violates the at most once "
+            "processing guarantee.",
             UserWarning,
             stacklevel=4,
         )
 
     if ack_policy is AckPolicy.REJECT_ON_ERROR and retry_strategy is not None:
         warnings.warn(
-            "Be aware that retry_strategy is ignored when AckPolicy.REJECT_ON_ERROR is used.",
+            "Be aware that retry_strategy is ignored when AckPolicy.REJECT_ON_ERROR "
+            "is used.",
             UserWarning,
             stacklevel=4,
         )
 
     if retry_strategy is None and ack_policy is AckPolicy.NACK_ON_ERROR:
         warnings.warn(
-            "Be aware that if retry_strategy is None, AckPolicy.NACK_ON_ERROR has the same "
-            "effect as AckPolicy.REJECT_ON_ERROR.",
+            "Be aware that if retry_strategy is None, AckPolicy.NACK_ON_ERROR "
+            "has the same effect as AckPolicy.REJECT_ON_ERROR for this broker.",
             UserWarning,
             stacklevel=4,
         )
 
     if ack_policy is AckPolicy.ACK_FIRST:
         warnings.warn(
-            "Be aware that AckPolicy.ACK_FIRST is the same as AckPolicy.ACK for this broker.",
+            "Be aware that AckPolicy.ACK_FIRST has the same effect as AckPolicy.ACK "
+            "for this broker.",
             UserWarning,
             stacklevel=4,
         )
