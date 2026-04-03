@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import copy
 import logging
 from collections.abc import (
     AsyncIterator,
@@ -67,7 +68,6 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         self._last_fetch_was_full = False
         self._stop_event = asyncio.Event()
         self._may_fetch_event = asyncio.Event()
-        self._result_buffer_lock = asyncio.Lock()
         self._retry_on_client_error_delay = 5
 
     @property
@@ -219,11 +219,15 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         else:
             self._result_buffer.append(result)
 
+    def _pop_from_result_buffer(self) -> list[SqlaInnerMessage]:
+        # keep this sync
+        messages = copy.copy(self._result_buffer)
+        self._result_buffer.clear()
+        return messages
+
     async def _flush_results(self) -> None:
-        async with self._result_buffer_lock:  # not technically needed here as of now
-            if not (messages := list(self._result_buffer)):
-                return
-            self._result_buffer.clear()
+        if not (messages := self._pop_from_result_buffer()):
+            return
 
         to_update = [msg for msg in messages if not msg.to_archive]
         to_archive = [msg for msg in messages if msg.to_archive]
