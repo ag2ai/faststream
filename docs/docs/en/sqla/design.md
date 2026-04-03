@@ -126,7 +126,7 @@ As of now, `LISTEN/NOTIFY` is not supported.
         UPDATE message
         SET
           state = $1::sqlamessagestate,
-          deliveries_count = (message.deliveries_count + $2::SMALLINT),
+          deliveries_count = (message.deliveries_count + $2::BIGINT),
           acquired_at = $3::TIMESTAMP WITHOUT TIME ZONE
         WHERE
           message.id IN (
@@ -267,8 +267,8 @@ As of now, `LISTEN/NOTIFY` is not supported.
         $3::JSON,
         $4::BYTEA,
         $5::sqlamessagestate,
-        $6::SMALLINT,
-        $7::SMALLINT,
+        $6::BIGINT,
+        $7::BIGINT,
         $8::TIMESTAMP WITHOUT TIME ZONE,
         $9::TIMESTAMP WITHOUT TIME ZONE,
         $10::TIMESTAMP WITHOUT TIME ZONE,
@@ -354,8 +354,8 @@ As of now, `LISTEN/NOTIFY` is not supported.
     UPDATE message
     SET
       state = $1::sqlamessagestate,
-      attempts_count = $2::SMALLINT,
-      deliveries_count = $3::SMALLINT,
+      attempts_count = $2::BIGINT,
+      deliveries_count = $3::BIGINT,
       first_attempt_at = $4::TIMESTAMP WITHOUT TIME ZONE,
       next_attempt_at = $5::TIMESTAMP WITHOUT TIME ZONE,
       last_attempt_at = $6::TIMESTAMP WITHOUT TIME ZONE,

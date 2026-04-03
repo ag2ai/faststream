@@ -81,8 +81,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
                 index=True,
                 server_default=SqlaMessageState.PENDING.name,
             ),
-            Column("attempts_count", SmallInteger, nullable=False, default=0),
-            Column("deliveries_count", SmallInteger, nullable=False, default=0),
+            Column("attempts_count", BigInteger, nullable=False, default=0),
+            Column("deliveries_count", BigInteger, nullable=False, default=0),
             Column(
                 "created_at",
                 timestamp_type,
@@ -108,8 +108,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("headers", json_type, nullable=True),
             Column("payload", LargeBinary, nullable=False),
             Column("state", Enum(SqlaMessageState), nullable=False, index=True),
-            Column("attempts_count", SmallInteger, nullable=False),
-            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("attempts_count", BigInteger, nullable=False),
+            Column("deliveries_count", BigInteger, nullable=False),
             Column("created_at", timestamp_type, nullable=False),
             Column("first_attempt_at", timestamp_type),
             Column("last_attempt_at", timestamp_type),
@@ -207,8 +207,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("headers", json_type, nullable=True),
             Column("payload", LargeBinary, nullable=False),
             Column("state", Enum(SqlaMessageState), nullable=False),
-            Column("attempts_count", SmallInteger, nullable=False),
-            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("attempts_count", BigInteger, nullable=False),
+            Column("deliveries_count", BigInteger, nullable=False),
             Column("created_at", timestamp_type, nullable=False),
             Column("first_attempt_at", timestamp_type),
             Column("next_attempt_at", timestamp_type, nullable=False),
@@ -223,8 +223,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("headers", json_type, nullable=True),
             Column("payload", LargeBinary, nullable=False),
             Column("state", Enum(SqlaMessageState), nullable=False),
-            Column("attempts_count", SmallInteger, nullable=False),
-            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("attempts_count", BigInteger, nullable=False),
+            Column("deliveries_count", BigInteger, nullable=False),
             Column("created_at", timestamp_type, nullable=False),
             Column("first_attempt_at", timestamp_type),
             Column("last_attempt_at", timestamp_type),
@@ -274,8 +274,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
                 "payload", String(255), nullable=False
             ),  # wrong: should be LargeBinary
             Column("state", Enum(SqlaMessageState), nullable=False),
-            Column("attempts_count", SmallInteger, nullable=False),
-            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("attempts_count", BigInteger, nullable=False),
+            Column("deliveries_count", BigInteger, nullable=False),
             Column(
                 "created_at", String(255), nullable=False
             ),  # wrong: should be DateTime
@@ -292,8 +292,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("headers", String(255), nullable=True),  # wrong: should be JSON
             Column("payload", LargeBinary, nullable=False),
             Column("state", Enum(SqlaMessageState), nullable=False),
-            Column("attempts_count", SmallInteger, nullable=False),
-            Column("deliveries_count", SmallInteger, nullable=False),
+            Column("attempts_count", BigInteger, nullable=False),
+            Column("deliveries_count", BigInteger, nullable=False),
             Column("created_at", timestamp_type, nullable=False),
             Column("first_attempt_at", timestamp_type),
             Column("last_attempt_at", timestamp_type),

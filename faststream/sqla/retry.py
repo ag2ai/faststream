@@ -128,7 +128,7 @@ class NoRetryStrategy(RetryStrategyProto):
         first_attempt_at: datetime,
         last_attempt_at: datetime,
         attempts_count: int,
-    ) -> datetime | None:
+    ) -> None:
         if attempts_count >= self.max_attempts:
-            return None
+            return
         raise ValueError
