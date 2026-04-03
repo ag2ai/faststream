@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Union
 
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -33,8 +33,7 @@ class SqlaPublishCommand(PublishCommand):
             _publish_type=PublishType.PUBLISH,
         )
         self.next_attempt_at = next_attempt_at
-        if self.next_attempt_at:
-            self.next_attempt_at = self.next_attempt_at.replace(tzinfo=None)
+        self._convert_timezone_to_utc()
         self.connection = connection
 
     @classmethod
@@ -59,3 +58,9 @@ class SqlaPublishCommand(PublishCommand):
             headers["correlation_id"] = self.correlation_id
 
         return headers | (self.headers or {})
+
+    def _convert_timezone_to_utc(self) -> None:
+        if self.next_attempt_at:
+            self.next_attempt_at = self.next_attempt_at.astimezone(timezone.utc).replace(
+                tzinfo=None
+            )

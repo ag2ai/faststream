@@ -1,8 +1,12 @@
+import datetime
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from faststream.sqla.exceptions import DatetimeMissingTimezoneException
 from tests.brokers.base.publish import BrokerPublishTestcase
+from tests.brokers.sqla.conftest import as_datetime
 
 from .basic import SqlaTestcaseConfig
 
@@ -20,6 +24,82 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
     test_reusable_publishers = pytest.mark.flaky(reruns=3, reruns_delay=1)(
         BrokerPublishTestcase.test_reusable_publishers
     )
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize("mode", ("publish", "publisher"))
+    async def test_publish_with_next_attempt_at_without_timezone(
+        self, engine: AsyncEngine, mode: str
+    ) -> None:
+        broker = self.get_broker(engine=engine)
+        publisher = broker.publisher("default1")
+
+        await broker.connect()
+
+        with pytest.raises(DatetimeMissingTimezoneException):  # noqa: PT012
+            match mode:
+                case "publish":
+                    await broker.publish(
+                        {"message": "hello1"},
+                        queue="default1",
+                        next_attempt_at=datetime.datetime.now(),  # noqa: DTZ005
+                    )
+                case "publisher":
+                    await publisher.publish(
+                        {"message": "hello1"},
+                        next_attempt_at=datetime.datetime.now(),  # noqa: DTZ005
+                    )
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize("mode", ("publish", "publisher"))
+    async def test_publish_with_next_attempt_at_converts_timezone_to_utc(
+        self, engine: AsyncEngine, mode: str
+    ) -> None:
+        broker = self.get_broker(engine=engine)
+        publisher = broker.publisher("default1")
+
+        await broker.connect()
+
+        match mode:
+            case "publish":
+                await broker.publish(
+                    {"message": "hello1"},
+                    queue="default1",
+                    next_attempt_at=datetime.datetime(
+                        year=2026,
+                        month=1,
+                        day=1,
+                        hour=12,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone(datetime.timedelta(hours=3), "MSC"),
+                    ),
+                )
+            case "publisher":
+                await publisher.publish(
+                    {"message": "hello1"},
+                    next_attempt_at=datetime.datetime(
+                        year=2026,
+                        month=1,
+                        day=1,
+                        hour=12,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone(datetime.timedelta(hours=3), "MSC"),
+                    ),
+                )
+
+        async with engine.begin() as conn:
+            result = await conn.execute(text("SELECT * FROM message;"))
+        result = result.mappings().all()
+
+        assert as_datetime(result[0]["next_attempt_at"]) == datetime.datetime(  # noqa: DTZ001
+            year=2026,
+            month=1,
+            day=1,
+            hour=9,
+            minute=0,
+            second=0,
+        )
 
 
 @pytest.mark.sqla()
