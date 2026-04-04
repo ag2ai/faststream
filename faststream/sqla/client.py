@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import operator
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -24,6 +25,9 @@ from sqlalchemy import (
     text,
     update,
 )
+from sqlalchemy.dialects.mysql import insert as insert_mysql
+from sqlalchemy.dialects.postgresql import insert as insert_pg
+from sqlalchemy.dialects.sqlite import insert as insert_sqlite
 
 from faststream.exceptions import FeatureNotSupportedException, SetupError
 from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
@@ -116,7 +120,7 @@ def _get_message_select_columns(message: Table) -> tuple[ColumnElement[Any], ...
     )
 
 
-class SqlaBaseClient:
+class SqlaBaseClient(ABC):
     def __init__(
         self,
         engine: AsyncEngine,
@@ -256,7 +260,7 @@ class SqlaBaseClient:
                 }
                 for msg in messages
             ]
-            stmt = self._message_archive_table.insert().values(values)
+            stmt = self._build_archive_insert_stmt(values)
             await conn.execute(stmt)
             delete_stmt = (
                 delete(self._message_table)
@@ -302,8 +306,16 @@ class SqlaBaseClient:
             return False
         return True
 
+    @abstractmethod
+    def _build_archive_insert_stmt(self, values: list[dict[str, Any]]) -> Any:
+        raise NotImplementedError
 
-class SqlaPostgresClient(SqlaBaseClient): ...
+
+class SqlaPostgresClient(SqlaBaseClient):
+    def _build_archive_insert_stmt(self, values: list[dict[str, Any]]) -> Any:
+        return (
+            insert_pg(self._message_archive_table).values(values).on_conflict_do_nothing()
+        )
 
 
 class SqlaMySqlClient(SqlaPostgresClient):
@@ -381,6 +393,11 @@ class SqlaMySqlClient(SqlaPostgresClient):
         async with self._engine.begin() as conn:
             await conn.execute(stmt)
 
+    def _build_archive_insert_stmt(self, values: list[dict[str, Any]]) -> Any:
+        return (
+            insert_mysql(self._message_archive_table).values(values).prefix_with("IGNORE")
+        )
+
 
 class SqlaSqliteClient(SqlaBaseClient):
     async def fetch(
@@ -420,6 +437,13 @@ class SqlaSqliteClient(SqlaBaseClient):
 
         rows = sorted(rows, key=operator.itemgetter("next_attempt_at"))
         return [SqlaInnerMessage(**row) for row in rows]
+
+    def _build_archive_insert_stmt(self, values: list[dict[str, Any]]) -> Any:
+        return (
+            insert_sqlite(self._message_archive_table)
+            .values(values)
+            .on_conflict_do_nothing()
+        )
 
 
 class SchemaValidator:
