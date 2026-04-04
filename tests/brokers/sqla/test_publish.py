@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from faststream.sqla import SqlaBroker
 from faststream.sqla.exceptions import DatetimeMissingTimezoneException
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.brokers.sqla.conftest import as_datetime
@@ -28,12 +29,9 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_with_next_attempt_at_without_timezone(
-        self, engine: AsyncEngine, mode: str
+        self, mode: str, broker: SqlaBroker
     ) -> None:
-        broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
-
-        await broker.connect()
 
         with pytest.raises(DatetimeMissingTimezoneException):  # noqa: PT012
             match mode:
@@ -52,12 +50,9 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_with_next_attempt_at_converts_timezone_to_utc(
-        self, engine: AsyncEngine, mode: str
+        self, engine: AsyncEngine, mode: str, broker: SqlaBroker
     ) -> None:
-        broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
-
-        await broker.connect()
 
         match mode:
             case "publish":
@@ -107,11 +102,10 @@ class TestPublish(SqlaTestcaseConfig, BrokerPublishTestcase):
 class TestPublishTransaction(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("mode", ("publish", "publisher"))
-    async def test_publish_wo_transaction(self, engine: AsyncEngine, mode: str) -> None:
-        broker = self.get_broker(engine=engine)
+    async def test_publish_wo_transaction(
+        self, engine: AsyncEngine, mode: str, broker: SqlaBroker
+    ) -> None:
         publisher = broker.publisher("default1")
-
-        await broker.connect()
 
         match mode:
             case "publish":
@@ -125,11 +119,10 @@ class TestPublishTransaction(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("mode", ("publish", "publisher"))
-    async def test_publish_in_transaction(self, engine: AsyncEngine, mode: str) -> None:
-        broker = self.get_broker(engine=engine)
+    async def test_publish_in_transaction(
+        self, engine: AsyncEngine, mode: str, broker: SqlaBroker
+    ) -> None:
         publisher = broker.publisher("default1")
-
-        await broker.connect()
 
         async with engine.begin() as conn:
             match mode:
@@ -147,12 +140,9 @@ class TestPublishTransaction(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize("mode", ("publish", "publisher"))
     async def test_publish_in_transaction_rollback(
-        self, engine: AsyncEngine, mode: str
+        self, engine: AsyncEngine, mode: str, broker: SqlaBroker
     ) -> None:
-        broker = self.get_broker(engine=engine)
         publisher = broker.publisher("default1")
-
-        await broker.connect()
 
         async with engine.begin() as conn:
             match mode:

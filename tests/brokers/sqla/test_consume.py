@@ -41,12 +41,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Message was processed and archived."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         attempted = []
 
         @broker.subscriber(
@@ -101,11 +102,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_nack_retry(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """On exception message was marked as retryable with next attempts scheduled."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -157,11 +160,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_nack_no_retry(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """On exception message was marked as failed and was archived."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -224,86 +229,87 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         reached delivery limit.
         """
         logger = MagicMock()
-        broker = self.get_broker(engine=engine, logger=logger, graceful_timeout=0.1)
-        await broker.connect()
+        async with self.get_broker(
+            engine=engine, logger=logger, graceful_timeout=0.1
+        ) as broker:
+            attempted = []
 
-        attempted = []
+            @broker.subscriber(
+                queues=["default1"],
+                max_workers=1,
+                retry_strategy=ConstantRetryStrategy(
+                    delay_seconds=0, max_total_delay_seconds=None, max_attempts=None
+                ),
+                max_fetch_interval=0.1,
+                min_fetch_interval=0.1,
+                fetch_batch_size=5,
+                overfetch_factor=1,
+                flush_interval=0.1,
+                release_stuck_interval=10,
+                release_stuck_timeout=1,
+                max_deliveries=max_deliveries,
+                ack_policy=AckPolicy.NACK_ON_ERROR,
+            )
+            async def handler(msg: Any) -> None:
+                nonlocal attempted
+                attempted.append(msg)
+                await asyncio.sleep(1)
 
-        @broker.subscriber(
-            queues=["default1"],
-            max_workers=1,
-            retry_strategy=ConstantRetryStrategy(
-                delay_seconds=0, max_total_delay_seconds=None, max_attempts=None
-            ),
-            max_fetch_interval=0.1,
-            min_fetch_interval=0.1,
-            fetch_batch_size=5,
-            overfetch_factor=1,
-            flush_interval=0.1,
-            release_stuck_interval=10,
-            release_stuck_timeout=1,
-            max_deliveries=max_deliveries,
-            ack_policy=AckPolicy.NACK_ON_ERROR,
-        )
-        async def handler(msg: Any) -> None:
-            nonlocal attempted
-            attempted.append(msg)
-            await asyncio.sleep(1)
-
-        await broker.publish({"message": "hello1"}, queue="default1")
-        await broker.start()
-        await asyncio.sleep(0.5)
-        # stop with short graceful_shutdown_timeout so that message becomes stuck
-        await broker.stop()
-        assert len(attempted) == 1
-        await asyncio.sleep(0.5)
-
-        async with engine.begin() as conn:
-            result = await conn.execute(text("SELECT * FROM message;"))
-
-        result = result.mappings().one()
-        assert result["state"] == SqlaMessageState.PROCESSING.name
-        assert result["attempts_count"] == 0
-        assert result["deliveries_count"] == 1
-
-        await broker.start()
-        await asyncio.sleep(0.5)
-
-        if max_deliveries:
+            await broker.publish({"message": "hello1"}, queue="default1")
+            await broker.start()
+            await asyncio.sleep(0.5)
+            # stop with short graceful_shutdown_timeout so that message becomes stuck
+            await broker.stop()
             assert len(attempted) == 1
+            await asyncio.sleep(0.5)
 
             async with engine.begin() as conn:
-                result = await conn.execute(text("SELECT * FROM message_archive;"))
+                result = await conn.execute(text("SELECT * FROM message;"))
 
             result = result.mappings().one()
-            assert result["queue"] == "default1"
-            assert json.loads(result["payload"]) == {"message": "hello1"}
-            assert result["state"] == SqlaMessageState.FAILED.name
+            assert result["state"] == SqlaMessageState.PROCESSING.name
             assert result["attempts_count"] == 0
-            assert result["deliveries_count"] == 2
-            assert as_datetime(result["created_at"]) < datetime.now(
-                tz=timezone.utc
-            ).replace(tzinfo=None)
-            assert result["first_attempt_at"] is None
-            assert result["last_attempt_at"] is None
+            assert result["deliveries_count"] == 1
 
-            assert as_datetime(result["archived_at"]) < datetime.now(
-                tz=timezone.utc
-            ).replace(tzinfo=None)
+            await broker.start()
+            await asyncio.sleep(0.5)
 
-            logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
-            assert len(logs) == 2
-            assert "Message delivery limit was exceeded for message" in logs[-1][0][1]
-        else:
-            assert len(attempted) == 2
+            if max_deliveries:
+                assert len(attempted) == 1
+
+                async with engine.begin() as conn:
+                    result = await conn.execute(text("SELECT * FROM message_archive;"))
+
+                result = result.mappings().one()
+                assert result["queue"] == "default1"
+                assert json.loads(result["payload"]) == {"message": "hello1"}
+                assert result["state"] == SqlaMessageState.FAILED.name
+                assert result["attempts_count"] == 0
+                assert result["deliveries_count"] == 2
+                assert as_datetime(result["created_at"]) < datetime.now(
+                    tz=timezone.utc
+                ).replace(tzinfo=None)
+                assert result["first_attempt_at"] is None
+                assert result["last_attempt_at"] is None
+
+                assert as_datetime(result["archived_at"]) < datetime.now(
+                    tz=timezone.utc
+                ).replace(tzinfo=None)
+
+                logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
+                assert len(logs) == 2
+                assert "Message delivery limit was exceeded for message" in logs[-1][0][1]
+            else:
+                assert len(attempted) == 2
 
     @pytest.mark.asyncio()
     async def test_consume_full_retry_flow(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         attempted = []
 
         @broker.subscriber(
@@ -358,11 +364,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_no_retry_strategy(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """On exception message was marked as failed and was archived."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -414,12 +422,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_by_queues(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Messages from the specified queues were consumed."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         messages = []
 
         @broker.subscriber(
@@ -453,11 +462,12 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_by_next_attempt_at(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         messages = []
 
         @broker.subscriber(
@@ -501,13 +511,15 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_current_messages_are_flushed_on_stop(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Processing of attempted messages completed and results were flushed.
         Acquired but not attempted messages were requeued.
         """
-        broker = self.get_broker(engine=engine, graceful_timeout=2)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -583,11 +595,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack_takes_precedence(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Manual Ack overrode automatic Reject."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -622,11 +636,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_nack_takes_precedence(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Manual Nack overrode automatic Ack."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -662,11 +678,13 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_reject_takes_precedence(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Manual Reject overrode automatic Ack."""
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
 
         @broker.subscriber(
             queues=["default1"],
@@ -702,11 +720,12 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_context_fields(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         body_ = None
         message_ = None
         broker_ = None
@@ -760,11 +779,12 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_concurrency(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         attempted = []
 
         @broker.subscriber(
@@ -812,14 +832,11 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_fetch_intervals_fetch_on_freed_capacity(
-        self, engine: AsyncEngine, recreate_tables: None
+        self, engine: AsyncEngine, recreate_tables: None, broker: SqlaBroker
     ) -> None:
         """After first batch was fully processed, next fetch
         happened immediately.
         """
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         attempted = []
 
         @broker.subscriber(
@@ -850,14 +867,11 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_fetch_intervals_immediate_fetch_to_fill_capacity(
-        self, engine: AsyncEngine, recreate_tables: None
+        self, engine: AsyncEngine, recreate_tables: None, broker: SqlaBroker
     ) -> None:
         """After first fetch, next fetch happened immediately to
         fill up capacity, because of the overfetch factor.
         """
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         client = broker.config.broker_config.client
         client.fetch = AsyncMock(wraps=client.fetch)
 
@@ -888,14 +902,11 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_fetch_intervals_nonfull_fetch(
-        self, engine: AsyncEngine, recreate_tables: None
+        self, engine: AsyncEngine, recreate_tables: None, broker: SqlaBroker
     ) -> None:
         """Because the first fetch wasn't full, next fetch happened after
         max_fetch_interval despite batch being exhausted.
         """
-        broker = self.get_broker(engine=engine)
-        await broker.connect()
-
         attempted = []
 
         @broker.subscriber(
@@ -934,126 +945,122 @@ class TestConsume(SqlaTestcaseConfig, BrokerRealConsumeTestcase):
         """Broker was stopped mid-processing, processing wasn't finalized/flushed,
         messages were requeued on next startup.
         """
-        broker = self.get_broker(engine=engine, graceful_timeout=0.1)
-        await broker.connect()
+        async with self.get_broker(engine=engine, graceful_timeout=0.1) as broker:
+            attempted = []
 
-        attempted = []
+            @broker.subscriber(
+                queues=["default1"],
+                max_workers=2,
+                retry_strategy=ConstantRetryStrategy(
+                    delay_seconds=0, max_total_delay_seconds=None, max_attempts=2
+                ),
+                max_fetch_interval=0,
+                min_fetch_interval=0,
+                fetch_batch_size=5,
+                overfetch_factor=1,
+                flush_interval=10,
+                release_stuck_interval=10,
+                release_stuck_timeout=0.5,
+                max_deliveries=20,
+                ack_policy=AckPolicy.NACK_ON_ERROR,
+            )
+            async def handler(msg: Any) -> None:
+                nonlocal attempted
+                attempted.append(msg)
+                await asyncio.sleep(1)
 
-        @broker.subscriber(
-            queues=["default1"],
-            max_workers=2,
-            retry_strategy=ConstantRetryStrategy(
-                delay_seconds=0, max_total_delay_seconds=None, max_attempts=2
-            ),
-            max_fetch_interval=0,
-            min_fetch_interval=0,
-            fetch_batch_size=5,
-            overfetch_factor=1,
-            flush_interval=10,
-            release_stuck_interval=10,
-            release_stuck_timeout=0.5,
-            max_deliveries=20,
-            ack_policy=AckPolicy.NACK_ON_ERROR,
-        )
-        async def handler(msg: Any) -> None:
-            nonlocal attempted
-            attempted.append(msg)
-            await asyncio.sleep(1)
+            await broker.publish({"message": "hello1"}, queue="default1")
+            await broker.publish({"message": "hello2"}, queue="default1")
 
-        await broker.publish({"message": "hello1"}, queue="default1")
-        await broker.publish({"message": "hello2"}, queue="default1")
+            # message is attempted but not finalized and not flushed
+            await broker.start()
+            await asyncio.sleep(0.5)
+            await broker.stop()
 
-        # message is attempted but not finalized and not flushed
-        await broker.start()
-        await asyncio.sleep(0.5)
-        await broker.stop()
+            assert len(attempted) == 2
+            async with engine.begin() as conn:
+                result = await conn.execute(text("SELECT * FROM message;"))
+            result = result.mappings().all()
+            assert len(result) == 2
+            assert result[0]["state"] == SqlaMessageState.PROCESSING.name
+            assert result[0]["attempts_count"] == 0
+            assert result[0]["deliveries_count"] == 1
 
-        assert len(attempted) == 2
-        async with engine.begin() as conn:
-            result = await conn.execute(text("SELECT * FROM message;"))
-        result = result.mappings().all()
-        assert len(result) == 2
-        assert result[0]["state"] == SqlaMessageState.PROCESSING.name
-        assert result[0]["attempts_count"] == 0
-        assert result[0]["deliveries_count"] == 1
+            await broker.start()
+            await asyncio.sleep(0.5)
 
-        await broker.start()
-        await asyncio.sleep(0.5)
-
-        assert len(attempted) == 4
+            assert len(attempted) == 4
 
     @pytest.mark.asyncio()
     async def test_consume_work_sharing(
         self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
     ) -> None:
-        broker_1 = self.get_broker(engine=engine)
-        broker_2 = self.get_broker(engine=engine)
-        broker_3 = self.get_broker(engine=engine)
-        await broker_1.connect()
-        await broker_2.connect()
-        await broker_3.connect()
+        async with (
+            self.get_broker(engine=engine) as broker_1,
+            self.get_broker(engine=engine) as broker_2,
+            self.get_broker(engine=engine) as broker_3,
+        ):
+            attempt_counts = {}
 
-        attempt_counts = {}
+            @broker_3.subscriber(
+                queues=["default1"],
+                max_workers=10,
+                retry_strategy=NoRetryStrategy(),
+                max_fetch_interval=0,
+                min_fetch_interval=0,
+                fetch_batch_size=10,
+                overfetch_factor=1,
+                flush_interval=1,
+                release_stuck_interval=10,
+                release_stuck_timeout=10,
+                max_deliveries=20,
+                ack_policy=AckPolicy.NACK_ON_ERROR,
+            )
+            @broker_2.subscriber(
+                queues=["default1"],
+                max_workers=10,
+                retry_strategy=NoRetryStrategy(),
+                max_fetch_interval=0,
+                min_fetch_interval=0,
+                fetch_batch_size=10,
+                overfetch_factor=1,
+                flush_interval=1,
+                release_stuck_interval=10,
+                release_stuck_timeout=10,
+                max_deliveries=20,
+                ack_policy=AckPolicy.NACK_ON_ERROR,
+            )
+            @broker_1.subscriber(
+                queues=["default1"],
+                max_workers=10,
+                retry_strategy=NoRetryStrategy(),
+                max_fetch_interval=0,
+                min_fetch_interval=0,
+                fetch_batch_size=10,
+                overfetch_factor=1,
+                flush_interval=1,
+                release_stuck_interval=10,
+                release_stuck_timeout=10,
+                max_deliveries=20,
+                ack_policy=AckPolicy.NACK_ON_ERROR,
+            )
+            async def handler(msg: Any) -> None:
+                nonlocal attempt_counts
+                attempt_counts[msg["message"]] = attempt_counts.get(msg["message"], 0) + 1
 
-        @broker_3.subscriber(
-            queues=["default1"],
-            max_workers=10,
-            retry_strategy=NoRetryStrategy(),
-            max_fetch_interval=0,
-            min_fetch_interval=0,
-            fetch_batch_size=10,
-            overfetch_factor=1,
-            flush_interval=1,
-            release_stuck_interval=10,
-            release_stuck_timeout=10,
-            max_deliveries=20,
-            ack_policy=AckPolicy.NACK_ON_ERROR,
-        )
-        @broker_2.subscriber(
-            queues=["default1"],
-            max_workers=10,
-            retry_strategy=NoRetryStrategy(),
-            max_fetch_interval=0,
-            min_fetch_interval=0,
-            fetch_batch_size=10,
-            overfetch_factor=1,
-            flush_interval=1,
-            release_stuck_interval=10,
-            release_stuck_timeout=10,
-            max_deliveries=20,
-            ack_policy=AckPolicy.NACK_ON_ERROR,
-        )
-        @broker_1.subscriber(
-            queues=["default1"],
-            max_workers=10,
-            retry_strategy=NoRetryStrategy(),
-            max_fetch_interval=0,
-            min_fetch_interval=0,
-            fetch_batch_size=10,
-            overfetch_factor=1,
-            flush_interval=1,
-            release_stuck_interval=10,
-            release_stuck_timeout=10,
-            max_deliveries=20,
-            ack_policy=AckPolicy.NACK_ON_ERROR,
-        )
-        async def handler(msg: Any) -> None:
-            nonlocal attempt_counts
-            attempt_counts[msg["message"]] = attempt_counts.get(msg["message"], 0) + 1
+            msg_count = 1000
+            for idx in range(msg_count):
+                await broker_1.publish({"message": f"{idx + 1}"}, queue="default1")
 
-        msg_count = 1000
-        for idx in range(msg_count):
-            await broker_1.publish({"message": f"{idx + 1}"}, queue="default1")
+            await broker_1.start()
+            await broker_2.start()
+            await broker_3.start()
 
-        await broker_1.start()
-        await broker_2.start()
-        await broker_3.start()
+            while True:
+                if len(attempt_counts) != msg_count:
+                    await asyncio.sleep(0.1)
+                else:
+                    break
 
-        while True:
-            if len(attempt_counts) != msg_count:
-                await asyncio.sleep(0.1)
-            else:
-                break
-
-        for idx in attempt_counts.values():
-            assert idx == 1
+            for idx in attempt_counts.values():
+                assert idx == 1

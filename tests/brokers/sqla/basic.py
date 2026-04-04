@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest_asyncio
@@ -23,6 +24,14 @@ class SqlaTestcaseConfig(BaseTestcaseConfig):
     ) -> SqlaBroker:
         engine = kwargs.pop("engine", None) or self._engine
         return SqlaBroker(engine=engine, **kwargs)
+
+    @pytest_asyncio.fixture()
+    async def broker(
+        self, engine: AsyncEngine, recreate_tables: None
+    ) -> AsyncGenerator[SqlaBroker, None]:
+        broker = self.get_broker(engine=engine)
+        async with broker:
+            yield broker
 
     def patch_broker(self, broker: SqlaBroker, **kwargs: Any) -> SqlaBroker:
         return broker

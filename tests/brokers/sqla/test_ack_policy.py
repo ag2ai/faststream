@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream.sqla import SqlaBroker
 from faststream.sqla.annotations import (
     SqlaMessage as SqlaMessageAnnotation,
 )
@@ -25,10 +26,13 @@ from tests.brokers.sqla.conftest import as_datetime
 class TestConsumeAckPolicy(SqlaTestcaseConfig):
     @pytest.mark.asyncio()
     async def test_consume_nack_on_error(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Message was Nack'ed."""
-        broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
             queues=["default1"],
@@ -49,7 +53,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
-        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -81,10 +84,13 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_reject_on_error(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Message was Reject'ed despite the retry strategy."""
-        broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
             queues=["default1"],
@@ -105,7 +111,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
-        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -145,9 +150,9 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         recreate_tables: None,
         event: asyncio.Event,
         ack_policy: AckPolicy,
+        broker: SqlaBroker,
     ) -> None:
         """Message was Ack'ed despite the error."""
-        broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
             queues=["default1"],
@@ -166,7 +171,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         async def handler(msg: Any) -> None:
             return 1 / 0
 
-        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -200,10 +204,13 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_consume_manual(
-        self, engine: AsyncEngine, recreate_tables: None, event: asyncio.Event
+        self,
+        engine: AsyncEngine,
+        recreate_tables: None,
+        event: asyncio.Event,
+        broker: SqlaBroker,
     ) -> None:
         """Message was manually Ack'ed."""
-        broker = self.get_broker(engine=engine)
 
         @broker.subscriber(
             queues=["default1"],
@@ -225,7 +232,6 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
             await msg.ack()
             return 1 / 0
 
-        await broker.connect()
         await broker.publish({"message": "hello1"}, queue="default1")
         await broker.start()
 
@@ -265,40 +271,39 @@ class TestConsumeAckPolicy(SqlaTestcaseConfig):
         The message was Reject'ed.
         """
         logger = MagicMock()
-        broker = self.get_broker(engine=engine, logger=logger)
+        async with self.get_broker(engine=engine, logger=logger) as broker:
 
-        @broker.subscriber(
-            queues=["default1"],
-            max_workers=1,
-            retry_strategy=ConstantRetryStrategy(
-                delay_seconds=5, max_total_delay_seconds=None, max_attempts=None
-            ),
-            max_fetch_interval=10,
-            min_fetch_interval=10,
-            fetch_batch_size=5,
-            overfetch_factor=1,
-            flush_interval=0.1,
-            release_stuck_interval=10,
-            release_stuck_timeout=10,
-            max_deliveries=20,
-            ack_policy=AckPolicy.MANUAL,
-        )
-        async def handler(msg: SqlaMessageAnnotation) -> None:
-            return
+            @broker.subscriber(
+                queues=["default1"],
+                max_workers=1,
+                retry_strategy=ConstantRetryStrategy(
+                    delay_seconds=5, max_total_delay_seconds=None, max_attempts=None
+                ),
+                max_fetch_interval=10,
+                min_fetch_interval=10,
+                fetch_batch_size=5,
+                overfetch_factor=1,
+                flush_interval=0.1,
+                release_stuck_interval=10,
+                release_stuck_timeout=10,
+                max_deliveries=20,
+                ack_policy=AckPolicy.MANUAL,
+            )
+            async def handler(msg: SqlaMessageAnnotation) -> None:
+                return
 
-        await broker.connect()
-        await broker.publish({"message": "hello1"}, queue="default1")
-        await broker.start()
+            await broker.publish({"message": "hello1"}, queue="default1")
+            await broker.start()
 
-        await asyncio.sleep(0.5)
+            await asyncio.sleep(0.5)
 
-        logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
-        assert len(logs) == 1
-        assert "was not updated after processing" in logs[0][0][1]
+            logs = [x for x in logger.log.call_args_list if x[0][0] == logging.ERROR]
+            assert len(logs) == 1
+            assert "was not updated after processing" in logs[0][0][1]
 
-        async with engine.begin() as conn:
-            result = await conn.execute(text("SELECT * FROM message_archive;"))
-        result = result.mappings().one()
-        assert result["queue"] == "default1"
-        assert json.loads(result["payload"]) == {"message": "hello1"}
-        assert result["state"] == SqlaMessageState.FAILED.name
+            async with engine.begin() as conn:
+                result = await conn.execute(text("SELECT * FROM message_archive;"))
+            result = result.mappings().one()
+            assert result["queue"] == "default1"
+            assert json.loads(result["payload"]) == {"message": "hello1"}
+            assert result["state"] == SqlaMessageState.FAILED.name
