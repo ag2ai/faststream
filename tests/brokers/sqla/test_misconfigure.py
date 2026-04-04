@@ -1,6 +1,6 @@
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from faststream import AckPolicy
 from faststream.sqla import SqlaBroker
@@ -8,7 +8,7 @@ from faststream.sqla.retry import NoRetryStrategy
 
 
 @pytest_asyncio.fixture
-async def broker(engine: AsyncEngine) -> SqlaBroker:
+async def broker() -> SqlaBroker:
     return SqlaBroker(engine=create_async_engine("sqlite+aiosqlite:///:memory:"))
 
 
