@@ -34,7 +34,7 @@ class RetryStrategyTemplate(ABC, RetryStrategyProto):
         last_attempt_at: datetime,
         attempts_count: int,
     ) -> datetime | None:
-        if self.max_attempts and attempts_count >= self.max_attempts:
+        if self.max_attempts is not None and attempts_count >= self.max_attempts:
             return None
         next_attempt_at = self._get_next_attempt_at(
             first_attempt_at, last_attempt_at, attempts_count
@@ -80,7 +80,7 @@ class ExponentialBackoffRetryStrategy(RetryStrategyTemplate):
         self, first_attempt_at: datetime, last_attempt_at: datetime, attempts_count: int
     ) -> datetime:
         delay = self.initial_delay_seconds * (self.multiplier ** (attempts_count - 1))
-        if self.max_delay_seconds:
+        if self.max_delay_seconds is not None:
             delay = min(delay, self.max_delay_seconds)
         return last_attempt_at + timedelta(seconds=delay)
 

@@ -129,7 +129,7 @@ class SqlaInnerMessage:
         max_deliveries: int | None,
         logger: "LoggerProto | None",
     ) -> bool:
-        if max_deliveries and self.deliveries_count > max_deliveries:
+        if max_deliveries is not None and self.deliveries_count > max_deliveries:
             self._mark_failed()
             if logger:
                 logger.log(
