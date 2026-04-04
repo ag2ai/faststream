@@ -510,6 +510,16 @@ class SchemaValidator:
         binary_types = (LargeBinary, BLOB)
         json_types = (JSON, JSONB)
 
+        if isinstance(expected, Enum) or isinstance(actual, Enum):
+            if isinstance(expected, Enum) and isinstance(actual, string_types):
+                return actual.length == max(len(value) for value in expected.enums)
+
+            return (
+                isinstance(expected, Enum)
+                and isinstance(actual, Enum)
+                and set(expected.enums) == set(actual.enums)
+            )
+
         for type_group in (
             integer_types,
             string_types,
@@ -519,9 +529,6 @@ class SchemaValidator:
         ):
             if isinstance(expected, type_group) and isinstance(actual, type_group):
                 return True
-
-        if isinstance(expected, Enum) and isinstance(actual, Enum):
-            return True
 
         return type(expected) is type(actual)
 

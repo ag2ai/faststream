@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime, timezone
 
 import pytest
@@ -21,6 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from faststream.exceptions import SetupError
 from faststream.sqla.message import SqlaMessageState
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
+
+
+class WrongSqlaMessageState(str, enum.Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED_FOREVER = "COMPLETED"
+    RETRYABLE = "RETRYABLE"
+    FAILED = "FAILED"
 
 
 @pytest.mark.sqla()
@@ -249,6 +258,8 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         async with engine.begin() as conn:
             await conn.execute(text("DROP TABLE IF EXISTS message_archive"))
             await conn.execute(text("DROP TABLE IF EXISTS message"))
+            if engine.dialect.name == "postgresql":
+                await conn.execute(text("DROP TYPE IF EXISTS wrongsqlamessagestate"))
 
         match engine.dialect.name:
             case "postgresql":
@@ -291,7 +302,9 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("queue", Integer, nullable=False),  # wrong: should be String
             Column("headers", String(255), nullable=True),  # wrong: should be JSON
             Column("payload", LargeBinary, nullable=False),
-            Column("state", Enum(SqlaMessageState), nullable=False),
+            Column(
+                "state", Enum(WrongSqlaMessageState), nullable=False
+            ),  # wrong: enum members differ
             Column("attempts_count", BigInteger, nullable=False),
             Column("deliveries_count", BigInteger, nullable=False),
             Column("created_at", timestamp_type, nullable=False),
@@ -316,3 +329,4 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         assert "created_at" in error_msg
         assert "message_archive" in error_msg
         assert "headers" in error_msg
+        assert "state" in error_msg
