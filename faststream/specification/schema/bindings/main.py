@@ -4,6 +4,7 @@ from faststream.specification.schema.bindings import (
     amqp as amqp_bindings,
     http as http_bindings,
     kafka as kafka_bindings,
+    mqtt as mqtt_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
     sqs as sqs_bindings,
@@ -24,6 +25,7 @@ class ChannelBinding:
 
     amqp: amqp_bindings.ChannelBinding | None = None
     kafka: kafka_bindings.ChannelBinding | None = None
+    mqtt: mqtt_bindings.ChannelBinding | None = None
     sqs: sqs_bindings.ChannelBinding | None = None
     nats: nats_bindings.ChannelBinding | None = None
     redis: redis_bindings.ChannelBinding | None = None
@@ -44,6 +46,7 @@ class OperationBinding:
 
     amqp: amqp_bindings.OperationBinding | None = None
     kafka: kafka_bindings.OperationBinding | None = None
+    mqtt: mqtt_bindings.OperationBinding | None = None
     sqs: sqs_bindings.OperationBinding | None = None
     nats: nats_bindings.OperationBinding | None = None
     redis: redis_bindings.OperationBinding | None = None
