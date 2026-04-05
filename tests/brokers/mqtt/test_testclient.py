@@ -126,5 +126,5 @@ class TestWildcardRouting:
 
         async with TestMQTTBroker(broker) as br:
             await br.start()
-            await br.publish("hello", f"$share/workers/{queue}/data")
+            await br.publish("hello", f"{queue}/data")
             assert call_count == 1
