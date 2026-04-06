@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ class PreparedMQTLSConfig:
     certificate_label: str | None
     key_repo_password: str | None
     peer_name: str | None
+    environment_scope: str | None = None
     tempdir: Path | None = None
 
 
@@ -79,9 +81,7 @@ def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
                 "pkcs12",
                 "-export",
                 "-in",
-                tls.cert_file,
-                "-inkey",
-                tls.key_file,
+                tls.client_cert_and_key,
                 "-out",
                 str(p12_file),
                 "-name",
@@ -103,7 +103,7 @@ def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
                 "-label",
                 "mq-ca",
                 "-file",
-                tls.ca_file,
+                tls.ca_chain_certs,
                 "-format",
                 "ascii",
                 "-trust",
@@ -139,6 +139,7 @@ def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
         certificate_label=label,
         key_repo_password=password,
         peer_name=tls.peer_name,
+        environment_scope="CONNECTION",
         tempdir=tempdir,
     )
 

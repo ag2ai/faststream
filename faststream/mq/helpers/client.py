@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
+import os
 import time
 from typing import TYPE_CHECKING, Any, cast
 
@@ -78,6 +79,10 @@ class AsyncMQConnection:
         cno = self._build_cno(mq)
         cd, sco = self._build_tls_options(mq)
         try:
+            old_tls_scope = os.environ.get("AMQ_TLS_ENVIRONMENT_SCOPE")
+            if self._prepared_tls is not None and self._prepared_tls.environment_scope:
+                os.environ["AMQ_TLS_ENVIRONMENT_SCOPE"] = self._prepared_tls.environment_scope
+
             if self.connection_config.ccdt_url:
                 kwargs: dict[str, Any] = {
                     "cno": cno,
@@ -115,6 +120,12 @@ class AsyncMQConnection:
             cleanup_prepared_tls(self._prepared_tls)
             self._prepared_tls = None
             raise
+        finally:
+            if self._prepared_tls is not None and self._prepared_tls.environment_scope:
+                if old_tls_scope is None:
+                    os.environ.pop("AMQ_TLS_ENVIRONMENT_SCOPE", None)
+                else:
+                    os.environ["AMQ_TLS_ENVIRONMENT_SCOPE"] = old_tls_scope
 
     def _build_tls_options(self, mq: Any) -> tuple[Any, Any | None]:
         cd = mq.CD()

@@ -23,9 +23,8 @@ The IBM MQ integration supports plain username/password authentication and optio
 
 Use this mode when you have:
 
-- client certificate in PEM format
-- matching private key in PEM format
-- CA certificate in PEM format
+- CA chain PEM file
+- client certificate + private key together in a single PEM file
 
 FastStream prepares a temporary MQ key repository and connects using MQ-native TLS settings.
 

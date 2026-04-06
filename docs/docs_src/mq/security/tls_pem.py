@@ -5,8 +5,7 @@ broker = MQBroker(
     conn_name="localhost(1414)",
     tls=MQPEMTLSConfig(
         cipher_spec="TLS_AES_256_GCM_SHA384",
-        cert_file="docs/docs_src/mq/security/certs/client.crt",
-        key_file="docs/docs_src/mq/security/certs/client.key",
-        ca_file="docs/docs_src/mq/security/certs/ca.crt",
+        ca_chain_certs="docs/docs_src/mq/security/certs/ca.crt",
+        client_cert_and_key="docs/docs_src/mq/security/certs/client.pem",
     ),
 )

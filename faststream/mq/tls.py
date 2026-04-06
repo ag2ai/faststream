@@ -14,24 +14,24 @@ class _BaseMQTLSConfig:
 
 @dataclass(frozen=True)
 class MQPEMTLSConfig(_BaseMQTLSConfig):
-    cert_file: str = ""
-    key_file: str = ""
-    ca_file: str = ""
+    ca_chain_certs: str = ""
+    client_cert_and_key: str = ""
 
     def validate(self) -> None:
         if not self.cipher_spec:
             raise SetupError("`cipher_spec` is required for IBM MQ TLS.")
-        if not self.cert_file:
-            raise SetupError("`cert_file` is required for PEM-based IBM MQ TLS.")
-        if not self.key_file:
-            raise SetupError("`key_file` is required for PEM-based IBM MQ TLS.")
-        if not self.ca_file:
-            raise SetupError("`ca_file` is required for PEM-based IBM MQ TLS.")
+        if not self.ca_chain_certs:
+            raise SetupError(
+                "`ca_chain_certs` is required for PEM-based IBM MQ TLS.",
+            )
+        if not self.client_cert_and_key:
+            raise SetupError(
+                "`client_cert_and_key` is required for PEM-based IBM MQ TLS.",
+            )
 
         for name, value in {
-            "cert_file": self.cert_file,
-            "key_file": self.key_file,
-            "ca_file": self.ca_file,
+            "ca_chain_certs": self.ca_chain_certs,
+            "client_cert_and_key": self.client_cert_and_key,
         }.items():
             if not Path(value).exists():
                 raise SetupError(f"`{name}` path does not exist: {value}")
