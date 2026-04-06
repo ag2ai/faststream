@@ -32,9 +32,6 @@ class MQTTSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def ack_policy(self) -> AckPolicy:
-        # QoS 0 has no protocol-level ack — force MANUAL
-        if self.qos == 0:
-            return AckPolicy.MANUAL
         if self._ack_policy is not EMPTY:
             return self._ack_policy
         return AckPolicy.ACK_FIRST
