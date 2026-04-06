@@ -15,6 +15,7 @@ from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.mq.broker.broker import MQBroker as MB
+from faststream.mq.tls import MQTLSConfig
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -54,6 +55,7 @@ class MQRouter(StreamRouter[Any]):
         reconnect: str = "disabled",
         username: str | None = None,
         password: str | None = None,
+        tls: MQTLSConfig | None = None,
         reply_model_queue: str = "DEV.APP.MODEL.QUEUE",
         wait_interval: float = 1.0,
         graceful_timeout: float | None = None,
@@ -102,6 +104,7 @@ class MQRouter(StreamRouter[Any]):
             reconnect=reconnect,
             username=username,
             password=password,
+            tls=tls,
             reply_model_queue=reply_model_queue,
             wait_interval=wait_interval,
             graceful_timeout=graceful_timeout,

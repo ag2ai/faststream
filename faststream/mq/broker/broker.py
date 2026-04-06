@@ -15,6 +15,7 @@ from faststream.mq.publisher.producer import AsyncMQFastProducerImpl
 from faststream.mq.response import MQPublishCommand
 from faststream.mq.schemas import MQQueue
 from faststream.mq.security import parse_security
+from faststream.mq.tls import MQTLSConfig, validate_tls_configuration
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 
@@ -50,6 +51,7 @@ class MQBroker(
         reconnect: str = "disabled",
         username: str | None = None,
         password: str | None = None,
+        tls: MQTLSConfig | None = None,
         reply_model_queue: str = "DEV.APP.MODEL.QUEUE",
         wait_interval: float = 1.0,
         graceful_timeout: float | None = None,
@@ -72,6 +74,11 @@ class MQBroker(
         context: Optional["ContextRepo"] = None,
     ) -> None:
         security_args = parse_security(security)
+        validate_tls_configuration(
+            tls=tls,
+            use_ssl=bool(security_args.get("use_ssl", False)),
+            ssl_context=security_args.get("ssl_context"),
+        )
 
         if ccdt_url is None:
             channel = channel or "DEV.APP.SVRCONN"
@@ -107,10 +114,9 @@ class MQBroker(
                     reconnect_mode=reconnect,
                     username=username,
                     password=password,
+                    tls=tls,
                     reply_model_queue=reply_model_queue,
                     wait_interval=wait_interval,
-                    use_ssl=bool(security_args.get("use_ssl", False)),
-                    ssl_context=security_args.get("ssl_context"),
                 ),
                 producer=AsyncMQFastProducerImpl(
                     parser=parser,

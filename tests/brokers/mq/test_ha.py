@@ -71,9 +71,22 @@ def test_ccdt_connection_uses_connect_with_options(monkeypatch) -> None:
             self.Options = 0
             self.CCDTUrl = None
 
+    class FakeCD:
+        def __init__(self) -> None:
+            self.SSLCipherSpec = b""
+            self.SSLPeerNamePtr = 0
+
+    class FakeSCO:
+        def __init__(self) -> None:
+            self.KeyRepository = b""
+            self.CertificateLabel = b""
+            self.KeyRepoPassword = None
+
     class FakeMQ:
         QueueManager = lambda self=None: FakeQueueManager()
         CNO = FakeCNO
+        CD = FakeCD
+        SCO = FakeSCO
 
         class CMQC:
             MQCNO_RECONNECT_AS_DEF = 0

@@ -32,3 +32,12 @@ async def test_plaintext_security() -> None:
             },
         },
     }
+
+
+@pytest.mark.mq()
+def test_tls_snippets() -> None:
+    from docs.docs_src.mq.security.tls_key_repository import broker as keyrepo_broker
+    from docs.docs_src.mq.security.tls_pem import broker as pem_broker
+
+    assert keyrepo_broker.config.connection_config.tls is not None
+    assert pem_broker.config.connection_config.tls is not None

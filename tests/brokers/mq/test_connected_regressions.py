@@ -239,12 +239,14 @@ class TestConnectedRegressions(MQTestcaseConfig):
         try:
             async with broker:
                 await broker.start()
+                request_task = asyncio.create_task(
+                    broker.request("hello", queue, timeout=1.0),
+                )
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
+                await broker.stop()
 
                 with pytest.raises(TimeoutError):
-                    await broker.request("hello", queue, timeout=1.0)
-
-                await asyncio.wait_for(event.wait(), timeout=self.timeout)
-                await asyncio.sleep(0.2)
+                    await request_task
 
             assert get_queue_depth(queue, admin_config) == 1
 

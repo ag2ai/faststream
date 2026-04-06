@@ -10,8 +10,10 @@ from faststream._internal.utils.functions import run_in_executor
 from faststream.exceptions import INSTALL_FASTSTREAM_MQ
 from faststream.message import encode_message
 from faststream.mq.helpers.ids import mq_id_to_bytes, try_parse_mq_id
+from faststream.mq.helpers.tls import PreparedMQTLSConfig, cleanup_prepared_tls, prepare_tls_config
 from faststream.mq.message import MQRawMessage
 from faststream.mq.response import MQPublishCommand
+from faststream.mq.tls import MQTLSConfig
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -33,10 +35,9 @@ class MQConnectionConfig:
     conn_name: str | None = None
     username: str | None = None
     password: str | None = None
+    tls: MQTLSConfig | None = None
     reply_model_queue: str = "DEV.APP.MODEL.QUEUE"
     wait_interval: float = 1.0
-    use_ssl: bool = False
-    ssl_context: Any = None
     ccdt_url: str | None = None
     reconnect_mode: str = "disabled"
 
@@ -59,6 +60,7 @@ class AsyncMQConnection:
         self._qmgr: Any = None
         self._consumer_queue: Any = None
         self._consumer_queue_name: str = ""
+        self._prepared_tls: PreparedMQTLSConfig | None = None
 
     async def connect(self) -> None:
         if self._executor is None:
@@ -70,47 +72,74 @@ class AsyncMQConnection:
         if self._qmgr is not None:
             return
 
-        if (
-            self.connection_config.use_ssl
-            or self.connection_config.ssl_context is not None
-        ):
-            msg = "SSL-enabled IBM MQ connections are not supported yet."
-            raise NotImplementedError(msg)
-
         mq = _load_ibmmq()
 
         qmgr = mq.QueueManager(None)
         cno = self._build_cno(mq)
+        cd, sco = self._build_tls_options(mq)
+        try:
+            if self.connection_config.ccdt_url:
+                kwargs: dict[str, Any] = {
+                    "cno": cno,
+                    "user": self.connection_config.username,
+                    "password": self.connection_config.password,
+                }
+                if cd.SSLCipherSpec or cd.SSLPeerNamePtr:
+                    kwargs["cd"] = cd
+                if sco is not None:
+                    kwargs["sco"] = sco
+                qmgr.connect_with_options(self.connection_config.queue_manager, **kwargs)
+            else:
+                assert self.connection_config.channel is not None
+                assert self.connection_config.conn_name is not None
 
-        if self.connection_config.ccdt_url:
-            qmgr.connect_with_options(
-                self.connection_config.queue_manager,
-                cno=cno,
-                user=self.connection_config.username,
-                password=self.connection_config.password,
-            )
-        else:
-            assert self.connection_config.channel is not None
-            assert self.connection_config.conn_name is not None
+                reconnect_default = _cd_reconnect_default(
+                    mq,
+                    self.connection_config.reconnect_mode,
+                )
+                if reconnect_default is not None:
+                    cd.DefReconnect = reconnect_default
 
-            cd = mq.CD()
-            reconnect_default = _cd_reconnect_default(
-                mq,
-                self.connection_config.reconnect_mode,
-            )
-            if reconnect_default is not None:
-                cd.DefReconnect = reconnect_default
+                qmgr.connect_tcp_client(
+                    self.connection_config.queue_manager,
+                    cd,
+                    self.connection_config.channel,
+                    self.connection_config.conn_name,
+                    self.connection_config.username,
+                    self.connection_config.password,
+                    cno=cno,
+                    sco=sco,
+                )
+            self._qmgr = qmgr
+        except Exception:
+            cleanup_prepared_tls(self._prepared_tls)
+            self._prepared_tls = None
+            raise
 
-            qmgr.connect_tcp_client(
-                self.connection_config.queue_manager,
-                cd,
-                self.connection_config.channel,
-                self.connection_config.conn_name,
-                self.connection_config.username,
-                self.connection_config.password,
-                cno=cno,
-            )
-        self._qmgr = qmgr
+    def _build_tls_options(self, mq: Any) -> tuple[Any, Any | None]:
+        cd = mq.CD()
+        prepared = self._prepare_tls_config()
+
+        if prepared is None:
+            return cd, None
+
+        cd.SSLCipherSpec = prepared.cipher_spec
+        if prepared.peer_name:
+            cd.SSLPeerNamePtr = prepared.peer_name
+
+        sco = mq.SCO()
+        sco.KeyRepository = prepared.key_repository
+        if prepared.certificate_label:
+            sco.CertificateLabel = prepared.certificate_label
+        if prepared.key_repo_password:
+            sco.KeyRepoPassword = prepared.key_repo_password
+
+        return cd, sco
+
+    def _prepare_tls_config(self) -> PreparedMQTLSConfig | None:
+        if self._prepared_tls is None:
+            self._prepared_tls = prepare_tls_config(self.connection_config.tls)
+        return self._prepared_tls
 
     def _build_cno(self, mq: Any) -> Any:
         cno = mq.CNO()
@@ -137,6 +166,8 @@ class AsyncMQConnection:
     def _disconnect_sync(self) -> None:
         self._safe_close_consumer_sync()
         self._safe_disconnect_qmgr_sync()
+        cleanup_prepared_tls(self._prepared_tls)
+        self._prepared_tls = None
 
     async def ping(self, timeout: float | None = None) -> bool:
         if self._executor is None:
