@@ -122,10 +122,9 @@ def test_key_repository_tls_connect_tcp_client(monkeypatch) -> None:
 def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
     captured: dict[str, object] = {}
 
-    cert = tmp_path / "client.crt"
-    key = tmp_path / "client.key"
+    client_pem = tmp_path / "client.pem"
     ca = tmp_path / "ca.crt"
-    for path in (cert, key, ca):
+    for path in (client_pem, ca):
         path.write_text("dummy")
 
     class FakeQueueManager:
@@ -172,16 +171,17 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
         lambda tls: type(
             "Prepared",
             (),
-            {
-                "cipher_spec": tls.cipher_spec,
-                "peer_name": tls.peer_name,
-                "key_repository": "/tmp/generated/keyrepo",
-                "certificate_label": "generated-cert",
-                "key_repo_password": "generated-pass",
-                "tempdir": None,
-            },
-        )(),
-    )
+                {
+                    "cipher_spec": tls.cipher_spec,
+                    "peer_name": tls.peer_name,
+                    "key_repository": "/tmp/generated/keyrepo",
+                    "certificate_label": "generated-cert",
+                    "key_repo_password": "generated-pass",
+                    "environment_scope": "CONNECTION",
+                    "tempdir": None,
+                },
+            )(),
+        )
 
     connection = AsyncMQConnection(
         connection_config=MQConnectionConfig(
@@ -191,9 +191,8 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
             tls=MQPEMTLSConfig(
                 cipher_spec="TLS_AES_256_GCM_SHA384",
                 peer_name="CN=qm1.example.com",
-                cert_file=str(cert),
-                key_file=str(key),
-                ca_file=str(ca),
+                ca_chain_certs=str(ca),
+                client_cert_and_key=str(client_pem),
             ),
         ),
     )
@@ -216,10 +215,9 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
 def test_prepare_pem_tls_runs_required_commands(monkeypatch, tmp_path: Path) -> None:
     from faststream.mq.helpers.tls import prepare_tls_config
 
-    cert = tmp_path / "client.crt"
-    key = tmp_path / "client.key"
+    client_pem = tmp_path / "client.pem"
     ca = tmp_path / "ca.crt"
-    for path in (cert, key, ca):
+    for path in (client_pem, ca):
         path.write_text("dummy")
 
     commands: list[list[str]] = []
@@ -233,9 +231,8 @@ def test_prepare_pem_tls_runs_required_commands(monkeypatch, tmp_path: Path) -> 
     prepared = prepare_tls_config(
         MQPEMTLSConfig(
             cipher_spec="TLS_AES_256_GCM_SHA384",
-            cert_file=str(cert),
-            key_file=str(key),
-            ca_file=str(ca),
+            ca_chain_certs=str(ca),
+            client_cert_and_key=str(client_pem),
             certificate_label="client-cert",
             key_repo_password="secret",
         ),
