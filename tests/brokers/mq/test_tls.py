@@ -212,7 +212,7 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
 
 
 @pytest.mark.mq()
-def test_prepare_pem_tls_runs_required_commands(monkeypatch, tmp_path: Path) -> None:
+def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> None:
     from faststream.mq.helpers.tls import prepare_tls_config
 
     client_pem = tmp_path / "client.pem"
@@ -220,13 +220,10 @@ def test_prepare_pem_tls_runs_required_commands(monkeypatch, tmp_path: Path) -> 
     for path in (client_pem, ca):
         path.write_text("dummy")
 
-    commands: list[list[str]] = []
-
-    def fake_run(command, check, capture_output, text):
-        commands.append(command)
-        return None
-
-    monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setattr(
+        "faststream.mq.helpers.tls._build_pkcs12",
+        lambda **kwargs: b"pkcs12-bytes",
+    )
 
     prepared = prepare_tls_config(
         MQPEMTLSConfig(
@@ -239,10 +236,6 @@ def test_prepare_pem_tls_runs_required_commands(monkeypatch, tmp_path: Path) -> 
     )
 
     assert prepared is not None
-    assert prepared.key_repository.endswith("mqclient")
+    assert prepared.key_repository.endswith("client.p12")
     assert prepared.certificate_label == "client-cert"
-    assert len(commands) == 4
-    assert commands[0][0] == "/opt/mqm/bin/runmqakm"
-    assert commands[1][0] == "openssl"
-    assert commands[2][0] == "/opt/mqm/bin/runmqakm"
-    assert commands[3][0] == "/opt/mqm/bin/runmqakm"
+    assert Path(prepared.key_repository).read_bytes() == b"pkcs12-bytes"

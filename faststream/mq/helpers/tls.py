@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import os
 from pathlib import Path
+import re
 import shutil
-import subprocess
 import tempfile
-from typing import TYPE_CHECKING
 from secrets import token_hex
+
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import (
+    PrivateFormat,
+    load_pem_private_key,
+    pkcs12,
+)
 
 from faststream.exceptions import SetupError
 from faststream.mq.tls import MQKeyRepositoryTLSConfig, MQPEMTLSConfig, MQTLSConfig
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 @dataclass
@@ -53,81 +56,18 @@ def cleanup_prepared_tls(tls: PreparedMQTLSConfig | None) -> None:
 
 def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
     tempdir = Path(tempfile.mkdtemp(prefix="faststream-mq-tls-"))
-    repo_base = tempdir / "mqclient"
-    kdb_file = repo_base.with_suffix(".kdb")
     p12_file = tempdir / "client.p12"
     label = tls.certificate_label or "faststream-mq-client"
     password = tls.key_repo_password or token_hex(16)
 
     try:
-        _run_tls_command(
-            [
-                "/opt/mqm/bin/runmqakm",
-                "-keydb",
-                "-create",
-                "-db",
-                str(kdb_file),
-                "-pw",
-                password,
-                "-type",
-                "cms",
-                "-stash",
-            ],
+        p12_data = _build_pkcs12(
+            client_cert_and_key=Path(tls.client_cert_and_key),
+            ca_chain_certs=Path(tls.ca_chain_certs),
+            certificate_label=label,
+            password=password,
         )
-
-        _run_tls_command(
-            [
-                "openssl",
-                "pkcs12",
-                "-export",
-                "-in",
-                tls.client_cert_and_key,
-                "-out",
-                str(p12_file),
-                "-name",
-                label,
-                "-passout",
-                f"pass:{password}",
-            ],
-        )
-
-        _run_tls_command(
-            [
-                "/opt/mqm/bin/runmqakm",
-                "-cert",
-                "-add",
-                "-db",
-                str(kdb_file),
-                "-pw",
-                password,
-                "-label",
-                "mq-ca",
-                "-file",
-                tls.ca_chain_certs,
-                "-format",
-                "ascii",
-                "-trust",
-                "enable",
-            ],
-        )
-
-        _run_tls_command(
-            [
-                "/opt/mqm/bin/runmqakm",
-                "-cert",
-                "-import",
-                "-target",
-                str(kdb_file),
-                "-target_pw",
-                password,
-                "-file",
-                str(p12_file),
-                "-type",
-                "pkcs12",
-                "-pw",
-                password,
-            ],
-        )
+        p12_file.write_bytes(p12_data)
 
     except Exception:
         shutil.rmtree(tempdir, ignore_errors=True)
@@ -135,7 +75,7 @@ def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
 
     return PreparedMQTLSConfig(
         cipher_spec=tls.cipher_spec,
-        key_repository=str(repo_base),
+        key_repository=str(p12_file),
         certificate_label=label,
         key_repo_password=password,
         peer_name=tls.peer_name,
@@ -144,11 +84,58 @@ def _prepare_pem_tls(tls: MQPEMTLSConfig) -> PreparedMQTLSConfig:
     )
 
 
-def _run_tls_command(command: list[str]) -> None:
+def _build_pkcs12(
+    *,
+    client_cert_and_key: Path,
+    ca_chain_certs: Path,
+    certificate_label: str,
+    password: str,
+) -> bytes:
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        client_data = client_cert_and_key.read_bytes()
+        key = load_pem_private_key(client_data, password=None)
+        cert = _load_first_certificate(client_data)
+        ca_certs = [
+            pkcs12.PKCS12Certificate(ca_cert, f"ca-cert-{index}".encode("ascii"))
+            for index, ca_cert in enumerate(
+                _load_certificates(ca_chain_certs.read_bytes()),
+                start=1,
+            )
+        ]
+
+        encryption = (
+            PrivateFormat.PKCS12.encryption_builder()
+            .kdf_rounds(50000)
+            .key_cert_algorithm(pkcs12.PBES.PBESv1SHA1And3KeyTripleDESCBC)
+            .hmac_hash(hashes.SHA1())
+            .build(password.encode("ascii"))
+        )
+
+        return pkcs12.serialize_key_and_certificates(
+            certificate_label.encode("ascii"),
+            key,
+            cert,
+            ca_certs,
+            encryption,
+        )
     except FileNotFoundError as e:
-        raise SetupError(f"Required TLS tool is not available: {command[0]}") from e
-    except subprocess.CalledProcessError as e:
-        stderr = e.stderr.strip()
-        raise SetupError(f"MQ TLS setup command failed: {' '.join(command)}\n{stderr}") from e
+        raise SetupError(f"MQ TLS file not found: {e.filename}") from e
+    except Exception as e:
+        raise SetupError(f"MQ TLS setup failed: {e}") from e
+
+
+def _load_first_certificate(data: bytes) -> x509.Certificate:
+    certificates = _load_certificates(data)
+    if not certificates:
+        raise SetupError("No certificate found in `client_cert_and_key` PEM file.")
+    return certificates[0]
+
+
+def _load_certificates(data: bytes) -> list[x509.Certificate]:
+    blocks = re.findall(
+        rb"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----",
+        data,
+        flags=re.DOTALL,
+    )
+
+    return [x509.load_pem_x509_certificate(block) for block in blocks]
