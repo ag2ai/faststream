@@ -126,6 +126,9 @@ search:
     - [Security Configuration](redis/security.md)
     - [How-To](howto/redis/index.md)
 	- [Message Format](redis/message_format.md)
+- [SQLA](sqla/index.md)
+    - [Design and Features](sqla/design.md)
+    - [Tutorial](sqla/tutorial.md)
 - [Reference - Code API](api/index.md)
 {public_api}
 {api}

@@ -8,24 +8,24 @@ from faststream._internal.broker import BrokerUsecase
 class BrokerConnectionTestcase:
     broker: type[BrokerUsecase]
 
-    def get_broker_args(self, settings: Any) -> dict[str, Any]:
+    def _get_broker_args(self, settings: Any) -> dict[str, Any]:
         return {}
 
-    @pytest.mark.asyncio()
-    async def ping(self, broker) -> bool:
+    async def _ping(self, broker: BrokerUsecase) -> bool:
         return await broker.ping(timeout=5.0)
 
     @pytest.mark.asyncio()
-    async def test_stop_before_start(self) -> None:
-        br = self.broker()
-        assert br._connection is None
-        await br.stop()
-        assert not br.running
+    async def test_stop_before_start(self, settings: Any) -> None:
+        kwargs = self._get_broker_args(settings)
+        broker = self.broker(**kwargs)
+        assert broker._connection is None
+        await broker.stop()
+        assert not broker.running
 
     @pytest.mark.asyncio()
     async def test_connect(self, settings: Any) -> None:
-        kwargs = self.get_broker_args(settings)
+        kwargs = self._get_broker_args(settings)
         broker = self.broker(**kwargs)
         await broker.connect()
-        assert await self.ping(broker)
+        assert await self._ping(broker)
         await broker.stop()

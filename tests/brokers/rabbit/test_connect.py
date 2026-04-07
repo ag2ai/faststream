@@ -10,7 +10,7 @@ from tests.brokers.base.connection import BrokerConnectionTestcase
 class TestConnection(BrokerConnectionTestcase):
     broker: type[RabbitBroker] = RabbitBroker
 
-    def get_broker_args(self, settings):
+    def _get_broker_args(self, settings):
         return {"url": settings.url}
 
     @pytest.mark.asyncio()

@@ -147,7 +147,11 @@ markdown_extensions:
   - extra
   - admonition                   # !!! note blocks support
   - pymdownx.details             # admonition collapsible
-  - pymdownx.superfences         # highlight code syntax
+  - pymdownx.superfences:         # highlight code syntax
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true      # allows link to codeline
   - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
