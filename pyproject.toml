@@ -65,7 +65,7 @@ dependencies = [
 [project.optional-dependencies]
 rabbit = ["aio-pika>=9,<10"]
 
-mq = ["ibmmq>=2,<3"]
+mq = ["ibmmq>=2,<3", "cryptography>=46,<47"]
 
 kafka = ["aiokafka>=0.9,<0.14"]
 
