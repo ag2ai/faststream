@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 
 from faststream.exceptions import SetupError
-from faststream.mq import MQBroker, MQKeyRepositoryTLSConfig, MQPEMTLSConfig
+from faststream.mq import MQBroker, mq_tls_from_keystore, mq_tls_from_pem
 from faststream.mq.helpers.client import AsyncMQConnection, MQConnectionConfig
-from faststream.security import BaseSecurity, SASLPlaintext
+from faststream.security import BaseSecurity
 
 
 @pytest.mark.mq()
@@ -23,9 +23,9 @@ def test_ssl_context_is_not_supported_for_mq() -> None:
         MQBroker(
             queue_manager="QM1",
             security=BaseSecurity(use_ssl=True, ssl_context=object()),
-            tls=MQKeyRepositoryTLSConfig(
+            tls=mq_tls_from_keystore(
                 cipher_spec="TLS_AES_256_GCM_SHA384",
-                key_repository="/tmp/keyrepo/client",
+                keystore=__file__,
             ),
         )
 
@@ -92,12 +92,12 @@ def test_key_repository_tls_connect_tcp_client(monkeypatch) -> None:
             conn_name="host(1414)",
             username="app",
             password="password",
-            tls=MQKeyRepositoryTLSConfig(
+            tls=mq_tls_from_keystore(
                 cipher_spec="TLS_AES_256_GCM_SHA384",
                 peer_name="CN=qm1.example.com",
-                key_repository="/tmp/keyrepo/client",
+                keystore=__file__,
                 certificate_label="client-cert",
-                key_repo_password="secret",
+                keystore_password="secret",
             ),
         ),
     )
@@ -113,7 +113,7 @@ def test_key_repository_tls_connect_tcp_client(monkeypatch) -> None:
     assert captured["password"] == "password"
     assert cd.SSLCipherSpec == "TLS_AES_256_GCM_SHA384"
     assert cd.SSLPeerNamePtr == "CN=qm1.example.com"
-    assert sco.KeyRepository == "/tmp/keyrepo/client"
+    assert sco.KeyRepository == __file__
     assert sco.CertificateLabel == "client-cert"
     assert sco.KeyRepoPassword == "secret"
 
@@ -176,7 +176,7 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
                     "peer_name": tls.peer_name,
                     "key_repository": "/tmp/generated/keyrepo",
                     "certificate_label": "generated-cert",
-                    "key_repo_password": "generated-pass",
+                    "keystore_password": "generated-pass",
                     "environment_scope": "CONNECTION",
                     "tempdir": None,
                 },
@@ -188,11 +188,12 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
             queue_manager="QM1",
             ccdt_url="file:///tmp/AMQCLCHL.TAB",
             reconnect_mode="qmgr",
-            tls=MQPEMTLSConfig(
+            tls=mq_tls_from_pem(
                 cipher_spec="TLS_AES_256_GCM_SHA384",
                 peer_name="CN=qm1.example.com",
-                ca_chain_certs=str(ca),
-                client_cert_and_key=str(client_pem),
+                client_cert=str(client_pem),
+                client_key=str(client_pem),
+                ca_certs=(str(ca),),
             ),
         ),
     )
@@ -215,9 +216,10 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
 def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> None:
     from faststream.mq.helpers.tls import prepare_tls_config
 
-    client_pem = tmp_path / "client.pem"
+    client_cert = tmp_path / "client.crt"
+    client_key = tmp_path / "client.key"
     ca = tmp_path / "ca.crt"
-    for path in (client_pem, ca):
+    for path in (client_cert, client_key, ca):
         path.write_text("dummy")
 
     monkeypatch.setattr(
@@ -226,12 +228,13 @@ def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> No
     )
 
     prepared = prepare_tls_config(
-        MQPEMTLSConfig(
+        mq_tls_from_pem(
             cipher_spec="TLS_AES_256_GCM_SHA384",
-            ca_chain_certs=str(ca),
-            client_cert_and_key=str(client_pem),
+            client_cert=str(client_cert),
+            client_key=str(client_key),
+            ca_certs=(str(ca),),
             certificate_label="client-cert",
-            key_repo_password="secret",
+            keystore_password="secret",
         ),
     )
 
@@ -239,3 +242,22 @@ def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> No
     assert prepared.key_repository.endswith("client.p12")
     assert prepared.certificate_label == "client-cert"
     assert Path(prepared.key_repository).read_bytes() == b"pkcs12-bytes"
+
+
+@pytest.mark.mq()
+def test_pem_tls_without_password_generates_strong_keystore_password(tmp_path: Path) -> None:
+    client_cert = tmp_path / "client.crt"
+    client_key = tmp_path / "client.key"
+    ca = tmp_path / "ca.crt"
+    for path in (client_cert, client_key, ca):
+        path.write_text("dummy")
+
+    tls = mq_tls_from_pem(
+        cipher_spec="TLS_AES_256_GCM_SHA384",
+        client_cert=str(client_cert),
+        client_key=str(client_key),
+        ca_certs=(str(ca),),
+    )
+
+    assert tls.keystore_password is not None
+    assert len(tls.keystore_password) == 64

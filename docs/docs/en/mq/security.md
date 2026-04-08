@@ -23,10 +23,13 @@ The IBM MQ integration supports plain username/password authentication and optio
 
 Use this mode when you have:
 
-- CA chain PEM file
-- client certificate + private key together in a single PEM file
+- client certificate PEM file
+- client private key PEM file
+- one or more CA PEM files
 
-FastStream prepares a temporary MQ key repository and connects using MQ-native TLS settings.
+Use `mq_tls_from_pem(...)` for this mode. FastStream prepares a temporary PKCS12 keystore in Python and connects using MQ-native TLS settings.
+
+If `keystore_password` is omitted, FastStream generates a strong random password for the process-local temporary keystore.
 
 ## TLS with a prebuilt MQ key repository
 
@@ -34,7 +37,7 @@ FastStream prepares a temporary MQ key repository and connects using MQ-native T
 {! docs_src/mq/security/tls_key_repository.py !}
 ```
 
-Use this mode if your deployment already provides an MQ key repository.
+Use `mq_tls_from_keystore(...)` if your deployment already provides a PKCS12 keystore.
 
 ## Notes
 

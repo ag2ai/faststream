@@ -142,8 +142,8 @@ class AsyncMQConnection:
         sco.KeyRepository = prepared.key_repository
         if prepared.certificate_label:
             sco.CertificateLabel = prepared.certificate_label
-        if prepared.key_repo_password:
-            sco.KeyRepoPassword = prepared.key_repo_password
+        if prepared.keystore_password:
+            sco.KeyRepoPassword = prepared.keystore_password
 
         return cd, sco
 
