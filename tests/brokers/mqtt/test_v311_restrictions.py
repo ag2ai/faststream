@@ -1,4 +1,3 @@
-
 import pytest
 
 from faststream.exceptions import FeatureNotSupportedException
@@ -12,7 +11,7 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
     def mqtt_version(self) -> str:
         return "3.1.1"
 
-    async def test_publish_with_headers_raises(self) -> None:
+    async def test_broker_publish_with_headers_raises(self) -> None:
         broker = self.get_broker()
 
         with pytest.raises(FeatureNotSupportedException, match="headers"):
@@ -22,7 +21,17 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
                 headers={"x": "1"},
             )
 
-    async def test_request_requires_implictly_reply_to(self) -> None:
+    async def test_publisher_publish_with_headers_raises(self) -> None:
+        broker = self.get_broker()
+        publisher = broker.publisher("topic")
+
+        with pytest.raises(FeatureNotSupportedException, match="headers"):
+            await publisher.publish(
+                "msg",
+                headers={"x": "1"},
+            )
+
+    async def test_broker_request_requires_implictly_reply_to(self) -> None:
         broker = self.get_broker()
 
         with pytest.raises(
@@ -32,3 +41,12 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
                 "msg",
                 "topic",
             )
+
+    async def test_publisher_request_requires_implictly_reply_to(self) -> None:
+        broker = self.get_broker()
+        publisher = broker.publisher("topic")
+
+        with pytest.raises(
+            FeatureNotSupportedException, match="requires an explicit reply_to topic"
+        ):
+            await publisher.request("msg")
