@@ -8,9 +8,9 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.configs import BrokerConfig
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
+from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 from .registrator import MQTTRegistrator
 
@@ -122,7 +122,7 @@ class MQTTRouter(
     ) -> None:
         super().__init__(
             handlers=handlers,
-            config=BrokerConfig(
+            config=MQTTBrokerConfig(
                 prefix=prefix,
                 broker_dependencies=dependencies,
                 broker_middlewares=middlewares,

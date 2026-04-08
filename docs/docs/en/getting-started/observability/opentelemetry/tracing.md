@@ -90,6 +90,14 @@ To enable tracing your broker:
     {!> docs_src/getting_started/opentelemetry/redis_telemetry.py!}
     ```
 
+=== "MQTT"
+    !!! warning
+        OpenTelemetry middleware is supported only for **MQTT 5**. It is not compatible with MQTT 3.1.1, as that protocol version does not support user properties required for trace context propagation.
+
+    ```python linenums="1" hl_lines="3 7"
+    {!> docs_src/getting_started/opentelemetry/mqtt_telemetry.py!}
+    ```
+
 ## Exporting
 
 To export traces, you must configure an exporter. Options include:

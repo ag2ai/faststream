@@ -25,8 +25,7 @@ Import the broker and optional helpers from `#!python faststream.mqtt`:
 
 ```python
 from faststream import FastStream
-from faststream.mqtt import MQTTBroker, QoS
-from faststream.mqtt.annotations import MQTTMessage
+from faststream.mqtt import MQTTBroker, MQTTMessage, QoS
 
 broker = MQTTBroker("localhost", port=1883, version="5.0")
 app = FastStream(broker)
@@ -55,8 +54,8 @@ The broker constructor mirrors common `zmqtt.MQTTClient` options:
 | --------- | ---- |
 | `host`, `port` | Broker address (default port `1883`). |
 | `version` | `#!python "3.1.1"` or `#!python "5.0"` — selects protocol features and how FastStream maps metadata (see [MQTT versions](versions.md){.internal-link}). |
-| `client_id`, `username`, `password` | Client identity and credentials. |
-| `tls` | `False` for plain TCP, `True` for default SSL, or an `ssl.SSLContext`. |
+| `client_id` | Client identity string. |
+| `security` | Pass `SASLPlaintext(username, password)` or `BaseSecurity(ssl_context)` for credentials and TLS (see [Security](security.md){.internal-link}). |
 | `keepalive`, `clean_session` | Session behaviour. |
 | `reconnect` | Optional `ReconnectConfig` (from `#!python faststream.mqtt`) for automatic reconnect with backoff. |
 | `session_expiry_interval` | MQTT 5.0 session expiry (seconds). |

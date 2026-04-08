@@ -12,7 +12,7 @@ class MQTTMessage(StreamMessage[zmqtt.Message]):
         await super().ack()
 
     async def nack(self) -> None:
-        await self.ack()
+        pass  # MQTT has no protocol-level nack; with auto_ack=False broker redelivers QoS 1/2 messages
 
     async def reject(self) -> None:
-        await self.ack()
+        await self.ack()  # MQTT has no reject; acknowledge to prevent redelivery

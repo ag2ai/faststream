@@ -5,7 +5,7 @@ from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.exceptions import FeatureNotSupportedException
+from faststream.message import gen_cor_id
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -40,24 +40,6 @@ class MQTTPublisher(PublisherUsecase):
     def topic(self) -> str:
         return f"{self._outer_config.prefix}{self._topic}"
 
-    @property
-    def _is_v311(self) -> bool:
-        return self._outer_config.version == "3.1.1"
-
-    def _check_v311_features(
-        self,
-        headers: "dict[str, str] | None",
-        correlation_id: "str | None",
-    ) -> None:
-        if not self._is_v311:
-            return
-        if headers:
-            msg = "MQTT 3.1.1 does not support message headers. Use MQTT 5.0."
-            raise FeatureNotSupportedException(msg)
-        if correlation_id is not None:
-            msg = "MQTT 3.1.1 does not support correlation_id. Use MQTT 5.0."
-            raise FeatureNotSupportedException(msg)
-
     @override
     async def publish(
         self,
@@ -69,14 +51,13 @@ class MQTTPublisher(PublisherUsecase):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
     ) -> None:
-        self._check_v311_features(headers, correlation_id)
         cmd = MQTTPublishCommand(
             message,
             topic=topic or self.topic,
             qos=qos if qos is not None else self.qos,
             retain=retain if retain is not None else self.retain,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or gen_cor_id(),
             _publish_type=PublishType.PUBLISH,
         )
 
@@ -117,14 +98,13 @@ class MQTTPublisher(PublisherUsecase):
         reply_to: str = "",
         timeout: float | None = 30.0,
     ) -> Any:
-        self._check_v311_features(self.headers or None, correlation_id)
         cmd = MQTTPublishCommand(
             message,
             topic=topic or self.topic,
             qos=self.qos,
             retain=self.retain,
             headers=self.headers,
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or gen_cor_id(),
             reply_to=reply_to,
             timeout=timeout,
             _publish_type=PublishType.REQUEST,

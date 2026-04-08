@@ -1,23 +1,21 @@
 import logging
-import ssl
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Final,
     Literal,
     Optional,
 )
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
-from faststream.exceptions import FeatureNotSupportedException
+from faststream.message import gen_cor_id
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.mqtt.publisher.producer import (
     ZmqttBaseProducer,
@@ -58,12 +56,9 @@ class MQTTBroker(
         port: int = 1883,
         *,
         client_id: str = "",
-        username: str | None = None,
-        password: str | None = None,
-        tls: ssl.SSLContext | bool = False,
         keepalive: int = 60,
         clean_session: bool = True,
-        version: Literal["3.1.1", "5.0"] = "3.1.1",
+        version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         session_expiry_interval: int = 0,
         graceful_timeout: float | None = 15.0,
@@ -86,18 +81,6 @@ class MQTTBroker(
     ) -> None:
         secure_kwargs = parse_security(security)
 
-        self._host = host
-        self._port = port
-        self._client_id = client_id
-        self._username = secure_kwargs.get("username", username)
-        self._password = secure_kwargs.get("password", password)
-        self._tls = secure_kwargs.get("tls", tls)
-        self._keepalive = keepalive
-        self._clean_session = clean_session
-        self._version: Final = version
-        self._reconnect = reconnect
-        self._session_expiry_interval = session_expiry_interval
-
         producer: ZmqttBaseProducer
         if version == "5.0":
             producer = ZmqttProducerV5(parser=parser, decoder=decoder)
@@ -108,6 +91,16 @@ class MQTTBroker(
             specification_url = f"mqtt://{host}:{port}"
 
         super().__init__(
+            host=host,
+            port=port,
+            client_id=client_id,
+            keepalive=keepalive,
+            clean_session=clean_session,
+            version=version,
+            reconnect=reconnect,
+            session_expiry_interval=session_expiry_interval,
+            **secure_kwargs,
+            # broker config
             routers=routers,
             config=MQTTBrokerConfig(
                 version=version,
@@ -143,19 +136,7 @@ class MQTTBroker(
 
     @override
     async def _connect(self) -> zmqtt.MQTTClient:
-        client = zmqtt.MQTTClient(
-            self._host,
-            self._port,
-            client_id=self._client_id,
-            username=self._username,
-            password=self._password,
-            tls=self._tls,
-            keepalive=self._keepalive,
-            clean_session=self._clean_session,
-            version=self._version,
-            reconnect=self._reconnect,
-            session_expiry_interval=self._session_expiry_interval,
-        )
+        client = zmqtt.MQTTClient(**self._connection_kwargs)
         await client.connect()
         self.config.connect(client)
         return client
@@ -182,21 +163,6 @@ class MQTTBroker(
 
         self.config.disconnect()
 
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
-
     @override
     async def ping(self, timeout: float | None = None) -> bool:
         if self._connection is None:
@@ -207,18 +173,6 @@ class MQTTBroker(
             return False
         else:
             return True
-
-    def _check_v311_features(
-        self,
-        headers: "dict[str, str] | None",
-        correlation_id: "str | None",
-    ) -> None:
-        if headers:
-            msg = "MQTT 3.1.1 does not support message headers. Use MQTT 5.0."
-            raise FeatureNotSupportedException(msg)
-        if correlation_id is not None:
-            msg = "MQTT 3.1.1 does not support correlation_id. Use MQTT 5.0."
-            raise FeatureNotSupportedException(msg)
 
     @override
     async def publish(
@@ -243,15 +197,13 @@ class MQTTBroker(
             correlation_id: Correlation ID for message tracing.
             reply_to: Response topic (MQTT 5.0 response_topic property).
         """
-        if self._version == "3.1.1":
-            self._check_v311_features(headers, correlation_id)
         cmd = MQTTPublishCommand(
             message,
             topic=topic,
             qos=qos,
             retain=retain,
             headers=headers,
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or gen_cor_id(),
             reply_to=reply_to,
             _publish_type=PublishType.PUBLISH,
         )
@@ -270,12 +222,10 @@ class MQTTBroker(
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
         reply_to: str = "",
     ) -> "MQTTMessage":
-        if self._version == "3.1.1":
-            self._check_v311_features(headers, correlation_id)
         cmd = MQTTPublishCommand(
             message,
             topic=topic,
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or gen_cor_id(),
             headers=headers,
             qos=qos,
             reply_to=reply_to,

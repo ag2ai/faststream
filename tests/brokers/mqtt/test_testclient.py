@@ -87,7 +87,7 @@ class TestWildcardRouting:
         async with TestMQTTBroker(broker) as br:
             await br.start()
             await br.publish("22.5", f"{queue}/room1/temp")
-            handler.mock.assert_called_once_with(22.5)
+            handler.mock.assert_called_once_with("22.5")
 
     async def test_hash_wildcard_routes(self, queue: str) -> None:
         broker = MQTTBroker()

@@ -15,6 +15,7 @@ from faststream.mqtt.broker.config import MQTTBrokerConfig
 class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topic: str
     qos: QoS = QoS.AT_MOST_ONCE
+    shared: str | None = None
 
 
 @dataclass(kw_only=True)
@@ -26,12 +27,7 @@ class MQTTSubscriberConfig(SubscriberUsecaseConfig):
     shared: str | None = None
 
     @property
-    def effective_topic(self) -> str:
-        """Return topic with $share prefix when shared group is set."""
-        return f"$share/{self.shared}/{self.topic}" if self.shared else self.topic
-
-    @property
     def ack_policy(self) -> AckPolicy:
         if self._ack_policy is not EMPTY:
             return self._ack_policy
-        return AckPolicy.ACK_FIRST
+        return AckPolicy.ACK

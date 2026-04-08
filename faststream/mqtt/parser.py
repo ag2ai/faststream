@@ -1,9 +1,9 @@
-import json
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 import zmqtt
 
+from faststream._internal._compat import json_loads
 from faststream.message import StreamMessage, decode_message
 
 from .message import MQTTMessage
@@ -37,8 +37,8 @@ class MQTTParserV311(MQTTBaseParser):
 
     async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         body: bytes = msg.body
-        with suppress(json.JSONDecodeError, UnicodeDecodeError):
-            m: DecodedMessage = json.loads(body)
+        with suppress(Exception):
+            m: DecodedMessage = json_loads(body)
             return m
         with suppress(UnicodeDecodeError):
             return body.decode()

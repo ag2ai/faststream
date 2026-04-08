@@ -42,6 +42,7 @@ def create_subscriber(
     specification_config = MQTTSubscriberSpecificationConfig(
         topic=topic,
         qos=qos,
+        shared=shared,
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,

@@ -46,21 +46,24 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
-        self._topic = config.effective_topic
+        self._topic = config.topic
+        self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
 
-        if config.ack_policy in {AckPolicy.NACK_ON_ERROR, AckPolicy.REJECT_ON_ERROR}:
+        if config.ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
-                f"MQTT does not support {config.ack_policy.name}; "
-                "on error messages will be acked with a warning",
+                "MQTT has no nack primitive; with NACK_ON_ERROR, "
+                "on error QoS 1/2 messages will not be acknowledged "
+                "and the broker will redeliver them.",
                 RuntimeWarning,
                 stacklevel=3,
             )
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        full = f"{self._outer_config.prefix}{self._topic}"
+        return f"$share/{self._shared}/{full}" if self._shared else full
 
     def _make_response_publisher(
         self,

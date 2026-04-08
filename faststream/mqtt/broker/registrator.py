@@ -155,6 +155,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
                 f"got {type(router).__name__} instead."
             )
             raise TypeError(msg)
+
         super().include_router(
             router,
             prefix=prefix,
@@ -162,3 +163,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             middlewares=middlewares,
             include_in_schema=include_in_schema,
         )
+
+        for m in router.config.broker_middlewares:
+            router.config._validate_middleware(m)
