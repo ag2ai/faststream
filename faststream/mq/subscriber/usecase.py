@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Sequence
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
@@ -15,6 +16,7 @@ from faststream.exceptions import AckMessage, NackMessage, RejectMessage, StopCo
 from faststream.message import AckStatus
 from faststream.middlewares import AckPolicy
 from faststream.mq.helpers import AsyncMQConnection
+from faststream.mq.helpers.client import is_retryable_mq_exception
 from faststream.mq.parser import MQParser
 from faststream.mq.publisher.fake import MQFakePublisher
 from faststream.mq.publisher.producer import AsyncMQConnectionProducer
@@ -65,8 +67,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
         self._consumer = AsyncMQConnection(
             connection_config=self._outer_config.connection_config,
         )
-        await self._consumer.connect()
-        await self._consumer.start_consumer(self.routing())
+        await self._startup_connect_consumer()
 
         self._post_start()
 
@@ -91,6 +92,26 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
 
             if self.ack_policy is AckPolicy.MANUAL and raw_message.settled is None:
                 await raw_message.settled_event.wait()
+
+    async def _startup_connect_consumer(self) -> None:
+        assert self._consumer is not None
+
+        timeout = self._outer_config.connection_config.startup_retry_timeout
+        interval = self._outer_config.connection_config.startup_retry_interval
+        deadline = time.monotonic() + timeout
+
+        while True:
+            try:
+                await self._consumer.connect()
+                await self._consumer.start_consumer(self.routing())
+                return
+            except Exception as exc:
+                if not is_retryable_mq_exception(exc):
+                    raise
+                if timeout <= 0 or time.monotonic() >= deadline:
+                    raise
+                await self._consumer.disconnect()
+                await anyio.sleep(interval)
 
     @override
     async def consume(self, msg: "MQRawMessage") -> Any:

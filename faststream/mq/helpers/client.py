@@ -41,6 +41,8 @@ class MQConnectionConfig:
     wait_interval: float = 1.0
     ccdt_url: str | None = None
     reconnect_mode: str = "disabled"
+    startup_retry_timeout: float = 60.0
+    startup_retry_interval: float = 2.0
 
 
 class _OTelCompatibleHandle(int):
@@ -759,7 +761,7 @@ def _cd_reconnect_default(mq: Any, reconnect_mode: str) -> int | None:
 
 
 def _is_reconnectable_reason(mq: Any, reason: int) -> bool:
-    return reason in {
+    reasons = {
         mq.CMQC.MQRC_CONNECTION_BROKEN,
         mq.CMQC.MQRC_HCONN_ERROR,
         mq.CMQC.MQRC_Q_MGR_NOT_AVAILABLE,
@@ -771,3 +773,19 @@ def _is_reconnectable_reason(mq: Any, reason: int) -> bool:
         mq.CMQC.MQRC_RECONNECT_Q_MGR_REQD,
         mq.CMQC.MQRC_RECONNECT_TIMED_OUT,
     }
+    if ssl_error := getattr(mq.CMQC, "MQRC_SSL_INITIALIZATION_ERROR", None):
+        reasons.add(ssl_error)
+    return reason in reasons
+
+
+def is_retryable_mq_exception(exc: BaseException) -> bool:
+    reason = getattr(exc, "reason", None)
+    if not isinstance(reason, int):
+        return False
+
+    try:
+        mq = _load_ibmmq()
+    except ImportError:
+        return False
+
+    return _is_reconnectable_reason(mq, reason)
