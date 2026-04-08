@@ -166,6 +166,7 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
             MQRCN_Q_MGR = 2
 
     monkeypatch.setattr("faststream.mq.helpers.client._load_ibmmq", lambda: FakeMQ)
+    monkeypatch.setattr("faststream.mq.tls._build_pkcs12", lambda **kwargs: b"pkcs12-bytes")
     monkeypatch.setattr(
         "faststream.mq.helpers.client.prepare_tls_config",
         lambda tls: type(
@@ -223,7 +224,7 @@ def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> No
         path.write_text("dummy")
 
     monkeypatch.setattr(
-        "faststream.mq.helpers.tls._build_pkcs12",
+        "faststream.mq.tls._build_pkcs12",
         lambda **kwargs: b"pkcs12-bytes",
     )
 
@@ -245,12 +246,17 @@ def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> No
 
 
 @pytest.mark.mq()
-def test_pem_tls_without_password_generates_strong_keystore_password(tmp_path: Path) -> None:
+def test_pem_tls_without_password_generates_strong_keystore_password(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     client_cert = tmp_path / "client.crt"
     client_key = tmp_path / "client.key"
     ca = tmp_path / "ca.crt"
     for path in (client_cert, client_key, ca):
         path.write_text("dummy")
+
+    monkeypatch.setattr("faststream.mq.tls._build_pkcs12", lambda **kwargs: b"pkcs12")
 
     tls = mq_tls_from_pem(
         cipher_spec="TLS_AES_256_GCM_SHA384",
