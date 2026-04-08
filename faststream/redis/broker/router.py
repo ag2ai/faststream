@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
@@ -40,7 +38,6 @@ class RedisPublisher(ArgsContainer):
         stream: str | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Sequence["PublisherMiddleware"] = (),
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -59,8 +56,6 @@ class RedisPublisher(ArgsContainer):
                 Message headers to store metainformation. Can be overridden by `publish.headers` if specified.
             reply_to:
                 Reply message destination PubSub object name.
-            middlewares:
-                Publisher middlewares to wrap outgoing messages.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -77,7 +72,6 @@ class RedisPublisher(ArgsContainer):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
-            middlewares=middlewares,
             title=title,
             description=description,
             schema=schema,
@@ -100,8 +94,6 @@ class RedisRoute(SubscriberRoute):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
-        no_ack: bool = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         title: str | None = None,
@@ -128,10 +120,6 @@ class RedisRoute(SubscriberRoute):
                 Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.
             decoder:
                 Function to decode FastStream msg bytes body to python objects.
-            middlewares:
-                Subscriber middlewares to wrap incoming message processing. (Deprecated)
-            no_ack:
-                Whether to disable **FastStream** auto acknowledgement logic or not. (Deprecated)
             ack_policy:
                 Acknowledgement policy of the handler.
             no_reply:
@@ -155,9 +143,7 @@ class RedisRoute(SubscriberRoute):
             max_workers=max_workers,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,

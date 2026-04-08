@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.mqtt.publisher.usecase import MQTTPublisher
     from faststream.mqtt.subscriber.usecase import (
@@ -44,7 +42,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
         max_workers: int = 1,
         persistent: bool = True,
         # AsyncAPI information
@@ -65,7 +62,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             dependencies: Dependencies list to apply to the subscriber.
             parser: Custom parser to map raw messages to FastStream ones.
             decoder: Function to decode FastStream message bytes to Python objects.
-            middlewares: Subscriber middlewares to wrap incoming message processing.
             max_workers: Number of workers to process messages concurrently.
             persistent: Whether to retain the subscriber across broker restarts.
             title: AsyncAPI subscriber object title.
@@ -91,7 +87,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
     @override
@@ -102,7 +97,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         qos: QoS = QoS.AT_MOST_ONCE,
         retain: bool = False,
         headers: dict[str, str] | None = None,
-        middlewares: Sequence["PublisherMiddleware"] = (),
         persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
@@ -117,7 +111,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             qos: QoS level for published messages (0, 1, or 2).
             retain: Whether the broker should retain the last message.
             headers: Default headers to include in every published message.
-            middlewares: Publisher middlewares to wrap outgoing messages.
             persistent: Whether to retain the publisher across broker restarts.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
@@ -130,7 +123,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             retain=retain,
             headers=headers,
             broker_config=cast("MQTTBrokerConfig", self.config),
-            middlewares=middlewares,
+            middlewares=(),
             title_=title,
             description_=description,
             schema_=schema,

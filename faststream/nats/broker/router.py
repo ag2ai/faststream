@@ -1,9 +1,8 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from nats.aio.msg import Msg
 from nats.js import api
-from typing_extensions import deprecated
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -23,8 +22,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 
@@ -44,8 +41,6 @@ class NatsPublisher(ArgsContainer):
         # JS
         stream: Union[str, "JStream", None] = None,
         timeout: float | None = None,
-        # basic args
-        middlewares: Sequence["PublisherMiddleware"] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -67,8 +62,6 @@ class NatsPublisher(ArgsContainer):
                 Can be omitted without any effect.
             timeout:
                 Timeout to send message to NATS.
-            middlewares:
-                Publisher middlewares to wrap outgoing messages.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -85,7 +78,6 @@ class NatsPublisher(ArgsContainer):
             reply_to=reply_to,
             stream=stream,
             timeout=timeout,
-            middlewares=middlewares,
             title=title,
             description=description,
             schema=schema,
@@ -120,32 +112,11 @@ class NatsRoute(SubscriberRoute):
         kv_watch: Union[str, "KvWatch", None] = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
-        ack_first: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         stream: Union[str, "JStream", None] = None,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         max_workers: int | None = None,
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         title: str | None = None,
@@ -191,8 +162,6 @@ class NatsRoute(SubscriberRoute):
                 ObjectStore watch parameters container.
             inbox_prefix:
                 Prefix for generating unique inboxes, subjects with that prefix and NUID.
-            ack_first:
-                Whether to `ack` message at start of consuming or not.
             stream:
                 Subscribe to NATS Stream with `subject` filter.
             dependencies:
@@ -201,12 +170,8 @@ class NatsRoute(SubscriberRoute):
                 Parser to map original **nats-py** Msg to FastStream one.
             decoder:
                 Function to decode FastStream msg bytes body to python objects.
-            middlewares:
-                Subscriber middlewares to wrap incoming message processing.
             max_workers:
                 Number of workers to process messages concurrently.
-            no_ack:
-                Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy:
                 Acknowledgment policy for subscriber.
             no_reply:
@@ -237,16 +202,13 @@ class NatsRoute(SubscriberRoute):
             kv_watch=kv_watch,
             obj_watch=obj_watch,
             inbox_prefix=inbox_prefix,
-            ack_first=ack_first,
             stream=stream,
             max_workers=max_workers,
             queue=queue,
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,

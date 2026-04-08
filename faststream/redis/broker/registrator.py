@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.usecase import (
@@ -57,20 +55,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -93,20 +77,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -129,20 +99,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -164,20 +120,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -200,20 +142,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -236,20 +164,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0"
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -272,20 +186,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -308,20 +208,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -344,20 +230,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -380,20 +252,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -410,12 +268,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             channel: Redis PubSub object name to send message.
             list: Redis List object name to send message.
             stream: Redis Stream object name to send message.
-            no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy: Acknowledgement policy for message processing.
             dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
             parser: Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
-            middlewares: Subscriber middlewares to wrap incoming message processing.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             message_format: Which format to use when parsing messages.
             persistent: Whether to make the subscriber persistent or not.
@@ -433,7 +289,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             stream=stream,
             # subscriber args
             max_workers=max_workers or 1,
-            no_ack=no_ack,
             no_reply=no_reply,
             ack_policy=ack_policy,
             message_format=message_format,
@@ -450,7 +305,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
     @overload  # type: ignore[override]
@@ -462,13 +316,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str] = ...,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -487,13 +334,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -512,13 +352,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -537,13 +370,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -562,13 +388,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str, None] = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -587,13 +406,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str, None] = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -616,7 +428,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             headers: Message headers to store meta-information. Can be overridden
                 by `publish.headers` if specified.
             reply_to: Reply message destination PubSub object name.
-            middlewares: Publisher middlewares to wrap outgoing messages.
             message_format: Which format to use when parsing messages.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
@@ -633,7 +444,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             reply_to=reply_to,
             # Specific
             config=cast("RedisBrokerConfig", self.config),
-            middlewares=middlewares,
+            middlewares=(),
             message_format=message_format,
             # AsyncAPI
             title_=title,

@@ -1,15 +1,18 @@
-from collections.abc import Awaitable, Callable
 from types import TracebackType
-from typing import Any
 
 from faststream import BaseMiddleware, FastStream
-from faststream.rabbit import RabbitBroker, RabbitMessage
+from faststream.rabbit import RabbitBroker
 
 
 class TopLevelMiddleware(BaseMiddleware):
     async def on_receive(self) -> None:
         print(f"call toplevel middleware with msg: {self.msg}")
         return await super().on_receive()
+
+    async def consume_scope(self, call_next, msg):
+        print(f"call handler middleware with body: {msg}")
+        msg.body = b"fake message"
+        return await call_next(msg)
 
     async def after_processed(
         self,
@@ -21,17 +24,6 @@ class TopLevelMiddleware(BaseMiddleware):
         return await super().after_processed(exc_type, exc_val, exc_tb)
 
 
-async def subscriber_middleware(
-    call_next: Callable[[Any], Awaitable[Any]],
-    msg: RabbitMessage,
-) -> Any:
-    print(f"call handler middleware with body: {msg}")
-    msg.body = b"fake message"
-    result = await call_next(msg)
-    print("handler middleware out")
-    return result
-
-
 broker = RabbitBroker(
     "amqp://guest:guest@localhost:5672/",
     middlewares=(TopLevelMiddleware,),
@@ -39,7 +31,7 @@ broker = RabbitBroker(
 app = FastStream(broker)
 
 
-@broker.subscriber("test", middlewares=(subscriber_middleware,))
+@broker.subscriber("test")
 async def handle(msg: str) -> None:
     assert msg == "fake message"
 
