@@ -313,7 +313,7 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
             mock.assert_called_once()
             message = mock.call_args[0][0]
             assert message
-            assert await message.decode() == "test_message"
+            assert await message.decode() == "test_message", await message.decode()
 
     async def test_get_one_timeout(
         self,

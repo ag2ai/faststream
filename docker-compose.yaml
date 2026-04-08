@@ -30,7 +30,7 @@ services:
     command: -js
     ports:
       - 4222:4222
-      - 8222:8222  # management
+      - 8222:8222 # management
     security_opt:
       - no-new-privileges:true
 
@@ -38,6 +38,15 @@ services:
     image: redis:alpine
     ports:
       - 6379:6379
+    security_opt:
+      - no-new-privileges:true
+
+  artemis:
+    image: apache/activemq-artemis:latest-alpine
+    environment:
+      ANONYMOUS_LOGIN: "true"
+    ports:
+      - "1883:1883"
     security_opt:
       - no-new-privileges:true
 
