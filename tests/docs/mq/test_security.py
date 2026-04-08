@@ -35,7 +35,8 @@ async def test_plaintext_security() -> None:
 
 
 @pytest.mark.mq()
-def test_tls_snippets() -> None:
+def test_tls_snippets(monkeypatch) -> None:
+    monkeypatch.setattr("faststream.mq.tls._build_pkcs12", lambda **kwargs: b"pkcs12")
     from docs.docs_src.mq.security.tls_key_repository import broker as keyrepo_broker
     from docs.docs_src.mq.security.tls_pem import broker as pem_broker
 

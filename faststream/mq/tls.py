@@ -2,8 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 from secrets import token_hex
 from typing import Iterable
+
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import (
+    PrivateFormat,
+    load_pem_private_key,
+    pkcs12,
+)
 
 from faststream.exceptions import SetupError
 
@@ -11,27 +20,20 @@ from faststream.exceptions import SetupError
 @dataclass(frozen=True)
 class MQTLSConfig:
     cipher_spec: str
+    keystore: str
     peer_name: str | None = None
     certificate_label: str | None = None
     keystore_password: str | None = None
-    _key_repository: str | None = field(default=None, repr=False)
-    _client_cert: str | None = field(default=None, repr=False)
-    _client_key: str | None = field(default=None, repr=False)
-    _ca_certs: tuple[str, ...] = field(default_factory=tuple, repr=False)
-    _client_key_password: str | None = field(default=None, repr=False)
+    _keystore_bytes: bytes | None = field(default=None, repr=False)
     _environment_scope: str | None = field(default="CONNECTION", repr=False)
 
     def __post_init__(self) -> None:
         if not self.cipher_spec:
             raise SetupError("`cipher_spec` is required for IBM MQ TLS.")
-
-        has_keystore = self._key_repository is not None
-        has_pem = all((self._client_cert, self._client_key, self._ca_certs))
-
-        if has_keystore == has_pem:
-            raise SetupError(
-                "MQTLSConfig must describe either a keystore-based TLS setup or a PEM-based TLS setup.",
-            )
+        if not self.keystore:
+            raise SetupError("`keystore` is required for IBM MQ TLS.")
+        if self._keystore_bytes is None and not Path(self.keystore).exists():
+            raise SetupError(f"`keystore` path does not exist: {self.keystore}")
 
 
 def mq_tls_from_keystore(
@@ -42,18 +44,12 @@ def mq_tls_from_keystore(
     certificate_label: str | None = None,
     peer_name: str | None = None,
 ) -> MQTLSConfig:
-    if not keystore:
-        raise SetupError("`keystore` is required for IBM MQ keystore TLS.")
-
-    if not Path(keystore).exists():
-        raise SetupError(f"`keystore` path does not exist: {keystore}")
-
     return MQTLSConfig(
         cipher_spec=cipher_spec,
+        keystore=keystore,
         peer_name=peer_name,
         certificate_label=certificate_label,
         keystore_password=keystore_password,
-        _key_repository=keystore,
     )
 
 
@@ -86,15 +82,22 @@ def mq_tls_from_pem(
         if not Path(ca).exists():
             raise SetupError(f"`ca_certs` path does not exist: {ca}")
 
+    resolved_password = keystore_password or token_hex(32)
+
     return MQTLSConfig(
         cipher_spec=cipher_spec,
+        keystore="<generated-pkcs12>",
         peer_name=peer_name,
         certificate_label=certificate_label,
-        keystore_password=keystore_password or token_hex(32),
-        _client_cert=client_cert,
-        _client_key=client_key,
-        _ca_certs=normalized_cas,
-        _client_key_password=client_key_password,
+        keystore_password=resolved_password,
+        _keystore_bytes=_build_pkcs12(
+            client_cert=Path(client_cert),
+            client_key=Path(client_key),
+            ca_certs=tuple(Path(x) for x in normalized_cas),
+            certificate_label=certificate_label or "faststream-mq-client",
+            keystore_password=resolved_password,
+            client_key_password=client_key_password,
+        ),
     )
 
 
@@ -125,3 +128,79 @@ def _normalize_ca_certs(ca_certs: str | Iterable[str]) -> tuple[str, ...]:
         raise SetupError("`ca_certs` is required for IBM MQ PEM TLS.")
 
     return normalized
+
+
+def _build_pkcs12(
+    *,
+    client_cert: Path,
+    client_key: Path,
+    ca_certs: tuple[Path, ...],
+    certificate_label: str,
+    keystore_password: str,
+    client_key_password: str | None,
+) -> bytes:
+    try:
+        cert_data = client_cert.read_bytes()
+        key_data = client_key.read_bytes()
+        cert = _load_first_certificate(cert_data, field_name="client_cert")
+        key_password = (
+            client_key_password.encode("utf-8") if client_key_password is not None else None
+        )
+        key = load_pem_private_key(key_data, password=key_password)
+
+        ca_chain = _load_distinct_certificates(ca_certs)
+        ca_entries = [
+            pkcs12.PKCS12Certificate(ca_cert, f"ca-cert-{index}".encode("ascii"))
+            for index, ca_cert in enumerate(ca_chain, start=1)
+        ]
+
+        encryption = (
+            PrivateFormat.PKCS12.encryption_builder()
+            .kdf_rounds(50000)
+            .key_cert_algorithm(pkcs12.PBES.PBESv1SHA1And3KeyTripleDESCBC)
+            .hmac_hash(hashes.SHA1())
+            .build(keystore_password.encode("ascii"))
+        )
+
+        return pkcs12.serialize_key_and_certificates(
+            certificate_label.encode("ascii"),
+            key,
+            cert,
+            ca_entries,
+            encryption,
+        )
+
+    except FileNotFoundError as e:
+        raise SetupError(f"MQ TLS file not found: {e.filename}") from e
+    except Exception as e:
+        raise SetupError(f"MQ TLS setup failed: {e}") from e
+
+
+def _load_distinct_certificates(paths: tuple[Path, ...]) -> list[x509.Certificate]:
+    seen: set[bytes] = set()
+    certs: list[x509.Certificate] = []
+
+    for path in paths:
+        data = path.read_bytes()
+        for block in _extract_certificate_blocks(data):
+            if block in seen:
+                continue
+            seen.add(block)
+            certs.append(x509.load_pem_x509_certificate(block))
+
+    return certs
+
+
+def _load_first_certificate(data: bytes, *, field_name: str) -> x509.Certificate:
+    blocks = _extract_certificate_blocks(data)
+    if not blocks:
+        raise SetupError(f"No certificate found in `{field_name}` PEM file.")
+    return x509.load_pem_x509_certificate(blocks[0])
+
+
+def _extract_certificate_blocks(data: bytes) -> list[bytes]:
+    return re.findall(
+        rb"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----",
+        data,
+        flags=re.DOTALL,
+    )
