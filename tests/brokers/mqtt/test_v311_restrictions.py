@@ -31,7 +31,7 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
                 headers={"x": "1"},
             )
 
-    async def test_broker_request_requires_implictly_reply_to(self) -> None:
+    async def test_broker_request_requires_implicitly_reply_to(self) -> None:
         broker = self.get_broker()
 
         with pytest.raises(
@@ -42,7 +42,7 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
                 "topic",
             )
 
-    async def test_publisher_request_requires_implictly_reply_to(self) -> None:
+    async def test_publisher_request_requires_implicitly_reply_to(self) -> None:
         broker = self.get_broker()
         publisher = broker.publisher("topic")
 
