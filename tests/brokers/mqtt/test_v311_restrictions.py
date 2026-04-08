@@ -1,54 +1,34 @@
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.mqtt.publisher.producer import ZmqttProducerV5, ZmqttProducerV311
-from faststream.mqtt.response import MQTTPublishCommand
-from faststream.response.publish_type import PublishType
+from tests.brokers.mqtt.basic import MQTTMemoryTestcaseConfig
 
 
 @pytest.mark.mqtt()
 @pytest.mark.asyncio()
-class TestV311Restrictions:
-    """V311 feature checks live in ZmqttProducerV311.publish(); test that directly."""
+class TestV311Restrictions(MQTTMemoryTestcaseConfig):
+    @pytest.fixture()
+    def mqtt_version(self) -> str:
+        return "3.1.1"
 
     async def test_publish_with_headers_raises(self) -> None:
-        producer = ZmqttProducerV311(parser=None, decoder=None)
-        producer._client = MagicMock()  # bypass connect check
+        broker = self.get_broker()
 
-        cmd = MQTTPublishCommand(
-            "msg",
-            topic="test",
-            headers={"x": "1"},
-            _publish_type=PublishType.PUBLISH,
-        )
         with pytest.raises(FeatureNotSupportedException, match="headers"):
-            await producer.publish(cmd)
+            await broker.publish(
+                "msg",
+                "topic",
+                headers={"x": "1"},
+            )
 
-    async def test_publish_without_headers_ok(self) -> None:
-        producer = ZmqttProducerV311(parser=None, decoder=None)
-        mock_client = AsyncMock()
-        producer._client = mock_client
+    async def test_request_requires_implictly_reply_to(self) -> None:
+        broker = self.get_broker()
 
-        cmd = MQTTPublishCommand(
-            "msg",
-            topic="test",
-            _publish_type=PublishType.PUBLISH,
-        )
-        await producer.publish(cmd)
-        mock_client.publish.assert_awaited_once()
-
-    async def test_v5_publish_with_headers_ok(self) -> None:
-        producer = ZmqttProducerV5(parser=None, decoder=None)
-        mock_client = AsyncMock()
-        producer._client = mock_client
-
-        cmd = MQTTPublishCommand(
-            "msg",
-            topic="test",
-            headers={"x": "1"},
-            _publish_type=PublishType.PUBLISH,
-        )
-        await producer.publish(cmd)
-        mock_client.publish.assert_awaited_once()
+        with pytest.raises(
+            FeatureNotSupportedException, match="requires an explicit reply_to topic"
+        ):
+            await broker.request(
+                "msg",
+                "topic",
+            )

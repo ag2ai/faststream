@@ -1,50 +1,33 @@
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.mqtt import QoS
-from faststream.mqtt.broker.config import MQTTBrokerConfig
-from faststream.mqtt.subscriber.specification import (
-    MQTTSubscriberSpecification,
-    MQTTSubscriberSpecificationConfig,
-)
+import pytest
+
+from faststream.mqtt import MQTTRouter
+from tests.brokers.mqtt.basic import MQTTMemoryTestcaseConfig
 
 
-class TestSharedTopicOrder:
-    def test_usecase_topic_with_prefix(self) -> None:
-        spec_cfg = MQTTSubscriberSpecificationConfig(
-            topic="temp",
-            qos=QoS.AT_LEAST_ONCE,
-            shared="workers",
-            title_=None,
-            description_=None,
-        )
-        outer = MQTTBrokerConfig(version="3.1.1")
-        outer.prefix = "home/"
-        spec = MQTTSubscriberSpecification(outer, spec_cfg, CallsCollection())
+@pytest.mark.mqtt()
+@pytest.mark.asyncio()
+class TestSharedTopicOrder(MQTTMemoryTestcaseConfig):
+    def test_shared_topic(self) -> None:
+        broker = self.get_broker()
 
-        assert spec.topic == "$share/workers/home/temp"
+        sub = broker.subscriber("sub", shared="shared")
 
-    def test_usecase_topic_without_shared(self) -> None:
-        spec_cfg = MQTTSubscriberSpecificationConfig(
-            topic="temp",
-            qos=QoS.AT_LEAST_ONCE,
-            shared=None,
-            title_=None,
-            description_=None,
-        )
-        outer = MQTTBrokerConfig(version="3.1.1")
-        outer.prefix = "home/"
-        spec = MQTTSubscriberSpecification(outer, spec_cfg, CallsCollection())
+        assert sub.topic == "$share/shared/sub"
 
-        assert spec.topic == "home/temp"
+    def test_router_supports_shared_topic(self) -> None:
+        broker = self.get_broker()
+        router = MQTTRouter(prefix="router")
 
-    def test_no_prefix_no_shared(self) -> None:
-        spec_cfg = MQTTSubscriberSpecificationConfig(
-            topic="sensors/temp",
-            qos=QoS.AT_MOST_ONCE,
-            shared=None,
-            title_=None,
-            description_=None,
-        )
-        outer = MQTTBrokerConfig(version="3.1.1")
-        spec = MQTTSubscriberSpecification(outer, spec_cfg, CallsCollection())
+        sub = router.subscriber("/sub", shared="shared")
+        broker.include_router(router)
 
-        assert spec.topic == "sensors/temp"
+        assert sub.topic == "$share/shared/router/sub"
+
+    def test_no_shared_router_topic_name(self) -> None:
+        broker = self.get_broker()
+        router = MQTTRouter(prefix="router")
+
+        sub = router.subscriber("/sub")
+        broker.include_router(router)
+
+        assert sub.topic == "router/sub"
