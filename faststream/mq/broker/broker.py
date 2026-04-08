@@ -1,7 +1,9 @@
 import logging
+import time
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional
 
+import anyio
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
@@ -11,6 +13,7 @@ from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.mq.configs import MQBrokerConfig
 from faststream.mq.helpers import MQConnectionConfig
+from faststream.mq.helpers.client import is_retryable_mq_exception
 from faststream.mq.publisher.producer import AsyncMQFastProducerImpl
 from faststream.mq.response import MQPublishCommand
 from faststream.mq.schemas import MQQueue
@@ -153,7 +156,21 @@ class MQBroker(
 
     @override
     async def _connect(self) -> "AsyncMQConnection":
-        await self.config.connect()
+        timeout = self.config.connection_config.startup_retry_timeout
+        interval = self.config.connection_config.startup_retry_interval
+        deadline = time.monotonic() + timeout
+
+        while True:
+            try:
+                await self.config.connect()
+                break
+            except Exception as exc:
+                if not is_retryable_mq_exception(exc):
+                    raise
+                if timeout <= 0 or time.monotonic() >= deadline:
+                    raise
+                await anyio.sleep(interval)
+
         assert self.config.producer.connection is not None
         return self.config.producer.connection
 
