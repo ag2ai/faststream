@@ -16,7 +16,8 @@ hide:
 
 ### What's Changed
 
-Just two main changes: 
+Just two main changes:
+
 1. `from faststream.mqtt import MQTTBroker` (thanks @borisalekseev)
 2. All deprecations removed:
     - publisher/subscriber-level middlewares
@@ -24,8 +25,16 @@ Just two main changes:
     - RedisJSONMessageParser removed. Now all services should use the binary message format.
     - `broker.close` removed, use `broker.stop` instead
 
+You install the release manually
+
+```shell
+pip install "faststream[mqtt]==0.7.0rc0"
+# or
+uv add --pre "faststream[mqtt]==0.7.0rc0"
+```
+
 We will release a stable version as soon as we test `MQTTBroker` with production services (in a few weeks).
-   
+
 * feat: FastStream[mqtt] by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2819](https://github.com/ag2ai/faststream/pull/2819){.external-link target="_blank"}
 * docs: fix images generation in release notes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2792](https://github.com/ag2ai/faststream/pull/2792){.external-link target="_blank"}
 * fix: include pattern subscribers in AsyncAPI specification by [@aazmv](https://github.com/aazmv){.external-link target="_blank"} in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
