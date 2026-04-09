@@ -44,6 +44,12 @@ Redis:
       - faststream/redis/**
       - docs/docs/en/redis/**
 
+MQTT:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/mqtt/**
+      - docs/docs/en/mqtt/**
+
 Observability:
   - changed-files:
     - any-glob-to-any-file:
