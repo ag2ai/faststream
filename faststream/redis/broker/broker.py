@@ -1,5 +1,4 @@
 import logging
-import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -20,7 +19,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -29,11 +28,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
 from faststream.redis.configs import ConnectionState, RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.parser import (
-    BinaryMessageFormatV1,
-    JSONMessageFormat,
-    MessageFormat,
-)
+from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.redis.security import parse_security
@@ -210,14 +205,6 @@ class RedisBroker(
             context:
                 Context repository for FastDepends library. Defaults to None.
         """
-        if message_format == JSONMessageFormat:
-            warnings.warn(
-                "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
-                "Instead, use BinaryMessageFormatV1 when initializing broker",
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-
         self.message_format = message_format
 
         if specification_url is None:
@@ -310,21 +297,6 @@ class RedisBroker(
         await super().stop(exc_type, exc_val, exc_tb)
         await self.config.disconnect()
         self._connection = None
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         await self.connect()

@@ -92,9 +92,3 @@ def test_custom_ack() -> None:
         _ack_policy=AckPolicy.ACK,
     )
     assert config.ack_policy is AckPolicy.ACK
-
-
-@pytest.mark.redis()
-def test_no_ack() -> None:
-    config = RedisSubscriberConfig(_outer_config=MagicMock(), _no_ack=True)
-    assert config.ack_policy is AckPolicy.MANUAL

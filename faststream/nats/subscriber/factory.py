@@ -67,12 +67,10 @@ def create_subscriber(
     obj_watch: Optional["ObjWatch"],
     inbox_prefix: bytes,
     # custom args
-    ack_first: bool,
     max_workers: int,
     stream: Optional["JStream"],
     # Subscriber args
     ack_policy: "AckPolicy",
-    no_ack: bool,
     no_reply: bool,
     broker_config: "NatsBrokerConfig",
     # Specification information
@@ -95,10 +93,8 @@ def create_subscriber(
         headers_only=headers_only,
         pull_sub=pull_sub,
         ack_policy=ack_policy,
-        no_ack=no_ack,
         kv_watch=kv_watch,
         obj_watch=obj_watch,
-        ack_first=ack_first,
         max_workers=max_workers,
         stream=stream,
     )
@@ -129,7 +125,7 @@ def create_subscriber(
 
         else:
             # JS Push Subscriber
-            if ack_first or ack_policy is AckPolicy.ACK_FIRST:
+            if ack_policy is AckPolicy.ACK_FIRST:
                 manual_ack = False
                 ack_policy = AckPolicy.MANUAL
             else:
@@ -160,9 +156,7 @@ def create_subscriber(
         extra_options=extra_options,
         no_reply=no_reply,
         _outer_config=broker_config,
-        _ack_first=ack_first,
         _ack_policy=ack_policy,
-        _no_ack=no_ack,
     )
 
     calls = CallsCollection[Any]()
@@ -274,8 +268,6 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
     kv_watch: Optional["KvWatch"],
     obj_watch: Optional["ObjWatch"],
     ack_policy: "AckPolicy",  # default EMPTY
-    no_ack: bool,  # default EMPTY
-    ack_first: bool,  # default EMPTY
     max_workers: int,  # default 1
     stream: Optional["JStream"],
 ) -> None:
@@ -310,32 +302,6 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
                 RuntimeWarning,
                 stacklevel=4,
             )
-
-    if ack_first is not EMPTY:
-        warnings.warn(
-            "`ack_first` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.7.0",
-            category=DeprecationWarning,
-            stacklevel=4,
-        )
-
-        if ack_policy is not EMPTY:
-            msg = "You can't use deprecated `ack_first` and `ack_policy` simultaneously. Please, use `ack_policy` only."
-            raise SetupError(msg)
-
-        ack_policy = AckPolicy.ACK_FIRST if ack_first else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
-        warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
-            category=DeprecationWarning,
-            stacklevel=4,
-        )
-
-        if ack_policy is not EMPTY:
-            msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
-            raise SetupError(msg)
-
-        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
 
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.REJECT_ON_ERROR

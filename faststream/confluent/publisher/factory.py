@@ -1,4 +1,3 @@
-from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
@@ -7,7 +6,8 @@ from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
+    from collections.abc import Awaitable, Callable
+
     from faststream.confluent.configs import KafkaBrokerConfig
 
 
@@ -22,7 +22,6 @@ def create_publisher(
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Any | None,
     title_: str | None,
@@ -36,7 +35,7 @@ def create_publisher(
         headers=headers,
         reply_to=reply_to,
         _outer_config=config,
-        middlewares=middlewares,
+        middlewares=(),
     )
 
     specification = KafkaPublisherSpecification(

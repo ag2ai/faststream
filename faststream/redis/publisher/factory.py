@@ -1,9 +1,7 @@
-import warnings
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 from faststream.exceptions import SetupError
-from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -25,6 +23,7 @@ from .usecase import (
 if TYPE_CHECKING:
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.configs import RedisBrokerConfig
+    from faststream.redis.parser import MessageFormat
 
 
 PublisherType: TypeAlias = LogicPublisher
@@ -47,14 +46,6 @@ def create_publisher(
     include_in_schema: bool,
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)
-
-    if message_format == JSONMessageFormat:
-        warnings.warn(
-            "JSONMessageFormat has been deprecated and will be removed in version 0.7.0 "
-            "Instead, use BinaryMessageFormatV1 when creating publisher",
-            category=DeprecationWarning,
-            stacklevel=3,
-        )
 
     publisher_config = RedisPublisherConfig(
         reply_to=reply_to,

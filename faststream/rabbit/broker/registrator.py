@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from aio_pika import IncomingMessage
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -25,8 +25,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -43,25 +41,11 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         *,
         channel: Optional["Channel"] = None,
         consume_args: dict[str, Any] | None = None,
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "Deprecated in 0.6.0, use `ack_policy=AckPolicy.MANUAL` instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         no_reply: bool = False,
         persistent: bool = True,
         # AsyncAPI information
@@ -76,12 +60,10 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             exchange (Union[str, RabbitExchange, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default.
             channel (Optional[Channel], optional): Channel to use for consuming messages.
             consume_args (dict[str, Any] | None, optional): Extra consumer arguments to use in `queue.consume(...)` method.
-            no_ack (bool, optional): Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
             dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser (Optional[CustomCallable], optional): Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder (Optional[CustomCallable], optional): Function to decode FastStream msg bytes body to python objects.
-            middlewares (Sequence[SubscriberMiddleware[Any]], optional): Subscriber middlewares to wrap incoming message processing.
             no_reply (bool, optional): Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title (Optional[str], optional): AsyncAPI subscriber object title.
             description (Optional[str], optional): AsyncAPI subscriber object description. Uses decorated docstring as default.
@@ -98,7 +80,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             channel=channel,
             # subscriber args
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             # broker args
             config=cast("RabbitBrokerConfig", self.config),
@@ -114,7 +95,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             parser_=parser,
             decoder_=decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
     @override
@@ -131,14 +111,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         reply_to: str | None = None,
         priority: int | None = None,
         persistent: bool = True,
-        # specific
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -172,7 +144,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             persist: Restore the message on RabbitMQ reboot.
             reply_to: Reply message routing key to send with (always sending to default exchange).
             priority: The message priority (0 by default).
-            middlewares: Publisher middlewares to wrap outgoing messages.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
             schema: AsyncAPI publishing message type. Should be any python-native
@@ -209,7 +180,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             exchange=RabbitExchange.validate(exchange),
             message_kwargs=message_kwargs,
             # publisher args
-            middlewares=middlewares,
+            middlewares=(),
             # broker args
             config=cast("RabbitBrokerConfig", self.config),
             # specification args

@@ -1,7 +1,6 @@
 from collections.abc import Callable, Collection, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Literal,
     Optional,
@@ -12,7 +11,7 @@ from typing import (
 
 from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -31,8 +30,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.kafka.publisher.usecase import (
         BatchPublisher,
@@ -68,13 +65,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -100,20 +90,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -137,13 +113,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -169,20 +138,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -206,13 +161,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -238,20 +186,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -275,13 +209,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -307,20 +234,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -344,13 +257,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -376,20 +282,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -418,13 +310,6 @@ class KafkaRegistrator(
         fetch_max_wait_ms: int = 500,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
@@ -450,20 +335,6 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -701,11 +572,7 @@ class KafkaRegistrator(
                 "isolation_level": isolation_level,
             },
             partitions=partitions,
-            # acknowledgement args
             ack_policy=ack_policy,
-            no_ack=no_ack,
-            auto_commit=auto_commit,
-            # subscriber args
             no_reply=no_reply,
             config=cast("KafkaBrokerConfig", self.config),
             # Specification
@@ -720,14 +587,13 @@ class KafkaRegistrator(
             parser_=parser,
             decoder_=decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
         if batch:
             return cast("BatchSubscriber", subscriber)
 
         if workers > 1:
-            if auto_commit:
+            if subscriber.ack_policy is AckPolicy.ACK_FIRST:
                 return cast("ConcurrentDefaultSubscriber", subscriber)
             return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
         return cast("DefaultSubscriber", subscriber)
@@ -744,13 +610,6 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         # basic args
         persistent: bool = True,
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -771,13 +630,6 @@ class KafkaRegistrator(
         batch: Literal[True] = ...,
         # basic args
         persistent: bool = True,
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -796,13 +648,7 @@ class KafkaRegistrator(
         reply_to: str = "",
         batch: bool = False,
         # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
+        persistent: bool = True,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -826,13 +672,6 @@ class KafkaRegistrator(
         batch: bool = False,
         # basic args
         persistent: bool = True,
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -869,7 +708,6 @@ class KafkaRegistrator(
                 Can be overridden by `publish.headers` if specified.
             reply_to: Topic name to send response.
             batch: Whether to send messages in batches or not.
-            middlewares: middlewares: Publisher middlewares to wrap outgoing messages.
             title: Specification publisher object title.
             description: Specification publisher object description.
             schema:
@@ -892,7 +730,7 @@ class KafkaRegistrator(
             reply_to=reply_to,
             # publisher-specific
             config=cast("KafkaBrokerConfig", self.config),
-            middlewares=middlewares,
+            middlewares=(),
             # Specification
             title_=title,
             description_=description,

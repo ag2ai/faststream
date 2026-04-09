@@ -5,7 +5,6 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
-from faststream.redis.parser import JSONMessageFormat, MessageFormat
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -30,6 +29,7 @@ from .usecases import (
 
 if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
+    from faststream.redis.parser import MessageFormat
 
 SubscriberType: TypeAlias = LogicSubscriber
 
@@ -41,7 +41,6 @@ def create_subscriber(
     stream: Union["StreamSub", str, None],
     # Subscriber args
     ack_policy: "AckPolicy",
-    no_ack: bool,
     config: "RedisBrokerConfig",
     no_reply: bool = False,
     message_format: type["MessageFormat"] | None,
@@ -56,7 +55,6 @@ def create_subscriber(
         list=list,
         stream=stream,
         ack_policy=ack_policy,
-        no_ack=no_ack,
         max_workers=max_workers,
         message_format=message_format,
     )
@@ -153,32 +151,12 @@ def _validate_input_for_misconfigure(
     list: Union["ListSub", str, None],
     stream: Union["StreamSub", str, None],
     ack_policy: AckPolicy,
-    no_ack: bool,
     max_workers: int,
     message_format: type["MessageFormat"] | None,
 ) -> None:
     validate_options(channel=channel, list=list, stream=stream)
 
-    if message_format == JSONMessageFormat:
-        warnings.warn(
-            "JSONMessageFormat has been deprecated and will be removed in version 0.7.0. "
-            "Instead, use BinaryMessageFormatV1 when creating subscriber.",
-            category=DeprecationWarning,
-            stacklevel=4,
-        )
-
-    if no_ack is not EMPTY:
-        warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
-            category=DeprecationWarning,
-            stacklevel=4,
-        )
-
-        if ack_policy is not EMPTY:
-            msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
-            raise SetupError(msg)
-
-    if stream and no_ack and max_workers > 1:
+    if stream and ack_policy is AckPolicy.MANUAL and max_workers > 1:
         msg = "Max workers not work with manual no_ack mode."
         raise SetupError(msg)
 

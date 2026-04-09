@@ -184,7 +184,7 @@ except ImportError:  # pragma: no cover
         def validate(cls, v: Any) -> str:
             """Validates the EmailStr class."""
             warnings.warn(
-                "email-validator bot installed, email fields will be treated as str.\n"
+                "email-validator not installed, email fields will be treated as str.\n"
                 "To install, run: pip install email-validator",
                 category=RuntimeWarning,
                 stacklevel=1,
@@ -194,7 +194,7 @@ except ImportError:  # pragma: no cover
         @classmethod
         def _validate(cls, __input_value: Any, _: Any) -> str:
             warnings.warn(
-                "email-validator bot installed, email fields will be treated as str.\n"
+                "email-validator not installed, email fields will be treated as str.\n"
                 "To install, run: pip install email-validator",
                 category=RuntimeWarning,
                 stacklevel=1,

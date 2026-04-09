@@ -142,10 +142,6 @@ class TestBroker(Generic[Broker]):
                 broker,
                 "stop",
             ),
-            mock.patch.object(  # TODO: remove it in 0.7
-                broker,
-                "close",
-            ),
             mock.patch.object(
                 broker,
                 "_connection",

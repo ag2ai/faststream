@@ -1,7 +1,5 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, Union
-
-from typing_extensions import deprecated
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -22,10 +20,7 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
-    from faststream.confluent.message import KafkaMessage
     from faststream.confluent.schemas import TopicPartition
 
 
@@ -44,14 +39,6 @@ class KafkaPublisher(ArgsContainer):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
-        # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -76,7 +63,6 @@ class KafkaPublisher(ArgsContainer):
                 Can be overridden by `publish.headers` if specified.
             reply_to: Topic name to send response.
             batch: Whether to send messages in batches or not.
-            middlewares: Publisher middlewares to wrap outgoing messages.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
             schema: AsyncAPI publishing message type.
@@ -90,8 +76,6 @@ class KafkaPublisher(ArgsContainer):
             batch=batch,
             headers=headers,
             reply_to=reply_to,
-            # basic args
-            middlewares=middlewares,
             # AsyncAPI args
             title=title,
             description=description,
@@ -118,13 +102,6 @@ class KafkaRoute(SubscriberRoute):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -145,20 +122,6 @@ class KafkaRoute(SubscriberRoute):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI args
@@ -308,7 +271,6 @@ class KafkaRoute(SubscriberRoute):
             fetch_min_bytes=fetch_min_bytes,
             max_partition_fetch_bytes=max_partition_fetch_bytes,
             auto_offset_reset=auto_offset_reset,
-            auto_commit=auto_commit,
             auto_commit_interval_ms=auto_commit_interval_ms,
             check_crcs=check_crcs,
             partition_assignment_strategy=partition_assignment_strategy,
@@ -325,14 +287,12 @@ class KafkaRoute(SubscriberRoute):
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             no_reply=no_reply,
             # AsyncAPI args
             title=title,
             description=description,
             include_in_schema=include_in_schema,
             ack_policy=ack_policy,
-            no_ack=no_ack,
         )
 
 
