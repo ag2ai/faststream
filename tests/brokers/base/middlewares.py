@@ -12,22 +12,6 @@ from faststream.middlewares import BaseMiddleware, ExceptionMiddleware
 from .basic import BaseTestcaseConfig
 
 
-def _raw_destination(msg: Any) -> str:
-    """Infer topic / subject / queue from a stream message (cross-broker tests)."""
-    raw = getattr(msg, "raw_message", None)
-    if raw is None:
-        return ""
-    if isinstance(raw, dict):
-        ch = raw.get("channel")
-        if ch:
-            return str(ch)
-    for name in ("topic", "subject", "channel", "routing_key"):
-        v = getattr(raw, name, None)
-        if v:
-            return str(v)
-    return ""
-
-
 @pytest.mark.asyncio()
 class MiddlewaresOrderTestcase(BaseTestcaseConfig):
     async def test_broker_middleware_order(self, queue: str, mock: MagicMock) -> None:
