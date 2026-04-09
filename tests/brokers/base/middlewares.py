@@ -206,7 +206,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
         assert [c.args[0] for c in mock.call_args_list] == ["outer", "middle", "inner"]
 
-    async def test_consume_with_middleware_order(
+    async def test_consume_with_router_middleware_order(
         self,
         queue: str,
         mock: MagicMock,
