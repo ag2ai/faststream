@@ -32,7 +32,7 @@ parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/) support)
+- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/), [**MQTT**](https://mqtt.org/) support)
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
 
@@ -106,6 +106,8 @@ pip install 'faststream[rabbit]'
 pip install 'faststream[nats]'
 # or
 pip install 'faststream[redis]'
+# or
+pip install 'faststream[mqtt]'
 ```
 
 ---
@@ -133,11 +135,13 @@ from faststream.kafka import KafkaBroker
 # from faststream.rabbit import RabbitBroker
 # from faststream.nats import NatsBroker
 # from faststream.redis import RedisBroker
+# from faststream.mqtt import MQTTBroker
 
 broker = KafkaBroker("localhost:9092")
 # broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 # broker = NatsBroker("nats://localhost:4222/")
 # broker = RedisBroker("redis://localhost:6379/")
+# broker = MQTTBroker("localhost")
 
 app = FastStream(broker)
 
@@ -204,7 +208,7 @@ from faststream.[broker] import [Broker], [Broker]Message
 
 broker = [Broker](*servers)
 
-@broker.subscriber([source])  # Kafka topic / RMQ queue / NATS subject / etc
+@broker.subscriber([source])  # Kafka topic / RMQ queue / NATS subject / MQTT topic / etc
 @broker.publisher([destination])  # topic / routing key / subject / etc
 async def handler(msg: [Broker]Message) -> None:
     await msg.ack()  # control brokers' acknowledgement policy
@@ -220,6 +224,7 @@ Beyond this scope you can use any broker-native features you need:
 * **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
 * **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
 * **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
+* **MQTT** - topic subscriptions (including wildcards), QoS and retain, MQTT 3.1.1 and 5.0, request/reply (RPC), TLS, etc.
 
 You can find detailed information about all supported features in **FastStream**’s broker‑specific documentation.
 

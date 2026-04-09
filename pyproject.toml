@@ -21,6 +21,7 @@ keywords = [
     "kafka",
     "nats",
     "redis",
+    "mqtt",
     "asyncapi",
     "framework",
     "message brokers",
