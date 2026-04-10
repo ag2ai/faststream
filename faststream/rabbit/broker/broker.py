@@ -20,6 +20,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.helpers.channel_manager import ChannelManagerImpl
 from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
@@ -90,6 +91,7 @@ class RabbitBroker(
         app_id: str | None = SERVICE_NAME,
         # broker base args
         graceful_timeout: float | None = None,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
@@ -126,6 +128,7 @@ class RabbitBroker(
             default_channel: Default channel settings to use.
             app_id: Application name to mark outgoing messages by.
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder: Custom decoder object.
             parser: Custom parser object.
             dependencies: Dependencies to apply to all broker subscribers.
@@ -207,6 +210,7 @@ class RabbitBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },

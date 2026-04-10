@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.middlewares import AckPolicy
 
 
 @dataclass(kw_only=True)
@@ -30,6 +32,7 @@ class BrokerConfig:
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = None
+    ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:

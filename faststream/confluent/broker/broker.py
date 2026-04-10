@@ -29,6 +29,7 @@ from faststream.confluent.helpers import (
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducerImpl
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 
@@ -94,6 +95,7 @@ class KafkaBroker(
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
         graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
@@ -199,6 +201,7 @@ class KafkaBroker(
             transactional_id: Transactional ID for the producer.
             transaction_timeout_ms: Transaction timeout in milliseconds.
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder: Custom decoder object.
             parser: Custom parser object.
             dependencies: Dependencies to apply to all broker subscribers.
@@ -283,6 +286,7 @@ class KafkaBroker(
                 ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import AckPolicy
+from faststream._internal.constants import EMPTY
 from faststream.redis import ListSub, PubSub, StreamSub
 from faststream.redis.subscriber.config import RedisSubscriberConfig
 
@@ -37,7 +38,7 @@ def test_stream_sub() -> None:
 @pytest.mark.redis()
 def test_stream_with_group() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(),
+        _outer_config=MagicMock(ack_policy=EMPTY),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -69,7 +70,7 @@ def test_stream_sub_with_no_ack_group() -> None:
 @pytest.mark.redis()
 def test_stream_with_group_and_min_idle_time() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(),
+        _outer_config=MagicMock(ack_policy=EMPTY),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -92,3 +93,46 @@ def test_custom_ack() -> None:
         _ack_policy=AckPolicy.ACK,
     )
     assert config.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_broker_level_ack_policy_fallback() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=AckPolicy.NACK_ON_ERROR),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+    )
+
+    assert config.ack_policy is AckPolicy.NACK_ON_ERROR
+
+
+@pytest.mark.redis()
+def test_subscriber_ack_policy_overrides_broker() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=AckPolicy.NACK_ON_ERROR),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+        _ack_policy=AckPolicy.ACK,
+    )
+
+    assert config.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_broker_level_ack_policy_empty_uses_default() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=EMPTY),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+    )
+
+    assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
