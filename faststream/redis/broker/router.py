@@ -168,6 +168,7 @@ class RedisRouter(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
+        ack_policy: "AckPolicy" = EMPTY,
     ) -> None:
         """Initialize the RedisRouter.
 
@@ -188,11 +189,15 @@ class RedisRouter(
                 Function to decode FastStream msg bytes body to python objects.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            ack_policy:
+                Default acknowledgement policy for all subscribers in this router.
+                Can be overridden at the subscriber level.
         """
         super().__init__(
             handlers=handlers,
             config=RedisRouterConfig(
                 prefix=prefix,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 broker_middlewares=middlewares,
                 broker_parser=parser,

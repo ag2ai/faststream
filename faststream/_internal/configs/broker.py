@@ -125,6 +125,14 @@ class ConfigComposition(Generic[BrokerConfigType]):
                 return c.broker_decoder
         return None
 
+    @property
+    def ack_policy(self) -> "AckPolicy":
+        for c in reversed(self.configs):
+            ack = c.ack_policy
+            if ack is not EMPTY:
+                return ack
+        return EMPTY  # type: ignore[no-any-return]
+
     # merged options
     @property
     def extra_context(self) -> dict[str, Any]:

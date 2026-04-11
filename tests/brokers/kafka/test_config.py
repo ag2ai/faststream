@@ -2,6 +2,7 @@ import pytest
 
 from faststream import AckPolicy
 from faststream._internal.constants import EMPTY
+from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.subscriber.config import KafkaSubscriberConfig
 
@@ -59,3 +60,49 @@ def test_broker_level_ack_policy_empty_uses_default() -> None:
 
     assert config.ack_policy is AckPolicy.ACK_FIRST
     assert config.connection_args == {"enable_auto_commit": True}
+
+
+@pytest.mark.kafka()
+def test_broker_ack_policy_e2e() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    sub = broker.subscriber("test")
+    assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR
+
+
+@pytest.mark.kafka()
+def test_sub_overrides_broker_e2e() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    sub = broker.subscriber("test", ack_policy=AckPolicy.ACK)
+    assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.kafka()
+def test_router_ack_policy() -> None:
+    router = KafkaRouter(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    sub = router.subscriber("test")
+    assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR
+
+
+@pytest.mark.kafka()
+def test_router_overrides_broker() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+    router = KafkaRouter(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    broker.include_router(router)
+    sub = router.subscriber("test")
+    assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR
+
+
+@pytest.mark.kafka()
+def test_sub_overrides_router() -> None:
+    router = KafkaRouter(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    sub = router.subscriber("test", ack_policy=AckPolicy.ACK)
+    assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.kafka()
+def test_sub_overrides_broker_and_router() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    router = KafkaRouter(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+    sub = router.subscriber("test", ack_policy=AckPolicy.ACK)
+    assert sub.ack_policy is AckPolicy.ACK
