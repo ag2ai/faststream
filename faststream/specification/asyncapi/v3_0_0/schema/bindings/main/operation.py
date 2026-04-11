@@ -6,6 +6,7 @@ from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     amqp as amqp_bindings,
     http as http_bindings,
     kafka as kafka_bindings,
+    mqtt as mqtt_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
     sqs as sqs_bindings,
@@ -27,6 +28,7 @@ class OperationBinding(BaseModel):
 
     amqp: amqp_bindings.OperationBinding | None = None
     kafka: kafka_bindings.OperationBinding | None = None
+    mqtt: mqtt_bindings.OperationBinding | None = None
     sqs: sqs_bindings.OperationBinding | None = None
     nats: nats_bindings.OperationBinding | None = None
     redis: redis_bindings.OperationBinding | None = None
@@ -54,6 +56,11 @@ class OperationBinding(BaseModel):
             kafka := kafka_bindings.OperationBinding.from_sub(binding.kafka)
         ):
             return cls(kafka=kafka)
+
+        if binding.mqtt and (
+            mqtt := mqtt_bindings.OperationBinding.from_sub(binding.mqtt)
+        ):
+            return cls(mqtt=mqtt)
 
         if binding.nats and (
             nats := nats_bindings.OperationBinding.from_sub(binding.nats)
@@ -84,6 +91,11 @@ class OperationBinding(BaseModel):
             kafka := kafka_bindings.OperationBinding.from_pub(binding.kafka)
         ):
             return cls(kafka=kafka)
+
+        if binding.mqtt and (
+            mqtt := mqtt_bindings.OperationBinding.from_pub(binding.mqtt)
+        ):
+            return cls(mqtt=mqtt)
 
         if binding.nats and (
             nats := nats_bindings.OperationBinding.from_pub(binding.nats)

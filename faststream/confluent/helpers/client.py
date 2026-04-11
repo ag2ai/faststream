@@ -43,7 +43,7 @@ class AsyncConfluentProducer:
         self.logger_state = logger
 
         self.config = config.producer_config
-        self.producer = Producer(  # type: ignore[call-arg]
+        self.producer = Producer(
             self.config,
             logger=self.logger_state.logger.logger,
         )
@@ -265,9 +265,7 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(  # type: ignore[call-arg]
-            self.config, logger=self.logger_state.logger.logger
-        )
+        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895

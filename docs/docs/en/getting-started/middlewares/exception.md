@@ -12,7 +12,7 @@ search:
 
 Sometimes, you need to register exception processors at the top level of your application instead of within each message handler.
 
-For this purpose, **FastStream** provides a special `ExceptionMiddleware`. You just need to create it, register handlers, and add it to the broker, router, or subscribers you want (as a [regular middleware](index.md){.internal-link}).
+For this purpose, **FastStream** provides a special `ExceptionMiddleware`. You just need to create it, register handlers, and add it to the broker or router you want (as a [regular middleware](index.md){.internal-link}).
 
 ```python linenums="1"
 from faststream import ExceptionMiddleware

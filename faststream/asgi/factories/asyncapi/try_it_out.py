@@ -158,4 +158,9 @@ def _get_broker_registry() -> dict[
 
         registry[RedisBroker] = TestRedisBroker
 
+    with suppress(ImportError):
+        from faststream.mqtt import MQTTBroker, TestMQTTBroker
+
+        registry[MQTTBroker] = TestMQTTBroker
+
     return registry

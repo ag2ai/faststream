@@ -12,6 +12,7 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 
 - [**Kafka**](../kafka/index.md){.internal-link}
 - [**RabbitMQ**](../rabbit/index.md){.internal-link}
+- [**MQTT**](../mqtt/index.md){.internal-link}
 - [**NATS JetStream**](../nats/jetstream/index.md){.internal-link}
 - [**Redis Streams**](../redis/streams/index.md){.internal-link}
 
@@ -103,6 +104,7 @@ However, not all brokers support our semantics. Here is a brief overview of **Fa
 | Broker | `ACK` | `NACK` | `REJECT` |
 | ------ | ----- | ------ | -------- |
 | [RabbitMQ](https://www.rabbitmq.com/docs/confirms#acknowledgement-modes){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol reject |
+| [MQTT](../mqtt/ack.md){.internal-link} | PUBACK / PUBREC (QoS 1/2) | Same as protocol ack | Same as protocol ack |
 | [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
 | [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
 | Kafka | Commits offset          | Seek offset and read message again    | Commits offset (same as `ACK`)      |

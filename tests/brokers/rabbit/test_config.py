@@ -41,17 +41,3 @@ def test_custom_ack() -> None:
     )
 
     assert config.ack_policy is AckPolicy.ACK
-
-
-@pytest.mark.rabbit()
-def test_no_ack() -> None:
-    config = RabbitSubscriberConfig(
-        _outer_config=MagicMock(),
-        queue=MagicMock(),
-        exchange=MagicMock(),
-        _no_ack=True,
-    )
-
-    assert config.ack_policy is AckPolicy.MANUAL
-    assert not config.ack_first
-    assert config.auto_ack_disabled

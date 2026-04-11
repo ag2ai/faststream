@@ -70,3 +70,15 @@ class TestNaming(NamingTestCase):
                 "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
             },
         }
+
+    def test_pattern(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber(pattern="events.*")
+        async def handle() -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert len(schema["channels"]) == 1
+        channel = next(iter(schema["channels"].values()))
+        assert channel["bindings"]["kafka"]["topic"] == "events.*"

@@ -1,8 +1,7 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from aio_pika import IncomingMessage
-from typing_extensions import deprecated
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -22,8 +21,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.rabbit.schemas import (
         RabbitExchange,
@@ -50,14 +47,6 @@ class RabbitPublisher(ArgsContainer):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
-        # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -98,8 +87,6 @@ class RabbitPublisher(ArgsContainer):
                 Reply message routing key to send with (always sending to default exchange).
             priority:
                 The message priority (0 by default).
-            middlewares:
-                Publisher middlewares to wrap outgoing messages.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -137,8 +124,6 @@ class RabbitPublisher(ArgsContainer):
             expiration=expiration,
             message_type=message_type,
             user_id=user_id,
-            # basic args
-            middlewares=middlewares,
             # AsyncAPI args
             title=title,
             description=description,
@@ -166,20 +151,6 @@ class RabbitRoute(SubscriberRoute):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -210,11 +181,6 @@ class RabbitRoute(SubscriberRoute):
                 Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder:
                 Function to decode FastStream msg bytes body to python objects.
-            middlewares:
-                Subscriber middlewares to wrap incoming message processing.
-            no_ack:
-                Whether to disable **FastStream** auto acknowledgement logic or not.
-                Scheduled to remove in 0.7.0
             ack_policy:
                 Acknowledgment policy for the subscriber (by default `MANUAL`).
             no_reply:
@@ -236,9 +202,7 @@ class RabbitRoute(SubscriberRoute):
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,

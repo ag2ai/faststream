@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence[str] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
+    pattern: str | None = None
 
 
 @dataclass(kw_only=True)
@@ -31,9 +32,6 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     listener: Optional["ConsumerRebalanceListener"] = None
     pattern: str | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
-
-    _auto_commit: bool = field(default_factory=lambda: EMPTY, repr=False)
-    _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
 
     def __post_init__(self) -> None:
         self.connection_args["enable_auto_commit"] = self.ack_first
@@ -48,12 +46,6 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def ack_policy(self) -> AckPolicy:
-        if self._auto_commit is not EMPTY:
-            return AckPolicy.ACK_FIRST if self._auto_commit else AckPolicy.REJECT_ON_ERROR
-
-        if self._no_ack:
-            return AckPolicy.MANUAL
-
         if self._ack_policy is EMPTY:
             return AckPolicy.ACK_FIRST
 

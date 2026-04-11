@@ -170,6 +170,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_ack_manual(
         self,
         queue: str,

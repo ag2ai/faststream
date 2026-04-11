@@ -146,7 +146,7 @@ class BasePrometheusMiddleware(
         start_time = time.perf_counter()
 
         try:
-            result = await call_next(await self.on_consume(msg))
+            result = await call_next(msg)
 
         except Exception as e:
             err = e
