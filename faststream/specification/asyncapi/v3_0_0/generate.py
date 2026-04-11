@@ -217,7 +217,7 @@ def get_broker_channels(
                     stacklevel=1,
                 )
 
-            operations[operation_key] = Operation.from_sub(
+            operation = Operation.from_sub(
                 messages=[
                     Reference(**{
                         "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
@@ -343,9 +343,7 @@ def _resolve_payloads_common(
                     payloads[clear_key(def_name)] = def_schema
 
             processed_payloads[clear_key(name)] = payload
-            one_of_list.append(
-                Reference(**{"$ref": f"#/components/schemas/{name}"})
-            )
+            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
 
         payloads.update(processed_payloads)
         m.payload["oneOf"] = one_of_list
@@ -354,7 +352,6 @@ def _resolve_payloads_common(
         messages_target[clear_key(m.title)] = m
 
         return Reference(**{"$ref": message_ref})
-
 
     payloads.update(m.payload.pop(DEF_KEY, {}))
 
