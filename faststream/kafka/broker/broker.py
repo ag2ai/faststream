@@ -33,6 +33,7 @@ from faststream.kafka.response import KafkaPublishCommand
 from faststream.kafka.schemas.params import ConsumerConnectionParams
 from faststream.kafka.security import parse_security
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 
@@ -212,6 +213,7 @@ class KafkaBroker(
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
         graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
@@ -310,6 +312,9 @@ class KafkaBroker(
                 Transaction timeout in milliseconds.
             graceful_timeout (Optional[float]):
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy (AckPolicy):
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+                If not set, each broker type uses its built-in default.
             decoder (Optional[CustomCallable]):
                 Custom decoder object.
             parser (Optional[CustomCallable]):
@@ -427,6 +432,7 @@ class KafkaBroker(
                 ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,

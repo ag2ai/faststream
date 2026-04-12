@@ -224,6 +224,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
+        ack_policy: "AckPolicy" = EMPTY,
     ) -> None:
         """Initialized RabbitRouter.
 
@@ -243,12 +244,16 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
             decoder:
                 Function to decode FastStream msg bytes body to python objects. Defaults to None.
             include_in_schema:
-                Whetever to include operation in AsyncAPI schema or not. Defaults to None.
+                Whetever to include operation in AsyncAPI schema or not.
+            ack_policy:
+                Default acknowledgement policy for all subscribers in this router.
+                Can be overridden at the subscriber level. Defaults to None.
         """
         super().__init__(
             handlers=handlers,
             config=RabbitBrokerConfig(
                 broker_middlewares=middlewares,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 broker_parser=parser,
                 broker_decoder=decoder,

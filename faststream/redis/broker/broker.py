@@ -26,6 +26,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.redis.configs import ConnectionState, RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
@@ -106,6 +107,7 @@ class RedisBroker(
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
         graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
@@ -168,6 +170,8 @@ class RedisBroker(
                 The class to use for encoding messages. Defaults to Encoder.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder:
                 Custom decoder object. Defaults to None.
             parser:
@@ -269,6 +273,7 @@ class RedisBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },

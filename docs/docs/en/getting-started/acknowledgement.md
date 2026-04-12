@@ -49,6 +49,32 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 
 ---
 
+## Broker-Level Default
+
+By default, `ack_policy` is set per subscriber. If most of your subscribers share the same policy, you can set a broker-level default to avoid repetition:
+
+```python linenums="1" hl_lines="4 8 13"
+from faststream import FastStream, AckPolicy
+from faststream.nats import NatsBroker
+
+broker = NatsBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+app = FastStream(broker)
+
+# Inherits NACK_ON_ERROR from broker
+@broker.subscriber("test")
+async def process_order(msg: str) -> None:
+    ...
+
+# Overrides to MANUAL for this subscriber
+@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
+async def handle_event(msg: str) -> None:
+    await msg.ack()
+```
+
+The resolution order is: **subscriber-level > broker-level > built-in default**.
+
+If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis).
+
 ### When to Use
 
 - Use `ACK_FIRST` for scenarios with high throughput where some message loss can be acceptable.

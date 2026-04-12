@@ -3,7 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import AckPolicy
-from faststream.redis import ListSub, PubSub, StreamSub
+from faststream._internal.constants import EMPTY
+from faststream.redis import ListSub, PubSub, RedisBroker, RedisRouter, StreamSub
 from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -37,7 +38,7 @@ def test_stream_sub() -> None:
 @pytest.mark.redis()
 def test_stream_with_group() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(),
+        _outer_config=MagicMock(ack_policy=EMPTY),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -69,7 +70,7 @@ def test_stream_sub_with_no_ack_group() -> None:
 @pytest.mark.redis()
 def test_stream_with_group_and_min_idle_time() -> None:
     config = RedisSubscriberConfig(
-        _outer_config=MagicMock(),
+        _outer_config=MagicMock(ack_policy=EMPTY),
         stream_sub=StreamSub(
             "test_stream",
             group="test_group",
@@ -92,3 +93,107 @@ def test_custom_ack() -> None:
         _ack_policy=AckPolicy.ACK,
     )
     assert config.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_broker_level_ack_policy_fallback() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=AckPolicy.NACK_ON_ERROR),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+    )
+
+    assert config.ack_policy is AckPolicy.NACK_ON_ERROR
+
+
+@pytest.mark.redis()
+def test_subscriber_ack_policy_overrides_broker() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=AckPolicy.NACK_ON_ERROR),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+        _ack_policy=AckPolicy.ACK,
+    )
+
+    assert config.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_broker_level_ack_policy_empty_uses_default() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=EMPTY),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+        ),
+    )
+
+    assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
+
+
+@pytest.mark.redis()
+def test_broker_ack_policy_e2e() -> None:
+    broker = RedisBroker(ack_policy=AckPolicy.ACK)
+    sub = broker.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+    )
+    assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_sub_overrides_broker_e2e() -> None:
+    broker = RedisBroker(ack_policy=AckPolicy.ACK)
+    sub = broker.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+        ack_policy=AckPolicy.ACK_FIRST,
+    )
+    assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.redis()
+def test_router_ack_policy() -> None:
+    router = RedisRouter(ack_policy=AckPolicy.ACK)
+    sub = router.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+    )
+    assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_router_overrides_broker() -> None:
+    broker = RedisBroker(ack_policy=AckPolicy.ACK_FIRST)
+    router = RedisRouter(ack_policy=AckPolicy.ACK)
+    broker.include_router(router)
+    sub = router.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+    )
+    assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.redis()
+def test_sub_overrides_router() -> None:
+    router = RedisRouter(ack_policy=AckPolicy.ACK)
+    sub = router.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+        ack_policy=AckPolicy.ACK_FIRST,
+    )
+    assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.redis()
+def test_sub_overrides_broker_and_router() -> None:
+    broker = RedisBroker(ack_policy=AckPolicy.ACK)
+    router = RedisRouter(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+    sub = router.subscriber(
+        stream=StreamSub("test", group="g", consumer="c"),
+        ack_policy=AckPolicy.ACK_FIRST,
+    )
+    assert sub.ack_policy is AckPolicy.ACK_FIRST
