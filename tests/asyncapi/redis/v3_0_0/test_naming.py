@@ -45,6 +45,16 @@ class TestNaming(NamingTestCase):
                     "messages": [
                         {"$ref": "#/channels/test:Handle/messages/SubscribeMessage"},
                     ],
+                    "reply": {
+                        "address": {
+                            "location": "$message.header#/replyTo",
+                        },
+                        "messages": [
+                            {
+                                "$ref": "#/components/messages/test:Handle:ReplyMessage",
+                            },
+                        ],
+                    },
                 },
             },
             "components": {
@@ -56,8 +66,18 @@ class TestNaming(NamingTestCase):
                         "payload": {"$ref": "#/components/schemas/EmptyPayload"},
                         "title": "test:Handle:SubscribeMessage",
                     },
+                    "test:Handle:ReplyMessage": {
+                        "correlationId": {
+                            "location": "$message.header#/correlation_id",
+                        },
+                        "payload": {"$ref": "#/components/schemas/Handle:ReplyMessage:Payload"},
+                        "title": "test:Handle:ReplyMessage",
+                    },
                 },
-                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
+                "schemas": {
+                    "EmptyPayload": {"title": "EmptyPayload", "type": "null"},
+                    "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"},
+                },
             },
             "defaultContentType": "application/json",
             "info": {"title": "FastStream", "version": "0.1.0"},

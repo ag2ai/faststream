@@ -30,6 +30,7 @@ class RouterTestcase(AsyncAPI300Factory):
         schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
+        payload = {k: v for k, v in payload.items() if k != "EmptyPayload"}
         key = list(payload.keys())[0]  # noqa: RUF015
         assert payload[key]["title"] == key == "Handle:Message:Payload"
 
@@ -52,7 +53,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
         schemas = schema["components"]["schemas"]
-        del schemas["Handle:Message:Payload"]
+        schemas = {k: v for k, v in schemas.items() if k not in ("Handle:Message:Payload", "EmptyPayload", "Handle:ReplyMessage:Payload")}
 
         for i, j in schemas.items():
             assert (

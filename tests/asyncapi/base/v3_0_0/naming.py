@@ -25,13 +25,15 @@ class SubscriberNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:HandleUserCreated"),
         ]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
-        ]
+            IsStr(regex=r"test[\w:]*:HandleUserCreated:ReplyMessage"),
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
-        ]
+            "HandleUserCreated:ReplyMessage:Payload",
+        ) & HasLen(2)
 
     def test_pydantic_subscriber_naming(self) -> None:
         broker = self.broker_class()
@@ -45,11 +47,15 @@ class SubscriberNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:HandleUserCreated"),
         ]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
-        ]
+            IsStr(regex=r"test[\w:]*:HandleUserCreated:ReplyMessage"),
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == ["SimpleModel"]
+        assert list(schema["components"]["schemas"].keys()) == Contains(
+            "SimpleModel",
+            "HandleUserCreated:ReplyMessage:Payload",
+        ) & HasLen(2)
 
     def test_multi_subscribers_naming(self) -> None:
         broker = self.broker_class()
@@ -68,11 +74,14 @@ class SubscriberNaming(BaseNaming):
         assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
             IsStr(regex=r"test2[\w:]*:HandleUserCreated:SubscribeMessage"),
-        ) & HasLen(2)
+            IsStr(regex=r"test[\w:]*:HandleUserCreated:ReplyMessage"),
+            IsStr(regex=r"test2[\w:]*:HandleUserCreated:ReplyMessage"),
+        ) & HasLen(4)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
-        ]
+            "HandleUserCreated:ReplyMessage:Payload",
+        ) & HasLen(2)
 
     def test_subscriber_naming_manual(self) -> None:
         broker = self.broker_class()
@@ -84,13 +93,15 @@ class SubscriberNaming(BaseNaming):
 
         assert list(schema["channels"].keys()) == ["custom"]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             "custom:SubscribeMessage",
-        ]
+            "custom:ReplyMessage",
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "custom:Message:Payload",
-        ]
+            "custom:ReplyMessage:Payload",
+        ) & HasLen(2)
 
     def test_subscriber_naming_default(self) -> None:
         broker = self.broker_class()
@@ -103,11 +114,14 @@ class SubscriberNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:Subscriber"),
         ]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(regex=r"test[\w:]*:Subscriber:SubscribeMessage"),
-        ]
+            IsStr(regex=r"test[\w:]*:Subscriber:ReplyMessage"),
+        ) & HasLen(2)
 
         for key, v in schema["components"]["schemas"].items():
+            if key == "Subscriber:ReplyMessage:Payload":
+                continue
             assert key == "Subscriber:Message:Payload"
             assert v == {"title": key}
 
@@ -120,13 +134,15 @@ class SubscriberNaming(BaseNaming):
 
         assert list(schema["channels"].keys()) == ["custom"]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             "custom:SubscribeMessage",
-        ]
+            "custom:ReplyMessage",
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "custom:Message:Payload",
-        ]
+            "custom:ReplyMessage:Payload",
+        ) & HasLen(2)
 
         assert schema["components"]["schemas"]["custom:Message:Payload"] == {
             "title": "custom:Message:Payload",
@@ -153,12 +169,17 @@ class SubscriberNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:HandleUserCreated:SubscribeMessage"),
             IsStr(regex=r"test2[\w:]*:Subscriber:SubscribeMessage"),
             IsStr(regex=r"test3[\w:]*:Subscriber:SubscribeMessage"),
-        ) & HasLen(3)
+            IsStr(regex=r"test[\w:]*:HandleUserCreated:ReplyMessage"),
+            IsStr(regex=r"test2[\w:]*:Subscriber:ReplyMessage"),
+            IsStr(regex=r"test3[\w:]*:Subscriber:ReplyMessage"),
+        ) & HasLen(6)
 
         assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
             "Subscriber:Message:Payload",
-        ) & HasLen(2)
+            "HandleUserCreated:ReplyMessage:Payload",
+            "Subscriber:ReplyMessage:Payload",
+        ) & HasLen(4)
 
         assert schema["components"]["schemas"]["Subscriber:Message:Payload"] == {
             "title": "Subscriber:Message:Payload",
@@ -183,16 +204,21 @@ class FilterNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(
                 regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage",
             ),
-        ]
+            IsStr(
+                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:ReplyMessage",
+            ),
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
             "HandleUserId:Message:Payload",
-        ]
+            "HandleUserCreated:ReplyMessage:Payload",
+            "HandleUserId:ReplyMessage:Payload",
+        ) & HasLen(4)
 
     def test_subscriber_filter_pydantic(self) -> None:
         broker = self.broker_class()
@@ -211,16 +237,21 @@ class FilterNaming(BaseNaming):
             IsStr(regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]"),
         ]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             IsStr(
                 regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:SubscribeMessage",
             ),
-        ]
+            IsStr(
+                regex=r"test[\w:]*:\[HandleUserCreated,HandleUserId\]:ReplyMessage",
+            ),
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "SimpleModel",
             "HandleUserId:Message:Payload",
-        ]
+            "HandleUserCreated:ReplyMessage:Payload",
+            "HandleUserId:ReplyMessage:Payload",
+        ) & HasLen(4)
 
     def test_subscriber_filter_with_title(self) -> None:
         broker = self.broker_class()
@@ -237,14 +268,17 @@ class FilterNaming(BaseNaming):
 
         assert list(schema["channels"].keys()) == ["custom"]
 
-        assert list(schema["components"]["messages"].keys()) == [
+        assert list(schema["components"]["messages"].keys()) == Contains(
             "custom:SubscribeMessage",
-        ]
+            "custom:ReplyMessage",
+        ) & HasLen(2)
 
-        assert list(schema["components"]["schemas"].keys()) == [
+        assert list(schema["components"]["schemas"].keys()) == Contains(
             "HandleUserCreated:Message:Payload",
             "HandleUserId:Message:Payload",
-        ]
+            "HandleUserCreated:ReplyMessage:Payload",
+            "HandleUserId:ReplyMessage:Payload",
+        ) & HasLen(4)
 
 
 class PublisherNaming(BaseNaming):

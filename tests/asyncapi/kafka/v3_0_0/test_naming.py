@@ -55,6 +55,16 @@ class TestNaming(NamingTestCase):
                             "$ref": "#/channels/test:Handle/messages/SubscribeMessage",
                         },
                     ],
+                    "reply": {
+                        "address": {
+                            "location": "$message.header#/replyTo",
+                        },
+                        "messages": [
+                            {
+                                "$ref": "#/components/messages/test:Handle:ReplyMessage",
+                            },
+                        ],
+                    },
                 },
             },
             "components": {
@@ -66,8 +76,16 @@ class TestNaming(NamingTestCase):
                         },
                         "payload": {"$ref": "#/components/schemas/EmptyPayload"},
                     },
+                    "test:Handle:ReplyMessage": {
+                        "title": "test:Handle:ReplyMessage",
+                        "correlationId": {
+                            "location": "$message.header#/correlation_id",
+                        },
+                        "payload": {"$ref": "#/components/schemas/Handle:ReplyMessage:Payload"},
+                    },
                 },
-                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
+                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"},
+                    "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"}, "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"}},
             },
         }
 

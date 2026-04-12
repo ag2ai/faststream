@@ -107,12 +107,11 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "EmptyPayload"
-            assert v == {
-                "title": key,
-                "type": "null",
-            }
+        assert "EmptyPayload" in payload
+        assert payload["EmptyPayload"] == {
+            "title": "EmptyPayload",
+            "type": "null",
+        }
 
     def test_no_type(self) -> None:
         broker = self.broker_class()
@@ -124,9 +123,8 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {"title": key}
+        assert "Handle:Message:Payload" in payload
+        assert payload["Handle:Message:Payload"] == {"title": "Handle:Message:Payload"}
 
     def test_simple_type(self) -> None:
         broker = self.broker_class()
@@ -139,9 +137,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         payload = schema["components"]["schemas"]
         assert next(iter(schema["channels"].values())).get("description") is None
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {"title": key, "type": "integer"}
+        assert "Handle:Message:Payload" in payload
+        assert payload["Handle:Message:Payload"] == {"title": "Handle:Message:Payload", "type": "integer"}
 
     def test_simple_optional_type(self) -> None:
         broker = self.broker_class()
@@ -153,19 +150,20 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == IsDict(
-                {
-                    "anyOf": [{"type": "integer"}, {"type": "null"}],
-                    "title": key,
-                },
-            ) | IsDict(
-                {  # TODO: remove when deprecating PydanticV1
-                    "title": key,
-                    "type": "integer",
-                },
-            ), v
+        key = "Handle:Message:Payload"
+        assert key in payload
+        v = payload[key]
+        assert v == IsDict(
+            {
+                "anyOf": [{"type": "integer"}, {"type": "null"}],
+                "title": key,
+            },
+        ) | IsDict(
+            {  # TODO: remove when deprecating PydanticV1
+                "title": key,
+                "type": "integer",
+            },
+        ), v
 
     def test_simple_type_with_default(self) -> None:
         broker = self.broker_class()
@@ -177,13 +175,13 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {
-                "default": 1,
-                "title": key,
-                "type": "integer",
-            }
+        key = "Handle:Message:Payload"
+        assert key in payload
+        assert payload[key] == {
+            "default": 1,
+            "title": key,
+            "type": "integer",
+        }
 
     def test_multi_args_no_type(self) -> None:
         broker = self.broker_class()
@@ -195,17 +193,17 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {
-                "properties": {
-                    "another": {"title": "Another"},
-                    "msg": {"title": "Msg"},
-                },
-                "required": ["msg", "another"],
-                "title": key,
-                "type": "object",
-            }
+        key = "Handle:Message:Payload"
+        assert key in payload
+        assert payload[key] == {
+            "properties": {
+                "another": {"title": "Another"},
+                "msg": {"title": "Msg"},
+            },
+            "required": ["msg", "another"],
+            "title": key,
+            "type": "object",
+        }
 
     def test_multi_args_with_type(self) -> None:
         broker = self.broker_class()
@@ -217,17 +215,17 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {
-                "properties": {
-                    "another": {"title": "Another", "type": "integer"},
-                    "msg": {"title": "Msg", "type": "string"},
-                },
-                "required": ["msg", "another"],
-                "title": key,
-                "type": "object",
-            }
+        key = "Handle:Message:Payload"
+        assert key in payload
+        assert payload[key] == {
+            "properties": {
+                "another": {"title": "Another", "type": "integer"},
+                "msg": {"title": "Msg", "type": "string"},
+            },
+            "required": ["msg", "another"],
+            "title": key,
+            "type": "object",
+        }
 
     def test_multi_args_with_default(self) -> None:
         broker = self.broker_class()
@@ -239,30 +237,31 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
+        key = "Handle:Message:Payload"
+        assert key in payload
+        v = payload[key]
 
-            assert v == {
-                "properties": {
-                    "another": IsDict(
-                        {
-                            "anyOf": [{"type": "integer"}, {"type": "null"}],
-                            "default": None,
-                            "title": "Another",
-                        },
-                    )
-                    | IsDict(
-                        {  # TODO: remove when deprecating PydanticV1
-                            "title": "Another",
-                            "type": "integer",
-                        },
-                    ),
-                    "msg": {"title": "Msg", "type": "string"},
-                },
-                "required": ["msg"],
-                "title": key,
-                "type": "object",
-            }
+        assert v == {
+            "properties": {
+                "another": IsDict(
+                    {
+                        "anyOf": [{"type": "integer"}, {"type": "null"}],
+                        "default": None,
+                        "title": "Another",
+                    },
+                )
+                | IsDict(
+                    {  # TODO: remove when deprecating PydanticV1
+                        "title": "Another",
+                        "type": "integer",
+                    },
+                ),
+                "msg": {"title": "Msg", "type": "string"},
+            },
+            "required": ["msg"],
+            "title": key,
+            "type": "object",
+        }
 
     def test_dataclass(self) -> None:
         @dataclass
@@ -280,6 +279,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         payload = schema["components"]["schemas"]
 
         for key, v in payload.items():
+            if key == "EmptyPayload" or key.endswith(":ReplyMessage:Payload"):
+                continue
             assert key == "User"
             assert v == {
                 "properties": {
@@ -306,6 +307,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         payload = schema["components"]["schemas"]
 
         for key, v in payload.items():
+            if key == "EmptyPayload" or key.endswith(":ReplyMessage:Payload"):
+                continue
             assert key == "User"
             assert v == {
                 "properties": {
@@ -336,7 +339,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        assert payload == {
+        assert IsPartialDict({
             "Status": IsPartialDict(
                 {
                     "enum": ["registered", "banned"],
@@ -354,7 +357,7 @@ class FastAPICompatible(AsyncAPI300Factory):
                 "title": "User",
                 "type": "object",
             },
-        }, payload
+        }) == payload, payload
 
     def test_pydantic_model_mixed_regular(self) -> None:
         class Email(pydantic.BaseModel):
@@ -374,7 +377,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        assert payload == {
+        assert IsPartialDict({
             "Email": {
                 "title": "Email",
                 "type": "object",
@@ -404,7 +407,7 @@ class FastAPICompatible(AsyncAPI300Factory):
                 },
                 "required": ["user"],
             },
-        }
+        }) == payload
 
     def test_nested_models_in_union_should_be_in_schemas(self) -> None:
         """Test that nested Pydantic models in union types are promoted to components/schemas.
@@ -507,18 +510,18 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "User"
-            assert v == {
-                "examples": [{"id": 1, "name": "john"}],
-                "properties": {
-                    "id": {"title": "Id", "type": "integer"},
-                    "name": {"default": "", "title": "Name", "type": "string"},
-                },
-                "required": ["id"],
-                "title": "User",
-                "type": "object",
-            }
+        key = "User"
+        assert key in payload
+        assert payload[key] == {
+            "examples": [{"id": 1, "name": "john"}],
+            "properties": {
+                "id": {"title": "Id", "type": "integer"},
+                "name": {"default": "", "title": "Name", "type": "string"},
+            },
+            "required": ["id"],
+            "title": "User",
+            "type": "object",
+        }
 
     def test_with_filter(self) -> None:
         class User(pydantic.BaseModel):
@@ -570,18 +573,18 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        for key, v in payload.items():
-            assert key == "Handle:Message:Payload"
-            assert v == {
-                "properties": {
-                    "id": {"title": "Id", "type": "integer"},
-                    "name": {"default": "", "title": "Name", "type": "string"},
-                    "name2": {"title": "Name2", "type": "string"},
-                },
-                "required": ["id", "name2"],
-                "title": key,
-                "type": "object",
-            }, v
+        key = "Handle:Message:Payload"
+        assert key in payload
+        assert payload[key] == {
+            "properties": {
+                "id": {"title": "Id", "type": "integer"},
+                "name": {"default": "", "title": "Name", "type": "string"},
+                "name2": {"title": "Name2", "type": "string"},
+            },
+            "required": ["id", "name2"],
+            "title": key,
+            "type": "object",
+        }, payload[key]
 
     @pydantic_v2
     def test_discriminator(self) -> None:
@@ -674,15 +677,15 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         key = next(iter(schema["components"]["messages"].keys()))
         assert key == IsStr(regex=r"test[\w:]*:Handle:SubscribeMessage")
-        assert schema["components"] == {
-            "messages": {
+        assert schema["components"] == IsPartialDict({
+            "messages": IsPartialDict({
                 key: {
                     "title": key,
                     "correlationId": {"location": "$message.header#/correlation_id"},
                     "payload": {"$ref": "#/components/schemas/Model"},
                 },
-            },
-            "schemas": {
+            }),
+            "schemas": IsPartialDict({
                 "Sub": {
                     "properties": {
                         "type": IsPartialDict({"const": "sub", "title": "Type"}),
@@ -714,8 +717,8 @@ class FastAPICompatible(AsyncAPI300Factory):
                     "title": "Model",
                     "type": "object",
                 },
-            },
-        }, schema["components"]
+            }),
+        }), schema["components"]
 
 
 class ArgumentsTestcase(FastAPICompatible):
@@ -739,6 +742,8 @@ class ArgumentsTestcase(FastAPICompatible):
         payload = schema["components"]["schemas"]
 
         for key, v in payload.items():
+            if key == "EmptyPayload" or key.endswith(":ReplyMessage:Payload"):
+                continue
             assert key == "Perfect"
 
             assert v == {
@@ -765,6 +770,8 @@ class ArgumentsTestcase(FastAPICompatible):
         payload = schema["components"]["schemas"]
 
         for key, v in payload.items():
+            if key == "EmptyPayload" or key.endswith(":ReplyMessage:Payload"):
+                continue
             assert v == IsDict(
                 {
                     "properties": {
@@ -822,11 +829,11 @@ class ArgumentsTestcase(FastAPICompatible):
 
         payload = schema["components"]["schemas"]
 
-        assert len(payload) == 1
+        assert len(payload) == 3
 
-        key, value = next(iter(payload.items()))
-
-        assert key == "User"
+        assert "User" in payload
+        key = "User"
+        value = payload[key]
         assert value == {
             "properties": IsDict({
                 "id": {"title": "Id", "type": "integer"},

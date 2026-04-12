@@ -20,6 +20,7 @@ class TestNaming(NamingTestCase):
 
         assert list(schema["components"]["messages"].keys()) == [
             "test:exchange:Handle:SubscribeMessage",
+            "test:exchange:Handle:ReplyMessage",
         ]
 
     def test_publisher_with_exchange(self) -> None:
@@ -104,6 +105,16 @@ class TestNaming(NamingTestCase):
                             "$ref": "#/channels/test:_:Handle/messages/SubscribeMessage",
                         },
                     ],
+                    "reply": {
+                        "address": {
+                            "location": "$message.header#/replyTo",
+                        },
+                        "messages": [
+                            {
+                                "$ref": "#/components/messages/test:_:Handle:ReplyMessage",
+                            },
+                        ],
+                    },
                 },
             },
             "components": {
@@ -115,7 +126,15 @@ class TestNaming(NamingTestCase):
                         },
                         "payload": {"$ref": "#/components/schemas/EmptyPayload"},
                     },
+                    "test:_:Handle:ReplyMessage": {
+                        "title": "test:_:Handle:ReplyMessage",
+                        "correlationId": {
+                            "location": "$message.header#/correlation_id",
+                        },
+                        "payload": {"$ref": "#/components/schemas/Handle:ReplyMessage:Payload"},
+                    },
                 },
-                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
+                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"},
+                    "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"}, "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"}},
             },
         }
