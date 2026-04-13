@@ -1,0 +1,105 @@
+/*
+all variables
+https://github.com/squidfunk/mkdocs-material/blob/master/src/assets/stylesheets/main/_colors.scss
+*/
+
+:root {
+    --md-primary-fg-color: #003257;
+    --md-primary-fg-color--light: #48A8D8;
+    --md-primary-fg-color--dark: #48A8D8;
+}
+
+[data-md-color-accent=indigo] {
+    --md-accent-fg-color: #48A8D8;
+    --md-accent-fg-color--transparent: #48A8D81A;
+}
+
+[data-md-color-scheme=slate] {
+    --md-default-bg-color: hsla(var(--md-hue), 7%, 18%, 1);
+    --md-footer-bg-color--dark: hsla(var(--md-hue), 24%, 26%, 1);
+    --md-typeset-a-color: #48A8D8;
+}
+
+.user-link::before {
+    content: " ";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.user-list-center {
+    justify-content: space-evenly;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.user {
+    flex: 1 0 20%;
+    margin: 1em;
+    min-width: 7em;
+}
+
+.user .avatar-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 10px auto;
+    overflow: hidden;
+    border-radius: 50%;
+    position: relative;
+}
+
+.user .avatar-wrapper img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.user .title {
+    text-align: center;
+}
+
+.user .count {
+    font-size: 80%;
+    text-align: center;
+}
+
+a.external-link {
+    /* For right to left languages */
+    direction: ltr;
+    display: inline-block;
+}
+
+a.external-link::after {
+    /* \00A0 is a non-breaking space
+            to make the mark be on the same line as the link
+        */
+    content: "\00A0[↪]";
+}
+
+a.internal-link::after {
+    /* \00A0 is a non-breaking space
+            to make the mark be on the same line as the link
+        */
+    content: "\00A0↪";
+}
+
+.checked_mark {
+    color: #30af00;
+}
+
+.x_mark {
+    color: #ce242d;
+}
+
+.warning_mark {
+    color: #d19d00;
+}
+
+#gurubase-page-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
