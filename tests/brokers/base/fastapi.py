@@ -817,3 +817,33 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                     timeout=0.5,
                 )
                 assert await r.decode() == "hi", r
+
+    async def test_nested_router_native_message_injection(
+        self,
+        queue: str,
+        mock: Mock,
+    ) -> None:
+        """Nested StreamRouter must share the outer context.
+
+        Native message types (e.g. KafkaMessage / StreamMessage) must be
+        correctly injected, not replaced with EmptyPlaceholder (issue #2657).
+        """
+        router = self.router_class()
+        router2 = self.router_class()
+
+        app = FastAPI()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router2.subscriber(*args, **kwargs)
+        async def hello_router2(msg: StreamMessage) -> None:
+            mock(isinstance(msg, StreamMessage))
+
+        router.include_router(router2)
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker) as br:
+            with TestClient(app):
+                await br.publish("hi", queue)
+
+        mock.assert_called_once_with(True)
