@@ -28,6 +28,8 @@ class MQTTSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def ack_policy(self) -> AckPolicy:
-        if self._ack_policy is not EMPTY:
-            return self._ack_policy
-        return AckPolicy.ACK
+        if self._ack_policy is EMPTY:
+            if self._outer_config.ack_policy is not EMPTY:
+                return self._outer_config.ack_policy
+            return AckPolicy.ACK
+        return self._ack_policy

@@ -16,6 +16,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.mqtt.publisher.producer import (
     ZmqttBaseProducer,
@@ -52,8 +53,8 @@ class MQTTBroker(
 
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 1883,
+        host: str = "localhost:1883",
+        port: int = EMPTY,
         *,
         client_id: str = "",
         keepalive: int = 60,
@@ -67,13 +68,17 @@ class MQTTBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
+        ack_policy: AckPolicy = EMPTY,
+        # AsyncAPI args
         specification_url: str | None = None,
         protocol_version: str | None = None,
         description: str | None = None,
         tags: Iterable["Tag | TagDict"] = (),
         security: Optional["BaseSecurity"] = None,
+        # logging args
         logger: Optional["LoggerProto"] = EMPTY,
         log_level: int = logging.INFO,
+        # FastDepends args
         apply_types: bool = True,
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
@@ -86,6 +91,13 @@ class MQTTBroker(
             producer = ZmqttProducerV5(parser=parser, decoder=decoder)
         else:
             producer = ZmqttProducerV311(parser=parser, decoder=decoder)
+
+        if ":" in host:
+            host, p = host.split(":", 2)
+        else:
+            p = "1883"
+        if port is EMPTY:
+            port = int(p)
 
         if specification_url is None:
             specification_url = f"mqtt://{host}:{port}"
@@ -120,6 +132,7 @@ class MQTTBroker(
                 ),
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },

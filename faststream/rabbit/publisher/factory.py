@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
@@ -6,7 +5,6 @@ from .specification import RabbitPublisherSpecification
 from .usecase import RabbitPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
@@ -21,8 +19,6 @@ def create_publisher(
     message_kwargs: "PublishKwargs",
     # Broker args
     config: "RabbitBrokerConfig",
-    # Publisher args
-    middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Any | None,
     title_: str | None,
@@ -34,8 +30,6 @@ def create_publisher(
         message_kwargs=message_kwargs,
         queue=queue,
         exchange=exchange,
-        # publisher
-        middlewares=middlewares,
         # broker
         _outer_config=config,
     )

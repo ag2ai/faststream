@@ -45,7 +45,6 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
         Filter,
-        SubscriberMiddleware,
     )
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
@@ -58,7 +57,6 @@ if TYPE_CHECKING:
 class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
-    middlewares: Sequence["SubscriberMiddleware[Any]"]
     dependencies: Iterable["Dependant"]
 
 
@@ -91,7 +89,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_options = _CallOptions(
             parser=None,
             decoder=None,
-            middlewares=(),
             dependencies=(),
         )
 
@@ -200,7 +197,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
-            middlewares=(),
             dependencies=dependencies_,
         )
         return self
@@ -261,7 +257,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     filter=async_filter,
                     item_parser=parser,
                     item_decoder=decoder,
-                    item_middlewares=self._call_options.middlewares,
                     dependencies=total_deps,
                 ),
             )

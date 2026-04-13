@@ -730,7 +730,6 @@ class KafkaRegistrator(
             reply_to=reply_to,
             # publisher-specific
             config=cast("KafkaBrokerConfig", self.config),
-            middlewares=(),
             # Specification
             title_=title,
             description_=description,

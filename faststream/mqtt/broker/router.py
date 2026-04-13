@@ -18,12 +18,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
-    )
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
 
 
 class MQTTPublisher(ArgsContainer):
@@ -39,7 +34,8 @@ class MQTTPublisher(ArgsContainer):
         qos: QoS = QoS.AT_MOST_ONCE,
         retain: bool = False,
         headers: dict[str, str] | None = None,
-        middlewares: Sequence["PublisherMiddleware"] = (),
+        persistent: bool = True,
+        # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -50,7 +46,7 @@ class MQTTPublisher(ArgsContainer):
             qos=qos,
             retain=retain,
             headers=headers,
-            middlewares=middlewares,
+            persistent=persistent,
             title=title,
             description=description,
             schema=schema,
@@ -70,14 +66,15 @@ class MQTTRoute(SubscriberRoute):
         publishers: Iterable["MQTTPublisher"] = (),
         qos: QoS = QoS.AT_MOST_ONCE,
         shared: str | None = None,
-        no_ack: bool = EMPTY,
+        # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
         max_workers: int = 1,
+        persistent: bool = True,
+        # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
@@ -86,15 +83,14 @@ class MQTTRoute(SubscriberRoute):
             call,
             topic,
             publishers=publishers,
+            persistent=persistent,
             qos=qos,
             shared=shared,
-            no_ack=no_ack,
             ack_policy=ack_policy,
             no_reply=no_reply,
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             max_workers=max_workers,
             title=title,
             description=description,
@@ -119,11 +115,13 @@ class MQTTRouter(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
+        ack_policy: AckPolicy = EMPTY,
     ) -> None:
         super().__init__(
             handlers=handlers,
             config=MQTTBrokerConfig(
                 prefix=prefix,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 broker_middlewares=middlewares,
                 broker_parser=parser,

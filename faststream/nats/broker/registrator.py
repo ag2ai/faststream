@@ -598,7 +598,6 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             stream=stream,
             # Specific
             broker_config=cast("NatsBrokerConfig", self.config),
-            middlewares=(),
             # AsyncAPI
             title_=title,
             description_=description,

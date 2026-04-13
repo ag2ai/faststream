@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 from faststream.exceptions import SetupError
@@ -21,7 +20,6 @@ from .usecase import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.parser import MessageFormat
 
@@ -37,7 +35,6 @@ def create_publisher(
     headers: dict[str, Any] | None,
     reply_to: str,
     config: "RedisBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     message_format: type["MessageFormat"] | None,
     # AsyncAPI args
     title_: str | None,
@@ -50,7 +47,6 @@ def create_publisher(
     publisher_config = RedisPublisherConfig(
         reply_to=reply_to,
         headers=headers,
-        middlewares=middlewares,
         _message_format=message_format,
         _outer_config=config,
     )

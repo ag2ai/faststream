@@ -123,7 +123,6 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             retain=retain,
             headers=headers,
             broker_config=cast("MQTTBrokerConfig", self.config),
-            middlewares=(),
             title_=title,
             description_=description,
             schema_=schema,
