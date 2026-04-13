@@ -20,6 +20,7 @@ SSL_CONTEXT = create_default_context()
         (SSL_CONTEXT, True, {"tls": SSL_CONTEXT}),
     ),
 )
+@pytest.mark.mqtt()
 def test_parse_base_security(
     ssl_context: SSLContext, use_ssl: bool | None, expected_parse_result: dict[str, Any]
 ) -> None:
