@@ -10,7 +10,7 @@ from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v2_6_0.router import RouterTestcase
 
 
-@pytest.mark.nats()
+@pytest.mark.mqtt()
 class TestRouter(RouterTestcase):
     broker_class = MQTTBroker
     router_class = MQTTRouter
