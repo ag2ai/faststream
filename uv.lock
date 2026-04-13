@@ -1024,7 +1024,7 @@ requires-dist = [
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.9,!=0.12,<=0.21.1" },
     { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "watchfiles", marker = "extra == 'cli'", specifier = ">=0.15.0,<1.2.0" },
-    { name = "zmqtt", marker = "extra == 'mqtt'", specifier = ">=0.0.2" },
+    { name = "zmqtt", marker = "extra == 'mqtt'", specifier = ">=0.0.4" },
 ]
 provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "cli", "otel", "prometheus"]
 
@@ -1059,7 +1059,7 @@ dev = [
     { name = "prometheus-client", specifier = ">=0.20.0,<0.30.0" },
     { name = "psutil", specifier = "==7.2.2" },
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
-    { name = "pytest", specifier = "==9.0.2" },
+    { name = "pytest", specifier = "==9.0.3" },
     { name = "pytest-asyncio", specifier = "==1.3.0" },
     { name = "pytest-codspeed", specifier = ">=4.3.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
@@ -1117,7 +1117,7 @@ test-core = [
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "freezegun", specifier = ">=1.5.5" },
     { name = "httpx", specifier = "==0.28.1" },
-    { name = "pytest", specifier = "==9.0.2" },
+    { name = "pytest", specifier = "==9.0.3" },
     { name = "pytest-asyncio", specifier = "==1.3.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
@@ -1136,7 +1136,7 @@ testing = [
     { name = "prometheus-client", specifier = ">=0.20.0,<0.30.0" },
     { name = "psutil", specifier = "==7.2.2" },
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
-    { name = "pytest", specifier = "==9.0.2" },
+    { name = "pytest", specifier = "==9.0.3" },
     { name = "pytest-asyncio", specifier = "==1.3.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
@@ -2820,7 +2820,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "9.0.2"
+version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -2831,9 +2831,9 @@ dependencies = [
     { name = "pygments" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d1/db/7ef3487e0fb0049ddb5ce41d3a49c235bf9ad299b6a25d5780a89f19230f/pytest-9.0.2.tar.gz", hash = "sha256:75186651a92bd89611d1d9fc20f0b4345fd827c41ccd5c299a868a05d70edf11", size = 1568901, upload-time = "2025-12-06T21:30:51.014Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/0d/549bd94f1a0a402dc8cf64563a117c0f3765662e2e668477624baeec44d5/pytest-9.0.3.tar.gz", hash = "sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c", size = 1572165, upload-time = "2026-04-07T17:16:18.027Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/ab/b3226f0bd7cdcf710fbede2b3548584366da3b19b5021e74f5bde2a8fa3f/pytest-9.0.2-py3-none-any.whl", hash = "sha256:711ffd45bf766d5264d487b917733b453d917afd2b0ad65223959f59089f875b", size = 374801, upload-time = "2025-12-06T21:30:49.154Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/24/a372aaf5c9b7208e7112038812994107bc65a84cd00e0354a88c2c77a617/pytest-9.0.3-py3-none-any.whl", hash = "sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9", size = 375249, upload-time = "2026-04-07T17:16:16.13Z" },
 ]
 
 [[package]]
@@ -4195,9 +4195,9 @@ wheels = [
 
 [[package]]
 name = "zmqtt"
-version = "0.0.2"
+version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ed/e5/4a9201874a2df914afb4d5a084d1ac28430e2620c6be58b24da291dbcca5/zmqtt-0.0.2.tar.gz", hash = "sha256:46b1cf07152c9df1184a08842096a4b099495c8a228bb7f6865704bc5982c0a1", size = 27518, upload-time = "2026-04-05T12:02:24.505Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/6a/3e7e94e099e1c85df9a166b02ec6fab0e4d3a9623dd9ca6bb6942d0f617a/zmqtt-0.0.4.tar.gz", hash = "sha256:10d7f97d3fac02ef82a44a46a004e2dba2115bdca39936536ceb5057a761418d", size = 27525, upload-time = "2026-04-10T12:02:45.57Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/53/1b4db3ec9fc50b50f8420fbbc23093584b41450a14f130a483126b727351/zmqtt-0.0.2-py3-none-any.whl", hash = "sha256:04d4a2df315c687ab3d8221b18355b101888b7ffcc891d6ac1b4dda34adae8b6", size = 37229, upload-time = "2026-04-05T12:02:23.631Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/04/ed0bcd6b7ad0a8e1fc27f1dd99caa72761bfa329fd993a12f44d3871eee7/zmqtt-0.0.4-py3-none-any.whl", hash = "sha256:9c509462855f15e6a2d02fe7f60abc1e2f4fe87a7996ae0a095e188b2b5afdbc", size = 37234, upload-time = "2026-04-10T12:02:44.593Z" },
 ]
