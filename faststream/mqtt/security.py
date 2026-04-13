@@ -15,12 +15,14 @@ def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
 
 
 def _parse_base_security(security: BaseSecurity) -> dict[str, Any]:
-    return {"tls": security.ssl_context}
+    if security.use_ssl:
+        return {"tls": security.ssl_context or True}
+    return {"tls": False}
 
 
 def _parse_sasl_plaintext(security: SASLPlaintext) -> dict[str, Any]:
     return {
-        "tls": security.ssl_context,
+        **_parse_base_security(security),
         "username": security.username,
         "password": security.password,
     }
