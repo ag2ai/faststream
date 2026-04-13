@@ -54,6 +54,17 @@ basic_schema = {
                 {"$ref": "#/channels/test_1:TestTopic/messages/SubscribeMessage"},
             ],
             "channel": {"$ref": "#/channels/test_1:TestTopic"},
+            "reply": {
+                "address": {
+                    "location": "$message.header#/replyTo",
+                },
+                "channel": {"$ref": "#/channels/test_2:Publisher"},
+                "messages": [
+                    {
+                        "$ref": "#/components/messages/test_1:TestTopic:ReplyMessage",
+                    },
+                ],
+            },
         },
         "test_2:Publisher": {
             "action": "send",
@@ -68,6 +79,13 @@ basic_schema = {
                 "correlationId": {"location": "$message.header#/correlation_id"},
                 "payload": {"$ref": "#/components/schemas/TestTopic:Message:Payload"},
             },
+            "test_1:TestTopic:ReplyMessage": {
+                "title": "test_1:TestTopic:ReplyMessage",
+                "correlationId": {"location": "$message.header#/correlation_id"},
+                "payload": {
+                    "$ref": "#/components/schemas/TestTopic:ReplyMessage:Payload",
+                },
+            },
             "test_2:Publisher:Message": {
                 "title": "test_2:Publisher:Message",
                 "correlationId": {"location": "$message.header#/correlation_id"},
@@ -79,6 +97,10 @@ basic_schema = {
         "schemas": {
             "TestTopic:Message:Payload": {
                 "title": "TestTopic:Message:Payload",
+                "type": "string",
+            },
+            "TestTopic:ReplyMessage:Payload": {
+                "title": "TestTopic:ReplyMessage:Payload",
                 "type": "string",
             },
             "test_2:Publisher:Message:Payload": {

@@ -89,6 +89,16 @@ class TestRouter(RouterTestcase):
                         },
                     ],
                     "channel": {"$ref": "#/channels/test_test:_:Handle"},
+                    "reply": {
+                        "address": {
+                            "location": "$message.header#/replyTo",
+                        },
+                        "messages": [
+                            {
+                                "$ref": "#/components/messages/test_test:_:Handle:ReplyMessage",
+                            },
+                        ],
+                    },
                 },
             },
             "components": {
@@ -102,9 +112,17 @@ class TestRouter(RouterTestcase):
                             "$ref": "#/components/schemas/Handle:Message:Payload",
                         },
                     },
+                    "test_test:_:Handle:ReplyMessage": {
+                        "title": "test_test:_:Handle:ReplyMessage",
+                        "correlationId": {
+                            "location": "$message.header#/correlation_id",
+                        },
+                        "payload": {"$ref": "#/components/schemas/Handle:ReplyMessage:Payload"},
+                    },
                 },
                 "schemas": {
                     "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
+                    "Handle:ReplyMessage:Payload": {"title": "Handle:ReplyMessage:Payload", "type": "null"},
                 },
             },
         }, schema
