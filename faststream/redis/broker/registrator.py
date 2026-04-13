@@ -444,7 +444,6 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             reply_to=reply_to,
             # Specific
             config=cast("RedisBrokerConfig", self.config),
-            middlewares=(),
             message_format=message_format,
             # AsyncAPI
             title_=title,

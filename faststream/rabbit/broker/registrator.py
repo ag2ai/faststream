@@ -179,8 +179,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             queue=RabbitQueue.validate(queue),
             exchange=RabbitExchange.validate(exchange),
             message_kwargs=message_kwargs,
-            # publisher args
-            middlewares=(),
             # broker args
             config=cast("RabbitBrokerConfig", self.config),
             # specification args

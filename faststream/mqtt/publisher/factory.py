@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
@@ -8,7 +7,6 @@ from .specification import MQTTPublisherSpecification
 from .usecase import MQTTPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
     from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
@@ -20,7 +18,6 @@ def create_publisher(
     headers: dict[str, str] | None,
     # Publisher args
     broker_config: "MQTTBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
     schema_: Any | None,
     title_: str | None,
@@ -32,7 +29,6 @@ def create_publisher(
         qos=qos,
         retain=retain,
         headers=headers,
-        middlewares=middlewares,
         _outer_config=broker_config,
     )
 

@@ -77,16 +77,14 @@ nats = ["nats-py>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<8.0.0"]
 
-mqtt = [
-    "zmqtt>=0.0.2",
-]
-
-otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
+mqtt = ["zmqtt>=0.0.4"]
 
 cli = [
     "typer>=0.9,!=0.12,<=0.21.1",
     "watchfiles>=0.15.0,<1.2.0"
 ]
+
+otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
@@ -146,8 +144,7 @@ testing = [
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
     "msgspec",
-    "uvicorn>=0.34.3; python_version >= '3.9'",
-    "uvicorn==0.33.0; python_version < '3.9'",
+    "uvicorn>=0.34.3",
     "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "psutil==7.2.2",
     "prometheus-client>=0.20.0,<0.30.0",

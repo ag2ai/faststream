@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1026,7 +1026,7 @@ requires-dist = [
     { name = "watchfiles", marker = "extra == 'cli'", specifier = ">=0.15.0,<1.2.0" },
     { name = "zmqtt", marker = "extra == 'mqtt'", specifier = ">=0.0.2" },
 ]
-provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "otel", "cli", "prometheus"]
+provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "cli", "otel", "prometheus"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1077,8 +1077,7 @@ dev = [
     { name = "types-pyyaml" },
     { name = "types-redis" },
     { name = "types-setuptools" },
-    { name = "uvicorn", marker = "python_full_version < '3.9'", specifier = "==0.33.0" },
-    { name = "uvicorn", marker = "python_full_version >= '3.9'", specifier = ">=0.34.3" },
+    { name = "uvicorn", specifier = ">=0.34.3" },
     { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'", specifier = ">=0.15.1" },
     { name = "zizmor", specifier = "==1.22.0" },
 ]
@@ -1144,8 +1143,7 @@ testing = [
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "uvicorn", marker = "python_full_version < '3.9'", specifier = "==0.33.0" },
-    { name = "uvicorn", marker = "python_full_version >= '3.9'", specifier = ">=0.34.3" },
+    { name = "uvicorn", specifier = ">=0.34.3" },
     { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'", specifier = ">=0.15.1" },
 ]
 

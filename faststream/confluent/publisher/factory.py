@@ -35,7 +35,6 @@ def create_publisher(
         headers=headers,
         reply_to=reply_to,
         _outer_config=config,
-        middlewares=(),
     )
 
     specification = KafkaPublisherSpecification(

@@ -1,8 +1,7 @@
 from collections import UserList
-from collections.abc import Iterable, Reversible, Sequence
+from collections.abc import Iterable, Reversible
 from functools import partial
 from inspect import unwrap
-from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,7 +38,6 @@ class HandlerItem(Generic[MsgType]):
         "filter",
         "handler",
         "item_decoder",
-        "item_middlewares",
         "item_parser",
     )
 
@@ -52,14 +50,12 @@ class HandlerItem(Generic[MsgType]):
         filter: "AsyncFilter[Any]",
         item_parser: Optional["CustomCallable"],
         item_decoder: Optional["CustomCallable"],
-        item_middlewares: Sequence["SubscriberMiddleware[StreamMessage[MsgType]]"],
         dependencies: Iterable["Dependant"],
     ) -> None:
         self.handler = handler
         self.filter = filter
         self.item_parser = item_parser
         self.item_decoder = item_decoder
-        self.item_middlewares = item_middlewares
         self.dependencies = dependencies
         self.dependant = None
 
@@ -139,7 +135,7 @@ class HandlerItem(Generic[MsgType]):
         """Execute wrapped handler with consume middlewares."""
         call: AsyncFuncAny = self.handler.call_wrapped
 
-        for middleware in chain(self.item_middlewares[::-1], _extra_middlewares):
+        for middleware in _extra_middlewares:
             call = partial(middleware, call)
 
         try:
