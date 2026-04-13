@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.0rc0"
+version = "0.7.0rc1"
 
 keywords = [
     "rabbitmq",

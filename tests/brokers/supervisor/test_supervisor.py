@@ -38,6 +38,7 @@ async def test_task_successful(subscriber_with_task_mixin):
 
 
 @pytest.mark.asyncio()
+@pytest.mark.slow()
 async def test_ignore_cancellation_error(subscriber_with_task_mixin):
     async def cancelled_task():
         await asyncio.sleep(10)
