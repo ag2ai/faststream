@@ -51,9 +51,8 @@ def compile_path(
     return regex, original_path
 
 
-def match_path(pattern: "Pattern[str] | None", subject: str) -> "dict[str, Any]":
+def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
     """Match subject against pattern and return named groups, or {} if no match."""
-    # Redis callers must check message.get("pattern") guard before calling this
     if pattern is not None and (match := pattern.match(subject)):
         return match.groupdict()
     return {}

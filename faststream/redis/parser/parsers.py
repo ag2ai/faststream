@@ -56,6 +56,8 @@ class SimpleParser:
         return self.msg_class(
             raw_message=message,
             body=data,
+            # Only pattern-subscribed messages have "pattern" set;
+            # guard here before calling match_path.
             path=match_path(self.pattern, message["channel"])
             if message.get("pattern")
             else {},
