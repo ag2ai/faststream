@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
     FAKE_CONSUMER,
     ConsumerProtocol,
@@ -7,7 +8,6 @@ from faststream.kafka.message import (
     KafkaRawMessage,
 )
 from faststream.message import decode_message
-from faststream._internal.utils.path import match_path
 
 if TYPE_CHECKING:
     from re import Pattern
