@@ -266,8 +266,8 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         max_records: int | None,
     ) -> None:
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.decoder = self.parser.decode_message_batch
-        config.parser = self.parser.parse_message_batch
+        config.decoder = self.parser.decode_batch
+        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.max_records = max_records
