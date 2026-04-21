@@ -54,7 +54,7 @@ class AsyncConfluentParser:
             is_manual=self.is_manual,
         )
 
-    async def parse_message_batch(
+    async def parse_batch(
         self,
         message: tuple["Message", ...],
     ) -> KafkaMessage:
@@ -95,7 +95,7 @@ class AsyncConfluentParser:
         """Decodes a message."""
         return decode_message(msg)
 
-    async def decode_message_batch(
+    async def decode_batch(
         self,
         msg: "StreamMessage[tuple[Message, ...]]",
     ) -> "DecodedMessage":

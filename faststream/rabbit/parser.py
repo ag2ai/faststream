@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional
 from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
+from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
     decode_message,
@@ -34,12 +35,7 @@ class AioPikaParser:
         message: "IncomingMessage",
     ) -> StreamMessage["IncomingMessage"]:
         """Parses an incoming message and returns a RabbitMessage object."""
-        if (path_re := self.pattern) and (
-            match := path_re.match(message.routing_key or "")
-        ):
-            path = match.groupdict()
-        else:
-            path = {}
+        path = match_path(self.pattern, message.routing_key or "")
 
         return RabbitMessage(
             body=message.body,

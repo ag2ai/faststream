@@ -1,6 +1,7 @@
 import re
 from collections.abc import Callable
 from re import Pattern
+from typing import Any
 
 from faststream.exceptions import SetupError
 
@@ -48,3 +49,10 @@ def compile_path(
 
     original_path += path[idx:]
     return regex, original_path
+
+
+def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
+    """Match subject against pattern and return named groups, or {} if no match."""
+    if pattern is not None and (match := pattern.match(subject)):
+        return match.groupdict()
+    return {}

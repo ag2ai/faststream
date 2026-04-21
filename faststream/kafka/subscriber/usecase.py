@@ -335,8 +335,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
             regex=reg,
         )
-        config.decoder = self.parser.decode_message
-        config.parser = self.parser.parse_message
+        config.decoder = self.parser.decode_batch
+        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.batch_timeout_ms = batch_timeout_ms
