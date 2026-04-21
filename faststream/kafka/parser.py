@@ -75,7 +75,7 @@ class AioKafkaBatchParser(AioKafkaParser):
 
         for m in message:
             body.append(m.value or b"")
-            batch_headers.append({i: j.decode() for i, j in m.headers})
+            batch_headers.append({i: j.decode(errors="replace") for i, j in m.headers})
 
         headers = next(iter(batch_headers), {})
 
