@@ -80,64 +80,64 @@ if TYPE_CHECKING:
         """NatsBroker.connect() method type hints.
 
         Args:
-        error_cb:
-        Callback to report errors.
-        disconnected_cb: \
-         Callback to report disconnection from NATS.
-        closed_cb:
-        Callback to report when client stops reconnection to NATS.
-        discovered_server_cb:
-        A callback to report when a new server joins the cluster.
-        reconnected_cb:
-        Callback to report success reconnection.
-        name:
-        Label the connection with name (shown in NATS monitoring
-        pedantic:
-        Turn on NATS server pedantic mode that performs extra checks on the protocol.
-        https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
-        verbose:
-        Verbose mode produce more feedback about code execution.
-        allow_reconnect:
-        Whether recover connection automatically or not.
-        connect_timeout:
-        Timeout in seconds to establish connection with NATS server.
-        reconnect_time_wait:
-        Time in seconds to wait for reestablish connection to NATS server
-        max_reconnect_attempts:
-        Maximum attempts number to reconnect to NATS server.
-        ping_interval:
-        Interval in seconds to ping.
-        max_outstanding_pings:
-        Maximum number of failed pings
-        dont_randomize:
-        Boolean indicating should client randomly shuffle servers list for reconnection randomness.
-        flusher_queue_size:
-        Max count of commands awaiting to be flushed to the socket
-        no_echo:
-        Boolean indicating should commands be echoed.
-        tls_hostname:
-        Hostname for TLS.
-        token:
-        Auth token for NATS auth.
-        drain_timeout:
-        Timeout in seconds to drain subscriptions.
-        signature_cb:
-        A callback used to sign a nonce from the server while authenticating with nkeys.
-        The user should sign the nonce and return the base64 encoded signature.
-        user_jwt_cb:
-        A callback used to fetch and return the account signed JWT for this user.
-        user_credentials:
-        A user credentials file or tuple of files.
-        nkeys_seed:
-        Path-like object containing nkeys seed that will be used.
-        nkeys_seed_str:
-        Nkeys seed to be used.
-        inbox_prefix:
-        Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
-        pending_size:
-        Max size of the pending buffer for publishing commands.
-        flush_timeout:
-        Max duration to wait for a forced flush to occur
+            error_cb:
+                Callback to report errors.
+            disconnected_cb: \
+                Callback to report disconnection from NATS.
+            closed_cb:
+                Callback to report when client stops reconnection to NATS.
+            discovered_server_cb:
+                A callback to report when a new server joins the cluster.
+            reconnected_cb:
+                Callback to report success reconnection.
+            name:
+                Label the connection with name (shown in NATS monitoring
+            pedantic:
+                Turn on NATS server pedantic mode that performs extra checks on the protocol.
+                https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+            verbose:
+                Verbose mode produce more feedback about code execution.
+            allow_reconnect:
+                Whether recover connection automatically or not.
+            connect_timeout:
+                Timeout in seconds to establish connection with NATS server.
+            reconnect_time_wait:
+                Time in seconds to wait for reestablish connection to NATS server
+            max_reconnect_attempts:
+                Maximum attempts number to reconnect to NATS server.
+            ping_interval:
+                Interval in seconds to ping.
+            max_outstanding_pings:
+                Maximum number of failed pings
+            dont_randomize:
+                Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+            flusher_queue_size:
+                Max count of commands awaiting to be flushed to the socket
+            no_echo:
+                Boolean indicating should commands be echoed.
+            tls_hostname:
+                Hostname for TLS.
+            token:
+                Auth token for NATS auth.
+            drain_timeout:
+                Timeout in seconds to drain subscriptions.
+            signature_cb:
+                A callback used to sign a nonce from the server while authenticating with nkeys.
+                The user should sign the nonce and return the base64 encoded signature.
+            user_jwt_cb:
+                A callback used to fetch and return the account signed JWT for this user.
+            user_credentials:
+                A user credentials file or tuple of files.
+            nkeys_seed:
+                Path-like object containing nkeys seed that will be used.
+            nkeys_seed_str:
+                Nkeys seed to be used.
+            inbox_prefix:
+                Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+            pending_size:
+                Max size of the pending buffer for publishing commands.
+            flush_timeout:
+                Max duration to wait for a forced flush to occur
         """
 
         error_cb: "ErrorCallback" | None
@@ -296,7 +296,7 @@ class NatsBroker(
             flush_timeout:
                 Max duration to wait for a forced flush to occur
             js_options:
-                JetStream options to pass to the connection.
+                JetStream initialization options.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             ack_policy:
@@ -310,9 +310,9 @@ class NatsBroker(
             dependencies:
                 Dependencies to apply to all broker subscribers.
             middlewares:
-                Middlewares to apply to all broker publishers/subscribers.
+                "Middlewares to apply to all broker publishers/subscribers.
             routers:
-                Routers to apply to broker.
+                "Routers to apply to broker.
             security:
                 Security options to connect broker and generate AsyncAPI server security information.
             specification_url:
