@@ -504,13 +504,13 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             kv_watch: KeyValue watch parameters container.
             obj_watch: ObjectStore watch parameters container.
             inbox_prefix: Prefix for generating unique inboxes, subjects with that prefix and NUID.
-             stream: Subscribe to NATS Stream with `subject` filter.
-             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
-             parser: Parser to map original **nats-py** Msg to FastStream one.
-             decoder: Function to decode FastStream msg bytes body to python objects.
-             codec: Custom codec object.
-             max_workers: Number of workers to process messages concurrently.
-             ack_policy: Whether to `ack` message at start of consuming or not.
+            stream: Subscribe to NATS Stream with `subject` filter.
+            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser: Parser to map original **nats-py** Msg to FastStream one.
+            decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
+            max_workers: Number of workers to process messages concurrently.
+            ack_policy: Whether to `ack` message at start of consuming or not.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title: AsyncAPI subscriber object title.
             description: AsyncAPI subscriber object description. Uses decorated docstring as default.

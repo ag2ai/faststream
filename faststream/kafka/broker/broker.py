@@ -314,16 +314,16 @@ class KafkaBroker(
                 Transaction timeout in milliseconds.
             graceful_timeout (Optional[float]):
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
-             ack_policy (AckPolicy):
-                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
-                 If not set, each broker type uses its built-in default.
-             decoder (Optional[CustomCallable]):
-                 Custom decoder object.
-             codec (Optional[CodecProto]):
-                 Custom codec object.
-             parser (Optional[CustomCallable]):
-                 Custom parser object.
-             dependencies (Iterable[Dependant]):
+            ack_policy (AckPolicy):
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+                If not set, each broker type uses its built-in default.
+            decoder (Optional[CustomCallable]):
+                Custom decoder object.
+            codec (Optional[CodecProto]):
+                Custom codec object.
+            parser (Optional[CustomCallable]):
+                Custom parser object.
+            dependencies (Iterable[Dependant]):
                 Dependencies to apply to all broker subscribers.
             middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
                 Middlewares to apply to all broker publishers/subscribers.

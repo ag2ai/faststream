@@ -356,43 +356,43 @@ class KafkaRegistrator(
                 should be set no higher than 1/3 of that value. It can be
                 adjusted even lower to control the expected time for normal
                 rebalances.
-             isolation_level: Controls how to read messages written
-                 transactionally.
+            isolation_level: Controls how to read messages written
+                transactionally.
 
                  * `read_committed`, batch consumer will only return
-                 transactional messages which have been committed.
+                transactional messages which have been committed.
 
                  * `read_uncommitted` (the default), batch consumer will
-                 return all messages, even transactional messages which have been
-                 aborted.
+                return all messages, even transactional messages which have been
+                aborted.
 
-                 Non-transactional messages will be returned unconditionally in
-                 either mode.
+                Non-transactional messages will be returned unconditionally in
+                either mode.
 
-                 Messages will always be returned in offset order. Hence, in
+                Messages will always be returned in offset order. Hence, in
                  `read_committed` mode, batch consumer will only return
-                 messages up to the last stable offset (ALSO), which is the one less
-                 than the offset of the first open transaction. In particular any
-                 messages appearing after messages belonging to ongoing transactions
-                 will be withheld until the relevant transaction has been completed.
-                 As a result, `read_committed` consumers will not be able to read up
-                 to the high watermark when there are in flight transactions.
-                 Further, when in `read_committed` the seek_to_end method will
-                 return the ALSO. See method docs below.
-             batch: Whether to consume messages in batches or not.
-             max_records: Number of messages to consume as one batch.
-             on_assign: Callback called when partitions are assigned to the consumer
-                 during a rebalance. Receives ``(consumer, partitions)`` arguments.
-             on_revoke: Callback called when partitions are revoked from the consumer
-                 during a rebalance. Receives ``(consumer, partitions)`` arguments.
-             on_lost: Callback called when partitions are lost (e.g., due to session
-                 timeout). Receives ``(consumer, partitions)`` arguments.
-             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
-             parser: Parser to map original **Message** object to FastStream one.
-             decoder: Function to decode FastStream msg bytes body to python objects.
-             codec: Custom codec object.
-             middlewares: Subscriber middlewares to wrap incoming message processing.
-             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
+                messages up to the last stable offset (ALSO), which is the one less
+                than the offset of the first open transaction. In particular any
+                messages appearing after messages belonging to ongoing transactions
+                will be withheld until the relevant transaction has been completed.
+                As a result, `read_committed` consumers will not be able to read up
+                to the high watermark when there are in flight transactions.
+                Further, when in `read_committed` the seek_to_end method will
+                return the ALSO. See method docs below.
+            batch: Whether to consume messages in batches or not.
+            max_records: Number of messages to consume as one batch.
+            on_assign: Callback called when partitions are assigned to the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_revoke: Callback called when partitions are revoked from the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_lost: Callback called when partitions are lost (e.g., due to session
+                timeout). Receives ``(consumer, partitions)`` arguments.
+            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser: Parser to map original **Message** object to FastStream one.
+            decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
+            middlewares: Subscriber middlewares to wrap incoming message processing.
+            no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy: Acknowledgement policy for the subscriber.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             title: Specification subscriber object title.

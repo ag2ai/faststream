@@ -293,25 +293,27 @@ class NatsBroker(
                 Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
             pending_size:
                 Max size of the pending buffer for publishing commands.
-             flush_timeout:
-                 Max duration to wait for a forced flush to occur
-             graceful_timeout:
-                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
-             ack_policy:
-                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
-             decoder:
-                 Custom decoder object.
-             codec:
-                 Custom codec object.
-             parser:
-                 Custom parser object.
-             dependencies:
-                 Dependencies to apply to all broker subscribers.
-             middlewares:
-                 Middlewares to apply to all broker publishers/subscribers.
-             routers:
-                 Routers to apply to broker.
-             security:
+            flush_timeout:
+                Max duration to wait for a forced flush to occur
+            js_options:
+                JetStream options to pass to the connection.
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+            decoder:
+                Custom decoder object.
+            codec:
+                Custom codec object.
+            parser:
+                Custom parser object.
+            dependencies:
+                Dependencies to apply to all broker subscribers.
+            middlewares:
+                Middlewares to apply to all broker publishers/subscribers.
+            routers:
+                Routers to apply to broker.
+            security:
                 Security options to connect broker and generate AsyncAPI server security information.
             specification_url:
                 AsyncAPI hardcoded server addresses. Use `servers` if not specified.

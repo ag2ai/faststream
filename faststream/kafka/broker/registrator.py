@@ -531,14 +531,14 @@ class KafkaRegistrator(
                 through this interface are from topics subscribed in this call.
             pattern:
                 Pattern to match available topics. You must provide either topics or pattern, but not both.
-             partitions:  An explicit partitions list to assign.
-                 You can't use 'topics' and 'partitions' in the same time.
-             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
-             parser: Parser to map original **ConsumerRecord** object to FastStream one.
-             decoder: Function to decode FastStream msg bytes body to python objects.
-             codec: Custom codec object.
-             middlewares: Subscriber middlewares to wrap incoming message processing.
-             max_workers: Number of workers to process messages concurrently.
+            partitions:  An explicit partitions list to assign.
+                You can't use 'topics' and 'partitions' in the same time.
+            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+            parser: Parser to map original **ConsumerRecord** object to FastStream one.
+            decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
+            middlewares: Subscriber middlewares to wrap incoming message processing.
+            max_workers: Number of workers to process messages concurrently.
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy: Acknowledgement policy for the subscriber.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
