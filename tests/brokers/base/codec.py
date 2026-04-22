@@ -46,9 +46,9 @@ class CodecTestcase(BaseTestcaseConfig):
             mock(m)
 
         async with self.patch_broker(broker) as br:
-            await br.publish(b"hello", queue)
+            await br.publish({"key": "value"}, queue)
 
-        mock.assert_called_once_with(b"hello")
+        mock.assert_called_once_with({"key": "value"})
 
     async def test_codec_and_decoder_conflict_raises(
         self,
