@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.redis.message import RedisChannelMessage
     from faststream.security import BaseSecurity
@@ -109,6 +110,7 @@ class RedisBroker(
         graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -260,6 +262,7 @@ class RedisBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_redis_logger_state(
                     logger=logger,
                     log_level=log_level,
