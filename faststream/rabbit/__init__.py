@@ -1,4 +1,13 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.testing.app import TestApp
+
+if TYPE_CHECKING:
+    from aio_pika import IncomingMessage
+
+    from faststream._internal.parser import ParserProto
+
+    RabbitParserType = ParserProto["IncomingMessage"]
 
 try:
     from .annotations import RabbitMessage
@@ -28,6 +37,7 @@ __all__ = (
     "RabbitBroker",
     "RabbitExchange",
     "RabbitMessage",
+    "RabbitParserType",
     "RabbitPublishCommand",
     "RabbitPublisher",
     "RabbitQueue",

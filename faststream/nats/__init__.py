@@ -1,4 +1,13 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.testing.app import TestApp
+
+if TYPE_CHECKING:
+    from nats.aio.msg import Msg
+
+    from faststream._internal.parser import ParserProto
+
+    NatsParserType = ParserProto["Msg"]
 
 try:
     from nats.js.api import (
@@ -41,6 +50,7 @@ __all__ = (
     "KvWatch",
     "NatsBroker",
     "NatsMessage",
+    "NatsParserType",
     "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",
