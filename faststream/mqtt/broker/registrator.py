@@ -57,15 +57,16 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
             topic: MQTT topic filter. Wildcards ``+`` (single level) and
                 ``#`` (multi-level) are supported.
             qos: QoS level for the subscription (0, 1, or 2).
-            shared: Optional shared subscription group name. When set,
-                subscribes as ``$share/<group>/<topic>``.
-            ack_policy: Acknowledgement policy for message processing.
-            no_reply: Whether to disable FastStream RPC / reply-to responses.
-            dependencies: Dependencies list to apply to the subscriber.
-            parser: Custom parser to map raw messages to FastStream ones.
-            decoder: Function to decode FastStream message bytes to Python objects.
-            max_workers: Number of workers to process messages concurrently.
-            persistent: Whether to retain the subscriber across broker restarts.
+             shared: Optional shared subscription group name. When set,
+                 subscribes as ``$share/<group>/<topic>``.
+             ack_policy: Acknowledgement policy for message processing.
+             no_reply: Whether to disable FastStream RPC / reply-to responses.
+             dependencies: Dependencies list to apply to the subscriber.
+             parser: Custom parser to map raw messages to FastStream ones.
+             decoder: Function to decode FastStream message bytes to Python objects.
+             codec: Custom codec object.
+             max_workers: Number of workers to process messages concurrently.
+             persistent: Whether to retain the subscriber across broker restarts.
             title: AsyncAPI subscriber object title.
             description: AsyncAPI subscriber object description.
             include_in_schema: Whether to include operation in AsyncAPI schema.

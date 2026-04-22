@@ -50,124 +50,124 @@ from .logging import make_nats_logger_state
 from .registrator import NatsRegistrator
 
 if TYPE_CHECKING:
-     from types import TracebackType
+    from types import TracebackType
 
-     from fast_depends.dependencies import Dependant
-     from fast_depends.library.serializer import SerializerProto
-     from nats.aio.client import (
-     Callback,
-     Credentials,
-     ErrorCallback,
-     JWTCallback,
-     SignatureCallback,
-     )
-     from nats.js.api import Placement, RePublish, StorageType
-     from nats.js.kv import KeyValue
-     from nats.js.object_store import ObjectStore
-     from typing_extensions import TypedDict
+    from fast_depends.dependencies import Dependant
+    from fast_depends.library.serializer import SerializerProto
+    from nats.aio.client import (
+        Callback,
+        Credentials,
+        ErrorCallback,
+        JWTCallback,
+        SignatureCallback,
+    )
+    from nats.js.api import Placement, RePublish, StorageType
+    from nats.js.kv import KeyValue
+    from nats.js.object_store import ObjectStore
+    from typing_extensions import TypedDict
 
-     from faststream._internal.basic_types import LoggerProto, SendableMessage
-     from faststream._internal.parser import CodecProto
-     from faststream._internal.types import BrokerMiddleware, CustomCallable
-     from faststream.nats.configs.broker import JsInitOptions
-     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
-     from faststream.nats.message import NatsMessage
-     from faststream.nats.schemas import PubAck, Schedule
-     from faststream.security import BaseSecurity
-     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
+    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.nats.configs.broker import JsInitOptions
+    from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
+    from faststream.nats.message import NatsMessage
+    from faststream.nats.schemas import PubAck, Schedule
+    from faststream.security import BaseSecurity
+    from faststream.specification.schema.extra import Tag, TagDict
 
-     class NatsInitKwargs(TypedDict, total=False):
-         """NatsBroker.connect() method type hints.
+    class NatsInitKwargs(TypedDict, total=False):
+        """NatsBroker.connect() method type hints.
 
-         Args:
-         error_cb:
-         Callback to report errors.
-         disconnected_cb: \
+        Args:
+        error_cb:
+        Callback to report errors.
+        disconnected_cb: \
          Callback to report disconnection from NATS.
-         closed_cb:
-         Callback to report when client stops reconnection to NATS.
-         discovered_server_cb:
-         A callback to report when a new server joins the cluster.
-         reconnected_cb:
-         Callback to report success reconnection.
-         name:
-         Label the connection with name (shown in NATS monitoring
-         pedantic:
-         Turn on NATS server pedantic mode that performs extra checks on the protocol.
-         https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
-         verbose:
-         Verbose mode produce more feedback about code execution.
-         allow_reconnect:
-         Whether recover connection automatically or not.
-         connect_timeout:
-         Timeout in seconds to establish connection with NATS server.
-         reconnect_time_wait:
-         Time in seconds to wait for reestablish connection to NATS server
-         max_reconnect_attempts:
-         Maximum attempts number to reconnect to NATS server.
-         ping_interval:
-         Interval in seconds to ping.
-         max_outstanding_pings:
-         Maximum number of failed pings
-         dont_randomize:
-         Boolean indicating should client randomly shuffle servers list for reconnection randomness.
-         flusher_queue_size:
-         Max count of commands awaiting to be flushed to the socket
-         no_echo:
-         Boolean indicating should commands be echoed.
-         tls_hostname:
-         Hostname for TLS.
-         token:
-         Auth token for NATS auth.
-         drain_timeout:
-         Timeout in seconds to drain subscriptions.
-         signature_cb:
-         A callback used to sign a nonce from the server while authenticating with nkeys.
-         The user should sign the nonce and return the base64 encoded signature.
-         user_jwt_cb:
-         A callback used to fetch and return the account signed JWT for this user.
-         user_credentials:
-         A user credentials file or tuple of files.
-         nkeys_seed:
-         Path-like object containing nkeys seed that will be used.
-         nkeys_seed_str:
-         Nkeys seed to be used.
-         inbox_prefix:
-         Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
-         pending_size:
-         Max size of the pending buffer for publishing commands.
-         flush_timeout:
-         Max duration to wait for a forced flush to occur
-         """
+        closed_cb:
+        Callback to report when client stops reconnection to NATS.
+        discovered_server_cb:
+        A callback to report when a new server joins the cluster.
+        reconnected_cb:
+        Callback to report success reconnection.
+        name:
+        Label the connection with name (shown in NATS monitoring
+        pedantic:
+        Turn on NATS server pedantic mode that performs extra checks on the protocol.
+        https://docs.nats.io/using-nats/developer/connecting/misc#turn-on-pedantic-mode
+        verbose:
+        Verbose mode produce more feedback about code execution.
+        allow_reconnect:
+        Whether recover connection automatically or not.
+        connect_timeout:
+        Timeout in seconds to establish connection with NATS server.
+        reconnect_time_wait:
+        Time in seconds to wait for reestablish connection to NATS server
+        max_reconnect_attempts:
+        Maximum attempts number to reconnect to NATS server.
+        ping_interval:
+        Interval in seconds to ping.
+        max_outstanding_pings:
+        Maximum number of failed pings
+        dont_randomize:
+        Boolean indicating should client randomly shuffle servers list for reconnection randomness.
+        flusher_queue_size:
+        Max count of commands awaiting to be flushed to the socket
+        no_echo:
+        Boolean indicating should commands be echoed.
+        tls_hostname:
+        Hostname for TLS.
+        token:
+        Auth token for NATS auth.
+        drain_timeout:
+        Timeout in seconds to drain subscriptions.
+        signature_cb:
+        A callback used to sign a nonce from the server while authenticating with nkeys.
+        The user should sign the nonce and return the base64 encoded signature.
+        user_jwt_cb:
+        A callback used to fetch and return the account signed JWT for this user.
+        user_credentials:
+        A user credentials file or tuple of files.
+        nkeys_seed:
+        Path-like object containing nkeys seed that will be used.
+        nkeys_seed_str:
+        Nkeys seed to be used.
+        inbox_prefix:
+        Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
+        pending_size:
+        Max size of the pending buffer for publishing commands.
+        flush_timeout:
+        Max duration to wait for a forced flush to occur
+        """
 
-         error_cb: "ErrorCallback" | None
-         disconnected_cb: "Callback" | None
-         closed_cb: Callback | None
-         discovered_server_cb: "Callback" | None
-         reconnected_cb: "Callback" | None
-         name: str | None
-         pedantic: bool
-         verbose: bool
-         allow_reconnect: bool
-         connect_timeout: int
-         reconnect_time_wait: int
-         max_reconnect_attempts: int
-         ping_interval: int
-         max_outstanding_pings: int
-         dont_randomize: bool
-         flusher_queue_size: int
-         no_echo: bool
-         tls_hostname: str | None
-         token: str | None
-         drain_timeout: int
-         signature_cb: "SignatureCallback" | None
-         user_jwt_cb: "JWTCallback" | None
-         user_credentials: "Credentials" | None
-         nkeys_seed: str | None
-         nkeys_seed_str: str | None
-         inbox_prefix: str | bytes
-         pending_size: int
-         flush_timeout: float | None
+        error_cb: "ErrorCallback" | None
+        disconnected_cb: "Callback" | None
+        closed_cb: Callback | None
+        discovered_server_cb: "Callback" | None
+        reconnected_cb: "Callback" | None
+        name: str | None
+        pedantic: bool
+        verbose: bool
+        allow_reconnect: bool
+        connect_timeout: int
+        reconnect_time_wait: int
+        max_reconnect_attempts: int
+        ping_interval: int
+        max_outstanding_pings: int
+        dont_randomize: bool
+        flusher_queue_size: int
+        no_echo: bool
+        tls_hostname: str | None
+        token: str | None
+        drain_timeout: int
+        signature_cb: "SignatureCallback" | None
+        user_jwt_cb: "JWTCallback" | None
+        user_credentials: "Credentials" | None
+        nkeys_seed: str | None
+        nkeys_seed_str: str | None
+        inbox_prefix: str | bytes
+        pending_size: int
+        flush_timeout: float | None
 
 
 class NatsBroker(
@@ -211,12 +211,12 @@ class NatsBroker(
         pending_size: int = DEFAULT_PENDING_SIZE,
         flush_timeout: float | None = None,
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
-         graceful_timeout: float | None = None,
-         ack_policy: AckPolicy = EMPTY,
-         decoder: Optional["CustomCallable"] = None,
-         codec: Optional["CodecProto"] = None,
-         parser: Optional["CustomCallable"] = None,
-         dependencies: Iterable["Dependant"] = (),
+        graceful_timeout: float | None = None,
+        ack_policy: AckPolicy = EMPTY,
+        decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
+        parser: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[NatsRegistrator] = (),
         security: Optional["BaseSecurity"] = None,
@@ -293,27 +293,25 @@ class NatsBroker(
                 Prefix for generating unique inboxes, subjects with that prefix and NUID.ß
             pending_size:
                 Max size of the pending buffer for publishing commands.
-            flush_timeout:
-                Max duration to wait for a forced flush to occur
-            js_options:
-                JetStream initialization options.
-            graceful_timeout:
-                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+             flush_timeout:
+                 Max duration to wait for a forced flush to occur
+             graceful_timeout:
+                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
              ack_policy:
                  Default acknowledgement policy for all subscribers. Individual subscribers can override.
              decoder:
-                 Custom decoder object
+                 Custom decoder object.
              codec:
-                 Custom codec object
+                 Custom codec object.
              parser:
                  Custom parser object.
-            dependencies:
-                Dependencies to apply to all broker subscribers.
-            middlewares:
-                "Middlewares to apply to all broker publishers/subscribers.
-            routers:
-                "Routers to apply to broker.
-            security:
+             dependencies:
+                 Dependencies to apply to all broker subscribers.
+             middlewares:
+                 Middlewares to apply to all broker publishers/subscribers.
+             routers:
+                 Routers to apply to broker.
+             security:
                 Security options to connect broker and generate AsyncAPI server security information.
             specification_url:
                 AsyncAPI hardcoded server addresses. Use `servers` if not specified.
@@ -396,16 +394,16 @@ class NatsBroker(
             user_jwt_cb=user_jwt_cb,
             # Basic args
             routers=routers,
-             config=NatsBrokerConfig(
-                 producer=producer,
-                 js_producer=js_producer,
-                 js_options=js_options or {},
-                 # both args
-                 broker_middlewares=middlewares,
-                 broker_parser=parser,
-                 broker_decoder=decoder,
-                 broker_codec=codec,
-                 logger=make_nats_logger_state(
+            config=NatsBrokerConfig(
+                producer=producer,
+                js_producer=js_producer,
+                js_options=js_options or {},
+                # both args
+                broker_middlewares=middlewares,
+                broker_parser=parser,
+                broker_decoder=decoder,
+                broker_codec=codec,
+                logger=make_nats_logger_state(
                     logger=logger,
                     log_level=log_level,
                 ),

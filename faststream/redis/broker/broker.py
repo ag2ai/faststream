@@ -170,17 +170,19 @@ class RedisBroker(
                 The class to use for parsing messages. Defaults to DefaultParser.
             encoder_class:
                 The class to use for encoding messages. Defaults to Encoder.
-            graceful_timeout:
-                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
-            ack_policy:
-                Default acknowledgement policy for all subscribers. Individual subscribers can override.
-            decoder:
-                Custom decoder object. Defaults to None.
-            parser:
-                Custom parser object. Defaults to None.
-            dependencies:
-                Dependencies to apply to all broker subscribers. Defaults to ().
-            middlewares:
+             graceful_timeout:
+                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
+             ack_policy:
+                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
+             decoder:
+                 Custom decoder object. Defaults to None.
+             codec:
+                 Custom codec object. Defaults to None.
+             parser:
+                 Custom parser object. Defaults to None.
+             dependencies:
+                 Dependencies to apply to all broker subscribers. Defaults to ().
+             middlewares:
                 Middlewares to apply to all broker publishers/subscribers. Defaults to ().
             routers:
                 Routers to apply to broker. Defaults to ().

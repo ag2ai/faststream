@@ -278,13 +278,14 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         Args:
             channel: Redis PubSub object name to send message.
             list: Redis List object name to send message.
-            stream: Redis Stream object name to send message.
-            ack_policy: Acknowledgement policy for message processing.
-            dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
-            parser: Parser to map original **IncomingMessage** Msg to FastStream one.
-            decoder: Function to decode FastStream msg bytes body to python objects.
-            no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
-            message_format: Which format to use when parsing messages.
+             stream: Redis Stream object name to send message.
+             ack_policy: Acknowledgement policy for message processing.
+             dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
+             parser: Parser to map original **IncomingMessage** Msg to FastStream one.
+             decoder: Function to decode FastStream msg bytes body to python objects.
+             codec: Custom codec object.
+             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
+             message_format: Which format to use when parsing messages.
             persistent: Whether to make the subscriber persistent or not.
             max_workers: Number of workers to process messages concurrently.
             title: AsyncAPI subscriber object title.

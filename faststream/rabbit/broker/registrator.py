@@ -62,12 +62,13 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             exchange (Union[str, RabbitExchange, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default.
             channel (Optional[Channel], optional): Channel to use for consuming messages.
             consume_args (dict[str, Any] | None, optional): Extra consumer arguments to use in `queue.consume(...)` method.
-            ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
-            dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.
-            parser (Optional[CustomCallable], optional): Parser to map original **IncomingMessage** Msg to FastStream one.
-            decoder (Optional[CustomCallable], optional): Function to decode FastStream msg bytes body to python objects.
-            no_reply (bool, optional): Whether to disable **FastStream** RPC and Reply To auto responses or not.
-            title (Optional[str], optional): AsyncAPI subscriber object title.
+             ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
+             dependencies (Iterable[Dependant], optional): Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+             parser (Optional[CustomCallable], optional): Parser to map original **IncomingMessage** Msg to FastStream one.
+             decoder (Optional[CustomCallable], optional): Function to decode FastStream msg bytes body to python objects.
+             codec (Optional[CodecProto], optional): Custom codec object.
+             no_reply (bool, optional): Whether to disable **FastStream** RPC and Reply To auto responses or not.
+             title (Optional[str], optional): AsyncAPI subscriber object title.
             description (Optional[str], optional): AsyncAPI subscriber object description. Uses decorated docstring as default.
             include_in_schema (bool, optional): Whether to include operation in AsyncAPI schema or not.
             persistent (bool): Whether to make the subscriber persistent or not.

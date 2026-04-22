@@ -70,7 +70,7 @@ class CodecTestcase(BaseTestcaseConfig):
         # which TestBroker.__aenter__ calls before yielding — hence it propagates
         # from the "async with" expression rather than from the body.
         with pytest.raises(ValueError, match="codec"):
-            async with self.patch_broker(broker) as br:
+            async with self.patch_broker(broker):
                 pass  # pragma: no cover
 
     async def test_broker_level_codec(

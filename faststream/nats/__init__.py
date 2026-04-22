@@ -3,11 +3,9 @@ from typing import TYPE_CHECKING
 from faststream._internal.testing.app import TestApp
 
 if TYPE_CHECKING:
-    from nats.aio.msg import Msg
-
     from faststream._internal.parser import ParserProto
 
-    NatsParserType = ParserProto["Msg"]
+    NatsParserType = ParserProto["Msg"]  # type: ignore[name-defined]
 
 try:
     from nats.js.api import (

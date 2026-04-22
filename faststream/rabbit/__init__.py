@@ -3,11 +3,9 @@ from typing import TYPE_CHECKING
 from faststream._internal.testing.app import TestApp
 
 if TYPE_CHECKING:
-    from aio_pika import IncomingMessage
-
     from faststream._internal.parser import ParserProto
 
-    RabbitParserType = ParserProto["IncomingMessage"]
+    RabbitParserType = ParserProto["IncomingMessage"]  # type: ignore[name-defined]
 
 try:
     from .annotations import RabbitMessage

@@ -3,11 +3,9 @@ from typing import TYPE_CHECKING
 from faststream._internal.testing.app import TestApp
 
 if TYPE_CHECKING:
-    from confluent_kafka import Message as ConfluentMessage
-
     from faststream._internal.parser import ParserProto
 
-    ConfluentParserType = ParserProto["ConfluentMessage"]
+    ConfluentParserType = ParserProto["Message"]  # type: ignore[name-defined]
 
 try:
     from .annotations import KafkaMessage

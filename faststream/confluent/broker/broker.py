@@ -193,23 +193,23 @@ class KafkaBroker(
                 may want to reduce the number of requests even under moderate load.
                 This setting accomplishes this by adding a small amount of
                 artificial delay; that is, if first request is processed faster,
-                than `linger_ms`, producer will wait ``linger_ms - process_time``.
-            enable_idempotence: When set to `True`, the producer will
-                ensure that exactly one copy of each message is written in the
-                stream. If `False`, producer retries due to broker failures,
-                etc., may write duplicates of the retried message in the stream.
-                Note that enabling idempotence acks to set to ``all``. If it is not
-                explicitly set by the user it will be chosen.
-            transactional_id: Transactional ID for the producer.
-            transaction_timeout_ms: Transaction timeout in milliseconds.
+                 than `linger_ms`, producer will wait ``linger_ms - process_time``.
+             enable_idempotence: When set to `True`, the producer will
+                 ensure that exactly one copy of each message is written in the
+                 stream. If `False`, producer retries due to broker failures,
+                 etc., may write duplicates of the retried message in the stream.
+                 Note that enabling idempotence acks to set to ``all``. If it is not
+                 explicitly set by the user it will be chosen.
+             transactional_id: Transactional ID for the producer.
+             transaction_timeout_ms: Transaction timeout in milliseconds.
              graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
              ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
              decoder: Custom decoder object.
              codec: Custom codec object.
              parser: Custom parser object.
-            dependencies: Dependencies to apply to all broker subscribers.
-            middlewares: Middlewares to apply to all broker publishers/subscribers.
-            routers: Routers to apply to broker.
+             dependencies: Dependencies to apply to all broker subscribers.
+             middlewares: Middlewares to apply to all broker publishers/subscribers.
+             routers: Routers to apply to broker.
             security: Security options to connect broker and generate AsyncAPI server security information.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
             protocol: AsyncAPI server protocol.

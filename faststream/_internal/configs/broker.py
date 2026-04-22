@@ -64,7 +64,7 @@ BrokerConfigType = TypeVar313(
 ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):
+class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     def __init__(self, config: BrokerConfigType) -> None:
         self.configs: tuple[ConfigType, ...] = (config,)
 

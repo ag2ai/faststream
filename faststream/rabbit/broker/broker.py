@@ -127,14 +127,15 @@ class RabbitBroker(
             timeout: Connection establishment timeout.
             fail_fast: Broker startup raises `AMQPConnectionError` if RabbitMQ is unreachable.
             reconnect_interval: Time to sleep between reconnection attempts.
-            default_channel: Default channel settings to use.
-            app_id: Application name to mark outgoing messages by.
-            graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
-            ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
-            decoder: Custom decoder object.
-            parser: Custom parser object.
-            dependencies: Dependencies to apply to all broker subscribers.
-            middlewares: Middlewares to apply to all broker publishers/subscribers.
+             default_channel: Default channel settings to use.
+             app_id: Application name to mark outgoing messages by.
+             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+             ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
+             decoder: Custom decoder object.
+             codec: Custom codec object.
+             parser: Custom parser object.
+             dependencies: Dependencies to apply to all broker subscribers.
+             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: RabbitRouters to build a broker with.
             security: Security options to connect broker and generate AsyncAPI server security information.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
