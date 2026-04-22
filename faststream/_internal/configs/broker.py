@@ -12,6 +12,7 @@ from faststream._internal.producer import ProducerProto, ProducerUnset
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.middlewares import AckPolicy
 
@@ -24,6 +25,7 @@ class BrokerConfig:
     broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["CustomCallable"] = None
     broker_decoder: Optional["CustomCallable"] = None
+    broker_codec: Optional["CodecProto"] = None
 
     producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)
@@ -123,6 +125,13 @@ class ConfigComposition(Generic[BrokerConfigType]):
         for c in self.configs:
             if c.broker_decoder:
                 return c.broker_decoder
+        return None
+
+    @property
+    def broker_codec(self) -> Optional["CodecProto"]:
+        for c in self.configs:
+            if c.broker_codec:
+                return c.broker_codec
         return None
 
     @property

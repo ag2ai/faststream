@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncFilter,
         BrokerMiddleware,
@@ -58,6 +59,7 @@ class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
     dependencies: Iterable["Dependant"]
+    codec: Optional["CodecProto"] = None
 
 
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
@@ -90,6 +92,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             parser=None,
             decoder=None,
             dependencies=(),
+            codec=None,
         )
 
         self._call_decorators: tuple[Decorator, ...] = ()
@@ -193,11 +196,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         parser_: Optional["CustomCallable"],
         decoder_: Optional["CustomCallable"],
         dependencies_: Iterable["Dependant"],
+        codec_: Optional["CodecProto"] = None,
     ) -> Self:
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
             dependencies=dependencies_,
+            codec=codec_,
         )
         return self
 
