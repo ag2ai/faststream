@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     import zmqtt  # noqa: F401
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -42,6 +43,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = 1,
         persistent: bool = True,
         # AsyncAPI information
@@ -86,6 +88,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         return subscriber.add_call(
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 
