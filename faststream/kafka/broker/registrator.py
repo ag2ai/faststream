@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -90,6 +91,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -138,6 +140,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -186,6 +189,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -234,6 +238,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -276,20 +281,21 @@ class KafkaRegistrator(
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
         pattern: str | None = None,
-        partitions: Collection["TopicPartition"] = (),
-        # broker args
-        persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int | None = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> Union[
+         partitions: Collection["TopicPartition"] = (),
+         # broker args
+         persistent: bool = True,
+         dependencies: Iterable["Dependant"] = (),
+         parser: Optional["CustomCallable"] = None,
+         decoder: Optional["CustomCallable"] = None,
+         codec: Optional["CodecProto"] = None,
+         max_workers: int | None = None,
+         ack_policy: AckPolicy = EMPTY,
+         no_reply: bool = False,
+         # Specification args
+         title: str | None = None,
+         description: str | None = None,
+         include_in_schema: bool = True,
+     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
         "ConcurrentDefaultSubscriber",
@@ -330,218 +336,219 @@ class KafkaRegistrator(
         listener: Optional["ConsumerRebalanceListener"] = None,
         pattern: str | None = None,
         partitions: Collection["TopicPartition"] = (),
-        # broker args
-        persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int | None = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> Union[
-        "DefaultSubscriber",
-        "BatchSubscriber",
-        "ConcurrentDefaultSubscriber",
-        "ConcurrentBetweenPartitionsSubscriber",
-    ]:
-        """Create a subscriber for Kafka topics.
+         # broker args
+         persistent: bool = True,
+         dependencies: Iterable["Dependant"] = (),
+         parser: Optional["CustomCallable"] = None,
+         decoder: Optional["CustomCallable"] = None,
+         codec: Optional["CodecProto"] = None,
+         max_workers: int | None = None,
+         ack_policy: AckPolicy = EMPTY,
+         no_reply: bool = False,
+         # Specification args
+         title: str | None = None,
+         description: str | None = None,
+         include_in_schema: bool = True,
+     ) -> Union[
+         "DefaultSubscriber",
+         "BatchSubscriber",
+         "ConcurrentDefaultSubscriber",
+         "ConcurrentBetweenPartitionsSubscriber",
+      ]:
+         """Create a subscriber for Kafka topics.
 
-        Args:
-            *topics: Kafka topics to consume messages from.
-            batch: Whether to consume messages in batches or not.
-            group_id:
-                Name of the consumer group to join for dynamic
-                partition assignment (if enabled), and to use for fetching and
-                committing offsets. If `None`, auto-partition assignment (via
-                group coordinator) and offset commits are disabled.
-            group_instance_id:
-                Name of the group instance ID used for static
-                membership (KIP-345). If set, the consumer is treated as a
-                static member, which means it does not join/leave the group
-                on each restart, avoiding unnecessary rebalances.
-            key_deserializer:
-                Any callable that takes a raw message `bytes`
-                key and returns a deserialized one.
-            value_deserializer:
-                Any callable that takes a raw message `bytes`
-                value and returns a deserialized value.
-            fetch_max_bytes:
-                The maximum amount of data the server should
-                return for a fetch request. This is not an absolute maximum, if
-                the first message in the first non-empty partition of the fetch
-                is larger than this value, the message will still be returned
-                to ensure that the consumer can make progress. NOTE: consumer
-                performs fetches to multiple brokers in parallel so memory
-                usage will depend on the number of brokers containing
-                partitions for the topic.
-            fetch_min_bytes:
-                Minimum amount of data the server should
-                return for a fetch request, otherwise wait up to
-                `fetch_max_wait_ms` for more data to accumulate.
-            fetch_max_wait_ms:
-                The maximum amount of time in milliseconds
-                the server will block before answering the fetch request if
-                there isn't sufficient data to immediately satisfy the
-                requirement given by `fetch_min_bytes`.
-            max_partition_fetch_bytes:
-                The maximum amount of data
-                per-partition the server will return. The maximum total memory
-                used for a request ``= #partitions * max_partition_fetch_bytes``.
-                This size must be at least as large as the maximum message size
-                the server allows or else it is possible for the producer to
-                send messages larger than the consumer can fetch. If that
-                happens, the consumer can get stuck trying to fetch a large
-                message on a certain partition.
-            auto_offset_reset:
-                A policy for resetting offsets on `OffsetOutOfRangeError` errors:
+         Args:
+             *topics: Kafka topics to consume messages from.
+             batch: Whether to consume messages in batches or not.
+             group_id:
+                 Name of the consumer group to join for dynamic
+                 partition assignment (if enabled), and to use for fetching and
+                 committing offsets. If `None`, auto-partition assignment (via
+                 group coordinator) and offset commits are disabled.
+             group_instance_id:
+                 Name of the group instance ID used for static
+                 membership (KIP-345). If set, the consumer is treated as a
+                 static member, which means it does not join/leave the group
+                 on each restart, avoiding unnecessary rebalances.
+             key_deserializer:
+                 Any callable that takes a raw message `bytes`
+                 key and returns a deserialized one.
+             value_deserializer:
+                 Any callable that takes a raw message `bytes`
+                 value and returns a deserialized value.
+             fetch_max_bytes:
+                 The maximum amount of data the server should
+                 return for a fetch request. This is not an absolute maximum, if
+                 the first message in the first non-empty partition of the fetch
+                 is larger than this value, the message will still be returned
+                 to ensure that the consumer can make progress. NOTE: consumer
+                 performs fetches to multiple brokers in parallel so memory
+                 usage will depend on the number of brokers containing
+                 partitions for the topic.
+             fetch_min_bytes:
+                 Minimum amount of data the server should
+                 return for a fetch request, otherwise wait up to
+                 `fetch_max_wait_ms` for more data to accumulate.
+             fetch_max_wait_ms:
+                 The maximum amount of time in milliseconds
+                 the server will block before answering the fetch request if
+                 there isn't sufficient data to immediately satisfy the
+                 requirement given by `fetch_min_bytes`.
+             max_partition_fetch_bytes:
+                 The maximum amount of data
+                 per-partition the server will return. The maximum total memory
+                 used for a request ``= #partitions * max_partition_fetch_bytes``.
+                 This size must be at least as large as the maximum message size
+                 the server allows or else it is possible for the producer to
+                 send messages larger than the consumer can fetch. If that
+                 happens, the consumer can get stuck trying to fetch a large
+                 message on a certain partition.
+             auto_offset_reset:
+                 A policy for resetting offsets on `OffsetOutOfRangeError` errors:
 
-                * `earliest` will move to the oldest available message
-                * `latest` will move to the most recent
-                * `none` will raise an exception so you can handle this case
-            auto_commit:
-                If `True` the consumer's offset will be
-                periodically committed in the background.
+                 * `earliest` will move to the oldest available message
+                 * `latest` will move to the most recent
+                 * `none` will raise an exception so you can handle this case
+             auto_commit:
+                 If `True` the consumer's offset will be
+                 periodically committed in the background.
 
-            auto_commit_interval_ms:
-                Milliseconds between automatic
-                offset commits, if `auto_commit` is `True`.
-            check_crcs:
-                Automatically check the CRC32 of the records
-                consumed. This ensures no on-the-wire or on-disk corruption to
-                the messages occurred. This check adds some overhead, so it may
-                be disabled in cases seeking extreme performance.
-            partition_assignment_strategy:
-                List of objects to use to
-                distribute partition ownership amongst consumer instances when
-                group management is used. This preference is implicit in the order
-                of the strategies in the list. When assignment strategy changes:
-                to support a change to the assignment strategy, new versions must
-                enable support both for the old assignment strategy and the new
-                one. The coordinator will choose the old assignment strategy until
-                all members have been updated. Then it will choose the new
-                strategy.
-            max_poll_interval_ms:
-                Maximum allowed time between calls to
-                consume messages in batches. If this interval
-                is exceeded the consumer is considered failed and the group will
-                rebalance in order to reassign the partitions to another consumer
-                group member. If API methods block waiting for messages, that time
-                does not count against this timeout.
-            rebalance_timeout_ms:
-                The maximum time server will wait for this
-                consumer to rejoin the group in a case of rebalance. In Java client
-                this behaviour is bound to `max.poll.interval.ms` configuration,
-                but as ``aiokafka`` will rejoin the group in the background, we
-                decouple this setting to allow finer tuning by users that use
-                `ConsumerRebalanceListener` to delay rebalacing. Defaults
-                to ``session_timeout_ms``
-            session_timeout_ms:
-                Client group session and failure detection
-                timeout. The consumer sends periodic heartbeats
-                (`heartbeat.interval.ms`) to indicate its liveness to the broker.
-                If no hearts are received by the broker for a group member within
-                the session timeout, the broker will remove the consumer from the
-                group and trigger a rebalance. The allowed range is configured with
-                the **broker** configuration properties
-                `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
-            heartbeat_interval_ms:
-                The expected time in milliseconds
-                between heartbeats to the consumer coordinator when using
-                Kafka's group management feature. Heartbeats are used to ensure
-                that the consumer's session stays active and to facilitate
-                rebalancing when new consumers join or leave the group. The
-                value must be set lower than `session_timeout_ms`, but typically
-                should be set no higher than 1/3 of that value. It can be
-                adjusted even lower to control the expected time for normal
-                rebalances.
-            consumer_timeout_ms:
-                Maximum wait timeout for background fetching
-                routine. Mostly defines how fast the system will see rebalance and
-                request new data for new partitions.
-            max_poll_records:
-                The maximum number of records returned in a
-                single call by batch consumer. Has no limit by default.
-            exclude_internal_topics:
-                Whether records from internal topics
-                (such as offsets) should be exposed to the consumer. If set to True
-                the only way to receive records from an internal topic is
-                subscribing to it.
-            isolation_level:
-                Controls how to read messages written
-                transactionally.
+             auto_commit_interval_ms:
+                 Milliseconds between automatic
+                 offset commits, if `auto_commit` is `True`.
+             check_crcs:
+                 Automatically check the CRC32 of the records
+                 consumed. This ensures no on-the-wire or on-disk corruption to
+                 the messages occurred. This check adds some overhead, so it may
+                 be disabled in cases seeking extreme performance.
+             partition_assignment_strategy:
+                 List of objects to use to
+                 distribute partition ownership amongst consumer instances when
+                 group management is used. This preference is implicit in the order
+                 of the strategies in the list. When assignment strategy changes:
+                 to support a change to the assignment strategy, new versions must
+                 enable support both for the old assignment strategy and the new
+                 one. The coordinator will choose the old assignment strategy until
+                 all members have been updated. Then it will choose the new
+                 strategy.
+             max_poll_interval_ms:
+                 Maximum allowed time between calls to
+                 consume messages in batches. If this interval
+                 is exceeded the consumer is considered failed and the group will
+                 rebalance in order to reassign the partitions to another consumer
+                 group member. If API methods block waiting for messages, that time
+                 does not count against this timeout.
+             rebalance_timeout_ms:
+                 The maximum time server will wait for this
+                 consumer to rejoin the group in a case of rebalance. In Java client
+                 this behaviour is bound to `max.poll.interval.ms` configuration,
+                 but as ``aiokafka`` will rejoin the group in the background, we
+                 decouple this setting to allow finer tuning by users that use
+                 `ConsumerRebalanceListener` to delay rebalacing. Defaults
+                 to ``session_timeout_ms``
+             session_timeout_ms:
+                 Client group session and failure detection
+                 timeout. The consumer sends periodic heartbeats
+                 (`heartbeat.interval.ms`) to indicate its liveness to the broker.
+                 If no hearts are received by the broker for a group member within
+                 the session timeout, the broker will remove the consumer from the
+                 group and trigger a rebalance. The allowed range is configured with
+                 the **broker** configuration properties
+                 `group.min.session.timeout.ms` and `group.max.session.timeout.ms`.
+             heartbeat_interval_ms:
+                 The expected time in milliseconds
+                 between heartbeats to the consumer coordinator when using
+                 Kafka's group management feature. Heartbeats are used to ensure
+                 that the consumer's session stays active and to facilitate
+                 rebalancing when new consumers join or leave the group. The
+                 value must be set lower than `session_timeout_ms`, but typically
+                 should be set no higher than 1/3 of that value. It can be
+                 adjusted even lower to control the expected time for normal
+                 rebalances.
+             consumer_timeout_ms:
+                 Maximum wait timeout for background fetching
+                 routine. Mostly defines how fast the system will see rebalance and
+                 request new data for new partitions.
+             max_poll_records:
+                 The maximum number of records returned in a
+                 single call by batch consumer. Has no limit by default.
+             exclude_internal_topics:
+                 Whether records from internal topics
+                 (such as offsets) should be exposed to the consumer. If set to True
+                 the only way to receive records from an internal topic is
+                 subscribing to it.
+             isolation_level:
+                 Controls how to read messages written
+                 transactionally.
 
-                * `read_committed`, batch consumer will only return
-                transactional messages which have been committed.
+                 * `read_committed`, batch consumer will only return
+                 transactional messages which have been committed.
 
-                * `read_uncommitted` (the default), batch consumer will
-                return all messages, even transactional messages which have been
-                aborted.
+                 * `read_uncommitted` (the default), batch consumer will
+                 return all messages, even transactional messages which have been
+                 aborted.
 
-                Non-transactional messages will be returned unconditionally in
-                either mode.
+                 Non-transactional messages will be returned unconditionally in
+                 either mode.
 
-                Messages will always be returned in offset order. Hence, in
-                `read_committed` mode, batch consumer will only return
-                messages up to the last stable offset (ALSO), which is the one less
-                than the offset of the first open transaction. In particular any
-                messages appearing after messages belonging to ongoing transactions
-                will be withheld until the relevant transaction has been completed.
-                As a result, `read_committed` consumers will not be able to read up
-                to the high watermark when there are in flight transactions.
-                Further, when in `read_committed` the seek_to_end method will
-                return the ALSO. See method docs below.
-            batch_timeout_ms:
-                Milliseconds spent waiting if
-                data is not available in the buffer. If 0, returns immediately
-                with any records that are available currently in the buffer,
-                else returns empty.
-            max_records: Number of messages to consume as one batch.
-            listener:
-                Optionally include listener
-                callback, which will be called before and after each rebalance
-                operation.
-                As part of group management, the consumer will keep track of
-                the list of consumers that belong to a particular group and
-                will trigger a rebalance operation if one of the following
-                events trigger:
+                 Messages will always be returned in offset order. Hence, in
+                 `read_committed` mode, batch consumer will only return
+                 messages up to the last stable offset (ALSO), which is the one less
+                 than the offset of the first open transaction. In particular any
+                 messages appearing after messages belonging to ongoing transactions
+                 will be withheld until the relevant transaction has been completed.
+                 As a result, `read_committed` consumers will not be able to read up
+                 to the high watermark when there are in flight transactions.
+                 Further, when in `read_committed` the seek_to_end method will
+                 return the ALSO. See method docs below.
+             batch_timeout_ms:
+                 Milliseconds spent waiting if
+                 data is not available in the buffer. If 0, returns immediately
+                 with any records that are available currently in the buffer,
+                 else returns empty.
+             max_records: Number of messages to consume as one batch.
+             listener:
+                 Optionally include listener
+                 callback, which will be called before and after each rebalance
+                 operation.
+                 As part of group management, the consumer will keep track of
+                 the list of consumers that belong to a particular group and
+                 will trigger a rebalance operation if one of the following
+                 events trigger:
 
-                * Number of partitions change for any of the subscribed topics
-                * Topic is created or deleted
-                * An existing member of the consumer group dies
-                * A new member is added to the consumer group
+                 * Number of partitions change for any of the subscribed topics
+                 * Topic is created or deleted
+                 * An existing member of the consumer group dies
+                 * A new member is added to the consumer group
 
-                When any of these events are triggered, the provided listener
-                will be invoked first to indicate that the consumer's
-                assignment has been revoked, and then again when the new
-                assignment has been received. Note that this listener will
-                immediately override any listener set in a previous call
-                to subscribe. It is guaranteed, however, that the partitions
-                revoked/assigned
-                through this interface are from topics subscribed in this call.
-            pattern:
-                Pattern to match available topics. You must provide either topics or pattern, but not both.
-            partitions:  An explicit partitions list to assign.
-                You can't use 'topics' and 'partitions' in the same time.
-            dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
-            parser: Parser to map original **ConsumerRecord** object to FastStream one.
-            decoder: Function to decode FastStream msg bytes body to python objects.
-            middlewares: Subscriber middlewares to wrap incoming message processing.
-            max_workers: Number of workers to process messages concurrently.
-            no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
-            ack_policy: Acknowledgement policy for the subscriber.
-            no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
-            title: Specification subscriber object title.
-            description: Specification subscriber object description. " "Uses decorated docstring as default.
-            include_in_schema: Whetever to include operation in Specification schema or not.
-            persistent: Whether to make the subscriber persistent or not.
-        """
-        workers = max_workers or 1
+                 When any of these events are triggered, the provided listener
+                 will be invoked first to indicate that the consumer's
+                 assignment has been revoked, and then again when the new
+                 assignment has been received. Note that this listener will
+                 immediately override any listener set in a previous call
+                 to subscribe. It is guaranteed, however, that the partitions
+                 revoked/assigned
+                 through this interface are from topics subscribed in this call.
+             pattern:
+                 Pattern to match available topics. You must provide either topics or pattern, but not both.
+             partitions:  An explicit partitions list to assign.
+                 You can't use 'topics' and 'partitions' in the same time.
+             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
+             parser: Parser to map original **ConsumerRecord** object to FastStream one.
+             decoder: Function to decode FastStream msg bytes body to python objects.
+             middlewares: Subscriber middlewares to wrap incoming message processing.
+             max_workers: Number of workers to process messages concurrently.
+             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
+             ack_policy: Acknowledgement policy for the subscriber.
+             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
+             title: Specification subscriber object title.
+             description: Specification subscriber object description. " "Uses decorated docstring as default.
+             include_in_schema: Whetever to include operation in Specification schema or not.
+             persistent: Whether to make the subscriber persistent or not.
+         """
+         workers = max_workers or 1
 
-        subscriber = create_subscriber(
+         subscriber = create_subscriber(
             *topics,
             batch=batch,
             max_workers=workers,
@@ -579,24 +586,25 @@ class KafkaRegistrator(
             title_=title,
             description_=description,
             include_in_schema=include_in_schema,
-        )
+         )
 
-        super().subscriber(subscriber, persistent=persistent)
+         super().subscriber(subscriber, persistent=persistent)
 
-        subscriber.add_call(
-            parser_=parser,
-            decoder_=decoder,
-            dependencies_=dependencies,
-        )
+         subscriber.add_call(
+             parser_=parser,
+             decoder_=decoder,
+             codec_=codec,
+             dependencies_=dependencies,
+         )
 
-        if batch:
-            return cast("BatchSubscriber", subscriber)
+         if batch:
+             return cast("BatchSubscriber", subscriber)
 
-        if workers > 1:
+         if workers > 1:
             if subscriber.ack_policy is AckPolicy.ACK_FIRST:
                 return cast("ConcurrentDefaultSubscriber", subscriber)
             return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
-        return cast("DefaultSubscriber", subscriber)
+         return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]
     def publisher(
