@@ -147,12 +147,23 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         else:
             async_parser = self._parser
 
-        if decoder := (
+        # Codec takes priority over legacy decoder.
+        # Having both is an error — it's ambiguous which takes effect.
+        codec = self._call_options.codec or self._outer_config.broker_codec
+        decoder = (
             item_decoder
             or self._call_options.decoder
             or self._outer_config.broker_decoder
-        ):
-            async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
+        )
+
+        if codec and decoder:
+            msg = "Cannot use both 'codec' and 'decoder' — 'codec' replaces 'decoder'."
+            raise ValueError(msg)
+
+        if codec:
+            async_decoder: AsyncCallable = codec.decode
+        elif decoder:
+            async_decoder = ParserComposition(decoder, self._decoder)
         else:
             async_decoder = self._decoder
 
