@@ -297,7 +297,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       rabbitmq:
-        image: rabbitmq:alpine
+        image: rabbitmq:3.13-alpine
         ports:
           - 5672:5672
     steps:
