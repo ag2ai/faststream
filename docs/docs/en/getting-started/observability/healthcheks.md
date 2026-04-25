@@ -137,7 +137,7 @@ COPY main.py /app
 ```yaml linenums="1" hl_lines="37"
 services:
   rabbitmq:
-    image: rabbitmq:3.8-management
+    image: rabbitmq:3.13-management
     container_name: rabbitmq-local
     environment:
       RABBITMQ_DEFAULT_USER: guest

@@ -12,6 +12,21 @@ hide:
 ---
 
 # Release Notes
+## 0.7.0rc1
+
+### What's Changed
+
+* fix: corrected security parsing for mqtt broker by [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
+* chore: add MQTT code ownership for borisalekseev by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2825](https://github.com/ag2ai/faststream/pull/2825){.external-link target="_blank"}
+* feat: support broker-level ack_policy with per-subscriber override by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
+* tests: add MQTT AsyncAPI tests by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2830](https://github.com/ag2ai/faststream/pull/2830){.external-link target="_blank"}
+
+### New Contributors
+* [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} made their first contribution in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
+* [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} made their first contribution in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.0rc0...0.7.0rc1](https://github.com/ag2ai/faststream/compare/0.7.0rc0...0.7.0rc1){.external-link target="_blank"}
+
 ## 0.7.0rc0
 
 ### What's Changed
