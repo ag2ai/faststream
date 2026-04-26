@@ -10,7 +10,7 @@ import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
 
 from faststream._internal.utils.functions import call_or_await, run_in_executor
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 from faststream.exceptions import SetupError
 
 from . import config as config_module
@@ -186,7 +186,7 @@ class AsyncConfluentConsumer:
 
     def __init__(
         self,
-        *topics: str,
+        *topics: str | Topic,
         config: config_module.ConfluentFastConfig,
         logger: "LoggerState",
         admin_service: "AdminService",
@@ -272,7 +272,7 @@ class AsyncConfluentConsumer:
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property
-    def topics_to_create(self) -> list[str]:
+    def topics_to_create(self) -> list[str | Topic]:
         return list({*self.topics, *(p.topic for p in self.partitions)})
 
     async def start(self) -> None:
@@ -298,7 +298,9 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
-            subscribe_kwargs: dict[str, Any] = {"topics": self.topics}
+            subscribe_kwargs: dict[str, Any] = {
+                "topics": [t.name if isinstance(t, Topic) else t for t in self.topics]
+            }
             if self._on_assign is not None:
                 subscribe_kwargs["on_assign"] = self._on_assign
             if self._on_revoke is not None:

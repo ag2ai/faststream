@@ -31,7 +31,7 @@ if TYPE_CHECKING:
         BatchPublisher,
         DefaultPublisher,
     )
-    from faststream.confluent.schemas import TopicPartition
+    from faststream.confluent.schemas import Topic, TopicPartition
     from faststream.confluent.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentDefaultSubscriber,
@@ -47,7 +47,7 @@ class KafkaRegistrator(
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -90,7 +90,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -133,7 +133,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -176,7 +176,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -223,7 +223,7 @@ class KafkaRegistrator(
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
