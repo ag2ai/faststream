@@ -804,7 +804,8 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         async def hello_router2() -> str:
             return "hi"
 
-        router.include_router(router2)
+        with pytest.warns(UserWarning, match="Including a StreamRouter into another StreamRouter"):
+            router.include_router(router2)
         app.include_router(router)
 
         async with self.patch_broker(router.broker) as br:
@@ -818,32 +819,20 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
                 )
                 assert await r.decode() == "hi", r
 
-    async def test_nested_router_native_message_injection(
+    def test_nested_stream_router_warns(
         self,
         queue: str,
-        mock: Mock,
     ) -> None:
-        """Nested StreamRouter must share the outer context.
+        """Including a StreamRouter into another StreamRouter must emit a UserWarning.
 
-        Native message types (e.g. KafkaMessage / StreamMessage) must be
-        correctly injected, not replaced with EmptyPlaceholder (issue #2657).
+        This pattern is unsupported (issue #2657).  Users should include a regular
+        broker router (e.g. KafkaRouter) into the StreamRouter instead.
         """
         router = self.router_class()
         router2 = self.router_class()
 
-        app = FastAPI()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router2.subscriber(*args, **kwargs)
-        async def hello_router2(msg: StreamMessage) -> None:
-            mock(isinstance(msg, StreamMessage))
-
-        router.include_router(router2)
-        app.include_router(router)
-
-        async with self.patch_broker(router.broker) as br:
-            with TestClient(app):
-                await br.publish("hi", queue)
-
-        mock.assert_called_once_with(True)
+        with pytest.warns(
+            UserWarning,
+            match="Including a StreamRouter into another StreamRouter is not supported",
+        ):
+            router.include_router(router2)

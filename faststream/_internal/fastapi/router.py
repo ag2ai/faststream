@@ -97,8 +97,6 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
     license: dict[str, Any] | None
     contact: dict[str, Any] | None
 
-    _included_stream_routers: "list[StreamRouter[MsgType]]"
-
     def __init__(
         self,
         *connection_args: Any,
@@ -186,7 +184,6 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         self._on_shutdown_hooks = []
 
         self._lifespan_started = False
-        self._included_stream_routers = []
 
     def _subscriber_compatibility_wrapper(
         self,
@@ -441,12 +438,6 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         docs_router.get(f"{schema_url}.yaml")(download_app_yaml_schema)
         return docs_router
 
-    def _propagate_context(self, router: "StreamRouter[MsgType]") -> None:
-        """Recursively propagate outer context to a nested StreamRouter and its children."""
-        router.config.context = self.context
-        for nested in router._included_stream_routers:
-            self._propagate_context(nested)
-
     def include_router(  # type: ignore[override]
         self,
         router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType]"],
@@ -475,11 +466,19 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             return
 
         if isinstance(router, StreamRouter):  # pragma: no branch
+            warnings.warn(
+                "Including a StreamRouter into another StreamRouter is not supported "
+                "and may cause subtle context issues (e.g. message dependencies "
+                "returning EmptyPlaceholder). "
+                "Use a regular broker router (e.g. KafkaRouter, RabbitRouter, etc.) "
+                "for grouping subscribers and include that into the StreamRouter instead. "
+                "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers",
+                UserWarning,
+                stacklevel=2,
+            )
             router.lifespan_context = fake_context
             self.broker.include_router(router.broker)
             router.fastapi_config = self.fastapi_config
-            self._propagate_context(router)
-            self._included_stream_routers.append(router)
 
         super().include_router(
             router=router,
