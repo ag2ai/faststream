@@ -465,7 +465,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             self.broker.include_router(router)
             return
 
-        raise TypeError(
+        msg = (
             "Including a StreamRouter into another StreamRouter is not supported "
             "and may cause subtle context issues (e.g. message dependencies "
             "returning EmptyPlaceholder). "
@@ -473,3 +473,4 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             "for grouping subscribers and include that into the StreamRouter instead. "
             "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers"
         )
+        raise TypeError(msg)

@@ -796,15 +796,16 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         router = self.router_class()
         router2 = self.router_class()
 
-        app = FastAPI()
-
         args, kwargs = self.get_subscriber_params(queue)
 
         @router2.subscriber(*args, **kwargs)
         async def hello_router2() -> str:
             return "hi"
 
-        with pytest.raises(TypeError, match="Including a StreamRouter into another StreamRouter"):
+        with pytest.raises(
+            TypeError,
+            match="Including a StreamRouter into another StreamRouter",
+        ):
             router.include_router(router2)
 
     def test_nested_stream_router_raises(
