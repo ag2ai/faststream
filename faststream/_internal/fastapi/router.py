@@ -37,7 +37,7 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import fake_context, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.middlewares import BaseMiddleware
 from faststream.specification.asyncapi.site import get_asyncapi_html
 
@@ -465,30 +465,11 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             self.broker.include_router(router)
             return
 
-        if isinstance(router, StreamRouter):  # pragma: no branch
-            warnings.warn(
-                "Including a StreamRouter into another StreamRouter is not supported "
-                "and may cause subtle context issues (e.g. message dependencies "
-                "returning EmptyPlaceholder). "
-                "Use a regular broker router (e.g. KafkaRouter, RabbitRouter, etc.) "
-                "for grouping subscribers and include that into the StreamRouter instead. "
-                "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers",
-                UserWarning,
-                stacklevel=2,
-            )
-            router.lifespan_context = fake_context
-            self.broker.include_router(router.broker)
-            router.fastapi_config = self.fastapi_config
-
-        super().include_router(
-            router=router,
-            prefix=prefix,
-            tags=tags,
-            dependencies=dependencies,
-            default_response_class=default_response_class,
-            responses=responses,
-            callbacks=callbacks,
-            deprecated=deprecated,
-            include_in_schema=include_in_schema,
-            generate_unique_id_function=generate_unique_id_function,
+        raise TypeError(
+            "Including a StreamRouter into another StreamRouter is not supported "
+            "and may cause subtle context issues (e.g. message dependencies "
+            "returning EmptyPlaceholder). "
+            "Use a regular broker router (e.g. KafkaRouter, RabbitRouter, etc.) "
+            "for grouping subscribers and include that into the StreamRouter instead. "
+            "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers"
         )
