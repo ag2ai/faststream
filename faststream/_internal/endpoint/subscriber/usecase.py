@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncFilter,
         BrokerMiddleware,
@@ -58,6 +59,7 @@ class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
     dependencies: Iterable["Dependant"]
+    codec: Optional["CodecProto"] = None
 
 
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
@@ -90,6 +92,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             parser=None,
             decoder=None,
             dependencies=(),
+            codec=None,
         )
 
         self._call_decorators: tuple[Decorator, ...] = ()
@@ -144,12 +147,23 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         else:
             async_parser = self._parser
 
-        if decoder := (
+        # Codec takes priority over legacy decoder.
+        # Having both is an error — it's ambiguous which takes effect.
+        codec = self._call_options.codec or self._outer_config.broker_codec
+        decoder = (
             item_decoder
             or self._call_options.decoder
             or self._outer_config.broker_decoder
-        ):
-            async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
+        )
+
+        if codec and decoder:
+            msg = "Cannot use both 'codec' and 'decoder' — 'codec' replaces 'decoder'."
+            raise ValueError(msg)
+
+        if codec:
+            async_decoder: AsyncCallable = codec.decode
+        elif decoder:
+            async_decoder = ParserComposition(decoder, self._decoder)
         else:
             async_decoder = self._decoder
 
@@ -193,11 +207,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         parser_: Optional["CustomCallable"],
         decoder_: Optional["CustomCallable"],
         dependencies_: Iterable["Dependant"],
+        codec_: Optional["CodecProto"] = None,
     ) -> Self:
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
             dependencies=dependencies_,
+            codec=codec_,
         )
         return self
 

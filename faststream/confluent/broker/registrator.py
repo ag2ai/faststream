@@ -23,6 +23,7 @@ from faststream.middlewares import AckPolicy
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -78,6 +79,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -121,6 +123,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -164,6 +167,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -207,6 +211,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -254,6 +259,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -353,10 +359,10 @@ class KafkaRegistrator(
             isolation_level: Controls how to read messages written
                 transactionally.
 
-                * `read_committed`, batch consumer will only return
+                 * `read_committed`, batch consumer will only return
                 transactional messages which have been committed.
 
-                * `read_uncommitted` (the default), batch consumer will
+                 * `read_uncommitted` (the default), batch consumer will
                 return all messages, even transactional messages which have been
                 aborted.
 
@@ -364,7 +370,7 @@ class KafkaRegistrator(
                 either mode.
 
                 Messages will always be returned in offset order. Hence, in
-                `read_committed` mode, batch consumer will only return
+                 `read_committed` mode, batch consumer will only return
                 messages up to the last stable offset (ALSO), which is the one less
                 than the offset of the first open transaction. In particular any
                 messages appearing after messages belonging to ongoing transactions
@@ -384,6 +390,7 @@ class KafkaRegistrator(
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
             middlewares: Subscriber middlewares to wrap incoming message processing.
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy: Acknowledgement policy for the subscriber.
@@ -448,6 +455,7 @@ class KafkaRegistrator(
         return subscriber.add_call(
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 

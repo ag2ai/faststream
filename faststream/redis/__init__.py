@@ -1,4 +1,11 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.testing.app import TestApp
+
+if TYPE_CHECKING:
+    from faststream._internal.parser import ParserProto
+
+    RedisParserType = ParserProto["Mapping[str, Any]"]  # type: ignore[name-defined]
 
 try:
     from .annotations import (
@@ -33,6 +40,7 @@ __all__ = (
     "RedisChannelMessage",
     "RedisListMessage",
     "RedisMessage",
+    "RedisParserType",
     "RedisPublishCommand",
     "RedisPublisher",
     "RedisResponse",

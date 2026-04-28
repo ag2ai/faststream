@@ -18,6 +18,7 @@ from faststream.nats.subscriber.factory import create_subscriber
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -73,6 +74,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -111,6 +113,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
@@ -149,6 +152,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -187,6 +191,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
@@ -225,6 +230,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -263,6 +269,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
@@ -301,6 +308,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -339,6 +347,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -377,6 +386,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -415,6 +425,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -453,6 +464,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         persistent: bool = True,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -496,6 +508,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **nats-py** Msg to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
             max_workers: Number of workers to process messages concurrently.
             ack_policy: Whether to `ack` message at start of consuming or not.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
@@ -545,6 +558,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         return subscriber.add_call(
             parser_=parser,
             decoder_=decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 

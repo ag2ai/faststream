@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
     from faststream.security import BaseSecurity
@@ -65,6 +66,7 @@ class MQTTBroker(
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
@@ -120,6 +122,7 @@ class MQTTBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_mqtt_logger_state(
                     logger=logger,
                     log_level=log_level,

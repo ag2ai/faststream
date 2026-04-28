@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -90,6 +91,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -138,6 +140,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -186,6 +189,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -234,6 +238,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -282,6 +287,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -335,6 +341,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -529,6 +536,7 @@ class KafkaRegistrator(
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **ConsumerRecord** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
             middlewares: Subscriber middlewares to wrap incoming message processing.
             max_workers: Number of workers to process messages concurrently.
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
@@ -586,6 +594,7 @@ class KafkaRegistrator(
         subscriber.add_call(
             parser_=parser,
             decoder_=decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 

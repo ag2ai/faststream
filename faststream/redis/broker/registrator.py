@@ -15,6 +15,7 @@ from faststream.redis.subscriber.factory import create_subscriber
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -55,6 +56,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -77,6 +79,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -99,6 +102,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -120,6 +124,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -142,6 +147,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -164,6 +170,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -186,6 +193,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -208,6 +216,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -230,6 +239,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -252,6 +262,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
@@ -272,6 +283,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             dependencies: Dependencies list (`[Depends(),]`) to apply to the subscriber.
             parser: Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
             message_format: Which format to use when parsing messages.
             persistent: Whether to make the subscriber persistent or not.
@@ -304,6 +316,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         return subscriber.add_call(
             parser_=parser or self._parser,
             decoder_=decoder or self._decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 
