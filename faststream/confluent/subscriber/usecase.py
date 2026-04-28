@@ -18,7 +18,7 @@ from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -65,8 +65,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.client_id
 
     @property
-    def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+    def topics(self) -> list[Any]:
+        res: list[Any] = []
+        for t in self._topics:
+            if isinstance(t, Topic):
+                res.append(t.add_prefix(self._outer_config.prefix))
+            else:
+                res.append(f"{self._outer_config.prefix}{t}")
+        return res
 
     @property
     def partitions(self) -> list[TopicPartition]:
@@ -200,8 +206,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        topics = self._topics or (f"{p.topic}-{p.partition}" for p in self._partitions)
+        return [f"{self._outer_config.prefix}{getattr(t, 'name', t)}" for t in topics]
 
     @staticmethod
     def build_log_context(
@@ -239,7 +245,9 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         if message is None:
             topic = ",".join(self.topic_names)
         else:
-            topic = message.raw_message.topic() or ",".join(self.topics)
+            topic = message.raw_message.topic() or ",".join(
+                getattr(t, "name", t) for t in self.topics
+            )
 
         return self.build_log_context(
             message=message,
