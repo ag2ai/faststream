@@ -108,8 +108,8 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
-            self._connection = await self._connect()
             self._setup_logger()
+            self._connection = await self._connect()
 
         return self._connection
 

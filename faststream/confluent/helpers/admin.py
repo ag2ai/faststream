@@ -7,6 +7,8 @@ from confluent_kafka.admin import (  # type: ignore[attr-defined]
 )
 
 if TYPE_CHECKING:
+    from faststream._internal.logger import LoggerState
+
     from .config import ConfluentFastConfig
 
 
@@ -20,9 +22,9 @@ class AdminService:
     def __init__(self) -> None:
         self.admin_client: AdminClient | None = None
 
-    async def connect(self, config: "ConfluentFastConfig") -> None:
+    async def connect(self, config: "ConfluentFastConfig", logger_state: "LoggerState") -> None:
         if self.admin_client is None:
-            self.admin_client = AdminClient(config.admin_config)
+            self.admin_client = AdminClient(config.admin_config, logger=logger_state.logger.logger)
 
     async def disconnect(self) -> None:
         self.admin_client = None
