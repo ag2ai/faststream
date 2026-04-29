@@ -92,7 +92,7 @@ if PYDANTIC_V2:
         return json_dumps(model_to_jsonable(data))
 
     def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
-        return model.__pydantic_fields__
+        return model.model_fields
 
     def model_to_json(model: BaseModel, **kwargs: Any) -> str:
         return model.model_dump_json(**kwargs)
