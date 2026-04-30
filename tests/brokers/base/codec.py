@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -135,3 +137,77 @@ class CodecTestcase(BaseTestcaseConfig):
                 f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
                 f"but encode_message({msg!r}) = {direct_result!r}"
             )
+
+
+@pytest.mark.asyncio()
+class BatchCodecTestcase:
+    async def test_batch_codec_encode_batch_called(self) -> None:
+        encode_mock = MagicMock()
+        encode_batch_mock = MagicMock()
+
+        class TrackingBatchCodec(DefaultCodec):
+            async def encode(
+                self, msg: Any, serializer: Any = None
+            ) -> tuple[bytes, str | None]:
+                encode_mock()
+                return await super().encode(msg, serializer)
+
+            async def encode_batch(
+                self,
+                msgs: Sequence[Any],
+                serializer: Any = None,
+            ) -> list[tuple[bytes, str | None]]:
+                encode_batch_mock()
+                return [await super().encode(m, serializer) for m in msgs]
+
+            async def decode_batch(self, msg: Any) -> list[Any]:
+                return []
+
+        from faststream._internal.parser import BatchCodecProto
+
+        codec = TrackingBatchCodec()
+        assert isinstance(codec, BatchCodecProto)
+
+        result = await codec.encode_batch(["a", "b", "c"], None)
+        assert len(result) == 3
+        assert encode_batch_mock.called
+        assert not encode_mock.called
+
+    async def test_batch_codec_isinstance_dispatch(self) -> None:
+        from faststream._internal.parser import BatchCodecProto
+
+        class WithBatch(DefaultCodec):
+            async def encode_batch(
+                self,
+                msgs: Sequence[Any],
+                serializer: Any = None,
+            ) -> list[tuple[bytes, str | None]]:
+                return [await super().encode(m, serializer) for m in msgs]
+
+            async def decode_batch(self, msg: Any) -> list[Any]:
+                return []
+
+        class WithoutBatch(DefaultCodec):
+            pass
+
+        assert isinstance(WithBatch(), BatchCodecProto)
+        assert not isinstance(WithoutBatch(), BatchCodecProto)
+
+    async def test_batch_codec_fallback_to_per_item(self) -> None:
+        from faststream._internal.parser import BatchCodecProto
+
+        encode_mock = MagicMock()
+
+        class TrackingCodec(DefaultCodec):
+            async def encode(
+                self, msg: Any, serializer: Any = None
+            ) -> tuple[bytes, str | None]:
+                encode_mock()
+                return await super().encode(msg, serializer)
+
+        codec = TrackingCodec()
+        assert not isinstance(codec, BatchCodecProto)
+
+        results = [await codec.encode(m, None) for m in ["a", "b", "c"]]
+        assert len(results) == 3
+        assert encode_mock.call_count == 3
