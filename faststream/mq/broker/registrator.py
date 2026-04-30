@@ -60,7 +60,6 @@ class MQRegistrator(Registrator[Any, MQBrokerConfig]):
             parser_=parser,
             decoder_=decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
     @override
