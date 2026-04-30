@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 from faststream.message.utils import decode_message, encode_message
 
@@ -69,6 +69,22 @@ class CodecProto(Protocol):
     ) -> tuple[bytes, str | None]:
         """Encode a Python object into bytes and content_type."""
         ...
+
+
+@runtime_checkable
+class BatchCodecProto(Protocol):
+    @abstractmethod
+    async def encode_batch(
+        self,
+        msgs: Sequence["SendableMessage"],
+        serializer: "SerializerProto | None" = None,
+    ) -> list[tuple[bytes, str | None]]: ...
+
+    @abstractmethod
+    async def decode_batch(
+        self,
+        msg: "StreamMessage[Sequence[Any]]",
+    ) -> list["DecodedMessage"]: ...
 
 
 class DefaultCodec:

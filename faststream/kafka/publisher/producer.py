@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
@@ -140,9 +140,17 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        for message_position, body in enumerate(cmd.batch_bodies):
-            message, content_type = await self.codec.encode(body, self.serializer)
+        if isinstance(self.codec, BatchCodecProto):
+            encoded_batch = await self.codec.encode_batch(
+                cmd.batch_bodies, self.serializer
+            )
+        else:
+            encoded_batch = [
+                await self.codec.encode(body, self.serializer)
+                for body in cmd.batch_bodies
+            ]
 
+        for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
                 final_headers = {
                     "content-type": content_type,
