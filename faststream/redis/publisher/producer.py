@@ -52,12 +52,13 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        msg = cmd.message_format.encode(
+        msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id or "",
             serializer=self.serializer,
+            codec=self.codec,
         )
 
         return await self.__publish(msg, cmd)
@@ -71,12 +72,13 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         try:
             await psub.subscribe(reply_to)
 
-            msg = cmd.message_format.encode(
+            msg = await cmd.message_format.encode(
                 message=cmd.body,
                 reply_to=reply_to,
                 headers=cmd.headers,
                 correlation_id=cmd.correlation_id or "",
                 serializer=self.serializer,
+                codec=self.codec,
             )
 
             await self.__publish(msg, cmd)
@@ -107,12 +109,13 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
     @override
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         batch = [
-            cmd.message_format.encode(
+            await cmd.message_format.encode(
                 message=msg,
                 correlation_id=cmd.correlation_id or "",
                 reply_to=cmd.reply_to,
                 headers=cmd.headers,
                 serializer=self.serializer,
+                codec=self.codec,
             )
             for msg in cmd.batch_bodies
         ]
