@@ -17,12 +17,13 @@ from faststream.confluent.publisher.usecase import BatchPublisher
 from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream.confluent.publisher.usecase import LogicPublisher
     from faststream.confluent.response import KafkaPublishCommand
     from faststream.confluent.subscriber.usecase import LogicSubscriber
@@ -121,7 +122,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     @override
     async def publish(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a message to the Kafka broker."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             key=cmd.key,
@@ -131,6 +132,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -150,8 +152,8 @@ class FakeProducer(AsyncConfluentFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            messages = (
-                build_message(
+            messages = [
+                await build_message(
                     message=message,
                     topic=cmd.destination,
                     partition=cmd.partition,
@@ -161,9 +163,10 @@ class FakeProducer(AsyncConfluentFastProducer):
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
                     serializer=self.broker.config.fd_config._serializer,
+                    codec=self.codec,
                 )
                 for message_position, message in enumerate(cmd.batch_bodies)
-            )
+            ]
 
             if isinstance(handler, BatchSubscriber):
                 await self._execute_handler(list(messages), cmd.destination, handler)
@@ -174,7 +177,7 @@ class FakeProducer(AsyncConfluentFastProducer):
 
     @override
     async def request(self, cmd: "KafkaPublishCommand") -> "MockConfluentMessage":
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             key=cmd.key,
@@ -183,6 +186,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -209,12 +213,13 @@ class FakeProducer(AsyncConfluentFastProducer):
     ) -> "MockConfluentMessage":
         result = await handler.process_message(msg)
 
-        return build_message(
+        return await build_message(
             topic=topic,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id or gen_cor_id(),
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
 
@@ -273,7 +278,7 @@ class MockConfluentMessage:
         return self._raw_msg
 
 
-def build_message(
+async def build_message(
     message: "SendableMessage",
     topic: str,
     *,
@@ -284,9 +289,11 @@ def build_message(
     headers: dict[str, str] | None = None,
     reply_to: str = "",
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    msg, content_type = encode_message(message, serializer)
+    _codec = codec or DefaultCodec()
+    msg, content_type = await _codec.encode(message, serializer)
     k = key or b""
     headers = {
         "content-type": content_type or "",
