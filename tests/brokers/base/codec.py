@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream._internal.parser import DefaultCodec
+from faststream.message.utils import encode_message
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
@@ -95,3 +96,43 @@ class CodecTestcase(BaseTestcaseConfig):
             await br.publish(b"hello", queue)
 
         mock.assert_called_once()
+
+    async def test_codec_encode_called(self, queue: str) -> None:
+        mock = MagicMock()
+
+        class TrackingCodec(DefaultCodec):
+            async def encode(self, msg, serializer=None):
+                mock()
+                return await super().encode(msg, serializer)
+
+        broker = self.get_broker(codec=TrackingCodec())
+
+        async with self.patch_broker(broker) as br:
+
+            @br.subscriber(queue)
+            async def handler(m) -> None:
+                pass
+
+            await br.publish({"key": "value"}, queue)
+
+        assert mock.called, "codec.encode was not called on publish"
+
+    async def test_default_codec_encode_matches_encode_message(
+        self, queue: str
+    ) -> None:
+        codec = DefaultCodec()
+
+        test_cases = [
+            None,
+            b"raw bytes",
+            "hello string",
+            {"json": True, "value": 42},
+        ]
+
+        for msg in test_cases:
+            codec_result = await codec.encode(msg, None)
+            direct_result = encode_message(msg, None)
+            assert codec_result == direct_result, (
+                f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
+                f"but encode_message({msg!r}) = {direct_result!r}"
+            )
