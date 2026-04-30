@@ -12,6 +12,7 @@ from pamqp.header import ContentHeader
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
@@ -207,6 +208,7 @@ class FakeProducer(AioPikaFastProducer):
             broker._decoder,
             default_parser.decode_message,
         )
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @override
     async def publish(

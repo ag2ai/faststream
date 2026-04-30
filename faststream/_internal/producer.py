@@ -5,6 +5,7 @@ from faststream._internal.types import PublishCommandType_contra
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import AsyncCallable
     from faststream.response import PublishCommand
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 class ProducerProto(Protocol[PublishCommandType_contra]):
     _parser: "AsyncCallable"
     _decoder: "AsyncCallable"
+    codec: "CodecProto"
 
     @abstractmethod
     async def publish(self, cmd: "PublishCommandType_contra") -> Any:
@@ -57,6 +59,14 @@ class ProducerUnset(ProducerProto):
 
     @_decoder.setter
     def _decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
+        raise IncorrectState(self.msg)
+
+    @property
+    def codec(self) -> "CodecProto":
+        raise IncorrectState(self.msg)
+
+    @codec.setter
+    def codec(self, value: "CodecProto", /) -> None:
         raise IncorrectState(self.msg)
 
     async def publish(self, cmd: "PublishCommand") -> Any | None:

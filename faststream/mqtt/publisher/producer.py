@@ -6,6 +6,7 @@ from typing_extensions import override
 from zmqtt import PublishProperties
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import encode_message, gen_cor_id
@@ -15,6 +16,7 @@ from faststream.mqtt.response import MQTTPublishCommand
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto, DefaultCodec
     from faststream._internal.types import AsyncCallable, CustomCallable
 
 
@@ -30,6 +32,7 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
     ) -> None:
         self.serializer: SerializerProto | None = None
         self._client: zmqtt.MQTTClient | None = None
+        self.codec: "CodecProto" = DefaultCodec()
 
         self._parser = ParserComposition(parser, default_parser.parse_message)
         self._decoder = ParserComposition(decoder, default_parser.decode_message)
@@ -38,9 +41,11 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
         self,
         client: "zmqtt.MQTTClient",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self._client = client
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
 
     def disconnect(self) -> None:
         self._client = None
@@ -203,6 +208,7 @@ class ZmqttFakeProducer(ZmqttBaseProducer):
         self,
         client: "zmqtt.MQTTClient",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         raise NotImplementedError
 

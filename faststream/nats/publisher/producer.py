@@ -9,6 +9,7 @@ from nats.js.api import Header
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.message import encode_message
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
+    from faststream._internal.parser import CodecProto, DefaultCodec
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -38,6 +40,7 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
         self,
         connection: Any,
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     def disconnect(self) -> None: ...
@@ -65,6 +68,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: "CodecProto" = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -76,8 +80,10 @@ class NatsFastProducerImpl(NatsFastProducer):
         self,
         connection: "Client",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -129,6 +135,7 @@ class NatsJSFastProducer(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: "CodecProto" = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -140,8 +147,10 @@ class NatsJSFastProducer(NatsFastProducer):
         self,
         connection: "JetStreamContext",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -203,7 +212,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
 
 class FakeNatsFastProducer(NatsFastProducer):
-    def connect(self, connection: Any, serializer: Optional["SerializerProto"]) -> None:
+    def connect(self, connection: Any, serializer: Optional["SerializerProto"], codec: Optional["CodecProto"] = None) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:

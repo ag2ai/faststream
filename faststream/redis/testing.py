@@ -18,6 +18,7 @@ import anyio
 from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
@@ -161,6 +162,7 @@ class FakeProducer(RedisFastProducer):
             broker._decoder,
             default.decode_message,
         )
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @override
     def _build_child(self, **kwargs: Any) -> "FakeProducer":

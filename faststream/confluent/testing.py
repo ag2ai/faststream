@@ -8,6 +8,7 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
@@ -109,6 +110,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         default = AsyncConfluentParser()
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     def __bool__(self) -> bool:
         return True
