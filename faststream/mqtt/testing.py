@@ -13,7 +13,6 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import encode_message
 from faststream.mqtt.broker.broker import MQTTBroker
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
@@ -23,6 +22,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream.mqtt.publisher.usecase import MQTTPublisher
     from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
 
@@ -157,7 +157,7 @@ class FakeProducer(ZmqttBaseProducer):
 
     @override
     async def publish(self, cmd: MQTTPublishCommand) -> None:
-        msg = build_message(
+        msg = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             version=self._version,
@@ -167,6 +167,7 @@ class FakeProducer(ZmqttBaseProducer):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         # For shared subscriptions, only deliver to one subscriber per group
@@ -187,7 +188,7 @@ class FakeProducer(ZmqttBaseProducer):
 
     @override
     async def request(self, cmd: MQTTPublishCommand) -> "zmqtt.Message":
-        msg = build_message(
+        msg = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             version=self._version,
@@ -196,6 +197,7 @@ class FakeProducer(ZmqttBaseProducer):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in cast("list[MQTTBaseSubscriber]", self.broker.subscribers):
@@ -205,19 +207,20 @@ class FakeProducer(ZmqttBaseProducer):
             with anyio.fail_after(cmd.timeout or 30.0):
                 result = await handler.process_message(msg)
 
-            return build_message(
+            return await build_message(
                 message=result.body,
                 topic=cmd.destination,
                 version=self._version,
                 correlation_id=result.correlation_id,
                 headers=result.headers,
                 serializer=self.broker.config.fd_config._serializer,
+                codec=self.codec,
             )
 
         raise SubscriberNotFound
 
 
-def build_message(
+async def build_message(
     message: "SendableMessage",
     topic: str,
     *,
@@ -228,6 +231,7 @@ def build_message(
     correlation_id: str | None = None,
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> zmqtt.Message:
     """Build a fake ``zmqtt.Message`` from publish parameters.
 
@@ -235,7 +239,9 @@ def build_message(
     ``MQTTParserV5`` can extract them transparently.
     For MQTT 3.1.1 returns a plain message with raw payload only.
     """
-    payload, content_type = encode_message(message, serializer=serializer)
+    if codec is None:
+        codec = DefaultCodec()
+    payload, content_type = await codec.encode(message, serializer=serializer)
 
     if version == "3.1.1":
         return zmqtt.Message(
