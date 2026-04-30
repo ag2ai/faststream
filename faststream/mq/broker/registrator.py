@@ -38,6 +38,7 @@ class MQRegistrator(Registrator[Any, MQBrokerConfig]):
         middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
         no_reply: bool = False,
         wait_interval: float = 1.0,
+        header_max_value_length: int = 64,
         persistent: bool = True,
         title: str | None = None,
         description: str | None = None,
@@ -48,7 +49,8 @@ class MQRegistrator(Registrator[Any, MQBrokerConfig]):
             no_reply=no_reply,
             ack_policy=ack_policy,
             wait_interval=wait_interval,
-            config=cast(MQBrokerConfig, self.config),
+            header_max_value_length=header_max_value_length,
+            config=cast("MQBrokerConfig", self.config),
             title_=title,
             description_=description,
             include_in_schema=include_in_schema,
@@ -82,7 +84,7 @@ class MQRegistrator(Registrator[Any, MQBrokerConfig]):
     ) -> "MQPublisher":
         publisher = create_publisher(
             queue=MQQueue.validate(queue),
-            config=cast(MQBrokerConfig, self.config),
+            config=cast("MQBrokerConfig", self.config),
             middlewares=middlewares,
             schema_=schema,
             title_=title,

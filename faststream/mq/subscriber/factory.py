@@ -18,6 +18,7 @@ def create_subscriber(
     no_reply: bool,
     ack_policy: "AckPolicy",
     wait_interval: float,
+    header_max_value_length: int,
     config: "MQBrokerConfig",
     title_: str | None,
     description_: str | None,
@@ -28,6 +29,7 @@ def create_subscriber(
         no_reply=no_reply,
         _ack_policy=ack_policy,
         wait_interval=wait_interval,
+        header_max_value_length=header_max_value_length,
         _outer_config=config,
     )
 

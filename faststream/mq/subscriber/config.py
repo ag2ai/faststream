@@ -19,6 +19,7 @@ class MQSubscriberConfig(MQConfig, SubscriberUsecaseConfig):
     _outer_config: MQBrokerConfig = field(default_factory=MQBrokerConfig)  # type: ignore[arg-type]
 
     wait_interval: float = 1.0
+    header_max_value_length: int = 64
 
     @property
     def ack_policy(self) -> AckPolicy:

@@ -6,10 +6,21 @@ from queue import Queue as ThreadQueue
 import pytest
 
 from faststream import BaseMiddleware
+from faststream.mq.helpers import (
+    AsyncMQConnection,
+    MQConnectionConfig,
+    client as mq_client,
+)
 from tests.marks import require_ibmmq
 
 from .basic import MQTestcaseConfig
-from .utils import MQAdminConfig, delete_queue, ensure_queue, get_queue_depth
+from .utils import (
+    MQAdminConfig,
+    delete_queue,
+    disabled_ibmmq_otel_hooks,
+    ensure_queue,
+    get_queue_depth,
+)
 
 VALID_MESSAGE_ID = "11" * 24
 VALID_CORRELATION_ID = "22" * 24
@@ -106,6 +117,43 @@ def _consume_request_and_reply(
             request_queue.close()
         if request_handle is not None:
             request_handle.dlt()
+        if qmgr.is_connected:
+            qmgr.disconnect()
+
+
+def _publish_with_large_user_property(
+    queue_name: str,
+    admin_config: MQAdminConfig,
+) -> None:
+    import ibmmq as mq
+
+    qmgr = mq.QueueManager(None)
+    queue = None
+    msg_handle = None
+
+    try:
+        qmgr.connect_tcp_client(
+            admin_config.queue_manager,
+            mq.CD(),
+            "DEV.APP.SVRCONN",
+            admin_config.conn_name,
+            "app",
+            "password",
+        )
+        with disabled_ibmmq_otel_hooks():
+            queue = mq.Queue(qmgr, queue_name, mq.CMQC.MQOO_OUTPUT)
+            msg_handle = mq.MessageHandle(qmgr)
+            msg_handle.properties.set("usr.too_big", "x" * 100_000)
+
+            pmo = mq.PMO(Version=mq.CMQC.MQPMO_VERSION_3)
+            pmo.OriginalMsgHandle = msg_handle.msg_handle
+            queue.put(b"hello", mq.MD(Version=mq.CMQC.MQMD_CURRENT_VERSION), pmo)
+
+    finally:
+        if queue is not None:
+            queue.close()
+        if msg_handle is not None:
+            msg_handle.dlt()
         if qmgr.is_connected:
             qmgr.disconnect()
 
@@ -249,6 +297,68 @@ class TestConnectedRegressions(MQTestcaseConfig):
                     await request_task
 
             assert get_queue_depth(queue, admin_config) == 1
+
+        finally:
+            delete_queue(queue, admin_config)
+
+    async def test_large_user_property_retries_with_required_header_length(
+        self,
+        queue: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        admin_config = MQAdminConfig()
+        ensure_queue(queue, admin_config)
+        warnings: list[tuple[object, ...]] = []
+        warning_message = (
+            "IBM MQ message property %r exceeded configured header "
+            "max value length %d; retried with max value length %d."
+        )
+        monkeypatch.setattr(
+            mq_client.logger,
+            "warning",
+            lambda *args: warnings.append(args),
+        )
+
+        connection = AsyncMQConnection(
+            connection_config=MQConnectionConfig(
+                queue_manager="QM1",
+                channel="DEV.APP.SVRCONN",
+                conn_name="127.0.0.1(1414)",
+                username="app",
+                password="password",
+            ),
+        )
+
+        try:
+            await asyncio.to_thread(
+                _publish_with_large_user_property,
+                queue,
+                admin_config,
+            )
+            try:
+                await connection.connect()
+                await connection.start_consumer(queue)
+
+                raw_message = await connection.get_message(
+                    timeout=self.timeout,
+                    header_max_value_length=64,
+                )
+
+                assert raw_message is not None
+                assert raw_message.body == b"hello"
+                assert raw_message.headers["too_big"] == "x" * 100_000
+                assert warnings == [
+                    (
+                        warning_message,
+                        "too_big",
+                        64,
+                        100_000,
+                    ),
+                ]
+
+            finally:
+                await connection.stop_consumer()
+                await connection.disconnect()
 
         finally:
             delete_queue(queue, admin_config)

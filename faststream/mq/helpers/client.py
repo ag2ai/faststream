@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
+import logging
 import os
 import time
 from typing import TYPE_CHECKING, Any, cast
@@ -18,6 +19,9 @@ from faststream.mq.tls import MQTLSConfig
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
+
+
+logger = logging.getLogger(__name__)
 
 
 def _load_ibmmq() -> Any:
@@ -254,17 +258,35 @@ class AsyncMQConnection:
             self._consumer_queue = None
             self._consumer_queue_name = ""
 
-    async def get_message(self, *, timeout: float) -> MQRawMessage | None:
+    async def get_message(
+        self,
+        *,
+        timeout: float,
+        header_max_value_length: int = 64,
+    ) -> MQRawMessage | None:
         assert self._executor is not None, "Connection is not started yet."
-        return await run_in_executor(self._executor, self._get_message_sync, timeout)
+        return await run_in_executor(
+            self._executor,
+            self._get_message_sync,
+            timeout,
+            header_max_value_length,
+        )
 
-    def _get_message_sync(self, timeout: float) -> MQRawMessage | None:
+    def _get_message_sync(
+        self,
+        timeout: float,
+        header_max_value_length: int = 64,
+    ) -> MQRawMessage | None:
         return self._run_with_reconnect_sync(
-            lambda: self.__get_message_sync(timeout),
+            lambda: self.__get_message_sync(timeout, header_max_value_length),
             reopen_consumer=True,
         )
 
-    def __get_message_sync(self, timeout: float) -> MQRawMessage | None:
+    def __get_message_sync(
+        self,
+        timeout: float,
+        header_max_value_length: int,
+    ) -> MQRawMessage | None:
         mq = _load_ibmmq()
         assert self._qmgr is not None
         assert self._consumer_queue is not None
@@ -293,7 +315,13 @@ class AsyncMQConnection:
             raise
 
         try:
-            headers = _read_headers(msg_handle)
+            headers = _read_headers(
+                msg_handle,
+                header_max_value_length=header_max_value_length,
+            )
+        except Exception:
+            self._qmgr.backout()
+            raise
         finally:
             msg_handle.dlt()
 
@@ -627,7 +655,11 @@ def _normalize_property_value(value: Any) -> str | bytes | bool | int | float | 
     return json.dumps(value)
 
 
-def _read_headers(msg_handle: Any) -> dict[str, Any]:
+def _read_headers(
+    msg_handle: Any,
+    *,
+    header_max_value_length: int = 64,
+) -> dict[str, Any]:
     mq = _load_ibmmq()
     headers: dict[str, Any] = {}
     options = mq.CMQC.MQIMPO_INQ_FIRST
@@ -637,11 +669,27 @@ def _read_headers(msg_handle: Any) -> dict[str, Any]:
             value, property_name = msg_handle.properties.get(
                 "usr.%",
                 impo_options=options,
+                max_value_length=header_max_value_length,
             )
         except mq.MQMIError as e:
             if e.reason == mq.CMQC.MQRC_PROPERTY_NOT_AVAILABLE:
                 break
-            raise
+            if e.reason == mq.CMQC.MQRC_PROPERTY_VALUE_TOO_BIG:
+                value_length = e.data_length
+                value, property_name = msg_handle.properties.get(
+                    "usr.%",
+                    impo_options=mq.CMQC.MQIMPO_INQ_PROP_UNDER_CURSOR,
+                    max_value_length=value_length,
+                )
+                logger.warning(
+                    "IBM MQ message property %r exceeded configured header "
+                    "max value length %d; retried with max value length %d.",
+                    _mq_str(property_name),
+                    header_max_value_length,
+                    value_length,
+                )
+            else:
+                raise
 
         headers[
             _header_name_from_property(_strip_property_prefix(_mq_str(property_name)))

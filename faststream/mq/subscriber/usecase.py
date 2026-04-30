@@ -48,6 +48,7 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
 
         self.queue = config.queue
         self.wait_interval = config.wait_interval
+        self.header_max_value_length = config.header_max_value_length
         self._consumer: AsyncMQConnection | None = None
         self._test_messages: asyncio.Queue[MQRawMessage] | None = None
         self._direct_message: MQRawMessage | None = None
@@ -79,7 +80,10 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
 
         while self.running:
             try:
-                raw_message = await self._consumer.get_message(timeout=self.wait_interval)
+                raw_message = await self._consumer.get_message(
+                    timeout=self.wait_interval,
+                    header_max_value_length=self.header_max_value_length,
+                )
             except Exception:
                 if self.running:
                     raise
@@ -179,7 +183,10 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
                 return None
         else:
             assert self._consumer is not None, "You should start subscriber at first."
-            raw_message = await self._consumer.get_message(timeout=timeout)
+            raw_message = await self._consumer.get_message(
+                timeout=timeout,
+                header_max_value_length=self.header_max_value_length,
+            )
 
         if raw_message is None:
             return None
@@ -225,7 +232,10 @@ class MQSubscriber(TasksMixin, SubscriberUsecase["MQRawMessage"]):
                     continue
             else:
                 assert self._consumer is not None, "You should start subscriber at first."
-                raw_message = await self._consumer.get_message(timeout=self.wait_interval)
+                raw_message = await self._consumer.get_message(
+                    timeout=self.wait_interval,
+                    header_max_value_length=self.header_max_value_length,
+                )
 
             if raw_message is None:
                 continue
