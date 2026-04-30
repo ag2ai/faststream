@@ -181,8 +181,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        message = AioPikaParser.encode_message(
-            message=message, serializer=self.serializer, **message_options
+        message = await AioPikaParser.encode_message(
+            message=message, serializer=self.serializer, codec=self.codec, **message_options
         )
 
         exchange_obj = await self.declarer.declare_exchange(

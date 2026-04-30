@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -119,7 +120,7 @@ class PatchedMessage(IncomingMessage):
         """Rejects a task."""
 
 
-def build_message(
+async def build_message(
     message: "AioPikaSendableMessage" = "",
     queue: Union["RabbitQueue", str] = "",
     exchange: Union["RabbitExchange", str, None] = None,
@@ -139,6 +140,7 @@ def build_message(
     user_id: str | None = None,
     app_id: str | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)
@@ -147,7 +149,7 @@ def build_message(
     routing = routing_key or que.routing()
 
     correlation_id = correlation_id or gen_cor_id()
-    msg = AioPikaParser.encode_message(
+    msg = await AioPikaParser.encode_message(
         message=message,
         persist=persist,
         reply_to=reply_to,
@@ -163,6 +165,7 @@ def build_message(
         user_id=user_id,
         app_id=app_id,
         serializer=serializer,
+        codec=codec,
     )
 
     return PatchedMessage(
@@ -216,7 +219,7 @@ class FakeProducer(AioPikaFastProducer):
         cmd: "RabbitPublishCommand",
     ) -> None:
         """Publish a message to a RabbitMQ queue or exchange."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
@@ -224,6 +227,7 @@ class FakeProducer(AioPikaFastProducer):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
             **cmd.message_options,
         )
 
@@ -248,13 +252,14 @@ class FakeProducer(AioPikaFastProducer):
         cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
         """Make a synchronous request to RabbitMQ."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
             **cmd.message_options,
         )
 
@@ -277,12 +282,13 @@ class FakeProducer(AioPikaFastProducer):
         handler: "RabbitSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
-        return build_message(
+        return await build_message(
             routing_key=msg.routing_key,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
 
