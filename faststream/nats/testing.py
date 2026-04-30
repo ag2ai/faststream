@@ -8,6 +8,7 @@ from nats.aio.msg import Msg
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import encode_message, gen_cor_id
@@ -102,6 +103,7 @@ class FakeProducer(NatsFastProducer):
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:

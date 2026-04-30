@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypedDict
 
 from faststream._internal.configs import BrokerConfig
+from faststream._internal.parser import DefaultCodec
 from faststream.nats.broker.state import BrokerState
 from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.producer import FakeNatsFastProducer
@@ -34,9 +35,9 @@ class NatsBrokerConfig(BrokerConfig):
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream(**self.js_options)
 
-        self.producer.connect(connection, serializer=self.fd_config._serializer)
+        self.producer.connect(connection, serializer=self.fd_config._serializer, codec=self.broker_codec or DefaultCodec())
 
-        self.js_producer.connect(stream, serializer=self.fd_config._serializer)
+        self.js_producer.connect(stream, serializer=self.fd_config._serializer, codec=self.broker_codec or DefaultCodec())
         self.kv_declarer.connect(stream)
         self.os_declarer.connect(stream)
 

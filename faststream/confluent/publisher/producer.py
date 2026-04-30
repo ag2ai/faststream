@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto, DefaultCodec
     from faststream._internal.types import CustomCallable
     from faststream.confluent.helpers.client import AsyncConfluentProducer
 
@@ -29,6 +31,7 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     def __bool__(self) -> bool:
@@ -66,6 +69,7 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         raise NotImplementedError
 
@@ -100,6 +104,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
         self.serializer: SerializerProto | None = None
+        self.codec: "CodecProto" = DefaultCodec()
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()
@@ -110,9 +115,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self._producer = RealProducer(producer)
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
 
     async def disconnect(self) -> None:
         await self._producer.stop()

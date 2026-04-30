@@ -10,6 +10,7 @@ from typing_extensions import override
 from zmqtt._internal.protocol import _shared_filter_to_actual, _topic_matches
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import encode_message
@@ -148,6 +149,7 @@ class FakeProducer(ZmqttBaseProducer):
         default = _parser_for_version(version)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
     def _version(self) -> Literal["3.1.1", "5.0"]:
