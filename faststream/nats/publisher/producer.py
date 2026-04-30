@@ -12,7 +12,6 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
-
 from faststream.nats.helpers.state import (
     ConnectedState,
     ConnectionState,
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -68,7 +67,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
-        self.codec: "CodecProto" = DefaultCodec()
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -135,7 +134,7 @@ class NatsJSFastProducer(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
-        self.codec: "CodecProto" = DefaultCodec()
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -212,7 +211,12 @@ class NatsJSFastProducer(NatsFastProducer):
 
 
 class FakeNatsFastProducer(NatsFastProducer):
-    def connect(self, connection: Any, serializer: Optional["SerializerProto"], codec: Optional["CodecProto"] = None) -> None:
+    def connect(
+        self,
+        connection: Any,
+        serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:

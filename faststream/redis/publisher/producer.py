@@ -15,7 +15,7 @@ from faststream.redis.response import DestinationType, RedisPublishCommand
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
     from faststream.redis.configs import ConnectionState
     from faststream.redis.parser import MessageFormat
@@ -149,7 +149,11 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         error_msg = "unreachable"
         raise AssertionError(error_msg)
 
-    def connect(self, serializer: Optional["SerializerProto"] = None, codec: Optional["CodecProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         self.serializer = serializer
         if codec is not None:
             self.codec = codec

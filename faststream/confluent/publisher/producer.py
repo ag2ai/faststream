@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
     from faststream.confluent.helpers.client import AsyncConfluentProducer
 
@@ -103,7 +103,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
         self.serializer: SerializerProto | None = None
-        self.codec: "CodecProto" = DefaultCodec()
+        self.codec: CodecProto = DefaultCodec()
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()

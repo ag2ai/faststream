@@ -292,8 +292,8 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    _codec = codec or DefaultCodec()
-    msg, content_type = await _codec.encode(message, serializer)
+    codec_instance = codec or DefaultCodec()
+    msg, content_type = await codec_instance.encode(message, serializer)
     k = key or b""
     headers = {
         "content-type": content_type or "",
