@@ -9,7 +9,6 @@ from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import encode_message
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -140,7 +139,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body, serializer=self.serializer)
+        message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -165,7 +164,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         for message_position, msg in enumerate(cmd.batch_bodies):
-            message, content_type = encode_message(msg, serializer=self.serializer)
+            message, content_type = await self.codec.encode(msg, self.serializer)
 
             if content_type:
                 final_headers = {
