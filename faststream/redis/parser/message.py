@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from faststream._internal.parser import DefaultCodec
+
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
@@ -36,8 +38,6 @@ class MessageFormat(ABC):
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
-        from faststream._internal.parser import DefaultCodec
-
         codec_instance = codec or DefaultCodec()
         payload, content_type = await codec_instance.encode(message, serializer)
 

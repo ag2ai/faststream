@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional
 from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
@@ -78,8 +79,10 @@ class AioPikaParser:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):
             return message
-        from faststream._internal.parser import DefaultCodec
-        message_body, generated_content_type = await (codec or DefaultCodec()).encode(message, serializer)
+
+        message_body, generated_content_type = await (codec or DefaultCodec()).encode(
+            message, serializer
+        )
 
         delivery_mode = (
             DeliveryMode.PERSISTENT if persist else DeliveryMode.NOT_PERSISTENT
