@@ -12,7 +12,6 @@ from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
 
-
 from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
     from aiokafka.structs import RecordMetadata
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
 
 
@@ -73,7 +72,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
         self.serializer: SerializerProto | None = None
-        self.codec: "CodecProto" = DefaultCodec()
+        self.codec: CodecProto = DefaultCodec()
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)

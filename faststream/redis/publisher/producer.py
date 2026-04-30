@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Redis
     from redis.asyncio.cluster import RedisCluster
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
     from faststream.redis.configs import ConnectionState
     from faststream.redis.parser import MessageFormat

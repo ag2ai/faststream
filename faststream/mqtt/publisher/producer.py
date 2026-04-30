@@ -16,7 +16,7 @@ from faststream.mqtt.response import MQTTPublishCommand
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto, DefaultCodec
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import AsyncCallable, CustomCallable
 
 
@@ -32,7 +32,7 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
     ) -> None:
         self.serializer: SerializerProto | None = None
         self._client: zmqtt.MQTTClient | None = None
-        self.codec: "CodecProto" = DefaultCodec()
+        self.codec: CodecProto = DefaultCodec()
 
         self._parser = ParserComposition(parser, default_parser.parse_message)
         self._decoder = ParserComposition(decoder, default_parser.decode_message)
