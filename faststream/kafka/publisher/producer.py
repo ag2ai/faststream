@@ -11,7 +11,7 @@ from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.message import encode_message
+
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -111,7 +111,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body, serializer=self.serializer)
+        message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -142,7 +142,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         for message_position, body in enumerate(cmd.batch_bodies):
-            message, content_type = encode_message(body, serializer=self.serializer)
+            message, content_type = await self.codec.encode(body, self.serializer)
 
             if content_type:
                 final_headers = {
