@@ -64,11 +64,9 @@ class CodecProto(Protocol):
     @abstractmethod
     async def encode(
         self,
-        msg: "Sequence[SendableMessage] | SendableMessage",
+        msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]:
-        """Encode a Python object into bytes and content_type."""
-        ...
+    ) -> tuple[bytes, str | None]: ...
 
 
 @runtime_checkable
@@ -88,14 +86,12 @@ class BatchCodecProto(Protocol):
 
 
 class DefaultCodec:
-    """Default codec that delegates to the shared encode_message/decode_message functions."""
-
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         return decode_message(msg)
 
     async def encode(
         self,
-        msg: "Sequence[SendableMessage] | SendableMessage",
+        msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,
     ) -> tuple[bytes, str | None]:
         return encode_message(msg, serializer)
