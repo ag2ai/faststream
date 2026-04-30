@@ -12,7 +12,7 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import encode_message
+
 from faststream.nats.helpers.state import (
     ConnectedState,
     ConnectionState,
@@ -91,7 +91,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -107,7 +107,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -158,7 +158,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> "PubAck":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -175,7 +175,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         reply_to = self.__state.connection._nc.new_inbox()
         future: asyncio.Future[Msg] = asyncio.Future()
