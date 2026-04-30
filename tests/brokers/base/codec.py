@@ -107,19 +107,18 @@ class CodecTestcase(BaseTestcaseConfig):
 
         broker = self.get_broker(codec=TrackingCodec())
 
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(m) -> None:
+            pass
+
         async with self.patch_broker(broker) as br:
-
-            @br.subscriber(queue)
-            async def handler(m) -> None:
-                pass
-
             await br.publish({"key": "value"}, queue)
 
         assert mock.called, "codec.encode was not called on publish"
 
-    async def test_default_codec_encode_matches_encode_message(
-        self, queue: str
-    ) -> None:
+    async def test_default_codec_encode_matches_encode_message(self, queue: str) -> None:
         codec = DefaultCodec()
 
         test_cases = [
