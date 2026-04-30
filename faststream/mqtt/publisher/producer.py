@@ -9,7 +9,7 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import gen_cor_id
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
 from faststream.mqtt.response import MQTTPublishCommand
 
@@ -92,7 +92,7 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         if cmd.headers:
             msg = "MQTT 3.1.1 does not support message headers. Use MQTT 5.0."
             raise FeatureNotSupportedException(msg)
-        payload, _ = encode_message(cmd.body, self.serializer)
+        payload, _ = await self.codec.encode(cmd.body, self.serializer)
         await self._connected_client.publish(
             cmd.destination,
             payload,
@@ -117,7 +117,7 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         await sub.start()
 
         try:
-            payload, _ = encode_message(cmd.body, self.serializer)
+            payload, _ = await self.codec.encode(cmd.body, self.serializer)
             await self._connected_client.publish(
                 cmd.destination,
                 payload,
@@ -144,7 +144,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
     @override
     async def publish(self, cmd: "MQTTPublishCommand") -> None:
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         user_props: list[tuple[str, str]] = [
             (k, str(v)) for k, v in (cmd.headers or {}).items()
@@ -174,7 +174,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         ID explicitly so the responder echoes it back and the caller can
         verify it on the response StreamMessage.
         """
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
         correlation_id = cmd.correlation_id or gen_cor_id()
 
         user_props: list[tuple[str, str]] = [
