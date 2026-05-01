@@ -158,7 +158,7 @@ class BatchCodecTestcase:
                 serializer: Any = None,
             ) -> list[tuple[bytes, str | None]]:
                 encode_batch_mock()
-                return [await super().encode(m, serializer) for m in msgs]
+                return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 return []
