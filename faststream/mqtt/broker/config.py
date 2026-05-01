@@ -37,7 +37,9 @@ class MQTTBrokerConfig(BrokerConfig):
 
     def connect(self, client: "zmqtt.MQTTClient") -> None:
         self._client = client
-        self.producer.connect(client, self.fd_config._serializer, codec=self.broker_codec or DefaultCodec())
+        self.producer.connect(
+            client, self.fd_config._serializer, codec=self.broker_codec or DefaultCodec()
+        )
 
     def disconnect(self) -> None:
         self._client = None

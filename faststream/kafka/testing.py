@@ -256,7 +256,6 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    from faststream._internal.parser import CodecProto
     msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
 
     k = key or b""
