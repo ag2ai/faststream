@@ -8,7 +8,7 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
@@ -147,14 +147,24 @@ class FakeProducer(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
+        serializer = self.broker.config.fd_config._serializer
+
+        if isinstance(self.codec, BatchCodecProto):
+            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
+        else:
+            encoded = [
+                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
+            ]
+
         for handler in _find_handler(
             cast("Iterable[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
             messages = [
-                await build_message(
-                    message=message,
+                _build_mock_message(
+                    body=body,
+                    content_type=content_type,
                     topic=cmd.destination,
                     partition=cmd.partition,
                     timestamp_ms=cmd.timestamp_ms,
@@ -162,10 +172,8 @@ class FakeProducer(AsyncConfluentFastProducer):
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
-                    serializer=self.broker.config.fd_config._serializer,
-                    codec=self.codec,
                 )
-                for message_position, message in enumerate(cmd.batch_bodies)
+                for message_position, (body, content_type) in enumerate(encoded)
             ]
 
             if isinstance(handler, BatchSubscriber):
@@ -308,6 +316,36 @@ async def build_message(
         topic=topic,
         key=k,
         headers=[(i, j.encode()) for i, j in headers.items()],
+        offset=0,
+        partition=partition or 0,
+        timestamp_type=1,
+        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+    )
+
+
+def _build_mock_message(
+    body: bytes,
+    content_type: str | None,
+    topic: str,
+    partition: int | None = None,
+    timestamp_ms: int | None = None,
+    key: bytes | str | None = None,
+    headers: dict[str, str] | None = None,
+    correlation_id: str | None = None,
+    reply_to: str = "",
+) -> MockConfluentMessage:
+    k = key or b""
+    h = {
+        "content-type": content_type or "",
+        "correlation_id": correlation_id or gen_cor_id(),
+        "reply_to": reply_to,
+        **(headers or {}),
+    }
+    return MockConfluentMessage(
+        raw_msg=body,
+        topic=topic,
+        key=k,
+        headers=[(i, j.encode()) for i, j in h.items()],
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
