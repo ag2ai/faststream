@@ -12,6 +12,9 @@ search:
 
 To start consuming from a **Redis** stream, simply decorate your consuming function with the `#!python @broker.subscriber(...)` decorator, passing a string as the stream key.
 
+!!! warning "Redis Cluster"
+    Stream keys in Redis Cluster are assigned to a single node via hash slots. Consumer groups and `XREADGROUP` operate **within that node**. The cluster client routes commands automatically, but all operations on one stream (and its consumer group) go to the same node. See the [Cluster docs](../cluster.md){.internal-link}.
+
 In the following example, we will create a simple FastStream app that will consume messages from a `#!python "test-stream"` Redis stream.
 
 The full app code looks like this:
