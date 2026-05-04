@@ -965,3 +965,44 @@ class TestConsumeStream(RedisTestcaseConfig):
 
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
+
+    async def test_consume_stream_group_deleted(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """Subscriber stops when the consumer group is deleted (NOGROUP)."""
+        consume_broker = self.get_broker(apply_types=True)
+
+        event = asyncio.Event()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="consumer1"),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            # Publish a message so the subscriber reads and starts consuming
+            await br.publish("hello", stream=queue)
+            await asyncio.wait_for(event.wait(), timeout=3)
+            assert mock.call_count >= 1
+
+            # Delete the stream — this removes the consumer group too
+            await br._connection.delete(queue)
+
+            # Give the subscriber time to try reading and hit NOGROUP
+            await asyncio.sleep(0.5)
+
+            # Publish another message — subscriber should NOT receive it
+            # because it already stopped due to NOGROUP
+            event.clear()
+            await br.publish("world", stream=queue)
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(event.wait(), timeout=1)
+
+            # The subscriber task should have finished
+            assert all(t.done() for t in br.subscribers[0].tasks)
