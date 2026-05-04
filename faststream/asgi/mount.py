@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 class Mount:
     def __init__(self, path: str, app: "ASGIApp") -> None:
-        if path != "" and not path.startswith("/"):
+        if path and not path.startswith("/"):
             msg = "Mount path must be empty or start with '/'"
             raise SetupError(msg)
         self.path = path.rstrip("/")

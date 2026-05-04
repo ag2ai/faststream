@@ -214,14 +214,10 @@ class AsgiFastStream(Application):
             for path, app in self.routes:
                 if isinstance(app, Mount):
                     prefix = app.path
-                    if request_path == prefix or request_path.startswith(
-                        prefix + "/"
-                    ):
+                    if request_path == prefix or request_path.startswith(prefix + "/"):
                         sub_scope = dict(scope)
-                        sub_scope["path"] = request_path[len(prefix):] or "/"
-                        sub_scope["root_path"] = (
-                            scope.get("root_path", "") + prefix
-                        )
+                        sub_scope["path"] = request_path[len(prefix) :] or "/"
+                        sub_scope["root_path"] = scope.get("root_path", "") + prefix
                         await app.app(sub_scope, receive, send)
                         return
                 elif request_path == path:
