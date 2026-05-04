@@ -967,15 +967,15 @@ class TestConsumeStream(RedisTestcaseConfig):
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
 
+    @pytest.mark.slow()
     async def test_consume_stream_group_deleted(
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Subscriber stops when the consumer group is deleted (NOGROUP)."""
         consume_broker = self.get_broker(apply_types=True)
-
-        event = asyncio.Event()
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="test_group", consumer="consumer1"),
