@@ -47,8 +47,7 @@ class LogicPublisher(PublisherUsecase):
         await super().start()
 
         broker_producer = self.config._outer_config.producer
-
-        self.producer = RedisFastProducer(
+        self.producer = broker_producer._build_child(
             connection=self.config._outer_config.connection,
             parser=broker_producer._parser.custom_func,
             decoder=broker_producer._decoder.custom_func,

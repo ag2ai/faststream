@@ -144,3 +144,6 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
 
     def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
         self.serializer = serializer
+
+    def _build_child(self, **kwargs: Any) -> "RedisFastProducer":
+        return RedisFastProducer(**kwargs)

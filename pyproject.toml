@@ -211,6 +211,7 @@ markers = [
     "confluent",
     "nats",
     "redis",
+    "redis_cluster",
     "mqtt",
     "slow",
     "connected",
