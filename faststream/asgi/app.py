@@ -19,6 +19,7 @@ from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
 from .factories import AsyncAPIRoute, make_try_it_out_handler
 from .handlers import HttpHandler
+from .mount import Mount
 from .response import AsgiResponse
 from .websocket import WebSocketClose
 
@@ -92,7 +93,7 @@ class AsgiFastStream(Application):
         self,
         broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
-        asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
+        asgi_routes: Sequence[tuple[str, "ASGIApp"] | Mount] = (),
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -105,7 +106,12 @@ class AsgiFastStream(Application):
         specification: Optional["SpecificationFactory"] = None,
         asyncapi_path: str | AsyncAPIRoute | None = None,
     ) -> None:
-        self.routes = list(asgi_routes)
+        self.routes: list[tuple[str, Any]] = []
+        for entry in asgi_routes:
+            if isinstance(entry, Mount):
+                self.routes.append((entry.path, entry))
+            else:
+                self.routes.append(entry)
 
         super().__init__(
             broker,
@@ -181,9 +187,9 @@ class AsgiFastStream(Application):
         return asgi_app
 
     def mount(self, path: str, route: "ASGIApp") -> None:
-        asgi_route = (path, route)
-        self.routes.append(asgi_route)
-        self._register_route(asgi_route)
+        entry = Mount(path, route)
+        self.routes.append((entry.path, entry))
+        self._register_route((entry.path, route))
 
     def _register_route(self, asgi_route: tuple[str, "ASGIApp"]) -> None:
         path, route = asgi_route
@@ -204,8 +210,21 @@ class AsgiFastStream(Application):
             return
 
         if scope["type"] == "http":
+            request_path = scope["path"]
             for path, app in self.routes:
-                if scope["path"] == path:
+                if isinstance(app, Mount):
+                    prefix = app.path
+                    if request_path == prefix or request_path.startswith(
+                        prefix + "/"
+                    ):
+                        sub_scope = dict(scope)
+                        sub_scope["path"] = request_path[len(prefix):] or "/"
+                        sub_scope["root_path"] = (
+                            scope.get("root_path", "") + prefix
+                        )
+                        await app.app(sub_scope, receive, send)
+                        return
+                elif request_path == path:
                     await app(scope, receive, send)
                     return
 
