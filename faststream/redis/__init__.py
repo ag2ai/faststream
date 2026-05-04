@@ -17,6 +17,7 @@ try:
         RedisStreamMessage,
     )
     from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
+    from .exceptions import StreamGroupNotFoundError
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
@@ -47,6 +48,7 @@ __all__ = (
     "RedisRoute",
     "RedisRouter",
     "RedisStreamMessage",
+    "StreamGroupNotFoundError",
     "StreamSub",
     "TestApp",
     "TestRedisBroker",
