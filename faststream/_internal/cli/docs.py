@@ -185,6 +185,28 @@ def gen(
         typer.echo(f"Your project AsyncAPI scheme was placed to `{filename}`")
 
 
+def _looks_like_unquoted_scalar_issue(
+    errors_by_version: "dict[str, ValidationError]",
+) -> bool:
+    """Detect the YAML-resolved-scalar-vs-string pattern.
+
+    When a YAML document uses bare scalars (e.g. ``protocolVersion: 3.2``)
+    in fields the AsyncAPI spec marks as strings, every parser tested
+    (PyYAML, ruamel safe / 1.2) resolves them to native types. The pydantic
+    error then reads as ``Input should be a valid string [type=string_type,
+    input_type=float|int|bool]``. Surface a hint when this pattern is the
+    dominant cause of failure.
+    """
+    scalar_input_types = {"float", "int", "bool"}
+    for exc in errors_by_version.values():
+        for err in exc.errors():
+            if err.get("type") == "string_type":
+                input_value = err.get("input")
+                if type(input_value).__name__ in scalar_input_types:
+                    return True
+    return False
+
+
 def _parse_and_serve(args: RunArgs) -> None:
     if ":" in args.app:
         _, app_obj = import_from_string(args.app, is_factory=args.is_factory)
@@ -215,6 +237,16 @@ def _parse_and_serve(args: RunArgs) -> None:
             except SetupError as e:
                 typer.echo(str(e), err=True)
                 raise typer.Exit(1) from e
+            except Exception as e:
+                # Anything the parser raises (yaml.YAMLError, ruamel
+                # YAMLError, custom parser exceptions, ...) is a parse-time
+                # failure. Distinguish it from validation errors below.
+                typer.echo(
+                    f"Failed to parse `{args.app}` with `{args.yaml_parser}`: "
+                    f"{type(e).__name__}: {e}",
+                    err=True,
+                )
+                raise typer.Exit(1) from e
 
             data = json_dumps(schema)
 
@@ -237,6 +269,16 @@ def _parse_and_serve(args: RunArgs) -> None:
             for label, exc in errors_by_version.items():
                 typer.echo(f"\n{label} validation errors:", err=True)
                 typer.echo(str(exc), err=True)
+            if _looks_like_unquoted_scalar_issue(errors_by_version):
+                typer.echo(
+                    "\nHint: at least one error suggests a string field "
+                    "received a number/bool. YAML resolves bare scalars to "
+                    "their native type (`3.2` becomes a float, `true` "
+                    "becomes a bool). If your AsyncAPI document came from a "
+                    "tool that emits unquoted scalars, quote the value "
+                    "(e.g. `protocolVersion: '3.2'`) or feed JSON instead.",
+                    err=True,
+                )
             raise typer.Exit(1)
 
     serve_app(

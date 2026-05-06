@@ -339,3 +339,52 @@ def test_yaml_parser_option_unknown_name_reports_clearly(
     assert result.exit_code == 1
     assert "Unknown YAML parser" in result.stderr
     assert "totally-fake" in result.stderr
+
+
+def test_unquoted_scalar_hint_is_emitted(
+    tmp_path: Path,
+    stderr_runner: CliRunner,
+) -> None:
+    """Surface a hint when YAML resolves a bare scalar to a native type.
+
+    ``protocolVersion: 3.2`` (no quotes) becomes ``float`` under every
+    standard YAML parser, but AsyncAPI requires a string. The CLI should
+    point at the quoting issue rather than letting the user guess.
+    """
+    bad_doc = """
+asyncapi: 3.0.0
+info:
+  title: BadDoc
+  version: 0.1.0
+servers:
+  development:
+    host: 'localhost:9092'
+    pathname: /
+    protocol: kafka
+    protocolVersion: 3.2
+"""
+    p = tmp_path / "bad.yaml"
+    p.write_text(bad_doc)
+
+    result = stderr_runner.invoke(cli, ["docs", "serve", str(p)], catch_exceptions=False)
+    assert result.exit_code == 1
+    assert "Hint" in result.stderr
+    assert "quote the value" in result.stderr
+
+
+def test_malformed_yaml_emits_parse_error(
+    tmp_path: Path,
+    stderr_runner: CliRunner,
+) -> None:
+    """Malformed YAML produces a parse-time error.
+
+    The error path is distinct from the validation-error path so users
+    can tell the difference between "your YAML is broken" and "your
+    AsyncAPI is broken".
+    """
+    p = tmp_path / "broken.yaml"
+    p.write_text("this is: : invalid: yaml:\n  ::\n")
+
+    result = stderr_runner.invoke(cli, ["docs", "serve", str(p)], catch_exceptions=False)
+    assert result.exit_code == 1
+    assert "Failed to parse" in result.stderr
