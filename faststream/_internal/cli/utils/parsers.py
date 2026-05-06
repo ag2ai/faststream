@@ -1,9 +1,7 @@
 """Pluggable YAML parsers for `faststream docs` commands.
 
-The default `PyYAML` parser is a YAML 1.1 implementation and does not preserve
-all YAML 1.2 typings that the AsyncAPI specification requires (see #2709).
-This module exposes a small registry so users can opt into `ruamel.yaml`
-(which is YAML 1.2 compliant) or plug in their own parser via a dotted path.
+`PyYAML` is the default; `ruamel.yaml` is offered as a built-in alternative.
+Users can plug in any parser via a `module:callable` reference (see #2709).
 """
 
 from __future__ import annotations
@@ -54,23 +52,8 @@ _BUILTIN_PARSERS: dict[str, YamlParser] = {
 
 
 def get_yaml_parser(name: str | None = None) -> YamlParser:
-    """Resolve a YAML parser by name or import path.
-
-    Args:
-        name: One of `auto` (default), `pyyaml`, `ruamel`, or a dotted import
-            path of the form `module.path:callable`. The callable must accept
-            a `pathlib.Path` and return the parsed document.
-
-    Returns:
-        The selected parser callable.
-
-    Raises:
-        SetupError: when `name` is not a known built-in and is not a valid
-            `module:callable` reference.
-    """
+    """Resolve a YAML parser by name (`auto`, `pyyaml`, `ruamel`) or `module:callable`."""
     if name is None or name == "auto":
-        # Prefer ruamel if it is installed: the AsyncAPI 3.0 spec recommends
-        # YAML 1.2, which `PyYAML` does not fully support.
         try:
             import ruamel.yaml  # noqa: F401
         except ImportError:

@@ -409,7 +409,7 @@ servers:
     result = stderr_runner.invoke(cli, ["docs", "serve", str(p)], catch_exceptions=False)
     assert result.exit_code == 1
     assert "Hint" in result.stderr
-    assert "quote the value" in result.stderr
+    assert "quote it" in result.stderr
 
 
 def test_yaml_parser_pyyaml_loads_valid_schema(

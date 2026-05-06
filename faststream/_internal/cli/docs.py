@@ -66,10 +66,9 @@ def serve(
         "auto",
         "--yaml-parser",
         help=(
-            "Parser to use when loading a YAML schema file. "
-            "`auto` (default) prefers `ruamel.yaml` if installed (YAML 1.2 "
-            "compliant) and falls back to `pyyaml`. Pass `pyyaml`, `ruamel`, "
-            "or a `module:callable` reference to override."
+            "YAML parser for schema files. `auto` uses `ruamel.yaml` if "
+            "installed, otherwise `pyyaml`. Pass `pyyaml`, `ruamel`, or "
+            "`module:callable` to override."
         ),
     ),
 ) -> None:
@@ -188,23 +187,14 @@ def gen(
 def _looks_like_unquoted_scalar_issue(
     errors_by_version: "dict[str, ValidationError]",
 ) -> bool:
-    """Detect the YAML-resolved-scalar-vs-string pattern.
-
-    When a YAML document uses bare scalars (e.g. ``protocolVersion: 3.2``)
-    in fields the AsyncAPI spec marks as strings, every parser tested
-    (PyYAML, ruamel safe / 1.2) resolves them to native types. The pydantic
-    error then reads as ``Input should be a valid string [type=string_type,
-    input_type=float|int|bool]``. Surface a hint when this pattern is the
-    dominant cause of failure.
-    """
-    scalar_input_types = {"float", "int", "bool"}
-    for exc in errors_by_version.values():
-        for err in exc.errors():
-            if err.get("type") == "string_type":
-                input_value = err.get("input")
-                if type(input_value).__name__ in scalar_input_types:
-                    return True
-    return False
+    """True if any error is a string field that received a YAML-typed scalar."""
+    scalar_types = {"float", "int", "bool"}
+    return any(
+        err.get("type") == "string_type"
+        and type(err.get("input")).__name__ in scalar_types
+        for exc in errors_by_version.values()
+        for err in exc.errors()
+    )
 
 
 def _parse_and_serve(args: RunArgs) -> None:
@@ -237,20 +227,9 @@ def _parse_and_serve(args: RunArgs) -> None:
             except SetupError as e:
                 typer.echo(str(e), err=True)
                 raise typer.Exit(1) from e
-            except (OSError, ValueError) as e:
-                # File-system failures and well-formed-but-rejected inputs.
-                typer.echo(
-                    f"Failed to read `{args.app}`: {type(e).__name__}: {e}",
-                    err=True,
-                )
-                raise typer.Exit(1) from e
             except Exception as e:
-                # YAML libraries don't share a base class (PyYAML uses
-                # `yaml.YAMLError`, ruamel uses `ruamel.yaml.YAMLError`, and
-                # user-supplied parsers via `--yaml-parser <module:func>` may
-                # raise anything). Catching `Exception` here keeps us
-                # parser-agnostic while typer.Exit's `pretty_exceptions_short`
-                # still chains the original cause via `from e`.
+                # YAML libs and user-supplied parsers don't share a base
+                # exception; catch broadly and chain via `from e`.
                 typer.echo(
                     f"Failed to parse `{args.app}` with `{args.yaml_parser}`: "
                     f"{type(e).__name__}: {e}",
@@ -281,12 +260,9 @@ def _parse_and_serve(args: RunArgs) -> None:
                 typer.echo(str(exc), err=True)
             if _looks_like_unquoted_scalar_issue(errors_by_version):
                 typer.echo(
-                    "\nHint: at least one error suggests a string field "
-                    "received a number/bool. YAML resolves bare scalars to "
-                    "their native type (`3.2` becomes a float, `true` "
-                    "becomes a bool). If your AsyncAPI document came from a "
-                    "tool that emits unquoted scalars, quote the value "
-                    "(e.g. `protocolVersion: '3.2'`) or feed JSON instead.",
+                    "\nHint: a string field received a number/bool. YAML "
+                    "parses bare `3.2` as float; quote it as `'3.2'` or "
+                    "feed the JSON variant of the schema.",
                     err=True,
                 )
             raise typer.Exit(1)
