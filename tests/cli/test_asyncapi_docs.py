@@ -1,11 +1,14 @@
 import json
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, TextIO
 
 import httpx
 import pytest
 import yaml
+from typer.testing import CliRunner
 
+from faststream._internal.cli.main import cli
 from tests.cli import interfaces
 from tests.marks import require_aiokafka, skip_macos, skip_windows
 
@@ -279,3 +282,60 @@ def test_serve_asyncapi_docs_from_file(
 
         assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
+
+
+# Tests for #2709: improved error message + pluggable parser
+
+
+@pytest.fixture()
+def stderr_runner() -> CliRunner:
+    """A CliRunner that captures stderr separately so tests can assert on it."""
+    return CliRunner(mix_stderr=False)
+
+
+def test_invalid_yaml_schema_error_includes_pydantic_detail(
+    tmp_path: Path,
+    stderr_runner: CliRunner,
+) -> None:
+    """A schema that loads as YAML but fails Pydantic validation.
+
+    The CLI should surface the validation error to stderr, not the bare
+    ``not supported`` message.
+    """
+    bad_doc = """
+asyncapi: 2.6.0
+info:
+  title: BadDoc
+"""
+    p = tmp_path / "bad.yaml"
+    p.write_text(bad_doc)
+
+    result = stderr_runner.invoke(
+        cli,
+        ["docs", "serve", str(p)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    # Old behavior: only "not supported" appears.
+    # New behavior: also surface the per-version validation error.
+    assert "not supported" in result.stderr
+    assert "AsyncAPI 3.0.0 validation errors" in result.stderr
+    assert "AsyncAPI 2.6.0 validation errors" in result.stderr
+
+
+def test_yaml_parser_option_unknown_name_reports_clearly(
+    tmp_path: Path,
+    stderr_runner: CliRunner,
+) -> None:
+    """Passing `--yaml-parser <bogus>` should fail with a clear message."""
+    p = tmp_path / "doc.yaml"
+    p.write_text(yaml_asyncapi_doc)
+
+    result = stderr_runner.invoke(
+        cli,
+        ["docs", "serve", str(p), "--yaml-parser", "totally-fake"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    assert "Unknown YAML parser" in result.stderr
+    assert "totally-fake" in result.stderr

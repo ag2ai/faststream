@@ -16,6 +16,7 @@ class RunArgs:
     log_level: int = logging.NOTSET
     app_level: int = logging.INFO  # option for reloader only
     loop: Literal["auto"] | str = "auto"
+    yaml_parser: str = "auto"
 
 
 class RunFunction(Protocol):

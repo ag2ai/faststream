@@ -1,7 +1,6 @@
 import json
 import sys
 import warnings
-from contextlib import suppress
 from pathlib import Path
 from pprint import pformat
 from typing import TYPE_CHECKING, cast
@@ -11,7 +10,13 @@ from pydantic import ValidationError
 
 from faststream._internal._compat import json_dumps, model_parse
 from faststream._internal.cli.utils.imports import import_from_string
-from faststream.exceptions import INSTALL_WATCHFILES, INSTALL_YAML, SCHEMA_NOT_SUPPORTED
+from faststream._internal.cli.utils.parsers import get_yaml_parser
+from faststream.exceptions import (
+    INSTALL_WATCHFILES,
+    INSTALL_YAML,
+    SCHEMA_NOT_SUPPORTED,
+    SetupError,
+)
 from faststream.specification.asyncapi.site import serve_app
 from faststream.specification.asyncapi.v2_6_0.schema import (
     ApplicationSchema as SchemaV2_6,
@@ -57,6 +62,16 @@ def serve(
     is_factory: bool = FACTORY_OPTION,
     reload: bool = RELOAD_FLAG,
     watch_extensions: list[str] = RELOAD_EXTENSIONS_OPTION,
+    yaml_parser: str = typer.Option(
+        "auto",
+        "--yaml-parser",
+        help=(
+            "Parser to use when loading a YAML schema file. "
+            "`auto` (default) prefers `ruamel.yaml` if installed (YAML 1.2 "
+            "compliant) and falls back to `pyyaml`. Pass `pyyaml`, `ruamel`, "
+            "or a `module:callable` reference to override."
+        ),
+    ),
 ) -> None:
     """Serve project AsyncAPI schema."""
     if ":" in docs:
@@ -77,6 +92,7 @@ def serve(
         app=docs,
         extra_options={"host": host, "port": port},
         is_factory=is_factory,
+        yaml_parser=yaml_parser,
     )
 
     if reload:
@@ -189,13 +205,16 @@ def _parse_and_serve(args: RunArgs) -> None:
 
         elif schema_filepath.suffix in {".yaml", ".yml"}:
             try:
-                import yaml
-            except ImportError as e:  # pragma: no cover
-                typer.echo(INSTALL_YAML, err=True)
+                parser = get_yaml_parser(args.yaml_parser)
+            except SetupError as e:
+                typer.echo(str(e), err=True)
                 raise typer.Exit(1) from e
 
-            with schema_filepath.open("r") as f:
-                schema = yaml.safe_load(f)
+            try:
+                schema = parser(schema_filepath)
+            except SetupError as e:
+                typer.echo(str(e), err=True)
+                raise typer.Exit(1) from e
 
             data = json_dumps(schema)
 
@@ -203,12 +222,21 @@ def _parse_and_serve(args: RunArgs) -> None:
             msg = f"Unknown extension given - {args.app}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
             raise ValueError(msg)
 
-        for schema in (SchemaV3, SchemaV2_6):
-            with suppress(ValidationError):
-                raw_schema = model_parse(schema, data)
+        errors_by_version: dict[str, ValidationError] = {}
+        for schema_cls, label in (
+            (SchemaV3, "AsyncAPI 3.0.0"),
+            (SchemaV2_6, "AsyncAPI 2.6.0"),
+        ):
+            try:
+                raw_schema = model_parse(schema_cls, data)
                 break
+            except ValidationError as exc:
+                errors_by_version[label] = exc
         else:
             typer.echo(SCHEMA_NOT_SUPPORTED.format(schema_filename=args.app), err=True)
+            for label, exc in errors_by_version.items():
+                typer.echo(f"\n{label} validation errors:", err=True)
+                typer.echo(str(exc), err=True)
             raise typer.Exit(1)
 
     serve_app(
