@@ -251,13 +251,13 @@ def _parse_and_serve(args: RunArgs) -> None:
             try:
                 raw_schema = model_parse(schema_cls, data)
                 break
-            except ValidationError as exc:
-                errors_by_version[label] = exc
+            except ValidationError as validation_exc:
+                errors_by_version[label] = validation_exc
         else:
             typer.echo(SCHEMA_NOT_SUPPORTED.format(schema_filename=args.app), err=True)
-            for label, exc in errors_by_version.items():
-                typer.echo(f"\n{label} validation errors:", err=True)
-                typer.echo(str(exc), err=True)
+            for version_label, version_exc in errors_by_version.items():
+                typer.echo(f"\n{version_label} validation errors:", err=True)
+                typer.echo(str(version_exc), err=True)
             if _looks_like_unquoted_scalar_issue(errors_by_version):
                 typer.echo(
                     "\nHint: a string field received a number/bool. YAML "
