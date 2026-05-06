@@ -284,6 +284,46 @@ def test_serve_asyncapi_docs_from_file(
         assert response.status_code == 200
 
 
+@skip_windows
+@skip_macos  # MacOS GHA runner doesn't allow to run 0.0.0.0 process
+@require_aiokafka
+@pytest.mark.slow()
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
+def test_serve_asyncapi_docs_with_explicit_yaml_parser(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """End-to-end: `--yaml-parser pyyaml` actually serves the document.
+
+    The base ``test_serve_asyncapi_docs_from_file`` covers the default
+    (``auto``) parser path. This one exercises the explicit flag so a
+    regression in flag plumbing — flag parsed but ignored, or wired to the
+    wrong loader — gets caught against a real server.
+    """
+    with (
+        generate_template(yaml_asyncapi_doc, filename="asyncapi.yaml") as doc_path,
+        faststream_cli(
+            "faststream",
+            "docs",
+            "serve",
+            "--host",
+            "0.0.0.0",
+            "--yaml-parser",
+            "pyyaml",
+            str(doc_path),
+        ) as cli,
+    ):
+        cli.wait_for_stderr("Please, do not use it in production.")
+
+        try:
+            response = httpx.get("http://0.0.0.0:8000")
+        except Exception as e:
+            raise RuntimeError(cli.stderr) from e
+
+        assert response.status_code == 200
+        assert "<title>FastStream AsyncAPI</title>" in response.text
+
+
 # Tests for #2709: improved error message + pluggable parser
 
 
