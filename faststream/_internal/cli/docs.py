@@ -237,10 +237,20 @@ def _parse_and_serve(args: RunArgs) -> None:
             except SetupError as e:
                 typer.echo(str(e), err=True)
                 raise typer.Exit(1) from e
+            except (OSError, ValueError) as e:
+                # File-system failures and well-formed-but-rejected inputs.
+                typer.echo(
+                    f"Failed to read `{args.app}`: {type(e).__name__}: {e}",
+                    err=True,
+                )
+                raise typer.Exit(1) from e
             except Exception as e:
-                # Anything the parser raises (yaml.YAMLError, ruamel
-                # YAMLError, custom parser exceptions, ...) is a parse-time
-                # failure. Distinguish it from validation errors below.
+                # YAML libraries don't share a base class (PyYAML uses
+                # `yaml.YAMLError`, ruamel uses `ruamel.yaml.YAMLError`, and
+                # user-supplied parsers via `--yaml-parser <module:func>` may
+                # raise anything). Catching `Exception` here keeps us
+                # parser-agnostic while typer.Exit's `pretty_exceptions_short`
+                # still chains the original cause via `from e`.
                 typer.echo(
                     f"Failed to parse `{args.app}` with `{args.yaml_parser}`: "
                     f"{type(e).__name__}: {e}",

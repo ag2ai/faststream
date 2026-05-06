@@ -372,6 +372,37 @@ servers:
     assert "quote the value" in result.stderr
 
 
+def test_yaml_parser_pyyaml_loads_valid_schema(
+    tmp_path: Path,
+    stderr_runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`--yaml-parser pyyaml` actually loads a well-formed file.
+
+    Negative tests cover the failure paths; this is the positive path so a
+    regression that breaks ``get_yaml_parser`` resolution gets caught.
+    ``serve_app`` is patched out because it blocks on a real socket bind.
+    """
+    p = tmp_path / "doc.yaml"
+    p.write_text(yaml_asyncapi_doc)
+
+    served: list[object] = []
+    monkeypatch.setattr(
+        "faststream._internal.cli.docs.serve_app",
+        lambda raw, host, port: served.append((raw, host, port)),
+    )
+
+    result = stderr_runner.invoke(
+        cli,
+        ["docs", "serve", str(p), "--yaml-parser", "pyyaml"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.stderr
+    assert len(served) == 1
+    assert "Failed to parse" not in result.stderr
+    assert "not supported" not in result.stderr
+
+
 def test_malformed_yaml_emits_parse_error(
     tmp_path: Path,
     stderr_runner: CliRunner,
