@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from faststream._internal._compat import json_dumps, model_parse
 from faststream._internal.cli.utils.imports import import_from_string
-from faststream._internal.cli.utils.parsers import get_yaml_parser
+from faststream._internal.cli.utils.yaml_parsers import get_yaml_parser
 from faststream.exceptions import (
     INSTALL_WATCHFILES,
     INSTALL_YAML,

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from faststream._internal.cli.utils.parsers import (
+from faststream._internal.cli.utils.yaml_parsers import (
     _BUILTIN_PARSERS,
     _pyyaml_parser,
     get_yaml_parser,
