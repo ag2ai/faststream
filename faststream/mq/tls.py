@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import re
 from secrets import token_hex
-from typing import Iterable
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
@@ -58,7 +57,7 @@ def mq_tls_from_pem(
     cipher_spec: str,
     client_cert: str,
     client_key: str,
-    ca_certs: str | Iterable[str],
+    ca_cert: str,
     keystore_password: str | None = None,
     certificate_label: str | None = None,
     client_key_password: str | None = None,
@@ -68,8 +67,8 @@ def mq_tls_from_pem(
         raise SetupError("`client_cert` is required for IBM MQ PEM TLS.")
     if not client_key:
         raise SetupError("`client_key` is required for IBM MQ PEM TLS.")
-
-    normalized_cas = _normalize_ca_certs(ca_certs)
+    if not ca_cert:
+        raise SetupError("`ca_cert` is required for IBM MQ PEM TLS.")
 
     for name, value in {
         "client_cert": client_cert,
@@ -78,9 +77,8 @@ def mq_tls_from_pem(
         if not Path(value).exists():
             raise SetupError(f"`{name}` path does not exist: {value}")
 
-    for ca in normalized_cas:
-        if not Path(ca).exists():
-            raise SetupError(f"`ca_certs` path does not exist: {ca}")
+    if not Path(ca_cert).exists():
+        raise SetupError(f"`ca_cert` path does not exist: {ca_cert}")
 
     resolved_password = keystore_password or token_hex(32)
 
@@ -93,7 +91,7 @@ def mq_tls_from_pem(
         _keystore_bytes=_build_pkcs12(
             client_cert=Path(client_cert),
             client_key=Path(client_key),
-            ca_certs=tuple(Path(x) for x in normalized_cas),
+            ca_cert=Path(ca_cert),
             certificate_label=certificate_label or "faststream-mq-client",
             keystore_password=resolved_password,
             client_key_password=client_key_password,
@@ -117,24 +115,11 @@ def validate_tls_configuration(
             "IBM MQ TLS requires explicit `tls=` configuration. `security.use_ssl` alone is not enough.",
         )
 
-
-def _normalize_ca_certs(ca_certs: str | Iterable[str]) -> tuple[str, ...]:
-    if isinstance(ca_certs, str):
-        normalized = (ca_certs,)
-    else:
-        normalized = tuple(ca_certs)
-
-    if not normalized:
-        raise SetupError("`ca_certs` is required for IBM MQ PEM TLS.")
-
-    return normalized
-
-
 def _build_pkcs12(
     *,
     client_cert: Path,
     client_key: Path,
-    ca_certs: tuple[Path, ...],
+    ca_cert: Path,
     certificate_label: str,
     keystore_password: str,
     client_key_password: str | None,
@@ -148,7 +133,7 @@ def _build_pkcs12(
         )
         key = load_pem_private_key(key_data, password=key_password)
 
-        ca_chain = _load_distinct_certificates(ca_certs)
+        ca_chain = _load_distinct_certificates(ca_cert)
         ca_entries = [
             pkcs12.PKCS12Certificate(ca_cert, f"ca-cert-{index}".encode("ascii"))
             for index, ca_cert in enumerate(ca_chain, start=1)
@@ -176,17 +161,16 @@ def _build_pkcs12(
         raise SetupError(f"MQ TLS setup failed: {e}") from e
 
 
-def _load_distinct_certificates(paths: tuple[Path, ...]) -> list[x509.Certificate]:
+def _load_distinct_certificates(path: Path) -> list[x509.Certificate]:
     seen: set[bytes] = set()
     certs: list[x509.Certificate] = []
 
-    for path in paths:
-        data = path.read_bytes()
-        for block in _extract_certificate_blocks(data):
-            if block in seen:
-                continue
-            seen.add(block)
-            certs.append(x509.load_pem_x509_certificate(block))
+    data = path.read_bytes()
+    for block in _extract_certificate_blocks(data):
+        if block in seen:
+            continue
+        seen.add(block)
+        certs.append(x509.load_pem_x509_certificate(block))
 
     return certs
 

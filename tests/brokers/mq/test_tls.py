@@ -194,7 +194,7 @@ def test_pem_tls_connect_with_ccdt(monkeypatch, tmp_path: Path) -> None:
                 peer_name="CN=qm1.example.com",
                 client_cert=str(client_pem),
                 client_key=str(client_pem),
-                ca_certs=(str(ca),),
+                ca_cert=str(ca),
             ),
         ),
     )
@@ -233,7 +233,7 @@ def test_prepare_pem_tls_creates_pkcs12_store(monkeypatch, tmp_path: Path) -> No
             cipher_spec="TLS_AES_256_GCM_SHA384",
             client_cert=str(client_cert),
             client_key=str(client_key),
-            ca_certs=(str(ca),),
+            ca_cert=str(ca),
             certificate_label="client-cert",
             keystore_password="secret",
         ),
@@ -262,7 +262,7 @@ def test_pem_tls_without_password_generates_strong_keystore_password(
         cipher_spec="TLS_AES_256_GCM_SHA384",
         client_cert=str(client_cert),
         client_key=str(client_key),
-        ca_certs=(str(ca),),
+        ca_cert=str(ca),
     )
 
     assert tls.keystore_password is not None

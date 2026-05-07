@@ -25,9 +25,11 @@ Use this mode when you have:
 
 - client certificate PEM file
 - client private key PEM file
-- one or more CA PEM files
+- a CA PEM file
 
 Use `mq_tls_from_pem(...)` for this mode. FastStream prepares a temporary PKCS12 keystore in Python and connects using MQ-native TLS settings.
+
+If your deployment has multiple CA certificates, bundle them into a single PEM file before passing it as `ca_cert`.
 
 If `keystore_password` is omitted, FastStream generates a strong random password for the process-local temporary keystore.
 
