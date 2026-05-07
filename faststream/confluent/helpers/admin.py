@@ -1,5 +1,3 @@
-import logging
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -9,6 +7,8 @@ from confluent_kafka.admin import (  # type: ignore[attr-defined]
 )
 
 if TYPE_CHECKING:
+    from faststream._internal.logger import LoggerState
+
     from .config import ConfluentFastConfig
 
 
@@ -25,12 +25,16 @@ class AdminService:
     async def connect(
         self,
         config: "ConfluentFastConfig",
-        logger: logging.Logger | None = None,
+        logger: "LoggerState | None" = None,
     ) -> None:
         if self.admin_client is None:
+            from .client import _LazyLoggerProxy
+
             admin_config = config.admin_config
             if logger is not None:
-                self.admin_client = AdminClient(admin_config, logger=logger)
+                self.admin_client = AdminClient(
+                    admin_config, logger=_LazyLoggerProxy(logger),
+                )
             else:
                 self.admin_client = AdminClient(admin_config)
 

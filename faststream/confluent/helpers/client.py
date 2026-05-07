@@ -31,6 +31,25 @@ if TYPE_CHECKING:
         on_delivery: NotRequired[Callable[..., None]]
 
 
+class _LazyLoggerProxy(logging.Logger):
+    """A logger proxy that lazily delegates to LoggerState.
+
+    confluent-kafka requires a logger at construction time, but LoggerState
+    may not be initialized yet (it is set up after ``_connect()``).  This
+    proxy silently drops log records until the underlying LoggerState is
+    ready, then forwards them to the real logger.
+    """
+
+    def __init__(self, logger_state: "LoggerState") -> None:
+        super().__init__("faststream.confluent._proxy", logging.NOTSET)
+        self._logger_state = logger_state
+
+    def handle(self, record: logging.LogRecord) -> None:
+        real_logger = self._logger_state.logger.logger
+        if real_logger is not None and hasattr(real_logger, "handle"):
+            real_logger.handle(record)
+
+
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
 
@@ -45,7 +64,7 @@ class AsyncConfluentProducer:
         self.config = config.producer_config
         self.producer = Producer(
             self.config,
-            logger=self.logger_state.logger.logger,
+            logger=_LazyLoggerProxy(logger),
         )
 
         self.__running = True
@@ -265,7 +284,7 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
+        self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
