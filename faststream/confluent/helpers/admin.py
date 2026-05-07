@@ -1,3 +1,5 @@
+import logging
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -20,9 +22,17 @@ class AdminService:
     def __init__(self) -> None:
         self.admin_client: AdminClient | None = None
 
-    async def connect(self, config: "ConfluentFastConfig") -> None:
+    async def connect(
+        self,
+        config: "ConfluentFastConfig",
+        logger: logging.Logger | None = None,
+    ) -> None:
         if self.admin_client is None:
-            self.admin_client = AdminClient(config.admin_config)
+            admin_config = config.admin_config
+            if logger is not None:
+                self.admin_client = AdminClient(admin_config, logger=logger)
+            else:
+                self.admin_client = AdminClient(admin_config)
 
     async def disconnect(self) -> None:
         self.admin_client = None
