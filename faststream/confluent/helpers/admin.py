@@ -6,6 +6,8 @@ from confluent_kafka.admin import (  # type: ignore[attr-defined]
     NewTopic,
 )
 
+from faststream.confluent.schemas import Topic
+
 if TYPE_CHECKING:
     from .config import ConfluentFastConfig
 
@@ -34,10 +36,21 @@ class AdminService:
         )
         return self.admin_client
 
-    def create_topics(self, topics: list[str]) -> list[CreateResult]:
-        create_result = self.client.create_topics(
-            [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics],
-        )
+    def create_topics(self, topics: list[str | Topic]) -> list[CreateResult]:
+        new_topics = []
+        for topic in topics:
+            if isinstance(topic, Topic):
+                new_topics.append(
+                    NewTopic(
+                        topic.name,
+                        num_partitions=topic.num_partitions or 1,
+                        replication_factor=topic.replication_factor or 1,
+                    )
+                )
+            else:
+                new_topics.append(NewTopic(topic, num_partitions=1, replication_factor=1))
+
+        create_result = self.client.create_topics(new_topics)
 
         final_results = []
         for topic, f in create_result.items():
