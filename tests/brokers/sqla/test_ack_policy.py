@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream import AckPolicy
 from faststream.sqla import SqlaBroker
 from faststream.sqla.annotations import (
     SqlaMessage as SqlaMessageAnnotation,

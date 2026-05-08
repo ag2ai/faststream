@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
 from faststream.sqla import SqlaBroker, SqlaMessage
-from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream import AckPolicy
 from faststream.sqla.retry import ExponentialBackoffRetryStrategy
 
 engine = create_async_engine("postgresql+asyncpg://user:pass@localhost/mydb")

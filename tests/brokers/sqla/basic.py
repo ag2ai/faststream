@@ -4,7 +4,7 @@ from typing import Any
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream import AckPolicy
 from faststream.sqla.broker.broker import SqlaBroker
 from faststream.sqla.broker.router import SqlaRouter
 from faststream.sqla.retry import NoRetryStrategy

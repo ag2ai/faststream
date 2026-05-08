@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from faststream import FastStream
-from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream import AckPolicy
 from faststream.sqla import SqlaBroker
 from faststream.sqla.retry import ConstantRetryStrategy
 

@@ -487,9 +487,11 @@ class SchemaValidator:
     def _types_compatible(self, expected: Any, actual: Any) -> bool:
         from sqlalchemy.dialects.postgresql import JSONB
         from sqlalchemy.types import (
+            BINARY,
             BLOB,
             JSON,
             TIMESTAMP,
+            VARBINARY,
             VARCHAR,
             BigInteger,
             DateTime,
@@ -507,7 +509,7 @@ class SchemaValidator:
         integer_types = (BigInteger, SmallInteger, Integer)
         string_types = (String, Text, VARCHAR)
         datetime_types = (DateTime, TIMESTAMP)
-        binary_types = (LargeBinary, BLOB)
+        binary_types = (LargeBinary, BLOB, BINARY, VARBINARY)
         json_types = (JSON, JSONB)
 
         if isinstance(expected, Enum) or isinstance(actual, Enum):

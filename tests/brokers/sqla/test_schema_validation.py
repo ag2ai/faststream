@@ -278,7 +278,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         Table(
             "message",
             metadata,
-            Column("id", SmallInteger, primary_key=True),  # wrong: should be BigInteger
+            Column("id", SmallInteger, primary_key=True), # diff
             Column("queue", Integer, nullable=False),  # wrong: should be String
             Column("headers", json_type, nullable=True),
             Column(
@@ -301,7 +301,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             Column("id", BigInteger, primary_key=True),
             Column("queue", Integer, nullable=False),  # wrong: should be String
             Column("headers", String(255), nullable=True),  # wrong: should be JSON
-            Column("payload", LargeBinary, nullable=False),
+            Column("payload", String(255), nullable=False),
             Column(
                 "state", Enum(WrongSqlaMessageState), nullable=False
             ),  # wrong: enum members differ
@@ -322,11 +322,43 @@ class TestSchemaValidation(SqlaTestcaseConfig):
             await broker.start()
 
         error_msg = str(exc_info.value)
-        assert "message" in error_msg
-        assert "id" in error_msg
-        assert "queue" in error_msg
-        assert "payload" in error_msg
-        assert "created_at" in error_msg
-        assert "message_archive" in error_msg
-        assert "headers" in error_msg
-        assert "state" in error_msg
+        match engine.dialect.name:
+            case "postgresql":
+                queue_actual = "INTEGER"
+                varchar = "VARCHAR"
+                state_actual = "ENUM"
+            case "mysql":
+                queue_actual = "INTEGER"
+                varchar = "VARCHAR"
+                state_actual = "ENUM"
+            case "sqlite":
+                queue_actual = "INTEGER"
+                varchar = "VARCHAR"
+                state_actual = "VARCHAR"
+            case _:
+                raise ValueError
+
+        assert (
+            f"Table 'message' column 'payload' has type {varchar}, expected LargeBinary"
+            in error_msg
+        )
+        assert (
+            f"Table 'message' column 'queue' has type {queue_actual}, expected String"
+            in error_msg
+        )
+        assert (
+            f"Table 'message' column 'created_at' has type {varchar}, expected DateTime"
+            in error_msg
+        )
+        assert (
+            f"Table 'message_archive' column 'queue' has type {queue_actual}, expected String"
+            in error_msg
+        )
+        assert (
+            f"Table 'message_archive' column 'headers' has type {varchar}, expected JSON"
+            in error_msg
+        )
+        assert (
+            f"Table 'message_archive' column 'state' has type {state_actual}, expected Enum"
+            in error_msg
+        )

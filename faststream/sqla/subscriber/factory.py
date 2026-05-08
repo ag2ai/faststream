@@ -2,7 +2,7 @@ import warnings
 from typing import TYPE_CHECKING, Any
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.middlewares.acknowledgement.config import AckPolicy
+from faststream import AckPolicy
 from faststream.sqla.configs.subscriber import SqlaSubscriberConfig
 from faststream.sqla.subscriber.specification import SqlaSubscriberSpecification
 from faststream.sqla.subscriber.usecase import SqlaSubscriber
