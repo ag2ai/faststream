@@ -1,5 +1,6 @@
 """A Python framework for building services interacting with Apache Kafka, RabbitMQ, NATS and Redis."""
 
+from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.testing.app import TestApp
 from faststream._internal.utils import apply_types
 from faststream.annotations import ContextRepo, Logger
@@ -15,6 +16,7 @@ __all__ = (
     "AsyncAPI",
     "BaseMiddleware",
     "BatchPublishCommand",
+    "BrokerUsecase",
     "Context",
     "ContextRepo",
     "Depends",
