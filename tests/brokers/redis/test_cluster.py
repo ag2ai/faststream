@@ -134,12 +134,12 @@ class TestClusterBrokerConfig:
         assert len(broker.routers) == 1
 
     def test_connection_state_type(self) -> None:
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
         broker = RedisClusterBroker()
         assert isinstance(
             broker.config.broker_config.connection,
-            ClusterConnectionState,
+            RedisClusterConnectionState,
         )
 
     def test_message_format_default(self) -> None:
@@ -175,40 +175,40 @@ class TestClusterBrokerConfig:
         assert len(broker.config.broker_config.connection._options["startup_nodes"]) == 1
 
 
-class TestClusterConnectionState:
-    """Unit tests for ClusterConnectionState."""
+class TestRedisClusterConnectionState:
+    """Unit tests for RedisClusterConnectionState."""
 
     def test_initial_state(self) -> None:
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
-        state = ClusterConnectionState()
+        state = RedisClusterConnectionState()
         assert not state
         assert state._client is None
 
     def test_initial_state_with_options(self) -> None:
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
-        state = ClusterConnectionState({"host": "127.0.0.1", "port": 7000})
+        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         assert not state
 
     def test_client_raises_before_connect(self) -> None:
         from faststream.exceptions import IncorrectState
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
-        state = ClusterConnectionState()
+        state = RedisClusterConnectionState()
         with pytest.raises(IncorrectState):
             _ = state.client
 
     def test_bool_false_before_connect(self) -> None:
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
-        state = ClusterConnectionState()
+        state = RedisClusterConnectionState()
         assert not bool(state)
 
     def test_options_stored(self) -> None:
-        from faststream.redis.configs.cluster import ClusterConnectionState
+        from faststream.redis.configs.state import RedisClusterConnectionState
 
-        state = ClusterConnectionState({"startup_nodes": ["node1"]})
+        state = RedisClusterConnectionState({"startup_nodes": ["node1"]})
         assert state._options["startup_nodes"] == ["node1"]
 
 

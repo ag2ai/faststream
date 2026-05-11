@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 
 import anyio
 from typing_extensions import override
@@ -49,7 +49,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     @property
     def _client(self) -> "Redis[bytes]":
-        return self._outer_config.connection.client
+        return cast("Redis[bytes]", self._outer_config.connection.client)
 
     def _make_response_publisher(
         self,

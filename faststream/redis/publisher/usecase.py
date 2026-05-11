@@ -12,8 +12,6 @@ from faststream.message import gen_cor_id
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
-from .producer import RedisFastProducer
-
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 

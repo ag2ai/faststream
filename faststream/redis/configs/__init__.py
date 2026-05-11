@@ -1,9 +1,13 @@
 from .broker import RedisBrokerConfig
-from .cluster import ClusterConnectionState
-from .state import ConnectionState
+from .state import (
+    ConnectionState,
+    RedisClusterConnectionState,
+    RedisConnectionState,
+)
 
 __all__ = (
-    "ClusterConnectionState",
     "ConnectionState",
     "RedisBrokerConfig",
+    "RedisClusterConnectionState",
+    "RedisConnectionState",
 )
