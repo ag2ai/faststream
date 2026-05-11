@@ -1,328 +1,125 @@
 import logging
 import warnings
-from collections.abc import Iterable, Mapping, Sequence
-from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlparse
 
-import anyio
-from fast_depends import Provider, dependency_provider
+from fast_depends import dependency_provider
 from redis.asyncio.cluster import ClusterNode
-from redis.asyncio.connection import DefaultParser, Encoder
-from typing_extensions import override
+from typing_extensions import Unpack
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
-from faststream._internal.utils.nuid import NUID
-from faststream.middlewares import AckPolicy
 from faststream.redis.broker import RedisBroker
-from faststream.redis.broker.broker import _resolve_url_options
-from faststream.redis.configs import ConnectionState, RedisBrokerConfig
-from faststream.redis.configs.cluster import ClusterConnectionState
-from faststream.redis.exceptions import UnreachablePathError
-from faststream.redis.message import DATA_KEY
-from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
-from faststream.redis.publisher.producer import RedisFastProducer
-from faststream.redis.response import DestinationType, RedisPublishCommand
+from faststream.redis.configs import RedisBrokerConfig
+from faststream.redis.configs.state import RedisClusterConnectionState
+from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.publisher.producer import (
+    RedisClusterFastProducer,
+)
+from faststream.redis.schemas.types import (
+    CLUSTER_INCOMPATIBLE_PARAMS,
+    NON_CONNECTION_PARAMS,
+)
 from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 from faststream.specification.schema import BrokerSpec
 
 from .logging import make_redis_logger_state
-from .registrator import RedisRegistrator
 
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from fast_depends.dependencies import Dependant
-    from fast_depends.library.serializer import SerializerProto
     from redis.asyncio.client import Pipeline
-    from redis.asyncio.connection import BaseParser, Connection
 
-    from faststream._internal.basic_types import LoggerProto, SendableMessage
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
+    from faststream.redis.schemas.types import RedisClusterParams
     from faststream.redis.subscriber.usecases import ChannelSubscriber
     from faststream.security import BaseSecurity
-    from faststream.specification.schema.extra import Tag, TagDict
-
-
-_CLUSTER_INCOMPATIBLE_PARAMS = frozenset({
-    "db",
-    "socket_read_size",
-    "socket_type",
-    "retry_on_timeout",
-    "parser_class",
-    "encoder_class",
-    "connection_class",
-})
-
-
-def _clean_cluster_options(
-    raw: dict[str, Any],
-    *,
-    startup_nodes: list[tuple[str, int]] | None = None,
-    host: str = EMPTY,
-    port: str | int = EMPTY,
-) -> dict[str, Any]:
-    nodes: list[ClusterNode] = []
-
-    parsed_host = raw.get("host")
-    parsed_port = int(raw.get("port", 6379))
-
-    if host is not EMPTY:
-        parsed_host = str(host)
-    if port is not EMPTY:
-        parsed_port = int(port)
-
-    if parsed_host:
-        nodes.append(ClusterNode(parsed_host, parsed_port))
-    if startup_nodes:
-        for h, p in startup_nodes:
-            nodes.append(ClusterNode(h, int(p)))
-
-    cleaned = {
-        k: v
-        for k, v in raw.items()
-        if k not in _CLUSTER_INCOMPATIBLE_PARAMS and k not in {"host", "port"}
-    }
-    cleaned["startup_nodes"] = nodes
-    cleaned.pop("connection_class", None)
-    return cleaned
-
-
-class ClusterFastProducer(RedisFastProducer):
-    """Producer that routes channel operations through the sync cluster."""
-
-    def __init__(
-        self,
-        connection: "ConnectionState",
-        cluster_state: ClusterConnectionState,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(connection=connection, **kwargs)
-        self._cluster_state = cluster_state
-
-    @property
-    def cluster_state(self) -> ClusterConnectionState:
-        return self._cluster_state
-
-    @override
-    def _build_child(self, **kwargs: Any) -> "ClusterFastProducer":
-        return ClusterFastProducer(cluster_state=self._cluster_state, **kwargs)
-
-    @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        msg = cmd.message_format.encode(
-            message=cmd.body,
-            reply_to=cmd.reply_to,
-            headers=cmd.headers,
-            correlation_id=cmd.correlation_id or "",
-            serializer=self.serializer,
-        )
-
-        if cmd.destination_type is DestinationType.Channel:
-            return await self._cluster_state.sync_publish(cmd.destination, msg)
-
-        # For List/Stream — use the async RedisCluster connection
-        connection = cmd.pipeline or self._connection.client
-        if cmd.destination_type is DestinationType.List:
-            return await connection.rpush(cmd.destination, msg)
-        if cmd.destination_type is DestinationType.Stream:
-            return cast(
-                "int | bytes",
-                await connection.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                ),
-            )
-        raise UnreachablePathError
-
-    @override
-    async def request(self, cmd: "RedisPublishCommand") -> "Any":
-        nuid = NUID()
-        reply_to = str(nuid.next(), "utf-8")
-        psub = self._cluster_state.pubsub()
-
-        try:
-            await psub.subscribe(reply_to)
-
-            msg = cmd.message_format.encode(
-                message=cmd.body,
-                reply_to=reply_to,
-                headers=cmd.headers,
-                correlation_id=cmd.correlation_id or "",
-                serializer=self.serializer,
-            )
-
-            if cmd.destination_type is DestinationType.Channel:
-                await self._cluster_state.sync_publish(cmd.destination, msg)
-            elif cmd.destination_type is DestinationType.List:
-                await self._connection.client.rpush(cmd.destination, msg)
-            elif cmd.destination_type is DestinationType.Stream:
-                await self._connection.client.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                )
-            else:
-                raise UnreachablePathError
-
-            with anyio.fail_after(cmd.timeout) as scope:
-                # skip subscribe message
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                # get real response
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-            if scope.cancel_called:
-                raise TimeoutError
-
-            return response_msg
-
-        finally:
-            with suppress(Exception):
-                await psub.unsubscribe()
-                await psub.aclose()
 
 
 class RedisClusterBroker(RedisBroker):
+    """A Redis Cluster broker."""
+
     def __init__(
         self,
         url: str = "redis://localhost:6379",
-        *,
-        host: str = EMPTY,
-        port: str | int = EMPTY,
-        db: str | int = EMPTY,
-        connection_class: type["Connection"] = EMPTY,
-        client_name: str | None = None,
-        health_check_interval: float = 0,
-        max_connections: int | None = None,
-        socket_timeout: float | None = None,
-        socket_connect_timeout: float | None = None,
-        socket_read_size: int = 65536,
-        socket_keepalive: bool = False,
-        socket_keepalive_options: Mapping[int, int | bytes] | None = None,
-        socket_type: int = 0,
-        retry_on_timeout: bool = False,
-        encoding: str = "utf-8",
-        encoding_errors: str = "strict",
-        parser_class: type["BaseParser"] = DefaultParser,
-        encoder_class: type["Encoder"] = Encoder,
-        graceful_timeout: float | None = 15.0,
-        ack_policy: AckPolicy = EMPTY,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
-        middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
-        routers: Iterable[RedisRegistrator] = (),
-        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
-        security: Optional["BaseSecurity"] = None,
-        specification_url: str | None = None,
-        protocol: str | None = None,
-        protocol_version: str | None = "custom",
-        description: str | None = None,
-        tags: Iterable[Union["Tag", "TagDict"]] = (),
-        logger: Optional["LoggerProto"] = EMPTY,
-        log_level: int = logging.INFO,
-        apply_types: bool = True,
-        serializer: Optional["SerializerProto"] = EMPTY,
-        provider: Optional["Provider"] = None,
-        context: Optional["ContextRepo"] = None,
-        startup_nodes: list[tuple[str, int]] | None = None,
+        **kwargs: Unpack["RedisClusterParams"],
     ) -> None:
+        startup_nodes = kwargs.get("startup_nodes")
+        message_format = kwargs.pop("message_format", BinaryMessageFormatV1)
+        specification_url = kwargs.pop("specification_url", None)
+        protocol = kwargs.pop("protocol", None)
         self.message_format = message_format
 
         if specification_url is None:
             specification_url = url
         if protocol is None:
-            url_kwargs = urlparse(specification_url)
-            protocol = url_kwargs.scheme
+            protocol = urlparse(specification_url).scheme
 
-        all_options = _resolve_url_options(
+        connection_options = self._resolve_url_options(
             url,
-            security=security,
-            host=host,
-            port=port,
-            db=db,
-            client_name=client_name,
-            health_check_interval=health_check_interval,
-            max_connections=max_connections,
-            socket_timeout=socket_timeout,
-            socket_connect_timeout=socket_connect_timeout,
-            socket_read_size=socket_read_size,
-            socket_keepalive=socket_keepalive,
-            socket_keepalive_options=socket_keepalive_options,
-            socket_type=socket_type,
-            retry_on_timeout=retry_on_timeout,
-            encoding=encoding,
-            encoding_errors=encoding_errors,
-            parser_class=parser_class,
-            connection_class=connection_class,
-            encoder_class=encoder_class,
-        )
-
-        cluster_opts = _clean_cluster_options(
-            all_options,
             startup_nodes=startup_nodes,
-            host=host,
-            port=port,
+            host=kwargs.get("host", EMPTY),
+            port=kwargs.get("port", EMPTY),
+            security=kwargs.get("security"),
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k
+                not in NON_CONNECTION_PARAMS
+                | {"startup_nodes", "host", "port", "security"}
+            },
         )
 
-        connection_state = ClusterConnectionState(cluster_opts)
+        connection_state = RedisClusterConnectionState(connection_options)
 
         super(RedisBroker, self).__init__(
-            **all_options,
-            routers=routers,
+            **connection_options,
+            routers=kwargs.get("routers", ()),
             config=RedisBrokerConfig(
-                connection=cast("ConnectionState", connection_state),
-                producer=ClusterFastProducer(
-                    connection=cast("ConnectionState", connection_state),
+                connection=connection_state,
+                producer=RedisClusterFastProducer(
+                    connection=connection_state,
                     cluster_state=connection_state,
-                    parser=parser,
-                    decoder=decoder,
+                    parser=kwargs.get("parser"),
+                    decoder=kwargs.get("decoder"),
                     message_format=self.message_format,
-                    serializer=serializer,
+                    serializer=kwargs.get("serializer"),
                 ),
                 message_format=self.message_format,
-                broker_middlewares=middlewares,
-                broker_parser=parser,
-                broker_decoder=decoder,
-                broker_codec=codec,
-                logger=make_redis_logger_state(logger=logger, log_level=log_level),
-                fd_config=FastDependsConfig(
-                    use_fastdepends=apply_types,
-                    serializer=serializer,
-                    provider=provider or dependency_provider,
-                    context=context or ContextRepo(),
+                broker_middlewares=kwargs.get("middlewares", ()),
+                broker_parser=kwargs.get("parser"),
+                broker_decoder=kwargs.get("decoder"),
+                broker_codec=kwargs.get("codec"),
+                logger=make_redis_logger_state(
+                    logger=kwargs.get("logger", EMPTY),
+                    log_level=kwargs.get("log_level", logging.INFO),
                 ),
-                broker_dependencies=dependencies,
-                graceful_timeout=graceful_timeout,
-                ack_policy=ack_policy,
+                fd_config=FastDependsConfig(
+                    use_fastdepends=kwargs.get("apply_types", True),
+                    serializer=kwargs.get("serializer", EMPTY),
+                    provider=kwargs.get("provider") or dependency_provider,
+                    context=kwargs.get("context") or ContextRepo(),
+                ),
+                broker_dependencies=kwargs.get("dependencies", ()),
+                graceful_timeout=kwargs.get("graceful_timeout", 15.0),
+                ack_policy=kwargs.get("ack_policy", EMPTY),
                 extra_context={"broker": self},
             ),
             specification=BrokerSpec(
-                description=description,
+                description=kwargs.get("description"),
                 url=[specification_url],
                 protocol=protocol,
-                protocol_version=protocol_version,
-                security=security,
-                tags=tags,
+                protocol_version=kwargs.get("protocol_version", "custom"),
+                security=kwargs.get("security"),
+                tags=kwargs.get("tags", ()),
             ),
         )
 
     @property
-    def _cluster_state(self) -> ClusterConnectionState:
-        return cast("ClusterConnectionState", self.config.broker_config.connection)
+    def _cluster_state(self) -> RedisClusterConnectionState:
+        return cast("RedisClusterConnectionState", self.config.broker_config.connection)
 
     def subscriber(  # type: ignore[override]
         self,
@@ -450,3 +247,34 @@ class RedisClusterBroker(RedisBroker):
             reply_to=reply_to,
             headers=headers,
         )
+
+    @staticmethod
+    def _resolve_url_options(
+        url: str,
+        *,
+        startup_nodes: list[tuple[str, int]] | None = None,
+        host: str = EMPTY,
+        port: str | int = EMPTY,
+        security: Optional["BaseSecurity"] = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        options = RedisBroker._resolve_url_options(
+            url,
+            security=security,
+            host=host,
+            port=port,
+            **kwargs,
+        )
+
+        nodes: list[ClusterNode] = []
+        cluster_host = str(host) if host is not EMPTY else options.get("host")
+        cluster_port = int(port) if port is not EMPTY else int(options.get("port", 6379))
+        if cluster_host:
+            nodes.append(ClusterNode(cluster_host, cluster_port))
+        if startup_nodes:
+            for h, p in startup_nodes:
+                nodes.append(ClusterNode(h, int(p)))
+
+        return {
+            k: v for k, v in options.items() if k not in CLUSTER_INCOMPATIBLE_PARAMS
+        } | {"startup_nodes": nodes}

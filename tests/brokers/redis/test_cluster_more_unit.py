@@ -1,31 +1,28 @@
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 from unittest.mock import AsyncMock
 
 import anyio
 import pytest
 
-from faststream.redis import RedisClusterBroker, RedisRouter
-from faststream.redis.broker.cluster_broker import (
-    ClusterFastProducer,
-    _clean_cluster_options,
-)
-from faststream.redis.configs import ConnectionState
-from faststream.redis.configs.cluster import (
-    ClusterConnectionState,
-    _ClusterPublishProxy,
-)
+from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisClusterBroker
+from faststream.redis.configs import ConnectionState, RedisConnectionState
+from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.exceptions import UnreachablePathError
 from faststream.redis.parser import BinaryMessageFormatV1
-from faststream.redis.publisher.producer import RedisFastProducer
+from faststream.redis.publisher.producer import (
+    RedisClusterFastProducer,
+    RedisFastProducer,
+)
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 
-class TestClusterConnectionStateUnit:
-    """Unit tests for ClusterConnectionState (no cluster needed)."""
+class TestRedisClusterConnectionStateUnit:
+    """Unit tests for RedisClusterConnectionState (no cluster needed)."""
 
     def test_initial_bool_false(self) -> None:
-        state = ClusterConnectionState()
+        state = RedisClusterConnectionState()
         assert not bool(state)
 
     def test_options_passed_and_stored(self) -> None:
@@ -33,91 +30,17 @@ class TestClusterConnectionStateUnit:
             "host": "custom",
             "port": 7000,
             "ssl": True,
-            "password": "secret",
+            "password": "secret",  # pragma: allowlist secret
         }
-        state = ClusterConnectionState(opts)
+        state = RedisClusterConnectionState(opts)
         assert state._options == opts
 
     def test_get_sync_cluster_creates_once(self) -> None:
-        state = ClusterConnectionState({"host": "127.0.0.1", "port": 7000})
+        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         # We can't actually connect, but we can verify the method shape
         # by checking that _sync_cluster starts as None
         assert state._sync_cluster is None
         assert state._thread_pool is None
-
-    def test_clean_cluster_options_strips_incompat(self) -> None:
-        raw = {
-            "host": "h",
-            "port": 6379,
-            "db": 5,
-            "socket_read_size": 1024,
-            "socket_type": 1,
-            "retry_on_timeout": True,
-            "parser_class": "Parser",
-            "encoder_class": "Encoder",
-            "connection_class": "Conn",
-            "ssl": True,
-        }
-        cleaned = _clean_cluster_options(raw, host="override", port=7000)
-        for banned in (
-            "db",
-            "socket_read_size",
-            "socket_type",
-            "retry_on_timeout",
-            "parser_class",
-            "encoder_class",
-            "connection_class",
-        ):
-            assert banned not in cleaned, f"{banned} should be filtered"
-        assert "ssl" in cleaned
-        nodes = cleaned["startup_nodes"]
-        assert len(nodes) == 1
-        assert nodes[0].host == "override"
-        assert nodes[0].port == 7000
-
-    def test_clean_cluster_options_startup_nodes(self) -> None:
-        cleaned = _clean_cluster_options(
-            {"host": "h", "port": 6379},
-            startup_nodes=[("n1", 7001), ("n2", 7002)],
-        )
-        nodes = cleaned["startup_nodes"]
-        assert len(nodes) == 3
-        assert nodes[0].host == "h"
-        assert nodes[1].host == "n1"
-        assert nodes[2].host == "n2"
-
-    def test_clean_cluster_options_no_host(self) -> None:
-        """When no host/port given, nodes list is empty — connect will fail later."""
-        cleaned = _clean_cluster_options({})
-        assert cleaned["startup_nodes"] == []
-
-
-class TestClusterPublishProxy:
-    """Unit tests for _ClusterPublishProxy."""
-
-    @pytest.mark.asyncio()
-    async def test_proxy_passes_through_attr(self) -> None:
-        class FakeAsync:
-            async def xadd(self, *a, **kw) -> str:
-                return "ok"
-
-        proxy = _ClusterPublishProxy(FakeAsync(), None)
-        assert hasattr(proxy, "xadd")
-        result = await proxy.xadd("stream", {})
-        assert result == "ok"
-
-    @pytest.mark.asyncio()
-    async def test_proxy_routes_publish_to_sync(self) -> None:
-        calls = []
-
-        async def fake_sync_publish(channel: str, body: bytes) -> int:
-            calls.append((channel, body))
-            return 1
-
-        proxy = _ClusterPublishProxy(object(), fake_sync_publish)
-        result = await proxy.publish("ch", b"msg")
-        assert result == 1
-        assert calls == [("ch", b"msg")]
 
 
 class TestClusterBrokerWarnings:
@@ -126,25 +49,42 @@ class TestClusterBrokerWarnings:
     @pytest.mark.asyncio()
     async def test_publish_with_pipeline_warns(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with broker:
+        async with TestRedisClusterBroker(broker) as br:
             with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await broker.publish("hello", channel="ch", pipeline=None)
+                await br.publish("hello", channel="ch", pipeline=None)
 
     @pytest.mark.asyncio()
     async def test_publish_batch_with_pipeline_warns(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with broker:
+        async with TestRedisClusterBroker(broker) as br:
             with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await broker.publish_batch("x", list="l", pipeline=None)
+                await br.publish_batch("x", list="l", pipeline=None)
 
 
 class TestClusterBrokerInheritanceExtra:
     """Additional inheritance/API compatibility tests."""
 
-    def test_db_is_filtered_from_options(self) -> None:
-        broker = RedisClusterBroker(url="redis://localhost:6379/5")
+    def test_cluster_incompatible_params_filtered(self) -> None:
+        """Cluster-incompatible params from URL are stripped on init."""
+        broker = RedisClusterBroker(
+            url="redis://localhost:6379/5",
+            client_name="myapp",
+            ssl=True,
+        )
         opts = broker.config.broker_config.connection._options
-        assert "db" not in opts
+        assert "db" not in opts, "db is cluster-incompatible"
+        assert "client_name" in opts
+        assert opts["client_name"] == "myapp"
+        assert opts.get("ssl") is True
+
+    def test_init_with_startup_nodes(self) -> None:
+        """Explicit startup_nodes are stored in connection options."""
+        broker = RedisClusterBroker(
+            url="redis://127.0.0.1:7001",
+            startup_nodes=[("127.0.0.1", 7002)],
+        )
+        nodes = broker.config.broker_config.connection._options.get("startup_nodes", [])
+        assert len(nodes) > 1
 
     def test_router_inclusion_works(self) -> None:
         broker = RedisClusterBroker(routers=[RedisRouter()])
@@ -210,12 +150,12 @@ class TestSyncPubSubProxyUnit:
             pool.shutdown(wait=False)
 
 
-class TestClusterConnectionStateDisconnect:
+class TestRedisClusterConnectionStateDisconnect:
     """Tests for disconnect lifecycle."""
 
     @pytest.mark.asyncio()
     async def test_disconnect_cleans_thread_pool(self) -> None:
-        state = ClusterConnectionState({"host": "127.0.0.1", "port": 7000})
+        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         assert state._thread_pool is None
         await state.disconnect()
         assert state._thread_pool is None
@@ -224,19 +164,19 @@ class TestClusterConnectionStateDisconnect:
 
     @pytest.mark.asyncio()
     async def test_disconnect_before_connect_no_error(self) -> None:
-        state = ClusterConnectionState({"host": "127.0.0.1", "port": 7000})
+        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         await state.disconnect()  # Should not raise
         assert not bool(state)
 
     def test_bool_reflects_connected(self) -> None:
-        state = ClusterConnectionState()
+        state = RedisClusterConnectionState()
         assert not state
         state._connected = True
         assert state
 
 
 class TestClusterFastProducerUnit:
-    """Direct unit tests for ClusterFastProducer routing logic."""
+    """Direct unit tests for RedisClusterFastProducer routing logic."""
 
     @pytest.fixture()
     def mock_client(self) -> AsyncMock:
@@ -246,15 +186,15 @@ class TestClusterFastProducerUnit:
         return client
 
     @pytest.fixture()
-    def mock_connection(self, mock_client: AsyncMock) -> ConnectionState:
-        conn = ConnectionState()
+    def mock_connection(self, mock_client: AsyncMock) -> ConnectionState[Any]:
+        conn = RedisConnectionState()
         conn._client = mock_client
         conn._connected = True
         return conn
 
     @pytest.fixture()
     def mock_cluster_state(self) -> AsyncMock:
-        state = AsyncMock(spec=ClusterConnectionState)
+        state = AsyncMock(spec=RedisClusterConnectionState)
         state.sync_publish = AsyncMock(return_value=1)
         return state
 
@@ -265,7 +205,7 @@ class TestClusterFastProducerUnit:
         mock_cluster_state: AsyncMock,
     ) -> RedisFastProducer:
 
-        return ClusterFastProducer(
+        return RedisClusterFastProducer(
             connection=mock_connection,
             cluster_state=mock_cluster_state,
             parser=None,
@@ -467,8 +407,8 @@ class TestClusterBrokerPing:
     @pytest.mark.asyncio()
     async def test_ping_returns_true(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with broker:
-            result = await broker.ping()
+        async with TestRedisClusterBroker(broker) as br:
+            result = await br.ping()
         assert result is True
 
     @pytest.mark.asyncio()

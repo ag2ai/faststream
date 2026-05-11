@@ -5,6 +5,7 @@ from faststream.redis import (
     RedisClusterBroker,
     RedisRouter,
     TestRedisBroker,
+    TestRedisClusterBroker,
 )
 from tests.brokers.base.basic import BaseTestcaseConfig
 
@@ -25,7 +26,7 @@ class RedisTestcaseConfig(BaseTestcaseConfig):
 
 
 class RedisMemoryTestcaseConfig(RedisTestcaseConfig):
-    def patch_broker(self, broker: RedisBroker, **kwargs: Any) -> RedisBroker:
+    def patch_broker(self, broker: RedisBroker, **kwargs: Any) -> TestRedisBroker:
         return TestRedisBroker(broker, **kwargs)
 
 
@@ -63,5 +64,5 @@ class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
         self,
         broker: RedisClusterBroker,
         **kwargs: Any,
-    ) -> TestRedisBroker:
-        return TestRedisBroker(broker, **kwargs)
+    ) -> TestRedisClusterBroker:
+        return TestRedisClusterBroker(broker, **kwargs)
