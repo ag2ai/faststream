@@ -51,7 +51,7 @@ def convert_list_of_dict_to_dict(
     items: dict[str, Any] = {}
     for it in list_of:
         for key, value in it.items():
-            if key in items:
+            if (exist := items.get(key)) and value != exist:
                 warnings.warn(
                     f"Overwrite broker {warn} for an application, {warn} have the same names: `{key}`",
                     RuntimeWarning,
@@ -77,18 +77,6 @@ def get_app_schema(
     http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
-    servers = convert_list_of_dict_to_dict(
-        (get_broker_server(br) for br in brokers),
-        "server",
-    )
-
-    list_of_channels_operations = [get_broker_channels(br) for br in brokers]
-    list_of_channels = (itchannel for itchannel, _ in list_of_channels_operations)
-    list_of_operations = (itoperation for _, itoperation in list_of_channels_operations)
-
-    channels = convert_list_of_dict_to_dict(list_of_channels, "channel")
-    operations = convert_list_of_dict_to_dict(list_of_operations, "operation")
-
     if any(br.specification.security for br in brokers):
         list_of_specification_security = (
             br.specification.security.get_schema()
@@ -102,13 +90,20 @@ def get_app_schema(
     else:
         security_schemes = None
 
+    servers, broker_servers = get_broker_server(*brokers)
+
+    list_of_channels_operations = [
+        get_broker_channels(br, servers=srv) for br, srv in broker_servers.items()
+    ]
+    list_of_channels = (itchannel for itchannel, _ in list_of_channels_operations)
+    list_of_operations = (itoperation for _, itoperation in list_of_channels_operations)
+
+    channels = convert_list_of_dict_to_dict(list_of_channels, "channel")
+    operations = convert_list_of_dict_to_dict(list_of_operations, "operation")
+
     messages: dict[str, Message] = {}
     payloads: dict[str, dict[str, Any]] = {}
 
-    for channel in channels.values():
-        channel.servers = [
-            {"$ref": f"#/servers/{server_name}"} for server_name in list(servers.keys())
-        ]
     added_channels, added_operations = get_asgi_routes(http_handlers)
     channels.update(added_channels)
     operations.update(added_operations)
@@ -154,59 +149,77 @@ def get_app_schema(
 
 
 def get_broker_server(
-    broker: "BrokerUsecase[MsgType, ConnectionType]",
-) -> dict[str, Server]:
+    *brokers: "BrokerUsecase[MsgType, ConnectionType]",
+) -> tuple[
+    dict[str, Server],
+    dict["BrokerUsecase[Any, Any]", list[str]],
+]:
     """Get the broker server for an application."""
-    specification = broker.specification
+    servers: list[Server] = []
+    broker_servers: list[tuple[BrokerUsecase[Any, Any], Server]] = []
 
-    servers = {}
+    for broker in brokers:
+        specification = broker.specification
 
-    tags: list[Tag | dict[str, Any]] | None = None
-    if specification.tags:
-        tags = [Tag.from_spec(tag) for tag in specification.tags]
+        broker_meta: dict[str, Any] = {
+            "protocol": specification.protocol,
+            "protocolVersion": specification.protocol_version,
+            "description": specification.description,
+            "tags": [Tag.from_spec(tag) for tag in specification.tags] or None,
+            # TODO
+            # "variables": "",
+            # "bindings": "",
+        }
 
-    broker_meta: dict[str, Any] = {
-        "protocol": specification.protocol,
-        "protocolVersion": specification.protocol_version,
-        "description": specification.description,
-        "tags": tags,
-        # TODO
-        # "variables": "",
-        # "bindings": "",
-    }
+        if specification.security is not None:
+            broker_meta["security"] = [
+                Reference(**{"$ref": f"#/components/securitySchemes/{sec}"})
+                for security_item in specification.security.get_requirement()
+                for sec in security_item
+            ]
 
-    if specification.security is not None:
-        broker_meta["security"] = [
-            Reference(**{"$ref": f"#/components/securitySchemes/{sec}"})
-            for security_item in specification.security.get_requirement()
-            for sec in security_item
-        ]
+        for url in specification.url:
+            parsed_url = urlparse(url if "://" in url else f"//{url}")
+            server = Server(
+                host=parsed_url.netloc,
+                pathname=parsed_url.path,
+                **broker_meta,
+            )
 
-    single_server = len(specification.url) == 1
-    for i, broker_url in enumerate(specification.url, 1):
-        server_url = broker_url if "://" in broker_url else f"//{broker_url}"
+            # deduplicate servers
+            broker_servers.append((broker, server))
+            if server not in servers:
+                servers.append(server)
 
-        parsed_url = urlparse(server_url)
+    servers_by_names: dict[str, Server] = {}
+    single_server = len(servers) == 1
+    for i, server in enumerate(servers, 1):
         server_name = "development" if single_server else f"Server{i}"
-        servers[server_name] = Server(
-            host=parsed_url.netloc,
-            pathname=parsed_url.path,
-            **broker_meta,
-        )
+        servers_by_names[server_name] = server
 
-    return servers
+    broker_server_names: dict[BrokerUsecase[Any, Any], list[str]] = {}
+    for name, server in servers_by_names.items():
+        for broker, br_server in broker_servers:
+            if server == br_server:
+                broker_server_names.setdefault(broker, []).append(name)
+
+    return servers_by_names, broker_server_names
 
 
 def get_broker_channels(
-    broker: "BrokerUsecase[MsgType, ConnectionType]",
+    broker: "BrokerUsecase[MsgType, ConnectionType]", servers: list[str] | None = None
 ) -> tuple[dict[str, Channel], dict[str, Operation]]:
     """Get the broker channels for an application."""
     channels = {}
     operations = {}
 
+    channel_servers = [
+        {"$ref": f"#/servers/{server_name}"} for server_name in (servers or ())
+    ] or None
+
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
         for sub_key, sub_channel in sub.schema().items():
-            channel_obj = Channel.from_sub(sub_key, sub_channel)
+            channel_obj = Channel.from_sub(sub_key, sub_channel, servers=channel_servers)
 
             channel_key = clear_key(sub_key)
             if channel_key in channels:
@@ -244,7 +257,7 @@ def get_broker_channels(
 
     for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
-            channel_obj = Channel.from_pub(pub_key, pub_channel)
+            channel_obj = Channel.from_pub(pub_key, pub_channel, servers=channel_servers)
 
             channel_key = clear_key(pub_key)
             if channel_key in channels:

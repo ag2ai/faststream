@@ -42,12 +42,13 @@ if TYPE_CHECKING:
 
 
 def convert_list_of_dict_to_dict(
-    list_of: Iterable[dict[str, Any]], warn: str
+    list_of: Iterable[dict[str, Any]],
+    warn: str,
 ) -> dict[str, Any]:
     items: dict[str, Any] = {}
     for it in list_of:
         for key, value in it.items():
-            if key in items:
+            if (exist := items.get(key)) and value != exist:
                 warnings.warn(
                     f"Overwrite broker {warn} for an application, {warn} have the same names: `{key}`",
                     RuntimeWarning,
@@ -73,16 +74,6 @@ def get_app_schema(
     http_handlers: list[tuple[str, "HttpHandler"]],
 ) -> ApplicationSchema:
     """Get the application schema."""
-    servers = convert_list_of_dict_to_dict(
-        (get_broker_server(br) for br in brokers),
-        "server",
-    )
-
-    channels = convert_list_of_dict_to_dict(
-        (get_broker_channels(br) for br in brokers),
-        "channel",
-    )
-
     if any(br.specification.security for br in brokers):
         list_of_specification_security = (
             br.specification.security.get_schema()
@@ -96,12 +87,16 @@ def get_app_schema(
     else:
         security_schemes = None
 
+    servers, broker_servers = get_broker_server(*brokers)
+
+    channels = convert_list_of_dict_to_dict(
+        (get_broker_channels(br, servers=srv) for br, srv in broker_servers.items()),
+        "channel",
+    )
+    channels.update(get_asgi_routes(http_handlers))
+
     messages: dict[str, Message] = {}
     payloads: dict[str, dict[str, Any]] = {}
-
-    for channel in channels.values():
-        channel.servers = list(servers.keys())
-    channels.update(get_asgi_routes(http_handlers))
 
     for channel_name, ch in channels.items():
         resolve_channel_messages(ch, channel_name, payloads, messages)
@@ -158,36 +153,55 @@ def resolve_channel_messages(
 
 
 def get_broker_server(
-    broker: "BrokerUsecase[MsgType, ConnectionType]",
-) -> dict[str, Server]:
+    *brokers: "BrokerUsecase[Any, Any]",
+) -> tuple[
+    dict[str, Server],
+    dict["BrokerUsecase[Any, Any]", list[str]],
+]:
     """Get the broker server for an application."""
-    specification = broker.specification
+    servers: list[Server] = []
+    broker_servers: list[tuple[BrokerUsecase[Any, Any], Server]] = []
 
-    servers = {}
+    for broker in brokers:
+        specification = broker.specification
 
-    broker_meta: dict[str, Any] = {
-        "protocol": specification.protocol,
-        "protocolVersion": specification.protocol_version,
-        "description": specification.description,
-        "tags": [Tag.from_spec(tag) for tag in specification.tags] or None,
-        "security": specification.security.get_requirement()
-        if specification.security
-        else None,
-        # TODO
-        # "variables": "",
-        # "bindings": "",
-    }
+        broker_meta: dict[str, Any] = {
+            "protocol": specification.protocol,
+            "protocolVersion": specification.protocol_version,
+            "description": specification.description,
+            "tags": [Tag.from_spec(tag) for tag in specification.tags] or None,
+            "security": specification.security.get_requirement()
+            if specification.security
+            else None,
+            # TODO
+            # "variables": "",
+            # "bindings": "",
+        }
 
-    single_server = len(specification.url) == 1
-    for i, url in enumerate(specification.url, 1):
+        for url in specification.url:
+            server = Server(url=url, **broker_meta)
+            # deduplicate servers
+            broker_servers.append((broker, server))
+            if server not in servers:
+                servers.append(server)
+
+    servers_by_names: dict[str, Server] = {}
+    single_server = len(servers) == 1
+    for i, server in enumerate(servers, 1):
         server_name = "development" if single_server else f"Server{i}"
-        servers[server_name] = Server(url=url, **broker_meta)
+        servers_by_names[server_name] = server
 
-    return servers
+    broker_server_names: dict[BrokerUsecase[Any, Any], list[str]] = {}
+    for name, server in servers_by_names.items():
+        for broker, br_server in broker_servers:
+            if server == br_server:
+                broker_server_names.setdefault(broker, []).append(name)
+
+    return servers_by_names, broker_server_names
 
 
 def get_broker_channels(
-    broker: "BrokerUsecase[MsgType, ConnectionType]",
+    broker: "BrokerUsecase[MsgType, ConnectionType]", servers: list[str] | None = None
 ) -> dict[str, Channel]:
     """Get the broker channels for an application."""
     channels = {}
@@ -201,7 +215,7 @@ def get_broker_channels(
                     stacklevel=1,
                 )
 
-            channels[key] = Channel.from_sub(sub)
+            channels[key] = Channel.from_sub(sub, servers=servers)
 
     for p in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for key, pub in p.schema().items():
@@ -212,7 +226,7 @@ def get_broker_channels(
                     stacklevel=1,
                 )
 
-            channels[key] = Channel.from_pub(pub)
+            channels[key] = Channel.from_pub(pub, servers=servers)
 
     return channels
 
