@@ -10,6 +10,7 @@ from aiokafka import ConsumerRecord
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.kafka import TopicPartition
@@ -19,12 +20,13 @@ from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.kafka.publisher.usecase import BatchPublisher
 from faststream.kafka.subscriber.usecase import BatchSubscriber
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream.kafka.publisher.usecase import LogicPublisher
     from faststream.kafka.response import KafkaPublishCommand
     from faststream.kafka.subscriber.usecase import LogicSubscriber
@@ -124,6 +126,7 @@ class FakeProducer(AioKafkaFastProducer):
 
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     def __bool__(self) -> bool:
         return True
@@ -135,7 +138,7 @@ class FakeProducer(AioKafkaFastProducer):
     @override
     async def publish(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a message to the Kafka broker."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             key=cmd.key,
@@ -145,6 +148,7 @@ class FakeProducer(AioKafkaFastProducer):
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -158,7 +162,7 @@ class FakeProducer(AioKafkaFastProducer):
 
     @override
     async def request(self, cmd: "KafkaPublishCommand") -> "ConsumerRecord":
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             topic=cmd.destination,
             key=cmd.key,
@@ -167,6 +171,7 @@ class FakeProducer(AioKafkaFastProducer):
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -191,14 +196,24 @@ class FakeProducer(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
+        serializer = self.broker.config.fd_config._serializer
+
+        if isinstance(self.codec, BatchCodecProto):
+            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
+        else:
+            encoded = [
+                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
+            ]
+
         for handler in _find_handler(
             cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
             cmd.destination,
             cmd.partition,
         ):
-            messages = (
-                build_message(
-                    message=message,
+            messages = [
+                _build_record(
+                    body=body,
+                    content_type=content_type,
                     topic=cmd.destination,
                     partition=cmd.partition,
                     timestamp_ms=cmd.timestamp_ms,
@@ -206,10 +221,9 @@ class FakeProducer(AioKafkaFastProducer):
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
-                    serializer=self.broker.config.fd_config._serializer,
                 )
-                for message_position, message in enumerate(cmd.batch_bodies)
-            )
+                for message_position, (body, content_type) in enumerate(encoded)
+            ]
 
             if isinstance(handler, BatchSubscriber):
                 await self._execute_handler(list(messages), cmd.destination, handler)
@@ -226,16 +240,17 @@ class FakeProducer(AioKafkaFastProducer):
     ) -> "ConsumerRecord":
         result = await handler.process_message(msg)
 
-        return build_message(
+        return await build_message(
             topic=topic,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
 
-def build_message(
+async def build_message(
     message: "SendableMessage",
     topic: str,
     partition: int | None = None,
@@ -246,9 +261,10 @@ def build_message(
     *,
     reply_to: str = "",
     serializer: Optional["SerializerProto"],
+    codec: Optional["CodecProto"] = None,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    msg, content_type = encode_message(message, serializer=serializer)
+    msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
 
     k = key or b""
 
@@ -271,6 +287,40 @@ def build_message(
         checksum=sum(msg),
         offset=0,
         headers=[(i, j.encode()) for i, j in headers.items()],
+        timestamp_type=1,
+        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+    )
+
+
+def _build_record(
+    body: bytes,
+    content_type: str | None,
+    topic: str,
+    partition: int | None = None,
+    timestamp_ms: int | None = None,
+    key: bytes | None = None,
+    headers: dict[str, str] | None = None,
+    correlation_id: str | None = None,
+    reply_to: str = "",
+) -> "ConsumerRecord":
+    k = key or b""
+    h = {
+        "content-type": content_type or "",
+        "correlation_id": correlation_id or gen_cor_id(),
+        **(headers or {}),
+    }
+    if reply_to:
+        h["reply_to"] = h.get("reply_to", reply_to)
+    return ConsumerRecord(
+        value=body,
+        topic=topic,
+        partition=partition or 0,
+        key=k,
+        serialized_key_size=len(k),
+        serialized_value_size=len(body),
+        checksum=sum(body),
+        offset=0,
+        headers=[(i, j.encode()) for i, j in h.items()],
         timestamp_type=1,
         timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
     )

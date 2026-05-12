@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig
+from faststream._internal.parser import DefaultCodec
 from faststream.confluent.helpers import (
     AdminService,
     AsyncConfluentConsumer,
@@ -61,7 +62,11 @@ class KafkaBrokerConfig(BrokerConfig):
             config=self.connection_config,
             logger=self.logger,
         )
-        self.producer.connect(native_producer, serializer=self.fd_config._serializer)
+        self.producer.connect(
+            native_producer,
+            serializer=self.fd_config._serializer,
+            codec=self.broker_codec or DefaultCodec(),
+        )
         await self.admin.connect(self.connection_config)
 
     async def disconnect(self) -> "None":

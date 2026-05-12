@@ -10,6 +10,7 @@ import anyio
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.rabbit.parser import AioPikaParser
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -57,7 +59,11 @@ class RealLock:
 
 
 class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None: ...
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None: ...
 
     def disconnect(self) -> None: ...
 
@@ -80,7 +86,11 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
     def __bool__(self) -> bool:
         return False
 
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:
@@ -115,17 +125,23 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
 
         self.__lock: LockState = LockUnset()
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default_parser = AioPikaParser()
         self._parser = ParserComposition(parser, default_parser.parse_message)
         self._decoder = ParserComposition(decoder, default_parser.decode_message)
 
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         """Lock initialization.
 
         Should be called in async context due `anyio.Lock` object can't be created outside event loop.
         """
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__lock = RealLock()
 
     def disconnect(self) -> None:
@@ -177,8 +193,11 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        message = AioPikaParser.encode_message(
-            message=message, serializer=self.serializer, **message_options
+        message = await AioPikaParser.encode_message(
+            message=message,
+            serializer=self.serializer,
+            codec=self.codec,
+            **message_options,
         )
 
         exchange_obj = await self.declarer.declare_exchange(

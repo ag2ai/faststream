@@ -15,6 +15,7 @@ from typing_extensions import Self, overload, override
 
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import BatchCodecProto
 from faststream._internal.types import (
     AsyncCallable,
     MsgType,
@@ -160,8 +161,19 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             msg = "Cannot use both 'codec' and 'decoder' — 'codec' replaces 'decoder'."
             raise ValueError(msg)
 
+        is_batch = getattr(self._decoder, "__name__", "") == "decode_batch"
+
         if codec:
-            async_decoder: AsyncCallable = codec.decode
+            if is_batch:
+                if isinstance(codec, BatchCodecProto):
+                    async_decoder: AsyncCallable = codec.decode_batch
+                else:
+                    msg = (
+                        "Batch subscriber requires a codec implementing BatchCodecProto."
+                    )
+                    raise ValueError(msg)
+            else:
+                async_decoder = codec.decode
         elif decoder:
             async_decoder = ParserComposition(decoder, self._decoder)
         else:

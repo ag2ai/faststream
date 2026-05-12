@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from faststream._internal.configs import BrokerConfig
+from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
@@ -19,7 +20,9 @@ class RedisBrokerConfig(BrokerConfig):
     message_format: type["MessageFormat"]
 
     async def connect(self) -> None:
-        self.producer.connect(self.fd_config._serializer)
+        self.producer.connect(
+            self.fd_config._serializer, codec=self.broker_codec or DefaultCodec()
+        )
         await self.connection.connect()
 
     async def disconnect(self) -> None:

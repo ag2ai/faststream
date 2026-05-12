@@ -8,9 +8,10 @@ from nats.aio.msg import Msg
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
 from faststream.nats.parser import NatsParser
 from faststream.nats.publisher.producer import NatsFastProducer
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.configs.broker import ConfigComposition
+    from faststream._internal.parser import CodecProto
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.response import NatsPublishCommand
@@ -104,16 +106,18 @@ class FakeProducer(NatsFastProducer):
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -132,12 +136,13 @@ class FakeProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "PatchedMessage":
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         for handler in _find_handler(
@@ -165,12 +170,13 @@ class FakeProducer(NatsFastProducer):
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
 
-        return build_message(
+        return await build_message(
             subject=subject,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
 
@@ -212,7 +218,7 @@ def _is_handler_matches(
     return False
 
 
-def build_message(
+async def build_message(
     message: "SendableMessage",
     subject: str,
     *,
@@ -220,8 +226,11 @@ def build_message(
     correlation_id: str | None = None,
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> "PatchedMessage":
-    msg, content_type = encode_message(message, serializer=serializer)
+    if codec is None:
+        codec = DefaultCodec()
+    msg, content_type = await codec.encode(message, serializer=serializer)
     return PatchedMessage(
         _client=None,  # type: ignore[arg-type]
         subject=subject,

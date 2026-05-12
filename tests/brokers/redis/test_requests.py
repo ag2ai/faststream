@@ -11,7 +11,7 @@ class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
         data, headers = BinaryMessageFormatV1.parse(self.msg["data"])
         data *= 2
-        self.msg["data"] = BinaryMessageFormatV1.encode(
+        self.msg["data"] = await BinaryMessageFormatV1.encode(
             message=data,
             reply_to=None,
             correlation_id=headers["correlation_id"],
