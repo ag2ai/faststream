@@ -12,7 +12,7 @@ from faststream.specification.schema.extra import (
 )
 
 
-class Tag(BaseModel, frozen=True):
+class Tag(BaseModel):
     """A class to represent a tag.
 
     Attributes:

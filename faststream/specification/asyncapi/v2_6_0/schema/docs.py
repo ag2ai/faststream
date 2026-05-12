@@ -11,7 +11,7 @@ from faststream.specification.schema.extra import (
 )
 
 
-class ExternalDocs(BaseModel, frozen=True):
+class ExternalDocs(BaseModel):
     """A class to represent external documentation.
 
     Attributes:
