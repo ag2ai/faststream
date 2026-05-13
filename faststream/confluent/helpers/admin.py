@@ -6,7 +6,11 @@ from confluent_kafka.admin import (  # type: ignore[attr-defined]
     NewTopic,
 )
 
+from .client import _LazyLoggerProxy
+
 if TYPE_CHECKING:
+    from faststream._internal.logger import LoggerState
+
     from .config import ConfluentFastConfig
 
 
@@ -20,9 +24,19 @@ class AdminService:
     def __init__(self) -> None:
         self.admin_client: AdminClient | None = None
 
-    async def connect(self, config: "ConfluentFastConfig") -> None:
+    async def connect(
+        self,
+        config: "ConfluentFastConfig",
+        logger: "LoggerState | None" = None,
+    ) -> None:
         if self.admin_client is None:
-            self.admin_client = AdminClient(config.admin_config)
+            admin_config = config.admin_config
+            if logger is not None:
+                self.admin_client = AdminClient(
+                    admin_config, logger=_LazyLoggerProxy(logger),
+                )
+            else:
+                self.admin_client = AdminClient(admin_config)
 
     async def disconnect(self) -> None:
         self.admin_client = None
