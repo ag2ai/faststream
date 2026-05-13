@@ -6,6 +6,8 @@ from confluent_kafka.admin import (  # type: ignore[attr-defined]
     NewTopic,
 )
 
+from .client import _LazyLoggerProxy
+
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
 
@@ -28,8 +30,6 @@ class AdminService:
         logger: "LoggerState | None" = None,
     ) -> None:
         if self.admin_client is None:
-            from .client import _LazyLoggerProxy
-
             admin_config = config.admin_config
             if logger is not None:
                 self.admin_client = AdminClient(
