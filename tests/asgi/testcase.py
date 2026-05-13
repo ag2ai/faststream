@@ -116,7 +116,7 @@ class AsgiTestcase:
             asyncapi_path="/docs",
         )
 
-        app.set_broker(broker)
+        app.add_broker(broker)
 
         async with self.get_test_broker(broker):
             with TestClient(app) as client:

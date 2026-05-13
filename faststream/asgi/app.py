@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
 from fast_depends import Provider, dependency_provider
+from typing_extensions import Self
 
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
@@ -90,8 +91,7 @@ class AsgiFastStream(Application):
 
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
@@ -108,7 +108,7 @@ class AsgiFastStream(Application):
         self.routes = list(asgi_routes)
 
         super().__init__(
-            broker,
+            *brokers,
             logger=logger,
             config=FastDependsConfig(
                 provider=provider or dependency_provider,
@@ -150,12 +150,11 @@ class AsgiFastStream(Application):
 
     def _init_setupable_(  # noqa: PLW3201
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
-        super()._init_setupable_(broker, specification, config)
+        super()._init_setupable_(*brokers, specification=specification, config=config)
         for route in self.routes:
             self._register_route(route)
 
@@ -165,9 +164,9 @@ class AsgiFastStream(Application):
         app: Application,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]],
         asyncapi_path: str | AsyncAPIRoute | None = None,
-    ) -> "AsgiFastStream":
+    ) -> Self:
         asgi_app = cls(
-            app.broker,
+            *app.brokers,
             asgi_routes=asgi_routes,
             asyncapi_path=asyncapi_path,
             logger=app.logger,

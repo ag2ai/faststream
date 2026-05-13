@@ -30,7 +30,7 @@ def test_init_without_logger(app_without_logger: FastStream) -> None:
 
 def test_set_broker(broker: RabbitBroker, app_without_broker: FastStream) -> None:
     assert app_without_broker.broker is None
-    app_without_broker.set_broker(broker)
+    app_without_broker.add_broker(broker)
     assert app_without_broker.broker is broker
 
 
@@ -40,7 +40,7 @@ async def test_set_broker_in_on_startup_hook(
     broker: RabbitBroker,
 ) -> None:
     def add_broker() -> None:
-        app_without_broker.set_broker(broker)
+        app_without_broker.add_broker(broker)
 
     app_without_broker.on_startup(add_broker)
 

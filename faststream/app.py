@@ -44,8 +44,7 @@ class FastStream(Application):
 
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         logger: Optional["LoggerProto"] = logger,
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -58,7 +57,7 @@ class FastStream(Application):
         specification: Optional["SpecificationFactory"] = None,
     ) -> None:
         super().__init__(
-            broker,
+            *brokers,
             logger=logger,
             config=FastDependsConfig(
                 provider=provider or dependency_provider,
