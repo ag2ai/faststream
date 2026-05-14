@@ -293,7 +293,9 @@ def _is_handler_matches(
     headers = headers or {}
     exchange = RabbitExchange.validate(exchange)
 
-    if handler.exchange != exchange:
+    if (handler.exchange.name if handler.exchange else "") != (
+        exchange.name if exchange else ""
+    ):
         return False
 
     if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:

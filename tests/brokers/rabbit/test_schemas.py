@@ -1,6 +1,6 @@
 import pytest
 
-from faststream.rabbit import RabbitQueue
+from faststream.rabbit import RabbitExchange, RabbitQueue
 
 
 @pytest.mark.rabbit()
@@ -22,4 +22,33 @@ def test_different_queue_routing_key() -> None:
             RabbitQueue("test", routing_key="binding-2"): 1,
         })
         == 1
+    )
+
+
+@pytest.mark.rabbit()
+def test_different_queue_params() -> None:
+    assert (
+        len({
+            RabbitQueue("test", durable=True): 0,
+            RabbitQueue("test", durable=False): 1,
+        })
+        == 2
+    )
+
+
+@pytest.mark.rabbit()
+def test_exchange_equality() -> None:
+    assert (
+        len({
+            RabbitExchange("test", durable=True): 0,
+            RabbitExchange("test", durable=True): 1,
+        })
+        == 1
+    )
+    assert (
+        len({
+            RabbitExchange("test", durable=True): 0,
+            RabbitExchange("test", durable=False): 1,
+        })
+        == 2
     )
