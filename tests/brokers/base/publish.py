@@ -611,3 +611,46 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             )
 
         mock.assert_called_with("Hello!")
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("pattern", "pattern_data", "expected_destination"),
+        (
+            ("log.{level}", {"level": "info"}, "log.info"),
+        )
+    )
+    async def test_destination_pattern(
+        self,
+        queue: str,
+        mock: MagicMock,
+        pattern: str,
+        pattern_data: dict,
+        expected_destination: str,
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(m) -> None:
+            event.set()
+            mock(m)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            pub = br.publisher(pattern)
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(pub.publish("Hello!", **pattern_data)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        # NOTE: IDK how to check destination here :(
+        mock.assert_called_with("Hello!")
+        assert mock.destination == expected_destination

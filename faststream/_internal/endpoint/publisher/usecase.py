@@ -80,7 +80,9 @@ class PublisherUsecase(Endpoint, PublisherProto):
         *,
         producer: "ProducerProto[Any]",
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> Any:
+        cmd.destination = cmd.destination.format(**kwargs)
         pub = producer.publish
         for pub_m in self._build_middlewares_stack(_extra_middlewares):
             pub = partial(pub_m, pub)
@@ -92,7 +94,9 @@ class PublisherUsecase(Endpoint, PublisherProto):
         *,
         producer: "ProducerProto[Any]",
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> Any:
+        cmd.destination = cmd.destination.format(**kwargs)
         pub = producer.publish_batch
         for pub_m in self._build_middlewares_stack(_extra_middlewares):
             pub = partial(pub_m, pub)
@@ -103,7 +107,9 @@ class PublisherUsecase(Endpoint, PublisherProto):
         cmd: "PublishCommand",
         *,
         producer: "ProducerProto[Any]",
+        **kwargs,
     ) -> Any:
+        cmd.destination = cmd.destination.format(**kwargs)
         request = producer.request
         for pub_m in self._build_middlewares_stack():
             request = partial(pub_m, request)
