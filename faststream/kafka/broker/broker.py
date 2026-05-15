@@ -67,6 +67,9 @@ if TYPE_CHECKING:
         """Kafka broker initialization keyword arguments.
 
         Attributes:
+            group_instance_id: Name of the group instance ID used for static membership (KIP-345).
+            client_rack: Rack identifier for this consumer (KIP-392). Used to fetch
+                from the closest replicas when rack-aware replica selection is enabled.
             request_timeout_ms: Client request timeout in milliseconds.
             retry_backoff_ms: Milliseconds to backoff when retrying on errors.
             metadata_max_age_ms: The period of time in milliseconds after
@@ -157,6 +160,8 @@ if TYPE_CHECKING:
         sasl_oauth_token_provider: AbstractTokenProvider | None
         loop: asyncio.AbstractEventLoop | None
         client_id: str | None
+        group_instance_id: str | None
+        client_rack: str | None
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -197,6 +202,8 @@ class KafkaBroker(
         sasl_oauth_token_provider: Optional["AbstractTokenProvider"] = None,
         loop: Optional["asyncio.AbstractEventLoop"] = None,
         client_id: str | None = SERVICE_NAME,
+        group_instance_id: str | None = None,
+        client_rack: str | None = None,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -378,6 +385,8 @@ class KafkaBroker(
             bootstrap_servers=servers,
             # both args
             client_id=client_id,
+            group_instance_id=group_instance_id,
+            client_rack=client_rack,
             request_timeout_ms=request_timeout_ms,
             retry_backoff_ms=retry_backoff_ms,
             metadata_max_age_ms=metadata_max_age_ms,
