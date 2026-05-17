@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import asyncio
+from dataclasses import dataclass, field
+from typing import Any, Awaitable, Protocol
+
+from faststream.message import AckStatus, StreamMessage
+
+
+class MQAcknowledger(Protocol):
+    async def commit(self) -> None: ...
+
+    async def backout(self) -> None: ...
+
+
+@dataclass
+class MQRawMessage:
+    body: bytes
+    queue: str
+    headers: dict[str, Any] = field(default_factory=dict)
+    reply_to: str = ""
+    reply_to_qmgr: str = ""
+    content_type: str | None = None
+    correlation_id: str | None = None
+    message_id: str | None = None
+    native_message_id: bytes | None = None
+    native_correlation_id: bytes | None = None
+    priority: int | None = None
+    persistence: bool | None = None
+    expiry: int | None = None
+    metadata: Any = None
+    connection: MQAcknowledger | None = None
+    settled: AckStatus | None = None
+    settled_event: asyncio.Event = field(default_factory=asyncio.Event)
+
+
+class MQMessage(StreamMessage[MQRawMessage]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        correlation_id = kwargs.get("correlation_id")
+        message_id = kwargs.get("message_id")
+
+        super().__init__(*args, **kwargs)
+
+        self.correlation_id = correlation_id
+        self.message_id = message_id
+
+    async def ack(self) -> None:
+        if self.committed is None and self.raw_message.connection is not None:
+            await self._wait_for_broker_settle(self.raw_message.connection.commit())
+        await super().ack()
+        self.raw_message.settled = self.committed
+        self.raw_message.settled_event.set()
+
+    async def nack(self) -> None:
+        if self.committed is None and self.raw_message.connection is not None:
+            await self._wait_for_broker_settle(self.raw_message.connection.backout())
+        await super().nack()
+        self.raw_message.settled = self.committed
+        self.raw_message.settled_event.set()
+
+    async def reject(self) -> None:
+        await self.ack()
+
+    async def _wait_for_broker_settle(self, operation: Awaitable[None]) -> None:
+        task = asyncio.create_task(operation)
+
+        try:
+            await asyncio.shield(task)
+
+        except asyncio.CancelledError:
+            await task
