@@ -80,6 +80,7 @@ class ConsumerConnectionParams(TypedDict, total=False):
 
     bootstrap_servers: str | list[str]
     group_instance_id: str | None
+    client_rack: str | None
     loop: AbstractEventLoop | None
     client_id: str
     request_timeout_ms: int
