@@ -2751,9 +2751,8 @@ subscriber = broker.subscriber("dynamic")
 subscriber(handler_method)
 ...
 broker.setup_subscriber(subscriber)
-await subscriber.start()
-...
-await subscriber.close()
+async with subscriber:
+    ...
 ```
 
 10. `faststream[docs]` distribution is removed.

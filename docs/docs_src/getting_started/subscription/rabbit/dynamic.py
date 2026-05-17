@@ -9,4 +9,7 @@ async def main():
 
         await subscriber.stop()
 
+        async with subscriber:
+            message: RabbitMessage | None = await subscriber.get_one(timeout=3.0)
+
     return message
