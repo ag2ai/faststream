@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 import pytest
 from dirty_equals import Contains, HasLen, IsPartialDict, IsStr
@@ -272,6 +273,30 @@ class SubscriberNaming(BaseNaming):
         assert schema["components"]["schemas"]["custom:Message:Payload"] == {
             "title": "custom:Message:Payload",
         }
+
+    def test_path_channel_refs_are_uri_encoded(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("/test/topic/{user_id}")
+        async def sub(name: str, age: int) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        channel_key = next(iter(schema["channels"]))
+        message_name = next(iter(schema["channels"][channel_key]["messages"]))
+        message_key = next(iter(schema["components"]["messages"]))
+        operation = next(iter(schema["operations"].values()))
+
+        encoded_channel_key = quote(channel_key, safe="~:._-")
+        encoded_message_key = quote(message_key, safe="~:._-")
+
+        assert schema["channels"][channel_key]["messages"][message_name] == {
+            "$ref": f"#/components/messages/{encoded_message_key}",
+        }
+        assert operation["channel"] == {"$ref": f"#/channels/{encoded_channel_key}"}
+        assert operation["messages"] == [
+            {"$ref": f"#/channels/{encoded_channel_key}/messages/{message_name}"},
+        ]
 
     def test_multi_subscribers_naming_default(self) -> None:
         broker = self.broker_class()
