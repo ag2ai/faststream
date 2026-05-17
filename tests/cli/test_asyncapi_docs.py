@@ -279,3 +279,53 @@ def test_serve_asyncapi_docs_from_file(
 
         assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
+
+
+@skip_windows
+def test_serve_asyncapi_yaml_unquoted_scalar_reports_hint(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """Regression for #2709: an unquoted YAML scalar (e.g. `protocolVersion: 3.2`)
+    is parsed as a float and fails AsyncAPI validation. The CLI must surface the
+    per-version validation errors and hint that the value should be quoted.
+    """
+    bad_doc = yaml_asyncapi_doc.replace(
+        "protocolVersion: auto",
+        "protocolVersion: 3.2",
+    )
+    with (
+        generate_template(bad_doc, filename="asyncapi.yaml") as doc_path,
+        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+    ):
+        cli.wait_for_stderr("not supported", timeout=5.0)
+        cli.wait(timeout=5.0)
+
+        stderr = cli.stderr
+        assert cli.process is not None
+        assert cli.process.returncode == 1, stderr
+        assert "AsyncAPI v3.0 validation errors" in stderr, stderr
+        assert "AsyncAPI v2.6 validation errors" in stderr, stderr
+        assert "Hint: YAML parses bare `3.2`" in stderr, stderr
+
+
+@skip_windows
+def test_serve_asyncapi_reports_yaml_parse_error(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """Regression for #2709: malformed YAML should surface the parser's error
+    directly instead of failing silently.
+    """
+    bad_yaml = "asyncapi: 2.6.0\nfoo: [unclosed\n"
+    with (
+        generate_template(bad_yaml, filename="asyncapi.yaml") as doc_path,
+        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+    ):
+        cli.wait_for_stderr("Failed to parse YAML file", timeout=5.0)
+        cli.wait(timeout=5.0)
+
+        stderr = cli.stderr
+        assert cli.process is not None
+        assert cli.process.returncode == 1, stderr
+        assert "Failed to parse YAML file" in stderr, stderr
