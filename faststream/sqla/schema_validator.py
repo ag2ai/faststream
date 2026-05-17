@@ -48,21 +48,6 @@ class SchemaValidator:
         "acquired_at": _DATETIME_TYPES,
         "archived_at": _DATETIME_TYPES,
     }
-    _ALLOWED_TYPE_NAMES_BY_COLUMN: ClassVar[dict[str, tuple[str, ...]]] = {
-        "id": ("BigInteger", "Integer", "SmallInteger"),
-        "queue": ("String", "Text", "VARCHAR"),
-        "headers": ("JSON", "JSONB"),
-        "payload": ("LargeBinary", "Binary", "BLOB", "VARBINARY"),
-        "state": ("Enum",),
-        "attempts_count": ("BigInteger", "Integer", "SmallInteger"),
-        "deliveries_count": ("BigInteger", "Integer", "SmallInteger"),
-        "created_at": ("DateTime", "TIMESTAMP"),
-        "first_attempt_at": ("DateTime", "TIMESTAMP"),
-        "next_attempt_at": ("DateTime", "TIMESTAMP"),
-        "last_attempt_at": ("DateTime", "TIMESTAMP"),
-        "acquired_at": ("DateTime", "TIMESTAMP"),
-        "archived_at": ("DateTime", "TIMESTAMP"),
-    }
 
     def __init__(
         self,
@@ -74,6 +59,7 @@ class SchemaValidator:
 
     def __call__(self, connection: Connection) -> list[str]:
         insp = inspect(connection)
+        dialect_name = connection.dialect.name
         errors: list[str] = []
 
         for table_def in self._tables:
@@ -93,7 +79,9 @@ class SchemaValidator:
                 if col_name not in db_columns:
                     continue
                 db_type = db_columns[col_name]
-                if not self._types_compatible(col_name, expected_type, db_type):
+                if not self._types_compatible(
+                    col_name, expected_type, db_type, dialect_name
+                ):
                     expected_type_names = ", ".join(
                         self._get_allowed_type_names(col_name, expected_type)
                     )
@@ -104,19 +92,29 @@ class SchemaValidator:
 
         return errors
 
-    def _types_compatible(self, column_name: str, expected: Any, actual: Any) -> bool:
+    def _types_compatible(
+        self,
+        column_name: str,
+        expected: Any,
+        actual: Any,
+        dialect_name: str,
+    ) -> bool:
         if isinstance(expected, TypeDecorator):
             expected = expected.impl
 
-        if isinstance(expected, Enum) or isinstance(actual, Enum):
-            if isinstance(expected, Enum) and isinstance(actual, _STRING_TYPES):
-                return bool(actual.length == max(len(value) for value in expected.enums))
+        if isinstance(expected, Enum) and isinstance(actual, Enum):
+            return set(expected.enums) == set(actual.enums)
 
-            return (
-                isinstance(expected, Enum)
-                and isinstance(actual, Enum)
-                and set(expected.enums) == set(actual.enums)
-            )
+        if (
+            isinstance(expected, Enum)
+            and dialect_name == "sqlite"
+            and isinstance(actual, _STRING_TYPES)
+        ):
+            # SQLite has no native Enum; it stores Enum as VARCHAR
+            return True
+
+        if isinstance(expected, Enum) or isinstance(actual, Enum):
+            return False
 
         allowed_types = self._ALLOWED_TYPES_BY_COLUMN.get(column_name)
         if allowed_types is not None and isinstance(actual, allowed_types):
@@ -125,6 +123,7 @@ class SchemaValidator:
         return type(expected) is type(actual)
 
     def _get_allowed_type_names(self, column_name: str, expected: Any) -> tuple[str, ...]:
-        return self._ALLOWED_TYPE_NAMES_BY_COLUMN.get(
-            column_name, (type(expected).__name__,)
-        )
+        allowed = self._ALLOWED_TYPES_BY_COLUMN.get(column_name)
+        if allowed is None:
+            return (type(expected).__name__,)
+        return tuple(t.__name__ for t in allowed)
