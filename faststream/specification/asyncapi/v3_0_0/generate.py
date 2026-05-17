@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
 from faststream._internal.constants import ContentTypes
-from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
+from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs, ref
 from faststream.specification.asyncapi.v3_0_0.schema import (
     ApplicationInfo,
     ApplicationSchema,
@@ -173,7 +173,7 @@ def get_broker_server(
 
         if specification.security is not None:
             broker_meta["security"] = [
-                Reference(**{"$ref": f"#/components/securitySchemes/{sec}"})
+                Reference(**ref("components", "securitySchemes", sec))
                 for security_item in specification.security.get_requirement()
                 for sec in security_item
             ]
@@ -214,7 +214,7 @@ def get_broker_channels(
     operations = {}
 
     channel_servers = [
-        {"$ref": f"#/servers/{server_name}"} for server_name in (servers or ())
+        ref("servers", server_name) for server_name in (servers or ())
     ] or None
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
@@ -246,12 +246,10 @@ def get_broker_channels(
 
             operations[operation_key] = Operation.from_sub(
                 messages=[
-                    Reference(**{
-                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
-                    })
+                    Reference(**ref("channels", channel_key, "messages", msg_name))
                     for msg_name in channel_obj.messages
                 ],
-                channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
+                channel=Reference(**ref("channels", channel_key)),
                 operation=sub_channel.operation,
             )
 
@@ -270,12 +268,10 @@ def get_broker_channels(
 
             operations[channel_key] = Operation.from_pub(
                 messages=[
-                    Reference(**{
-                        "$ref": f"#/channels/{channel_key}/messages/{msg_name}",
-                    })
+                    Reference(**ref("channels", channel_key, "messages", msg_name))
                     for msg_name in channel_obj.messages
                 ],
-                channel=Reference(**{"$ref": f"#/channels/{channel_key}"}),
+                channel=Reference(**ref("channels", channel_key)),
                 operation=pub_channel.operation,
             )
 
@@ -304,7 +300,7 @@ def get_asgi_routes(
             channels[channel_name] = channel
             operation = Operation(
                 action=Action.RECEIVE,
-                channel=Reference(**{"$ref": f"#/channels/{channel_name}"}),
+                channel=Reference(**ref("channels", channel_name)),
                 bindings=OperationBinding(
                     http=http_bindings.OperationBinding(
                         method=_get_http_binding_method(asgi_app.methods),
@@ -349,14 +345,14 @@ def _resolve_msg_payloads(
                 for def_name, def_schema in defs.items():
                     payloads[clear_key(def_name)] = def_schema
             processed_payloads[clear_key(name)] = payload
-            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{name}"}))
+            one_of_list.append(Reference(**ref("components", "schemas", name)))
 
         payloads.update(processed_payloads)
         m.payload["oneOf"] = one_of_list
         assert m.title
         messages[clear_key(m.title)] = m
         return Reference(
-            **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+            **ref("components", "messages", f"{channel_name}:{message_name}"),
         )
 
     payloads.update(m.payload.pop(DEF_KEY, {}))
@@ -371,9 +367,9 @@ def _resolve_msg_payloads(
         )
 
     payloads[payload_name] = m.payload
-    m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
+    m.payload = ref("components", "schemas", payload_name)
     assert m.title
     messages[clear_key(m.title)] = m
     return Reference(
-        **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+        **ref("components", "messages", f"{channel_name}:{message_name}"),
     )
