@@ -33,7 +33,8 @@ class AdminService:
             admin_config = config.admin_config
             if logger is not None:
                 self.admin_client = AdminClient(
-                    admin_config, logger=_LazyLoggerProxy(logger),
+                    admin_config,
+                    logger=_LazyLoggerProxy(logger),
                 )
             else:
                 self.admin_client = AdminClient(admin_config)
