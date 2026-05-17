@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
 
 from typing_extensions import deprecated, override
 
-from faststream._internal.broker.registrator import Registrator
 from faststream import AckPolicy
+from faststream._internal.broker.registrator import Registrator
 from faststream.sqla.configs.broker import SqlaBrokerConfig
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.publisher.factory import create_publisher

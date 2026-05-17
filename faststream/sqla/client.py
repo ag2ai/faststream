@@ -19,7 +19,6 @@ from sqlalchemy import (
     bindparam,
     delete,
     insert,
-    inspect,
     or_,
     select,
     text,
@@ -31,11 +30,11 @@ from sqlalchemy.dialects.sqlite import insert as insert_sqlite
 
 from faststream.exceptions import FeatureNotSupportedException, SetupError
 from faststream.sqla.message import SqlaInnerMessage, SqlaMessageState
+from faststream.sqla.schema_validator import SchemaValidator
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlalchemy import Connection
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 
@@ -165,6 +164,45 @@ class SqlaBaseClient(ABC):
                     headers=headers,
                 )
             )  # fmt: skip
+
+        if connection:
+            await connection.execute(stmt)
+        else:
+            async with self._engine.begin() as conn:
+                await conn.execute(stmt)
+
+    async def enqueue_batch(
+        self,
+        items: Sequence[tuple[bytes, dict[str, str]]],
+        *,
+        queue: str,
+        next_attempt_at: datetime | None = None,
+        connection: AsyncConnection | None = None,
+    ) -> None:
+        if not items:
+            return
+
+        if next_attempt_at:
+            values = [
+                {
+                    "queue": queue,
+                    "payload": payload,
+                    "headers": headers,
+                    "next_attempt_at": next_attempt_at,
+                }
+                for payload, headers in items
+            ]
+        else:
+            values = [
+                {
+                    "queue": queue,
+                    "payload": payload,
+                    "headers": headers,
+                }
+                for payload, headers in items
+            ]
+
+        stmt = insert(self._message_table).values(values)
 
         if connection:
             await connection.execute(stmt)
@@ -444,95 +482,6 @@ class SqlaSqliteClient(SqlaBaseClient):
             .values(values)
             .on_conflict_do_nothing()
         )
-
-
-class SchemaValidator:
-    def __init__(
-        self,
-        *,
-        message_table: Table,
-        message_archive_table: Table,
-    ) -> None:
-        self._tables = (message_table, message_archive_table)
-
-    def __call__(self, connection: Connection) -> list[str]:
-        insp = inspect(connection)
-        errors: list[str] = []
-
-        for table_def in self._tables:
-            table_name = table_def.name
-            if not insp.has_table(table_name):
-                errors.append(f"Table '{table_name}' does not exist")
-                continue
-
-            db_columns = {c["name"]: c["type"] for c in insp.get_columns(table_name)}
-            expected_columns = {c.name: c.type for c in table_def.columns}
-
-            missing = set(expected_columns.keys()) - set(db_columns.keys())
-            if missing:
-                errors.append(f"Table '{table_name}' missing columns: {missing}")
-
-            for col_name, expected_type in expected_columns.items():
-                if col_name not in db_columns:
-                    continue
-                db_type = db_columns[col_name]
-                if not self._types_compatible(expected_type, db_type):
-                    errors.append(
-                        f"Table '{table_name}' column '{col_name}' has type "
-                        f"{type(db_type).__name__}, expected {type(expected_type).__name__}"
-                    )
-
-        return errors
-
-    def _types_compatible(self, expected: Any, actual: Any) -> bool:
-        from sqlalchemy.dialects.postgresql import JSONB
-        from sqlalchemy.types import (
-            BINARY,
-            BLOB,
-            JSON,
-            TIMESTAMP,
-            VARBINARY,
-            VARCHAR,
-            BigInteger,
-            DateTime,
-            Integer,
-            LargeBinary,
-            SmallInteger,
-            String,
-            Text,
-            TypeDecorator,
-        )
-
-        if isinstance(expected, TypeDecorator):
-            expected = expected.impl
-
-        integer_types = (BigInteger, SmallInteger, Integer)
-        string_types = (String, Text, VARCHAR)
-        datetime_types = (DateTime, TIMESTAMP)
-        binary_types = (LargeBinary, BLOB, BINARY, VARBINARY)
-        json_types = (JSON, JSONB)
-
-        if isinstance(expected, Enum) or isinstance(actual, Enum):
-            if isinstance(expected, Enum) and isinstance(actual, string_types):
-                return actual.length == max(len(value) for value in expected.enums)
-
-            return (
-                isinstance(expected, Enum)
-                and isinstance(actual, Enum)
-                and set(expected.enums) == set(actual.enums)
-            )
-
-        for type_group in (
-            integer_types,
-            string_types,
-            datetime_types,
-            binary_types,
-            json_types,
-        ):
-            if isinstance(expected, type_group) and isinstance(actual, type_group):
-                return True
-
-        return type(expected) is type(actual)
 
 
 def create_sqla_client(

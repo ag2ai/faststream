@@ -278,7 +278,7 @@ class TestSchemaValidation(SqlaTestcaseConfig):
         Table(
             "message",
             metadata,
-            Column("id", SmallInteger, primary_key=True), # diff
+            Column("id", SmallInteger, primary_key=True),  # diff
             Column("queue", Integer, nullable=False),  # wrong: should be String
             Column("headers", json_type, nullable=True),
             Column(
@@ -339,23 +339,23 @@ class TestSchemaValidation(SqlaTestcaseConfig):
                 raise ValueError
 
         assert (
-            f"Table 'message' column 'payload' has type {varchar}, expected LargeBinary"
+            f"Table 'message' column 'payload' has type {varchar}, expected LargeBinary, Binary, BLOB, VARBINARY"
             in error_msg
         )
         assert (
-            f"Table 'message' column 'queue' has type {queue_actual}, expected String"
+            f"Table 'message' column 'queue' has type {queue_actual}, expected String, Text, VARCHAR"
             in error_msg
         )
         assert (
-            f"Table 'message' column 'created_at' has type {varchar}, expected DateTime"
+            f"Table 'message' column 'created_at' has type {varchar}, expected DateTime, TIMESTAMP"
             in error_msg
         )
         assert (
-            f"Table 'message_archive' column 'queue' has type {queue_actual}, expected String"
+            f"Table 'message_archive' column 'queue' has type {queue_actual}, expected String, Text, VARCHAR"
             in error_msg
         )
         assert (
-            f"Table 'message_archive' column 'headers' has type {varchar}, expected JSON"
+            f"Table 'message_archive' column 'headers' has type {varchar}, expected JSON, JSONB"
             in error_msg
         )
         assert (

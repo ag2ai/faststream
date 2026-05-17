@@ -9,12 +9,12 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from faststream import AckPolicy
 from faststream._internal.context import ContextRepo
 from faststream.annotations import (
     ContextRepo as ContextRepoAnnotation,
     Logger as LoggerAnnotation,
 )
-from faststream import AckPolicy
 from faststream.sqla.annotations import (
     SqlaBroker as SqlaBrokerAnnotation,
     SqlaMessage as SqlaMessageAnnotation,
@@ -24,7 +24,7 @@ from faststream.sqla.message import SqlaMessage, SqlaMessageState
 from faststream.sqla.retry import ConstantRetryStrategy, NoRetryStrategy
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
-from tests.brokers.sqla.conftest import as_datetime
+from tests.brokers.sqla.helpers import as_datetime
 
 
 @pytest.mark.sqla()

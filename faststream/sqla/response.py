@@ -4,18 +4,19 @@ from typing import TYPE_CHECKING, Union
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand
+from faststream.response.response import BatchPublishCommand, PublishCommand
 from faststream.sqla.exceptions import DatetimeMissingTimezoneException
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
 
 
-class SqlaPublishCommand(PublishCommand):
+class SqlaPublishCommand(BatchPublishCommand):
     def __init__(
         self,
         message: "SendableMessage",
-        *,
+        /,
+        *messages: "SendableMessage",
         queue: str,
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
@@ -26,7 +27,8 @@ class SqlaPublishCommand(PublishCommand):
             raise DatetimeMissingTimezoneException
 
         super().__init__(
-            body=message,
+            message,
+            *messages,
             destination=queue,
             headers=headers,
             correlation_id=correlation_id,
@@ -40,6 +42,8 @@ class SqlaPublishCommand(PublishCommand):
     def from_cmd(
         cls,
         cmd: Union["PublishCommand", "SqlaPublishCommand"],
+        *,
+        batch: bool = False,
     ) -> "SqlaPublishCommand":
         if isinstance(cmd, SqlaPublishCommand):
             return cmd

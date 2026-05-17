@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -23,6 +22,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from faststream.sqla.message import SqlaMessageState
+from tests.brokers.sqla.helpers import Settings
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -103,11 +103,6 @@ async def engine(
         yield engine
     finally:
         await engine.dispose()
-
-
-@dataclass
-class Settings:
-    engine: AsyncEngine
 
 
 @pytest_asyncio.fixture
@@ -193,13 +188,3 @@ async def recreate_tables(engine: AsyncEngine) -> None:
 @pytest_asyncio.fixture
 async def settings(engine: AsyncEngine, recreate_tables: None) -> Settings:
     return Settings(engine=engine)
-
-
-def as_datetime(value: datetime | str) -> datetime:
-    match value:
-        case datetime():
-            return value
-        case str():
-            return datetime.fromisoformat(value)
-        case _:
-            raise ValueError

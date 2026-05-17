@@ -14,19 +14,25 @@ search:
 
 PostgreSQL, MySQL, and SQLite are currently supported.
 
+```bash
+pip install "faststream[sqla]"
+```
+
+You also need an async driver for your database — the SQLA broker doesn't pin one so you can pick whichever you prefer:
+
 === "PostgreSQL"
     ```bash
-    pip install "faststream[sqla-postgres]"
+    pip install asyncpg
     ```
 
 === "MySQL"
     ```bash
-    pip install "faststream[sqla-mysql]"
+    pip install asyncmy cryptography
     ```
 
 === "SQLite"
     ```bash
-    pip install "faststream[sqla-sqlite]"
+    pip install aiosqlite
     ```
 
 ## Database Tables

@@ -17,7 +17,7 @@ from faststream.sqla.annotations import (
 from faststream.sqla.message import SqlaMessageState
 from faststream.sqla.retry import ConstantRetryStrategy
 from tests.brokers.sqla.basic import SqlaTestcaseConfig
-from tests.brokers.sqla.conftest import as_datetime
+from tests.brokers.sqla.helpers import as_datetime
 
 
 @pytest.mark.sqla()

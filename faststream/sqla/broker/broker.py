@@ -151,7 +151,7 @@ class SqlaBroker(
         next_attempt_at: datetime with timezone.
         """
         cmd = SqlaPublishCommand(
-            message=message,
+            message,
             queue=queue,
             headers=headers,
             next_attempt_at=next_attempt_at,
@@ -159,6 +159,31 @@ class SqlaBroker(
         )
 
         return await super()._basic_publish(cmd, producer=self.config.producer)  # type: ignore[no-any-return]
+
+    @override
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        queue: str = "",
+        headers: dict[str, str] | None = None,
+        next_attempt_at: datetime | None = None,
+        connection: AsyncConnection | None = None,
+    ) -> None:
+        """Args:
+        next_attempt_at: datetime with timezone.
+        """
+        if not messages:
+            return
+
+        cmd = SqlaPublishCommand(
+            *messages,
+            queue=queue,
+            headers=headers,
+            next_attempt_at=next_attempt_at,
+            connection=connection,
+        )
+
+        await super()._basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def _connect(self) -> Literal[True]:

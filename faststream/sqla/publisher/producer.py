@@ -86,3 +86,23 @@ class SqlaProducer(SqlaProducerProto):
             next_attempt_at=cmd.next_attempt_at,
             connection=cmd.connection,
         )
+
+    @override
+    async def publish_batch(self, cmd: "SqlaPublishCommand") -> None:
+        base_headers = cmd.headers_to_publish()
+
+        items: list[tuple[bytes, dict[str, str]]] = []
+        for body in cmd.batch_bodies:
+            payload, content_type = encode_message(body, self.serializer)
+            headers = {
+                **({"content-type": content_type} if content_type else {}),
+                **base_headers,
+            }
+            items.append((payload, headers))
+
+        await cast("SqlaBaseClient", self.config.client).enqueue_batch(
+            items,
+            queue=cmd.destination,
+            next_attempt_at=cmd.next_attempt_at,
+            connection=cmd.connection,
+        )
