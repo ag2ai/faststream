@@ -65,7 +65,7 @@ Routers reuse the same API via `MQTTRouter` / `MQTTRoute` (see [routers](../gett
 ## Where to read next
 
 - [Publishing](publishing.md){.internal-link} — `qos`, `retain`, MQTT 5.0 headers and reply topics
-- [Message object](message.md){.internal-link} — body, headers, `correlation_id`, serialization
+- [Message object](message.md){.internal-link} — body, headers, `correlation_id`, serialization, topic path capture
 - [Acknowledgement](ack.md){.internal-link} — `AckPolicy`, QoS, and manual ack
 - [Request / response](rpc.md){.internal-link} — `broker.request()` and handler replies
 - [MQTT 3.1.1 vs 5.0](versions.md){.internal-link} — feature matrix
