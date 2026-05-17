@@ -1,7 +1,6 @@
 import json
 import sys
 import warnings
-from contextlib import suppress
 from pathlib import Path
 from pprint import pformat
 from typing import TYPE_CHECKING, cast
@@ -195,7 +194,14 @@ def _parse_and_serve(args: RunArgs) -> None:
                 raise typer.Exit(1) from e
 
             with schema_filepath.open("r") as f:
-                schema = yaml.safe_load(f)
+                try:
+                    schema = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    typer.echo(
+                        f"Failed to parse YAML file `{args.app}`: {e}",
+                        err=True,
+                    )
+                    raise typer.Exit(1) from e
 
             data = json_dumps(schema)
 
@@ -203,12 +209,36 @@ def _parse_and_serve(args: RunArgs) -> None:
             msg = f"Unknown extension given - {args.app}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
             raise ValueError(msg)
 
-        for schema in (SchemaV3, SchemaV2_6):
-            with suppress(ValidationError):
+        validation_errors: list[tuple[str, ValidationError]] = []
+        raw_schema = None
+        for version_label, schema in (("3.0", SchemaV3), ("2.6", SchemaV2_6)):
+            try:
                 raw_schema = model_parse(schema, data)
                 break
-        else:
+            except ValidationError as e:
+                validation_errors.append((version_label, e))
+
+        if raw_schema is None:
             typer.echo(SCHEMA_NOT_SUPPORTED.format(schema_filename=args.app), err=True)
+            for version_label, error in validation_errors:
+                typer.echo(
+                    f"\nAsyncAPI v{version_label} validation errors:\n{error}",
+                    err=True,
+                )
+                # Emit the hint once per version (bare scalars like `protocolVersion: 3.2`
+                # are typed as int/float by PyYAML and rejected by the string schema field).
+                for sub_error in error.errors():
+                    if sub_error.get("type") == "string_type" and isinstance(
+                        sub_error.get("input"), (int, float),
+                    ):
+                        loc = ".".join(str(p) for p in sub_error.get("loc", ()))
+                        typer.echo(
+                            f"Hint: YAML parses bare `{sub_error['input']}` at `{loc}` as "
+                            f"{type(sub_error['input']).__name__}; quote it as `'{sub_error['input']}'` "
+                            "to keep it a string.",
+                            err=True,
+                        )
+                        break
             raise typer.Exit(1)
 
     serve_app(
