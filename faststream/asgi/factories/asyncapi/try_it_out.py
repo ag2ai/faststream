@@ -55,10 +55,12 @@ class TryItOutProcessor:
                     self._entries.append((broker, test_broker_cls))
                     break
             else:
-                raise ValueError(f"TestBroker not available for {broker}. Please, inspect your dependencies.")
+                msg = f"TestBroker not available for {broker}. Please, inspect your dependencies."
+                raise ValueError(msg)
 
         if not self._entries:
-            raise ValueError("TryItOutProcessor requires at least one broker.")
+            msg = "TryItOutProcessor requires at least one broker."
+            raise ValueError(msg)
 
     async def process(self, body: TryItOutForm) -> AsgiResponse:
         """Process parsed body: validate, dry-run or publish. Returns response."""
@@ -68,18 +70,21 @@ class TryItOutProcessor:
             return JSONResponse({"details": "Missing channelName"}, 400)
 
         if len(self._entries) == 1:
-            entry = self._entries[0]
+            broker, test_broker_cls = self._entries[0]
         else:
             entry = next(
-                (e for e in self._entries if destination in _iter_broker_destinations(e[0])),
+                (
+                    e
+                    for e in self._entries
+                    if destination in _iter_broker_destinations(e[0])
+                ),
                 None,
             )
             if entry is None:
                 return JSONResponse(
                     {"details": f"{destination} destination not found."}, 404
                 )
-
-        broker, test_broker_cls = entry
+            broker, test_broker_cls = entry
         payload: Any = body.get("message", {}).get("message")
         use_real_broker = body.get("options", {}).get("sendToRealBroker", False)
 
@@ -138,13 +143,11 @@ def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
 
     for sub in broker.subscribers:
         with suppress(Exception):
-            for key in sub.schema():
-                destinations.add(key.split(":", 1)[0])
+            destinations.update(key.split(":", 1)[0] for key in sub.schema())
 
     for pub in broker.publishers:
         with suppress(Exception):
-            for key in pub.schema():
-                destinations.add(key.split(":", 1)[0])
+            destinations.update(key.split(":", 1)[0] for key in pub.schema())
 
     return destinations
 
