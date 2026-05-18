@@ -1,5 +1,5 @@
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import (
     TYPE_CHECKING,
@@ -53,19 +53,23 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         with ExitStack() as es:
             es.enter_context(
                 change_producer(
-                    broker.config.broker_config, FakeProducer(broker, broker.config)
+                    broker.config.broker_config,
+                    FakeProducer(broker, self.brokers, broker.config),
                 ),
             )
 
             for publisher in cast("list[LogicPublisher]", broker.publishers):
                 es.enter_context(
-                    change_producer(publisher, FakeProducer(broker, publisher.config)),
+                    change_producer(
+                        publisher,
+                        FakeProducer(broker, self.brokers, publisher.config),
+                    ),
                 )
 
             yield
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: RedisBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber", bool]:
@@ -74,7 +78,9 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         named_property = publisher.subscriber_property(name_only=True)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in broker.subscribers:  # pragma: no branch
+        for handler in (
+            s for b in self.brokers for s in b.subscribers
+        ):  # pragma: no branch
             handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
@@ -116,8 +122,14 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
 
 class FakeProducer(RedisFastProducer):
-    def __init__(self, broker: RedisBroker, config: ParserConfig) -> None:
+    def __init__(
+        self,
+        broker: RedisBroker,
+        brokers: Sequence[RedisBroker],
+        config: ParserConfig,
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default = RedisPubSubParser(config)
 
@@ -129,6 +141,10 @@ class FakeProducer(RedisFastProducer):
             broker._decoder,
             default.decode_message,
         )
+
+    @property
+    def subscribers(self) -> "Iterable[LogicSubscriber]":
+        return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
@@ -144,8 +160,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -171,8 +186,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -200,8 +214,7 @@ class FakeProducer(RedisFastProducer):
         ]
 
         visitor = ListVisitor()
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             if visitor.visit(list=cmd.destination, sub=handler):
                 casted_handler = cast("_ListHandlerMixin", handler)
 

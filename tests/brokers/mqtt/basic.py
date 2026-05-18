@@ -22,17 +22,10 @@ class MQTTTestcaseConfig(BaseTestcaseConfig):
     ) -> MQTTBroker:
         return MQTTBroker(apply_types=apply_types, version=self.version, **kwargs)
 
-    def patch_broker(self, broker: MQTTBroker, **kwargs: Any) -> MQTTBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> MQTTRouter:
         return MQTTRouter(**kwargs)
 
 
 class MQTTMemoryTestcaseConfig(MQTTTestcaseConfig):
-    def patch_broker(
-        self,
-        broker: MQTTBroker,
-        **kwargs: Any,
-    ) -> TestMQTTBroker:
-        return TestMQTTBroker(broker, **kwargs)
+    def patch_broker(self, *brokers: MQTTBroker, **kwargs: Any) -> TestMQTTBroker:
+        return TestMQTTBroker(*brokers, **kwargs)

@@ -5,19 +5,132 @@ import anyio
 import pytest
 from pydantic import BaseModel
 
-from faststream import Context, Depends
+from faststream import Context, Depends, FastStream, TestApp
 from faststream.exceptions import StopConsume
 
 from .basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class BrokerConsumeTestcase(BaseTestcaseConfig):
-    async def test_consume(
-        self,
-        queue: str,
+class MultibrokerTestcase(BaseTestcaseConfig):
+    async def test_multi_consume(self, queue: str, mock: MagicMock) -> None:
+        broker1, broker2 = self.get_broker(), self.get_broker()
+
+        consume = asyncio.Event()
+        consume2 = asyncio.Event()
+
+        args, kwargs = self.get_subscriber_params(queue)
+        args2, kwargs2 = self.get_subscriber_params(queue + "1")
+
+        @broker1.subscriber(*args, **kwargs)
+        @broker2.subscriber(*args2, **kwargs2)
+        def subscriber(m) -> None:
+            mock()
+            if not consume.is_set():
+                consume.set()
+            else:
+                consume2.set()
+
+        app = FastStream(broker1, broker2)
+
+        async with (
+            self.patch_broker(broker1) as br1,
+            self.patch_broker(broker2) as br2,
+            TestApp(app),
+        ):
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br1.publish("hello", queue)),
+                    asyncio.create_task(br2.publish("hello", queue + "1")),
+                    asyncio.create_task(consume.wait()),
+                    asyncio.create_task(consume2.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert consume.is_set()
+        assert consume2.is_set()
+        assert mock.call_count == 2
+
+    async def test_another_broker_publisher(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
+        broker1, broker2 = self.get_broker(), self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker1.subscriber(*args, **kwargs)
+        @broker2.publisher(queue + "1")
+        def subscriber(m):
+            return m
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "1")
+
+        # publisher sends message to the same broker
+        @broker2.subscriber(*args2, **kwargs2)
+        def subscriber2(m) -> None:
+            mock(m)
+            event.set()
+
+        app = FastStream(broker1, broker2)
+
+        async with (
+            self.patch_broker(broker1) as br1,
+            self.patch_broker(broker2),
+            TestApp(app),
+        ):
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br1.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with("hello")
+
+    async def test_crossbroker_publisher(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        broker1, broker2 = self.get_broker(), self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker1.subscriber(*args, **kwargs)
+        @broker2.publisher(queue + "1")
+        def subscriber(m):
+            return m
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "1")
+
+        # publisher sends message to another broker
+        @broker1.subscriber(*args2, **kwargs2)
+        def subscriber2(m) -> None:
+            mock(m)
+            event.set()
+
+        app = FastStream(broker1, broker2)
+
+        async with (
+            self.patch_broker(broker1, broker2) as (br1, _),
+            TestApp(app),
+        ):
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br1.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with("hello")
+
+
+@pytest.mark.asyncio()
+class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
+    async def test_consume(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -198,12 +311,8 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
         mock.handler2.assert_called_once_with("hello")
 
     async def test_consume_validate_false(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(
             apply_types=True,
             serializer=None,
@@ -240,9 +349,7 @@ class BrokerConsumeTestcase(BaseTestcaseConfig):
             assert event.is_set()
             mock.assert_called_once_with({"x": 1}, "100", consume_broker)
 
-    async def test_dynamic_sub(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_dynamic_sub(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
 
         async def subscriber(m) -> None:
@@ -332,12 +439,8 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
 
     @pytest.mark.slow()
     async def test_stop_consume_exc(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)

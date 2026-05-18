@@ -1,4 +1,6 @@
 from abc import abstractmethod
+from collections.abc import AsyncIterator
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any
 
 from faststream._internal.broker import BrokerUsecase
@@ -18,10 +20,23 @@ class BaseTestcaseConfig:
 
     def patch_broker(
         self,
-        broker: BrokerUsecase,
+        *brokers: BrokerUsecase,
         **kwargs: Any,
-    ) -> BrokerUsecase:
-        return broker
+    ) -> BrokerUsecase | list[BrokerUsecase]:
+        if len(brokers) == 1:
+            return brokers[0]
+
+        @asynccontextmanager
+        async def enter_broker() -> AsyncIterator[list[BrokerUsecase]]:
+            started_brokers = []
+
+            async with AsyncExitStack() as stack:
+                for br in brokers:
+                    started_brokers.append(await stack.enter_async_context(br))  # noqa: PERF401
+
+                yield started_brokers
+
+        return enter_broker()
 
     def get_subscriber_params(
         self,
