@@ -1,5 +1,5 @@
 import re
-from collections.abc import Callable, Generator, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -37,7 +37,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+        fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:
             es.enter_context(
@@ -58,13 +58,13 @@ class TestKafkaBroker(TestBroker[KafkaBroker]):
 
         return _fake_connection
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: KafkaBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         sub: LogicSubscriber[Any] | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("LogicSubscriber[Any]", handler)
             if _is_handler_matches(handler, publisher.topic, publisher.partition):
                 sub = handler
@@ -114,8 +114,13 @@ class FakeProducer(AioKafkaFastProducer):
     This class extends AioKafkaFastProducer and is used to simulate Kafka message publishing during tests.
     """
 
-    def __init__(self, broker: KafkaBroker) -> None:
+    def __init__(
+        self,
+        broker: KafkaBroker,
+        brokers: Sequence[KafkaBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default = AioKafkaParser(
             msg_class=KafkaMessage,
@@ -124,6 +129,12 @@ class FakeProducer(AioKafkaFastProducer):
 
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+
+    @property
+    def subscribers(self) -> Iterable["LogicSubscriber[Any]"]:
+        return (
+            cast("LogicSubscriber[Any]", s) for b in self.brokers for s in b.subscribers
+        )
 
     def __bool__(self) -> bool:
         return True
@@ -148,7 +159,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -170,7 +181,7 @@ class FakeProducer(AioKafkaFastProducer):
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.partition,
         ):
@@ -192,7 +203,7 @@ class FakeProducer(AioKafkaFastProducer):
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.partition,
         ):

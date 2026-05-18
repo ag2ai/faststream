@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterator, Mapping
+from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from unittest import mock
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -58,7 +59,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: RabbitBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+        fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:
             es.enter_context(
@@ -70,13 +71,13 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     async def _fake_connect(broker: "RabbitBroker", *args: Any, **kwargs: Any) -> None:
         pass
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: "RabbitBroker",
         publisher: "RabbitPublisher",
     ) -> tuple["RabbitSubscriber", bool]:
         sub: RabbitSubscriber | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
@@ -198,8 +199,13 @@ class FakeProducer(AioPikaFastProducer):
     This class extends AioPikaFastProducer and is used to simulate RabbitMQ message publishing during tests.
     """
 
-    def __init__(self, broker: RabbitBroker) -> None:
+    def __init__(
+        self,
+        broker: RabbitBroker,
+        brokers: Sequence[RabbitBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default_parser = AioPikaParser()
         self._parser = ParserComposition(broker._parser, default_parser.parse_message)
@@ -207,6 +213,10 @@ class FakeProducer(AioPikaFastProducer):
             broker._decoder,
             default_parser.decode_message,
         )
+
+    @property
+    def subscribers(self) -> Iterable["SubscriberUsecase[Any]"]:
+        return (s for b in self.brokers for s in b.subscribers)
 
     @override
     async def publish(
@@ -226,7 +236,7 @@ class FakeProducer(AioPikaFastProducer):
         )
 
         called = False
-        for handler in self.broker.subscribers:  # pragma: no branch
+        for handler in self.subscribers:  # pragma: no branch
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
@@ -256,7 +266,7 @@ class FakeProducer(AioPikaFastProducer):
             **cmd.message_options,
         )
 
-        for handler in self.broker.subscribers:  # pragma: no branch
+        for handler in self.subscribers:  # pragma: no branch
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,

@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Generator, Iterable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, cast
 from unittest.mock import AsyncMock
@@ -50,15 +50,15 @@ def change_producer(
 class TestNatsBroker(TestBroker[NatsBroker]):
     """A class to test NATS brokers."""
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: NatsBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         publisher_stream = publisher.stream.name if publisher.stream else None
 
         sub: LogicSubscriber[Any] | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("LogicSubscriber[Any]", handler)
             if _is_handler_matches(handler, publisher.subject, publisher_stream):
                 sub = handler
@@ -76,7 +76,7 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: NatsBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+        fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:
             es.enter_context(change_producer(broker.config, fake_producer))
@@ -98,12 +98,23 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
 
 class FakeProducer(NatsFastProducer):
-    def __init__(self, broker: NatsBroker) -> None:
+    def __init__(
+        self,
+        broker: NatsBroker,
+        brokers: Sequence[NatsBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+
+    @property
+    def subscribers(self) -> Iterable["LogicSubscriber[Any]"]:
+        return (
+            cast("LogicSubscriber[Any]", s) for b in self.brokers for s in b.subscribers
+        )
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
@@ -117,7 +128,7 @@ class FakeProducer(NatsFastProducer):
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.stream,
         ):
@@ -141,7 +152,7 @@ class FakeProducer(NatsFastProducer):
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.stream,
         ):
