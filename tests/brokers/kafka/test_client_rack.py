@@ -79,3 +79,16 @@ class TestSubscriberClientRack:
         )
 
         assert route.kwargs["client_rack"] == "route-rack"
+
+    def test_fastapi_router_passes_client_rack(self) -> None:
+        pytest.importorskip("fastapi")
+        from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
+
+        router = FastAPIKafkaRouter()
+        sub = router.subscriber(
+            "test-topic",
+            group_id="test-group",
+            client_rack="fastapi-rack",
+        )
+
+        assert sub._connection_args["client_rack"] == "fastapi-rack"
