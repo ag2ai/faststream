@@ -114,6 +114,7 @@ search:
         - [DynaConf](howto/nats/dynaconf.md)
         - [In-Progress](howto/nats/in-progress.md)
 - [Redis](redis/index.md)
+    - [Cluster](redis/cluster.md)
     - [Pub/Sub](redis/pubsub/index.md)
         - [Subscription](redis/pubsub/subscription.md)
         - [Publishing](redis/pubsub/publishing.md)

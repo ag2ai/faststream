@@ -12,6 +12,9 @@ search:
 
 When working with Redis Stream Consumer Groups, there may be situations where messages remain in a pending state because a consumer failed to process them. FastStream provides a mechanism to automatically claim these pending messages using Redis's `XAUTOCLAIM` command through the `min_idle_time` parameter.
 
+!!! tip "Redis Cluster"
+    `XAUTOCLAIM` works transparently with `RedisClusterBroker` — the cluster client routes all stream commands (`xgroup_create`, `xreadgroup`, `xautoclaim`) to the correct node automatically. See the [Cluster docs](../cluster.md){.internal-link}.
+
 ## What is Message Claiming?
 
 In Redis Streams, when a consumer reads a message from a consumer group but fails to acknowledge it (due to a crash, network issue, or processing error), the message remains in the [**Pending Entries List (PEL)**](https://redis.io/docs/latest/develop/data-types/streams/#working-with-multiple-consumer-groups) of that consumer group. These unacknowledged messages are associated with the original consumer and have an "idle time" - the duration since they were last delivered.

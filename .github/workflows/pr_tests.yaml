@@ -487,7 +487,7 @@ jobs:
       - test-basic
       - test-redis-smoke
     services:
-      nats:
+      redis:
         image: redis:alpine
         ports:
           - 6379:6379
@@ -519,6 +519,78 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
+  test-redis-cluster-smoke:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest -n auto
+          -vv -m "redis_cluster and not connected"
+
+  test-redis-cluster-real:
+    if: github.event.pull_request.draft == false
+    needs:
+      - test-basic
+      - test-redis-cluster-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Redis Cluster
+        run: |
+          docker run -d --name redis-cluster --network host redis:7-alpine \
+            sh -c "
+              redis-server --port 7001 --cluster-enabled yes --cluster-config-file n1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              redis-server --port 7002 --cluster-enabled yes --cluster-config-file n2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              redis-server --port 7003 --cluster-enabled yes --cluster-config-file n3.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              for p in 7001 7002 7003; do
+                until redis-cli -p \$p ping 2>/dev/null; do sleep 0.5; done
+              done &&
+              echo yes | redis-cli --cluster create 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 --cluster-replicas 0 &&
+              echo 'Redis Cluster ready' &&
+              tail -f /dev/null
+            "
+          timeout 30 bash -c 'until docker logs redis-cluster 2>&1 | grep -q "Redis Cluster ready"; do sleep 1; done'
+          echo "Redis Cluster is ready!"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest --cov --cov-report=
+          -vv -m "(slow and redis_cluster and connected) or (redis_cluster and connected)"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.redis-cluster-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: .coverage.redis-cluster-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
   coverage-combine:
     if: github.event.pull_request.draft == false
     needs:
@@ -530,6 +602,7 @@ jobs:
       - test-rabbit-real
       - test-nats-real
       - test-redis-real
+      - test-redis-cluster-real
       - test-mqtt-real
     runs-on: ubuntu-latest
 

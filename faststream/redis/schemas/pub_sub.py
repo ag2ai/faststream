@@ -26,7 +26,7 @@ class PubSub(NameRequired):
             patch_regex=lambda x: x.replace(r"\*", ".*"),
         )
 
-        if reg is not None:
+        if reg is not None or "*" in channel:
             pattern = True
 
         super().__init__(path)

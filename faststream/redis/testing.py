@@ -1,6 +1,8 @@
 import re
-from collections.abc import Iterator, Sequence
-from contextlib import ExitStack, contextmanager
+from collections.abc import AsyncGenerator, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, asynccontextmanager, contextmanager
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,6 +11,7 @@ from typing import (
     Union,
     cast,
 )
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -42,7 +45,10 @@ if TYPE_CHECKING:
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
-__all__ = ("TestRedisBroker",)
+__all__ = (
+    "TestRedisBroker",
+    "TestRedisClusterBroker",
+)
 
 
 class TestRedisBroker(TestBroker[RedisBroker]):
@@ -111,13 +117,55 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         connection.xack = AsyncMock()
         connection.xdel = AsyncMock()
 
-        broker.config.broker_config.connection._client = connection
+        connection_state = broker.config.broker_config.connection
+        connection_state._client = connection
+        connection_state._sync_cluster = MagicMock()
+        connection_state._thread_pool = ThreadPoolExecutor(max_workers=1)
+        connection_state._connected = True
         return connection
+
+
+class TestRedisClusterBroker(TestRedisBroker):
+    """A class to test Redis Cluster brokers.
+
+    Extends :class:`TestRedisBroker` by patching ``_connect`` when
+    ``with_real=True`` so the cluster broker can run without a real
+    Redis Cluster (sync Pub/Sub proxy creation is avoided).
+    """
+
+    @asynccontextmanager
+    async def _create_ctx(self) -> AsyncGenerator[RedisBroker, None]:
+        if self.with_real:
+            self._fake_start(self.broker)
+
+            # Temporarily patch _connect to bootstrap a fake connection.
+            # After pre-connect the patch is removed so that callers see
+            # the original method (not a Mock).  Subsequent connect()
+            # calls are no-ops because RedisClusterConnectionState now
+            # bails early when self._connected is already True.
+            p = mock.patch.object(
+                self.broker,
+                "_connect",
+                wraps=partial(self._fake_connect, self.broker),
+            )
+            p.start()
+            try:
+                await self.broker.connect()
+            finally:
+                p.stop()
+
+            with self._patch_producer(self.broker):
+                async with super()._create_ctx() as broker:
+                    yield broker
+        else:
+            async with super()._create_ctx() as broker:
+                yield broker
 
 
 class FakeProducer(RedisFastProducer):
     def __init__(self, broker: RedisBroker, config: ParserConfig) -> None:
         self.broker = broker
+        self._fake_config = config
 
         default = RedisPubSubParser(config)
 
@@ -129,6 +177,10 @@ class FakeProducer(RedisFastProducer):
             broker._decoder,
             default.decode_message,
         )
+
+    @override
+    def _build_child(self, **kwargs: Any) -> "FakeProducer":
+        return FakeProducer(broker=self.broker, config=self._fake_config)
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:

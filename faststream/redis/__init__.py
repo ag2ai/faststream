@@ -16,12 +16,18 @@ try:
         RedisMessage,
         RedisStreamMessage,
     )
-    from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
+    from .broker import (
+        RedisBroker,
+        RedisClusterBroker,
+        RedisPublisher,
+        RedisRoute,
+        RedisRouter,
+    )
     from .exceptions import StreamGroupNotFoundError
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
-    from .testing import TestRedisBroker
+    from .testing import TestRedisBroker, TestRedisClusterBroker
 
 except ImportError as e:
     if "'redis'" not in e.msg:
@@ -39,6 +45,7 @@ __all__ = (
     "Redis",
     "RedisBroker",
     "RedisChannelMessage",
+    "RedisClusterBroker",
     "RedisListMessage",
     "RedisMessage",
     "RedisParserType",
@@ -52,4 +59,5 @@ __all__ = (
     "StreamSub",
     "TestApp",
     "TestRedisBroker",
+    "TestRedisClusterBroker",
 )
