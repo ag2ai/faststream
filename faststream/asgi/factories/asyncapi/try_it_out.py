@@ -37,7 +37,7 @@ class TryItOutMessage(TypedDict, total=False):
     message: Any
 
 
-class TryItOutForm(TypedDict, total=False):
+class TryItOutForm(TypedDict):
     channelName: str
     message: TryItOutMessage
     options: TryItOutOptions
