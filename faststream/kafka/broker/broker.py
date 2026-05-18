@@ -85,6 +85,9 @@ if TYPE_CHECKING:
                 server-side log entries that correspond to this client. Also
                 submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
+            client_rack: A rack identifier for this client. Used by the
+                broker for rack-aware fetching, letting a consumer read from
+                the closest replica. Requires aiokafka 0.14.0 or newer.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are
@@ -157,6 +160,8 @@ if TYPE_CHECKING:
         sasl_oauth_token_provider: AbstractTokenProvider | None
         loop: asyncio.AbstractEventLoop | None
         client_id: str | None
+        # consumer args
+        client_rack: str | None
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -197,6 +202,8 @@ class KafkaBroker(
         sasl_oauth_token_provider: Optional["AbstractTokenProvider"] = None,
         loop: Optional["asyncio.AbstractEventLoop"] = None,
         client_id: str | None = SERVICE_NAME,
+        # consumer args
+        client_rack: str | None = None,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -267,6 +274,9 @@ class KafkaBroker(
                 A name for this client. This string is passed in each request to servers and can be used to identify specific
                 server-side log entries that correspond to this client. Also submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
+            client_rack (Optional[str]):
+                A rack identifier for this client. Used by the broker for rack-aware fetching, letting a consumer read from the
+                closest replica. Requires aiokafka 0.14.0 or newer.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:
@@ -408,6 +418,10 @@ class KafkaBroker(
             ConsumerConnectionParams,
             connection_params,
         )
+        # client_rack is consumer-only, so it is not part of connection_params
+        # (which is also used to build the producer); inject it here when set.
+        if client_rack is not None:
+            consumer_options["client_rack"] = client_rack
         builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
         super().__init__(
@@ -415,6 +429,7 @@ class KafkaBroker(
             routers=routers,
             config=KafkaBrokerConfig(
                 client_id=client_id,
+                client_rack=client_rack,
                 builder=builder,
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
