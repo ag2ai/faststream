@@ -1,7 +1,11 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Generator, Iterator
-from contextlib import AbstractContextManager, asynccontextmanager, contextmanager
+from collections.abc import AsyncIterator, Generator, Iterator
+from contextlib import (
+    AsyncExitStack,
+    asynccontextmanager,
+    contextmanager,
+)
 from functools import partial
 from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar
 from unittest import mock
@@ -11,7 +15,6 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.ast import is_contains_context_name
-from faststream._internal.utils.functions import FakeContext
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -44,12 +47,12 @@ class TestBroker(Generic[Broker]):
 
     def __init__(
         self,
-        broker: Broker,
+        *brokers: Broker,
         with_real: bool = False,
         connect_only: bool | None = None,
     ) -> None:
         self.with_real = with_real
-        self.broker = broker
+        self.brokers = brokers
 
         if connect_only is None:
             try:
@@ -72,9 +75,12 @@ class TestBroker(Generic[Broker]):
         self.connect_only = connect_only
         self._fake_subscribers: list[SubscriberUsecase[Any]] = []
 
-    async def __aenter__(self) -> Broker:
+    async def __aenter__(self) -> Broker | list[Broker]:
         self._ctx = self._create_ctx()
-        return await self._ctx.__aenter__()
+        brokers = await self._ctx.__aenter__()
+        if len(brokers) == 1:
+            return brokers[0]
+        return brokers
 
     async def __aexit__(
         self,
@@ -85,24 +91,41 @@ class TestBroker(Generic[Broker]):
         await self._ctx.__aexit__(exc_type, exc_val, exc_tb)
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncGenerator[Broker, None]:
-        if self.with_real:
-            self._fake_start(self.broker)
-            context: AbstractContextManager[Any, Any] = FakeContext()
-        else:
-            context = self._patch_broker(self.broker)
+    async def _create_ctx(self) -> AsyncIterator[list[Broker]]:
+        async with AsyncExitStack() as stack:
+            saved_running = {}
+            started_brokers = []
 
-        with context:
-            async with self.broker:
-                saved_running = {sub: sub.running for sub in self.broker.subscribers}
-                try:
-                    if not self.connect_only:
-                        await self.broker.start()
-                    yield self.broker
-                finally:
-                    self._fake_close(self.broker)
-                    for sub, was_running in saved_running.items():
-                        sub.running = was_running
+            for broker in self.brokers:
+                if self.with_real:
+                    self._fake_start(broker)
+                else:
+                    stack.enter_context(self._patch_broker(broker))
+
+                await stack.enter_async_context(broker)
+
+                for sub in broker.subscribers:
+                    saved_running[sub] = sub.running
+
+                started_brokers.append(
+                    await stack.enter_async_context(self._do_start(broker))
+                )
+
+            yield started_brokers
+
+            for sub, was_running in saved_running.items():
+                sub.running = was_running
+
+    @asynccontextmanager
+    async def _do_start(self, broker: Broker) -> AsyncIterator[Broker]:
+        try:
+            if not self.connect_only:
+                await broker.start()
+
+            yield broker
+
+        finally:
+            self._fake_close(broker)
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Iterator[None]:
@@ -210,9 +233,9 @@ class TestBroker(Generic[Broker]):
             for call in sub.calls:
                 call.handler.reset_test()
 
-    @staticmethod
     @abstractmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: Broker,
         publisher: Any,
     ) -> tuple["SubscriberUsecase[Any]", bool]:

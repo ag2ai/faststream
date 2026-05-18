@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 from unittest.mock import MagicMock
@@ -80,13 +80,13 @@ class TestMQTTBroker(TestBroker[MQTTBroker]):
             handler.mock.assert_called_once_with("hello")
     """
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: MQTTBroker,
         publisher: "MQTTPublisher",
     ) -> tuple["MQTTBaseSubscriber", bool]:
         sub: MQTTBaseSubscriber | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("MQTTBaseSubscriber", handler)
             if mqtt_topic_matches(handler.topic, publisher.topic):
                 sub = handler
@@ -115,7 +115,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: MQTTBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+        fake_producer = FakeProducer(broker, self.brokers)
         with change_producer(broker.config.broker_config, fake_producer):
             yield
 
@@ -140,14 +140,25 @@ class FakeProducer(ZmqttBaseProducer):
     MQTT version: V311 envelope for 3.1.1, PublishProperties for 5.0.
     """
 
-    def __init__(self, broker: MQTTBroker) -> None:
+    def __init__(
+        self,
+        broker: MQTTBroker,
+        brokers: Sequence[MQTTBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
         self.serializer: SerializerProto | None = None
 
         version = _broker_version(broker)
         default = _parser_for_version(version)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+
+    @property
+    def subscribers(self) -> Iterable["MQTTBaseSubscriber"]:
+        return (
+            cast("MQTTBaseSubscriber", s) for b in self.brokers for s in b.subscribers
+        )
 
     @property
     def _version(self) -> Literal["3.1.1", "5.0"]:
@@ -170,7 +181,7 @@ class FakeProducer(ZmqttBaseProducer):
         # For shared subscriptions, only deliver to one subscriber per group
         seen_shared_groups: set[str] = set()
 
-        for handler in cast("list[MQTTBaseSubscriber]", self.broker.subscribers):
+        for handler in self.subscribers:
             handler_topic = handler.topic
             if not mqtt_topic_matches(handler_topic, cmd.destination):
                 continue
@@ -196,7 +207,7 @@ class FakeProducer(ZmqttBaseProducer):
             serializer=self.broker.config.fd_config._serializer,
         )
 
-        for handler in cast("list[MQTTBaseSubscriber]", self.broker.subscribers):
+        for handler in self.subscribers:
             if not mqtt_topic_matches(handler.topic, cmd.destination):
                 continue
 

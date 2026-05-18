@@ -14,7 +14,7 @@ from faststream.rabbit.publisher.producer import AioPikaFastProducerImpl
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
-from .basic import RabbitTestcaseConfig
+from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 if TYPE_CHECKING:
     from faststream.rabbit.response import RabbitPublishCommand
@@ -203,16 +203,16 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
 
 @pytest.mark.rabbit()
-@pytest.mark.connected()
 @pytest.mark.asyncio()
-class TestPublishWithExchange(RabbitTestcaseConfig):
+class TestPublishWithExchange(RabbitMemoryTestcaseConfig):
+    """Fixes https://github.com/ag2ai/faststream/issues/2651."""
+
     async def test_response_with_exchange(
         self,
         queue: str,
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
         broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
 
         exchange_name = str(uuid.uuid4())
@@ -248,7 +248,6 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
         broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
 
         exchange_name = str(uuid.uuid4())
@@ -284,7 +283,6 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
         broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
         exchange_name, exchange_name_2 = str(uuid.uuid4()), str(uuid.uuid4())
 
@@ -320,7 +318,6 @@ class TestPublishWithExchange(RabbitTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/2651."""
         broker = self.get_broker(apply_types=True, log_level=logging.DEBUG)
         exchange_name = str(uuid.uuid4())
 
