@@ -25,6 +25,7 @@ from fastapi.datastructures import Default
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
+from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, _DefaultLifespan
 
@@ -423,6 +424,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     schemas=schemas,
                     errors=errors,
                     expand_message_examples=expandMessageExamples,
+                    try_it_out_url=f"{schema_url}/try",
                 ),
             )
 
@@ -436,6 +438,42 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         docs_router.get(schema_url)(serve_asyncapi_schema)
         docs_router.get(f"{schema_url}.json")(download_app_json_schema)
         docs_router.get(f"{schema_url}.yaml")(download_app_yaml_schema)
+
+        # The AsyncAPI docs page renders an interactive "try it out" plugin
+        # that POSTs to ``{schema_url}/try``. Register that endpoint so the
+        # FastAPI plugin can publish messages to the broker, mirroring the
+        # standalone AsgiFastStream behaviour (see issue #2869).
+        from faststream.asgi.factories.asyncapi.try_it_out import (
+            TryItOutProcessor,
+        )
+
+        try:
+            try_processor = TryItOutProcessor(self.broker)
+        except ValueError:
+            # Broker has no associated TestBroker (e.g. a custom broker):
+            # serve the docs without the interactive "try it out" endpoint.
+            try_processor = None
+
+        if try_processor is not None:
+
+            async def try_asyncapi_schema(request: Request) -> Response:
+                """Publish a message coming from the AsyncAPI try-it-out plugin."""
+                try:
+                    body = await request.json()
+                except Exception as e:
+                    return JSONResponse({"details": f"Invalid JSON: {e}"}, 400)
+
+                result = await try_processor.process(body)
+                return Response(
+                    content=result.body,
+                    status_code=result.status_code,
+                    media_type="application/json",
+                )
+
+            docs_router.post(f"{schema_url}/try", include_in_schema=False)(
+                try_asyncapi_schema,
+            )
+
         return docs_router
 
     def include_router(  # type: ignore[override]
