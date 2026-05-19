@@ -10,7 +10,7 @@ app = FastStream(broker)
         "critical-tasks",
         group="task-workers",
         consumer="worker-failover",
-        min_idle_time=30000,  # 30 seconds
+        min_idle_time=20000,  # 20 seconds
     ),
     ack_policy=AckPolicy.MANUAL,
 )
