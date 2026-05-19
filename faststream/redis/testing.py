@@ -1,3 +1,4 @@
+import asyncio
 import re
 from collections.abc import Iterator, Sequence
 from contextlib import ExitStack, contextmanager
@@ -56,7 +57,6 @@ class TestRedisBroker(TestBroker[RedisBroker]):
                     broker.config.broker_config, FakeProducer(broker, broker.config)
                 ),
             )
-
             for publisher in cast("list[LogicPublisher]", broker.publishers):
                 es.enter_context(
                     change_producer(publisher, FakeProducer(broker, publisher.config)),
@@ -148,12 +148,17 @@ class FakeProducer(RedisFastProducer):
             handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
-                    msg = visitor.get_message(
-                        visited_ch,
-                        body,
-                        handler,  # type: ignore[arg-type]
-                    )
-
+                    try:
+                        msg = await asyncio.wait_for(
+                            visitor.get_message(
+                                visited_ch,
+                                body,
+                                handler,  # type: ignore[arg-type]
+                            ),
+                            timeout=30,
+                        )  # 30 secs is Pytest maximum
+                    except TimeoutError:
+                        continue
                     await self._execute_handler(msg, handler)
 
         return 0
@@ -175,7 +180,7 @@ class FakeProducer(RedisFastProducer):
             handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
-                    msg = visitor.get_message(
+                    msg = await visitor.get_message(
                         visited_ch,
                         body,
                         handler,  # type: ignore[arg-type]
@@ -206,7 +211,7 @@ class FakeProducer(RedisFastProducer):
                 casted_handler = cast("_ListHandlerMixin", handler)
 
                 if casted_handler.list_sub.batch:
-                    msg = visitor.get_message(
+                    msg = await visitor.get_message(
                         channel=cmd.destination,
                         body=data_to_send,
                         sub=casted_handler,
@@ -265,7 +270,9 @@ class Visitor(Protocol):
         sub: "LogicSubscriber",
     ) -> str | None: ...
 
-    def get_message(self, channel: str, body: Any, sub: "LogicSubscriber") -> Any: ...
+    async def get_message(
+        self, channel: str, body: Any, sub: "LogicSubscriber"
+    ) -> Any: ...
 
 
 class ChannelVisitor(Visitor):
@@ -295,7 +302,7 @@ class ChannelVisitor(Visitor):
 
         return None
 
-    def get_message(  # type: ignore[override]
+    async def get_message(  # type: ignore[override]
         self,
         channel: str,
         body: Any,
@@ -326,7 +333,7 @@ class ListVisitor(Visitor):
 
         return None
 
-    def get_message(  # type: ignore[override]
+    async def get_message(  # type: ignore[override]
         self,
         channel: str,
         body: Any,
@@ -363,12 +370,14 @@ class StreamVisitor(Visitor):
 
         return None
 
-    def get_message(  # type: ignore[override]
+    async def get_message(  # type: ignore[override]
         self,
         channel: str,
         body: Any,
         sub: "_StreamHandlerMixin",
     ) -> Any:
+        if sub.stream_sub.min_idle_time:
+            await asyncio.sleep(sub.stream_sub.min_idle_time / 1000)
         if sub.stream_sub.batch:
             return BatchStreamMessage(
                 type="bstream",
