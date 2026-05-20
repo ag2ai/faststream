@@ -39,6 +39,7 @@ from faststream._internal.types import (
     T_HandlerReturn,
 )
 from faststream._internal.utils.functions import to_async
+from faststream.asgi.factories.asyncapi.try_it_out import TryItOutProcessor
 from faststream.middlewares import BaseMiddleware
 from faststream.specification.asyncapi.site import get_asyncapi_html
 
@@ -443,10 +444,6 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         # that POSTs to ``{schema_url}/try``. Register that endpoint so the
         # FastAPI plugin can publish messages to the broker, mirroring the
         # standalone AsgiFastStream behaviour (see issue #2869).
-        from faststream.asgi.factories.asyncapi.try_it_out import (
-            TryItOutProcessor,
-        )
-
         try:
             try_processor = TryItOutProcessor(self.broker)
         except ValueError:
