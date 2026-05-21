@@ -27,6 +27,7 @@ class KafkaBrokerConfig(BrokerConfig):
 
     client_id: str | None = SERVICE_NAME
     client_rack: str | None = None
+    consumer_only: bool = False
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 
@@ -39,16 +40,22 @@ class KafkaBrokerConfig(BrokerConfig):
         return self._admin_client
 
     async def connect(self, **connection_kwargs: Any) -> "None":
-        producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
-        await self.producer.connect(producer, serializer=self.fd_config._serializer)
+        # In consumer-only mode the broker neither produces messages nor needs
+        # admin permissions, so skip creating those clients to allow callers
+        # to use credentials scoped to read-only ACLs.
+        if not self.consumer_only:
+            producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
+            await self.producer.connect(producer, serializer=self.fd_config._serializer)
 
-        admin_options, _ = filter_by_dict(
-            AdminClientConnectionParams,
-            connection_kwargs,
-        )
+            admin_options, _ = filter_by_dict(
+                AdminClientConnectionParams,
+                connection_kwargs,
+            )
 
-        self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(**admin_options)
-        await self._admin_client.start()
+            self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
+                **admin_options
+            )
+            await self._admin_client.start()
 
         consumer_options, _ = filter_by_dict(
             ConsumerConnectionParams,
@@ -65,4 +72,5 @@ class KafkaBrokerConfig(BrokerConfig):
             await self._admin_client.close()
             self._admin_client = None
 
-        await self.producer.disconnect()
+        if not self.consumer_only:
+            await self.producer.disconnect()
