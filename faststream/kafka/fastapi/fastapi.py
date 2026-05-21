@@ -976,6 +976,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         subscriber = super().subscriber(
             *topics,
             group_id=group_id,
+            group_instance_id=group_instance_id,
             client_rack=client_rack,
             max_workers=max_workers,
             key_deserializer=key_deserializer,
