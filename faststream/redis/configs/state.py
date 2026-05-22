@@ -2,9 +2,14 @@ from typing import Any
 
 from redis.asyncio.client import Redis
 from redis.asyncio.connection import ConnectionPool
+from redis.driver_info import DriverInfo
 
 from faststream.__about__ import __version__
 from faststream.exceptions import IncorrectState
+
+
+def _make_driver_info() -> DriverInfo:
+    return DriverInfo().add_upstream_driver("faststream", __version__)
 
 
 class ConnectionState:
@@ -28,8 +33,7 @@ class ConnectionState:
     async def connect(self) -> "Redis[bytes]":
         pool = ConnectionPool(
             **self._options,
-            lib_name="faststream",
-            lib_version=__version__,
+            driver_info=_make_driver_info(),
         )
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
