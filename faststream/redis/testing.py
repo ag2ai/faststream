@@ -52,30 +52,6 @@ __all__ = (
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
 
-    @staticmethod
-    async def _fake_connect(  # type: ignore[override]
-        broker: RedisBroker,
-        *args: Any,
-        **kwargs: Any,
-    ) -> AsyncMock:
-        connection = MagicMock()
-
-        pub_sub = AsyncMock()
-
-        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
-            await anyio.sleep(timeout)
-
-        pub_sub.get_message = get_msg
-
-        connection.pubsub.side_effect = lambda: pub_sub
-        connection.aclose = AsyncMock()
-
-        connection.xack = AsyncMock()
-        connection.xdel = AsyncMock()
-
-        broker.config.broker_config.connection._client = connection
-        return connection
-
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
         with ExitStack() as es:
@@ -117,6 +93,30 @@ class TestRedisBroker(TestBroker[RedisBroker]):
             is_real = True
 
         return sub, is_real
+
+    @staticmethod
+    async def _fake_connect(  # type: ignore[override]
+        broker: RedisBroker,
+        *args: Any,
+        **kwargs: Any,
+    ) -> AsyncMock:
+        connection = MagicMock()
+
+        pub_sub = AsyncMock()
+
+        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
+            await anyio.sleep(timeout)
+
+        pub_sub.get_message = get_msg
+
+        connection.pubsub.side_effect = lambda: pub_sub
+        connection.aclose = AsyncMock()
+
+        connection.xack = AsyncMock()
+        connection.xdel = AsyncMock()
+
+        broker.config.broker_config.connection._client = connection
+        return connection
 
 
 class FakeProducer(RedisFastProducer):
@@ -445,20 +445,4 @@ class TestRedisClusterBroker(TestBroker[RedisClusterBroker]):
         *args: Any,
         **kwargs: Any,
     ) -> AsyncMock:
-        connection = MagicMock()
-
-        pub_sub = AsyncMock()
-
-        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
-            await anyio.sleep(timeout)
-
-        pub_sub.get_message = get_msg
-
-        connection.pubsub.side_effect = lambda: pub_sub
-        connection.aclose = AsyncMock()
-
-        connection.xack = AsyncMock()
-        connection.xdel = AsyncMock()
-
-        broker.config.broker_config.connection._client = connection
-        return connection
+        return await TestRedisBroker._fake_connect(broker, *args, **kwargs)

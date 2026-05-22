@@ -10,6 +10,7 @@ from .cluster import RedisClusterRouter
 from .fastapi import RedisRouter
 
 __all__ = (
+    "Context",
     "ContextRepo",
     "Logger",
     "Redis",

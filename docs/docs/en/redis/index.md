@@ -58,4 +58,8 @@ Here's a simplified code example demonstrating how to establish a connection to 
 
 This minimal example illustrates how **FastStream** simplifies the process of connecting to **Redis** and performing basic message processing from the *in-channel* to the *out-channel*. Depending on your specific use case and requirements, you can further customize your **Redis** integration with **FastStream** to build efficient and responsive applications.
 
+### Redis Cluster Support
+
+If you are running a **Redis Cluster**, use `RedisClusterBroker` instead of `RedisBroker`. It automatically routes commands to the correct cluster node. See the [Redis Cluster](cluster/index.md){.internal-link} documentation for details.
+
 For more advanced configuration options and detailed usage instructions, please refer to the **FastStream Redis** documentation and the [official Redis documentation](https://redis.io/docs/latest/){.external-link target="_blank"}.

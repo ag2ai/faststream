@@ -13,7 +13,7 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -39,6 +39,16 @@ if TYPE_CHECKING:
     )
     from faststream.redis.publisher.factory import PublisherType
     from faststream.redis.subscriber.factory import SubscriberType
+    from faststream.redis.subscriber.usecases import (
+        ChannelConcurrentSubscriber,
+        ChannelSubscriber,
+        ListBatchSubscriber,
+        ListConcurrentSubscriber,
+        ListSubscriber,
+        StreamBatchSubscriber,
+        StreamConcurrentSubscriber,
+        StreamSubscriber,
+    )
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -158,8 +168,208 @@ class RedisClusterRouter(StreamRouter[UnifyRedisDict]):
             generate_unique_id_function=generate_unique_id_function,
         )
 
+    @overload  # type: ignore[override]
+    def subscriber(
+        self,
+        channel: str | PubSub = ...,
+        *,
+        list: None = None,
+        stream: None = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "ChannelSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: str | PubSub = ...,
+        *,
+        list: None = None,
+        stream: None = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "ChannelConcurrentSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str = ...,
+        stream: None = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "ListSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str | ListSub = ...,
+        stream: None = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> Union["ListSubscriber", "ListBatchSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: str | ListSub = ...,
+        stream: None = None,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "ListConcurrentSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str = ...,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> "StreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str | StreamSub = ...,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: None = None,
+    ) -> Union["StreamSubscriber", "StreamBatchSubscriber"]: ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: str | StreamSub = ...,
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        max_workers: int = ...,
+    ) -> "StreamConcurrentSubscriber": ...
+
     @override
-    def subscriber(  # type: ignore[override]
+    def subscriber(
         self,
         channel: str | PubSub | None = None,
         *,

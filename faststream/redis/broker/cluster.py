@@ -19,6 +19,7 @@ from faststream.redis.broker.broker import RedisBroker
 from faststream.redis.broker.logging import make_redis_logger_state
 from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.configs import ClusterConnectionState, RedisBrokerConfig
+from faststream.redis.configs.state import _CLUSTER_UNSUPPORTED_KEYS
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.security import parse_security
@@ -88,6 +89,76 @@ class RedisClusterBroker(RedisBroker):
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
+        """Initialize the RedisClusterBroker.
+
+        Args:
+            url:
+                A Redis Cluster node URL. Defaults to "redis://localhost:6379".
+            host:
+                The Redis host to connect to. If not provided, it will be extracted from the URL.
+            port:
+                The Redis port to connect to. If not provided, it will be extracted from the URL.
+            client_name:
+                The name of the Redis client. Defaults to None.
+            health_check_interval:
+                The interval at which to perform health checks on the broker. Defaults to 0.
+            max_connections:
+                The maximum number of connections per node. Defaults to None (uses RedisCluster default of 2^31).
+            socket_timeout:
+                The timeout for socket operations. Defaults to None.
+            socket_connect_timeout:
+                The timeout for connecting sockets. Defaults to None.
+            socket_keepalive:
+                Whether to enable keep-alive on sockets. Defaults to False.
+            socket_keepalive_options:
+                Options for keep-alive on sockets. Defaults to None.
+            encoding:
+                The encoding used for sending and receiving data. Defaults to "utf-8".
+            encoding_errors:
+                How to handle encoding errors. Defaults to "strict".
+            graceful_timeout:
+                Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+            decoder:
+                Custom decoder object. Defaults to None.
+            codec:
+                Custom codec object. Defaults to None.
+            parser:
+                Custom parser object. Defaults to None.
+            dependencies:
+                Dependencies to apply to all broker subscribers. Defaults to ().
+            middlewares:
+                Middlewares to apply to all broker publishers/subscribers. Defaults to ().
+            routers:
+                Routers to apply to broker. Defaults to ().
+            message_format:
+                What format to use when parsing messages. Defaults to BinaryMessageFormatV1.
+            security:
+                Security options to connect broker and generate AsyncAPI server security information. Defaults to None.
+            specification_url:
+                AsyncAPI hardcoded server addresses. Use ``servers`` if not specified. Defaults to None.
+            protocol:
+                AsyncAPI server protocol. Defaults to None.
+            protocol_version:
+                AsyncAPI server protocol version. Defaults to "custom".
+            description:
+                AsyncAPI server description. Defaults to None.
+            tags:
+                AsyncAPI server tags. Defaults to ().
+            logger:
+                User specified logger to pass into Context and log service messages. Defaults to EMPTY.
+            log_level:
+                Service messages log level. Defaults to logging.INFO.
+            apply_types:
+                Whether to use FastDepends or not. Defaults to True.
+            serializer:
+                Serializer object. Defaults to EMPTY.
+            provider:
+                Provider for FastDepends library. Defaults to None.
+            context:
+                Context repository for FastDepends library. Defaults to None.
+        """
         self.message_format = message_format
 
         if specification_url is None:
@@ -182,8 +253,6 @@ def _resolve_cluster_url_options(
     # ClusterConnectionState filters these, but we also strip them here to
     # keep the options dict tidy when it is passed as **kwargs to
     # super().__init__().
-    from faststream.redis.configs.state import _CLUSTER_UNSUPPORTED_KEYS
-
     for key in _CLUSTER_UNSUPPORTED_KEYS:
         url_options.pop(key, None)
 
