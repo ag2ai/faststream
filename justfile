@@ -258,6 +258,23 @@ test-redis-all +param="tests/":
   docker compose exec faststream uv run pytest {{param}} -m "redis or (redis and slow)" -n auto
 
 
+# Redis Cluster
+[doc("Run redis-cluster container")]
+[group("redis")]
+redis-cluster-up:
+  docker compose up -d redis-cluster
+
+[doc("Stop redis-cluster container")]
+[group("redis")]
+redis-cluster-stop:
+  docker compose stop redis-cluster
+
+[doc("Show redis-cluster logs")]
+[group("redis")]
+redis-cluster-logs:
+  docker compose logs -f redis-cluster
+
+
 # Nats
 [doc("Run nats container")]
 [group("nats")]
