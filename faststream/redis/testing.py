@@ -19,6 +19,7 @@ from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
+from faststream.redis.broker.cluster import RedisClusterBroker
 from faststream.redis.message import (
     BatchListMessage,
     BatchStreamMessage,
@@ -42,11 +43,38 @@ if TYPE_CHECKING:
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
-__all__ = ("TestRedisBroker",)
+__all__ = (
+    "TestRedisBroker",
+    "TestRedisClusterBroker",
+)
 
 
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
+
+    @staticmethod
+    async def _fake_connect(  # type: ignore[override]
+        broker: RedisBroker,
+        *args: Any,
+        **kwargs: Any,
+    ) -> AsyncMock:
+        connection = MagicMock()
+
+        pub_sub = AsyncMock()
+
+        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
+            await anyio.sleep(timeout)
+
+        pub_sub.get_message = get_msg
+
+        connection.pubsub.side_effect = lambda: pub_sub
+        connection.aclose = AsyncMock()
+
+        connection.xack = AsyncMock()
+        connection.xdel = AsyncMock()
+
+        broker.config.broker_config.connection._client = connection
+        return connection
 
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
@@ -89,30 +117,6 @@ class TestRedisBroker(TestBroker[RedisBroker]):
             is_real = True
 
         return sub, is_real
-
-    @staticmethod
-    async def _fake_connect(  # type: ignore[override]
-        broker: RedisBroker,
-        *args: Any,
-        **kwargs: Any,
-    ) -> AsyncMock:
-        connection = MagicMock()
-
-        pub_sub = AsyncMock()
-
-        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
-            await anyio.sleep(timeout)
-
-        pub_sub.get_message = get_msg
-
-        connection.pubsub.side_effect = lambda: pub_sub
-        connection.aclose = AsyncMock()
-
-        connection.xack = AsyncMock()
-        connection.xdel = AsyncMock()
-
-        broker.config.broker_config.connection._client = connection
-        return connection
 
 
 class FakeProducer(RedisFastProducer):
@@ -404,3 +408,57 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
         raise SetupError(INCORRECT_SETUP_MSG)
 
     return destination
+
+
+class TestRedisClusterBroker(TestBroker[RedisClusterBroker]):
+    """A class to test Redis Cluster brokers."""
+
+    @contextmanager
+    def _patch_producer(
+        self,
+        broker: RedisClusterBroker,
+    ) -> Iterator[None]:
+        with ExitStack() as es:
+            es.enter_context(
+                change_producer(
+                    broker.config.broker_config, FakeProducer(broker, broker.config)
+                ),
+            )
+
+            for publisher in cast("list[LogicPublisher]", broker.publishers):
+                es.enter_context(
+                    change_producer(publisher, FakeProducer(broker, publisher.config)),
+                )
+
+            yield
+
+    @staticmethod
+    def create_publisher_fake_subscriber(
+        broker: RedisClusterBroker,
+        publisher: "LogicPublisher",
+    ) -> tuple["LogicSubscriber", bool]:
+        return TestRedisBroker.create_publisher_fake_subscriber(broker, publisher)
+
+    @staticmethod
+    async def _fake_connect(  # type: ignore[override]
+        broker: RedisClusterBroker,
+        *args: Any,
+        **kwargs: Any,
+    ) -> AsyncMock:
+        connection = MagicMock()
+
+        pub_sub = AsyncMock()
+
+        async def get_msg(*args: Any, timeout: float, **kwargs: Any) -> None:
+            await anyio.sleep(timeout)
+
+        pub_sub.get_message = get_msg
+
+        connection.pubsub.side_effect = lambda: pub_sub
+        connection.aclose = AsyncMock()
+
+        connection.xack = AsyncMock()
+        connection.xdel = AsyncMock()
+
+        broker.config.broker_config.connection._client = connection
+        return connection
