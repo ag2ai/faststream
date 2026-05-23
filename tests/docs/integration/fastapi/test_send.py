@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -88,3 +89,19 @@ async def test_fastapi_redis_send() -> None:
             assert client.get("/").text == '"Hello, HTTP!"'
 
         handler.mock.assert_called_once_with("Hello, Redis!")
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_fastapi_mqtt_send() -> None:
+    from docs.docs_src.integrations.fastapi.mqtt.send import app, router
+    from faststream.mqtt import TestMQTTBroker
+
+    @router.subscriber("test")
+    async def handler() -> None: ...
+
+    async with TestMQTTBroker(router.broker):
+        with TestClient(app) as client:
+            assert client.get("/").text == '"Hello, HTTP!"'
+
+        handler.mock.assert_called_once_with("Hello, MQTT!")
