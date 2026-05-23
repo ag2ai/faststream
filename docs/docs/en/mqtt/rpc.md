@@ -21,28 +21,17 @@ Set `version="5.0"`. The producer uses zmqtt’s **`request()`**, which allocate
 
 The handler side receives `MQTTMessage.reply_to` and `correlation_id` populated from **Response Topic** and **Correlation Data**. When your handler returns a value (or a [`Response`](../rabbit/rpc.md){.internal-link} object), FastStream publishes the reply to that response topic with the same correlation.
 
-```python
-from faststream import FastStream
-from faststream.mqtt import MQTTBroker, MQTTMessage, QoS
-
-broker = MQTTBroker("localhost", version="5.0")
-app = FastStream(broker)
-
-
-@broker.subscriber("rpc/echo", qos=QoS.AT_LEAST_ONCE)
-async def echo(body: str) -> str:
-    return body
-
-
-@app.after_startup
-async def demo() -> None:
-    reply: MQTTMessage = await broker.request("hello", "rpc/echo", timeout=5.0)
-    assert reply.body  # decoded payload
+```python linenums="1" hl_lines="4 8 15"
+{! docs_src/mqtt/rpc/mqtt5.py !}
 ```
 
 ### `MQTTResponse`
 
 For MQTT-specific reply options, return `MQTTResponse` from `faststream.mqtt.response` to set **`qos`** and **`retain`** on the outgoing reply (in addition to `body`, `headers`, and `correlation_id`).
+
+```python linenums="1" hl_lines="3 11-15"
+{! docs_src/mqtt/rpc/mqtt_response.py !}
+```
 
 ## MQTT 3.1.1
 
@@ -53,6 +42,10 @@ There are no **Response Topic** or **Correlation Data** properties. FastStream i
 3. Your service must publish the response to **`reply_to`** (for example with `@broker.publisher` or explicit `publish`).
 
 If `reply_to` is omitted, `request()` raises **`FeatureNotSupportedException`**.
+
+```python linenums="1" hl_lines="4 8 15-19"
+{! docs_src/mqtt/rpc/mqtt311.py !}
+```
 
 ## Disabling automatic replies
 

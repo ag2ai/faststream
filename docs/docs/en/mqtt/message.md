@@ -27,57 +27,39 @@ Typical fields used in handlers:
 
 Access via a parameter, [`Context`](../getting-started/context.md){.internal-link}, or `Annotated` shortcuts, same as other brokers.
 
-```python
-from faststream.mqtt.annotations import MQTTMessage
-
-@broker.subscriber("devices/+/status")
-async def handle(msg: MQTTMessage):
-    props = msg.raw_message.properties  # MQTT 5.0 only
-    ...
+```python linenums="1" hl_lines="1 3"
+{! docs_src/mqtt/message/fields.py [ln:9-12] !}
 ```
 
 ## Topic Path Access
 
 MQTT topic filters support `+` (single level) and `#` (multi level) wildcards. **FastStream** lets you **capture** single-level matches by naming them in the subscriber topic template and reading them back via `Path` (a shortcut for `#!python Context("message.path.*")`).
 
+{% raw %}
 | Syntax | Replaces | Captures | Placement constraint |
 | ------ | -------- | -------- | -------------------- |
 | `"{name}"`, `f"{{name}}"` | `+` | One topic level as `#!python str` | Must occupy a whole topic level (surrounded by `/` or string boundaries). |
 | `"{{name}}"`, `f"{{{{name}}}}"` | `{name}` | No capture | Allows braces to be treated as literal characters. |
+{% endraw %}
 
 ### Single-level capture
 
-```python hl_lines="1 4 7"
-from faststream import Path
-
-@broker.subscriber("/devices/{device_id}/temperature")
-async def on_temperature(
-    body: str,
-    device_id: str = Path(),
-) -> None:
-    # for topic "/devices/abc/temperature":
-    # device_id == "abc"
-    ...
+```python linenums="1" hl_lines="1 2 5"
+{! docs_src/mqtt/message/path.py [ln:1,8-13] !}
 ```
 
 ### Literal braces
 
 MQTT topics may contain `{` and `}` as regular characters. Escape them by doubling braces so FastStream does not treat them as path parameters:
 
-```python
-@broker.subscriber("/root/{{braced}}")
-async def handle(body: str) -> None:
-    ...
+```python linenums="1" hl_lines="1"
+{! docs_src/mqtt/message/literal_braces.py [ln:8-10] !}
 ```
 
 For f-strings, double the escaping because Python consumes one brace level first:
 
-```python
-prefix = "/root"
-
-@broker.subscriber(f"{prefix}/{{{{braced}}}}")
-async def handle(body: str) -> None:
-    ...
+```python linenums="1" hl_lines="1 4"
+{! docs_src/mqtt/message/literal_braces.py [ln:13-17] !}
 ```
 
 Both examples subscribe to the literal MQTT topic `/root/{braced}`.
@@ -86,15 +68,8 @@ Both examples subscribe to the literal MQTT topic `/root/{braced}`.
 
 `#` subscriptions are supported as raw MQTT topic filters, but they are not captured through `Path`. Use `MQTTMessage.raw_message.topic` when you need the full topic.
 
-```python hl_lines="1 3 5"
-from faststream.mqtt.annotations import MQTTMessage
-
-@broker.subscriber("/devices/+/logs/#")
-async def on_logs(
-    msg: MQTTMessage,
-) -> None:
-    # msg.raw_message.topic == "/devices/abc/logs/system/errors/critical"
-    ...
+```python linenums="1" hl_lines="1 3 7"
+{! docs_src/mqtt/message/wildcard.py [ln:3,8-13] !}
 ```
 
 ### Validation
