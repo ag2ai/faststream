@@ -26,7 +26,7 @@ class MultibrokerTestcase(BaseTestcaseConfig):
         @broker2.subscriber(*args2, **kwargs2)
         def subscriber(m) -> None:
             mock()
-            if not consume.is_set():
+            if mock.call_count == 1:
                 consume.set()
             else:
                 consume2.set()
