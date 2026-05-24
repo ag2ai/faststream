@@ -333,10 +333,11 @@ def _find_handler(
     for handler in subscribers:  # pragma: no branch
         if _is_handler_matches(handler, topic, partition):
             if handler.group_id:
-                if handler.group_id in published_groups:
+                group_key = (id(handler._outer_config), handler.group_id)
+                if group_key in published_groups:
                     continue
                 else:
-                    published_groups.add(handler.group_id)
+                    published_groups.add(group_key)
             yield handler
 
 
