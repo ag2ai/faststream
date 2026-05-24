@@ -66,7 +66,9 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(publisher.subject, persistent=False)
+            sub = broker.subscriber(
+                publisher.subject, persistent=False, stream=publisher_stream
+            )
         else:
             is_real = True
 

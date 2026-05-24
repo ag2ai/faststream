@@ -12,6 +12,7 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 
 - [**Kafka**](../kafka/index.md){.internal-link}
 - [**RabbitMQ**](../rabbit/index.md){.internal-link}
+- [**MQTT**](../mqtt/index.md){.internal-link}
 - [**NATS JetStream**](../nats/jetstream/index.md){.internal-link}
 - [**Redis Streams**](../redis/streams/index.md){.internal-link}
 - [**SQLA**](../sqla/index.md){.internal-link}
@@ -52,10 +53,37 @@ Here is how **FastStream's** ACK / NACK / REJECT commands map to brokers' behavi
 | Broker | `ACK` | `NACK` | `REJECT` |
 | ------ | ----- | ------ | -------- |
 | [RabbitMQ](https://www.rabbitmq.com/docs/confirms#acknowledgement-modes){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol reject |
+| [MQTT](../mqtt/ack.md){.internal-link} | PUBACK / PUBREC (QoS 1/2) | Same as protocol ack | Same as protocol ack |
 | [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
 | [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
 | Kafka | Commits offset          | Seek offset and read message again    | Commits offset (same as `ACK`)      |
 | [SQLA](../sqla/index.md){.internal-link} | Mark msg as COMPLETED | Mark msg as RETRYABLE if retry strategy allows and FAILED otherwise | Mark msg as FAILED |
+
+## Broker-Level Default
+
+By default, `ack_policy` is set per subscriber. If most of your subscribers share the same policy, you can set a broker-level default to avoid repetition:
+
+```python linenums="1" hl_lines="4 8 13"
+from faststream import FastStream, AckPolicy
+from faststream.nats import NatsBroker
+
+broker = NatsBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+app = FastStream(broker)
+
+# Inherits NACK_ON_ERROR from broker
+@broker.subscriber("test")
+async def process_order(msg: str) -> None:
+    ...
+
+# Overrides to MANUAL for this subscriber
+@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
+async def handle_event(msg: str) -> None:
+    await msg.ack()
+```
+
+The resolution order is: **subscriber-level > broker-level > built-in default**.
+
+If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis).
 
 ### When to Use
 

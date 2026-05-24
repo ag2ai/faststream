@@ -1,3 +1,4 @@
+import asyncio
 import math
 from collections.abc import Callable
 from typing import Any
@@ -6,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from dirty_equals import Contains, IsFloat, IsList, IsPartialDict, IsStr
 from fast_depends import Depends
+from freezegun import freeze_time
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.testclient import TestClient
@@ -235,33 +237,6 @@ class AsgiTestcase:
             assert response.text == Contains("<!DOCTYPE html>")
 
     # ===== TryItOut tests =====
-    @pytest.mark.asyncio()
-    async def test_try_it_out_endpoint_post_success(self, queue: str) -> None:
-        broker = self.get_broker()
-
-        @broker.subscriber(queue)
-        async def handler(msg: dict[str, Any]) -> None:
-            pass
-
-        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
-
-        async with self.get_test_broker(broker):
-            with TestClient(app) as client:
-                response = client.post(
-                    "/asyncapi/try",
-                    json={
-                        "channelName": queue,
-                        "message": {
-                            "operation_id": "op",
-                            "operation_type": "subscribe",
-                            "message": {"data": "hello"},
-                        },
-                        "options": {"sendToRealBroker": False},
-                    },
-                )
-                assert response.status_code == 200
-                assert response.json() == "ok"
-
     @pytest.mark.asyncio()
     async def test_try_it_out_message_delivered_to_subscriber(
         self, queue: str, mock: MagicMock
@@ -590,6 +565,71 @@ class AsgiTestcase:
 
                 assert response.status_code == 200
                 assert response.json() == "ok"
+
+    @pytest.mark.asyncio()
+    @freeze_time(auto_tick_seconds=5)
+    async def test_try_it_out_subscriber_completes_within_timeout(
+        self, queue: str
+    ) -> None:
+        """Subscriber that finishes before the configured timeout should return a 200 with its result."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any) -> dict[str, Any]:
+            await asyncio.sleep(5)
+            return {"result": "done"}
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        assert response.status_code == 200, response.json()
+        assert response.json() == IsPartialDict(result="done")
+
+    @pytest.mark.asyncio()
+    @freeze_time(auto_tick_seconds=30)
+    async def test_try_it_out_subscriber_exceeds_timeout_returns_500(
+        self, queue: str
+    ) -> None:
+        """Subscriber that runs longer than the configured timeout should produce a 500 carrying the timeout exception."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any) -> None:
+            await asyncio.sleep(30)
+
+        app = AsgiFastStream(broker, asyncapi_path="/asyncapi")
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.post(
+                    "/asyncapi/try",
+                    json={
+                        "channelName": queue,
+                        "message": {
+                            "operation_id": "op",
+                            "operation_type": "subscribe",
+                            "message": {"data": "hello"},
+                        },
+                        "options": {"sendToRealBroker": False},
+                    },
+                )
+
+        assert response.status_code == 500
+        assert response.json() == IsPartialDict(details=Contains("TimeoutError"))
 
     @pytest.mark.asyncio()
     async def test_try_it_out_spec_endpoint_base_overrides_route_default(self) -> None:

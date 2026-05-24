@@ -7,6 +7,7 @@ from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
     amqp as amqp_bindings,
     kafka as kafka_bindings,
+    mqtt as mqtt_bindings,
     nats as nats_bindings,
     redis as redis_bindings,
     sqs as sqs_bindings,
@@ -27,6 +28,7 @@ class ChannelBinding(BaseModel):
 
     amqp: amqp_bindings.ChannelBinding | None = None
     kafka: kafka_bindings.ChannelBinding | None = None
+    mqtt: mqtt_bindings.ChannelBinding | None = None
     sqs: sqs_bindings.ChannelBinding | None = None
     nats: nats_bindings.ChannelBinding | None = None
     redis: redis_bindings.ChannelBinding | None = None
@@ -59,6 +61,9 @@ class ChannelBinding(BaseModel):
             kafka := kafka_bindings.ChannelBinding.from_sub(binding.kafka)
         ):
             return cls(kafka=kafka)
+
+        if binding.mqtt and (mqtt := mqtt_bindings.ChannelBinding.from_sub(binding.mqtt)):
+            return cls(mqtt=mqtt)
 
         if binding.nats and (nats := nats_bindings.ChannelBinding.from_sub(binding.nats)):
             return cls(nats=nats)
@@ -93,6 +98,9 @@ class ChannelBinding(BaseModel):
             kafka := kafka_bindings.ChannelBinding.from_pub(binding.kafka)
         ):
             return cls(kafka=kafka)
+
+        if binding.mqtt and (mqtt := mqtt_bindings.ChannelBinding.from_pub(binding.mqtt)):
+            return cls(mqtt=mqtt)
 
         if binding.nats and (nats := nats_bindings.ChannelBinding.from_pub(binding.nats)):
             return cls(nats=nats)

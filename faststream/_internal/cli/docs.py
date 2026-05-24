@@ -106,7 +106,6 @@ def gen(
         False,
         "-y",
         "--yaml",
-        is_flag=True,
         help="Generate `asyncapi.yaml` schema.",
     ),
     out: str | None = typer.Option(
@@ -120,7 +119,6 @@ def gen(
         False,
         "-d",
         "--debug",
-        is_flag=True,
         help="Do not save generated schema to file. Print it instead.",
     ),
     app_dir: str = APP_DIR_OPTION,

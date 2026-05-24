@@ -92,7 +92,7 @@ if PYDANTIC_V2:
         return json_dumps(model_to_jsonable(data))
 
     def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
-        return model.__pydantic_fields__
+        return model.model_fields
 
     def model_to_json(model: BaseModel, **kwargs: Any) -> str:
         return model.model_dump_json(**kwargs)
@@ -184,7 +184,7 @@ except ImportError:  # pragma: no cover
         def validate(cls, v: Any) -> str:
             """Validates the EmailStr class."""
             warnings.warn(
-                "email-validator bot installed, email fields will be treated as str.\n"
+                "email-validator not installed, email fields will be treated as str.\n"
                 "To install, run: pip install email-validator",
                 category=RuntimeWarning,
                 stacklevel=1,
@@ -194,7 +194,7 @@ except ImportError:  # pragma: no cover
         @classmethod
         def _validate(cls, __input_value: Any, _: Any) -> str:
             warnings.warn(
-                "email-validator bot installed, email fields will be treated as str.\n"
+                "email-validator not installed, email fields will be treated as str.\n"
                 "To install, run: pip install email-validator",
                 category=RuntimeWarning,
                 stacklevel=1,

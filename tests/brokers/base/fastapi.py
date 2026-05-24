@@ -796,24 +796,32 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         router = self.router_class()
         router2 = self.router_class()
 
-        app = FastAPI()
-
         args, kwargs = self.get_subscriber_params(queue)
 
         @router2.subscriber(*args, **kwargs)
         async def hello_router2() -> str:
             return "hi"
 
-        router.include_router(router2)
-        app.include_router(router)
+        with pytest.raises(
+            TypeError,
+            match="Including a StreamRouter into another StreamRouter",
+        ):
+            router.include_router(router2)
 
-        async with self.patch_broker(router.broker) as br:
-            with TestClient(app) as client:
-                assert client.app_state["broker"] is br
+    def test_nested_stream_router_raises(
+        self,
+        queue: str,
+    ) -> None:
+        """Including a StreamRouter into another StreamRouter must raise TypeError.
 
-                r = await br.request(
-                    "hi",
-                    queue,
-                    timeout=0.5,
-                )
-                assert await r.decode() == "hi", r
+        This pattern is unsupported (issue #2657).  Users should include a regular
+        broker router (e.g. KafkaRouter) into the StreamRouter instead.
+        """
+        router = self.router_class()
+        router2 = self.router_class()
+
+        with pytest.raises(
+            TypeError,
+            match="Including a StreamRouter into another StreamRouter is not supported",
+        ):
+            router.include_router(router2)

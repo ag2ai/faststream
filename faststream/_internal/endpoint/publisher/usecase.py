@@ -1,6 +1,5 @@
 from collections.abc import Callable, Generator, Iterable
 from functools import partial
-from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -43,7 +42,6 @@ class PublisherUsecase(Endpoint, PublisherProto):
         super().__init__(config._outer_config)
 
         self.specification = specification
-        self.middlewares = config.middlewares
 
         self._fake_handler = False
         self.mock = MagicMock()
@@ -132,15 +130,12 @@ class PublisherUsecase(Endpoint, PublisherProto):
     ) -> Generator["PublisherMiddleware", None, None]:
         context = self._outer_config.fd_config.context
 
-        yield from chain(
-            self.middlewares[::-1],
-            (
-                extra_middlewares
-                or (
-                    m(None, context=context).publish_scope
-                    for m in reversed(self._outer_config.broker_middlewares)
-                )
-            ),
+        yield from (
+            extra_middlewares
+            or (
+                m(None, context=context).publish_scope
+                for m in reversed(self._outer_config.broker_middlewares)
+            )
         )
 
     def schema(self) -> dict[str, "PublisherSpec"]:

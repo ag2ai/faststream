@@ -33,6 +33,7 @@ from tests.marks import skip_windows
             id="many_workers",
             marks=[
                 pytest.mark.flaky(reruns=3, reruns_delay=1),
+                pytest.mark.slow(),
             ],
         ),
     ),

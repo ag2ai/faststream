@@ -1,7 +1,7 @@
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, Optional, cast
 
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream import AckPolicy
 from faststream._internal.broker.registrator import Registrator
@@ -14,11 +14,7 @@ from faststream.sqla.subscriber.factory import create_subscriber
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.types import (
-        CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
-    )
+    from faststream._internal.types import CustomCallable
     from faststream.sqla.publisher.usecase import LogicPublisher
     from faststream.sqla.subscriber.usecase import SqlaSubscriber
 
@@ -45,7 +41,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -112,7 +107,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
             parser_=parser,
             decoder_=decoder,
             dependencies_=dependencies,
-            middlewares_=middlewares,
         )
 
         return subscriber
@@ -123,14 +117,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
         queue: str = "",
         *,
         headers: dict[str, str] | None = None,
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. "
-                "Use router-level middlewares instead. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -141,7 +127,6 @@ class SqlaRegistrator(Registrator[SqlaInnerMessage, SqlaBrokerConfig]):
             headers=headers,
             # Specific
             broker_config=cast("SqlaBrokerConfig", self.config),
-            middlewares=middlewares,
             # AsyncAPI
             title_=title,
             description_=description,

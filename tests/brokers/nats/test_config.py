@@ -1,7 +1,7 @@
 import pytest
 
 from faststream import AckPolicy
-from faststream.nats import ConsumerConfig
+from faststream.nats import ConsumerConfig, NatsBroker, NatsRouter
 from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
@@ -16,33 +16,55 @@ def test_default() -> None:
 
 
 @pytest.mark.nats()
-def test_no_ack() -> None:
-    config = NatsSubscriberConfig(
-        subject="test_subject",
-        sub_config=ConsumerConfig(),
-        _no_ack=True,
-    )
-
-    assert config.ack_policy is AckPolicy.MANUAL
+def test_broker_ack_policy() -> None:
+    broker = NatsBroker(ack_policy=AckPolicy.ACK)
+    sub = broker.subscriber("test")
+    assert sub.ack_policy is AckPolicy.ACK
 
 
 @pytest.mark.nats()
-def test_ack_first() -> None:
-    config = NatsSubscriberConfig(
-        subject="test_subject",
-        sub_config=ConsumerConfig(),
-        _ack_first=True,
-    )
+def test_router_ack_policy() -> None:
+    router = NatsRouter(ack_policy=AckPolicy.ACK)
+    sub = router.subscriber("test")
+    assert sub.ack_policy is AckPolicy.ACK
 
-    assert config.ack_policy is AckPolicy.ACK_FIRST
+
+@pytest.mark.rabbit()
+def test_broker_ack_policy_without_router() -> None:
+    broker = NatsBroker(ack_policy=AckPolicy.REJECT_ON_ERROR)
+    router = NatsRouter()
+    broker.include_router(router)
+    sub = router.subscriber("test")
+    assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
 @pytest.mark.nats()
-def test_custom_ack() -> None:
-    config = NatsSubscriberConfig(
-        subject="test_subject",
-        sub_config=ConsumerConfig(),
-        _ack_policy=AckPolicy.ACK,
-    )
+def test_router_overrides_broker() -> None:
+    broker = NatsBroker(ack_policy=AckPolicy.ACK_FIRST)
+    router = NatsRouter(ack_policy=AckPolicy.ACK)
+    broker.include_router(router)
+    sub = router.subscriber("test")
+    assert sub.ack_policy is AckPolicy.ACK
 
-    assert config.ack_policy is AckPolicy.ACK
+
+@pytest.mark.nats()
+def test_sub_overrides_broker() -> None:
+    broker = NatsBroker(ack_policy=AckPolicy.ACK)
+    sub = broker.subscriber("test", stream="t", ack_policy=AckPolicy.NACK_ON_ERROR)
+    assert sub.ack_policy is AckPolicy.NACK_ON_ERROR
+
+
+@pytest.mark.nats()
+def test_sub_overrides_router() -> None:
+    router = NatsRouter(ack_policy=AckPolicy.ACK)
+    sub = router.subscriber("test", stream="t", ack_policy=AckPolicy.NACK_ON_ERROR)
+    assert sub.ack_policy is AckPolicy.NACK_ON_ERROR
+
+
+@pytest.mark.nats()
+def test_sub_overrides_broker_and_router() -> None:
+    broker = NatsBroker(ack_policy=AckPolicy.ACK)
+    router = NatsRouter(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+    sub = router.subscriber("test", stream="t", ack_policy=AckPolicy.REJECT_ON_ERROR)
+    assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR

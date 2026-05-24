@@ -12,6 +12,62 @@ hide:
 ---
 
 # Release Notes
+## 0.7.0rc1
+
+### What's Changed
+
+* fix: corrected security parsing for mqtt broker by [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
+* chore: add MQTT code ownership for borisalekseev by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2825](https://github.com/ag2ai/faststream/pull/2825){.external-link target="_blank"}
+* feat: support broker-level ack_policy with per-subscriber override by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
+* tests: add MQTT AsyncAPI tests by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2830](https://github.com/ag2ai/faststream/pull/2830){.external-link target="_blank"}
+
+### New Contributors
+* [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} made their first contribution in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
+* [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} made their first contribution in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.0rc0...0.7.0rc1](https://github.com/ag2ai/faststream/compare/0.7.0rc0...0.7.0rc1){.external-link target="_blank"}
+
+## 0.7.0rc0
+
+### What's Changed
+
+Just two main changes:
+
+1. `from faststream.mqtt import MQTTBroker` (thanks @borisalekseev)
+2. All deprecations removed:
+    - publisher/subscriber-level middlewares
+    - ack_policy now replaces several deprecated options
+    - RedisJSONMessageParser removed. Now all services should use the binary message format.
+    - `broker.close` removed, use `broker.stop` instead
+
+You install the release manually
+
+```shell
+pip install "faststream[mqtt]==0.7.0rc0"
+# or
+uv add --pre "faststream[mqtt]==0.7.0rc0"
+```
+
+We will release a stable version as soon as we test `MQTTBroker` with production services (in a few weeks).
+
+* feat: FastStream[mqtt] by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2819](https://github.com/ag2ai/faststream/pull/2819){.external-link target="_blank"}
+* docs: fix images generation in release notes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2792](https://github.com/ag2ai/faststream/pull/2792){.external-link target="_blank"}
+* fix: include pattern subscribers in AsyncAPI specification by [@aazmv](https://github.com/aazmv){.external-link target="_blank"} in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
+* fix: cli preserve import errors by [@vovkka](https://github.com/vovkka){.external-link target="_blank"} in [#2817](https://github.com/ag2ai/faststream/pull/2817){.external-link target="_blank"}
+* docs: add multiple topics registration with a single call by [@benaduo](https://github.com/benaduo){.external-link target="_blank"} in [#2814](https://github.com/ag2ai/faststream/pull/2814){.external-link target="_blank"}
+* docs: add How-To section placeholders for RabbitMQ, Confluent, and Redis by [@benaduo](https://github.com/benaduo){.external-link target="_blank"} in [#2815](https://github.com/ag2ai/faststream/pull/2815){.external-link target="_blank"}
+* docs: change polling_interval units (seconds -> milliseconds) by [@MikhailWar](https://github.com/MikhailWar){.external-link target="_blank"} in [#2821](https://github.com/ag2ai/faststream/pull/2821){.external-link target="_blank"}
+* chore: Prepare 0.7.0 update by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2822](https://github.com/ag2ai/faststream/pull/2822){.external-link target="_blank"}
+* ci: Test basic 3.14 by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2795](https://github.com/ag2ai/faststream/pull/2795){.external-link target="_blank"}
+
+### New Contributors
+* [@aazmv](https://github.com/aazmv){.external-link target="_blank"} made their first contribution in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
+* [@vovkka](https://github.com/vovkka){.external-link target="_blank"} made their first contribution in [#2817](https://github.com/ag2ai/faststream/pull/2817){.external-link target="_blank"}
+* [@benaduo](https://github.com/benaduo){.external-link target="_blank"} made their first contribution in [#2814](https://github.com/ag2ai/faststream/pull/2814){.external-link target="_blank"}
+* [@MikhailWar](https://github.com/MikhailWar){.external-link target="_blank"} made their first contribution in [#2821](https://github.com/ag2ai/faststream/pull/2821){.external-link target="_blank"}
+
+**Full Changelog**: [#0.6.7...0.7.0rc0](https://github.com/ag2ai/faststream/compare/0.6.7...0.7.0rc0){.external-link target="_blank"}
+
 ## 0.6.7
 
 ### What's Changed

@@ -51,51 +51,13 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         """Exit the asynchronous context manager."""
         return await self.after_processed(exc_type, exc_val, exc_tb)
 
-    async def on_consume(
-        self,
-        msg: "StreamMessage[AnyMsg]",
-    ) -> "StreamMessage[AnyMsg]":
-        """This option was deprecated and will be removed in 0.7.0. Please, use `consume_scope` instead."""
-        return msg
-
-    async def after_consume(self, err: Exception | None) -> None:
-        """This option was deprecated and will be removed in 0.7.0. Please, use `consume_scope` instead."""
-        if err is not None:
-            raise err
-
     async def consume_scope(
         self,
         call_next: "AsyncFuncAny",
         msg: "StreamMessage[AnyMsg]",
     ) -> Any:
         """Asynchronously consumes a message and returns an asynchronous iterator of decoded messages."""
-        err: Exception | None = None
-        try:
-            result = await call_next(await self.on_consume(msg))
-
-        except Exception as e:
-            err = e
-
-        else:
-            return result
-
-        finally:
-            await self.after_consume(err)
-
-    async def on_publish(
-        self,
-        msg: PublishCommandType,
-    ) -> PublishCommandType:
-        """This option was deprecated and will be removed in 0.7.0. Please, use `publish_scope` instead."""
-        return msg
-
-    async def after_publish(
-        self,
-        err: Exception | None,
-    ) -> None:
-        """This option was deprecated and will be removed in 0.7.0. Please, use `publish_scope` instead."""
-        if err is not None:
-            raise err
+        return await call_next(msg)
 
     async def publish_scope(
         self,
@@ -103,15 +65,4 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         cmd: PublishCommandType,
     ) -> Any:
         """Publish a message and return an async iterator."""
-        err: Exception | None = None
-        try:
-            result = await call_next(await self.on_publish(cmd))
-
-        except Exception as e:
-            err = e
-
-        else:
-            return result
-
-        finally:
-            await self.after_publish(err)
+        return await call_next(cmd)

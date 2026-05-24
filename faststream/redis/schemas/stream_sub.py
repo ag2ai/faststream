@@ -32,7 +32,7 @@ class StreamSub(NameRequired):
 
             https://redis.io/docs/latest/commands/xreadgroup/#differences-between-xread-and-xreadgroup
         polling_interval:
-            Polling interval in seconds.
+            Polling interval in milliseconds.
         min_idle_time:
             Minimum idle time in milliseconds for a message to be eligible for claiming via XAUTOCLAIM.
             Messages that have been pending (unacknowledged) for at least this duration can be

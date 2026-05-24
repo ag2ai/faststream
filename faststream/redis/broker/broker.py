@@ -1,5 +1,4 @@
 import logging
-import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -20,20 +19,17 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.redis.configs import ConnectionState, RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.parser import (
-    BinaryMessageFormatV1,
-    JSONMessageFormat,
-    MessageFormat,
-)
+from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.redis.security import parse_security
@@ -53,6 +49,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.redis.message import RedisChannelMessage
     from faststream.security import BaseSecurity
@@ -111,7 +108,9 @@ class RedisBroker(
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
         graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -173,8 +172,12 @@ class RedisBroker(
                 The class to use for encoding messages. Defaults to Encoder.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down. Defaults to 15.0.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder:
                 Custom decoder object. Defaults to None.
+            codec:
+                Custom codec object. Defaults to None.
             parser:
                 Custom parser object. Defaults to None.
             dependencies:
@@ -210,14 +213,6 @@ class RedisBroker(
             context:
                 Context repository for FastDepends library. Defaults to None.
         """
-        if message_format == JSONMessageFormat:
-            warnings.warn(
-                "JSONMessageFormat has been deprecated and will be removed in version 0.7. "
-                "Instead, use BinaryMessageFormatV1 when initializing broker",
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-
         self.message_format = message_format
 
         if specification_url is None:
@@ -269,6 +264,7 @@ class RedisBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_redis_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -282,6 +278,7 @@ class RedisBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },
@@ -310,21 +307,6 @@ class RedisBroker(
         await super().stop(exc_type, exc_val, exc_tb)
         await self.config.disconnect()
         self._connection = None
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         await self.connect()

@@ -1,12 +1,9 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Optional,
 )
-
-from typing_extensions import deprecated
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -26,8 +23,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
 
 
@@ -42,13 +37,6 @@ class SqlaPublisher(ArgsContainer):
         queue: str = "",
         *,
         headers: dict[str, str] | None = None,
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -62,7 +50,6 @@ class SqlaPublisher(ArgsContainer):
                 Message headers to store metainformation.
                 **content-type** and **correlation_id** will be set automatically by framework anyway.
                 Can be overridden by `publish.headers` if specified.
-            middlewares: Publisher middlewares to wrap outgoing messages.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
             schema:
@@ -73,7 +60,6 @@ class SqlaPublisher(ArgsContainer):
         super().__init__(
             queue=queue,
             headers=headers,
-            middlewares=middlewares,
             title=title,
             description=description,
             schema=schema,
@@ -106,13 +92,6 @@ class SqlaRoute(SubscriberRoute):
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -149,7 +128,6 @@ class SqlaRoute(SubscriberRoute):
             dependencies: Dependencies list to apply to the subscriber.
             parser: Parser to map original message object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
-            middlewares: Subscriber middlewares to wrap incoming message processing.
             title: AsyncAPI subscriber object title.
             description: AsyncAPI subscriber object description.
             include_in_schema: Whether to include operation in AsyncAPI schema or not.
@@ -173,7 +151,6 @@ class SqlaRoute(SubscriberRoute):
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             # AsyncAPI args
             title=title,
             description=description,

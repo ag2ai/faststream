@@ -26,6 +26,7 @@ class KafkaBrokerConfig(BrokerConfig):
     builder: Callable[..., aiokafka.AIOKafkaConsumer] = lambda: None
 
     client_id: str | None = SERVICE_NAME
+    client_rack: str | None = None
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 
@@ -53,6 +54,10 @@ class KafkaBrokerConfig(BrokerConfig):
             ConsumerConnectionParams,
             connection_kwargs,
         )
+        # client_rack is consumer-only, so it is not part of connection_kwargs
+        # (which is also used to build the producer); inject it here when set.
+        if self.client_rack is not None:
+            consumer_options["client_rack"] = self.client_rack
         self.builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
     async def disconnect(self) -> "None":

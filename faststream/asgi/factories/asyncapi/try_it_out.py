@@ -77,7 +77,7 @@ class TryItOutProcessor:
                 return JSONResponse("ok", 200)
 
             async with self._test_broker_cls(self._broker) as br:
-                data = await br.request(payload, destination)
+                data = await br.request(payload, destination, timeout=30)
                 decoded = None
                 with suppress(Exception):
                     decoded = await data.decode()
@@ -89,7 +89,7 @@ class TryItOutProcessor:
             return JSONResponse({"details": f"{destination} destination not found."}, 404)
 
         except Exception as e:
-            return JSONResponse({"details": str(e)}, 500)
+            return JSONResponse({"details": repr(e)}, 500)
 
 
 def make_try_it_out_handler(
@@ -157,5 +157,10 @@ def _get_broker_registry() -> dict[
         from faststream.redis import RedisBroker, TestRedisBroker
 
         registry[RedisBroker] = TestRedisBroker
+
+    with suppress(ImportError):
+        from faststream.mqtt import MQTTBroker, TestMQTTBroker
+
+        registry[MQTTBroker] = TestMQTTBroker
 
     return registry

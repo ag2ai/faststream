@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from .config import SqlaPublisherConfig, SqlaPublisherSpecificationConfig
@@ -6,7 +5,6 @@ from .specification import SqlaPublisherSpecification
 from .usecase import LogicPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
     from faststream.sqla.configs.broker import SqlaBrokerConfig
 
 
@@ -16,7 +14,6 @@ def create_publisher(
     headers: dict[str, str] | None,
     # Publisher args
     broker_config: "SqlaBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     # AsyncAPI args
     schema_: Any | None,
     title_: str | None,
@@ -26,7 +23,6 @@ def create_publisher(
     publisher_config = SqlaPublisherConfig(
         queue=queue,
         headers=headers,
-        middlewares=middlewares,
         _outer_config=broker_config,
     )
 
