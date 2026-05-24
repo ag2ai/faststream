@@ -339,6 +339,7 @@ def _find_handler(
                     published_groups.add(handler.group_id)
             yield handler
 
+
 def _is_handler_matches(
     handler: "LogicSubscriber[Any]",
     topic: str,
