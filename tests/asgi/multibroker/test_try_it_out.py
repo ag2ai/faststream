@@ -7,6 +7,7 @@ from starlette.testclient import TestClient
 from faststream.asgi import AsgiFastStream, AsyncAPIRoute
 from faststream.asgi.factories.asyncapi.try_it_out import (
     TryItOutProcessor,
+    _iter_broker_channels,
     _iter_broker_destinations,
 )
 from faststream.kafka import KafkaBroker, TestKafkaBroker
@@ -38,6 +39,15 @@ class TestIterDestinations:
         destinations = _iter_broker_destinations(broker)
         assert "topic-a" in destinations
         assert "topic-b" in destinations
+
+    def test_kafka_subscriber_channels(self) -> None:
+        broker = KafkaBroker()
+
+        @broker.subscriber("topic-a")
+        async def handler_a(msg: Any) -> None: ...
+
+        channels = _iter_broker_channels(broker)
+        assert "topic-a:HandlerA" in channels
 
 
 class TestMultiBrokerDispatch:
@@ -72,8 +82,8 @@ class TestMultiBrokerDispatch:
         redis_mock.assert_called_once_with("y")
 
     @pytest.mark.asyncio()
-    async def test_collision_first_match_wins(self) -> None:
-        """When two brokers share a channel name, the first registered broker handles it."""
+    async def test_collision_short_channel_first_match_wins(self) -> None:
+        """Short channel names keep first-match compatibility."""
         kafka = KafkaBroker()
         redis = RedisBroker()
 
@@ -99,6 +109,34 @@ class TestMultiBrokerDispatch:
 
         kafka_mock.assert_called_once_with("hi")
         redis_mock.assert_not_called()
+
+    @pytest.mark.asyncio()
+    async def test_collision_full_channel_routes_to_exact_broker(self) -> None:
+        kafka = KafkaBroker()
+        redis = RedisBroker()
+
+        kafka_mock = MagicMock()
+        redis_mock = MagicMock()
+
+        @kafka.subscriber("shared")
+        async def kh(msg: Any) -> None:
+            kafka_mock(msg)
+
+        @redis.subscriber("shared")
+        async def rh(msg: Any) -> None:
+            redis_mock(msg)
+
+        app = AsgiFastStream(
+            kafka, redis, asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True)
+        )
+
+        async with TestKafkaBroker(kafka), TestRedisBroker(redis):
+            with TestClient(app) as client:
+                r = client.post("/asyncapi/try", json=_payload("shared:Rh", "hi"))
+                assert r.status_code == 200, r.json()
+
+        redis_mock.assert_called_once_with("hi")
+        kafka_mock.assert_not_called()
 
     @pytest.mark.asyncio()
     async def test_channel_not_found_anywhere_returns_404(self) -> None:

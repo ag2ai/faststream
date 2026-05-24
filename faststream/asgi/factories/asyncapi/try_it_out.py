@@ -44,7 +44,7 @@ class TryItOutForm(TypedDict):
 
 
 class TryItOutProcessor:
-    """Dispatch try-it-out requests; first broker owning the channel handles it."""
+    """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
     def __init__(self, brokers: Iterable["BrokerUsecase[Any, Any]"]) -> None:
         registry = _get_broker_registry()
@@ -64,7 +64,8 @@ class TryItOutProcessor:
 
     async def process(self, body: TryItOutForm) -> AsgiResponse:
         """Process parsed body: validate, dry-run or publish. Returns response."""
-        destination, *_ = body.get("channelName", "").split(":")
+        channel = body.get("channelName", "")
+        destination, *_ = channel.split(":")
 
         if not destination:
             return JSONResponse({"details": "Missing channelName"}, 400)
@@ -73,13 +74,20 @@ class TryItOutProcessor:
             broker, test_broker_cls = self._entries[0]
         else:
             entry = next(
-                (
-                    e
-                    for e in self._entries
-                    if destination in _iter_broker_destinations(e[0])
-                ),
+                (e for e in self._entries if channel in _iter_broker_channels(e[0])),
                 None,
             )
+
+            if entry is None:
+                entry = next(
+                    (
+                        e
+                        for e in self._entries
+                        if destination in _iter_broker_destinations(e[0])
+                    ),
+                    None,
+                )
+
             if entry is None:
                 return JSONResponse(
                     {"details": f"{destination} destination not found."}, 404
@@ -150,6 +158,21 @@ def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
             destinations.update(key.split(":", 1)[0] for key in pub.schema())
 
     return destinations
+
+
+def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+    """Full AsyncAPI channel keys declared on the broker."""
+    channels: set[str] = set()
+
+    for sub in broker.subscribers:
+        with suppress(Exception):
+            channels.update(sub.schema())
+
+    for pub in broker.publishers:
+        with suppress(Exception):
+            channels.update(pub.schema())
+
+    return channels
 
 
 @lru_cache(maxsize=1)
