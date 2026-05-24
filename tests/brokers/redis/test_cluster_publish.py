@@ -19,6 +19,22 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
 
     timeout: float = 10.0
 
+    @pytest.mark.slow()
+    async def test_multiple_publishers(self, queue: str, mock: MagicMock) -> None:
+        await super().test_multiple_publishers(queue, mock)
+
+    @pytest.mark.slow()
+    async def test_reusable_publishers(self, queue: str, mock: MagicMock) -> None:
+        await super().test_reusable_publishers(queue, mock)
+
+    @pytest.mark.slow()
+    async def test_reply_to(self, queue: str, mock: MagicMock) -> None:
+        await super().test_reply_to(queue, mock)
+
+    @pytest.mark.slow()
+    async def test_no_reply(self, queue: str, mock: MagicMock) -> None:
+        await super().test_no_reply(queue, mock)
+
     async def test_list_publisher(
         self,
         queue: str,
@@ -105,6 +121,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         assert event.is_set()
         mock.assert_called_once_with(body=b"1", correlation_id="1")
 
+    @pytest.mark.slow()
     async def test_response_for_rpc(self, queue: str) -> None:
         pub_broker = self.get_broker()
 

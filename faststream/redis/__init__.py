@@ -27,7 +27,7 @@ try:
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
-    from .testing import TestRedisBroker, TestRedisClusterBroker
+    from .testing import TestRedisBroker
 
 except ImportError as e:
     if "'redis'" not in e.msg:
@@ -59,5 +59,4 @@ __all__ = (
     "StreamSub",
     "TestApp",
     "TestRedisBroker",
-    "TestRedisClusterBroker",
 )

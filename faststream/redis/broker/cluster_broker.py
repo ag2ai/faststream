@@ -1,5 +1,6 @@
 import logging
 import warnings
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlparse
 
@@ -252,7 +253,7 @@ class RedisClusterBroker(RedisBroker):
     def _resolve_url_options(
         url: str,
         *,
-        startup_nodes: list[tuple[str, int]] | None = None,
+        startup_nodes: Sequence[tuple[str, int]] | None = None,
         host: str = EMPTY,
         port: str | int = EMPTY,
         security: Optional["BaseSecurity"] = None,

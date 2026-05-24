@@ -5,7 +5,6 @@ from faststream.redis import (
     RedisClusterBroker,
     RedisRouter,
     TestRedisBroker,
-    TestRedisClusterBroker,
 )
 from tests.brokers.base.basic import BaseTestcaseConfig
 
@@ -64,5 +63,5 @@ class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
         self,
         broker: RedisClusterBroker,
         **kwargs: Any,
-    ) -> TestRedisClusterBroker:
-        return TestRedisClusterBroker(broker, **kwargs)
+    ) -> TestRedisBroker:
+        return TestRedisBroker(broker, **kwargs)

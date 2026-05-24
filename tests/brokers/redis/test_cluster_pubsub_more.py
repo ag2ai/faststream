@@ -9,6 +9,7 @@ from .basic import RedisClusterTestcaseConfig
 from .conftest import SettingsCluster
 
 
+@pytest.mark.slow()
 @pytest.mark.connected()
 @pytest.mark.redis_cluster()
 class TestClusterPubSubMore(RedisClusterTestcaseConfig):

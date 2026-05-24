@@ -242,6 +242,7 @@ class TestClusterStreamAutoclaim:
 
         assert len(claimed) == 2
 
+    @pytest.mark.slow()
     @pytest.mark.asyncio()
     async def test_xautoclaim_circular_scanning(
         self,

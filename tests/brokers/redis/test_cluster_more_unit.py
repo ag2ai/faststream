@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import anyio
 import pytest
 
-from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisClusterBroker
+from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisBroker
 from faststream.redis.configs import ConnectionState, RedisConnectionState
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.exceptions import UnreachablePathError
@@ -49,14 +49,14 @@ class TestClusterBrokerWarnings:
     @pytest.mark.asyncio()
     async def test_publish_with_pipeline_warns(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisClusterBroker(broker) as br:
+        async with TestRedisBroker(broker) as br:
             with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
                 await br.publish("hello", channel="ch", pipeline=None)
 
     @pytest.mark.asyncio()
     async def test_publish_batch_with_pipeline_warns(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisClusterBroker(broker) as br:
+        async with TestRedisBroker(broker) as br:
             with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
                 await br.publish_batch("x", list="l", pipeline=None)
 
@@ -407,7 +407,7 @@ class TestClusterBrokerPing:
     @pytest.mark.asyncio()
     async def test_ping_returns_true(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisClusterBroker(broker) as br:
+        async with TestRedisBroker(broker) as br:
             result = await br.ping()
         assert result is True
 
@@ -418,7 +418,7 @@ class TestClusterBrokerPing:
         assert result is False
 
 
-class TestRedisClusterBrokerInit:
+class TestRedisBrokerInit:
     """Covers branch paths in __init__."""
 
     def test_init_with_explicit_protocol(self) -> None:

@@ -16,12 +16,14 @@ class TestClusterMiddlewaresOrder(
     pass
 
 
+@pytest.mark.slow()
 @pytest.mark.connected()
 @pytest.mark.redis_cluster()
 class TestClusterMiddlewares(RedisClusterTestcaseConfig, MiddlewareTestcase):
     pass
 
 
+@pytest.mark.slow()
 @pytest.mark.connected()
 @pytest.mark.redis_cluster()
 class TestClusterExceptionMiddlewares(

@@ -102,9 +102,9 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     context: Annotated[ContextRepo | None, "Context repository. Defaults to ``None``."]
 
 
-class RedisClusterParams(RedisBrokerParams):
+class RedisClusterParams(RedisBrokerParams, total=False):
     startup_nodes: Annotated[
-        list[tuple[str, int]] | None,
+        Sequence[tuple[str, int]] | None,
         "Explicit seed node addresses. Auto-discovered when omitted. Defaults to ``None``.",
     ]
 
