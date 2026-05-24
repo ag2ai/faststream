@@ -191,9 +191,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         if isinstance(self.lock, MultiLock):
             await self.lock.wait_release(self._outer_config.graceful_timeout)
 
-    async def should_stop(self) -> None:
-        await self.stop()
-
     def add_call(
         self,
         *,
@@ -310,11 +307,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         except StopConsume:
             # Stop handler at StopConsume exception
-            await self.should_stop()
+            await self.stop()
 
         except SystemExit:
             # Stop handler at `exit()` call
-            await self.should_stop()
+            await self.stop()
 
             if app := self._outer_config.fd_config.context.get("app"):
                 app.exit()

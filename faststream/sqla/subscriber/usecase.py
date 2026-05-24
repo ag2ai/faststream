@@ -3,18 +3,21 @@ import contextlib
 import copy
 import logging
 from collections.abc import (
+    AsyncGenerator,
     AsyncIterator,
     Awaitable,
+    Callable,
+    Coroutine,
     Iterable,
 )
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, cast
 
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream.exceptions import FeatureNotSupportedException
+from faststream.exceptions import FeatureNotSupportedException, StopConsume
 from faststream.sqla.client import SqlaBaseClient
 from faststream.sqla.message import SqlaInnerMessage
 from faststream.sqla.parser import SqlaParser
@@ -103,8 +106,39 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
         await super().stop()
 
     @override
-    async def should_stop(self) -> None:
-        asyncio.create_task(self.stop())  # noqa: RUF006
+    async def consume(self, msg: SqlaInnerMessage) -> Any:
+        # copied from parent except
+        # `await self.stop()` was changed to `asyncio.create_task(self.stop())`
+        if not self.running:
+            return None
+
+        try:
+            return await self.process_message(msg)
+
+        except StopConsume:
+            asyncio.create_task(self.stop())  # noqa: RUF006
+
+        except SystemExit:
+            asyncio.create_task(self.stop())  # noqa: RUF006
+
+            if app := self._outer_config.fd_config.context.get("app"):
+                app.exit()
+
+        except Exception:  # nosec B110
+            pass
+
+    @asynccontextmanager
+    async def _task_context(
+        self,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: tuple[Any, ...] | None = None,
+        func_kwargs: dict[str, Any] | None = None,
+    ) -> AsyncGenerator[asyncio.Task[Any], None]:
+        task = self.add_task(func, func_args, func_kwargs)
+        yield task
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
     async def _finalize_workers(self) -> None:
         """Wait for loops to finish and flush results."""
@@ -144,7 +178,7 @@ class SqlaSubscriber(TasksMixin, SubscriberUsecase[SqlaInnerMessage]):
                     await self._sleep_until_stop_event(self._max_fetch_interval)
                     continue
 
-            async with self.task_context(
+            async with self._task_context(
                 asyncio.sleep, func_args=(self._min_fetch_interval,)
             ) as min_fetch_interval_reached_task:
                 match await self._wait_for_first_event_or_timeout(

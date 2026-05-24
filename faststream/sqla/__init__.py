@@ -9,7 +9,7 @@ except ImportError as e:
     if "'sqlalchemy'" not in e.msg:
         raise
 
-    from faststream.exceptions import INSTALL_FASTSTREAM_SQLA
+    from faststream.sqla.exceptions import INSTALL_FASTSTREAM_SQLA
 
     raise ImportError(INSTALL_FASTSTREAM_SQLA) from e
 

@@ -3,6 +3,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
+import anyio
 from fast_depends import Provider, dependency_provider
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from typing_extensions import override
@@ -191,5 +192,20 @@ class SqlaBroker(
         return True
 
     @override
-    async def _ping(self) -> bool:
-        return await cast("SqlaBaseClient", self.config.broker_config.client).ping()
+    async def ping(self, timeout: float | None) -> bool:
+        sleep_time = (timeout or 10) / 10
+
+        with anyio.move_on_after(timeout) as cancel_scope:
+            if self._connection is None:
+                return False
+
+            while True:
+                if cancel_scope.cancel_called:
+                    return False
+
+                if await cast("SqlaBaseClient", self.config.broker_config.client).ping():
+                    return True
+
+                await anyio.sleep(sleep_time)
+
+        return False
