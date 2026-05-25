@@ -5,16 +5,22 @@ from faststream._internal.configs import BrokerConfig
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Redis
+    from redis.asyncio.cluster import RedisCluster
+
     from faststream.redis.parser import MessageFormat
-    from faststream.redis.publisher.producer import RedisFastProducer
+    from faststream.redis.publisher.producer import (
+        RedisClusterFastProducer,
+        RedisFastProducer,
+    )
 
     from .state import ConnectionState
 
 
 @dataclass(kw_only=True)
 class RedisBrokerConfig(BrokerConfig):
-    producer: "RedisFastProducer"
-    connection: "ConnectionState"
+    producer: "RedisFastProducer | RedisClusterFastProducer"
+    connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
 
     message_format: type["MessageFormat"]
 

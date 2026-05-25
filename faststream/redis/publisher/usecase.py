@@ -12,8 +12,6 @@ from faststream.message import gen_cor_id
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
-from .producer import RedisFastProducer
-
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
@@ -47,8 +45,7 @@ class LogicPublisher(PublisherUsecase):
         await super().start()
 
         broker_producer = self.config._outer_config.producer
-
-        self.producer = RedisFastProducer(
+        self.producer = broker_producer._build_child(
             connection=self.config._outer_config.connection,
             parser=broker_producer._parser.custom_func,
             decoder=broker_producer._decoder.custom_func,

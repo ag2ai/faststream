@@ -36,13 +36,10 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[zmqtt.Message]",
     ) -> None:
+        self._path_regex = config.path_regex
         # version may not be available yet when subscriber is created on a router
         # before include_router is called; default to V5 and re-resolve in start().
-        parser: MQTTBaseParser
-        if getattr(config._outer_config, "version", "5.0") == "3.1.1":
-            parser = MQTTParserV311()
-        else:
-            parser = MQTTParserV5()
+        parser = self._make_parser(config._outer_config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
@@ -59,6 +56,14 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
                 RuntimeWarning,
                 stacklevel=3,
             )
+
+    def _build_parser(self) -> MQTTBaseParser:
+        return self._make_parser(self._outer_config)
+
+    def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
+        version = getattr(outer_config, "version", "5.0")
+        cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
+        return cls(path_regex=self._path_regex)
 
     @property
     def topic(self) -> str:
@@ -97,11 +102,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         # Re-resolve the parser now that _outer_config is fully composed
         # (i.e. include_router has been called and the broker's MQTTBrokerConfig
         # is reachable through the config chain).
-        parser: MQTTBaseParser
-        if getattr(self._outer_config, "version", "5.0") == "3.1.1":
-            parser = MQTTParserV311()
-        else:
-            parser = MQTTParserV5()
+        parser = self._build_parser()
         self._parser = parser.parse_message
         self._decoder = parser.decode_message
 

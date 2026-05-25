@@ -381,6 +381,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: Literal[False] = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -436,6 +437,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: Literal[True] = ...,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -491,6 +493,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: Literal[False] = False,
         group_id: None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -546,6 +549,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: Literal[False] = False,
         group_id: str = ...,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -601,6 +605,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -661,6 +666,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -728,6 +734,10 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 membership (KIP-345). If set, the consumer is treated as a
                 static member, which means it does not join/leave the group
                 on each restart, avoiding unnecessary rebalances.
+            client_rack:
+                A rack identifier for the consumer, used for rack-aware
+                fetching from the closest replica. Overrides the broker-level
+                ``client_rack`` when set. Requires aiokafka 0.14.0 or newer.
             key_deserializer:
                 Any callable that takes a raw message `bytes`
                 key and returns a deserialized one.
@@ -966,6 +976,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         subscriber = super().subscriber(
             *topics,
             group_id=group_id,
+            client_rack=client_rack,
             max_workers=max_workers,
             key_deserializer=key_deserializer,
             value_deserializer=value_deserializer,

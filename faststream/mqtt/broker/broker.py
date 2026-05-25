@@ -73,6 +73,7 @@ class MQTTBroker(
         ack_policy: AckPolicy = EMPTY,
         # AsyncAPI args
         specification_url: str | None = None,
+        protocol: str | None = None,
         protocol_version: str | None = None,
         description: str | None = None,
         tags: Iterable["Tag | TagDict"] = (),
@@ -143,7 +144,7 @@ class MQTTBroker(
             specification=BrokerSpec(
                 description=description,
                 url=[specification_url],
-                protocol="mqtt",
+                protocol=protocol or "mqtt",
                 protocol_version=protocol_version or version,
                 tags=tags,
                 security=security,

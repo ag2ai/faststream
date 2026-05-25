@@ -1,6 +1,8 @@
 import re
-from collections.abc import Iterable, Iterator, Sequence
-from contextlib import ExitStack, contextmanager
+from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, asynccontextmanager, contextmanager
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,6 +11,7 @@ from typing import (
     Union,
     cast,
 )
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -19,6 +22,7 @@ from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
+from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.message import (
     BatchListMessage,
     BatchStreamMessage,
@@ -47,6 +51,27 @@ __all__ = ("TestRedisBroker",)
 
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
+
+    @asynccontextmanager
+    async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
+        with ExitStack() as cluster_stack:
+            for broker in self.brokers:
+                is_cluster = isinstance(
+                    broker.config.broker_config.connection,
+                    RedisClusterConnectionState,
+                )
+                if self.with_real and is_cluster:
+                    with mock.patch.object(
+                        broker,
+                        "_connect",
+                        wraps=partial(self._fake_connect, broker),
+                    ):
+                        await broker.connect()
+
+                    cluster_stack.enter_context(self._patch_producer(broker))
+
+            async with super()._create_ctx() as brokers:
+                yield brokers
 
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
@@ -117,7 +142,11 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         connection.xack = AsyncMock()
         connection.xdel = AsyncMock()
 
-        broker.config.broker_config.connection._client = connection
+        connection_state = broker.config.broker_config.connection
+        connection_state._client = connection
+        connection_state._sync_cluster = MagicMock()
+        connection_state._thread_pool = ThreadPoolExecutor(max_workers=1)
+        connection_state._connected = True
         return connection
 
 
@@ -130,6 +159,7 @@ class FakeProducer(RedisFastProducer):
     ) -> None:
         self.broker = broker
         self.brokers = brokers
+        self._fake_config = config
 
         default = RedisPubSubParser(config)
 
@@ -145,6 +175,14 @@ class FakeProducer(RedisFastProducer):
     @property
     def subscribers(self) -> "Iterable[LogicSubscriber]":
         return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
+
+    @override
+    def _build_child(self, **kwargs: Any) -> "FakeProducer":
+        return FakeProducer(
+            broker=self.broker,
+            brokers=self.brokers,
+            config=self._fake_config,
+        )
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:

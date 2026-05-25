@@ -108,6 +108,7 @@ class KafkaRoute(SubscriberRoute):
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -166,6 +167,10 @@ class KafkaRoute(SubscriberRoute):
                 membership (KIP-345). If set, the consumer is treated as a
                 static member, which means it does not join/leave the group
                 on each restart, avoiding unnecessary rebalances.
+            client_rack:
+                A rack identifier for the consumer, used for rack-aware
+                fetching from the closest replica. Overrides the broker-level
+                ``client_rack`` when set. Requires aiokafka 0.14.0 or newer.
             key_deserializer:
                     Any callable that takes a raw message `bytes`
                     key and returns a deserialized one.
@@ -342,6 +347,7 @@ class KafkaRoute(SubscriberRoute):
             max_workers=max_workers,
             group_id=group_id,
             group_instance_id=group_instance_id,
+            client_rack=client_rack,
             key_deserializer=key_deserializer,
             value_deserializer=value_deserializer,
             fetch_max_wait_ms=fetch_max_wait_ms,
