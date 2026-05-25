@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal._compat import DEF_KEY
 from faststream._internal.constants import ContentTypes
-from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
+from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs, ref
 from faststream.specification.asyncapi.v2_6_0.schema import (
     ApplicationInfo,
     ApplicationSchema,
@@ -287,9 +287,7 @@ def _resolve_msg_payloads(
             if formatted_payload_title not in payloads:
                 payloads[formatted_payload_title] = p
             one_of_list.append(
-                Reference(**{
-                    "$ref": f"#/components/schemas/{formatted_payload_title}",
-                }),
+                Reference(**ref("components", "schemas", formatted_payload_title)),
             )
 
     elif one_of is not None:
@@ -300,7 +298,7 @@ def _resolve_msg_payloads(
             p_title = clear_key(p_title)
             if p_title not in payloads:
                 payloads[p_title] = p
-            one_of_list.append(Reference(**{"$ref": f"#/components/schemas/{p_title}"}))
+            one_of_list.append(Reference(**ref("components", "schemas", p_title)))
 
     if not one_of_list:
         payloads.update(m.payload.pop(DEF_KEY, {}))
@@ -314,7 +312,7 @@ def _resolve_msg_payloads(
             )
 
         payloads[p_title] = m.payload
-        m.payload = {"$ref": f"#/components/schemas/{p_title}"}
+        m.payload = ref("components", "schemas", p_title)
 
     else:
         m.payload["oneOf"] = one_of_list
@@ -322,4 +320,4 @@ def _resolve_msg_payloads(
     assert m.title
     message_title = clear_key(m.title)
     messages[message_title] = m
-    return Reference(**{"$ref": f"#/components/messages/{message_title}"})
+    return Reference(**ref("components", "messages", message_title))

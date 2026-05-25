@@ -39,6 +39,9 @@ When using `#!python broker.publish_batch()` in combination with the `pipeline` 
 - Pipelining is supported for all **Redis** queue types, including channels, lists, and streams.
 - You can combine multiple queue types in a single pipeline.
 
+!!! warning "Redis Cluster"
+    Pipeline is **not supported** in Redis Cluster. If you are using `RedisClusterBroker`, the `pipeline` parameter is not available. Consider using `publish_batch()` with individual requests instead.
+
 ## Benefits
 
 - Reduces network traffic by batching **Redis** commands.

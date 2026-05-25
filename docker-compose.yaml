@@ -41,6 +41,36 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  redis-cluster:
+    image: redis:7-alpine
+    network_mode: host
+    healthcheck:
+      test: redis-cli -p 7001 ping || exit 1
+      interval: 2s
+      timeout: 3s
+      retries: 40
+      start_period: 5s
+    command:
+      - sh
+      - -c
+      - |
+        redis-server --port 7001 --cluster-enabled yes --cluster-config-file nodes-1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+        redis-server --port 7002 --cluster-enabled yes --cluster-config-file nodes-2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+        redis-server --port 7003 --cluster-enabled yes --cluster-config-file nodes-3.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+        for p in 7001 7002 7003; do
+          echo "waiting for port $$p ..."
+          until redis-cli -p $$p ping 2>/dev/null; do sleep 0.5; done
+        done &&
+        i=0
+        while [ $$i -lt 10 ]; do
+          echo "Creating cluster (attempt $$((i+1)))..."
+          echo yes | redis-cli --cluster create 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 --cluster-replicas 0 && break
+          i=$$((i+1))
+          sleep 1
+        done &&
+        echo 'Redis Cluster ready' &&
+        tail -f /dev/null
+
   artemis:
     image: apache/activemq-artemis:latest-alpine
     environment:

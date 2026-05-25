@@ -1,0 +1,1 @@
+"""MQTT message documentation examples."""

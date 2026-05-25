@@ -12,6 +12,8 @@ def compile_path(
     path: str,
     replace_symbol: str,
     patch_regex: Callable[[str], str] = lambda x: x,
+    *,
+    param_regex: str = "[^.]+",
 ) -> tuple[Pattern[str] | None, str]:
     path_regex = "^.*?"
     original_path = ""
@@ -23,7 +25,7 @@ def compile_path(
         param_name = match.groups("str")[0]
 
         path_regex += re.escape(path[idx : match.start()])
-        path_regex += f"(?P<{param_name.replace('+', '')}>[^.]+)"
+        path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
         original_path += replace_symbol

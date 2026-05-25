@@ -15,8 +15,13 @@ def test_proxy_drops_records_before_setup() -> None:
     proxy = _LazyLoggerProxy(state)
 
     record = logging.LogRecord(
-        name="test", level=logging.WARNING, pathname="", lineno=0,
-        msg="should be dropped", args=(), exc_info=None,
+        name="test",
+        level=logging.WARNING,
+        pathname="",
+        lineno=0,
+        msg="should be dropped",
+        args=(),
+        exc_info=None,
     )
     # Must not raise
     proxy.handle(record)
@@ -38,8 +43,13 @@ def test_proxy_forwards_after_setup() -> None:
     state.logger = RealLoggerObject(real_logger)
 
     record = logging.LogRecord(
-        name="test", level=logging.WARNING, pathname="", lineno=0,
-        msg="should arrive", args=(), exc_info=None,
+        name="test",
+        level=logging.WARNING,
+        pathname="",
+        lineno=0,
+        msg="should arrive",
+        args=(),
+        exc_info=None,
     )
     proxy.handle(record)
 

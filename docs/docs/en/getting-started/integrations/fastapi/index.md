@@ -49,6 +49,11 @@ Just import a **StreamRouter** you need and declare the message handler in the s
     {!> docs_src/integrations/fastapi/redis/base.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 6 14-18 24-25"
+    {!> docs_src/integrations/fastapi/mqtt/base.py !}
+    ```
+
 
 !!! warning
     If you are using **fastapi < 0.112.2** version, you should setup lifespan manually `#!python FastAPI(lifespan=router.lifespan_context)`
@@ -111,6 +116,14 @@ The recommended way to access the broker is through the Context feature:
     async def handler(broker: RedisBroker): ...
     ```
 
+=== "MQTT"
+    ``` python
+    from faststream.mqtt.fastapi import MQTTBroker
+
+    @router.get("/")
+    async def handler(broker: MQTTBroker): ...
+    ```
+
 However, there are a few alternative methods you can use if you prefer.
 
 Inside each router, there is a broker. You can easily access it if you need to send a message to MQ:
@@ -140,6 +153,11 @@ Inside each router, there is a broker. You can easily access it if you need to s
     {!> docs_src/integrations/fastapi/redis/send.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="12"
+    {!> docs_src/integrations/fastapi/mqtt/send.py !}
+    ```
+
 
 Also, you can use the following `Depends` to access the broker if you want to use it at different parts of your program:
 
@@ -166,6 +184,11 @@ Also, you can use the following `Depends` to access the broker if you want to us
 === "Redis"
     ```python linenums="1" hl_lines="11-12 16-17"
     {!> docs_src/integrations/fastapi/redis/depends.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="11-12 16-17"
+    {!> docs_src/integrations/fastapi/mqtt/depends.py !}
     ```
 
 Or you can access the broker from a **FastAPI** application state (if you don't disable it with `#!python setup_state=False`):
@@ -205,6 +228,11 @@ The `FastStream` application has the `#!python @after_startup` hook, which allow
 === "Redis"
     ```python linenums="1" hl_lines="13-15"
     {!> docs_src/integrations/fastapi/redis/startup.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="13-15"
+    {!> docs_src/integrations/fastapi/mqtt/startup.py !}
     ```
 
 ## Documentation
@@ -271,6 +299,18 @@ When using **FastStream** as a router for **FastAPI**, the framework automatical
     )
     ```
 
+=== "MQTT"
+
+    ```python
+    from faststream.mqtt.fastapi import MQTTRouter
+
+    router = MQTTRouter(
+        ...,
+        schema_url="/asyncapi",
+        include_in_schema=True,
+    )
+    ```
+
 This way, you will have three routes to interact with your application's **AsyncAPI** schema:
 
 * `/asyncapi` - the same as the [CLI created page](../../../getting-started/asyncapi/hosting.md){.internal-link}
@@ -306,6 +346,11 @@ To test your **FastAPI StreamRouter**, you can still use it with the *TestClient
     {!> docs_src/integrations/fastapi/redis/test.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 5 13-16"
+    {!> docs_src/integrations/fastapi/mqtt/test.py !}
+    ```
+
 ## Multiple Routers
 
 Using **FastStream** as a **FastAPI** plugin you are still able to separate messages processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
@@ -335,4 +380,9 @@ Fortunately, you can use regular **FastStream** routers and include them to the 
 === "Redis"
     ```python linenums="1" hl_lines="2-3 6 12-14 16"
     {!> docs_src/integrations/fastapi/redis/router.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="2-3 6 12-14 16"
+    {!> docs_src/integrations/fastapi/mqtt/router.py !}
     ```
