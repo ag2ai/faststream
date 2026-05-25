@@ -104,7 +104,7 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
 
 class RedisClusterParams(RedisBrokerParams, total=False):
     startup_nodes: Annotated[
-        Sequence[tuple[str, int]] | None,
+        Iterable[tuple[str, int]],
         "Explicit seed node addresses. Auto-discovered when omitted. Defaults to ``None``.",
     ]
 

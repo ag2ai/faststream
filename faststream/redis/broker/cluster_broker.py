@@ -1,6 +1,6 @@
 import logging
 import warnings
-from collections.abc import Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlparse
 
@@ -47,7 +47,7 @@ class RedisClusterBroker(RedisBroker):
         url: str = "redis://localhost:6379",
         **kwargs: Unpack["RedisClusterParams"],
     ) -> None:
-        startup_nodes = kwargs.get("startup_nodes")
+        startup_nodes = kwargs.get("startup_nodes") or ()
         message_format = kwargs.pop("message_format", BinaryMessageFormatV1)
         specification_url = kwargs.pop("specification_url", None)
         protocol = kwargs.pop("protocol", None)
@@ -253,7 +253,7 @@ class RedisClusterBroker(RedisBroker):
     def _resolve_url_options(
         url: str,
         *,
-        startup_nodes: Sequence[tuple[str, int]] | None = None,
+        startup_nodes: Iterable[tuple[str, int]] = (),
         host: str = EMPTY,
         port: str | int = EMPTY,
         security: Optional["BaseSecurity"] = None,
@@ -272,9 +272,8 @@ class RedisClusterBroker(RedisBroker):
         cluster_port = int(port) if port is not EMPTY else int(options.get("port", 6379))
         if cluster_host:
             nodes.append(ClusterNode(cluster_host, cluster_port))
-        if startup_nodes:
-            for h, p in startup_nodes:
-                nodes.append(ClusterNode(h, int(p)))
+        for h, p in startup_nodes:
+            nodes.append(ClusterNode(h, int(p)))
 
         return {
             k: v for k, v in options.items() if k not in CLUSTER_INCOMPATIBLE_PARAMS

@@ -44,13 +44,6 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig):
             **kwargs,
         )
 
-    def patch_broker(
-        self,
-        broker: RedisClusterBroker,
-        **kwargs: Any,
-    ) -> RedisClusterBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
 
@@ -58,7 +51,7 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig):
 class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
     def patch_broker(
         self,
-        broker: RedisClusterBroker,
+        *brokers: RedisClusterBroker,
         **kwargs: Any,
     ) -> TestRedisBroker:
-        return TestRedisBroker(broker, **kwargs)
+        return TestRedisBroker(*brokers, **kwargs)

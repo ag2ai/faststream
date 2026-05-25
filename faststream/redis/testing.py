@@ -1,7 +1,5 @@
 import re
-from collections.abc import Iterable, Iterator, Sequence
-from contextlib import ExitStack, contextmanager
-from collections.abc import AsyncGenerator, Iterator, Sequence
+from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from functools import partial
@@ -55,27 +53,25 @@ class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncGenerator[RedisBroker, None]:
-        is_cluster = isinstance(
-            self.broker.config.broker_config.connection,
-            RedisClusterConnectionState,
-        )
-        if self.with_real and is_cluster:
-            self._fake_start(self.broker)
+    async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
+        with ExitStack() as cluster_stack:
+            for broker in self.brokers:
+                is_cluster = isinstance(
+                    broker.config.broker_config.connection,
+                    RedisClusterConnectionState,
+                )
+                if self.with_real and is_cluster:
+                    with mock.patch.object(
+                        broker,
+                        "_connect",
+                        wraps=partial(self._fake_connect, broker),
+                    ):
+                        await broker.connect()
 
-            with mock.patch.object(
-                self.broker,
-                "_connect",
-                wraps=partial(self._fake_connect, self.broker),
-            ):
-                await self.broker.connect()
+                    cluster_stack.enter_context(self._patch_producer(broker))
 
-            with self._patch_producer(self.broker):
-                async with super()._create_ctx() as broker:
-                    yield broker
-        else:
-            async with super()._create_ctx() as broker:
-                yield broker
+            async with super()._create_ctx() as brokers:
+                yield brokers
 
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
@@ -182,7 +178,11 @@ class FakeProducer(RedisFastProducer):
 
     @override
     def _build_child(self, **kwargs: Any) -> "FakeProducer":
-        return FakeProducer(broker=self.broker, config=self._fake_config)
+        return FakeProducer(
+            broker=self.broker,
+            brokers=self.brokers,
+            config=self._fake_config,
+        )
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
