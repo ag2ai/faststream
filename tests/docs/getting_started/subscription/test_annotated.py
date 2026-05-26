@@ -10,6 +10,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -105,3 +106,16 @@ class TestRedis(BaseCase):
         from faststream.redis import TestRedisBroker
 
         return (broker, handle, TestRedisBroker)
+
+
+@require_mqtt
+class TestMQTT(BaseCase):
+    @pytest.fixture(scope="class")
+    def setup(self) -> Setup:
+        from docs.docs_src.getting_started.subscription.mqtt.pydantic_annotated_fields import (
+            broker,
+            handle,
+        )
+        from faststream.mqtt import TestMQTTBroker
+
+        return (broker, handle, TestMQTTBroker)

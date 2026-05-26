@@ -196,12 +196,7 @@ If you want to separate your application's core logic from **FastStream**'s rout
     Above example is identical to the following one:
 
     ```python linenums="1" hl_lines="1-2"
-    @router.subscriber("test-topic")
-    @router.publisher("outer-topic")
-    async def handle(name: str, user_id: int):
-        assert name == "John"
-        assert user_id == 1
-        return "Hi!"
+    {!> docs_src/getting_started/routers/mqtt/delay_equal.py [ln:9-14] !}
     ```
 
 !!! warning
