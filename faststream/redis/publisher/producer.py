@@ -72,7 +72,11 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         connection = cmd.pipeline or self._connection.client
         return cast("int", await connection.rpush(cmd.destination, *batch))
 
-    def connect(self, serializer: Optional["SerializerProto"] = None, codec: Optional["CodecProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         self.serializer = serializer
         if codec is not None:
             self.codec = codec
