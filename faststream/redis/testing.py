@@ -18,6 +18,7 @@ import anyio
 from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
@@ -171,6 +173,7 @@ class FakeProducer(RedisFastProducer):
             broker._decoder,
             default.decode_message,
         )
+        self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
     def subscribers(self) -> "Iterable[LogicSubscriber]":
@@ -186,13 +189,14 @@ class FakeProducer(RedisFastProducer):
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        body = build_message(
+        body = await build_message(
             message=cmd.body,
             reply_to=cmd.reply_to,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -213,12 +217,13 @@ class FakeProducer(RedisFastProducer):
 
     @override
     async def request(self, cmd: "RedisPublishCommand") -> "PubSubMessage":
-        body = build_message(
+        body = await build_message(
             message=cmd.body,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         destination = _make_destination_kwargs(cmd)
@@ -241,12 +246,13 @@ class FakeProducer(RedisFastProducer):
     @override
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         data_to_send = [
-            build_message(
+            await build_message(
                 m,
                 correlation_id=cmd.correlation_id or gen_cor_id(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
                 serializer=self.broker.config.fd_config._serializer,
+                codec=self.codec,
             )
             for m in cmd.batch_bodies
         ]
@@ -276,19 +282,20 @@ class FakeProducer(RedisFastProducer):
 
         return PubSubMessage(
             type="message",
-            data=build_message(
+            data=await build_message(
                 message=result.body,
                 headers=result.headers,
                 correlation_id=result.correlation_id or "",
                 message_format=handler.config.message_format,
                 serializer=self.broker.config.fd_config._serializer,
+                codec=self.codec,
             ),
             channel="",
             pattern=None,
         )
 
 
-def build_message(
+async def build_message(
     message: Union[Sequence["SendableMessage"], "SendableMessage"],
     *,
     correlation_id: str,
@@ -296,13 +303,15 @@ def build_message(
     reply_to: str = "",
     headers: dict[str, Any] | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> bytes:
-    return message_format.encode(
+    return await message_format.encode(
         message=message,
         reply_to=reply_to,
         headers=headers,
         correlation_id=correlation_id,
         serializer=serializer,
+        codec=codec,
     )
 
 
