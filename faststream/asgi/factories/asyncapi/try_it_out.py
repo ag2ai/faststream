@@ -92,6 +92,7 @@ class TryItOutProcessor:
                 return JSONResponse(
                     {"details": f"{destination} destination not found."}, 404
                 )
+
             broker, test_broker_cls = entry
         payload: Any = body.get("message", {}).get("message")
         use_real_broker = body.get("options", {}).get("sendToRealBroker", False)
@@ -101,8 +102,16 @@ class TryItOutProcessor:
                 await broker.publish(payload, destination)
                 return JSONResponse("ok", 200)
 
-            async with test_broker_cls(broker) as br:
-                data = await br.request(payload, destination, timeout=30)
+            same_type_brokers = (
+                broker,
+                *(
+                    b
+                    for b, cls in self._entries
+                    if cls is test_broker_cls and b is not broker
+                ),
+            )
+            async with test_broker_cls(*same_type_brokers):
+                data = await broker.request(payload, destination, timeout=30)
                 decoded = None
                 with suppress(Exception):
                     decoded = await data.decode()

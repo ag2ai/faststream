@@ -11,7 +11,6 @@ from faststream.asgi.factories.asyncapi.try_it_out import (
     _iter_broker_destinations,
 )
 from faststream.kafka import KafkaBroker, TestKafkaBroker
-from faststream.redis import RedisBroker, TestRedisBroker
 
 
 def _payload(channel: str, body: Any) -> dict[str, Any]:
@@ -53,101 +52,109 @@ class TestIterDestinations:
 class TestMultiBrokerDispatch:
     @pytest.mark.asyncio()
     async def test_routes_to_correct_broker_by_channel(self) -> None:
-        kafka = KafkaBroker()
-        redis = RedisBroker()
+        kafka_1 = KafkaBroker()
+        kafka_2 = KafkaBroker()
 
-        kafka_mock = MagicMock()
-        redis_mock = MagicMock()
+        kafka_1_mock = MagicMock()
+        kafka_2_mock = MagicMock()
 
-        @kafka.subscriber("kafka-only")
-        async def kh(msg: Any) -> None:
-            kafka_mock(msg)
+        @kafka_1.subscriber("kafka-1-only")
+        async def kh1(msg: Any) -> None:
+            kafka_1_mock(msg)
 
-        @redis.subscriber("redis-only")
-        async def rh(msg: Any) -> None:
-            redis_mock(msg)
+        @kafka_2.subscriber("kafka-2-only")
+        async def kh2(msg: Any) -> None:
+            kafka_2_mock(msg)
 
         app = AsgiFastStream(
-            kafka, redis, asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True)
+            kafka_1,
+            kafka_2,
+            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True),
         )
 
-        async with TestKafkaBroker(kafka), TestRedisBroker(redis):
+        async with TestKafkaBroker(kafka_1, kafka_2):
             with TestClient(app) as client:
-                r = client.post("/asyncapi/try", json=_payload("kafka-only", "x"))
+                r = client.post("/asyncapi/try", json=_payload("kafka-1-only", "x"))
                 assert r.status_code == 200, r.json()
-                r = client.post("/asyncapi/try", json=_payload("redis-only", "y"))
+                r = client.post("/asyncapi/try", json=_payload("kafka-2-only", "y"))
                 assert r.status_code == 200, r.json()
 
-        kafka_mock.assert_called_once_with("x")
-        redis_mock.assert_called_once_with("y")
+        kafka_1_mock.assert_called_once_with("x")
+        kafka_2_mock.assert_called_once_with("y")
 
     @pytest.mark.asyncio()
     async def test_collision_short_channel_first_match_wins(self) -> None:
         """Short channel names keep first-match compatibility."""
-        kafka = KafkaBroker()
-        redis = RedisBroker()
+        kafka_1 = KafkaBroker()
+        kafka_2 = KafkaBroker()
 
-        kafka_mock = MagicMock()
-        redis_mock = MagicMock()
+        kafka_1_mock = MagicMock()
+        kafka_2_mock = MagicMock()
 
-        @kafka.subscriber("shared")
-        async def kh(msg: Any) -> None:
-            kafka_mock(msg)
+        @kafka_1.subscriber("shared")
+        async def kh1(msg: Any) -> None:
+            kafka_1_mock(msg)
 
-        @redis.subscriber("shared")
-        async def rh(msg: Any) -> None:
-            redis_mock(msg)
+        @kafka_2.subscriber("shared")
+        async def kh2(msg: Any) -> None:
+            kafka_2_mock(msg)
 
         app = AsgiFastStream(
-            kafka, redis, asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True)
+            kafka_1,
+            kafka_2,
+            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True),
         )
 
-        async with TestKafkaBroker(kafka), TestRedisBroker(redis):
+        async with TestKafkaBroker(kafka_1, kafka_2):
             with TestClient(app) as client:
                 r = client.post("/asyncapi/try", json=_payload("shared", "hi"))
                 assert r.status_code == 200, r.json()
 
-        kafka_mock.assert_called_once_with("hi")
-        redis_mock.assert_not_called()
+        kafka_1_mock.assert_called_once_with("hi")
+        kafka_2_mock.assert_not_called()
 
     @pytest.mark.asyncio()
     async def test_collision_full_channel_routes_to_exact_broker(self) -> None:
-        kafka = KafkaBroker()
-        redis = RedisBroker()
+        kafka_1 = KafkaBroker()
+        kafka_2 = KafkaBroker()
 
-        kafka_mock = MagicMock()
-        redis_mock = MagicMock()
+        kafka_1_mock = MagicMock()
+        kafka_2_mock = MagicMock()
 
-        @kafka.subscriber("shared")
-        async def kh(msg: Any) -> None:
-            kafka_mock(msg)
+        @kafka_1.subscriber("shared")
+        async def kh1(msg: Any) -> None:
+            kafka_1_mock(msg)
 
-        @redis.subscriber("shared")
-        async def rh(msg: Any) -> None:
-            redis_mock(msg)
+        @kafka_2.subscriber("shared")
+        async def kh2(msg: Any) -> None:
+            kafka_2_mock(msg)
 
         app = AsgiFastStream(
-            kafka, redis, asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True)
+            kafka_1,
+            kafka_2,
+            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True),
         )
 
-        async with TestKafkaBroker(kafka), TestRedisBroker(redis):
+        async with TestKafkaBroker(kafka_1, kafka_2):
             with TestClient(app) as client:
-                r = client.post("/asyncapi/try", json=_payload("shared:Rh", "hi"))
+                r = client.post("/asyncapi/try", json=_payload("shared:Kh2", "hi"))
                 assert r.status_code == 200, r.json()
 
-        redis_mock.assert_called_once_with("hi")
-        kafka_mock.assert_not_called()
+        kafka_2_mock.assert_called_once_with("hi")
+        kafka_1_mock.assert_not_called()
 
     @pytest.mark.asyncio()
     async def test_channel_not_found_anywhere_returns_404(self) -> None:
-        kafka = KafkaBroker()
-        redis = RedisBroker()
+        kafka_1 = KafkaBroker()
+        kafka_2 = KafkaBroker()
 
         app = AsgiFastStream(
-            kafka, redis, asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True)
+            kafka_1,
+            kafka_2,
+            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True),
         )
 
-        async with TestKafkaBroker(kafka), TestRedisBroker(redis):
+        async with TestKafkaBroker(kafka_1, kafka_2):
             with TestClient(app) as client:
                 r = client.post("/asyncapi/try", json=_payload("missing", "x"))
 
