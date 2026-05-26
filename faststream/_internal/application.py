@@ -117,7 +117,7 @@ class StartAbleApplication:
 
         if len(self.brokers) == 1:
             warnings.warn(
-                "Multiple brokers usage is experimental feature and some functions may work inproparly",
+                "Multiple brokers usage is an experimental feature and some functions may work improperly",
                 category=RuntimeWarning,
                 stacklevel=6,
             )
