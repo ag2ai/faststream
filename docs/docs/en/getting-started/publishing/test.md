@@ -47,6 +47,16 @@ Let's take a look at a simple application example with a publisher as a decorato
         {!> docs_src/getting_started/publishing/redis/object.py [ln:7-12] !}
         ```
 
+    === "MQTT"
+        ```python linenums="1"
+        publisher = broker.publisher("another-topic")
+
+        @publisher
+        @broker.subscriber("test-topic")
+        async def handle() -> str:
+            return "Hi!"
+        ```
+
 
 === "Direct"
     === "AIOKafka"
@@ -72,6 +82,15 @@ Let's take a look at a simple application example with a publisher as a decorato
     === "Redis"
         ```python linenums="1"
         {!> docs_src/getting_started/publishing/redis/direct.py [ln:7-11] !}
+        ```
+
+    === "MQTT"
+        ```python linenums="1"
+        publisher = broker.publisher("another-topic")
+
+        @broker.subscriber("test-topic")
+        async def handle():
+            await publisher.publish("Hi!")
         ```
 
 
@@ -102,6 +121,11 @@ To test it, you just need to patch your broker with a special *TestBroker*.
 === "Redis"
     ```python linenums="1" hl_lines="7-8"
     {!> docs_src/getting_started/publishing/redis/object_testing.py [ln:1-4,8-12] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/publishing/mqtt/object_testing.py [ln:1-4,8-12] !}
     ```
 
 By default, it patches your broker to run **In-Memory**, so you can use it without any external broker. It should be extremely useful in your CI or local development environment.

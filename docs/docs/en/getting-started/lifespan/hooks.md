@@ -198,6 +198,11 @@ Also, we don't want the model to finish its work incorrectly when the applicatio
     {!> docs_src/getting_started/lifespan/redis/ml.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="14 21"
+    {!> docs_src/getting_started/lifespan/mqtt/ml.py!}
+    ```
+
 ## Multiple hooks
 
 If you want to declare multiple lifecycle hooks, they will be used in the order they are registered:

@@ -74,3 +74,9 @@ To publish a message, provide the message content and a routing key:
     async with RedisBroker() as br:
         await br.publish("message", "channel")
     ```
+
+=== "MQTT"
+    ```python
+    async with MQTTBroker("localhost", port=1883) as br:
+        await br.publish("message", "topic")
+    ```
