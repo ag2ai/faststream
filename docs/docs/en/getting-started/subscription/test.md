@@ -41,6 +41,11 @@ Let's take a look at the original application to test
     {!> docs_src/getting_started/subscription/redis/annotation.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" title="annotation_redis.py"
+    {!> docs_src/getting_started/subscription/mqtt/annotation.py !}
+    ```
+
 It consumes **JSON** messages like `#!json { "name": "username", "user_id": 1 }`
 
 You can test your consume function like a regular one, for sure:
@@ -86,6 +91,11 @@ Just use it like a regular async context manager - all published messages will b
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:1-4,8-12] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 8-9"
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:1-4,8-12] !}
+    ```
+
 ### Catching Exceptions
 
 This way you can catch any exceptions that occur inside your handler:
@@ -113,6 +123,11 @@ This way you can catch any exceptions that occur inside your handler:
 === "Redis"
     ```python linenums="1" hl_lines="4"
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:18-23] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="4"
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:18-23] !}
     ```
 
 ## Full Example
@@ -143,6 +158,11 @@ Let's look at a complete example of creating an app and testing it
     {!> docs_src/getting_started/subscription/redis/full_testing.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 8-9 14"
+    {!> docs_src/getting_started/subscription/mqtt/full_testing.py !}
+    ```
+
 ### Validates Input
 
 Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.MagicMock){.external-link target="_blank"} object to validate passed arguments and call counts.
@@ -170,6 +190,11 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
 === "Redis"
     ```python linenums="1" hl_lines="6"
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-14] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="6"
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:9-14] !}
     ```
 
 !!! note
@@ -204,6 +229,11 @@ Scoping rule: all handles' mock objects will be cleared when the context manager
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-16] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="6 8"
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:9-16] !}
+    ```
+
 ## Real Broker Testing
 
 If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.
@@ -231,6 +261,11 @@ If you want to test your application in a real environment, you shouldn't have t
 === "Redis"
     ```python linenums="1" hl_lines="4 8 10 17 20"
     {!> docs_src/getting_started/subscription/redis/real_testing.py [ln:1-5,9-25] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 8 10 17 20"
+    {!> docs_src/getting_started/subscription/mqtt/real_testing.py [ln:1-5,9-25] !}
     ```
 
 !!! tip

@@ -65,6 +65,15 @@ To create a custom message parser, you should write a regular Python function (s
         ...
     ```
 
+=== "MQTT"
+    ```python
+    from aiomqtt import Message
+    from faststream.mqtt import MQTTMessage
+
+    def parser(msg: Message) -> MQTTMessage:
+        ...
+    ```
+
 Alternatively, you can reuse the original parser function with the following signature:
 
 === "AIOKafka"
@@ -131,6 +140,19 @@ Alternatively, you can reuse the original parser function with the following sig
         return await original_parser(msg)
     ```
 
+=== "MQTT"
+    ```python
+    from typing import Callable, Awaitable
+    from aiomqtt import Message
+    from faststream.mqtt import MQTTMessage
+
+    async def parser(
+        msg: Message,
+        original_parser: Callable[[Message], Awaitable[MQTTMessage]],
+    ) -> MQTTMessage:
+        return await original_parser(msg)
+    ```
+
 The argument naming doesn't matter; the parser will always be placed as the second argument.
 
 !!! note
@@ -166,4 +188,9 @@ As an example, let's redefine `message_id` to a custom header:
 === "Redis"
     ```python linenums="1" hl_lines="8-14 17 28"
     {!> docs_src/getting_started/serialization/parser_redis.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="8-14 17 28"
+    {!> docs_src/getting_started/serialization/parser_mqtt.py !}
     ```

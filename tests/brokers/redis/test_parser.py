@@ -63,8 +63,9 @@ class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
     ),
 )
 @pytest.mark.redis()
-def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
-    raw_message = BinaryMessageFormatV1.encode(
+@pytest.mark.asyncio()
+async def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
+    raw_message = await BinaryMessageFormatV1.encode(
         message=input, reply_to=None, headers=None, correlation_id="id"
     )
     parsed, _ = BinaryMessageFormatV1.parse(raw_message)

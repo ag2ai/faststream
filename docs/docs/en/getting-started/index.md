@@ -94,6 +94,17 @@ Install using `pip`:
         docker run -d --rm -p 6379:6379 --name test-mq redis
         ```
 
+=== "MQTT"
+    ```console
+    pip install "faststream[mqtt]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        docker run -d --rm -p 1883:1883 --name test-mq eclipse-mosquitto
+        ```
+
 ## Basic Usage
 
 !!! note
@@ -127,6 +138,11 @@ To create a basic application, add the following code to a new file (e.g. `serve
 === "Redis"
     ```python linenums="1" title="serve.py"
     {!> docs_src/getting_started/index/base_redis.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_mqtt.py!}
     ```
 
 
@@ -174,6 +190,11 @@ Also, you can run the `FastStream` application manually, as a regular async func
 === "Redis"
     ```python linenums="1"
     {!> docs_src/getting_started/manual_run/redis_base_run.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/mqtt_base_run.py!}
     ```
 
 ### Other tools integrations

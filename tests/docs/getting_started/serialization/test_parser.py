@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -77,4 +78,18 @@ async def test_parser_redis() -> None:
     from faststream.redis import TestRedisBroker
 
     async with TestRedisBroker(broker), TestApp(app):
+        handle.mock.assert_called_once_with("")
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_parser_mqtt() -> None:
+    from docs.docs_src.getting_started.serialization.parser_mqtt import (
+        app,
+        broker,
+        handle,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with("")

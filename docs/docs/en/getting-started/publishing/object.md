@@ -54,6 +54,11 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
     {!> docs_src/getting_started/publishing/redis/object.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="7 9"
+    {!> docs_src/getting_started/publishing/mqtt/object.py !}
+    ```
+
 `#!python @publisher` properly sets the same `correlation_id` as the incoming message. This way, you get the same `correlation_id` for the entire message pipeline across all services, allowing you to collect a trace.
 
 ## Message Broadcasting

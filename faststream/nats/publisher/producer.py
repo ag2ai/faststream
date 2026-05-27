@@ -9,9 +9,9 @@ from nats.js.api import Header
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import encode_message
 from faststream.nats.helpers.state import (
     ConnectedState,
     ConnectionState,
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -38,6 +39,7 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
         self,
         connection: Any,
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     def disconnect(self) -> None: ...
@@ -65,6 +67,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -76,8 +79,10 @@ class NatsFastProducerImpl(NatsFastProducer):
         self,
         connection: "Client",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -85,7 +90,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -101,7 +106,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -129,6 +134,7 @@ class NatsJSFastProducer(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -140,8 +146,10 @@ class NatsJSFastProducer(NatsFastProducer):
         self,
         connection: "JetStreamContext",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -149,7 +157,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> "PubAck":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -166,7 +174,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         reply_to = self.__state.connection._nc.new_inbox()
         future: asyncio.Future[Msg] = asyncio.Future()
@@ -203,7 +211,12 @@ class NatsJSFastProducer(NatsFastProducer):
 
 
 class FakeNatsFastProducer(NatsFastProducer):
-    def connect(self, connection: Any, serializer: Optional["SerializerProto"]) -> None:
+    def connect(
+        self,
+        connection: Any,
+        serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:

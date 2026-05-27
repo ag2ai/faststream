@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -91,3 +92,19 @@ async def test_redis_invalid() -> None:
     from docs.docs_src.index.redis.test import test_invalid as test_red_invalid
 
     await test_red_invalid()
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_mqtt_correct() -> None:
+    from docs.docs_src.index.mqtt.test import test_correct as test_m_correct
+
+    await test_m_correct()
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_mqtt_invalid() -> None:
+    from docs.docs_src.index.mqtt.test import test_invalid as test_m_invalid
+
+    await test_m_invalid()
