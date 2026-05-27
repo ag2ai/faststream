@@ -68,7 +68,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 5672:5672 --name test-mq rabbitmq:alpine
+        docker run -d --rm -p 5672:5672 --name test-mq rabbitmq:3.13-alpine
         ```
 
 
@@ -91,7 +91,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 6379:6379 --name test-mq redis
+        docker run -d --rm -p 6379:6379 --name test-mq redis:alpine
         ```
 
 === "MQTT"
@@ -102,7 +102,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 1883:1883 --name test-mq eclipse-mosquitto
+        docker run -d --rm -p 1883:1883 -e ANONYMOUS_LOGIN=true --name test-mq apache/activemq-artemis:latest-alpine
         ```
 
 ## Basic Usage
