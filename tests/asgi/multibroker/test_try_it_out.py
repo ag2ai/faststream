@@ -184,4 +184,4 @@ class TestMultiBrokerDispatch:
 class TestProcessorUnit:
     def test_empty_brokers_rejected(self) -> None:
         with pytest.raises(ValueError, match="at least one broker"):
-            TryItOutProcessor([])
+            TryItOutProcessor()

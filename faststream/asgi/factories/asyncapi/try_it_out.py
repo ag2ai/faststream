@@ -46,7 +46,7 @@ class TryItOutForm(TypedDict):
 class TryItOutProcessor:
     """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
-    def __init__(self, brokers: Iterable["BrokerUsecase[Any, Any]"]) -> None:
+    def __init__(self, *brokers: "BrokerUsecase[Any, Any]") -> None:
         registry = _get_broker_registry()
         self._entries: list[tuple[BrokerUsecase[Any, Any], type[TestBroker[Any]]]] = []
         for broker in brokers:
@@ -134,7 +134,7 @@ def make_try_it_out_handler(
     include_in_schema: bool = False,
 ) -> "PostHandler":
     """POST handler for asyncapi-try-it-plugin (first owner of the channel wins)."""
-    processor = TryItOutProcessor(brokers)
+    processor = TryItOutProcessor(*brokers)
 
     @post(
         description=description,
