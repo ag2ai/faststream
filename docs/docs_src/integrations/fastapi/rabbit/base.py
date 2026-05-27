@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI
 from pydantic import BaseModel
 
 from faststream.rabbit.fastapi import RabbitRouter, Logger
+from faststream.rabbit import RabbitQueue
 
 router = RabbitRouter("amqp://guest:guest@localhost:5672/")
 
@@ -11,7 +12,7 @@ class Incoming(BaseModel):
 def call() -> bool:
     return True
 
-@router.subscriber("test")
+@router.subscriber(RabbitQueue("test", durable=True))
 @router.publisher("response")
 async def hello(message: Incoming, logger: Logger, dependency: bool = Depends(call)):
     logger.info("Incoming value: %s, depends value: %s" % (message.m, dependency))
