@@ -445,7 +445,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         # FastAPI plugin can publish messages to the broker, mirroring the
         # standalone AsgiFastStream behaviour (see issue #2869).
         try:
-            try_processor = TryItOutProcessor(self.broker)
+            try_processor = TryItOutProcessor([self.broker])
         except ValueError:
             # Broker has no associated TestBroker (e.g. a custom broker):
             # serve the docs without the interactive "try it out" endpoint.
