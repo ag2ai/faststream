@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, TypedDict, Union
@@ -44,40 +44,74 @@ class TryItOutForm(TypedDict):
 
 
 class TryItOutProcessor:
-    """Process try-it-out requests: parse, validate, publish to real or test broker."""
+    """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
-    def __init__(self, broker: "BrokerUsecase[Any, Any]") -> None:
-        self._broker = broker
-
+    def __init__(self, *brokers: "BrokerUsecase[Any, Any]") -> None:
         registry = _get_broker_registry()
-        for br_cls, test_broker_cls in registry.items():
-            if isinstance(self._broker, br_cls):
-                self._test_broker_cls = test_broker_cls
-                break
+        self._entries: list[tuple[BrokerUsecase[Any, Any], type[TestBroker[Any]]]] = []
+        for broker in brokers:
+            for br_cls, test_broker_cls in registry.items():
+                if isinstance(broker, br_cls):
+                    self._entries.append((broker, test_broker_cls))
+                    break
+            else:
+                msg = f"TestBroker not available for {broker}. Please, inspect your dependencies."
+                raise ValueError(msg)
 
-        else:
-            msg = f"TestBroker not available for {broker}. Please, inspect your dependencies."
+        if not self._entries:
+            msg = "TryItOutProcessor requires at least one broker."
             raise ValueError(msg)
 
     async def process(self, body: TryItOutForm) -> AsgiResponse:
         """Process parsed body: validate, dry-run or publish. Returns response."""
-        destination, *_ = body.get("channelName", "").split(":")
+        channel = body.get("channelName", "")
+        destination, *_ = channel.split(":")
 
         if not destination:
             return JSONResponse({"details": "Missing channelName"}, 400)
 
-        message_wrapper = body.get("message", {})
-        payload: Any = message_wrapper.get("message")
-        options = body.get("options", {})
-        use_real_broker = options.get("sendToRealBroker", False)
+        if len(self._entries) == 1:
+            broker, test_broker_cls = self._entries[0]
+        else:
+            entry = next(
+                (e for e in self._entries if channel in _iter_broker_channels(e[0])),
+                None,
+            )
+
+            if entry is None:
+                entry = next(
+                    (
+                        e
+                        for e in self._entries
+                        if destination in _iter_broker_destinations(e[0])
+                    ),
+                    None,
+                )
+
+            if entry is None:
+                return JSONResponse(
+                    {"details": f"{destination} destination not found."}, 404
+                )
+
+            broker, test_broker_cls = entry
+        payload: Any = body.get("message", {}).get("message")
+        use_real_broker = body.get("options", {}).get("sendToRealBroker", False)
 
         try:
             if use_real_broker:
-                await self._broker.publish(payload, destination)
+                await broker.publish(payload, destination)
                 return JSONResponse("ok", 200)
 
-            async with self._test_broker_cls(self._broker) as br:
-                data = await br.request(payload, destination, timeout=30)
+            same_type_brokers = (
+                broker,
+                *(
+                    b
+                    for b, cls in self._entries
+                    if cls is test_broker_cls and b is not broker
+                ),
+            )
+            async with test_broker_cls(*same_type_brokers):
+                data = await broker.request(payload, destination, timeout=30)
                 decoded = None
                 with suppress(Exception):
                     decoded = await data.decode()
@@ -93,14 +127,14 @@ class TryItOutProcessor:
 
 
 def make_try_it_out_handler(
-    broker: "BrokerUsecase[Any, Any]",
+    brokers: Iterable["BrokerUsecase[Any, Any]"],
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
     include_in_schema: bool = False,
 ) -> "PostHandler":
-    """Create POST handler for asyncapi-try-it-plugin to publish messages to broker."""
-    processor = TryItOutProcessor(broker)
+    """POST handler for asyncapi-try-it-plugin (first owner of the channel wins)."""
+    processor = TryItOutProcessor(*brokers)
 
     @post(
         description=description,
@@ -118,6 +152,36 @@ def make_try_it_out_handler(
         return await processor.process(body)
 
     return try_it_out
+
+
+def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+    """Destinations declared on the broker (``schema()`` key before ``:``)."""
+    destinations: set[str] = set()
+
+    for sub in broker.subscribers:
+        with suppress(Exception):
+            destinations.update(key.split(":", 1)[0] for key in sub.schema())
+
+    for pub in broker.publishers:
+        with suppress(Exception):
+            destinations.update(key.split(":", 1)[0] for key in pub.schema())
+
+    return destinations
+
+
+def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+    """Full AsyncAPI channel keys declared on the broker."""
+    channels: set[str] = set()
+
+    for sub in broker.subscribers:
+        with suppress(Exception):
+            channels.update(sub.schema())
+
+    for pub in broker.publishers:
+        with suppress(Exception):
+            channels.update(pub.schema())
+
+    return channels
 
 
 @lru_cache(maxsize=1)
