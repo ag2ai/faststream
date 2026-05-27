@@ -50,6 +50,7 @@ class FastDependsConfig:
 
     def __or__(self, value: "FastDependsConfig", /) -> "FastDependsConfig":
         use_fd = False if not value.use_fastdepends else self.use_fastdepends
+        self.context.merge_global(value.context)
 
         return FastDependsConfig(
             use_fastdepends=use_fd,
