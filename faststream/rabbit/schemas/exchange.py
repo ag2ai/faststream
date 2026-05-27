@@ -72,7 +72,7 @@ class RabbitExchange(NameRequired):
         self,
         name: str = "",
         type: ExchangeType = ExchangeType.DIRECT,
-        durable: bool = False,
+        durable: bool = True,
         auto_delete: bool = False,
         # custom
         declare: bool = True,

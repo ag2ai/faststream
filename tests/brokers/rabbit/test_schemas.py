@@ -3,6 +3,14 @@ import pytest
 from faststream.rabbit import RabbitExchange, RabbitQueue
 
 
+def test_default_queue_is_durable() -> None:
+    assert RabbitQueue("test").durable is True
+
+
+def test_default_exchange_is_durable() -> None:
+    assert RabbitExchange("test").durable is True
+
+
 @pytest.mark.rabbit()
 def test_same_queue() -> None:
     assert (

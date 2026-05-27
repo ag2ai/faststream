@@ -196,7 +196,7 @@ class RabbitQueue(NameRequired):
                 error_msg = "Quorum and Stream queues must be durable"
                 raise SetupError(error_msg)
         elif durable is EMPTY:
-            durable = False
+            durable = True
 
         super().__init__(name)
 
