@@ -1,6 +1,8 @@
 import re
-from collections.abc import Iterator, Sequence
-from contextlib import ExitStack, contextmanager
+from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, asynccontextmanager, contextmanager
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,16 +11,19 @@ from typing import (
     Union,
     cast,
 )
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
 from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
+from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.message import (
     BatchListMessage,
     BatchStreamMessage,
@@ -39,6 +44,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 
@@ -48,24 +54,49 @@ __all__ = ("TestRedisBroker",)
 class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
 
+    @asynccontextmanager
+    async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
+        with ExitStack() as cluster_stack:
+            for broker in self.brokers:
+                is_cluster = isinstance(
+                    broker.config.broker_config.connection,
+                    RedisClusterConnectionState,
+                )
+                if self.with_real and is_cluster:
+                    with mock.patch.object(
+                        broker,
+                        "_connect",
+                        wraps=partial(self._fake_connect, broker),
+                    ):
+                        await broker.connect()
+
+                    cluster_stack.enter_context(self._patch_producer(broker))
+
+            async with super()._create_ctx() as brokers:
+                yield brokers
+
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
         with ExitStack() as es:
             es.enter_context(
                 change_producer(
-                    broker.config.broker_config, FakeProducer(broker, broker.config)
+                    broker.config.broker_config,
+                    FakeProducer(broker, self.brokers, broker.config),
                 ),
             )
 
             for publisher in cast("list[LogicPublisher]", broker.publishers):
                 es.enter_context(
-                    change_producer(publisher, FakeProducer(broker, publisher.config)),
+                    change_producer(
+                        publisher,
+                        FakeProducer(broker, self.brokers, publisher.config),
+                    ),
                 )
 
             yield
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: RedisBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber", bool]:
@@ -74,7 +105,9 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         named_property = publisher.subscriber_property(name_only=True)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in broker.subscribers:  # pragma: no branch
+        for handler in (
+            s for b in self.brokers for s in b.subscribers
+        ):  # pragma: no branch
             handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
@@ -111,13 +144,24 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         connection.xack = AsyncMock()
         connection.xdel = AsyncMock()
 
-        broker.config.broker_config.connection._client = connection
+        connection_state = broker.config.broker_config.connection
+        connection_state._client = connection
+        connection_state._sync_cluster = MagicMock()
+        connection_state._thread_pool = ThreadPoolExecutor(max_workers=1)
+        connection_state._connected = True
         return connection
 
 
 class FakeProducer(RedisFastProducer):
-    def __init__(self, broker: RedisBroker, config: ParserConfig) -> None:
+    def __init__(
+        self,
+        broker: RedisBroker,
+        brokers: Sequence[RedisBroker],
+        config: ParserConfig,
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
+        self._fake_config = config
 
         default = RedisPubSubParser(config)
 
@@ -129,23 +173,36 @@ class FakeProducer(RedisFastProducer):
             broker._decoder,
             default.decode_message,
         )
+        self.codec = broker.config.broker_codec or DefaultCodec()
+
+    @property
+    def subscribers(self) -> "Iterable[LogicSubscriber]":
+        return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
+
+    @override
+    def _build_child(self, **kwargs: Any) -> "FakeProducer":
+        return FakeProducer(
+            broker=self.broker,
+            brokers=self.brokers,
+            config=self._fake_config,
+        )
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        body = build_message(
+        body = await build_message(
             message=cmd.body,
             reply_to=cmd.reply_to,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -160,19 +217,19 @@ class FakeProducer(RedisFastProducer):
 
     @override
     async def request(self, cmd: "RedisPublishCommand") -> "PubSubMessage":
-        body = build_message(
+        body = await build_message(
             message=cmd.body,
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -189,19 +246,19 @@ class FakeProducer(RedisFastProducer):
     @override
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         data_to_send = [
-            build_message(
+            await build_message(
                 m,
                 correlation_id=cmd.correlation_id or gen_cor_id(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
                 serializer=self.broker.config.fd_config._serializer,
+                codec=self.codec,
             )
             for m in cmd.batch_bodies
         ]
 
         visitor = ListVisitor()
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             if visitor.visit(list=cmd.destination, sub=handler):
                 casted_handler = cast("_ListHandlerMixin", handler)
 
@@ -225,19 +282,20 @@ class FakeProducer(RedisFastProducer):
 
         return PubSubMessage(
             type="message",
-            data=build_message(
+            data=await build_message(
                 message=result.body,
                 headers=result.headers,
                 correlation_id=result.correlation_id or "",
                 message_format=handler.config.message_format,
                 serializer=self.broker.config.fd_config._serializer,
+                codec=self.codec,
             ),
             channel="",
             pattern=None,
         )
 
 
-def build_message(
+async def build_message(
     message: Union[Sequence["SendableMessage"], "SendableMessage"],
     *,
     correlation_id: str,
@@ -245,13 +303,15 @@ def build_message(
     reply_to: str = "",
     headers: dict[str, Any] | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> bytes:
-    return message_format.encode(
+    return await message_format.encode(
         message=message,
         reply_to=reply_to,
         headers=headers,
         correlation_id=correlation_id,
         serializer=serializer,
+        codec=codec,
     )
 
 

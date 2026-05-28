@@ -1,3 +1,6 @@
+import time
+from pathlib import Path
+
 import pytest
 
 from tests.cli import interfaces
@@ -20,15 +23,15 @@ from tests.marks import skip_windows
     ),
 )
 @pytest.mark.parametrize(
-    ("log_strings", "cli_options"),
+    ("expected_worker_ids", "cli_options"),
     (
         pytest.param(
-            ["Worker id is None"],
+            ["None"],
             [],
             id="single_worker",
         ),
         pytest.param(
-            ["Worker id is 0", "Worker id is 1"],
+            ["0", "1"],
             ["--workers", "2"],
             id="many_workers",
             marks=[
@@ -41,24 +44,27 @@ from tests.marks import skip_windows
 def test_worker_id_parameter_exists(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
+    tmp_path: Path,
     app_import: str,
-    log_strings: list[str],
+    expected_worker_ids: list[str],
     cli_options: list[str],
 ) -> None:
+    marker_dir = tmp_path / "worker_markers"
+    marker_dir.mkdir()
+
     app_code = f"""
-    import logging
+    import os
+    from pathlib import Path
 
     {app_import} as FastStreamApp
     from faststream.nats import NatsBroker
-
-    logger = logging.getLogger("faststream")
 
     broker = NatsBroker()
     app = FastStreamApp(broker)
 
     @app.on_startup
-    def print_log_level(worker_id):
-        logger.critical("Worker id is %s", worker_id)
+    def write_worker_marker(worker_id):
+        Path(os.environ["WORKER_MARKER_DIR"], f"worker_{{worker_id}}").touch()
     """
 
     with (
@@ -68,7 +74,18 @@ def test_worker_id_parameter_exists(
             "run",
             f"{app_path.stem}:app",
             *cli_options,
-        ) as cli,
+            extra_env={"WORKER_MARKER_DIR": str(marker_dir)},
+        ),
     ):
-        for log_string in log_strings:
-            assert cli.wait_for_stderr(log_string, timeout=10), cli.stderr
+        expected_markers = {f"worker_{wid}" for wid in expected_worker_ids}
+        deadline = time.time() + 15
+        seen: set[str] = set()
+
+        while time.time() < deadline:
+            seen = {p.name for p in marker_dir.iterdir()}
+            if expected_markers.issubset(seen):
+                return
+            time.sleep(0.1)
+
+        msg = f"Expected markers {expected_markers}, got {seen}"
+        raise AssertionError(msg)

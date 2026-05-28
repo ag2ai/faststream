@@ -51,6 +51,11 @@ This method creates a reusable Publisher object that can be used directly to pub
     {!> docs_src/getting_started/publishing/redis/direct.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="7 11"
+    {!> docs_src/getting_started/publishing/mqtt/direct.py !}
+    ```
+
 It is something in the middle between [broker publish](./broker.md){.internal-link} and [object decorator](./object.md){.internal-link}. It has an **AsyncAPI** representation and *testability* features (like the **object decorator**), but allows you to send different messages to different outputs (like the **broker publish**).
 
 ```python hl_lines="3-4"
@@ -96,5 +101,12 @@ async def handle(msg) -> str:
         ``` python linenums="3" hl_lines="3"
         @broker.subscriber("test-queue")
         async def handle(message: RedisMessage):
+            await publisher.publish("Hi!", correlation_id=message.correlation_id)
+        ```
+
+    === "MQTT"
+        ``` python linenums="3" hl_lines="3"
+        @broker.subscriber("test-topic")
+        async def handle(message: MQTTMessage):
             await publisher.publish("Hi!", correlation_id=message.correlation_id)
         ```

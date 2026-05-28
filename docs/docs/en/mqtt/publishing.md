@@ -28,9 +28,25 @@ Key arguments:
 
 MQTT 3.1.1 rejects `headers`, `correlation_id`, and `reply_to`; use MQTT 5.0 for metadata on the wire.
 
+```python linenums="1" hl_lines="15-22"
+{! docs_src/mqtt/publishing/publish.py !}
+```
+
 ## Publisher objects
 
 `broker.publisher("topic", qos=..., retain=..., headers=...)` returns an `MQTTPublisher` with the same semantics. Per-call `publish()` can override `qos` / `retain` / `headers` where applicable.
+
+```python linenums="1" hl_lines="7-11 16"
+{! docs_src/mqtt/publishing/publisher_object.py !}
+```
+
+## Publisher decorator
+
+Decorated subscriber return values are published to the configured topic, the same as other FastStream brokers.
+
+```python linenums="1" hl_lines="8-11"
+{! docs_src/mqtt/publishing/publisher_decorator.py !}
+```
 
 ## Batching
 

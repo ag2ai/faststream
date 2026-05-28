@@ -26,7 +26,7 @@ class TestArguments(ArgumentsTestcase):
                 "is": "queue",
                 "queue": {
                     "autoDelete": True,
-                    "durable": False,
+                    "durable": True,
                     "exclusive": False,
                     "name": "test",
                     "vhost": "/",
@@ -51,7 +51,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.3.0",
                 "queue": {
                     "autoDelete": True,
-                    "durable": False,
+                    "durable": True,
                     "exclusive": False,
                     "name": "test",
                     "vhost": "/",

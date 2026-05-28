@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterator, Mapping
+from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from unittest import mock
@@ -12,6 +12,7 @@ from pamqp.header import ContentHeader
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
+    from faststream._internal.parser import CodecProto
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -58,7 +61,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
 
     @contextmanager
     def _patch_producer(self, broker: RabbitBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+        fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:
             es.enter_context(
@@ -70,13 +73,13 @@ class TestRabbitBroker(TestBroker[RabbitBroker]):
     async def _fake_connect(broker: "RabbitBroker", *args: Any, **kwargs: Any) -> None:
         pass
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: "RabbitBroker",
         publisher: "RabbitPublisher",
     ) -> tuple["RabbitSubscriber", bool]:
         sub: RabbitSubscriber | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
@@ -118,7 +121,7 @@ class PatchedMessage(IncomingMessage):
         """Rejects a task."""
 
 
-def build_message(
+async def build_message(
     message: "AioPikaSendableMessage" = "",
     queue: Union["RabbitQueue", str] = "",
     exchange: Union["RabbitExchange", str, None] = None,
@@ -138,6 +141,7 @@ def build_message(
     user_id: str | None = None,
     app_id: str | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)
@@ -146,7 +150,7 @@ def build_message(
     routing = routing_key or que.routing()
 
     correlation_id = correlation_id or gen_cor_id()
-    msg = AioPikaParser.encode_message(
+    msg = await AioPikaParser.encode_message(
         message=message,
         persist=persist,
         reply_to=reply_to,
@@ -162,6 +166,7 @@ def build_message(
         user_id=user_id,
         app_id=app_id,
         serializer=serializer,
+        codec=codec,
     )
 
     return PatchedMessage(
@@ -198,8 +203,13 @@ class FakeProducer(AioPikaFastProducer):
     This class extends AioPikaFastProducer and is used to simulate RabbitMQ message publishing during tests.
     """
 
-    def __init__(self, broker: RabbitBroker) -> None:
+    def __init__(
+        self,
+        broker: RabbitBroker,
+        brokers: Sequence[RabbitBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default_parser = AioPikaParser()
         self._parser = ParserComposition(broker._parser, default_parser.parse_message)
@@ -207,6 +217,11 @@ class FakeProducer(AioPikaFastProducer):
             broker._decoder,
             default_parser.decode_message,
         )
+        self.codec = broker.config.broker_codec or DefaultCodec()
+
+    @property
+    def subscribers(self) -> Iterable["SubscriberUsecase[Any]"]:
+        return (s for b in self.brokers for s in b.subscribers)
 
     @override
     async def publish(
@@ -214,7 +229,7 @@ class FakeProducer(AioPikaFastProducer):
         cmd: "RabbitPublishCommand",
     ) -> None:
         """Publish a message to a RabbitMQ queue or exchange."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
@@ -222,11 +237,12 @@ class FakeProducer(AioPikaFastProducer):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
             **cmd.message_options,
         )
 
         called = False
-        for handler in self.broker.subscribers:  # pragma: no branch
+        for handler in self.subscribers:  # pragma: no branch
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
@@ -246,17 +262,18 @@ class FakeProducer(AioPikaFastProducer):
         cmd: "RabbitPublishCommand",
     ) -> "PatchedMessage":
         """Make a synchronous request to RabbitMQ."""
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
             **cmd.message_options,
         )
 
-        for handler in self.broker.subscribers:  # pragma: no branch
+        for handler in self.subscribers:  # pragma: no branch
             handler = cast("RabbitSubscriber", handler)
             if _is_handler_matches(
                 handler,
@@ -275,12 +292,13 @@ class FakeProducer(AioPikaFastProducer):
         handler: "RabbitSubscriber",
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
-        return build_message(
+        return await build_message(
             routing_key=msg.routing_key,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
         )
 
 
@@ -293,7 +311,9 @@ def _is_handler_matches(
     headers = headers or {}
     exchange = RabbitExchange.validate(exchange)
 
-    if handler.exchange != exchange:
+    if (handler.exchange.name if handler.exchange else "") != (
+        exchange.name if exchange else ""
+    ):
         return False
 
     if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:

@@ -41,6 +41,11 @@ We create an async function `lifespan()` with `#!python yield` like this:
     {!> docs_src/getting_started/lifespan/redis/ml_context.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="16-17 22"
+    {!> docs_src/getting_started/lifespan/mqtt/ml_context.py!}
+    ```
+
 As you can see, `lifespan` parameter is much suitable for case (than `#!python @app.on_startup` and `#!python @app.after_shutdown` separated calls) if you have object needs to process at application startup and shutdown both.
 
 !!! tip

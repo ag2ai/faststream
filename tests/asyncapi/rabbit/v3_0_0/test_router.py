@@ -62,7 +62,7 @@ class TestRouter(RouterTestcase):
                             "bindingVersion": "0.3.0",
                             "queue": {
                                 "name": "test_test",
-                                "durable": False,
+                                "durable": True,
                                 "exclusive": False,
                                 "autoDelete": False,
                                 "vhost": "/",

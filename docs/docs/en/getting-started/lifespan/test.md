@@ -39,6 +39,11 @@ For this reason, **FastStream** has a special **TestApp** patcher working as a r
     {!> docs_src/getting_started/lifespan/redis/testing.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 18"
+    {!> docs_src/getting_started/lifespan/mqtt/testing.py !}
+    ```
+
 ## Using with **TestBroker**
 
 If you want to use In-Memory patched broker in your tests, it's advised to patch the broker first (before applying the application patch).

@@ -41,6 +41,11 @@ To declare an application-level context field, you need to call the `context.set
     {!> docs_src/getting_started/context/redis/custom_global_context.py [ln:1-5,13-16] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="8-9"
+    {!> docs_src/getting_started/context/mqtt/custom_global_context.py [ln:1-5,13-16] !}
+    ```
+
 Afterward, you can access your `secret` field in the usual way:
 
 === "AIOKafka"
@@ -66,6 +71,11 @@ Afterward, you can access your `secret` field in the usual way:
 === "Redis"
     ```python linenums="1" hl_lines="3"
     {!> docs_src/getting_started/context/redis/custom_global_context.py [ln:8-13] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="3"
+    {!> docs_src/getting_started/context/mqtt/custom_global_context.py [ln:8-13] !}
     ```
 
 In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
@@ -117,6 +127,11 @@ To set a local context (available only within the message processing scope), use
     {!> docs_src/getting_started/context/redis/custom_local_context.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="13 22"
+    {!> docs_src/getting_started/context/mqtt/custom_local_context.py !}
+    ```
+
 ## Existing Fields
 
 **Context** already contains some global objects that you can always access:
@@ -155,6 +170,11 @@ By default, the context searches for an object based on the argument name.
 === "Redis"
     ```python linenums="1" hl_lines="1 8-11"
     {!> docs_src/getting_started/context/redis/existed_context.py [ln:1-2,9-12,14-23] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 8-11"
+    {!> docs_src/getting_started/context/mqtt/existed_context.py [ln:1-2,9-12,14-23] !}
     ```
 
 ### Annotated Aliases
@@ -271,6 +291,46 @@ from faststream import Logger, ContextRepo
     {!> docs_src/getting_started/context/redis/existed_context.py [ln:1-11,22-31] !}
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.mqtt.annotations import (
+        Logger, ContextRepo, MQTTMessage,
+        MQTTBroker, NoCast,
+    )
+    ```
+
+    !!! tip ""
+        `faststream.mqtt.MQTTMessage` is an alias to `faststream.mqtt.annotations.MQTTMessage`
+
+        ```python
+        from faststream.mqtt import MQTTMessage
+        ```
+    To use them, simply import and use them as subscriber argument annotations.
+
+    ```python linenums="1" hl_lines="3-7 14-17"
+    from faststream import Context, FastStream
+    from faststream.mqtt import MQTTBroker
+    from faststream.mqtt.annotations import (
+        ContextRepo,
+        MQTTMessage,
+        Logger,
+        MQTTBroker as BrokerAnnotation,
+    )
+
+    broker_object = MQTTBroker("localhost", port=1883)
+    app = FastStream(broker_object)
+
+    @broker_object.subscriber("response-topic")
+    async def handle_response(
+        logger: Logger,
+        message: MQTTMessage,
+        context: ContextRepo,
+        broker: BrokerAnnotation,
+    ):
+        logger.info(message)
+        await broker.publish("test", "response")
+    ```
+
 ## Context Extra Options
 
 Additionally, `Context` provides you with some extra capabilities for working with containing objects.
@@ -306,6 +366,11 @@ However, you can set default values if needed.
     {!> docs_src/getting_started/context/redis/default_arguments.py [ln:7-11] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 5"
+    {!> docs_src/getting_started/context/mqtt/default_arguments.py [ln:7-11] !}
+    ```
+
 ### Cast Context Types
 
 By default, context fields are **NOT CAST** to the type specified in their annotation.
@@ -335,6 +400,11 @@ By default, context fields are **NOT CAST** to the type specified in their annot
     {!> docs_src/getting_started/context/redis/cast.py [ln:1-15] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="8 13 15"
+    {!> docs_src/getting_started/context/mqtt/cast.py [ln:1-15] !}
+    ```
+
 If you require this functionality, you can enable the appropriate flag.
 
 === "AIOKafka"
@@ -360,6 +430,11 @@ If you require this functionality, you can enable the appropriate flag.
 === "Redis"
     ```python linenums="1" hl_lines="3 5"
     {!> docs_src/getting_started/context/redis/cast.py [ln:16-21] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 5"
+    {!> docs_src/getting_started/context/mqtt/cast.py [ln:16-21] !}
     ```
 
 ### Initial Value
@@ -391,6 +466,11 @@ Also, `Context` provides you with a `initial` option to setup base context value
     {!> docs_src/getting_started/context/redis/initial.py [ln:7-12] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 6"
+    {!> docs_src/getting_started/context/mqtt/initial.py [ln:7-12] !}
+    ```
+
 ## Access by Name
 
 Sometimes, you may need to use a different name for the argument (not the one under which it is stored in the context) or get access to specific parts of the object. To do this, simply specify the name of what you want to access, and the context will provide you with the object.
@@ -419,6 +499,11 @@ Sometimes, you may need to use a different name for the argument (not the one un
 === "Redis"
     ```python linenums="1" hl_lines="11-12"
     {!> docs_src/getting_started/context/redis/fields_access.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="11-12"
+    {!> docs_src/getting_started/context/mqtt/fields_access.py !}
     ```
 
 This way you can get access to context object specific field
@@ -464,6 +549,11 @@ With this container, you can access both application scope and message processin
 === "Redis"
     ```python linenums="1" hl_lines="2 4 12"
     {!> docs_src/getting_started/context/redis/annotated.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="2 4 12"
+    {!> docs_src/getting_started/context/mqtt/annotated.py !}
     ```
 
 ### Usages

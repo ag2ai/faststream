@@ -1,5 +1,4 @@
-from faststream.response import ensure_response
-from faststream.response.response import Response
+from faststream.response import Response, ensure_response
 
 
 def test_raw_data() -> None:

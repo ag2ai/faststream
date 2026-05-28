@@ -88,6 +88,9 @@ if TYPE_CHECKING:
             client_rack: A rack identifier for this client. Used by the
                 broker for rack-aware fetching, letting a consumer read from
                 the closest replica. Requires aiokafka 0.14.0 or newer.
+            consumer_only: When True the broker skips creating the
+                producer and admin clients, letting deployments use Kafka
+                credentials scoped to read-only ACLs. Defaults to False.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are
@@ -162,6 +165,7 @@ if TYPE_CHECKING:
         client_id: str | None
         # consumer args
         client_rack: str | None
+        consumer_only: bool
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -204,6 +208,7 @@ class KafkaBroker(
         client_id: str | None = SERVICE_NAME,
         # consumer args
         client_rack: str | None = None,
+        consumer_only: bool = False,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -277,6 +282,9 @@ class KafkaBroker(
             client_rack (Optional[str]):
                 A rack identifier for this client. Used by the broker for rack-aware fetching, letting a consumer read from the
                 closest replica. Requires aiokafka 0.14.0 or newer.
+            consumer_only (bool):
+                When True the broker skips creating the producer and admin clients during ``start()``, letting deployments use
+                Kafka credentials scoped to read-only ACLs. Defaults to False.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:
@@ -430,6 +438,7 @@ class KafkaBroker(
             config=KafkaBrokerConfig(
                 client_id=client_id,
                 client_rack=client_rack,
+                consumer_only=consumer_only,
                 builder=builder,
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
