@@ -1,19 +1,16 @@
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 from unittest.mock import AsyncMock
 
-import anyio
 import pytest
 
+from faststream.exceptions import IncorrectState
 from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisBroker
-from faststream.redis.configs import ConnectionState, RedisConnectionState
-from faststream.redis.configs.state import RedisClusterConnectionState
-from faststream.redis.exceptions import UnreachablePathError
-from faststream.redis.parser import BinaryMessageFormatV1
-from faststream.redis.publisher.producer import (
-    RedisClusterFastProducer,
-    RedisFastProducer,
+from faststream.redis.configs import (
+    RedisConnectionState,
+    state as state_module,
 )
+from faststream.redis.configs.state import RedisClusterConnectionState
+from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -35,12 +32,52 @@ class TestRedisClusterConnectionStateUnit:
         state = RedisClusterConnectionState(opts)
         assert state._options == opts
 
-    def test_get_sync_cluster_creates_once(self) -> None:
+    def test_bool_reflects_connected(self) -> None:
+        state = RedisClusterConnectionState()
+        assert not state
+        state._connected = True
+        assert state
+
+
+class TestClusterConnectionStateConnect:
+    """connect() builds the async client with redis-8-safe options."""
+
+    @pytest.mark.asyncio()
+    async def test_connect_sets_legacy_responses_and_driver_info(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeCluster:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+            def pubsub(self) -> None:  # presence satisfies the version guard
+                ...
+
+        monkeypatch.setattr(state_module, "RedisCluster", FakeCluster)
+
         state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
-        # We can't actually connect, but we can verify the method shape
-        # by checking that _sync_cluster starts as None
-        assert state._sync_cluster is None
-        assert state._thread_pool is None
+        await state.connect()
+
+        assert captured["legacy_responses"] is True
+        assert "driver_info" in captured
+        assert bool(state)
+
+    @pytest.mark.asyncio()
+    async def test_connect_requires_redis8(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        class OldCluster:  # no pubsub attr -> simulate redis-py < 8
+            def __init__(self, **kwargs: object) -> None: ...
+
+        monkeypatch.setattr(state_module, "RedisCluster", OldCluster)
+
+        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
+        with pytest.raises(IncorrectState, match="requires redis-py"):
+            await state.connect()
 
 
 class TestClusterBrokerWarnings:
@@ -136,269 +173,59 @@ class TestClusterBrokerInheritanceExtra:
         assert len(broker.subscribers) == 1
 
 
-class TestSyncPubSubProxyUnit:
-    """Unit tests for _SyncPubSubProxy."""
+class TestClusterUsesAsyncProducer:
+    """Cluster reuses the standard async RedisFastProducer (no sync proxy)."""
 
-    def test_proxy_stores_pubsub_and_pool(self) -> None:
-        """Verify proxy initialises correctly."""
-        pool = ThreadPoolExecutor(max_workers=1)
-        try:
-            # We need a sync cluster to create pubsub, so just verify
-            # the class structure — actual init tested in integration.
-            pass
-        finally:
-            pool.shutdown(wait=False)
+    def test_producer_is_standard_async(self) -> None:
+        broker = RedisClusterBroker()
+        assert type(broker.config.broker_config.producer) is RedisFastProducer
+
+    @pytest.mark.asyncio()
+    async def test_channel_publish_uses_async_client_publish(self) -> None:
+        client = AsyncMock()
+        client.publish = AsyncMock(return_value=1)
+        conn = RedisConnectionState()
+        conn._client = client
+        conn._connected = True
+
+        producer = RedisFastProducer(
+            connection=conn,
+            parser=None,
+            decoder=None,
+            message_format=BinaryMessageFormatV1,
+            serializer=None,
+        )
+        cmd = RedisPublishCommand(
+            b"hello",
+            channel="ch",
+            _publish_type=PublishType.PUBLISH,
+        )
+        result = await producer.publish(cmd)
+        assert result == 1
+        client.publish.assert_awaited_once()
 
 
 class TestRedisClusterConnectionStateDisconnect:
     """Tests for disconnect lifecycle."""
 
     @pytest.mark.asyncio()
-    async def test_disconnect_cleans_thread_pool(self) -> None:
+    async def test_disconnect_closes_async_client(self) -> None:
         state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
-        assert state._thread_pool is None
+        client = AsyncMock()
+        state._client = client
+        state._connected = True
+
         await state.disconnect()
-        assert state._thread_pool is None
-        assert state._sync_cluster is None
+
+        client.aclose.assert_awaited_once()
         assert state._client is None
+        assert not bool(state)
 
     @pytest.mark.asyncio()
     async def test_disconnect_before_connect_no_error(self) -> None:
         state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         await state.disconnect()  # Should not raise
         assert not bool(state)
-
-    def test_bool_reflects_connected(self) -> None:
-        state = RedisClusterConnectionState()
-        assert not state
-        state._connected = True
-        assert state
-
-
-class TestClusterFastProducerUnit:
-    """Direct unit tests for RedisClusterFastProducer routing logic."""
-
-    @pytest.fixture()
-    def mock_client(self) -> AsyncMock:
-        client = AsyncMock()
-        client.rpush = AsyncMock(return_value=1)
-        client.xadd = AsyncMock(return_value=b"stream-id")
-        return client
-
-    @pytest.fixture()
-    def mock_connection(self, mock_client: AsyncMock) -> ConnectionState[Any]:
-        conn = RedisConnectionState()
-        conn._client = mock_client
-        conn._connected = True
-        return conn
-
-    @pytest.fixture()
-    def mock_cluster_state(self) -> AsyncMock:
-        state = AsyncMock(spec=RedisClusterConnectionState)
-        state.sync_publish = AsyncMock(return_value=1)
-        return state
-
-    @pytest.fixture()
-    def producer(
-        self,
-        mock_connection: ConnectionState,
-        mock_cluster_state: AsyncMock,
-    ) -> RedisFastProducer:
-
-        return RedisClusterFastProducer(
-            connection=mock_connection,
-            cluster_state=mock_cluster_state,
-            parser=None,
-            decoder=None,
-            message_format=BinaryMessageFormatV1,
-            serializer=None,
-        )
-
-    @pytest.mark.asyncio()
-    async def test_publish_channel(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-    ) -> None:
-        cmd = RedisPublishCommand(
-            b"hello",
-            channel="ch",
-            _publish_type=PublishType.PUBLISH,
-        )
-        result = await producer.publish(cmd)
-        assert result == 1
-        mock_cluster_state.sync_publish.assert_awaited_once()
-
-    @pytest.mark.asyncio()
-    async def test_publish_list(
-        self,
-        producer: RedisFastProducer,
-        mock_client: AsyncMock,
-    ) -> None:
-        cmd = RedisPublishCommand(
-            b"hello",
-            list="lst",
-            _publish_type=PublishType.PUBLISH,
-        )
-        result = await producer.publish(cmd)
-        assert result == 1
-        mock_client.rpush.assert_awaited_once_with(
-            "lst", mock_client.rpush.call_args[0][1]
-        )
-
-    @pytest.mark.asyncio()
-    async def test_publish_stream(
-        self,
-        producer: RedisFastProducer,
-        mock_client: AsyncMock,
-    ) -> None:
-        cmd = RedisPublishCommand(
-            b"hello",
-            stream="strm",
-            maxlen=100,
-            _publish_type=PublishType.PUBLISH,
-        )
-        result = await producer.publish(cmd)
-        assert result == b"stream-id"
-        mock_client.xadd.assert_awaited_once()
-
-    @pytest.mark.asyncio()
-    async def test_publish_unreachable(
-        self,
-        producer: RedisFastProducer,
-    ) -> None:
-        """No matching destination_type → UnreachablePathError."""
-        cmd = RedisPublishCommand(
-            b"hello",
-            channel="ch",
-            _publish_type=PublishType.PUBLISH,
-        )
-        cmd.destination_type = None  # type: ignore[assignment]
-        with pytest.raises(UnreachablePathError):
-            await producer.publish(cmd)
-
-    @pytest.mark.asyncio()
-    async def test_request_channel(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-    ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
-
-        cmd = RedisPublishCommand(
-            b"hello",
-            channel="ch",
-            timeout=5.0,
-            _publish_type=PublishType.REQUEST,
-        )
-        result = await producer.request(cmd)
-        assert result == "resp"
-        mock_cluster_state.sync_publish.assert_awaited_once()
-
-    @pytest.mark.asyncio()
-    async def test_request_list(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-        mock_client: AsyncMock,
-    ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
-
-        cmd = RedisPublishCommand(
-            b"hello",
-            list="lst",
-            timeout=5.0,
-            _publish_type=PublishType.REQUEST,
-        )
-        result = await producer.request(cmd)
-        assert result == "resp"
-        mock_client.rpush.assert_awaited_once()
-
-    @pytest.mark.asyncio()
-    async def test_request_stream(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-        mock_client: AsyncMock,
-    ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
-
-        cmd = RedisPublishCommand(
-            b"hello",
-            stream="strm",
-            maxlen=100,
-            timeout=5.0,
-            _publish_type=PublishType.REQUEST,
-        )
-        result = await producer.request(cmd)
-        assert result == "resp"
-        mock_client.xadd.assert_awaited_once()
-
-    @pytest.mark.asyncio()
-    async def test_request_timeout(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-    ) -> None:
-        """Timeout inside fail_after raises TimeoutError."""
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-
-        async def _slow(*args: object, **kwargs: object) -> None:
-            await anyio.sleep(10)
-
-        psub.get_message = _slow
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
-
-        cmd = RedisPublishCommand(
-            b"hello",
-            channel="ch",
-            timeout=0.05,
-            _publish_type=PublishType.REQUEST,
-        )
-        with pytest.raises(TimeoutError):
-            await producer.request(cmd)
-
-    @pytest.mark.asyncio()
-    async def test_request_unreachable(
-        self,
-        producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-    ) -> None:
-        """No matching destination_type → UnreachablePathError."""
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
-
-        cmd = RedisPublishCommand(
-            b"hello",
-            channel="ch",
-            timeout=5.0,
-            _publish_type=PublishType.REQUEST,
-        )
-        cmd.destination_type = None  # type: ignore[assignment]
-        with pytest.raises(UnreachablePathError):
-            await producer.request(cmd)
 
 
 class TestClusterBrokerPing:
@@ -434,5 +261,4 @@ class TestRedisBrokerInit:
 
     def test_specification_url_defaults_to_url(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        # specification_url was set from url in __init__
         assert broker._connection is None

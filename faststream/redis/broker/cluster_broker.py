@@ -1,7 +1,7 @@
 import logging
 import warnings
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 from urllib.parse import urlparse
 
 from fast_depends import dependency_provider
@@ -15,14 +15,11 @@ from faststream.redis.broker import RedisBroker
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.parser import BinaryMessageFormatV1
-from faststream.redis.publisher.producer import (
-    RedisClusterFastProducer,
-)
+from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.schemas.types import (
     CLUSTER_INCOMPATIBLE_PARAMS,
     NON_CONNECTION_PARAMS,
 )
-from faststream.redis.subscriber.usecases.basic import LogicSubscriber
 from faststream.specification.schema import BrokerSpec
 
 from .logging import make_redis_logger_state
@@ -33,9 +30,7 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.redis.schemas.types import RedisClusterParams
-    from faststream.redis.subscriber.usecases import ChannelSubscriber
     from faststream.security import BaseSecurity
 
 
@@ -80,9 +75,8 @@ class RedisClusterBroker(RedisBroker):
             routers=kwargs.get("routers", ()),
             config=RedisBrokerConfig(
                 connection=connection_state,
-                producer=RedisClusterFastProducer(
+                producer=RedisFastProducer(
                     connection=connection_state,
-                    cluster_state=connection_state,
                     parser=kwargs.get("parser"),
                     decoder=kwargs.get("decoder"),
                     message_format=self.message_format,
@@ -121,49 +115,6 @@ class RedisClusterBroker(RedisBroker):
     @property
     def _cluster_state(self) -> RedisClusterConnectionState:
         return cast("RedisClusterConnectionState", self.config.broker_config.connection)
-
-    def subscriber(  # type: ignore[override]
-        self,
-        channel: Union["PubSub", str, None] = None,
-        *,
-        list: Union["ListSub", str, None] = None,
-        stream: Union["StreamSub", str, None] = None,
-        **kwargs: Any,
-    ) -> "LogicSubscriber":
-        if channel is not None:
-            return self._make_channel_subscriber(channel, **kwargs)
-        return super().subscriber(
-            channel=None,
-            list=list,
-            stream=stream,
-            **kwargs,
-        )
-
-    def _make_channel_subscriber(
-        self,
-        channel: Union["PubSub", str],
-        **kwargs: Any,
-    ) -> "ChannelSubscriber":
-        state = self._cluster_state
-
-        sub = cast(
-            "ChannelSubscriber",
-            super().subscriber(channel=channel, list=None, stream=None, **kwargs),
-        )
-
-        async def _patched_start() -> None:
-            if sub.subscription:
-                return
-            psub = state.pubsub()
-            sub.subscription = psub  # type: ignore[assignment]
-            if sub.channel.pattern:
-                await psub.psubscribe(sub.channel.name)
-            else:
-                await psub.subscribe(sub.channel.name)
-            await LogicSubscriber.start(sub, psub)
-
-        sub.start = _patched_start  # type: ignore[method-assign]
-        return sub
 
     async def publish(  # type: ignore[override]
         self,
