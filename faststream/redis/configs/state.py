@@ -18,6 +18,21 @@ from faststream.exceptions import IncorrectState
 ClientT = TypeVar("ClientT")
 
 
+def _client_setinfo_kwargs() -> dict[str, Any]:
+    """Return ``CLIENT SETINFO`` kwargs compatible with the installed redis-py.
+
+    redis-py >= 7.4 exposes the ``driver_info`` parameter (and deprecates
+    ``lib_name`` / ``lib_version``); older releases only accept the legacy
+    pair. Importing ``redis.driver_info`` lazily keeps the ``redis>=5.0.0``
+    floor working.
+    """
+    try:
+        from redis.driver_info import DriverInfo
+    except ImportError:  # redis-py < 7.4
+        return {"lib_name": "faststream", "lib_version": __version__}
+    return {"driver_info": DriverInfo().add_upstream_driver("faststream", __version__)}
+
+
 class ConnectionState(ABC, Generic[ClientT]):
     """Base connection state."""
 
@@ -55,8 +70,7 @@ class RedisConnectionState(ConnectionState["Redis[bytes]"]):
     async def connect(self) -> "Redis[bytes]":
         pool = ConnectionPool(
             **self._options,
-            lib_name="faststream",
-            lib_version=__version__,
+            **_client_setinfo_kwargs(),
         )
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
