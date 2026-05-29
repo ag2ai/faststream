@@ -15,7 +15,7 @@ search:
 **Redis Pub/Sub** is the default subscriber type in **FastStream**, so you can simply create a regular `#!python @broker.subscriber("channel_name")` with a channel name and it creates a subscriber using **Redis Pub/Sub**.
 
 !!! tip "Redis Cluster"
-    With `RedisClusterBroker`, channel subscribers use a synchronous `RedisCluster` client under the hood. See the [Cluster docs](../cluster.md){.internal-link}.
+    With `RedisClusterBroker`, channel subscribers use the native async cluster client (`pubsub()` on `redis.asyncio.cluster.RedisCluster`, **redis-py >= 8.0.0**). See the [Cluster docs](../cluster.md){.internal-link}.
 
 In this example, we will build a FastStream application that listens to messages from the Redis channel named `#!python "test"`.
 

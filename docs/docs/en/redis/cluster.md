@@ -14,6 +14,11 @@ search:
 
 **FastStream** provides a `RedisClusterBroker` for working with [**Redis Cluster**](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/){.external-link target="_blank"}. It is a drop-in replacement for `RedisBroker` with the same constructor API, designed for multi-node cluster deployments.
 
+`RedisClusterBroker` is built on the native asynchronous cluster client (`redis.asyncio.cluster.RedisCluster`) from **redis-py**, which exposes cluster-aware `publish()` and `pubsub()` out of the box. Pub/Sub channels, lists, and streams are all supported through this single async client — no synchronous fallback or background threads are involved.
+
+!!! warning "redis-py version"
+    **Redis Cluster** requires **redis-py >= 8.0.0**, the first release to provide native async `publish`/`pubsub` on the cluster client. The package dependency range is `redis>=5.0.0,<9.0.0`; this higher minimum applies only when you use `RedisClusterBroker`.
+
 ## When to Use
 
 | Use RedisBroker | Use RedisClusterBroker |
@@ -50,7 +55,7 @@ broker = RedisClusterBroker(
 |---|---|---|
 | List | ✅ | ✅ |
 | Stream + XAUTOCLAIM | ✅ | ✅ |
-| Pub/Sub | ✅ | ✅ (via sync cluster) |
+| Pub/Sub | ✅ | ✅ |
 | Pipeline | ✅ | ❌ |
 
 ## Stream Location
@@ -76,9 +81,9 @@ broker = RedisClusterBroker(url="redis://localhost:7000")
 
 ## Limitations
 
-- **Pipeline** is not supported in Redis Cluster.
+- **Pipeline** is not supported in Redis Cluster. `publish` and `publish_batch` emit a `RuntimeWarning` and ignore a `pipeline=` argument if one is passed.
 - **XAUTOCLAIM** with `min_idle_time` requires a consumer group with `group` and `consumer` parameters on `StreamSub`.
-- **Pub/Sub** uses a synchronous `RedisCluster` client (via `ThreadPoolExecutor`) because the async client does not expose `publish`/`pubsub` until `redis-py >= 8.0.0`.
+- **Redis Cluster** requires **redis-py >= 8.0.0** (see the version note above).
 
 ## References
 
