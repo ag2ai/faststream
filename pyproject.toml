@@ -75,7 +75,7 @@ confluent = [
 
 nats = ["nats-py>=2.12.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<8.0.0"]
+redis = ["redis>=5.0.0,<9.0.0"]
 
 mqtt = ["zmqtt>=0.0.4"]
 
