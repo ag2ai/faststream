@@ -213,6 +213,7 @@ markers = [
     "nats",
     "redis",
     "redis_cluster",
+    "redis_sentinel",
     "mqtt",
     "slow",
     "connected",

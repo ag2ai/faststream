@@ -4,6 +4,7 @@ import math
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
+import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
@@ -20,7 +21,7 @@ from faststream.redis.parser import (
     RedisStreamParser,
 )
 
-from .basic import LogicSubscriber
+from .basic import CONSUME_ERROR_BACKOFF_SECONDS, LogicSubscriber
 
 if TYPE_CHECKING:
     from anyio import Event
@@ -107,6 +108,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     message="Message fetch error",
                     exc_info=e,
                 )
+                await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
 
             finally:
                 if not start_signal.is_set():
