@@ -94,6 +94,10 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         encoding_errors: str = "strict",
         parser_class: type["BaseParser"] = DefaultParser,
         encoder_class: type["Encoder"] = Encoder,
+        # Sentinel args
+        sentinels: Sequence[tuple[str, int]] | None = None,
+        sentinel_master_name: str | None = None,
+        sentinel_kwargs: Mapping[str, Any] | None = None,
         # broker base args
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
@@ -176,6 +180,12 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
                 _ ...
             encoder_class:
                 _ ...
+            sentinels:
+                Redis Sentinel ``(host, port)`` nodes. Enables Sentinel mode (HA with master failover).
+            sentinel_master_name:
+                Sentinel master group name. Required when ``sentinels`` is set.
+            sentinel_kwargs:
+                Connection kwargs for the Sentinel nodes themselves.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             decoder:
@@ -334,6 +344,9 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             parser_class=parser_class,
             connection_class=connection_class,
             encoder_class=encoder_class,
+            sentinels=sentinels,
+            sentinel_master_name=sentinel_master_name,
+            sentinel_kwargs=sentinel_kwargs,
             graceful_timeout=graceful_timeout,
             decoder=decoder,
             parser=parser,

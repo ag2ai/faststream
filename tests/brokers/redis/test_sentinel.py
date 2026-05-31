@@ -49,3 +49,23 @@ class TestSentinelConfigUnit:
             assert client.connection_pool.service_name == "mymaster"
         finally:
             await state.disconnect()
+
+
+@pytest.mark.redis()
+class TestSentinelFastAPIRouterUnit:
+    """RedisRouter (FastAPI) must forward Sentinel params down to the broker."""
+
+    def test_router_forwards_sentinel_to_broker(self) -> None:
+        from faststream.redis.fastapi import RedisRouter
+
+        router = RedisRouter(sentinels=SENTINELS, sentinel_master_name="mymaster")
+        connection = router.broker.config.broker_config.connection
+        assert isinstance(connection._sentinel, SentinelConfig)
+        assert connection._sentinel.master_name == "mymaster"
+        assert list(connection._sentinel.sentinels) == SENTINELS
+
+    def test_router_direct_mode_has_no_sentinel(self) -> None:
+        from faststream.redis.fastapi import RedisRouter
+
+        router = RedisRouter("redis://localhost:6379")
+        assert router.broker.config.broker_config.connection._sentinel is None
