@@ -20,6 +20,7 @@ class AsyncAPIRoute:
     def __init__(
         self,
         path: str,
+        asyncapi_json_path: str | None = "/asyncapi.json",
         description: str | None = None,
         tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
@@ -40,6 +41,7 @@ class AsyncAPIRoute:
         try_it_out_url: str | None = None,
     ) -> None:
         self.path = path
+        self.asyncapi_json_path = asyncapi_json_path
 
         self.description = description
         self.tags = tags
