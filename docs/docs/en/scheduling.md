@@ -61,6 +61,11 @@ At first, we should create a regular **FastStream** application.
     {!> docs_src/index/redis/basic.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/index/mqtt/basic.py!}
+    ```
+
 ### Broker Wrapper
 
 Now, if you want to make it *just working*, we should wrap our `Broker` to special `BrokerWrapper` object:
@@ -157,6 +162,25 @@ It creates a *taskiq-compatible* object, that can be used as an object to create
     taskiq_broker.task(
         message={"user": "John", "user_id": 1},
         channel="in-channel",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        topic="in-topic",
         schedule=[{
             "cron": "* * * * *",
         }],

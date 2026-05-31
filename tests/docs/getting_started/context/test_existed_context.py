@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -95,5 +96,23 @@ async def test_existed_context_redis() -> None:
     async with TestRedisBroker(broker_object) as br:
         await br.publish("Hi!", "test-channel")
         await br.publish("Hi!", "response-channel")
+
+        assert resp.mock.call_count == 2
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_existed_context_mqtt() -> None:
+    from docs.docs_src.getting_started.context.mqtt.existed_context import (
+        broker_object,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    @broker_object.subscriber("response")
+    async def resp() -> None: ...
+
+    async with TestMQTTBroker(broker_object) as br:
+        await br.publish("Hi!", "test-topic")
+        await br.publish("Hi!", "response-topic")
 
         assert resp.mock.call_count == 2

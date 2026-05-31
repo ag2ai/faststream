@@ -270,6 +270,23 @@ To differentiate between different types of publishers, you can use `cmd.publish
             return await call_next(cmd)
     ```
 
+=== "MQTT"
+    ```python linenums="1"
+    from typing import Any, Awaitable, Callable
+
+    from faststream import BaseMiddleware
+    from faststream.mqtt import MQTTPublishCommand
+
+
+    class MQTTPublishMiddleware(BaseMiddleware[MQTTPublishCommand]):
+        async def publish_scope(
+            self,
+            call_next: Callable[[MQTTPublishCommand], Awaitable[Any]],
+            cmd: MQTTPublishCommand,
+        ) -> Any:
+            return await call_next(cmd)
+    ```
+
 ## 📦 Context Access
 
 Middlewares can access the [Context](../context/){.internal-link} for all available methods. For example:

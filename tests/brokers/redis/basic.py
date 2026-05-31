@@ -17,16 +17,13 @@ class RedisTestcaseConfig(BaseTestcaseConfig):
     ) -> RedisBroker:
         return RedisBroker(apply_types=apply_types, **kwargs)
 
-    def patch_broker(self, broker: RedisBroker, **kwargs: Any) -> RedisBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
 
 
 class RedisMemoryTestcaseConfig(RedisTestcaseConfig):
-    def patch_broker(self, broker: RedisBroker, **kwargs: Any) -> TestRedisBroker:
-        return TestRedisBroker(broker, **kwargs)
+    def patch_broker(self, *brokers: RedisBroker, **kwargs: Any) -> TestRedisBroker:
+        return TestRedisBroker(*brokers, **kwargs)
 
 
 class RedisClusterTestcaseConfig(BaseTestcaseConfig):
@@ -47,13 +44,6 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig):
             **kwargs,
         )
 
-    def patch_broker(
-        self,
-        broker: RedisClusterBroker,
-        **kwargs: Any,
-    ) -> RedisClusterBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
 
@@ -61,7 +51,7 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig):
 class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
     def patch_broker(
         self,
-        broker: RedisClusterBroker,
+        *brokers: RedisClusterBroker,
         **kwargs: Any,
     ) -> TestRedisBroker:
-        return TestRedisBroker(broker, **kwargs)
+        return TestRedisBroker(*brokers, **kwargs)

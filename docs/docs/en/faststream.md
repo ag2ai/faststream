@@ -144,6 +144,11 @@ You can install it with `pip` as usual:
     pip install 'faststream[redis]'
     ```
 
+=== "MQTT"
+    ```sh
+    pip install 'faststream[mqtt]'
+    ```
+
 ## Writing app code
 
 **FastStream** brokers provide convenient function decorators `#!python @broker.subscriber(...)`
@@ -185,6 +190,11 @@ Here is an example Python app using **FastStream** that consumes data from an in
     {!> docs_src/index/redis/basic.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="2 4"
+    {!> docs_src/index/mqtt/basic.py!}
+    ```
+
 ### Pydantic serialization
 
 Also, **Pydantic**’s [`BaseModel`](https://docs.pydantic.dev/usage/models/){.external-link target="_blank"} class allows you
@@ -213,6 +223,11 @@ to define messages using a declarative syntax, making it easy to specify the fie
 === "Redis"
     ```python linenums="1" hl_lines="1 8 14"
     {!> docs_src/index/redis/pydantic.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 8 14"
+    {!> docs_src/index/mqtt/pydantic.py !}
     ```
 
 !!! tip ""
@@ -269,6 +284,14 @@ Moreover, **FastStream** is not tied to any specific serialization library, so y
     from faststream.redis import RedisBroker
 
     broker = RedisBroker(serializer=MsgSpecSerializer())
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 4"
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883, serializer=MsgSpecSerializer())
     ```
 
 You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/){.internal-link}.
@@ -360,6 +383,22 @@ Consequently, our unified API has a relatively limited scope:
     await broker.publish("Message", "in-channel")
     ```
 
+=== "MQTT"
+    ```python linenums="1"
+    from faststream.mqtt import MQTTBroker, MQTTMessage
+
+    broker = MQTTBroker("localhost", port=1883)
+
+    @broker.subscriber("in-topic")
+    @broker.publisher("out-topic")
+    async def handler(msg: MQTTMessage) -> None:
+        await msg.ack()  # control brokers' acknowledgement policy
+
+    ...
+
+    await broker.publish("Message", "in-topic")
+    ```
+
 Beyond this scope you can use any broker-native features you need:
 
 * **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
@@ -403,6 +442,11 @@ Using pytest, the test for our service would look like this:
 === "Redis"
     ```python linenums="1" hl_lines="3 8 18-19"
     {!> docs_src/index/redis/test.py [ln:3-22] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 8 18-19"
+    {!> docs_src/index/mqtt/test.py [ln:3-22] !}
     ```
 
 
@@ -539,6 +583,11 @@ Just import a **StreamRouter** you need and declare the message handler with the
 === "Redis"
     ```python linenums="1" hl_lines="4 6 14-18 24-25"
     {!> docs_src/integrations/fastapi/redis/base.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 6 14-18 24-25"
+    {!> docs_src/integrations/fastapi/mqtt/base.py !}
     ```
 
 !!! note

@@ -23,7 +23,7 @@ class TestArguments(PublisherTestcase):
                         "bindingVersion": "0.2.0",
                         "exchange": {
                             "autoDelete": False,
-                            "durable": False,
+                            "durable": True,
                             "name": "test-ex",
                             "type": "direct",
                             "vhost": "/vhost",
@@ -65,7 +65,7 @@ class TestArguments(PublisherTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "topic",
                     "vhost": "/",
@@ -73,7 +73,7 @@ class TestArguments(PublisherTestcase):
                 "is": "routingKey",
                 "queue": {
                     "autoDelete": True,
-                    "durable": False,
+                    "durable": True,
                     "exclusive": False,
                     "name": "test",
                     "vhost": "/",
@@ -99,7 +99,7 @@ class TestArguments(PublisherTestcase):
                         "bindingVersion": "0.2.0",
                         "exchange": {
                             "autoDelete": False,
-                            "durable": False,
+                            "durable": True,
                             "name": "test-ex",
                             "type": "fanout",
                             "vhost": "/",
@@ -140,7 +140,7 @@ class TestArguments(PublisherTestcase):
                         "bindingVersion": "0.2.0",
                         "exchange": {
                             "autoDelete": False,
-                            "durable": False,
+                            "durable": True,
                             "name": "test-ex",
                             "type": "direct",
                             "vhost": "/vhost",
@@ -170,7 +170,7 @@ class TestArguments(PublisherTestcase):
                         "bindingVersion": "0.2.0",
                         "exchange": {
                             "autoDelete": False,
-                            "durable": False,
+                            "durable": True,
                             "name": "test-ex",
                             "type": "direct",
                             "vhost": "/vhost",

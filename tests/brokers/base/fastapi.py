@@ -792,26 +792,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
 
         mock.assert_called_once()
 
-    async def test_nested_router(self, queue: str) -> None:
-        router = self.router_class()
-        router2 = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router2.subscriber(*args, **kwargs)
-        async def hello_router2() -> str:
-            return "hi"
-
-        with pytest.raises(
-            TypeError,
-            match="Including a StreamRouter into another StreamRouter",
-        ):
-            router.include_router(router2)
-
-    def test_nested_stream_router_raises(
-        self,
-        queue: str,
-    ) -> None:
+    def test_nested_stream_router_raises(self) -> None:
         """Including a StreamRouter into another StreamRouter must raise TypeError.
 
         This pattern is unsupported (issue #2657).  Users should include a regular

@@ -1,5 +1,5 @@
 import re
-from collections.abc import AsyncGenerator, Iterator, Sequence
+from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from functools import partial
@@ -55,46 +55,48 @@ class TestRedisBroker(TestBroker[RedisBroker]):
     """A class to test Redis brokers."""
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncGenerator[RedisBroker, None]:
-        is_cluster = isinstance(
-            self.broker.config.broker_config.connection,
-            RedisClusterConnectionState,
-        )
-        if self.with_real and is_cluster:
-            self._fake_start(self.broker)
+    async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
+        with ExitStack() as cluster_stack:
+            for broker in self.brokers:
+                is_cluster = isinstance(
+                    broker.config.broker_config.connection,
+                    RedisClusterConnectionState,
+                )
+                if self.with_real and is_cluster:
+                    with mock.patch.object(
+                        broker,
+                        "_connect",
+                        wraps=partial(self._fake_connect, broker),
+                    ):
+                        await broker.connect()
 
-            with mock.patch.object(
-                self.broker,
-                "_connect",
-                wraps=partial(self._fake_connect, self.broker),
-            ):
-                await self.broker.connect()
+                    cluster_stack.enter_context(self._patch_producer(broker))
 
-            with self._patch_producer(self.broker):
-                async with super()._create_ctx() as broker:
-                    yield broker
-        else:
-            async with super()._create_ctx() as broker:
-                yield broker
+            async with super()._create_ctx() as brokers:
+                yield brokers
 
     @contextmanager
     def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
         with ExitStack() as es:
             es.enter_context(
                 change_producer(
-                    broker.config.broker_config, FakeProducer(broker, broker.config)
+                    broker.config.broker_config,
+                    FakeProducer(broker, self.brokers, broker.config),
                 ),
             )
 
             for publisher in cast("list[LogicPublisher]", broker.publishers):
                 es.enter_context(
-                    change_producer(publisher, FakeProducer(broker, publisher.config)),
+                    change_producer(
+                        publisher,
+                        FakeProducer(broker, self.brokers, publisher.config),
+                    ),
                 )
 
             yield
 
-    @staticmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: RedisBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber", bool]:
@@ -103,7 +105,9 @@ class TestRedisBroker(TestBroker[RedisBroker]):
         named_property = publisher.subscriber_property(name_only=True)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in broker.subscribers:  # pragma: no branch
+        for handler in (
+            s for b in self.brokers for s in b.subscribers
+        ):  # pragma: no branch
             handler = cast("LogicSubscriber", handler)
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
@@ -149,8 +153,14 @@ class TestRedisBroker(TestBroker[RedisBroker]):
 
 
 class FakeProducer(RedisFastProducer):
-    def __init__(self, broker: RedisBroker, config: ParserConfig) -> None:
+    def __init__(
+        self,
+        broker: RedisBroker,
+        brokers: Sequence[RedisBroker],
+        config: ParserConfig,
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
         self._fake_config = config
 
         default = RedisPubSubParser(config)
@@ -165,9 +175,17 @@ class FakeProducer(RedisFastProducer):
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
 
+    @property
+    def subscribers(self) -> "Iterable[LogicSubscriber]":
+        return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
+
     @override
     def _build_child(self, **kwargs: Any) -> "FakeProducer":
-        return FakeProducer(broker=self.broker, config=self._fake_config)
+        return FakeProducer(
+            broker=self.broker,
+            brokers=self.brokers,
+            config=self._fake_config,
+        )
 
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
@@ -184,8 +202,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -212,8 +229,7 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
                     msg = visitor.get_message(
@@ -242,8 +258,7 @@ class FakeProducer(RedisFastProducer):
         ]
 
         visitor = ListVisitor()
-        for handler in self.broker.subscribers:  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+        for handler in self.subscribers:  # pragma: no branch
             if visitor.visit(list=cmd.destination, sub=handler):
                 casted_handler = cast("_ListHandlerMixin", handler)
 

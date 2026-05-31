@@ -22,3 +22,8 @@
     ```python linenums="1" hl_lines="13-16"
     {!> docs_src/getting_started/cli/redis/worker_id.py!}
     ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="13-16"
+    {!> docs_src/getting_started/cli/mqtt/worker_id.py!}
+    ```

@@ -72,6 +72,14 @@ To use it, you need to pass a `MsgSpecSerializer` object to the broker:
     broker = RedisBroker(serializer=MsgSpecSerializer())
     ```
 
+=== "MQTT"
+    ```python
+    from fast_depends.msgspec import MsgSpecSerializer
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883, serializer=MsgSpecSerializer())
+    ```
+
 ## msgspec.field
 
 Msgspec [**field**](https://jcristharif.com/msgspec/api.html#msgspec.field){.external-link target="_blank"} allows you to override the field name for encoding/decoding and provide default values.
@@ -103,6 +111,11 @@ Just use `msgspec.field` as a function default argument:
     {!> docs_src/getting_started/subscription/redis/msgspec_fields.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 18"
+    {!> docs_src/getting_started/subscription/mqtt/msgspec_fields.py !}
+    ```
+
 ## msgspec.Struct
 
 To make your message schema reusable between different subscribers and publishers, you can declare it as a `msgspec.Struct` and use it as a single message annotation:
@@ -130,4 +143,9 @@ To make your message schema reusable between different subscribers and publisher
 === "Redis"
     ```python linenums="1" hl_lines="1 14-16 21"
     {!> docs_src/getting_started/subscription/redis/msgspec_struct.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 15-17 22"
+    {!> docs_src/getting_started/subscription/mqtt/msgspec_struct.py !}
     ```
