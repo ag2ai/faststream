@@ -54,10 +54,12 @@ class AsgiTestcase:
         app = AsgiFastStream(broker)
 
         async with self.get_test_broker(broker):
-            with TestClient(app) as client:
-                with pytest.raises(WebSocketDisconnect):
-                    with client.websocket_connect("/ws"):  # raises error
-                        pass
+            with (
+                TestClient(app) as client,
+                pytest.raises(WebSocketDisconnect),
+                client.websocket_connect("/ws"),
+            ):  # raises error
+                pass
 
     @pytest.mark.asyncio()
     async def test_asgi_ping_healthy(self) -> None:

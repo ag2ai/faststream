@@ -169,9 +169,7 @@ class TestMultiBrokerDispatch:
         async def h(msg: Any) -> None:
             mock(msg)
 
-        app = AsgiFastStream(
-            kafka, asyncapi_path=AsyncAPIRoute("/asyncapi")
-        )
+        app = AsgiFastStream(kafka, asyncapi_path=AsyncAPIRoute("/asyncapi"))
 
         async with TestKafkaBroker(kafka):
             with TestClient(app) as client:
