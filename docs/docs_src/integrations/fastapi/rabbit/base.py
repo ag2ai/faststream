@@ -12,7 +12,7 @@ class Incoming(BaseModel):
 def call() -> bool:
     return True
 
-@router.subscriber(RabbitQueue("test", durable=True))
+@router.subscriber("test")
 @router.publisher("response")
 async def hello(message: Incoming, logger: Logger, dependency: bool = Depends(call)):
     logger.info("Incoming value: %s, depends value: %s" % (message.m, dependency))
