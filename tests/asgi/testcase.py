@@ -125,6 +125,74 @@ class AsgiTestcase:
                 assert response.text
 
     @pytest.mark.asyncio()
+    async def test_asyncapi_json_default_path(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            broker,
+            specification=AsyncAPI(),
+            asyncapi_path="/docs",
+        )
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/docs.json")
+                assert response.status_code == 200, response
+                assert response.headers["content-type"] == "application/json"
+                assert response.json() == app.schema.to_specification().to_jsonable()
+
+    @pytest.mark.asyncio()
+    async def test_asyncapi_json_path_strips_trailing_slash(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            broker,
+            specification=AsyncAPI(),
+            asyncapi_path="/docs/",
+        )
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/docs.json")
+                assert response.status_code == 200, response
+
+    @pytest.mark.asyncio()
+    async def test_asyncapi_json_custom_path(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            broker,
+            specification=AsyncAPI(),
+            asyncapi_path=AsyncAPIRoute("/docs", asyncapi_json_path="/openapi.json"),
+        )
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                response = client.get("/openapi.json")
+                assert response.status_code == 200, response
+                assert response.json() == app.schema.to_specification().to_jsonable()
+
+                # the default derived path is not registered when overridden
+                assert client.get("/docs.json").status_code == 404
+
+    @pytest.mark.asyncio()
+    async def test_asyncapi_json_disabled(self) -> None:
+        broker = self.get_broker()
+
+        app = AsgiFastStream(
+            broker,
+            specification=AsyncAPI(),
+            asyncapi_path=AsyncAPIRoute("/docs", asyncapi_json_path=None),
+        )
+
+        async with self.get_test_broker(broker):
+            with TestClient(app) as client:
+                # docs HTML is still served
+                assert client.get("/docs").status_code == 200
+                # but the JSON endpoint is not registered
+                assert client.get("/docs.json").status_code == 404
+
+    @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("decorator", "client_method"),
         (
