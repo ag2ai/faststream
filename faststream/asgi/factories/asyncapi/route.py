@@ -21,12 +21,13 @@ class AsyncAPIRoute:
     def __init__(
         self,
         path: str,
-        asyncapi_json_path: str | None = EMPTY,
         description: str | None = None,
         tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
         include_in_schema: bool = False,
+        asyncapi_json_path: str | None = EMPTY,
         *,
+        try_it_out_path: str | None = EMPTY,
         sidebar: bool = True,
         info: bool = True,
         servers: bool = True,
@@ -38,8 +39,6 @@ class AsyncAPIRoute:
         asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
         asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
         try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
-        try_it_out: bool = True,
-        try_it_out_url: str | None = None,
     ) -> None:
         self.path = path
 
@@ -47,9 +46,9 @@ class AsyncAPIRoute:
             asyncapi_json_path = path.rstrip("/") + ".json"
         self.asyncapi_json_path = asyncapi_json_path
 
-        if not try_it_out_url:
-            try_it_out_url = path.rstrip("/") + "/try"
-        self.try_it_out_url = try_it_out_url
+        if try_it_out_path is EMPTY:
+            try_it_out_path = path.rstrip("/") + "/try"
+        self.try_it_out_path = try_it_out_path
 
         self.description = description
         self.tags = tags
@@ -67,7 +66,6 @@ class AsyncAPIRoute:
         self.asyncapi_js_url = asyncapi_js_url
         self.asyncapi_css_url = asyncapi_css_url
         self.try_it_out_plugin_url = try_it_out_plugin_url
-        self.try_it_out = try_it_out
 
     @classmethod
     def ensure_route(cls, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
@@ -93,6 +91,5 @@ class AsyncAPIRoute:
             asyncapi_js_url=self.asyncapi_js_url,
             asyncapi_css_url=self.asyncapi_css_url,
             try_it_out_plugin_url=self.try_it_out_plugin_url,
-            try_it_out=self.try_it_out,
-            try_it_out_url=self.try_it_out_url,
+            try_it_out_path=self.try_it_out_path,
         )

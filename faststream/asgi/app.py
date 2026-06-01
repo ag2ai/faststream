@@ -137,7 +137,7 @@ class AsgiFastStream(Application):
 
                 self.routes.append((asyncapi_route.asyncapi_json_path, json_handler))
 
-            if asyncapi_route.try_it_out and self.brokers:
+            if asyncapi_route.try_it_out_path is not None and self.brokers:
                 try_it_out_route = make_try_it_out_handler(
                     self.brokers,
                     include_in_schema=asyncapi_route.include_in_schema,
@@ -146,7 +146,7 @@ class AsgiFastStream(Application):
                 try_it_out_route.set_logger(logger)
 
                 self.routes.append((
-                    asyncapi_route.try_it_out_url,
+                    asyncapi_route.try_it_out_path,
                     try_it_out_route,
                 ))
 

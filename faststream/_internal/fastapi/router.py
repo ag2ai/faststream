@@ -425,7 +425,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     schemas=schemas,
                     errors=errors,
                     expand_message_examples=expandMessageExamples,
-                    try_it_out_url=f"{schema_url}/try",
+                    try_it_out_path=f"{schema_url}/try",
                 ),
             )
 

@@ -114,7 +114,7 @@ broker = NatsBroker()
 app = AsgiFastStream(broker, asyncapi_path="/docs/asyncapi")
 ```
 
-To disable the feature, use `AsyncAPIRoute` with `try_it_out=False`:
+To disable the feature, use `AsyncAPIRoute` with `try_it_out_path=None`:
 
 ```python linenums="1" hl_lines="2 8"
 from faststream.nats import NatsBroker
@@ -124,11 +124,11 @@ broker = NatsBroker()
 
 app = AsgiFastStream(
     broker,
-    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out=False),
+    asyncapi_path=AsyncAPIRoute("/docs/asyncapi", try_it_out_path=None),
 )
 ```
 
-If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_url` via `AsyncAPIRoute`:
+If you want to point the Try It Out UI to an **external backend** (e.g. a separate service or a production broker URL), pass a custom `try_it_out_path` via `AsyncAPIRoute`:
 
 ```python linenums="1" hl_lines="2 10"
 from faststream.nats import NatsBroker
@@ -140,13 +140,13 @@ app = AsgiFastStream(
     broker,
     asyncapi_path=AsyncAPIRoute(
         "/docs/asyncapi",
-        try_it_out_url="https://api.example.com/asyncapi/try",
+        try_it_out_path="https://api.example.com/asyncapi/try",
     ),
 )
 ```
 
 !!! note
-    When `try_it_out_url` is set on `AsyncAPIRoute`, it overrides the URL the browser sends requests to. The local `POST {asyncapi_path}/try` endpoint is still registered and reachable regardless of `try_it_out_url`, unless you also pass `try_it_out=False`.
+    `try_it_out_path` controls the URL the browser sends requests to and, when it points at the local app, the path the `POST` endpoint is registered under. Setting `try_it_out_path=None` disables the Try It Out UI and skips registering the local endpoint entirely.
 
 ## Integration with Different HTTP Frameworks (**FastAPI** Example)
 

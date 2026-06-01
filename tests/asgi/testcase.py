@@ -249,7 +249,7 @@ class AsgiTestcase:
 
         app = AsgiFastStream(
             broker,
-            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=True),
+            asyncapi_path=AsyncAPIRoute("/asyncapi"),
         )
 
         async with self.get_test_broker(broker):
@@ -482,7 +482,7 @@ class AsgiTestcase:
 
         app = AsgiFastStream(
             broker,
-            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out=False),
+            asyncapi_path=AsyncAPIRoute("/asyncapi", try_it_out_path=None),
         )
 
         async with self.get_test_broker(broker):
@@ -639,7 +639,7 @@ class AsgiTestcase:
             broker,
             asyncapi_path=AsyncAPIRoute(
                 "/docs",
-                try_it_out_url="https://api.example.com/try",
+                try_it_out_path="https://api.example.com/try",
             ),
         )
 
