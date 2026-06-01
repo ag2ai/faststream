@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
+from faststream._internal.constants import EMPTY
 from faststream.asgi.factories.asyncapi.docs import make_asyncapi_asgi
 from faststream.specification.asyncapi.site import (
     ASYNCAPI_CSS_DEFAULT_URL,
@@ -20,7 +21,7 @@ class AsyncAPIRoute:
     def __init__(
         self,
         path: str,
-        asyncapi_json_path: str | None = "/asyncapi.json",
+        asyncapi_json_path: str | None = EMPTY,
         description: str | None = None,
         tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
         unique_id: str | None = None,
@@ -41,7 +42,14 @@ class AsyncAPIRoute:
         try_it_out_url: str | None = None,
     ) -> None:
         self.path = path
+
+        if asyncapi_json_path is EMPTY:
+            asyncapi_json_path = path.rstrip("/") + ".json"
         self.asyncapi_json_path = asyncapi_json_path
+
+        if not try_it_out_url:
+            try_it_out_url = path.rstrip("/") + "/try"
+        self.try_it_out_url = try_it_out_url
 
         self.description = description
         self.tags = tags
@@ -60,9 +68,6 @@ class AsyncAPIRoute:
         self.asyncapi_css_url = asyncapi_css_url
         self.try_it_out_plugin_url = try_it_out_plugin_url
         self.try_it_out = try_it_out
-        if not try_it_out_url:
-            try_it_out_url = path.rstrip("/") + "/try"
-        self.try_it_out_url = try_it_out_url
 
     @classmethod
     def ensure_route(cls, path: Union[str, "AsyncAPIRoute"]) -> "AsyncAPIRoute":
