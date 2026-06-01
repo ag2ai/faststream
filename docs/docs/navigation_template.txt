@@ -42,6 +42,7 @@ search:
     - [CLI](getting-started/cli.md)
     - [Acknowledgement](getting-started/acknowledgement.md)
     - [ASGI](getting-started/asgi.md)
+    - [Multiple Brokers](getting-started/multiple_brokers.md)
     - Observability
         - [Healthcheks](getting-started/observability/healthcheks.md)
         - [Prometheus](getting-started/observability/prometheus.md)
