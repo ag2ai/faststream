@@ -1,6 +1,6 @@
 # FastStream
 
-<b>Effortless event stream integration for your services</b>
+[**FastStream**](https://faststream.ag2.ai/latest/) is an asynchronous Python framework for building event-driven applications. It brings together message broker integration, dependency injection, validation, testing utilities, and [**AsyncAPI**](https://www.asyncapi.com/) documentation generation in a single toolkit, reducing boilerplate without hiding the capabilities of the underlying broker.
 
 ---
 
