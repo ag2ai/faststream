@@ -14,7 +14,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: alexwilson/enable-github-automerge-action@56e3117d1ae1540309dc8f7a9f2825bc3c5f06ff # 2.0.0
+      - uses: alexwilson/enable-github-automerge-action@2c32e18a76e0726ffe7a573bfff2d42a20885126 # 3.0.0
         with:
           github-token: ${{ secrets.AUTOMERGE_TOKEN }}
           merge-method: REBASE
