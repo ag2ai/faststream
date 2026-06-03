@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, cas
 from unittest import mock
 from unittest.mock import MagicMock
 
+from typing_extensions import TypeVar as TypeVar313
+
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
@@ -26,7 +28,7 @@ Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
 
 # ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
 # single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
-EnterType = TypeVar("EnterType")
+EnterType = TypeVar313("EnterType", default=Any)
 
 
 class _ProducerContains(Protocol):
