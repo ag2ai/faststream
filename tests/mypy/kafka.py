@@ -12,6 +12,7 @@ from faststream.kafka import (
     KafkaRoute,
     KafkaRouter,
     RecordMetadata,
+    TestKafkaBroker,
 )
 from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
@@ -23,6 +24,18 @@ from faststream.kafka.subscriber.usecase import (
     ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestKafkaBroker(KafkaBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestKafkaBroker(
+        KafkaBroker(),
+        KafkaBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: KafkaMessage) -> DecodedMessage:
