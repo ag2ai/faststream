@@ -197,10 +197,13 @@ class FakeProducer(AsyncConfluentFastProducer):
         serializer = self.broker.config.fd_config._serializer
 
         if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer, destination=cmd.destination)
+            encoded = await self.codec.encode_batch(
+                cmd.batch_bodies, serializer, destination=cmd.destination
+            )
         else:
             encoded = [
-                await self.codec.encode(body, serializer, destination=cmd.destination) for body in cmd.batch_bodies
+                await self.codec.encode(body, serializer, destination=cmd.destination)
+                for body in cmd.batch_bodies
             ]
 
         for handler in _find_handler(

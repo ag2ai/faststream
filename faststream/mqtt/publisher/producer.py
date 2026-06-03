@@ -96,7 +96,9 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         if cmd.headers:
             msg = "MQTT 3.1.1 does not support message headers. Use MQTT 5.0."
             raise FeatureNotSupportedException(msg)
-        payload, _ = await self.codec.encode(cmd.body, self.serializer, destination=cmd.destination)
+        payload, _ = await self.codec.encode(
+            cmd.body, self.serializer, destination=cmd.destination
+        )
         await self._connected_client.publish(
             cmd.destination,
             payload,
@@ -121,7 +123,9 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         await sub.start()
 
         try:
-            payload, _ = await self.codec.encode(cmd.body, self.serializer, destination=cmd.destination)
+            payload, _ = await self.codec.encode(
+                cmd.body, self.serializer, destination=cmd.destination
+            )
             await self._connected_client.publish(
                 cmd.destination,
                 payload,
@@ -149,7 +153,9 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
     @override
     async def publish(self, cmd: "MQTTPublishCommand") -> None:
-        payload, content_type = await self.codec.encode(cmd.body, self.serializer, destination=cmd.destination)
+        payload, content_type = await self.codec.encode(
+            cmd.body, self.serializer, destination=cmd.destination
+        )
 
         user_props: list[tuple[str, str]] = [
             (k, str(v)) for k, v in (cmd.headers or {}).items()
@@ -179,7 +185,9 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         ID explicitly so the responder echoes it back and the caller can
         verify it on the response StreamMessage.
         """
-        payload, content_type = await self.codec.encode(cmd.body, self.serializer, destination=cmd.destination)
+        payload, content_type = await self.codec.encode(
+            cmd.body, self.serializer, destination=cmd.destination
+        )
         correlation_id = cmd.correlation_id or self.id_generator()
 
         user_props: list[tuple[str, str]] = [
