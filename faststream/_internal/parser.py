@@ -66,6 +66,7 @@ class CodecProto(Protocol):
         self,
         msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,
+        destination: str = "",
     ) -> tuple[bytes, str | None]: ...
 
 
@@ -76,6 +77,7 @@ class BatchCodecProto(Protocol):
         self,
         msgs: Sequence["SendableMessage"],
         serializer: "SerializerProto | None" = None,
+        destination: str = "",
     ) -> list[tuple[bytes, str | None]]: ...
 
     @abstractmethod
@@ -93,5 +95,6 @@ class DefaultCodec:
         self,
         msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,
+        destination: str = "",
     ) -> tuple[bytes, str | None]:
         return encode_message(msg, serializer)

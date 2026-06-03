@@ -103,9 +103,9 @@ class CodecTestcase(BaseTestcaseConfig):
         mock = MagicMock()
 
         class TrackingCodec(DefaultCodec):
-            async def encode(self, msg, serializer=None):
+            async def encode(self, msg, serializer=None, destination=""):
                 mock()
-                return await super().encode(msg, serializer)
+                return await super().encode(msg, serializer, destination=destination)
 
         broker = self.get_broker(codec=TrackingCodec())
 
@@ -131,7 +131,7 @@ class CodecTestcase(BaseTestcaseConfig):
         ]
 
         for msg in test_cases:
-            codec_result = await codec.encode(msg, None)
+            codec_result = await codec.encode(msg, None, destination="test")
             direct_result = encode_message(msg, None)
             assert codec_result == direct_result, (
                 f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
@@ -153,8 +153,9 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 msgs: Sequence[Any],
                 serializer: Any = None,
+                destination: str = "",
             ) -> list[tuple[bytes, str | None]]:
-                return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
+                return [await DefaultCodec.encode(self, m, serializer, destination=destination) for m in msgs]
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 decode_batch_mock()
@@ -184,9 +185,10 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 msgs: Sequence[Any],
                 serializer: Any = None,
+                destination: str = "",
             ) -> list[tuple[bytes, str | None]]:
                 encode_batch_mock()
-                return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
+                return [await DefaultCodec.encode(self, m, serializer, destination=destination) for m in msgs]
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 return [b.decode() if isinstance(b, bytes) else b for b in msg.body]
