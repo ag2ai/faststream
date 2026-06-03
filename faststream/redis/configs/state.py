@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Generic, TypeVar
 
@@ -19,21 +18,6 @@ from faststream._internal.utils.functions import run_in_executor
 from faststream.exceptions import IncorrectState
 
 ClientT = TypeVar("ClientT")
-
-
-@dataclass
-class SentinelConfig:
-    """Redis Sentinel connection configuration.
-
-    When set on ``RedisConnectionState``, the client is built through
-    ``Sentinel(...).master_for(...)`` so the underlying
-    ``SentinelConnectionPool`` re-discovers the current master on every
-    reconnect (high-availability / failover).
-    """
-
-    sentinels: Sequence[tuple[str, int]]
-    master_name: str
-    sentinel_kwargs: Mapping[str, Any] | None = field(default=None)
 
 
 class ConnectionState(ABC, Generic[ClientT]):
@@ -70,33 +54,42 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
-    def __init__(
-        self,
-        options: dict[str, Any] | None = None,
-        *,
-        sentinel: SentinelConfig | None = None,
-    ) -> None:
-        super().__init__(options)
-        self._sentinel = sentinel
-
     async def connect(self) -> "Redis[bytes]":
-        client: Redis[bytes]
-        if self._sentinel is not None:
-            client = self._connect_via_sentinel(self._sentinel)
-        else:
-            pool = ConnectionPool(
-                **self._options,
-                lib_name="faststream",
-                lib_version=__version__,
-            )
-            client = Redis.from_pool(pool)  # type: ignore[attr-defined]
+        pool = ConnectionPool(
+            **self._options,
+            lib_name="faststream",
+            lib_version=__version__,
+        )
+        client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
         self._client = client
         self._connected = True
 
         return client
 
-    def _connect_via_sentinel(self, sentinel: SentinelConfig) -> "Redis[bytes]":
+
+class RedisSentinelConnectionState(RedisConnectionState):
+    """Builds the client via ``Sentinel.master_for`` for HA / failover.
+
+    The underlying ``SentinelConnectionPool`` re-discovers the current master
+    on every reconnect, so publishers and stream consumers fail over for free
+    (both go through ``connection.client``).
+    """
+
+    def __init__(
+        self,
+        options: dict[str, Any] | None = None,
+        *,
+        sentinels: Sequence[tuple[str, int]],
+        master_name: str,
+        sentinel_kwargs: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(options)
+        self._sentinels = list(sentinels)
+        self._master_name = master_name
+        self._sentinel_kwargs = sentinel_kwargs
+
+    async def connect(self) -> "Redis[bytes]":
         # ``host``/``port`` describe a single node and are meaningless for
         # Sentinel — the master address is discovered from the sentinels.
         connection_kwargs = {
@@ -106,13 +99,18 @@ class RedisConnectionState(ConnectionState["Redis[bytes]"]):
         connection_kwargs["lib_version"] = __version__
 
         manager = Sentinel(
-            list(sentinel.sentinels),
-            sentinel_kwargs=dict(sentinel.sentinel_kwargs)
-            if sentinel.sentinel_kwargs is not None
+            self._sentinels,
+            sentinel_kwargs=dict(self._sentinel_kwargs)
+            if self._sentinel_kwargs is not None
             else None,
             **connection_kwargs,
         )
-        return manager.master_for(sentinel.master_name)
+        client: Redis[bytes] = manager.master_for(self._master_name)
+
+        self._client = client
+        self._connected = True
+
+        return client
 
 
 class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):

@@ -20,12 +20,10 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
-from faststream.exceptions import SetupError
 from faststream.message import gen_cor_id
 from faststream.redis.configs import (
     RedisBrokerConfig,
     RedisConnectionState,
-    SentinelConfig,
 )
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.parser import BinaryMessageFormatV1
@@ -69,10 +67,6 @@ class RedisBroker(
         protocol = kwargs.pop("protocol", None)
         message_format = kwargs.pop("message_format", BinaryMessageFormatV1)
 
-        sentinels = kwargs.pop("sentinels", None)
-        sentinel_master_name = kwargs.pop("sentinel_master_name", None)
-        sentinel_kwargs = kwargs.pop("sentinel_kwargs", None)
-
         self.message_format = message_format
 
         if specification_url is None:
@@ -91,21 +85,7 @@ class RedisBroker(
             **connection_kwargs,
         )
 
-        sentinel_config: SentinelConfig | None = None
-        if sentinels:
-            if not sentinel_master_name:
-                msg = "`sentinel_master_name` is required when `sentinels` is set."
-                raise SetupError(msg)
-            sentinel_config = SentinelConfig(
-                sentinels=list(sentinels),
-                master_name=sentinel_master_name,
-                sentinel_kwargs=sentinel_kwargs,
-            )
-
-        connection_state = RedisConnectionState(
-            connection_options,
-            sentinel=sentinel_config,
-        )
+        connection_state = RedisConnectionState(connection_options)
 
         super().__init__(
             **connection_options,

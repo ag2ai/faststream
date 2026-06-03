@@ -2,70 +2,74 @@ import pytest
 from redis.asyncio.sentinel import SentinelConnectionPool
 
 from faststream.exceptions import SetupError
-from faststream.redis import RedisBroker
-from faststream.redis.configs.state import RedisConnectionState, SentinelConfig
+from faststream.redis import RedisSentinelBroker
+from faststream.redis.configs.state import RedisSentinelConnectionState
 
 SENTINELS = [("sentinel-1", 26379), ("sentinel-2", 26379)]
 
 
 @pytest.mark.redis()
-class TestSentinelConfigUnit:
-    """Unit tests for Sentinel mode (no running Redis/Sentinel needed)."""
+class TestRedisSentinelBrokerUnit:
+    """Unit tests for RedisSentinelBroker (no running Redis/Sentinel needed)."""
 
-    def test_sentinel_mode_builds_config(self) -> None:
-        broker = RedisBroker(sentinels=SENTINELS, sentinel_master_name="mymaster")
+    def test_builds_sentinel_connection_state(self) -> None:
+        broker = RedisSentinelBroker(
+            sentinels=SENTINELS, sentinel_master_name="mymaster"
+        )
         connection = broker.config.broker_config.connection
-        assert isinstance(connection._sentinel, SentinelConfig)
-        assert connection._sentinel.master_name == "mymaster"
-        assert list(connection._sentinel.sentinels) == SENTINELS
+        assert isinstance(connection, RedisSentinelConnectionState)
+        assert connection._master_name == "mymaster"
+        assert connection._sentinels == SENTINELS
 
     def test_sentinel_kwargs_stored(self) -> None:
-        broker = RedisBroker(
+        broker = RedisSentinelBroker(
             sentinels=SENTINELS,
             sentinel_master_name="mymaster",
             sentinel_kwargs={"socket_timeout": 1.0},
         )
-        sentinel = broker.config.broker_config.connection._sentinel
-        assert sentinel is not None
-        assert sentinel.sentinel_kwargs == {"socket_timeout": 1.0}
+        connection = broker.config.broker_config.connection
+        assert connection._sentinel_kwargs == {"socket_timeout": 1.0}
 
-    def test_direct_mode_has_no_sentinel(self) -> None:
-        broker = RedisBroker("redis://localhost:6379")
-        assert broker.config.broker_config.connection._sentinel is None
+    def test_requires_sentinels(self) -> None:
+        with pytest.raises(SetupError, match="sentinels"):
+            RedisSentinelBroker(sentinels=[], sentinel_master_name="mymaster")
 
-    def test_sentinel_requires_master_name(self) -> None:
+    def test_requires_master_name(self) -> None:
         with pytest.raises(SetupError, match="sentinel_master_name"):
-            RedisBroker(sentinels=SENTINELS)
+            RedisSentinelBroker(sentinels=SENTINELS)
 
     @pytest.mark.asyncio()
     async def test_connect_builds_sentinel_pool(self) -> None:
-        state = RedisConnectionState(
-            {"host": "localhost", "port": 6379, "db": 1},
-            sentinel=SentinelConfig(sentinels=SENTINELS, master_name="mymaster"),
+        broker = RedisSentinelBroker(
+            sentinels=SENTINELS, sentinel_master_name="mymaster", db=1
         )
-        client = await state.connect()
+        connection = broker.config.broker_config.connection
+        client = await connection.connect()
         try:
             assert isinstance(client.connection_pool, SentinelConnectionPool)
             assert client.connection_pool.service_name == "mymaster"
         finally:
-            await state.disconnect()
+            await connection.disconnect()
 
 
 @pytest.mark.redis()
-class TestSentinelFastAPIRouterUnit:
-    """RedisRouter (FastAPI) must forward Sentinel params down to the broker."""
+class TestRedisSentinelFastAPIRouterUnit:
+    """RedisSentinelRouter (FastAPI) must build a Sentinel-backed broker."""
 
-    def test_router_forwards_sentinel_to_broker(self) -> None:
-        from faststream.redis.fastapi import RedisRouter
+    def test_router_builds_sentinel_broker(self) -> None:
+        from faststream.redis.fastapi import RedisSentinelRouter
 
-        router = RedisRouter(sentinels=SENTINELS, sentinel_master_name="mymaster")
+        router = RedisSentinelRouter(
+            sentinels=SENTINELS, sentinel_master_name="mymaster"
+        )
+        assert isinstance(router.broker, RedisSentinelBroker)
         connection = router.broker.config.broker_config.connection
-        assert isinstance(connection._sentinel, SentinelConfig)
-        assert connection._sentinel.master_name == "mymaster"
-        assert list(connection._sentinel.sentinels) == SENTINELS
+        assert isinstance(connection, RedisSentinelConnectionState)
+        assert connection._master_name == "mymaster"
+        assert connection._sentinels == SENTINELS
 
-    def test_router_direct_mode_has_no_sentinel(self) -> None:
-        from faststream.redis.fastapi import RedisRouter
+    def test_router_requires_master_name(self) -> None:
+        from faststream.redis.fastapi import RedisSentinelRouter
 
-        router = RedisRouter("redis://localhost:6379")
-        assert router.broker.config.broker_config.connection._sentinel is None
+        with pytest.raises(SetupError, match="sentinel_master_name"):
+            RedisSentinelRouter(sentinels=SENTINELS)
