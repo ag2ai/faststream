@@ -151,7 +151,9 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
             )
         else:
             encoded_batch = [
-                await self.codec.encode(body, self.serializer, destination=cmd.destination)
+                await self.codec.encode(
+                    body, self.serializer, destination=cmd.destination
+                )
                 for body in cmd.batch_bodies
             ]
 

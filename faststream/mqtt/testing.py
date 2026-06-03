@@ -287,7 +287,9 @@ async def build_message(
     """
     if codec is None:
         codec = DefaultCodec()
-    payload, content_type = await codec.encode(message, serializer=serializer, destination=topic)
+    payload, content_type = await codec.encode(
+        message, serializer=serializer, destination=topic
+    )
 
     if version == "3.1.1":
         return zmqtt.Message(
