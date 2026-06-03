@@ -115,7 +115,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
             # so a keyless None still goes through the codec as b""
             message, content_type = None, None
         else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+            message, content_type = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -147,11 +147,11 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         if isinstance(self.codec, BatchCodecProto):
             encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
+                cmd.batch_bodies, self.serializer, destination=cmd.destination
             )
         else:
             encoded_batch = [
-                await self.codec.encode(body, self.serializer)
+                await self.codec.encode(body, self.serializer, destination=cmd.destination)
                 for body in cmd.batch_bodies
             ]
 

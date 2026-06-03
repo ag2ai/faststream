@@ -142,7 +142,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         if cmd.body is None:
             message, content_type = None, None
         else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+            message, content_type = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -168,11 +168,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         if isinstance(self.codec, BatchCodecProto):
             encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
+                cmd.batch_bodies, self.serializer, destination=cmd.destination
             )
         else:
             encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
+                await self.codec.encode(msg, self.serializer, destination=cmd.destination) for msg in cmd.batch_bodies
             ]
 
         for message_position, (message, content_type) in enumerate(encoded_batch):

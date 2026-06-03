@@ -276,7 +276,7 @@ async def build_message(
 ) -> "PatchedMessage":
     if codec is None:
         codec = DefaultCodec()
-    msg, content_type = await codec.encode(message, serializer=serializer)
+    msg, content_type = await codec.encode(message, serializer=serializer, destination=subject)
     return PatchedMessage(
         _client=None,  # type: ignore[arg-type]
         subject=subject,
