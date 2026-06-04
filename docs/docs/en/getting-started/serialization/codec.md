@@ -26,45 +26,25 @@ class CodecProto(Protocol):
     ) -> tuple[bytes, str | None]: ...
 ```
 
-- **`decode`** — receives a `StreamMessage` with raw bytes in `msg.body` and returns the decoded Python value. You can mutate `msg.body` before delegating to `decode_message`.
-- **`encode`** — receives a `PublishCommand` with the outgoing message body and metadata, and an optional serializer. Returns a `(bytes, content_type)` tuple.
-- **`cmd.destination`** — the target topic, subject, or queue name. Useful for codecs that need destination-specific behavior (e.g. Schema Registry topic-to-schema resolution).
+- **`decode`** — receives a `StreamMessage` with raw bytes in `msg.body` and returns the decoded Python value.
+- **`encode`** — receives a `PublishCommand` containing the message body, destination, and headers. Returns a `(bytes, content_type)` tuple. Access the payload via `cmd.body` and the target topic/subject/queue via `cmd.destination`.
 
-If no codec is set, `DefaultCodec` is used automatically. It handles JSON objects, plain text, and raw bytes without any configuration.
+If no codec is set, `DefaultCodec` is used automatically. It handles JSON objects, plain text, and raw bytes.
 
-## Compression Example
+## Example: Schema Registry
 
-A Gzip codec that compresses outgoing messages and decompresses incoming ones:
+A Confluent Avro codec that encodes and decodes messages using the [Confluent wire format](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#wire-format){target="_blank"} (magic byte + schema ID + Avro payload). Requires `fastavro` and `confluent-kafka`:
 
-=== "AIOKafka"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_kafka.py !}
-    ```
+```bash
+pip install fastavro confluent-kafka
+```
 
-=== "Confluent"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_confluent.py !}
-    ```
+```python linenums="1" hl_lines="22-66 68-76"
+{!> docs_src/getting_started/serialization/codec_schema_registry_kafka.py !}
+```
 
-=== "RabbitMQ"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_rabbit.py !}
-    ```
-
-=== "NATS"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_nats.py !}
-    ```
-
-=== "Redis"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_redis.py !}
-    ```
-
-=== "MQTT"
-    ```python linenums="1" hl_lines="15-27 30"
-    {!> docs_src/getting_started/serialization/codec_gzip_mqtt.py !}
-    ```
+!!! note
+    The codec fetches and caches schemas from the registry at startup and on first encounter. The `subject` follows Confluent's naming convention: `{topic}-value`.
 
 ## Priority
 

@@ -135,7 +135,10 @@ class CodecTestcase(BaseTestcaseConfig):
 
         for msg in test_cases:
             codec_result = await codec.encode(
-                PublishCommand(body=msg, destination="test", _publish_type=PublishType.PUBLISH), None
+                PublishCommand(
+                    body=msg, destination="test", _publish_type=PublishType.PUBLISH
+                ),
+                None,
             )
             direct_result = encode_message(msg, None)
             assert codec_result == direct_result, (

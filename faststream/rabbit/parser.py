@@ -86,7 +86,9 @@ class AioPikaParser:
         from faststream.response.publish_type import PublishType
         from faststream.response.response import PublishCommand as _BaseCmd
 
-        publish_cmd = _BaseCmd(body=message, destination=destination, _publish_type=PublishType.PUBLISH)
+        publish_cmd = _BaseCmd(
+            body=message, destination=destination, _publish_type=PublishType.PUBLISH
+        )
         message_body, generated_content_type = await (codec or DefaultCodec()).encode(
             publish_cmd, serializer
         )
