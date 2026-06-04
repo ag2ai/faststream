@@ -71,9 +71,7 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 - [Integrations](#http-frameworks-integrations)
   - [Any Framework](#any-framework)
   - [**FastAPI** Plugin](#fastapi-plugin)
-- [Benchmarks](#benchmarks)
 - [Stay in touch](#stay-in-touch)
-- [Contributors](#contributors)
 
 </details>
 
