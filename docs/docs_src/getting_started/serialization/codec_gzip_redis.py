@@ -8,8 +8,9 @@ from faststream.message.utils import decode_message, encode_message
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import DecodedMessage, SendableMessage
+    from faststream._internal.basic_types import DecodedMessage
     from faststream.message import StreamMessage
+    from faststream.response.response import PublishCommand
 
 
 class GzipCodec:
@@ -19,11 +20,10 @@ class GzipCodec:
 
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-        destination: str = "",
     ) -> tuple[bytes, str | None]:
-        raw_bytes, _ = encode_message(msg, serializer)
+        raw_bytes, _ = encode_message(cmd.body, serializer)
         return gzip.compress(raw_bytes), "application/gzip"
 
 

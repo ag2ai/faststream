@@ -7,8 +7,9 @@ from faststream.message.utils import decode_message, encode_message
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import DecodedMessage, SendableMessage
+    from faststream._internal.basic_types import DecodedMessage
     from faststream.message import StreamMessage
+    from faststream.response.response import PublishCommand
 
 MsgType = TypeVar("MsgType")
 
@@ -64,9 +65,8 @@ class CodecProto(Protocol):
     @abstractmethod
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-        destination: str = "",
     ) -> tuple[bytes, str | None]: ...
 
 
@@ -75,9 +75,8 @@ class BatchCodecProto(Protocol):
     @abstractmethod
     async def encode_batch(
         self,
-        msgs: Sequence["SendableMessage"],
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-        destination: str = "",
     ) -> list[tuple[bytes, str | None]]: ...
 
     @abstractmethod
@@ -93,8 +92,7 @@ class DefaultCodec:
 
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-        destination: str = "",
     ) -> tuple[bytes, str | None]:
-        return encode_message(msg, serializer)
+        return encode_message(cmd.body, serializer)

@@ -17,6 +17,8 @@ from faststream.nats.broker import NatsBroker
 from faststream.nats.parser import NatsParser
 from faststream.nats.publisher.producer import NatsFastProducer
 from faststream.nats.schemas.js_stream import is_subject_match_wildcard
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -276,9 +278,12 @@ async def build_message(
 ) -> "PatchedMessage":
     if codec is None:
         codec = DefaultCodec()
-    msg, content_type = await codec.encode(
-        message, serializer=serializer, destination=subject
+    publish_cmd = _BasePublishCommand(
+        body=message,
+        destination=subject,
+        _publish_type=PublishType.PUBLISH,
     )
+    msg, content_type = await codec.encode(publish_cmd, serializer=serializer)
     return PatchedMessage(
         _client=None,  # type: ignore[arg-type]
         subject=subject,

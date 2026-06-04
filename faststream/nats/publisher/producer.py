@@ -90,9 +90,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        payload, content_type = await self.codec.encode(
-            cmd.body, self.serializer, destination=cmd.destination
-        )
+        payload, content_type = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -108,9 +106,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = await self.codec.encode(
-            cmd.body, self.serializer, destination=cmd.destination
-        )
+        payload, content_type = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -161,9 +157,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> "PubAck":
-        payload, content_type = await self.codec.encode(
-            cmd.body, self.serializer, destination=cmd.destination
-        )
+        payload, content_type = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -180,9 +174,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = await self.codec.encode(
-            cmd.body, self.serializer, destination=cmd.destination
-        )
+        payload, content_type = await self.codec.encode(cmd, self.serializer)
 
         reply_to = self.__state.connection._nc.new_inbox()
         future: asyncio.Future[Msg] = asyncio.Future()

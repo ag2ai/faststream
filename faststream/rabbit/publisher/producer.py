@@ -199,6 +199,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         message = await AioPikaParser.encode_message(
             message=message,
+            destination=routing_key,
             serializer=self.serializer,
             codec=self.codec,
             id_generator=self.id_generator,

@@ -103,9 +103,9 @@ class CodecTestcase(BaseTestcaseConfig):
         mock = MagicMock()
 
         class TrackingCodec(DefaultCodec):
-            async def encode(self, msg, serializer=None, destination=""):
+            async def encode(self, cmd, serializer=None):
                 mock()
-                return await super().encode(msg, serializer, destination=destination)
+                return await super().encode(cmd, serializer)
 
         broker = self.get_broker(codec=TrackingCodec())
 
@@ -121,6 +121,9 @@ class CodecTestcase(BaseTestcaseConfig):
         assert mock.called, "codec.encode was not called on publish"
 
     async def test_default_codec_encode_matches_encode_message(self, queue: str) -> None:
+        from faststream.response.publish_type import PublishType
+        from faststream.response.response import PublishCommand
+
         codec = DefaultCodec()
 
         test_cases = [
@@ -131,7 +134,9 @@ class CodecTestcase(BaseTestcaseConfig):
         ]
 
         for msg in test_cases:
-            codec_result = await codec.encode(msg, None, destination="test")
+            codec_result = await codec.encode(
+                PublishCommand(body=msg, destination="test", _publish_type=PublishType.PUBLISH), None
+            )
             direct_result = encode_message(msg, None)
             assert codec_result == direct_result, (
                 f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
@@ -151,15 +156,22 @@ class BatchCodecTestcase(BaseTestcaseConfig):
         class TrackingBatchCodec(DefaultCodec):
             async def encode_batch(
                 self,
-                msgs: Sequence[Any],
+                cmd,
                 serializer: Any = None,
-                destination: str = "",
             ) -> list[tuple[bytes, str | None]]:
+                from faststream.response.response import PublishCommand
+
                 return [
                     await DefaultCodec.encode(
-                        self, m, serializer, destination=destination
+                        self,
+                        PublishCommand(
+                            body=body,
+                            destination=cmd.destination,
+                            _publish_type=cmd.publish_type,
+                        ),
+                        serializer,
                     )
-                    for m in msgs
+                    for body in cmd.batch_bodies
                 ]
 
             async def decode_batch(self, msg: Any) -> list[Any]:
@@ -188,16 +200,23 @@ class BatchCodecTestcase(BaseTestcaseConfig):
         class TrackingBatchCodec(DefaultCodec):
             async def encode_batch(
                 self,
-                msgs: Sequence[Any],
+                cmd,
                 serializer: Any = None,
-                destination: str = "",
             ) -> list[tuple[bytes, str | None]]:
+                from faststream.response.response import PublishCommand
+
                 encode_batch_mock()
                 return [
                     await DefaultCodec.encode(
-                        self, m, serializer, destination=destination
+                        self,
+                        PublishCommand(
+                            body=body,
+                            destination=cmd.destination,
+                            _publish_type=cmd.publish_type,
+                        ),
+                        serializer,
                     )
-                    for m in msgs
+                    for body in cmd.batch_bodies
                 ]
 
             async def decode_batch(self, msg: Any) -> list[Any]:

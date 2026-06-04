@@ -31,6 +31,7 @@ class BinaryMessageFormatV1(MessageFormat):
         reply_to: str | None,
         headers: dict[str, Any] | None,
         correlation_id: str,
+        destination: str = "",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> bytes:
@@ -39,6 +40,7 @@ class BinaryMessageFormatV1(MessageFormat):
             reply_to=reply_to,
             headers=headers,
             correlation_id=correlation_id,
+            destination=destination,
             serializer=serializer,
             codec=codec,
         )
