@@ -186,6 +186,7 @@ async def build_message(
     correlation_id = correlation_id or gen_cor_id()
     msg = await AioPikaParser.encode_message(
         message=message,
+        destination=routing,
         persist=persist,
         reply_to=reply_to,
         headers=headers,

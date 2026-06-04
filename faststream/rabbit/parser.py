@@ -60,6 +60,7 @@ class AioPikaParser:
     async def encode_message(
         message: "AioPikaSendableMessage",
         *,
+        destination: str = "",
         persist: bool = False,
         reply_to: str | None = None,
         headers: Optional["HeadersType"] = None,
@@ -80,8 +81,12 @@ class AioPikaParser:
         if isinstance(message, Message):
             return message
 
+        from faststream.response.publish_type import PublishType
+        from faststream.response.response import PublishCommand as _BaseCmd
+
+        publish_cmd = _BaseCmd(body=message, destination=destination, _publish_type=PublishType.PUBLISH)
         message_body, generated_content_type = await (codec or DefaultCodec()).encode(
-            message, serializer
+            publish_cmd, serializer
         )
 
         delivery_mode = (

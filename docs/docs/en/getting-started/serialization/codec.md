@@ -21,15 +21,14 @@ class CodecProto(Protocol):
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage": ...
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-        destination: str = "",
     ) -> tuple[bytes, str | None]: ...
 ```
 
 - **`decode`** — receives a `StreamMessage` with raw bytes in `msg.body` and returns the decoded Python value. You can mutate `msg.body` before delegating to `decode_message`.
-- **`encode`** — receives the outgoing message, an optional serializer, and the destination topic/subject/queue. Returns a `(bytes, content_type)` tuple.
-- **`destination`** — the target topic, subject, or queue name. Useful for codecs that need destination-specific behavior (e.g. Schema Registry topic-to-schema resolution).
+- **`encode`** — receives a `PublishCommand` with the outgoing message body and metadata, and an optional serializer. Returns a `(bytes, content_type)` tuple.
+- **`cmd.destination`** — the target topic, subject, or queue name. Useful for codecs that need destination-specific behavior (e.g. Schema Registry topic-to-schema resolution).
 
 If no codec is set, `DefaultCodec` is used automatically. It handles JSON objects, plain text, and raw bytes without any configuration.
 

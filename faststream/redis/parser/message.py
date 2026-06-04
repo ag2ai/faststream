@@ -35,11 +35,16 @@ class MessageFormat(ABC):
         reply_to: str | None,
         headers: dict[str, Any] | None,
         correlation_id: str,
+        destination: str = "",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
+        from faststream.response.publish_type import PublishType
+        from faststream.response.response import PublishCommand as _BaseCmd
+
         codec_instance = codec or DefaultCodec()
-        payload, content_type = await codec_instance.encode(message, serializer)  # type: ignore[arg-type]
+        publish_cmd = _BaseCmd(body=message, destination=destination, _publish_type=PublishType.PUBLISH)
+        payload, content_type = await codec_instance.encode(publish_cmd, serializer)
 
         headers_to_send = {
             "correlation_id": correlation_id,

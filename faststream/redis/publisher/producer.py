@@ -63,6 +63,7 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
                 correlation_id=cmd.correlation_id or "",
                 reply_to=cmd.reply_to,
                 headers=cmd.headers,
+                destination=cmd.destination,
                 serializer=self.serializer,
                 codec=self.codec,
             )
@@ -115,6 +116,7 @@ class RedisFastProducer(BaseRedisFastProducer):
             reply_to=cmd.reply_to,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id or "",
+            destination=cmd.destination,
             serializer=self.serializer,
             codec=self.codec,
         )
@@ -161,6 +163,7 @@ class RedisFastProducer(BaseRedisFastProducer):
                 reply_to=reply_to,
                 headers=cmd.headers,
                 correlation_id=cmd.correlation_id or "",
+                destination=cmd.destination,
                 serializer=self.serializer,
                 codec=self.codec,
             )
@@ -218,6 +221,7 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
             reply_to=cmd.reply_to,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id or "",
+            destination=cmd.destination,
             serializer=self.serializer,
             codec=self.codec,
         )
@@ -252,6 +256,7 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
                 reply_to=reply_to,
                 headers=cmd.headers,
                 correlation_id=cmd.correlation_id or "",
+                destination=cmd.destination,
                 serializer=self.serializer,
                 codec=self.codec,
             )

@@ -230,6 +230,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            destination=cmd.destination,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
@@ -258,6 +259,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            destination=cmd.destination,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
@@ -362,6 +364,7 @@ async def build_message(
     message_format: type["MessageFormat"],
     reply_to: str = "",
     headers: dict[str, Any] | None = None,
+    destination: str = "",
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
 ) -> bytes:
@@ -370,6 +373,7 @@ async def build_message(
         reply_to=reply_to,
         headers=headers,
         correlation_id=correlation_id,
+        destination=destination,
         serializer=serializer,
         codec=codec,
     )

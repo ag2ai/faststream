@@ -22,6 +22,8 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -195,12 +197,17 @@ class FakeProducer(AsyncConfluentFastProducer):
         serializer = self.broker.config.fd_config._serializer
 
         if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(
-                cmd.batch_bodies, serializer, destination=cmd.destination
-            )
+            encoded = await self.codec.encode_batch(cmd, serializer)
         else:
             encoded = [
-                await self.codec.encode(body, serializer, destination=cmd.destination)
+                await self.codec.encode(
+                    _BasePublishCommand(
+                        body=body,
+                        destination=cmd.destination,
+                        _publish_type=cmd.publish_type,
+                    ),
+                    serializer,
+                )
                 for body in cmd.batch_bodies
             ]
 
@@ -353,7 +360,8 @@ async def build_message(
         msg, content_type = None, None
     else:
         codec_instance = codec or DefaultCodec()
-        msg, content_type = await codec_instance.encode(message, serializer)
+        publish_cmd = _BasePublishCommand(body=message, destination=topic, _publish_type=PublishType.PUBLISH)
+        msg, content_type = await codec_instance.encode(publish_cmd, serializer)
     k = key or b""
     headers = {
         "content-type": content_type or "",

@@ -146,13 +146,14 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer, destination=cmd.destination
-            )
+            encoded_batch = await self.codec.encode_batch(cmd, self.serializer)
         else:
+            from faststream.response.response import PublishCommand as _BaseCmd
+
             encoded_batch = [
                 await self.codec.encode(
-                    body, self.serializer, destination=cmd.destination
+                    _BaseCmd(body=body, destination=cmd.destination, _publish_type=cmd.publish_type),
+                    self.serializer,
                 )
                 for body in cmd.batch_bodies
             ]
