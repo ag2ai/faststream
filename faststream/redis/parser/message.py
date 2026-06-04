@@ -43,7 +43,9 @@ class MessageFormat(ABC):
         from faststream.response.response import PublishCommand as _BaseCmd
 
         codec_instance = codec or DefaultCodec()
-        publish_cmd = _BaseCmd(body=message, destination=destination, _publish_type=PublishType.PUBLISH)
+        publish_cmd = _BaseCmd(
+            body=message, destination=destination, _publish_type=PublishType.PUBLISH
+        )
         payload, content_type = await codec_instance.encode(publish_cmd, serializer)
 
         headers_to_send = {
@@ -73,6 +75,7 @@ class MessageFormat(ABC):
         reply_to: str | None,
         headers: dict[str, Any] | None,
         correlation_id: str,
+        destination: str = "",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> bytes:

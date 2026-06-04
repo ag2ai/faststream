@@ -152,7 +152,11 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
             encoded_batch = [
                 await self.codec.encode(
-                    _BaseCmd(body=body, destination=cmd.destination, _publish_type=cmd.publish_type),
+                    _BaseCmd(
+                        body=body,
+                        destination=cmd.destination,
+                        _publish_type=cmd.publish_type,
+                    ),
                     self.serializer,
                 )
                 for body in cmd.batch_bodies
