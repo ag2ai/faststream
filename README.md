@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Trendshift](https://trendshift.io/api/badge/repositories/3043)](https://trendshift.io/repositories/3043)
+[![Trendshift](https://trendshift.io/api/badge/repositories/19979)](https://trendshift.io/repositories/19979)
 
 [![Test Passing](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main)](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml)
 [![Coverage](https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream)
@@ -57,21 +57,24 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 <details>
 <summary><b>Table of Contents</b></summary>
 
-- [Features](#features)
-- [Versioning Policy](#versioning-policy)
-- [Installation](#installation)
-- [Quick Start](#writing-app-code)
-  - [Pydantic serialization](#pydantic-serialization)
-  - [Msgspec serialization](#msgspec-serialization)
-  - [Unified API](#unified-api)
-- [Testing](#testing-the-service)
-- [CLI](#running-the-application)
-- [AsyncAPI Documentation](#project-documentation)
-- [Dependencies](#dependencies)
-- [Integrations](#http-frameworks-integrations)
-  - [Any Framework](#any-framework)
-  - [**FastAPI** Plugin](#fastapi-plugin)
-- [Stay in touch](#stay-in-touch)
+- [FastStream](#faststream)
+  - [Features](#features)
+  - [Versioning Policy](#versioning-policy)
+  - [Installation](#installation)
+  - [Writing app code](#writing-app-code)
+    - [Pydantic serialization](#pydantic-serialization)
+    - [Msgspec serialization](#msgspec-serialization)
+    - [Unified API](#unified-api)
+  - [Testing the service](#testing-the-service)
+  - [Running the application](#running-the-application)
+  - [Project Documentation](#project-documentation)
+  - [Dependencies](#dependencies)
+  - [HTTP Frameworks integrations](#http-frameworks-integrations)
+    - [Any Framework](#any-framework)
+    - [**FastAPI** Plugin](#fastapi-plugin)
+  - [Benchmarks](#benchmarks)
+  - [Stay in touch](#stay-in-touch)
+  - [Contributors](#contributors)
 
 </details>
 
