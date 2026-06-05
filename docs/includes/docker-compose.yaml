@@ -79,3 +79,10 @@ services:
       - "1883:1883"
     security_opt:
       - no-new-privileges:true
+
+  localstack:
+    image: localstack/localstack:4
+    ports:
+      - "4566:4566"
+    security_opt:
+      - no-new-privileges:true

@@ -80,6 +80,19 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  localstack:
+    image: localstack/localstack:4
+    ports:
+      - "4566:4566"
+    healthcheck:
+      test: 'curl -s http://localhost:4566/_localstack/health | grep -q ''"sqs": "available"'' || exit 1'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
   faststream:
     build: .
     volumes:
