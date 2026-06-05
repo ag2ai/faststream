@@ -103,3 +103,16 @@ require_mqtt = pytest.mark.skipif(
     not HAS_MQTT,
     reason="requires zmqtt",
 )
+
+
+try:
+    from faststream.sqs import SQSBroker  # noqa: F401
+except ImportError:
+    HAS_SQS = False
+else:
+    HAS_SQS = True
+
+require_sqs = pytest.mark.skipif(
+    not HAS_SQS,
+    reason="requires aiobotocore",
+)
