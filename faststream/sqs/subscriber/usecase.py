@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
-    from faststream.sqs.broker.config import SQSBrokerConfig
+    from faststream.sqs.configs import SQSBrokerConfig
     from faststream.sqs.message import SQSMessage, SQSRawMessage
 
     from .config import SQSSubscriberConfig
@@ -78,8 +78,8 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         return self.build_log_context(message=message, queue=self.queue)
 
     async def _resolve_queue_url(self) -> str:
-        if self._declare is not None:
-            return await self._outer_config.declare_queue(self._declare)
+        if self._declare.declare:
+            return await self._outer_config.declare_queue(self._declare, name=self.queue)
         return await self._outer_config.get_queue_url(self.queue)
 
     @override

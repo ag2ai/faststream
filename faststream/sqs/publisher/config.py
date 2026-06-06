@@ -4,7 +4,7 @@ from faststream._internal.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 
 
 @dataclass(kw_only=True)

@@ -48,12 +48,17 @@ class SQSBrokerConfig(BrokerConfig):
         self._queue_urls[queue] = url
         return url
 
-    async def declare_queue(self, queue: "SQSQueue") -> str:
-        """Create the queue if needed and cache its URL."""
+    async def declare_queue(self, queue: "SQSQueue", *, name: str | None = None) -> str:
+        """Create the queue if needed and cache its URL.
+
+        ``name`` overrides ``queue.queue_name`` so a router prefix can be applied
+        without mutating the queue object.
+        """
+        queue_name = name or queue.queue_name
         resp = await self.client.create_queue(
-            QueueName=queue.queue_name,
+            QueueName=queue_name,
             Attributes=queue.to_attributes(),  # type: ignore[arg-type]
         )
         url = resp["QueueUrl"]
-        self._queue_urls[queue.queue_name] = url
+        self._queue_urls[queue_name] = url
         return url

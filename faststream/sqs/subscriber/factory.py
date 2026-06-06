@@ -9,7 +9,7 @@ from .usecase import SQSSubscriber
 
 if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
-    from faststream.sqs.broker.config import SQSBrokerConfig
+    from faststream.sqs.configs import SQSBrokerConfig
 
 
 def create_subscriber(
@@ -27,12 +27,12 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
 ) -> SQSSubscriber:
-    declare: SQSQueue | None = queue if isinstance(queue, SQSQueue) else None
-    queue_name = queue.queue_name if isinstance(queue, SQSQueue) else queue
+    queue_obj = queue if isinstance(queue, SQSQueue) else SQSQueue(name=queue)
+    queue_name = queue_obj.queue_name
 
     subscriber_config = SQSSubscriberConfig(
         queue=queue_name,
-        declare=declare,
+        declare=queue_obj,
         wait_time_seconds=wait_time_seconds,
         max_messages=max_messages,
         visibility_timeout=visibility_timeout,

@@ -8,7 +8,7 @@ from faststream._internal.broker.router import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 
 from .registrator import SQSRegistrator
 

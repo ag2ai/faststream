@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherSpecification
     from faststream._internal.types import PublisherMiddleware
     from faststream.response.response import PublishCommand
-    from faststream.sqs.broker.config import SQSBrokerConfig
+    from faststream.sqs.configs import SQSBrokerConfig
 
     from .config import SQSPublisherConfig
 
@@ -30,11 +30,15 @@ class SQSPublisher(PublisherUsecase):
     ) -> None:
         super().__init__(config, specification)
 
-        self.queue = config.queue
+        self._queue = config.queue
         self.headers = config.headers or {}
         self.group_id = config.group_id
         self.deduplication_id = config.deduplication_id
         self.delay_seconds = config.delay_seconds
+
+    @property
+    def queue(self) -> str:
+        return f"{self._outer_config.prefix}{self._queue}"
 
     @override
     async def publish(

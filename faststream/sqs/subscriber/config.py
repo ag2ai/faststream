@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
@@ -7,7 +7,7 @@ from faststream._internal.configs import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 
 if TYPE_CHECKING:
     from faststream.sqs.schemas import SQSQueue
@@ -23,7 +23,7 @@ class SQSSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "SQSBrokerConfig" = field(default_factory=SQSBrokerConfig)
 
     queue: str
-    declare: Optional["SQSQueue"] = None
+    declare: "SQSQueue"
     wait_time_seconds: int = 5
     max_messages: int = 10
     visibility_timeout: int | None = None

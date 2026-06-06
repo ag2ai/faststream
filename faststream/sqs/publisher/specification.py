@@ -6,7 +6,7 @@ from faststream.specification.schema.bindings import (
     OperationBinding,
     sqs as sqs_bindings,
 )
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 
 from .config import SQSPublisherSpecificationConfig
 

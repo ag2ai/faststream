@@ -80,7 +80,7 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  localstack:
+  sqs:
     image: localstack/localstack:4
     ports:
       - "4566:4566"

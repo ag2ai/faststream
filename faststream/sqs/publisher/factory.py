@@ -7,7 +7,7 @@ from .specification import SQSPublisherSpecification
 from .usecase import SQSPublisher
 
 if TYPE_CHECKING:
-    from faststream.sqs.broker.config import SQSBrokerConfig
+    from faststream.sqs.configs import SQSBrokerConfig
 
 
 def create_publisher(
@@ -17,7 +17,7 @@ def create_publisher(
     group_id: str | None,
     deduplication_id: str | None,
     delay_seconds: int,
-    broker_config: "SQSBrokerConfig",
+    config: "SQSBrokerConfig",
     # AsyncAPI args
     schema_: Any | None,
     title_: str | None,
@@ -32,11 +32,11 @@ def create_publisher(
         group_id=group_id,
         deduplication_id=deduplication_id,
         delay_seconds=delay_seconds,
-        _outer_config=broker_config,
+        _outer_config=config,
     )
 
     specification = SQSPublisherSpecification(
-        _outer_config=broker_config,
+        _outer_config=config,
         specification_config=SQSPublisherSpecificationConfig(
             queue=queue_name,
             schema_=schema_,

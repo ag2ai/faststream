@@ -16,7 +16,7 @@ from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 from faststream.sqs.message import SQSRawMessage
 from faststream.sqs.publisher.producer import SQSFastProducer
 from faststream.sqs.response import SQSBatchPublishCommand, SQSPublishCommand

@@ -1,15 +1,20 @@
+from faststream._internal.parser import ParserProto
+from faststream._internal.testing.app import TestApp
+
+SQSParserType = ParserProto["MessageTypeDef"]  # type: ignore[name-defined]
+
 try:
-    from faststream.sqs.annotations import SQSMessage
-    from faststream.sqs.broker.broker import SQSBroker
-    from faststream.sqs.broker.router import SQSPublisher, SQSRoute, SQSRouter
-    from faststream.sqs.response import SQSResponse
-    from faststream.sqs.schemas import (
+    from .annotations import SQSMessage
+    from .broker.broker import SQSBroker
+    from .broker.router import SQSPublisher, SQSRoute, SQSRouter
+    from .response import SQSPublishCommand, SQSResponse
+    from .schemas import (
         FifoQueue,
         RedriveAllowPolicy,
         RedrivePolicy,
         SQSQueue,
     )
-    from faststream.sqs.testing import TestSQSBroker
+    from .testing import TestSQSBroker
 
 except ImportError as e:
     if "aiobotocore" not in e.msg and "botocore" not in e.msg:
@@ -25,10 +30,13 @@ __all__ = (
     "RedrivePolicy",
     "SQSBroker",
     "SQSMessage",
+    "SQSParserType",
+    "SQSPublishCommand",
     "SQSPublisher",
     "SQSQueue",
     "SQSResponse",
     "SQSRoute",
     "SQSRouter",
+    "TestApp",
     "TestSQSBroker",
 )

@@ -41,6 +41,9 @@ class SQSQueue(BaseModel):
     name: str
     # whether this is a FIFO queue; excluded from the attributes dump
     fifo: bool = Field(default=False, exclude=True)
+    # whether to create the queue automatically or just connect to it;
+    # excluded from the attributes dump
+    declare: bool = Field(default=True, exclude=True)
 
     delay_seconds: int | None = Field(default=None, alias="DelaySeconds", ge=0, le=900)
     maximum_message_size: int | None = Field(

@@ -5,8 +5,9 @@ from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
-from faststream.sqs.broker.config import SQSBrokerConfig
+from faststream.sqs.configs import SQSBrokerConfig
 from faststream.sqs.message import SQSRawMessage
 from faststream.sqs.publisher.factory import create_publisher
 from faststream.sqs.subscriber.factory import create_subscriber
@@ -121,7 +122,7 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
             group_id=group_id,
             deduplication_id=deduplication_id,
             delay_seconds=delay_seconds,
-            broker_config=cast("SQSBrokerConfig", self.config),
+            config=cast("SQSBrokerConfig", self.config),
             title_=title,
             description_=description,
             schema_=schema,
@@ -145,7 +146,7 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
                 f"Router must be an instance of SQSRegistrator, "
                 f"got {type(router).__name__} instead."
             )
-            raise TypeError(msg)
+            raise SetupError(msg)
 
         super().include_router(
             router,
