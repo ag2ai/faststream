@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.parser import DefaultCodec
@@ -55,10 +55,13 @@ class SQSBrokerConfig(BrokerConfig):
         without mutating the queue object.
         """
         queue_name = name or queue.queue_name
-        resp = await self.client.create_queue(
-            QueueName=queue_name,
-            Attributes=queue.to_attributes(),  # type: ignore[arg-type]
-        )
+        create_kwargs: dict[str, Any] = {
+            "QueueName": queue_name,
+            "Attributes": queue.to_attributes(),
+        }
+        if queue.tags:
+            create_kwargs["tags"] = queue.tags
+        resp = await self.client.create_queue(**create_kwargs)
         url = resp["QueueUrl"]
         self._queue_urls[queue_name] = url
         return url

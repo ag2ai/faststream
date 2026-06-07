@@ -84,7 +84,9 @@ class TestSQSBroker(TestBroker[SQSBroker]):
         fake_client.create_queue = AsyncMock(side_effect=_echo_url)
         fake_client.receive_message = AsyncMock(side_effect=_idle)
         fake_client.delete_message = AsyncMock(return_value={})
+        fake_client.delete_message_batch = AsyncMock(return_value={})
         fake_client.change_message_visibility = AsyncMock(return_value={})
+        fake_client.change_message_visibility_batch = AsyncMock(return_value={})
 
         broker.config.broker_config._client = fake_client
         return fake_client
@@ -129,7 +131,8 @@ class FakeProducer(SQSFastProducer):
 
         for handler in self.subscribers:
             if _queue_matches(handler.queue, cmd.destination):
-                await handler.process_message(msg)
+                msg_to_send = [msg] if handler._batch else msg
+                await handler.process_message(msg_to_send)
 
     @override
     async def publish_batch(self, cmd: "SQSPublishCommand") -> None:
@@ -160,8 +163,9 @@ class FakeProducer(SQSFastProducer):
             if not _queue_matches(handler.queue, cmd.destination):
                 continue
 
+            msg_to_send = [msg] if handler._batch else msg
             with anyio.fail_after(cmd.timeout or 30.0):
-                result = await handler.process_message(msg)
+                result = await handler.process_message(msg_to_send)
 
             return await build_message(
                 message=result.body,

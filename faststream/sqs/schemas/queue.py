@@ -63,9 +63,15 @@ class SQSQueue(BaseModel):
         default=None, alias="RedriveAllowPolicy"
     )
     kms_master_key_id: str | None = Field(default=None, alias="KmsMasterKeyId")
+    kms_data_key_reuse_period_seconds: int | None = Field(
+        default=None, alias="KmsDataKeyReusePeriodSeconds", ge=60, le=86400
+    )
     sqs_managed_sse_enabled: bool | None = Field(
         default=None, alias="SqsManagedSseEnabled"
     )
+
+    # Cost-allocation tags; passed to ``create_queue(tags=...)``, not an attribute.
+    tags: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     model_config = {"populate_by_name": True}
 

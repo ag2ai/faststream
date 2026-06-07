@@ -35,8 +35,13 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         calls: "CallsCollection[SQSRawMessage]",
     ) -> None:
         self._sqs_parser = SQSParser()
-        config.parser = self._sqs_parser.parse_message
-        config.decoder = self._sqs_parser.decode_message
+        self._batch = config.batch
+        if config.batch:
+            config.parser = self._sqs_parser.parse_batch
+            config.decoder = self._sqs_parser.decode_batch
+        else:
+            config.parser = self._sqs_parser.parse_message
+            config.decoder = self._sqs_parser.decode_message
         super().__init__(config, specification, calls)
 
         self._queue = config.queue
@@ -88,8 +93,12 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
 
         self._queue_url = await self._resolve_queue_url()
         self._sqs_parser.bind(self._outer_config.client, self._queue_url)
-        self._parser = self._sqs_parser.parse_message
-        self._decoder = self._sqs_parser.decode_message
+        if self._batch:
+            self._parser = self._sqs_parser.parse_batch
+            self._decoder = self._sqs_parser.decode_batch
+        else:
+            self._parser = self._sqs_parser.parse_message
+            self._decoder = self._sqs_parser.decode_message
 
         if self.calls:
             self.add_task(self._consume_loop)
@@ -102,6 +111,8 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
             "MaxNumberOfMessages": self._max_messages,
             "WaitTimeSeconds": self._wait_time_seconds,
             "MessageAttributeNames": ["All"],
+            # system attributes (ApproximateReceiveCount, MessageGroupId, ...)
+            "AttributeNames": ["All"],
         }
         if self._visibility_timeout is not None:
             kwargs["VisibilityTimeout"] = self._visibility_timeout
@@ -126,6 +137,24 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
                 continue
 
             backoff = 1.0
+            await self._dispatch(messages)
+
+    async def _dispatch(self, messages: list["SQSRawMessage"]) -> None:
+        """Hand received messages to the handler.
+
+        In batch mode the whole poll result is one ``consume`` call (the handler
+        receives a list); otherwise each message is consumed individually.
+        """
+        # TODO: visibility-timeout heartbeat for long-running handlers.
+        # If a handler runs longer than the queue's VisibilityTimeout, the message
+        # becomes visible again and is redelivered (duplicate processing). For now
+        # the guidance is to raise `visibility_timeout` on the subscriber. A future
+        # enhancement could spawn a background task per in-flight message that calls
+        # `change_message_visibility` periodically (opt-in via e.g. `extend_visibility`).
+        if self._batch:
+            if messages:
+                await self.consume(messages)
+        else:
             for message in messages:
                 await self.consume(message)
 
@@ -150,16 +179,20 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
                 MaxNumberOfMessages=1,
                 WaitTimeSeconds=min(int(timeout), 20),
                 MessageAttributeNames=["All"],
+                AttributeNames=["All"],
             )
             messages = resp.get("Messages", [])
             raw_msg = messages[0] if messages else None
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+        # In batch mode the parser expects a list of raw messages.
+        msg_input: Any = [raw_msg] if (self._batch and raw_msg is not None) else raw_msg
         return await process_msg(
-            msg=raw_msg,
-            middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
-            parser=self._sqs_parser.parse_message,
-            decoder=self._sqs_parser.decode_message,
+            msg=msg_input,
+            middlewares=(m(msg_input, context=context) for m in self._broker_middlewares),
+            parser=async_parser,
+            decoder=async_decoder,
         )
 
     @override
@@ -169,16 +202,21 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
             self._sqs_parser.bind(self._outer_config.client, self._queue_url)
 
         context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
         while True:
             with suppress(ClientError, BotoCoreError):
-                for raw_msg in await self._receive():
+                received = await self._receive()
+                # In batch mode each poll result is yielded as one batch message.
+                inputs: list[Any] = [received] if self._batch else list(received)
+                for raw_msg in inputs:
+                    if self._batch and not raw_msg:
+                        continue
                     msg: SQSMessage = await process_msg(  # type: ignore[assignment]
                         msg=raw_msg,
                         middlewares=(
-                            m(raw_msg, context=context)
-                            for m in self._broker_middlewares
+                            m(raw_msg, context=context) for m in self._broker_middlewares
                         ),
-                        parser=self._sqs_parser.parse_message,
-                        decoder=self._sqs_parser.decode_message,
+                        parser=async_parser,
+                        decoder=async_decoder,
                     )
                     yield msg

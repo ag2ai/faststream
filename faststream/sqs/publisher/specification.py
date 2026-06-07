@@ -41,7 +41,10 @@ class SQSPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     sqs=sqs_bindings.ChannelBinding(
-                        queue={"name": self.queue},
+                        queue={
+                            "name": self.queue,
+                            "fifo": self.queue.endswith(".fifo"),
+                        },
                     ),
                 ),
             ),

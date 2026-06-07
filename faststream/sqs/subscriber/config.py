@@ -27,6 +27,7 @@ class SQSSubscriberConfig(SubscriberUsecaseConfig):
     wait_time_seconds: int = 5
     max_messages: int = 10
     visibility_timeout: int | None = None
+    batch: bool = False
 
     @property
     def ack_policy(self) -> AckPolicy:

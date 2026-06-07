@@ -18,6 +18,7 @@ def create_subscriber(
     wait_time_seconds: int,
     max_messages: int,
     visibility_timeout: int | None,
+    batch: bool,
     # Subscriber args
     ack_policy: "AckPolicy",
     no_reply: bool,
@@ -36,6 +37,7 @@ def create_subscriber(
         wait_time_seconds=wait_time_seconds,
         max_messages=max_messages,
         visibility_timeout=visibility_timeout,
+        batch=batch,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,

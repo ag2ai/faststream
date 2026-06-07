@@ -7,6 +7,13 @@ try:
     from .annotations import SQSMessage
     from .broker.broker import SQSBroker
     from .broker.router import SQSPublisher, SQSRoute, SQSRouter
+    from .exceptions import (
+        BatchSendError,
+        FifoQueueError,
+        MessageTooLargeError,
+        SQSError,
+        TooManyMessageAttributesError,
+    )
     from .response import SQSPublishCommand, SQSResponse
     from .schemas import (
         FifoQueue,
@@ -25,10 +32,14 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_SQS) from e
 
 __all__ = (
+    "BatchSendError",
     "FifoQueue",
+    "FifoQueueError",
+    "MessageTooLargeError",
     "RedriveAllowPolicy",
     "RedrivePolicy",
     "SQSBroker",
+    "SQSError",
     "SQSMessage",
     "SQSParserType",
     "SQSPublishCommand",
@@ -39,4 +50,5 @@ __all__ = (
     "SQSRouter",
     "TestApp",
     "TestSQSBroker",
+    "TooManyMessageAttributesError",
 )

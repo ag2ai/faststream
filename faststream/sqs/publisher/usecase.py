@@ -59,7 +59,9 @@ class SQSPublisher(PublisherUsecase):
             correlation_id=correlation_id or gen_cor_id(),
             group_id=group_id or self.group_id,
             deduplication_id=deduplication_id or self.deduplication_id,
-            delay_seconds=delay_seconds if delay_seconds is not None else self.delay_seconds,
+            delay_seconds=delay_seconds
+            if delay_seconds is not None
+            else self.delay_seconds,
             _publish_type=PublishType.PUBLISH,
         )
         return await self._basic_publish(

@@ -5,6 +5,7 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from aiobotocore.session import get_session
+from botocore.exceptions import BotoCoreError, ClientError
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
@@ -155,10 +156,12 @@ class SQSBroker(
         if self._response_queue is None:
             return
 
-        if isinstance(self._response_queue, SQSQueue):
-            url = await self.config.declare_queue(self._response_queue)
-        else:
-            url = await self.config.get_queue_url(self._response_queue)
+        queue = (
+            self._response_queue
+            if isinstance(self._response_queue, SQSQueue)
+            else SQSQueue(name=self._response_queue)
+        )
+        url = await self.config.declare_queue(queue)
 
         cast("SQSFastProducer", self.config.producer).response_queue_url = url
         self._response_task = asyncio.create_task(self._consume_responses(url))
@@ -166,23 +169,35 @@ class SQSBroker(
     async def _consume_responses(self, queue_url: str) -> None:
         client = self.config.client
         producer = cast("SQSFastProducer", self.config.producer)
+        backoff = 1.0
         while self.running:
-            with suppress(Exception):
+            try:
                 resp = await client.receive_message(
                     QueueUrl=queue_url,
                     MaxNumberOfMessages=10,
                     WaitTimeSeconds=5,
                     MessageAttributeNames=["All"],
                 )
-                for message in resp.get("Messages", []):
-                    attrs = message.get("MessageAttributes", {}) or {}
-                    cid = attrs.get("correlation_id", {}).get("StringValue", "")
-                    if cid:
-                        producer.resolve_response(cid, message)
-                    await client.delete_message(
-                        QueueUrl=queue_url,
-                        ReceiptHandle=message["ReceiptHandle"],
-                    )
+            except (ClientError, BotoCoreError) as e:
+                # Don't busy-loop silently on e.g. bad credentials; log and back off.
+                self.config.logger.log(
+                    f"SQS response-queue receive failed, retrying in {backoff:.0f}s: {e}",
+                    logging.WARNING,
+                )
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, 30.0)
+                continue
+
+            backoff = 1.0
+            for message in resp.get("Messages", []):
+                attrs = message.get("MessageAttributes", {}) or {}
+                cid = attrs.get("correlation_id", {}).get("StringValue", "")
+                if cid:
+                    producer.resolve_response(cid, message)
+                await client.delete_message(
+                    QueueUrl=queue_url,
+                    ReceiptHandle=message["ReceiptHandle"],
+                )
 
     @override
     async def start(self) -> None:

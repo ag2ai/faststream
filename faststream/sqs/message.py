@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from faststream.message import StreamMessage
 
@@ -24,10 +24,36 @@ class SQSMessage(StreamMessage["SQSRawMessage"]):
     # Set by SQSParser at parse time so ack/nack/reject can reach the queue.
     sqs_client: "SQSClient | None" = None
     queue_url: str = ""
+    # SQS system attributes (Attributes), set by SQSParser at parse time.
+    system_attributes: dict[str, str] = {}  # noqa: RUF012
 
     @property
     def receipt_handle(self) -> str:
         return self.raw_message.get("ReceiptHandle", "")
+
+    @property
+    def approximate_receive_count(self) -> int:
+        """How many times SQS has delivered this message (1 on first receive).
+
+        Useful for poison-message detection; pair it with a queue ``RedrivePolicy``
+        so exhausted messages move to a dead-letter queue.
+        """
+        return int(self.system_attributes.get("ApproximateReceiveCount", 0))
+
+    @property
+    def sent_timestamp(self) -> int | None:
+        value = self.system_attributes.get("SentTimestamp")
+        return int(value) if value is not None else None
+
+    @property
+    def group_id(self) -> str | None:
+        """``MessageGroupId`` for FIFO queues."""
+        return self.system_attributes.get("MessageGroupId")
+
+    @property
+    def sequence_number(self) -> str | None:
+        """``SequenceNumber`` assigned by a FIFO queue."""
+        return self.system_attributes.get("SequenceNumber")
 
     async def ack(self) -> None:
         if self.committed is None and self.sqs_client is not None and self.receipt_handle:
@@ -37,12 +63,18 @@ class SQSMessage(StreamMessage["SQSRawMessage"]):
             )
         await super().ack()
 
-    async def nack(self) -> None:
+    async def nack(self, visibility_timeout: int | None = None) -> None:
+        """Return the message for redelivery via ``ChangeMessageVisibility``.
+
+        ``visibility_timeout=0`` (default) redelivers immediately. Pass a larger
+        value for a backoff before the message becomes visible again — the SQS
+        analogue of NATS' ``nack(delay=...)``.
+        """
         if self.committed is None and self.sqs_client is not None and self.receipt_handle:
             await self.sqs_client.change_message_visibility(
                 QueueUrl=self.queue_url,
                 ReceiptHandle=self.receipt_handle,
-                VisibilityTimeout=0,
+                VisibilityTimeout=visibility_timeout or 0,
             )
         await super().nack()
 
@@ -53,3 +85,55 @@ class SQSMessage(StreamMessage["SQSRawMessage"]):
                 ReceiptHandle=self.receipt_handle,
             )
         await super().reject()
+
+
+class SQSBatchMessage(SQSMessage):
+    """A batch of SQS messages handed to a ``batch=True`` subscriber.
+
+    ``raw_message`` is the list of raw SQS messages; ack/nack/reject act on all
+    of them at once using the SQS batch APIs (chunked to the 10-entry limit).
+    """
+
+    @property
+    def receipt_handles(self) -> list[str]:
+        messages = cast("list[Any]", self.raw_message)
+        return [m.get("ReceiptHandle", "") for m in messages if m.get("ReceiptHandle")]
+
+    @staticmethod
+    def _chunked(handles: list[str], size: int = 10) -> "list[list[str]]":
+        return [handles[i : i + size] for i in range(0, len(handles), size)]
+
+    async def _delete_all(self) -> None:
+        if self.sqs_client is None:
+            return
+        for chunk in self._chunked(self.receipt_handles):
+            await self.sqs_client.delete_message_batch(
+                QueueUrl=self.queue_url,
+                Entries=[{"Id": str(i), "ReceiptHandle": h} for i, h in enumerate(chunk)],
+            )
+
+    async def ack(self) -> None:
+        if self.committed is None and self.sqs_client is not None:
+            await self._delete_all()
+        await super(SQSMessage, self).ack()
+
+    async def nack(self, visibility_timeout: int | None = None) -> None:
+        if self.committed is None and self.sqs_client is not None:
+            for chunk in self._chunked(self.receipt_handles):
+                await self.sqs_client.change_message_visibility_batch(
+                    QueueUrl=self.queue_url,
+                    Entries=[
+                        {
+                            "Id": str(i),
+                            "ReceiptHandle": h,
+                            "VisibilityTimeout": visibility_timeout or 0,
+                        }
+                        for i, h in enumerate(chunk)
+                    ],
+                )
+        await super(SQSMessage, self).nack()
+
+    async def reject(self) -> None:
+        if self.committed is None and self.sqs_client is not None:
+            await self._delete_all()
+        await super(SQSMessage, self).reject()
