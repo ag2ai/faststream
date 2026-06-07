@@ -3,7 +3,7 @@ import asyncio
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
-from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter
+from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter, TestKafkaBroker
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -14,6 +14,18 @@ from faststream.confluent.subscriber.usecase import (
     ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestKafkaBroker(KafkaBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestKafkaBroker(
+        KafkaBroker(),
+        KafkaBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 async def check_response_type() -> None:

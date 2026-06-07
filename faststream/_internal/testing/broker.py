@@ -7,9 +7,11 @@ from contextlib import (
     contextmanager,
 )
 from functools import partial
-from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, cast
 from unittest import mock
 from unittest.mock import MagicMock
+
+from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.logger.logger_proxy import RealLoggerObject
@@ -23,6 +25,10 @@ if TYPE_CHECKING:
 
 
 Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
+
+# ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
+# single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
+EnterType = TypeVar313("EnterType", default=Any)
 
 
 class _ProducerContains(Protocol):
@@ -39,7 +45,7 @@ def change_producer(
     config.producer = old_producer
 
 
-class TestBroker(Generic[Broker]):
+class TestBroker(Generic[Broker, EnterType]):
     """A class to represent a test broker."""
 
     # This is set so pytest ignores this class
@@ -75,12 +81,12 @@ class TestBroker(Generic[Broker]):
         self.connect_only = connect_only
         self._fake_subscribers: list[SubscriberUsecase[Any]] = []
 
-    async def __aenter__(self) -> Broker | list[Broker]:
+    async def __aenter__(self) -> EnterType:
         self._ctx = self._create_ctx()
         brokers = await self._ctx.__aenter__()
         if len(brokers) == 1:
-            return brokers[0]
-        return brokers
+            return cast("EnterType", brokers[0])
+        return cast("EnterType", brokers)
 
     async def __aexit__(
         self,

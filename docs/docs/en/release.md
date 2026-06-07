@@ -12,11 +12,44 @@ hide:
 ---
 
 # Release Notes
+## 0.7.1
+
+### What's Changed
+
+TestBroker.__aenter__ was typed to return Broker | list[Broker]. That union is wrong for both usage shapes: mypy rejects .publish() on the single-broker result (the list arm has no such method) and rejects unpacking the multi-broker result (the Broker arm is not iterable).
+
+```python
+# Before — both lines fail under `mypy`:
+async with TestKafkaBroker(KafkaBroker()) as br:
+    await br.publish(None, "test")
+    # error: Item "list[KafkaBroker]" of "KafkaBroker | list[KafkaBroker]" has no attribute "publish"  [union-attr]
+
+async with TestKafkaBroker(KafkaBroker(), KafkaBroker()) as (br1, br2):
+    # error: "KafkaBroker" object is not iterable  [misc]
+    ...
+
+# After — mypy infers the precise type:
+async with TestKafkaBroker(KafkaBroker()) as br:
+    reveal_type(br)            # KafkaBroker
+    await br.publish(None, "test")
+
+async with TestKafkaBroker(KafkaBroker(), KafkaBroker()) as (br1, br2):
+    reveal_type(br1)           # tuple[KafkaBroker, ...] -> KafkaBroker
+    await br1.publish(None, "test")
+    await br2.publish(None, "test")
+```
+
+* fix(testing): type TestBroker context result via __init__ overloads by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2903](https://github.com/ag2ai/faststream/pull/2903){.external-link target="_blank"}
+* fix(docs): export *ParserType aliases at runtime by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2898](https://github.com/ag2ai/faststream/pull/2898){.external-link target="_blank"}
+* docs: Clarify FastStream description by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2901](https://github.com/ag2ai/faststream/pull/2901){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.0...0.7.1](https://github.com/ag2ai/faststream/compare/0.7.0...0.7.1){.external-link target="_blank"}
+
 ## 0.7.0
 
 ### What's Changed
 
-#### 🚀 MQTT Support
+#### 🚀 [MQTT Support](https://faststream.ag2.ai/latest/mqtt/)
 
 FastStream now includes a full-featured MQTT broker, installable via `pip install faststream[mqtt]`. It supports wildcard topic filters, path parameter capture via `Path()`, QoS levels, per-subscriber `ack_policy`, and AsyncAPI schema generation.
 
@@ -105,11 +138,11 @@ The `AsyncAPIRoute` class (used in ASGI hosting) has had two parameters renamed:
 ```python
 # Before
 AsyncAPIRoute("/docs/asyncapi", try_it_out=False)
-AsyncAPIRoute("/docs/asyncapi", try_it_out_url="[#try")](https://api.example.com/asyncapi/try")){.external-link target="_blank"}
+AsyncAPIRoute("/docs/asyncapi", try_it_out_url="https://api.example.com/asyncapi/try")
 
 # After
 AsyncAPIRoute("/docs/asyncapi", try_it_out_path=None)
-AsyncAPIRoute("/docs/asyncapi", try_it_out_path="[#try")](https://api.example.com/asyncapi/try")){.external-link target="_blank"}
+AsyncAPIRoute("/docs/asyncapi", try_it_out_path="https://api.example.com/asyncapi/try")
 ```
 
 Additionally, a new `asyncapi_json_path` parameter was added (defaults to `<path>.json`) and its position in the signature changed — use keyword arguments to avoid surprises.
@@ -142,70 +175,70 @@ The following APIs that were deprecated in earlier 0.x releases have been fully 
 
 #### Features
 
-* feat: FastStream[mqtt] by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2819](https://github.com/ag2ai/faststream/pull/2819){.external-link target="_blank"}
-* feat: support broker-level ack_policy with per-subscriber override by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
-* feat: codec wiring unification by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2841](https://github.com/ag2ai/faststream/pull/2841){.external-link target="_blank"}
-* feat: add mqtt path support by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2873](https://github.com/ag2ai/faststream/pull/2873){.external-link target="_blank"}
-* feat: expose client_rack option on the Kafka broker by @00yhj22-debug in [#2871](https://github.com/ag2ai/faststream/pull/2871){.external-link target="_blank"}
-* feat: allow aiokafka 0.14 by @00yhj22-debug in [#2884](https://github.com/ag2ai/faststream/pull/2884){.external-link target="_blank"}
-* feat: add fastapi mqtt router by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2887](https://github.com/ag2ai/faststream/pull/2887){.external-link target="_blank"}
-* feat: add consumer_only flag to KafkaBroker by @00yhj22-debug in [#2883](https://github.com/ag2ai/faststream/pull/2883){.external-link target="_blank"}
-* feat: add Redis Cluster broker support by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2854](https://github.com/ag2ai/faststream/pull/2854){.external-link target="_blank"}
-* feat: wire codec.encode into all producers, add BatchCodecProto for batch-aware encoding by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2850](https://github.com/ag2ai/faststream/pull/2850){.external-link target="_blank"}
-* feat: add multibrokers support by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2867](https://github.com/ag2ai/faststream/pull/2867){.external-link target="_blank"}
-* feat: add json endpoint and fix content-type header by @Cool-Cat09 in [#2894](https://github.com/ag2ai/faststream/pull/2894){.external-link target="_blank"}
+* feat: FastStream[mqtt] by @borisalekseev in https://github.com/ag2ai/faststream/pull/2819
+* feat: support broker-level ack_policy with per-subscriber override by @ce1ebrimbor in https://github.com/ag2ai/faststream/pull/2827
+* feat: codec wiring unification by @ce1ebrimbor in https://github.com/ag2ai/faststream/pull/2841
+* feat: add mqtt path support by @borisalekseev in https://github.com/ag2ai/faststream/pull/2873
+* feat: expose client_rack option on the Kafka broker by @00yhj22-debug in https://github.com/ag2ai/faststream/pull/2871
+* feat: allow aiokafka 0.14 by @00yhj22-debug in https://github.com/ag2ai/faststream/pull/2884
+* feat: add fastapi mqtt router by @borisalekseev in https://github.com/ag2ai/faststream/pull/2887
+* feat: add consumer_only flag to KafkaBroker by @00yhj22-debug in https://github.com/ag2ai/faststream/pull/2883
+* feat: add Redis Cluster broker support by @powersemmi in https://github.com/ag2ai/faststream/pull/2854
+* feat: wire codec.encode into all producers, add BatchCodecProto for batch-aware encoding by @ce1ebrimbor in https://github.com/ag2ai/faststream/pull/2850
+* feat: add multibrokers support by @Lancetnik in https://github.com/ag2ai/faststream/pull/2867
+* feat: add json endpoint and fix content-type header by @Cool-Cat09 in https://github.com/ag2ai/faststream/pull/2894
 
 #### Bug Fixes
 
-* fix: include pattern subscribers in AsyncAPI specification by [@aazmv](https://github.com/aazmv){.external-link target="_blank"} in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
-* fix: cli preserve import errors by [@vovkka](https://github.com/vovkka){.external-link target="_blank"} in [#2817](https://github.com/ag2ai/faststream/pull/2817){.external-link target="_blank"}
-* fix: security parsing for mqtt broker by [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
-* fix: propagate outer context to nested StreamRouter on include by [@lesnik512](https://github.com/lesnik512){.external-link target="_blank"} in [#2828](https://github.com/ag2ai/faststream/pull/2828){.external-link target="_blank"}
-* fix: parsing pydantic models by [@ApusBerliozi](https://github.com/ApusBerliozi){.external-link target="_blank"} in [#2847](https://github.com/ag2ai/faststream/pull/2847){.external-link target="_blank"}
-* fix: try-it-out request timeout and NATS fake subscriber stream by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2853](https://github.com/ag2ai/faststream/pull/2853){.external-link target="_blank"}
-* fix: handle NOGROUP error on Redis stream subscriber by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#2855](https://github.com/ag2ai/faststream/pull/2855){.external-link target="_blank"}
-* fix: logger not passed to Confluent Producer and AdminClient by @mara-werils in [#2859](https://github.com/ag2ai/faststream/pull/2859){.external-link target="_blank"}
-* fix: encode unsafe AsyncAPI reference path parts, including {} and / by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2872](https://github.com/ag2ai/faststream/pull/2872){.external-link target="_blank"}
-* fix: register POST {schema_url}/try for AsyncAPI try-it-out by [@sfrangulov](https://github.com/sfrangulov){.external-link target="_blank"} in [#2876](https://github.com/ag2ai/faststream/pull/2876){.external-link target="_blank"}
-* fix: consistent hashing and equality for RabbitMQ schemas by [@RinZ27](https://github.com/RinZ27){.external-link target="_blank"} in [#2796](https://github.com/ag2ai/faststream/pull/2796){.external-link target="_blank"}
-* fix: default RabbitQueue and RabbitExchange to durable=True by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2892](https://github.com/ag2ai/faststream/pull/2892){.external-link target="_blank"}
+* fix: include pattern subscribers in AsyncAPI specification by @aazmv in https://github.com/ag2ai/faststream/pull/2813
+* fix: cli preserve import errors by @vovkka in https://github.com/ag2ai/faststream/pull/2817
+* fix: security parsing for mqtt broker by @lemmehoop in https://github.com/ag2ai/faststream/pull/2832
+* fix: propagate outer context to nested StreamRouter on include by @lesnik512 in https://github.com/ag2ai/faststream/pull/2828
+* fix: parsing pydantic models by @ApusBerliozi in https://github.com/ag2ai/faststream/pull/2847
+* fix: try-it-out request timeout and NATS fake subscriber stream by @Lancetnik in https://github.com/ag2ai/faststream/pull/2853
+* fix: handle NOGROUP error on Redis stream subscriber by @powersemmi in https://github.com/ag2ai/faststream/pull/2855
+* fix: logger not passed to Confluent Producer and AdminClient by @mara-werils in https://github.com/ag2ai/faststream/pull/2859
+* fix: encode unsafe AsyncAPI reference path parts, including {} and / by @borisalekseev in https://github.com/ag2ai/faststream/pull/2872
+* fix: register POST {schema_url}/try for AsyncAPI try-it-out by @sfrangulov in https://github.com/ag2ai/faststream/pull/2876
+* fix: consistent hashing and equality for RabbitMQ schemas by @RinZ27 in https://github.com/ag2ai/faststream/pull/2796
+* fix: default RabbitQueue and RabbitExchange to durable=True by @Lancetnik in https://github.com/ag2ai/faststream/pull/2892
 
 #### Documentation
 
-* docs: images generation in release notes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2792](https://github.com/ag2ai/faststream/pull/2792){.external-link target="_blank"}
-* docs: add multiple topics registration with a single call by [@benaduo](https://github.com/benaduo){.external-link target="_blank"} in [#2814](https://github.com/ag2ai/faststream/pull/2814){.external-link target="_blank"}
-* docs: add How-To section placeholders for RabbitMQ, Confluent, and Redis by [@benaduo](https://github.com/benaduo){.external-link target="_blank"} in [#2815](https://github.com/ag2ai/faststream/pull/2815){.external-link target="_blank"}
-* docs: change polling_interval units (seconds -> milliseconds) by [@MikhailWar](https://github.com/MikhailWar){.external-link target="_blank"} in [#2821](https://github.com/ag2ai/faststream/pull/2821){.external-link target="_blank"}
-* docs: document per-message attributes via KafkaPublishMessage in publish_batch by [@Bazarovinc](https://github.com/Bazarovinc){.external-link target="_blank"} in [#2851](https://github.com/ag2ai/faststream/pull/2851){.external-link target="_blank"}
-* docs: cover mqtt examples by tests by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2888](https://github.com/ag2ai/faststream/pull/2888){.external-link target="_blank"}
-* docs: add multiple brokers support page by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2896](https://github.com/ag2ai/faststream/pull/2896){.external-link target="_blank"}
+* docs: images generation in release notes by @Lancetnik in https://github.com/ag2ai/faststream/pull/2792
+* docs: add multiple topics registration with a single call by @benaduo in https://github.com/ag2ai/faststream/pull/2814
+* docs: add How-To section placeholders for RabbitMQ, Confluent, and Redis by @benaduo in https://github.com/ag2ai/faststream/pull/2815
+* docs: change polling_interval units (seconds -> milliseconds) by @MikhailWar in https://github.com/ag2ai/faststream/pull/2821
+* docs: document per-message attributes via KafkaPublishMessage in publish_batch by @Bazarovinc in https://github.com/ag2ai/faststream/pull/2851
+* docs: cover mqtt examples by tests by @borisalekseev in https://github.com/ag2ai/faststream/pull/2888
+* docs: add multiple brokers support page by @Lancetnik in https://github.com/ag2ai/faststream/pull/2896
 
 #### Chore / CI
 
-* chore: test basic 3.14 by [@vvlrff](https://github.com/vvlrff){.external-link target="_blank"} in [#2795](https://github.com/ag2ai/faststream/pull/2795){.external-link target="_blank"}
-* chore: prepare 0.7.0 update by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2822](https://github.com/ag2ai/faststream/pull/2822){.external-link target="_blank"}
-* chore: add MQTT code ownership for borisalekseev by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2825](https://github.com/ag2ai/faststream/pull/2825){.external-link target="_blank"}
-* chore: add MQTT AsyncAPI tests by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2830](https://github.com/ag2ai/faststream/pull/2830){.external-link target="_blank"}
-* chore: parser codec protocols by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#2839](https://github.com/ag2ai/faststream/pull/2839){.external-link target="_blank"}
-* chore: merge schema by [@aligeromachine](https://github.com/aligeromachine){.external-link target="_blank"} in [#2849](https://github.com/ag2ai/faststream/pull/2849){.external-link target="_blank"}
+* chore: test basic 3.14 by @vvlrff in https://github.com/ag2ai/faststream/pull/2795
+* chore: prepare 0.7.0 update by @borisalekseev in https://github.com/ag2ai/faststream/pull/2822
+* chore: add MQTT code ownership for borisalekseev by @Lancetnik in https://github.com/ag2ai/faststream/pull/2825
+* chore: add MQTT AsyncAPI tests by @Lancetnik in https://github.com/ag2ai/faststream/pull/2830
+* chore: parser codec protocols by @ce1ebrimbor in https://github.com/ag2ai/faststream/pull/2839
+* chore: merge schema by @aligeromachine in https://github.com/ag2ai/faststream/pull/2849
 
 ### New Contributors
-* [@aazmv](https://github.com/aazmv){.external-link target="_blank"} made their first contribution in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
-* [@vovkka](https://github.com/vovkka){.external-link target="_blank"} made their first contribution in [#2817](https://github.com/ag2ai/faststream/pull/2817){.external-link target="_blank"}
-* [@benaduo](https://github.com/benaduo){.external-link target="_blank"} made their first contribution in [#2814](https://github.com/ag2ai/faststream/pull/2814){.external-link target="_blank"}
-* [@MikhailWar](https://github.com/MikhailWar){.external-link target="_blank"} made their first contribution in [#2821](https://github.com/ag2ai/faststream/pull/2821){.external-link target="_blank"}
-* [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} made their first contribution in [#2827](https://github.com/ag2ai/faststream/pull/2827){.external-link target="_blank"}
-* [@lemmehoop](https://github.com/lemmehoop){.external-link target="_blank"} made their first contribution in [#2832](https://github.com/ag2ai/faststream/pull/2832){.external-link target="_blank"}
-* [@lesnik512](https://github.com/lesnik512){.external-link target="_blank"} made their first contribution in [#2828](https://github.com/ag2ai/faststream/pull/2828){.external-link target="_blank"}
-* [@ApusBerliozi](https://github.com/ApusBerliozi){.external-link target="_blank"} made their first contribution in [#2847](https://github.com/ag2ai/faststream/pull/2847){.external-link target="_blank"}
-* [@Bazarovinc](https://github.com/Bazarovinc){.external-link target="_blank"} made their first contribution in [#2851](https://github.com/ag2ai/faststream/pull/2851){.external-link target="_blank"}
-* @mara-werils made their first contribution in [#2859](https://github.com/ag2ai/faststream/pull/2859){.external-link target="_blank"}
-* @00yhj22-debug made their first contribution in [#2871](https://github.com/ag2ai/faststream/pull/2871){.external-link target="_blank"}
-* [@sfrangulov](https://github.com/sfrangulov){.external-link target="_blank"} made their first contribution in [#2876](https://github.com/ag2ai/faststream/pull/2876){.external-link target="_blank"}
-* [@RinZ27](https://github.com/RinZ27){.external-link target="_blank"} made their first contribution in [#2796](https://github.com/ag2ai/faststream/pull/2796){.external-link target="_blank"}
-* @Cool-Cat09 made their first contribution in [#2894](https://github.com/ag2ai/faststream/pull/2894){.external-link target="_blank"}
+* @aazmv made their first contribution in https://github.com/ag2ai/faststream/pull/2813
+* @vovkka made their first contribution in https://github.com/ag2ai/faststream/pull/2817
+* @benaduo made their first contribution in https://github.com/ag2ai/faststream/pull/2814
+* @MikhailWar made their first contribution in https://github.com/ag2ai/faststream/pull/2821
+* @ce1ebrimbor made their first contribution in https://github.com/ag2ai/faststream/pull/2827
+* @lemmehoop made their first contribution in https://github.com/ag2ai/faststream/pull/2832
+* @lesnik512 made their first contribution in https://github.com/ag2ai/faststream/pull/2828
+* @ApusBerliozi made their first contribution in https://github.com/ag2ai/faststream/pull/2847
+* @Bazarovinc made their first contribution in https://github.com/ag2ai/faststream/pull/2851
+* @mara-werils made their first contribution in https://github.com/ag2ai/faststream/pull/2859
+* @00yhj22-debug made their first contribution in https://github.com/ag2ai/faststream/pull/2871
+* @sfrangulov made their first contribution in https://github.com/ag2ai/faststream/pull/2876
+* @RinZ27 made their first contribution in https://github.com/ag2ai/faststream/pull/2796
+* @Cool-Cat09 made their first contribution in https://github.com/ag2ai/faststream/pull/2894
 
-**Full Changelog**: [#0.6.7...0.7.0](https://github.com/ag2ai/faststream/compare/0.6.7...0.7.0){.external-link target="_blank"}
+**Full Changelog**: https://github.com/ag2ai/faststream/compare/0.6.7...0.7.0
 
 ## 0.7.0rc1
 

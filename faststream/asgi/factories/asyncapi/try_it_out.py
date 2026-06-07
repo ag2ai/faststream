@@ -1,7 +1,7 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, TypedDict, Union, cast
 
 from faststream.asgi.annotations import Request
 from faststream.asgi.handlers import PostHandler, post
@@ -48,7 +48,9 @@ class TryItOutProcessor:
 
     def __init__(self, *brokers: "BrokerUsecase[Any, Any]") -> None:
         registry = _get_broker_registry()
-        self._entries: list[tuple[BrokerUsecase[Any, Any], type[TestBroker[Any]]]] = []
+        self._entries: list[
+            tuple[BrokerUsecase[Any, Any], type[TestBroker[Any, Any]]]
+        ] = []
         for broker in brokers:
             for br_cls, test_broker_cls in registry.items():
                 if isinstance(broker, br_cls):
@@ -110,7 +112,14 @@ class TryItOutProcessor:
                     if cls is test_broker_cls and b is not broker
                 ),
             )
-            async with test_broker_cls(*same_type_brokers):
+            # ``test_broker_cls`` is typed as the abstract ``TestBroker`` base, whose
+            # overloaded ``__init__`` would make mypy try to instantiate the abstract
+            # class. At runtime it is always a concrete subclass; the enter result is
+            # unused here, so call it through a plain factory type.
+            test_broker_factory = cast(
+                "Callable[..., TestBroker[Any, Any]]", test_broker_cls
+            )
+            async with test_broker_factory(*same_type_brokers):
                 data = await broker.request(payload, destination, timeout=30)
                 decoded = None
                 with suppress(Exception):
@@ -187,9 +196,9 @@ def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
 @lru_cache(maxsize=1)
 def _get_broker_registry() -> dict[
     type["BrokerUsecase[Any, Any]"],
-    type["TestBroker[Any]"],
+    type["TestBroker[Any, Any]"],
 ]:
-    registry: dict[type[BrokerUsecase[Any, Any]], type[TestBroker[Any]]] = {}
+    registry: dict[type[BrokerUsecase[Any, Any]], type[TestBroker[Any, Any]]] = {}
 
     with suppress(ImportError):
         from faststream.confluent import (

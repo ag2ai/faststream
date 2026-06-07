@@ -10,6 +10,7 @@ from typing import (
     Protocol,
     Union,
     cast,
+    overload,
 )
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
@@ -19,7 +20,11 @@ from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.broker import (
+    EnterType,
+    TestBroker,
+    change_producer,
+)
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
@@ -51,8 +56,38 @@ if TYPE_CHECKING:
 __all__ = ("TestRedisBroker",)
 
 
-class TestRedisBroker(TestBroker[RedisBroker]):
+class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
     """A class to test Redis brokers."""
+
+    @overload
+    def __init__(
+        self: "TestRedisBroker[RedisBroker]",
+        broker: RedisBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestRedisBroker[tuple[RedisBroker, ...]]",
+        *brokers: RedisBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: RedisBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     @asynccontextmanager
     async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
