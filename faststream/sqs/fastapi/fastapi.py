@@ -155,6 +155,7 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
         wait_time_seconds: int = 5,
         max_messages: int = 10,
         visibility_timeout: int | None = None,
+        request_attempt_id: str | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -183,6 +184,7 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
                 wait_time_seconds=wait_time_seconds,
                 max_messages=max_messages,
                 visibility_timeout=visibility_timeout,
+                request_attempt_id=request_attempt_id,
                 ack_policy=ack_policy,
                 no_reply=no_reply,
                 dependencies=dependencies,

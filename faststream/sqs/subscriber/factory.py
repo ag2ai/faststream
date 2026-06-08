@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.exceptions import SetupError
 from faststream.sqs.schemas import SQSQueue
 
 from .config import SQSSubscriberConfig, SQSSubscriberSpecificationConfig
@@ -19,6 +20,7 @@ def create_subscriber(
     max_messages: int,
     visibility_timeout: int | None,
     batch: bool,
+    request_attempt_id: str | None,
     # Subscriber args
     ack_policy: "AckPolicy",
     no_reply: bool,
@@ -31,6 +33,16 @@ def create_subscriber(
     queue_obj = queue if isinstance(queue, SQSQueue) else SQSQueue(name=queue)
     queue_name = queue_obj.queue_name
 
+    # ReceiveRequestAttemptId is only accepted by SQS for FIFO queues; reject it
+    # early instead of letting SQS fail the receive call silently.
+    if request_attempt_id is not None and not queue_name.endswith(".fifo"):
+        msg = (
+            f"`request_attempt_id` (ReceiveRequestAttemptId) is only valid for FIFO "
+            f"queues, but '{queue_name}' is not a FIFO queue. Use `FifoQueue(...)` "
+            "or a '.fifo' queue name."
+        )
+        raise SetupError(msg)
+
     subscriber_config = SQSSubscriberConfig(
         queue=queue_name,
         declare=queue_obj,
@@ -38,6 +50,7 @@ def create_subscriber(
         max_messages=max_messages,
         visibility_timeout=visibility_timeout,
         batch=batch,
+        request_attempt_id=request_attempt_id,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,

@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from faststream import Context
+from faststream.exceptions import SetupError
 from faststream.response.publish_type import PublishType
 from faststream.sqs import FifoQueue
 from faststream.sqs.exceptions import (
@@ -79,6 +80,34 @@ class TestProducerGuards:
         )
         # Should not raise.
         SQSFastProducer._validate_fifo(cmd)
+
+
+# --------------------------------------------------------------------------- #
+# ReceiveRequestAttemptId (FIFO receive-retry dedup token)
+# --------------------------------------------------------------------------- #
+
+
+class TestRequestAttemptId(SQSMemoryTestcaseConfig):
+    def test_passed_to_receive_kwargs(self) -> None:
+        broker = self.get_broker()
+        fifo = FifoQueue(name="orders")
+
+        sub = broker.subscriber(fifo, request_attempt_id="attempt-1")
+
+        assert sub._receive_kwargs()["ReceiveRequestAttemptId"] == "attempt-1"
+
+    def test_absent_by_default(self) -> None:
+        broker = self.get_broker()
+        fifo = FifoQueue(name="orders")
+
+        sub = broker.subscriber(fifo)
+
+        assert "ReceiveRequestAttemptId" not in sub._receive_kwargs()
+
+    def test_rejected_for_non_fifo_queue(self) -> None:
+        broker = self.get_broker()
+        with pytest.raises(SetupError):
+            broker.subscriber("plain-queue", request_attempt_id="attempt-1")
 
 
 # --------------------------------------------------------------------------- #
@@ -244,6 +273,33 @@ class TestConnectedFeatures(SQSTestcaseConfig):
         received: list[str] = []
 
         @broker.subscriber(fifo)
+        async def handler(msg: str) -> None:
+            received.append(msg)
+            event.set()
+
+        async with broker:
+            await broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker.publish("ordered", fifo, group_id="g1")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        assert received == ["ordered"]
+
+    async def test_fifo_request_attempt_id(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+        fifo = FifoQueue(name=f"{queue}.fifo", content_based_deduplication=True)
+        received: list[str] = []
+
+        # ReceiveRequestAttemptId is accepted by SQS only for FIFO queues; this
+        # verifies the kwarg is threaded through and does not break receiving.
+        @broker.subscriber(fifo, request_attempt_id="attempt-1")
         async def handler(msg: str) -> None:
             received.append(msg)
             event.set()

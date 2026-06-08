@@ -49,6 +49,7 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         self._wait_time_seconds = config.wait_time_seconds
         self._max_messages = config.max_messages
         self._visibility_timeout = config.visibility_timeout
+        self._request_attempt_id = config.request_attempt_id
         self._queue_url: str = ""
 
     @property
@@ -116,6 +117,8 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         }
         if self._visibility_timeout is not None:
             kwargs["VisibilityTimeout"] = self._visibility_timeout
+        if self._request_attempt_id is not None:
+            kwargs["ReceiveRequestAttemptId"] = self._request_attempt_id
         return kwargs
 
     async def _receive(self) -> list["SQSRawMessage"]:
@@ -172,15 +175,19 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
             self._queue_url = await self._resolve_queue_url()
             self._sqs_parser.bind(self._outer_config.client, self._queue_url)
 
+        get_one_kwargs: dict[str, Any] = {
+            "QueueUrl": self._queue_url,
+            "MaxNumberOfMessages": 1,
+            "WaitTimeSeconds": min(int(timeout), 20),
+            "MessageAttributeNames": ["All"],
+            "AttributeNames": ["All"],
+        }
+        if self._request_attempt_id is not None:
+            get_one_kwargs["ReceiveRequestAttemptId"] = self._request_attempt_id
+
         raw_msg: SQSRawMessage | None = None
         with anyio.move_on_after(timeout):
-            resp = await self._outer_config.client.receive_message(
-                QueueUrl=self._queue_url,
-                MaxNumberOfMessages=1,
-                WaitTimeSeconds=min(int(timeout), 20),
-                MessageAttributeNames=["All"],
-                AttributeNames=["All"],
-            )
+            resp = await self._outer_config.client.receive_message(**get_one_kwargs)
             messages = resp.get("Messages", [])
             raw_msg = messages[0] if messages else None
 
