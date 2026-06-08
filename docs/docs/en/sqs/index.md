@@ -20,21 +20,7 @@ search:
 ## FastStream `SQSBroker`
 
 ```python linenums="1"
-from faststream import FastStream
-from faststream.sqs import SQSBroker
-
-broker = SQSBroker(region_name="us-east-1")
-app = FastStream(broker)
-
-
-@broker.subscriber("my-queue")
-async def handler(msg: str) -> None:
-    print(msg)
-
-
-@app.after_startup
-async def publish_hello() -> None:
-    await broker.publish("Hello, SQS!", "my-queue")
+{! docs_src/sqs/index/basic.py [ln:3-17] !}
 ```
 
 ### Connection parameters
@@ -52,12 +38,7 @@ async def publish_hello() -> None:
 ### Local development with LocalStack
 
 ```python linenums="1"
-broker = SQSBroker(
-    endpoint_url="http://localhost:4566",
-    region_name="us-east-1",
-    aws_access_key_id="test",
-    aws_secret_access_key="test",
-)
+{! docs_src/sqs/index/localstack.py [ln:6-11] !}
 ```
 
 ## Testing
@@ -65,20 +46,5 @@ broker = SQSBroker(
 Use `TestSQSBroker` to route messages in memory — no AWS connection required:
 
 ```python linenums="1"
-import pytest
-from faststream.sqs import SQSBroker, TestSQSBroker
-
-broker = SQSBroker()
-
-
-@broker.subscriber("test-queue")
-async def handler(msg: str) -> str:
-    return msg + "!"
-
-
-@pytest.mark.asyncio
-async def test_handler() -> None:
-    async with TestSQSBroker(broker) as br:
-        await br.publish("hello", "test-queue")
-        handler.mock.assert_called_once_with("hello")
+{! docs_src/sqs/index/testing.py !}
 ```

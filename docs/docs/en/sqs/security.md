@@ -7,12 +7,7 @@ FastStream security object.
 ## Explicit credentials
 
 ```python linenums="1"
-broker = SQSBroker(
-    region_name="us-east-1",
-    aws_access_key_id="AKIA...",
-    aws_secret_access_key="...",
-    aws_session_token="...",  # optional, for temporary credentials
-)
+{! docs_src/sqs/security/explicit.py [ln:6-11] !}
 ```
 
 ## Security objects
@@ -21,16 +16,7 @@ broker = SQSBroker(
 `BaseSecurity` controls TLS:
 
 ```python linenums="1"
-from faststream.security import SASLPlaintext
-
-broker = SQSBroker(
-    region_name="us-east-1",
-    security=SASLPlaintext(
-        username="AKIA...",
-        password="...",
-        use_ssl=True,
-    ),
-)
+{! docs_src/sqs/security/sasl.py [ln:4,7-14] !}
 ```
 
 The configured security also drives the generated AsyncAPI schema.

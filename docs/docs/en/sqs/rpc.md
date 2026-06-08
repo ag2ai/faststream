@@ -5,19 +5,7 @@ SQS has no native request/reply, so FastStream implements RPC with a dedicated
 broker, then call `broker.request`:
 
 ```python linenums="1"
-from faststream.sqs import SQSBroker
-
-broker = SQSBroker(region_name="us-east-1", response_queue="responses")
-
-
-@broker.subscriber("echo")
-async def echo(msg: str) -> str:
-    return f"reply: {msg}"
-
-
-async def call() -> None:
-    response = await broker.request("ping", "echo", timeout=10.0)
-    assert await response.decode() == "reply: ping"
+{! docs_src/sqs/rpc/app.py [ln:3-17] !}
 ```
 
 How it works:

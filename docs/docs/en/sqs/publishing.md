@@ -3,12 +3,7 @@
 Publish to a queue with `broker.publish`:
 
 ```python linenums="1"
-await broker.publish(
-    "payload",
-    "my-queue",
-    headers={"trace-id": "abc"},
-    delay_seconds=5,
-)
+{! docs_src/sqs/publishing/publish.py [ln:16-21] !}
 ```
 
 Headers are sent as SQS **MessageAttributes**. FastStream reserves the
@@ -21,10 +16,7 @@ Pass an `SQSQueue` instead of a name to have FastStream create the queue (with
 the given attributes) on startup:
 
 ```python linenums="1"
-from faststream.sqs import SQSQueue
-
-queue = SQSQueue(name="orders", visibility_timeout=60, message_retention_period=86400)
-await broker.publish("data", queue)
+{! docs_src/sqs/publishing/declared_queue.py [ln:4,9,18] !}
 ```
 
 ## Publisher objects
@@ -32,19 +24,13 @@ await broker.publish("data", queue)
 Register a reusable publisher with `@broker.publisher`:
 
 ```python linenums="1"
-publisher = broker.publisher("out-queue", headers={"source": "svc-a"})
-
-
-@publisher
-@broker.subscriber("in-queue")
-async def handler(msg: str) -> str:
-    return msg.upper()  # return value is published to "out-queue"
+{! docs_src/sqs/publishing/publisher_object.py [ln:9,12-15] !}
 ```
 
 ## Batch publishing
 
 ```python linenums="1"
-await broker.publish_batch("a", "b", "c", queue="my-queue")
+{! docs_src/sqs/publishing/batch.py [ln:16] !}
 ```
 
 A single `SendMessageBatch` request carries up to 10 messages.

@@ -4,14 +4,7 @@ Each subscriber long-polls its queue in a background task and dispatches every
 received message to your handler:
 
 ```python linenums="1"
-@broker.subscriber(
-    "my-queue",
-    wait_time_seconds=10,   # long-poll wait (0-20)
-    max_messages=10,        # messages per receive (1-10)
-    visibility_timeout=30,  # per-receive visibility override
-)
-async def handler(msg: str) -> None:
-    ...
+{! docs_src/sqs/subscription/basic.py [ln:10-16] !}
 ```
 
 | Parameter | Description |
@@ -23,12 +16,7 @@ async def handler(msg: str) -> None:
 ## Accessing message metadata
 
 ```python linenums="1"
-from faststream.sqs.annotations import SQSMessage
-
-
-@broker.subscriber("my-queue")
-async def handler(body: str, msg: SQSMessage) -> None:
-    print(msg.message_id, msg.headers, msg.correlation_id)
+{! docs_src/sqs/subscription/message_info.py [ln:5,11-13] !}
 ```
 
 ## Declaring queues on subscribe
@@ -36,10 +24,5 @@ async def handler(body: str, msg: SQSMessage) -> None:
 Pass an `SQSQueue`/`FifoQueue` to create the queue automatically on startup:
 
 ```python linenums="1"
-from faststream.sqs import SQSQueue
-
-
-@broker.subscriber(SQSQueue(name="orders", visibility_timeout=60))
-async def handler(msg: str) -> None:
-    ...
+{! docs_src/sqs/subscription/declared_queue.py [ln:4,10-11] !}
 ```
