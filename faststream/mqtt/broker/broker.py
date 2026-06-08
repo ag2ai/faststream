@@ -62,6 +62,7 @@ class MQTTBroker(
         clean_session: bool = True,
         version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
+        mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
@@ -113,6 +114,7 @@ class MQTTBroker(
             clean_session=clean_session,
             version=version,
             reconnect=reconnect,
+            mqtt_connect_timeout=mqtt_connect_timeout,
             session_expiry_interval=session_expiry_interval,
             **secure_kwargs,
             # broker config
