@@ -1,4 +1,4 @@
-from zmqtt import QoS, ReconnectConfig
+from zmqtt import MQTTTimeoutError, QoS, ReconnectConfig
 
 from faststream.mqtt.annotations import MQTTMessage
 from faststream.mqtt.broker.broker import MQTTBroker
@@ -11,6 +11,7 @@ __all__ = (
     "MQTTPublisher",
     "MQTTRoute",
     "MQTTRouter",
+    "MQTTTimeoutError",
     "QoS",
     "ReconnectConfig",
     "TestMQTTBroker",
