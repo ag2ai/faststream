@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock
 
 import anyio
@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import TestBroker
+from faststream._internal.testing.broker import EnterType, TestBroker
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
@@ -49,8 +49,38 @@ def change_producer(
     config.broker_config.js_producer = old_js_producer
 
 
-class TestNatsBroker(TestBroker[NatsBroker]):
+class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
     """A class to test NATS brokers."""
+
+    @overload
+    def __init__(
+        self: "TestNatsBroker[NatsBroker]",
+        broker: NatsBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestNatsBroker[tuple[NatsBroker, ...]]",
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     def create_publisher_fake_subscriber(
         self,

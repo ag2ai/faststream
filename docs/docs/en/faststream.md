@@ -7,12 +7,12 @@ search:
 
 # FastStream
 
-<b>Effortless event stream integration for your services</b>
+**FastStream** is an asynchronous Python framework for building event-driven applications. It brings together message broker integration, dependency injection, validation, testing utilities, and [**AsyncAPI**](https://www.asyncapi.com/) documentation generation in a single toolkit, reducing boilerplate without hiding the capabilities of the underlying broker.
 
 ---
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/3043" target="_blank"><img src="https://trendshift.io/api/badge/repositories/3043" alt="ag2ai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/19979" target="_blank"><img src="https://trendshift.io/api/badge/repositories/19979" alt="ag2ai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
   <br/>
   <br/>

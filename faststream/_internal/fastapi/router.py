@@ -392,7 +392,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     self.schema.to_specification().to_jsonable(),
                     indent=2,
                 ),
-                headers={"Content-Type": "application/octet-stream"},
+                headers={"Content-Type": "application/json"},
             )
 
         def download_app_yaml_schema() -> Response:
@@ -425,7 +425,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     schemas=schemas,
                     errors=errors,
                     expand_message_examples=expandMessageExamples,
-                    try_it_out_url=f"{schema_url}/try",
+                    try_it_out_path=f"{schema_url}/try",
                 ),
             )
 

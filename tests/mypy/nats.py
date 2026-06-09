@@ -5,7 +5,14 @@ from nats.aio.msg import Msg
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter, PubAck
+from faststream.nats import (
+    NatsBroker,
+    NatsMessage,
+    NatsRoute,
+    NatsRouter,
+    PubAck,
+    TestNatsBroker,
+)
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
@@ -23,6 +30,18 @@ from faststream.nats.subscriber.usecases import (
     PullStreamSubscriber,
     PushStreamSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestNatsBroker(NatsBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestNatsBroker(
+        NatsBroker(),
+        NatsBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: NatsMessage) -> DecodedMessage:

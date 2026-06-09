@@ -1,13 +1,12 @@
 from typing import TYPE_CHECKING
 
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
 if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
-    from faststream._internal.parser import ParserProto
-
-    KafkaParserType = ParserProto["ConsumerRecord"]
+KafkaParserType = ParserProto["ConsumerRecord"]
 
 try:
     from aiokafka import ConsumerRecord, TopicPartition

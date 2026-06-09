@@ -19,8 +19,8 @@ from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
 from .factories import AsyncAPIRoute, make_try_it_out_handler
-from .handlers import HttpHandler
-from .response import AsgiResponse
+from .handlers import HttpHandler, get
+from .response import AsgiResponse, JSONResponse
 from .websocket import WebSocketClose
 
 if TYPE_CHECKING:
@@ -129,7 +129,15 @@ class AsgiFastStream(Application):
             handler.set_logger(logger)
             self.routes.append((asyncapi_route.path, handler))
 
-            if asyncapi_route.try_it_out and self.brokers:
+            if asyncapi_route.asyncapi_json_path:
+
+                @get(include_in_schema=asyncapi_route.include_in_schema)
+                async def json_handler(scope: "Scope") -> AsgiResponse:
+                    return JSONResponse(self.schema.to_specification().to_jsonable())
+
+                self.routes.append((asyncapi_route.asyncapi_json_path, json_handler))
+
+            if asyncapi_route.try_it_out_path is not None and self.brokers:
                 try_it_out_route = make_try_it_out_handler(
                     self.brokers,
                     include_in_schema=asyncapi_route.include_in_schema,
@@ -138,7 +146,7 @@ class AsgiFastStream(Application):
                 try_it_out_route.set_logger(logger)
 
                 self.routes.append((
-                    asyncapi_route.try_it_out_url,
+                    asyncapi_route.try_it_out_path,
                     try_it_out_route,
                 ))
 

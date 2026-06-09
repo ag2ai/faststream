@@ -1,5 +1,4 @@
 import logging
-import warnings
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
@@ -114,13 +113,6 @@ class StartAbleApplication:
         if broker in self.brokers:
             msg = f"Broker {broker} is already added"
             raise SetupError(msg)
-
-        if len(self.brokers) == 1:
-            warnings.warn(
-                "Multiple brokers usage is an experimental feature and some functions may work improperly",
-                category=RuntimeWarning,
-                stacklevel=6,
-            )
 
         self.brokers.append(broker)
         self.schema.add_broker(broker)

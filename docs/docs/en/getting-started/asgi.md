@@ -215,5 +215,5 @@ async def start_broker(app):
 app = FastAPI(lifespan=start_broker)
 
 app.mount("/health", make_ping_asgi(broker, timeout=5.0))
-app.mount("/asyncapi", make_asyncapi_asgi(asyncapi, try_it_out=False))
+app.mount("/asyncapi", make_asyncapi_asgi(asyncapi, try_it_out_path=None))
 ```
