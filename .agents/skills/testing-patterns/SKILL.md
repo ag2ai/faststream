@@ -12,7 +12,7 @@ Run pytest directly or via just — **never through the rtk proxy**.
 All `just test*` recipes run inside the dev container (`docker compose exec faststream`) — start it with `just up` first.
 
 - `just test [path]` — fast suite: `-m "not slow and not connected"`, parallel `-n auto`.
-- `just test-kafka` / `test-rabbit` / `test-nats` / `test-redis` / `test-redis-cluster` / `test-confluent` — per-broker subset excluding `connected`; the `-all` variants run every broker-marked test including slow/connected ones (that broker must be up).
+- `just test-kafka` / `test-rabbit` / `test-nats` / `test-redis` / `test-redis-cluster` / `test-confluent` — per-broker subset excluding `connected` and `slow`; the `-all` variants run every broker-marked test including slow/connected ones (that broker must be up).
 - `just test-all` — the full suite (`-m "all"`).
 - Direct, no container needed: `uv run pytest tests/... -m "not slow and not connected"`.
 

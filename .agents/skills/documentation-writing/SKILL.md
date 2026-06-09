@@ -61,4 +61,5 @@ All example code must follow idiomatic FastStream usage:
 ## Related skills
 
 - **testing-patterns** — how to mark and run the snippet tests in `tests/docs/`.
+- **code-architecture** — source conventions example code must follow (public API only, no `_internal` imports).
 - **dev-workflow** — environment setup for the docs toolchain.
