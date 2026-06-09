@@ -9,7 +9,7 @@ description: Use when writing or modifying FastStream library source code under 
 
 - `faststream/_internal/` holds shared machinery: `broker/` (abstract `BrokerUsecase`, registrator, router), `endpoint/`, `di/` (fast-depends integration), `context/`, `configs/`, `logger/`, `testing/`, `cli/`, `fastapi/`, `utils/`.
 - Broker packages (`faststream/kafka/`, `rabbit/`, `nats/`, `redis/`, `confluent/`, `mqtt/`) are thin public layers over `_internal`.
-- Cross-broker public packages: `faststream/middlewares/`, `params/`, `response/`, `specification/`, `message/`.
+- Cross-broker public packages: `faststream/middlewares/`, `params/`, `response/`, `specification/`, `message/`, `asgi/`, `opentelemetry/`, `prometheus/`.
 
 **Rule:** implement shared behavior in `_internal/`, expose it through broker packages. User-facing code (docs, examples, error messages) must never import from `faststream._internal`.
 
