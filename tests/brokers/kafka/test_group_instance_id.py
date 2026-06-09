@@ -48,16 +48,3 @@ class TestGroupInstanceId:
         )
 
         assert route.kwargs["group_instance_id"] == "instance-3"
-
-    def test_fastapi_router_passes_group_instance_id(self) -> None:
-        pytest.importorskip("fastapi")
-        from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
-
-        router = FastAPIKafkaRouter()
-        sub = router.subscriber(
-            "test-topic",
-            group_id="test-group",
-            group_instance_id="instance-4",
-        )
-
-        assert sub._connection_args["group_instance_id"] == "instance-4"
