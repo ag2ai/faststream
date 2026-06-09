@@ -1,4 +1,3 @@
-import os
 from typing import Any
 
 from faststream.sqs.broker.broker import SQSBroker
@@ -17,12 +16,11 @@ class SQSTestcaseConfig(BaseTestcaseConfig):
         apply_types: bool = False,
         **kwargs: Any,
     ) -> SQSBroker:
-        # LocalStack defaults; override via env for real AWS / other emulators.
         return SQSBroker(
-            endpoint_url=os.environ.get("SQS_ENDPOINT_URL", "http://localhost:4566"),
-            region_name=os.environ.get("AWS_REGION", "us-east-1"),
-            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "test"),
-            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "test"),
+            endpoint_url="http://localhost:9324",
+            region_name="us-east-1",
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
             apply_types=apply_types,
             **kwargs,
         )

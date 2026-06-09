@@ -620,10 +620,15 @@ jobs:
       - test-basic
       - test-sqs-smoke
     services:
-      localstack:
-        image: localstack/localstack:4
+      sqs:
+        image: softwaremill/elasticmq-native:1.7.1
         ports:
-          - 4566:4566
+          - 9324:9324
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:9324/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -639,11 +644,6 @@ jobs:
         run: |
           uv pip install --system --group optionals --group testing .
       - name: Test
-        env:
-          SQS_ENDPOINT_URL: "http://localhost:4566"
-          AWS_ACCESS_KEY_ID: "test"
-          AWS_SECRET_ACCESS_KEY: "test"
-          AWS_REGION: "us-east-1"
         run: >
           pytest --cov --cov-report=
           -vv -m "(slow and sqs and connected) or (sqs and connected)"

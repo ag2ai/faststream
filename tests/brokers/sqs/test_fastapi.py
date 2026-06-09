@@ -1,4 +1,3 @@
-import os
 from typing import Any
 
 import pytest
@@ -11,26 +10,17 @@ from .basic import SQSMemoryTestcaseConfig, SQSTestcaseConfig
 
 
 class StreamRouter(_SQSStreamRouter):
-    """FastAPI SQS router pre-wired to LocalStack.
+    """FastAPI SQS router pre-wired to the local ElasticMQ emulator.
 
     The shared FastAPI test cases instantiate ``router_class()`` with no
     arguments, so the connection defaults have to be baked into the class.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault(
-            "endpoint_url",
-            os.environ.get("SQS_ENDPOINT_URL", "http://localhost:4566"),
-        )
-        kwargs.setdefault("region_name", os.environ.get("AWS_REGION", "us-east-1"))
-        kwargs.setdefault(
-            "aws_access_key_id",
-            os.environ.get("AWS_ACCESS_KEY_ID", "test"),
-        )
-        kwargs.setdefault(
-            "aws_secret_access_key",
-            os.environ.get("AWS_SECRET_ACCESS_KEY", "test"),
-        )
+        kwargs.setdefault("endpoint_url", "http://localhost:9324")
+        kwargs.setdefault("region_name", "us-east-1")
+        kwargs.setdefault("aws_access_key_id", "test")
+        kwargs.setdefault("aws_secret_access_key", "test")
         super().__init__(*args, **kwargs)
 
 

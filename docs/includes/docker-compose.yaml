@@ -81,8 +81,9 @@ services:
       - no-new-privileges:true
 
   sqs:
-    image: localstack/localstack:4
+    image: softwaremill/elasticmq-native:1.7.1
     ports:
-      - "4566:4566"
+      - "9324:9324" # SQS API
+      - "9325:9325" # web UI
     security_opt:
       - no-new-privileges:true

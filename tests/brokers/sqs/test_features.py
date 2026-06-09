@@ -31,11 +31,6 @@ def _attr(value: str) -> dict[str, str]:
     return {"DataType": "String", "StringValue": value}
 
 
-# --------------------------------------------------------------------------- #
-# Producer guards
-# --------------------------------------------------------------------------- #
-
-
 class TestProducerGuards:
     def test_chunk_entries_splits_over_ten(self) -> None:
         entries = [{"MessageBody": "x", "MessageAttributes": {}} for _ in range(23)]
@@ -82,11 +77,6 @@ class TestProducerGuards:
         SQSFastProducer._validate_fifo(cmd)
 
 
-# --------------------------------------------------------------------------- #
-# ReceiveRequestAttemptId (FIFO receive-retry dedup token)
-# --------------------------------------------------------------------------- #
-
-
 class TestRequestAttemptId(SQSMemoryTestcaseConfig):
     def test_passed_to_receive_kwargs(self) -> None:
         broker = self.get_broker()
@@ -108,11 +98,6 @@ class TestRequestAttemptId(SQSMemoryTestcaseConfig):
         broker = self.get_broker()
         with pytest.raises(SetupError):
             broker.subscriber("plain-queue", request_attempt_id="attempt-1")
-
-
-# --------------------------------------------------------------------------- #
-# Parser typing & system attributes
-# --------------------------------------------------------------------------- #
 
 
 @pytest.mark.asyncio()
@@ -153,11 +138,6 @@ class TestParser:
         assert msg.approximate_receive_count == 0
 
 
-# --------------------------------------------------------------------------- #
-# Message ack/nack semantics
-# --------------------------------------------------------------------------- #
-
-
 @pytest.mark.asyncio()
 class TestMessageAck:
     async def test_nack_default_immediate(self) -> None:
@@ -192,11 +172,6 @@ class TestMessageAck:
         assert {e["ReceiptHandle"] for e in kwargs["Entries"]} == {"rh0", "rh1", "rh2"}
 
 
-# --------------------------------------------------------------------------- #
-# Batch consumption (in-memory)
-# --------------------------------------------------------------------------- #
-
-
 @pytest.mark.asyncio()
 class TestBatchConsume(SQSMemoryTestcaseConfig):
     async def test_batch_subscriber_receives_list(self, queue: str) -> None:
@@ -211,11 +186,6 @@ class TestBatchConsume(SQSMemoryTestcaseConfig):
             handler.mock.assert_called_once_with(["hello"])
 
 
-# --------------------------------------------------------------------------- #
-# Connected (LocalStack) coverage of the new behaviour
-# --------------------------------------------------------------------------- #
-
-
 @pytest.mark.connected()
 @pytest.mark.sqs()
 @pytest.mark.asyncio()
@@ -227,7 +197,11 @@ class TestConnectedFeatures(SQSTestcaseConfig):
         @broker.subscriber(queue, batch=True)
         async def handler(msgs: list) -> None:
             received.extend(msgs)
-            event.set()
+            # SQS does not guarantee returning all available messages in a single
+            # ReceiveMessage call (ElasticMQ delivers them one at a time), so wait
+            # until the whole batch has arrived across polls before asserting.
+            if len(received) >= 3:
+                event.set()
 
         async with broker:
             await broker.start()
