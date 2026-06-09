@@ -49,6 +49,17 @@ class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
+    async def test_group_instance_id(self) -> None:
+        router = self.router_class()
+
+        sub = router.subscriber(
+            "test-topic",
+            group_id="test-group",
+            group_instance_id="instance-4",
+        )
+
+        assert sub._connection_args["group_instance_id"] == "instance-4"
+
     async def test_batch_testclient(
         self,
         mock: MagicMock,
