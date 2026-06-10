@@ -1,19 +1,19 @@
 import asyncio
+import base64
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.broker import EnterType, TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.sqs.broker.broker import SQSBroker
-from faststream.sqs.parser import SQSParser
+from faststream.sqs.parser import BASE64_BODY_ATTR
 from faststream.sqs.publisher.producer import SQSFastProducer
 from faststream.sqs.response import SQSPublishCommand
 
@@ -32,12 +32,42 @@ def _queue_matches(handler_queue: str, destination: str) -> bool:
     return handler_queue.removesuffix(".fifo") == destination.removesuffix(".fifo")
 
 
-class TestSQSBroker(TestBroker[SQSBroker]):
+class TestSQSBroker(TestBroker[SQSBroker, EnterType]):
     """In-memory test double for SQSBroker.
 
     Routes published messages directly to matching subscribers (by queue
     name) without any AWS connection.
     """
+
+    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
+    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
+    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
+    if TYPE_CHECKING:
+
+        @overload
+        def __init__(
+            self: "TestSQSBroker[SQSBroker]",
+            broker: SQSBroker,
+            /,
+            *,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
+
+        @overload
+        def __init__(
+            self: "TestSQSBroker[tuple[SQSBroker, ...]]",
+            *brokers: SQSBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
+
+        def __init__(
+            self,
+            *brokers: SQSBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
 
     def create_publisher_fake_subscriber(
         self,
@@ -88,7 +118,8 @@ class TestSQSBroker(TestBroker[SQSBroker]):
         fake_client.change_message_visibility = AsyncMock(return_value={})
         fake_client.change_message_visibility_batch = AsyncMock(return_value={})
 
-        broker.config.broker_config._client = fake_client
+        # The same wiring hook the real SQSBroker._connect uses.
+        broker.config.connect(fake_client)
         return fake_client
 
 
@@ -100,17 +131,9 @@ class FakeProducer(SQSFastProducer):
         broker: SQSBroker,
         brokers: Sequence[SQSBroker],
     ) -> None:
+        super().__init__(parser=broker._parser, decoder=broker._decoder)
         self.broker = broker
         self.brokers = brokers
-        self.serializer: SerializerProto | None = None
-        self._client = None
-        self._queue_urls = {}
-        self.response_queue_url = None
-        self._futures = {}
-
-        default = SQSParser()
-        self._parser = ParserComposition(broker._parser, default.parse_message)
-        self._decoder = ParserComposition(broker._decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
@@ -193,9 +216,21 @@ async def build_message(
     if codec is None:
         codec = DefaultCodec()
     payload, content_type = await codec.encode(message, serializer=serializer)
-    body = payload.decode() if isinstance(payload, bytes) else str(payload)
+
+    base64_body = False
+    if isinstance(payload, bytes):
+        try:
+            body = payload.decode()
+        except UnicodeDecodeError:
+            # mirror SQSFastProducer: SQS bodies are text-only
+            body = base64.b64encode(payload).decode()
+            base64_body = True
+    else:
+        body = str(payload)
 
     attributes: dict[str, Any] = {}
+    if base64_body:
+        attributes[BASE64_BODY_ATTR] = {"DataType": "String", "StringValue": "1"}
     for key, value in (headers or {}).items():
         attributes[key] = {"DataType": "String", "StringValue": str(value)}
     if content_type:

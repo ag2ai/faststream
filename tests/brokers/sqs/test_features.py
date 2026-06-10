@@ -5,11 +5,13 @@ parser typing/system-attributes, configurable nack and batch consumption.
 """
 
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from faststream import Context
+from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import SetupError
 from faststream.response.publish_type import PublishType
 from faststream.sqs import FifoQueue
@@ -20,9 +22,9 @@ from faststream.sqs.exceptions import (
     TooManyMessageAttributesError,
 )
 from faststream.sqs.message import SQSBatchMessage, SQSMessage
-from faststream.sqs.parser import SQSParser
+from faststream.sqs.parser import BASE64_BODY_ATTR, SQSParser
 from faststream.sqs.publisher.producer import SQSFastProducer
-from faststream.sqs.response import SQSPublishCommand
+from faststream.sqs.response import SQSBatchPublishCommand, SQSPublishCommand
 
 from .basic import SQSMemoryTestcaseConfig, SQSTestcaseConfig
 
@@ -137,6 +139,105 @@ class TestParser:
         msg = await parser.parse_message({"Body": "x"})
         assert msg.approximate_receive_count == 0
 
+    async def test_system_attributes_not_shared_between_messages(self) -> None:
+        parser = SQSParser()
+        first = await parser.parse_message({"Body": "x"})
+        first.system_attributes["MessageGroupId"] = "polluted"
+
+        second = await parser.parse_message({"Body": "y"})
+        assert second.group_id is None
+        assert SQSMessage(raw_message={}, body=b"").system_attributes == {}
+
+    async def test_batch_system_attributes(self) -> None:
+        parser = SQSParser()
+        raws = [
+            {
+                "Body": "a",
+                "Attributes": {"MessageGroupId": "g1", "ApproximateReceiveCount": "2"},
+            },
+            {
+                "Body": "b",
+                "Attributes": {"MessageGroupId": "g2", "ApproximateReceiveCount": "5"},
+            },
+        ]
+        msg = await parser.parse_batch(raws)
+        # scalars follow the batch "first message wins" convention
+        assert msg.group_id == "g1"
+        assert msg.approximate_receive_count == 2
+        assert [a["MessageGroupId"] for a in msg.batch_system_attributes] == ["g1", "g2"]
+
+    async def test_decode_batch_uses_cached_parses(self) -> None:
+        parser = SQSParser()
+        msg = await parser.parse_batch([{"Body": "a"}, {"Body": "b"}])
+        assert await parser.decode_batch(msg) == [b"a", b"b"]
+
+
+@pytest.mark.asyncio()
+class TestBinaryBody:
+    async def test_non_utf8_payload_roundtrip(self) -> None:
+        producer = SQSFastProducer()
+        payload = b"\x89PNG\r\n\x1a\x00\xff\xfe"
+
+        cmd = SQSPublishCommand(payload, queue="q", _publish_type=PublishType.PUBLISH)
+        body, attrs = producer._build_entry(payload, None, cmd)
+        assert BASE64_BODY_ATTR in attrs
+
+        msg = await SQSParser().parse_message(
+            {"Body": body, "MessageAttributes": attrs},
+        )
+        assert msg.body == payload
+
+    async def test_utf8_payload_stays_plain_text(self) -> None:
+        producer = SQSFastProducer()
+        cmd = SQSPublishCommand(b"hello", queue="q", _publish_type=PublishType.PUBLISH)
+
+        body, attrs = producer._build_entry(b"hello", None, cmd)
+
+        assert body == "hello"
+        assert BASE64_BODY_ATTR not in attrs
+
+
+class _RecordingBatchCodec(DefaultCodec):
+    """A user codec implementing the ``BatchCodecProto`` extension."""
+
+    def __init__(self) -> None:
+        self.batch_calls = 0
+
+    async def encode_batch(
+        self,
+        msgs: Any,
+        serializer: Any = None,
+    ) -> list[tuple[bytes, str | None]]:
+        self.batch_calls += 1
+        return [await self.encode(msg, serializer) for msg in msgs]
+
+    async def decode_batch(self, msg: Any) -> list[Any]:
+        return list(msg.body)
+
+
+@pytest.mark.asyncio()
+class TestBatchCodec:
+    async def test_publish_batch_prefers_encode_batch(self) -> None:
+        codec = _RecordingBatchCodec()
+
+        client = AsyncMock()
+        client.get_queue_url.return_value = {"QueueUrl": "http://q"}
+        client.send_message_batch.return_value = {"Successful": [], "Failed": []}
+
+        producer = SQSFastProducer()
+        producer.connect(client, serializer=None, codec=codec)
+
+        cmd = SQSBatchPublishCommand(
+            "a",
+            "b",
+            queue="q",
+            _publish_type=PublishType.PUBLISH,
+        )
+        await producer.publish_batch(cmd)
+
+        assert codec.batch_calls == 1
+        client.send_message_batch.assert_awaited_once()
+
 
 @pytest.mark.asyncio()
 class TestMessageAck:
@@ -186,10 +287,48 @@ class TestBatchConsume(SQSMemoryTestcaseConfig):
             handler.mock.assert_called_once_with(["hello"])
 
 
+@pytest.mark.asyncio()
+class TestBinaryBodyMemory(SQSMemoryTestcaseConfig):
+    async def test_publish_binary_in_memory(self, queue: str) -> None:
+        broker = self.get_broker()
+        payload = b"\x89PNG\r\n\x1a\x00\xff\xfe"
+
+        @broker.subscriber(queue)
+        async def handler(msg) -> None:
+            pass
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(payload, queue)
+            handler.mock.assert_called_once_with(payload)
+
+
 @pytest.mark.connected()
 @pytest.mark.sqs()
 @pytest.mark.asyncio()
 class TestConnectedFeatures(SQSTestcaseConfig):
+    async def test_binary_publish_consume(self, queue: str, event: asyncio.Event) -> None:
+        broker = self.get_broker(apply_types=True)
+        payload = b"\x89PNG\r\n\x1a\x00\xff\xfe"
+        received: list[bytes] = []
+
+        @broker.subscriber(queue)
+        async def handler(msg: bytes) -> None:
+            received.append(msg)
+            event.set()
+
+        async with broker:
+            await broker.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker.publish(payload, queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        assert received == [payload]
+
     async def test_batch_consume(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker(apply_types=True)
         received: list = []

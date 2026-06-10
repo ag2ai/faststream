@@ -1,7 +1,10 @@
 from typing import Any
 
 from faststream.sqs.prometheus import SQSPrometheusMiddleware
-from faststream.sqs.prometheus.provider import SQSMetricsSettingsProvider
+from faststream.sqs.prometheus.provider import (
+    BatchSQSMetricsSettingsProvider,
+    SQSMetricsSettingsProvider,
+)
 from tests.brokers.sqs.basic import SQSTestcaseConfig
 
 
@@ -13,3 +16,8 @@ class SQSPrometheusSettings(SQSTestcaseConfig):
 
     def get_settings_provider(self) -> SQSMetricsSettingsProvider:
         return SQSMetricsSettingsProvider()
+
+
+class BatchSQSPrometheusSettings(SQSPrometheusSettings):
+    def get_settings_provider(self) -> BatchSQSMetricsSettingsProvider:  # type: ignore[override]
+        return BatchSQSMetricsSettingsProvider()

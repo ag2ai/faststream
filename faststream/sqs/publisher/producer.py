@@ -1,4 +1,5 @@
 import asyncio
+import base64
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -6,7 +7,7 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
@@ -19,7 +20,12 @@ from faststream.sqs.exceptions import (
     MessageTooLargeError,
     TooManyMessageAttributesError,
 )
-from faststream.sqs.parser import EMPTY_BODY_ATTR, EMPTY_BODY_PLACEHOLDER, SQSParser
+from faststream.sqs.parser import (
+    BASE64_BODY_ATTR,
+    EMPTY_BODY_ATTR,
+    EMPTY_BODY_PLACEHOLDER,
+    SQSParser,
+)
 from faststream.sqs.response import SQSPublishCommand
 
 if TYPE_CHECKING:
@@ -160,18 +166,40 @@ class SQSFastProducer(ProducerProto[SQSPublishCommand]):
             )
             raise FifoQueueError(msg)
 
-    async def _build_send_kwargs(self, cmd: "SQSPublishCommand") -> dict[str, Any]:
-        self._validate_fifo(cmd)
-        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
-        body = payload.decode() if isinstance(payload, bytes) else str(payload)
+    def _build_entry(
+        self,
+        payload: Any,
+        content_type: str | None,
+        cmd: "SQSPublishCommand",
+    ) -> tuple[str, dict[str, Any]]:
+        """Turn an encoded payload into a validated (MessageBody, attributes) pair.
+
+        SQS accepts only text bodies, so non-UTF-8 bytes are shipped base64-encoded
+        and flagged with a reserved attribute (restored by ``SQSParser``); empty
+        bodies are replaced with a flagged placeholder the same way.
+        """
         attrs = self._build_message_attributes(cmd, content_type)
 
-        # SQS rejects empty bodies; send a placeholder and flag it for the parser.
+        if isinstance(payload, bytes):
+            try:
+                body = payload.decode()
+            except UnicodeDecodeError:
+                body = base64.b64encode(payload).decode()
+                attrs[BASE64_BODY_ATTR] = {"DataType": "String", "StringValue": "1"}
+        else:
+            body = str(payload)
+
         if not body:
             body = EMPTY_BODY_PLACEHOLDER
             attrs[EMPTY_BODY_ATTR] = {"DataType": "String", "StringValue": "1"}
 
         self._validate_message(body, attrs)
+        return body, attrs
+
+    async def _build_send_kwargs(self, cmd: "SQSPublishCommand") -> dict[str, Any]:
+        self._validate_fifo(cmd)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
+        body, attrs = self._build_entry(payload, content_type, cmd)
 
         kwargs: dict[str, Any] = {
             "QueueUrl": await self.get_queue_url(cmd.queue),
@@ -196,15 +224,19 @@ class SQSFastProducer(ProducerProto[SQSPublishCommand]):
         self._validate_fifo(cmd)
         url = await self.get_queue_url(cmd.queue)
 
+        if isinstance(self.codec, BatchCodecProto):
+            encoded_batch = await self.codec.encode_batch(
+                cmd.batch_bodies, self.serializer
+            )
+        else:
+            encoded_batch = [
+                await self.codec.encode(body, self.serializer)
+                for body in cmd.batch_bodies
+            ]
+
         entries: list[dict[str, Any]] = []
-        for idx, body in enumerate(cmd.batch_bodies):
-            payload, content_type = await self.codec.encode(body, self.serializer)
-            text = payload.decode() if isinstance(payload, bytes) else str(payload)
-            attrs = self._build_message_attributes(cmd, content_type)
-            if not text:
-                text = EMPTY_BODY_PLACEHOLDER
-                attrs[EMPTY_BODY_ATTR] = {"DataType": "String", "StringValue": "1"}
-            self._validate_message(text, attrs)
+        for idx, (payload, content_type) in enumerate(encoded_batch):
+            text, attrs = self._build_entry(payload, content_type, cmd)
             entry: dict[str, Any] = {
                 "Id": str(idx),
                 "MessageBody": text,

@@ -5,6 +5,15 @@ from faststream.sqs.broker.router import SQSRouter
 from faststream.sqs.testing import TestSQSBroker
 from tests.brokers.base.basic import BaseTestcaseConfig
 
+# Connection settings of the local ElasticMQ emulator (docker-compose `sqs`
+# service) — the single source of truth for the whole SQS test suite.
+ELASTICMQ_CONNECTION: dict[str, str] = {
+    "endpoint_url": "http://localhost:9324",
+    "region_name": "us-east-1",
+    "aws_access_key_id": "test",
+    "aws_secret_access_key": "test",
+}
+
 
 class SQSTestcaseConfig(BaseTestcaseConfig):
     # SQS is poll-based (long-polling), so round-trips are slower than the
@@ -17,10 +26,7 @@ class SQSTestcaseConfig(BaseTestcaseConfig):
         **kwargs: Any,
     ) -> SQSBroker:
         return SQSBroker(
-            endpoint_url="http://localhost:9324",
-            region_name="us-east-1",
-            aws_access_key_id="test",
-            aws_secret_access_key="test",
+            **ELASTICMQ_CONNECTION,
             apply_types=apply_types,
             **kwargs,
         )

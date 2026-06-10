@@ -1,14 +1,13 @@
 from collections.abc import AsyncIterator, Sequence
-from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from botocore.exceptions import BotoCoreError, ClientError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream.sqs.helpers import poll_with_backoff
 from faststream.sqs.parser import SQSParser
 from faststream.sqs.publisher.fake import SQSFakePublisher
 
@@ -36,12 +35,7 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
     ) -> None:
         self._sqs_parser = SQSParser()
         self._batch = config.batch
-        if config.batch:
-            config.parser = self._sqs_parser.parse_batch
-            config.decoder = self._sqs_parser.decode_batch
-        else:
-            config.parser = self._sqs_parser.parse_message
-            config.decoder = self._sqs_parser.decode_message
+        config.parser, config.decoder = self._parser_pair()
         super().__init__(config, specification, calls)
 
         self._queue = config.queue
@@ -83,23 +77,28 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
     ) -> dict[str, str]:
         return self.build_log_context(message=message, queue=self.queue)
 
+    def _parser_pair(self) -> tuple[Any, Any]:
+        """The (parser, decoder) pair matching this subscriber's batch mode."""
+        if self._batch:
+            return self._sqs_parser.parse_batch, self._sqs_parser.decode_batch
+        return self._sqs_parser.parse_message, self._sqs_parser.decode_message
+
     async def _resolve_queue_url(self) -> str:
         if self._declare.declare:
             return await self._outer_config.declare_queue(self._declare, name=self.queue)
         return await self._outer_config.get_queue_url(self.queue)
 
+    async def _bind_queue(self) -> None:
+        if not self._queue_url:
+            self._queue_url = await self._resolve_queue_url()
+            self._sqs_parser.bind(self._outer_config.client, self._queue_url)
+
     @override
     async def start(self) -> None:
         await super().start()
 
-        self._queue_url = await self._resolve_queue_url()
-        self._sqs_parser.bind(self._outer_config.client, self._queue_url)
-        if self._batch:
-            self._parser = self._sqs_parser.parse_batch
-            self._decoder = self._sqs_parser.decode_batch
-        else:
-            self._parser = self._sqs_parser.parse_message
-            self._decoder = self._sqs_parser.decode_message
+        await self._bind_queue()
+        self._parser, self._decoder = self._parser_pair()
 
         if self.calls:
             self.add_task(self._consume_loop)
@@ -125,21 +124,18 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         resp = await self._outer_config.client.receive_message(**self._receive_kwargs())
         return resp.get("Messages", [])
 
-    async def _consume_loop(self) -> None:
-        backoff = 1.0
-        while self.running:
-            try:
-                messages = await self._receive()
-            except (ClientError, BotoCoreError) as e:
-                self._outer_config.logger.log(
-                    f"SQS receive failed, retrying in {backoff:.0f}s: {e}",
-                    extra=self.get_log_context(None),
-                )
-                await anyio.sleep(backoff)
-                backoff = min(backoff * 2, 30.0)
-                continue
+    def _log_receive_error(self, error: Exception, backoff: float) -> None:
+        self._outer_config.logger.log(
+            f"SQS receive failed, retrying in {backoff:.0f}s: {error}",
+            extra=self.get_log_context(None),
+        )
 
-            backoff = 1.0
+    async def _consume_loop(self) -> None:
+        async for messages in poll_with_backoff(
+            self._receive,
+            is_running=lambda: self.running,
+            on_error=self._log_receive_error,
+        ):
             await self._dispatch(messages)
 
     async def _dispatch(self, messages: list["SQSRawMessage"]) -> None:
@@ -171,19 +167,17 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
-        if not self._queue_url:
-            self._queue_url = await self._resolve_queue_url()
-            self._sqs_parser.bind(self._outer_config.client, self._queue_url)
+        await self._bind_queue()
 
-        get_one_kwargs: dict[str, Any] = {
-            "QueueUrl": self._queue_url,
+        get_one_kwargs = self._receive_kwargs() | {
             "MaxNumberOfMessages": 1,
-            "WaitTimeSeconds": min(int(timeout), 20),
-            "MessageAttributeNames": ["All"],
-            "AttributeNames": ["All"],
+            # Strictly shorter than the `move_on_after` deadline below: if the
+            # long poll lasted the full client timeout, a message returned at
+            # its very end would be cancelled client-side after SQS already
+            # marked it in-flight — silently hiding it for the queue's whole
+            # visibility timeout.
+            "WaitTimeSeconds": min(max(int(timeout) - 1, 0), 20),
         }
-        if self._request_attempt_id is not None:
-            get_one_kwargs["ReceiveRequestAttemptId"] = self._request_attempt_id
 
         raw_msg: SQSRawMessage | None = None
         with anyio.move_on_after(timeout):
@@ -204,26 +198,26 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
 
     @override
     async def __aiter__(self) -> AsyncIterator["SQSMessage"]:  # type: ignore[override]
-        if not self._queue_url:
-            self._queue_url = await self._resolve_queue_url()
-            self._sqs_parser.bind(self._outer_config.client, self._queue_url)
+        await self._bind_queue()
 
         context = self._outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
-        while True:
-            with suppress(ClientError, BotoCoreError):
-                received = await self._receive()
-                # In batch mode each poll result is yielded as one batch message.
-                inputs: list[Any] = [received] if self._batch else list(received)
-                for raw_msg in inputs:
-                    if self._batch and not raw_msg:
-                        continue
-                    msg: SQSMessage = await process_msg(  # type: ignore[assignment]
-                        msg=raw_msg,
-                        middlewares=(
-                            m(raw_msg, context=context) for m in self._broker_middlewares
-                        ),
-                        parser=async_parser,
-                        decoder=async_decoder,
-                    )
-                    yield msg
+        async for received in poll_with_backoff(
+            self._receive,
+            is_running=lambda: True,
+            on_error=self._log_receive_error,
+        ):
+            # In batch mode each poll result is yielded as one batch message.
+            inputs: list[Any] = [received] if self._batch else list(received)
+            for raw_msg in inputs:
+                if self._batch and not raw_msg:
+                    continue
+                msg: SQSMessage = await process_msg(  # type: ignore[assignment]
+                    msg=raw_msg,
+                    middlewares=(
+                        m(raw_msg, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=async_parser,
+                    decoder=async_decoder,
+                )
+                yield msg

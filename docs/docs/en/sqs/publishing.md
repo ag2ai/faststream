@@ -7,8 +7,16 @@ Publish to a queue with `broker.publish`:
 ```
 
 Headers are sent as SQS **MessageAttributes**. FastStream reserves the
-`content-type`, `reply_to`, and `correlation_id` attribute names for transport
-metadata.
+`content-type`, `reply_to`, `correlation_id`, `empty-body`, and `base64-body`
+attribute names for transport metadata.
+
+!!! note "Binary payloads"
+    SQS accepts only text message bodies. When you publish `bytes` that are not
+    valid UTF-8 (an image, gzip, protobuf, ...), FastStream sends them
+    base64-encoded and sets the reserved `base64-body` message attribute, so a
+    FastStream subscriber receives the original bytes back transparently.
+    Non-FastStream consumers of such messages should base64-decode the body when
+    that attribute is present.
 
 ## Declared queues
 

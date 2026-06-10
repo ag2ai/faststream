@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from faststream._internal.constants import EMPTY
 from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.sqs.message import SQSRawMessage
-from faststream.sqs.prometheus.provider import SQSMetricsSettingsProvider
+from faststream.sqs.prometheus.provider import settings_provider_factory
 from faststream.sqs.response import SQSPublishCommand
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class SQSPrometheusMiddleware(
         custom_labels: dict[str, str | Callable[[Any], str]] | None = None,
     ) -> None:
         super().__init__(
-            settings_provider_factory=lambda _: SQSMetricsSettingsProvider(),
+            settings_provider_factory=settings_provider_factory,  # type: ignore[arg-type]
             registry=registry,
             app_name=app_name,
             metrics_prefix=metrics_prefix,

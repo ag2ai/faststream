@@ -4,8 +4,8 @@ from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+import anyio
 from aiobotocore.session import get_session
-from botocore.exceptions import BotoCoreError, ClientError
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
@@ -18,6 +18,7 @@ from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 from faststream.sqs.configs import SQSBrokerConfig
+from faststream.sqs.helpers import poll_with_backoff
 from faststream.sqs.message import SQSRawMessage
 from faststream.sqs.publisher.producer import SQSFastProducer
 from faststream.sqs.response import SQSBatchPublishCommand, SQSPublishCommand
@@ -169,34 +170,40 @@ class SQSBroker(
     async def _consume_responses(self, queue_url: str) -> None:
         client = self.config.client
         producer = cast("SQSFastProducer", self.config.producer)
-        backoff = 1.0
-        while self.running:
-            try:
-                resp = await client.receive_message(
-                    QueueUrl=queue_url,
-                    MaxNumberOfMessages=10,
-                    WaitTimeSeconds=5,
-                    MessageAttributeNames=["All"],
-                )
-            except (ClientError, BotoCoreError) as e:
-                # Don't busy-loop silently on e.g. bad credentials; log and back off.
-                self.config.logger.log(
-                    f"SQS response-queue receive failed, retrying in {backoff:.0f}s: {e}",
-                    logging.WARNING,
-                )
-                await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 30.0)
-                continue
 
-            backoff = 1.0
-            for message in resp.get("Messages", []):
+        async def receive() -> list[Any]:
+            resp = await client.receive_message(
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=20,
+                MessageAttributeNames=["All"],
+            )
+            return list(resp.get("Messages", []))
+
+        def log_error(error: Exception, backoff: float) -> None:
+            # Don't busy-loop silently on e.g. bad credentials; log and back off.
+            self.config.logger.log(
+                f"SQS response-queue receive failed, retrying in {backoff:.0f}s: {error}",
+                logging.WARNING,
+            )
+
+        async for messages in poll_with_backoff(
+            receive,
+            is_running=lambda: self.running,
+            on_error=log_error,
+        ):
+            for message in messages:
                 attrs = message.get("MessageAttributes", {}) or {}
                 cid = attrs.get("correlation_id", {}).get("StringValue", "")
                 if cid:
                     producer.resolve_response(cid, message)
-                await client.delete_message(
+            if messages:
+                await client.delete_message_batch(
                     QueueUrl=queue_url,
-                    ReceiptHandle=message["ReceiptHandle"],
+                    Entries=[
+                        {"Id": str(i), "ReceiptHandle": m["ReceiptHandle"]}
+                        for i, m in enumerate(messages)
+                    ],
                 )
 
     @override
@@ -235,12 +242,14 @@ class SQSBroker(
     async def ping(self, timeout: float | None = None) -> bool:
         if self._connection is None:
             return False
-        try:
-            await self._connection.list_queues(MaxResults=1)
-        except Exception:
-            return False
-        else:
-            return True
+        with anyio.move_on_after(timeout):
+            try:
+                await self._connection.list_queues(MaxResults=1)
+            except Exception:
+                return False
+            else:
+                return True
+        return False
 
     @override
     async def publish(

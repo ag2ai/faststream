@@ -6,7 +6,7 @@ from faststream.sqs import SQSRouter
 from faststream.sqs.fastapi import SQSRouter as _SQSStreamRouter
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
-from .basic import SQSMemoryTestcaseConfig, SQSTestcaseConfig
+from .basic import ELASTICMQ_CONNECTION, SQSMemoryTestcaseConfig, SQSTestcaseConfig
 
 
 class StreamRouter(_SQSStreamRouter):
@@ -17,10 +17,8 @@ class StreamRouter(_SQSStreamRouter):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault("endpoint_url", "http://localhost:9324")
-        kwargs.setdefault("region_name", "us-east-1")
-        kwargs.setdefault("aws_access_key_id", "test")
-        kwargs.setdefault("aws_secret_access_key", "test")
+        for key, value in ELASTICMQ_CONNECTION.items():
+            kwargs.setdefault(key, value)
         super().__init__(*args, **kwargs)
 
 
@@ -35,3 +33,12 @@ class TestRouter(SQSTestcaseConfig, FastAPITestcase):
 class TestRouterLocal(SQSMemoryTestcaseConfig, FastAPILocalTestcase):
     router_class = StreamRouter
     broker_router_class = SQSRouter
+
+
+@pytest.mark.sqs()
+def test_subscriber_accepts_batch() -> None:
+    router = StreamRouter()
+
+    sub = router.subscriber("test-queue", batch=True)
+
+    assert sub._batch

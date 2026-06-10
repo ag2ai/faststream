@@ -4,13 +4,15 @@ import pytest
 
 from faststream.sqs.broker.router import SQSRouter
 
+from .basic import ELASTICMQ_CONNECTION
+
 
 @dataclass
 class Settings:
-    endpoint_url: str = "http://localhost:9324"
-    region_name: str = "us-east-1"
-    aws_access_key_id: str = "test"
-    aws_secret_access_key: str = "test"
+    endpoint_url: str = ELASTICMQ_CONNECTION["endpoint_url"]
+    region_name: str = ELASTICMQ_CONNECTION["region_name"]
+    aws_access_key_id: str = ELASTICMQ_CONNECTION["aws_access_key_id"]
+    aws_secret_access_key: str = ELASTICMQ_CONNECTION["aws_secret_access_key"]
 
 
 @pytest.fixture(scope="session")

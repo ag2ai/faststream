@@ -61,7 +61,7 @@ class SQSRoute(SubscriberRoute):
         queue: Union[str, "SQSQueue"],
         *,
         publishers: Iterable["SQSPublisher"] = (),
-        wait_time_seconds: int = 5,
+        wait_time_seconds: int = 20,
         max_messages: int = 10,
         visibility_timeout: int | None = None,
         ack_policy: AckPolicy = EMPTY,

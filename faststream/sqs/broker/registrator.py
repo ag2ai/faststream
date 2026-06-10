@@ -30,7 +30,7 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
         self,
         queue: Union[str, "SQSQueue"],
         *,
-        wait_time_seconds: int = 5,
+        wait_time_seconds: int = 20,
         max_messages: int = 10,
         visibility_timeout: int | None = None,
         batch: bool = False,

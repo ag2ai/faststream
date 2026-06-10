@@ -2,7 +2,9 @@ from opentelemetry.metrics import Meter, MeterProvider
 from opentelemetry.trace import TracerProvider
 
 from faststream.opentelemetry.middleware import TelemetryMiddleware
-from faststream.sqs.opentelemetry.provider import SQSTelemetrySettingsProvider
+from faststream.sqs.opentelemetry.provider import (
+    telemetry_attributes_provider_factory,
+)
 from faststream.sqs.response import SQSPublishCommand
 
 
@@ -16,7 +18,7 @@ class SQSTelemetryMiddleware(TelemetryMiddleware[SQSPublishCommand]):
         include_messages_counters: bool = True,
     ) -> None:
         super().__init__(
-            settings_provider_factory=lambda _: SQSTelemetrySettingsProvider(),
+            settings_provider_factory=telemetry_attributes_provider_factory,
             tracer_provider=tracer_provider,
             meter_provider=meter_provider,
             meter=meter,

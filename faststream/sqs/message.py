@@ -24,8 +24,11 @@ class SQSMessage(StreamMessage["SQSRawMessage"]):
     # Set by SQSParser at parse time so ack/nack/reject can reach the queue.
     sqs_client: "SQSClient | None" = None
     queue_url: str = ""
-    # SQS system attributes (Attributes), set by SQSParser at parse time.
-    system_attributes: dict[str, str] = {}  # noqa: RUF012
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # SQS system attributes (Attributes), set by SQSParser at parse time.
+        self.system_attributes: dict[str, str] = {}
 
     @property
     def receipt_handle(self) -> str:
@@ -92,7 +95,19 @@ class SQSBatchMessage(SQSMessage):
 
     ``raw_message`` is the list of raw SQS messages; ack/nack/reject act on all
     of them at once using the SQS batch APIs (chunked to the 10-entry limit).
+
+    ``system_attributes`` (and the scalar properties derived from it) reflect the
+    first message of the batch — the same "first message wins" convention used
+    for ``content_type``/``correlation_id``; ``batch_system_attributes`` keeps
+    the per-message attributes.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Per-message SQS system attributes, set by SQSParser at parse time.
+        self.batch_system_attributes: list[dict[str, str]] = []
+        # Per-message parses kept by SQSParser so decode_batch needn't re-parse.
+        self.parsed_messages: list[SQSMessage] = []
 
     @property
     def receipt_handles(self) -> list[str]:
