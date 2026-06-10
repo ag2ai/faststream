@@ -127,7 +127,7 @@ lint = [
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
-    "types-aiobotocore[sqs]>=3.7.0",
+    "types-aiobotocore[sqs]>=2.13,<3",
 ]
 
 test-core = [
