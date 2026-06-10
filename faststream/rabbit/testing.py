@@ -46,35 +46,35 @@ __all__ = ("TestRabbitBroker",)
 class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
     """A class to test RabbitMQ brokers."""
 
-    @overload
-    def __init__(
-        self: "TestRabbitBroker[RabbitBroker]",
-        broker: RabbitBroker,
-        /,
-        *,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None: ...
+    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
+    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
+    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
+    if TYPE_CHECKING:
 
-    @overload
-    def __init__(
-        self: "TestRabbitBroker[tuple[RabbitBroker, ...]]",
-        *brokers: RabbitBroker,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None: ...
+        @overload
+        def __init__(
+            self: "TestRabbitBroker[RabbitBroker]",
+            broker: RabbitBroker,
+            /,
+            *,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
 
-    def __init__(
-        self,
-        *brokers: RabbitBroker,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None:
-        super().__init__(
-            *brokers,
-            with_real=with_real,
-            connect_only=connect_only,
-        )
+        @overload
+        def __init__(
+            self: "TestRabbitBroker[tuple[RabbitBroker, ...]]",
+            *brokers: RabbitBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
+
+        def __init__(
+            self,
+            *brokers: RabbitBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
 
     @contextmanager
     def _patch_broker(self, broker: "RabbitBroker") -> Generator[None, None, None]:

@@ -59,35 +59,35 @@ __all__ = ("TestRedisBroker",)
 class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
     """A class to test Redis brokers."""
 
-    @overload
-    def __init__(
-        self: "TestRedisBroker[RedisBroker]",
-        broker: RedisBroker,
-        /,
-        *,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None: ...
+    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
+    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
+    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
+    if TYPE_CHECKING:
 
-    @overload
-    def __init__(
-        self: "TestRedisBroker[tuple[RedisBroker, ...]]",
-        *brokers: RedisBroker,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None: ...
+        @overload
+        def __init__(
+            self: "TestRedisBroker[RedisBroker]",
+            broker: RedisBroker,
+            /,
+            *,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
 
-    def __init__(
-        self,
-        *brokers: RedisBroker,
-        with_real: bool = False,
-        connect_only: bool | None = None,
-    ) -> None:
-        super().__init__(
-            *brokers,
-            with_real=with_real,
-            connect_only=connect_only,
-        )
+        @overload
+        def __init__(
+            self: "TestRedisBroker[tuple[RedisBroker, ...]]",
+            *brokers: RedisBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
+
+        def __init__(
+            self,
+            *brokers: RedisBroker,
+            with_real: bool = False,
+            connect_only: bool | None = None,
+        ) -> None: ...
 
     @asynccontextmanager
     async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:

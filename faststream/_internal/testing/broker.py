@@ -27,7 +27,11 @@ if TYPE_CHECKING:
 Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
 
 # ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
-# single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
+# single broker or a ``tuple`` of brokers via ``TYPE_CHECKING``-only ``__init__``
+# overloads (mypy can't infer a subclass type argument from overloads declared on
+# this base, so each subclass carries its own copy; keeping them type-only leaves
+# the runtime stack free of extra ``__init__`` frames, which the AST-based
+# ``connect_only`` detection relies on).
 EnterType = TypeVar313("EnterType", default=Any)
 
 
@@ -86,7 +90,8 @@ class TestBroker(Generic[Broker, EnterType]):
         brokers = await self._ctx.__aenter__()
         if len(brokers) == 1:
             return cast("EnterType", brokers[0])
-        return cast("EnterType", brokers)
+        # a tuple, matching the multi-broker ``__init__`` overload declarations
+        return cast("EnterType", tuple(brokers))
 
     async def __aexit__(
         self,

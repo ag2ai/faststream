@@ -30,14 +30,22 @@ class B(Context):
         pass
 
 
-class SubA(A):
-    """Mirrors a concrete ``TestBroker`` subclass that delegates to ``super``.
+class UserWrapper:
+    """Mirrors a user helper that opens the ``with`` block inside ``__init__``.
 
-    The extra ``__init__`` frame must not break context-name detection.
+    The user's ``__init__`` frame is a regular caller frame and must not be
+    skipped by context-name detection.
     """
 
     def __init__(self) -> None:
-        super().__init__()
+        with A() as a, B():
+            self.contains = a.contains
+
+
+class UserWrapperInvalid:
+    def __init__(self) -> None:
+        with B(), A() as a:
+            self.contains = a.contains
 
 
 def test_base() -> None:
@@ -86,20 +94,12 @@ def test_nested_invalid() -> None:
         assert not a.contains
 
 
-def test_subclass_init_chain() -> None:
-    with SubA() as a, B():
-        assert a.contains
+def test_user_init_frame() -> None:
+    assert UserWrapper().contains
 
 
-@pytest.mark.asyncio()
-async def test_subclass_init_chain_async() -> None:
-    async with SubA() as a, B():
-        assert a.contains
-
-
-def test_subclass_init_chain_invalid() -> None:
-    with B(), SubA() as a:
-        assert not a.contains
+def test_user_init_frame_invalid() -> None:
+    assert not UserWrapperInvalid().contains
 
 
 def test_not_broken() -> None:
