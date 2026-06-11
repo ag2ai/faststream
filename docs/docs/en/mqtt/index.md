@@ -40,6 +40,7 @@ The broker constructor mirrors common `zmqtt.MQTTClient` options:
 | `keepalive`, `clean_session` | Session behaviour. |
 | `reconnect` | Optional `ReconnectConfig` (from `#!python faststream.mqtt`) for automatic reconnect with backoff. |
 | `session_expiry_interval` | MQTT 5.0 session expiry (seconds). |
+| `mqtt_connect_timeout` | Seconds to wait for the broker's CONNACK during the MQTT connect handshake (default `30`); raises `MQTTTimeoutError` (from `#!python zmqtt`), and is retried when `reconnect` is enabled. |
 
 Routers reuse the same API via `MQTTRouter` / `MQTTRoute` (see [routers](../getting-started/routers/index.md){.internal-link}).
 
