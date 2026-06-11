@@ -13,9 +13,7 @@ class TestRedisSentinelBrokerUnit:
     """Unit tests for RedisSentinelBroker (no running Redis/Sentinel needed)."""
 
     def test_builds_sentinel_connection_state(self) -> None:
-        broker = RedisSentinelBroker(
-            sentinels=SENTINELS, sentinel_master_name="mymaster"
-        )
+        broker = RedisSentinelBroker(sentinels=SENTINELS, sentinel_master_name="mymaster")
         connection = broker.config.broker_config.connection
         assert isinstance(connection, RedisSentinelConnectionState)
         assert connection._master_name == "mymaster"
@@ -59,9 +57,7 @@ class TestRedisSentinelFastAPIRouterUnit:
     def test_router_builds_sentinel_broker(self) -> None:
         from faststream.redis.fastapi import RedisSentinelRouter
 
-        router = RedisSentinelRouter(
-            sentinels=SENTINELS, sentinel_master_name="mymaster"
-        )
+        router = RedisSentinelRouter(sentinels=SENTINELS, sentinel_master_name="mymaster")
         assert isinstance(router.broker, RedisSentinelBroker)
         connection = router.broker.config.broker_config.connection
         assert isinstance(connection, RedisSentinelConnectionState)
