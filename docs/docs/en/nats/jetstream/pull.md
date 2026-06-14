@@ -37,7 +37,7 @@ The batch size doesn't mean that your `msg` argument is a list of messages, but 
 !!! tip
     If you want to consume list of messages, just set the `batch=True` in `PullSub` class.
 
-```
+```python
 from typing import Annotated
 
 from faststream import Context, FastStream, Logger
