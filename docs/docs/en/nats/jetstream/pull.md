@@ -37,4 +37,40 @@ The batch size doesn't mean that your `msg` argument is a list of messages, but 
 !!! tip
     If you want to consume list of messages, just set the `batch=True` in `PullSub` class.
 
+```
+from typing import Annotated
+
+from faststream import Context, FastStream, Logger
+from faststream.nats import NatsBroker, PullSub, message
+
+broker = NatsBroker()
+
+@broker.subscriber(
+    "test",
+    stream="test",
+    durable="test",
+    pull_sub=PullSub(batch=True, batch_size=3),
+)
+async def handler(
+    bodies: list[str],
+    logger: Logger,
+    msg: Annotated[message.NatsBatchMessage, Context("message")],
+) -> None:
+    logger.info(bodies)
+    for m in msg.raw_message:
+        await m.ack()
+
+app = FastStream(broker)
+
+@app.after_startup
+async def after_startup() -> None:
+    for i in range(3):
+        await broker.publish(f"Hello, world! {i}", "test", stream="test")
+```
+
+This example demonstrates how to use `batch=True` with a Pull subscriber.
+The message bodies are passed as a list into `bodies`, while the native NATS
+messages are available via `msg.raw_message` (type `NatsBatchMessage`),
+allowing per‑message `ack()` inside a batch.
+
 So, your subject will be processed much faster, without blocking for each message processing. However, if your subject has fewer than `#!python 10` messages, your request to **NATS** will be blocked for `timeout` (5 seconds by default) while trying to collect the required number of messages. Therefore, you should choose `batch_size` and `timeout` accurately to optimize your consumer efficiency.
