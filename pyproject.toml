@@ -73,7 +73,7 @@ confluent = [
     "confluent-kafka>=2.6,!=2.8.1,<3; python_version >= '3.13'",
 ]
 
-nats = ["nats-py>=2.12.0,<=3.0.0"]
+nats = ["nats-py[nkeys]>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<8.0.0"]
 
