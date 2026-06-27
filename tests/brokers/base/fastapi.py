@@ -19,6 +19,7 @@ from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.exceptions import SetupError
+from tests.tools import run_lifespan
 
 from .basic import BaseTestcaseConfig
 
@@ -659,8 +660,8 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         async def test_shutdown_async(app) -> None:
             mock.async_shutdown_called()
 
-        async with self.patch_broker(router.broker), router.lifespan_context(app):
-            pass
+        async with self.patch_broker(router.broker):
+            await run_lifespan(app)
 
         mock.sync_called.assert_called_once()
         mock.async_called.assert_called_once()
@@ -679,13 +680,10 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
         app = FastAPI()
         app.include_router(router)
 
-        async with (
-            self.patch_broker(router.broker),
-            router.lifespan_context(
-                app,
-            ) as context,
-        ):
-            assert context["lifespan"]
+        async with self.patch_broker(router.broker):
+            context = await run_lifespan(app)
+
+        assert context["lifespan"]
 
         mock.start.assert_called_once()
         mock.close.assert_called_once()
@@ -792,7 +790,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
 
         mock.assert_called_once()
 
-    def test_nested_stream_router_raises(self) -> None:
+    async def test_nested_stream_router_raises(self) -> None:
         """Including a StreamRouter into another StreamRouter must raise TypeError.
 
         This pattern is unsupported (issue #2657).  Users should include a regular
