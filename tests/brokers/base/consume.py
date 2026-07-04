@@ -372,7 +372,9 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
 
         assert event.is_set()
 
-    async def test_sub_start_use_context_manager(self, queue: str, event: asyncio.Event) -> None:
+    async def test_sub_start_use_context_manager(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
         consume_broker = self.get_broker()
 
         async def subscriber(m) -> None:
