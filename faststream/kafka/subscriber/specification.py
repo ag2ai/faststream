@@ -20,6 +20,9 @@ class KafkaSubscriberSpecification(
             f"{self._outer_config.prefix}{p.topic}" for p in self.config.partitions
         )
 
+        if self.config.pattern:
+            topics.add(f"{self._outer_config.prefix}{self.config.pattern}")
+
         return list(topics)
 
     @property

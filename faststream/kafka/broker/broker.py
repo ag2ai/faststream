@@ -18,7 +18,7 @@ from aiokafka.partitioner import DefaultPartitioner
 from aiokafka.producer.producer import _missing
 from aiokafka.structs import RecordMetadata
 from fast_depends import Provider, dependency_provider
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -33,6 +33,7 @@ from faststream.kafka.response import KafkaPublishCommand
 from faststream.kafka.schemas.params import ConsumerConnectionParams
 from faststream.kafka.security import parse_security
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -83,6 +85,12 @@ if TYPE_CHECKING:
                 server-side log entries that correspond to this client. Also
                 submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
+            client_rack: A rack identifier for this client. Used by the
+                broker for rack-aware fetching, letting a consumer read from
+                the closest replica. Requires aiokafka 0.14.0 or newer.
+            consumer_only: When True the broker skips creating the
+                producer and admin clients, letting deployments use Kafka
+                credentials scoped to read-only ACLs. Defaults to False.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are
@@ -155,6 +163,9 @@ if TYPE_CHECKING:
         sasl_oauth_token_provider: AbstractTokenProvider | None
         loop: asyncio.AbstractEventLoop | None
         client_id: str | None
+        # consumer args
+        client_rack: str | None
+        consumer_only: bool
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -195,6 +206,9 @@ class KafkaBroker(
         sasl_oauth_token_provider: Optional["AbstractTokenProvider"] = None,
         loop: Optional["asyncio.AbstractEventLoop"] = None,
         client_id: str | None = SERVICE_NAME,
+        # consumer args
+        client_rack: str | None = None,
+        consumer_only: bool = False,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -212,7 +226,9 @@ class KafkaBroker(
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
         graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -263,6 +279,12 @@ class KafkaBroker(
                 A name for this client. This string is passed in each request to servers and can be used to identify specific
                 server-side log entries that correspond to this client. Also submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
+            client_rack (Optional[str]):
+                A rack identifier for this client. Used by the broker for rack-aware fetching, letting a consumer read from the
+                closest replica. Requires aiokafka 0.14.0 or newer.
+            consumer_only (bool):
+                When True the broker skips creating the producer and admin clients during ``start()``, letting deployments use
+                Kafka credentials scoped to read-only ACLs. Defaults to False.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:
@@ -310,8 +332,13 @@ class KafkaBroker(
                 Transaction timeout in milliseconds.
             graceful_timeout (Optional[float]):
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy (AckPolicy):
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+                If not set, each broker type uses its built-in default.
             decoder (Optional[CustomCallable]):
                 Custom decoder object.
+            codec (Optional[CodecProto]):
+                Custom codec object.
             parser (Optional[CustomCallable]):
                 Custom parser object.
             dependencies (Iterable[Dependant]):
@@ -399,6 +426,10 @@ class KafkaBroker(
             ConsumerConnectionParams,
             connection_params,
         )
+        # client_rack is consumer-only, so it is not part of connection_params
+        # (which is also used to build the producer); inject it here when set.
+        if client_rack is not None:
+            consumer_options["client_rack"] = client_rack
         builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
         super().__init__(
@@ -406,6 +437,8 @@ class KafkaBroker(
             routers=routers,
             config=KafkaBrokerConfig(
                 client_id=client_id,
+                client_rack=client_rack,
+                consumer_only=consumer_only,
                 builder=builder,
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
@@ -413,6 +446,7 @@ class KafkaBroker(
                 ),
                 # both args,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 broker_parser=parser,
                 broker_middlewares=middlewares,
                 logger=make_kafka_logger_state(
@@ -427,6 +461,7 @@ class KafkaBroker(
                 ),
                 # subscriber args
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
@@ -456,21 +491,6 @@ class KafkaBroker(
         await super().stop(exc_type, exc_val, exc_tb)
         await self.config.disconnect()
         self._connection = None
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Connect broker to Kafka and startup all subscribers."""

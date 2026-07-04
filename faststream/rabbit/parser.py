@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING, Optional
 from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
+from faststream._internal.parser import DefaultCodec
+from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
     decode_message,
-    encode_message,
     gen_cor_id,
 )
 from faststream.rabbit.message import RabbitMessage
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import DecodedMessage
+    from faststream._internal.parser import CodecProto
     from faststream.rabbit.types import AioPikaSendableMessage
 
 
@@ -34,12 +36,7 @@ class AioPikaParser:
         message: "IncomingMessage",
     ) -> StreamMessage["IncomingMessage"]:
         """Parses an incoming message and returns a RabbitMessage object."""
-        if (path_re := self.pattern) and (
-            match := path_re.match(message.routing_key or "")
-        ):
-            path = match.groupdict()
-        else:
-            path = {}
+        path = match_path(self.pattern, message.routing_key or "")
 
         return RabbitMessage(
             body=message.body,
@@ -60,7 +57,7 @@ class AioPikaParser:
         return decode_message(msg)
 
     @staticmethod
-    def encode_message(
+    async def encode_message(
         message: "AioPikaSendableMessage",
         *,
         persist: bool = False,
@@ -77,11 +74,15 @@ class AioPikaParser:
         user_id: str | None = None,
         app_id: str | None = None,
         serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):
             return message
-        message_body, generated_content_type = encode_message(message, serializer)
+
+        message_body, generated_content_type = await (codec or DefaultCodec()).encode(
+            message, serializer
+        )
 
         delivery_mode = (
             DeliveryMode.PERSISTENT if persist else DeliveryMode.NOT_PERSISTENT

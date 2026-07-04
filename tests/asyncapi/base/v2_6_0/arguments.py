@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Annotated, Literal
@@ -826,6 +827,10 @@ class ArgumentsTestcase(FastAPICompatible):
                 },
             )
 
+    @pytest.mark.skipif(
+        sys.version_info >= (3, 14),
+        reason="Python 3.14 disallows redefining a class with the same name",
+    )
     def test_overwrite_schema(self) -> None:
         @dataclass
         class User:

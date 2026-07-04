@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -45,5 +46,13 @@ async def test_nats() -> None:
 @require_redis
 async def test_redis() -> None:
     from docs.docs_src.integrations.fastapi.redis.test import test_router
+
+    await test_router()
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_mqtt() -> None:
+    from docs.docs_src.integrations.fastapi.mqtt.test import test_router
 
     await test_router()

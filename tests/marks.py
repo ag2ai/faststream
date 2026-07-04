@@ -90,3 +90,16 @@ require_nats = pytest.mark.skipif(
     not HAS_NATS,
     reason="requires nats-py",
 )
+
+
+try:
+    from faststream.mqtt import MQTTBroker  # noqa: F401
+except ImportError:
+    HAS_MQTT = False
+else:
+    HAS_MQTT = True
+
+require_mqtt = pytest.mark.skipif(
+    not HAS_MQTT,
+    reason="requires zmqtt",
+)

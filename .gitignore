@@ -2,6 +2,7 @@ __pycache__
 dist
 .idea
 .zed
+.claude
 venv*
 .venv*
 .env
@@ -24,3 +25,9 @@ docs/site/
 docs/site_build/
 docs/docs/SUMMARY.md
 docs/docs/en/api/faststream/
+
+# https://github.com/colbymchenry/codegraph setup
+mcp.json
+.codegraph
+.mcp.json
+codegraph.mdc

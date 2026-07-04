@@ -50,6 +50,11 @@ First, you need to import the *Broker Router* from the same module from where yo
     {!> docs_src/getting_started/routers/redis/router.py [ln:1-6] !}
     ```
 
+=== "MQTT"
+    ```python hl_lines="2 6 9-10 17 22"
+    {!> docs_src/getting_started/routers/mqtt/router.py [ln:1-6] !}
+    ```
+
 Now you can use the created router to register handlers and publishers as if it were a regular broker
 
 === "AIOKafka"
@@ -75,6 +80,11 @@ Now you can use the created router to register handlers and publishers as if it 
 === "Redis"
     ```python hl_lines="1-2 9"
     {!> docs_src/getting_started/routers/redis/router.py [ln:9-19] !}
+    ```
+
+=== "MQTT"
+    ```python hl_lines="1-2 9"
+    {!> docs_src/getting_started/routers/mqtt/router.py [ln:9-19] !}
     ```
 
 Then you can simply include all the handlers declared using the router in your broker
@@ -109,6 +119,11 @@ Please note that when publishing a message, you now need to specify the same pre
 === "Redis"
     ```python hl_lines="3"
     {!> docs_src/getting_started/routers/redis/router.py [ln:27.5,28.5,29.5,30.5] !}
+    ```
+
+=== "MQTT"
+    ```python hl_lines="3"
+    {!> docs_src/getting_started/routers/mqtt/router.py [ln:27.5,28.5,29.5,30.5] !}
     ```
 
 !!! tip
@@ -171,6 +186,17 @@ If you want to separate your application's core logic from **FastStream**'s rout
 
     ```python linenums="1" hl_lines="1-2"
     {!> docs_src/getting_started/routers/redis/delay_equal.py [ln:9-14] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="9-17"
+    {!> docs_src/getting_started/routers/mqtt/router_delay.py [ln:3-4,9-13,15-25] !}
+    ```
+
+    Above example is identical to the following one:
+
+    ```python linenums="1" hl_lines="1-2"
+    {!> docs_src/getting_started/routers/mqtt/delay_equal.py [ln:9-14] !}
     ```
 
 !!! warning

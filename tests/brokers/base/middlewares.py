@@ -7,7 +7,6 @@ from faststream import Context
 from faststream._internal.basic_types import DecodedMessage
 from faststream.exceptions import SkipMessage
 from faststream.middlewares import BaseMiddleware, ExceptionMiddleware
-from faststream.response import PublishCommand
 
 from .basic import BaseTestcaseConfig
 
@@ -101,14 +100,10 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
                 mock("outer")
                 return await call_next(cmd)
 
-        broker = self.get_broker(middlewares=[OuterMiddleware])
-        publisher = broker.publisher(
-            queue,
-            middlewares=[
-                MiddleMiddleware(None, context=None).publish_scope,
-                InnerMiddleware(None, context=None).publish_scope,
-            ],
+        broker = self.get_broker(
+            middlewares=[OuterMiddleware, MiddleMiddleware, InnerMiddleware],
         )
+        publisher = broker.publisher(queue)
 
         args, kwargs = self.get_subscriber_params(queue)
 
@@ -191,15 +186,11 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
                 mock("outer")
                 return await call_next(cmd)
 
-        broker = self.get_broker(middlewares=[OuterMiddleware])
-
-        args, kwargs = self.get_subscriber_params(
-            queue,
-            middlewares=[
-                MiddleMiddleware(None, context=None).consume_scope,
-                InnerMiddleware(None, context=None).consume_scope,
-            ],
+        broker = self.get_broker(
+            middlewares=[OuterMiddleware, MiddleMiddleware, InnerMiddleware],
         )
+
+        args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
         async def handler(msg):
@@ -214,7 +205,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
         assert [c.args[0] for c in mock.call_args_list] == ["outer", "middle", "inner"]
 
-    async def test_consume_with_middleware_order(
+    async def test_consume_with_router_middleware_order(
         self,
         queue: str,
         mock: MagicMock,
@@ -262,16 +253,17 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
     ) -> None:
         event = asyncio.Event()
 
-        async def mid(call_next, msg):
-            mock.start(await msg.decode())
-            result = await call_next(msg)
-            mock.end()
-            event.set()
-            return result
+        class TapMiddleware(BaseMiddleware):
+            async def consume_scope(self, call_next, msg):
+                mock.start(await msg.decode())
+                result = await call_next(msg)
+                mock.end()
+                event.set()
+                return result
 
-        broker = self.get_broker()
+        broker = self.get_broker(middlewares=(TapMiddleware,))
 
-        args, kwargs = self.get_subscriber_params(queue, middlewares=(mid,))
+        args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
         async def handler(m) -> str:
@@ -294,166 +286,23 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         assert event.is_set()
         mock.end.assert_called_once()
 
-    async def test_publisher_middleware(
-        self,
-        queue: str,
-        mock: MagicMock,
-        event: asyncio.Event,
-    ) -> None:
-        async def mid(call_next, msg, **kwargs):
-            mock.enter()
-            result = await call_next(msg, **kwargs)
-            mock.end()
-            if mock.end.call_count > 1:
-                event.set()
-            return result
-
-        broker = self.get_broker()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @broker.subscriber(*args, **kwargs)
-        @broker.publisher(queue + "1", middlewares=(mid,))
-        @broker.publisher(queue + "2", middlewares=(mid,))
-        async def handler(m) -> str:
-            mock.inner(m)
-            return "end"
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("start", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
-
-        assert event.is_set()
-        mock.inner.assert_called_once_with("start")
-        assert mock.enter.call_count == 2
-        assert mock.end.call_count == 2
-
-    async def test_local_middleware_not_shared_between_subscribers(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event1 = asyncio.Event()
-        event2 = asyncio.Event()
-
-        async def mid(call_next, msg):
-            mock.start(msg)
-            result = await call_next(msg)
-            mock.end()
-            return result
-
-        broker = self.get_broker()
-
-        args, kwargs = self.get_subscriber_params(queue)
-        args2, kwargs2 = self.get_subscriber_params(
-            queue + "1",
-            middlewares=(mid,),
-        )
-
-        @broker.subscriber(*args, **kwargs)
-        @broker.subscriber(*args2, **kwargs2)
-        async def handler(m) -> str:
-            if event1.is_set():
-                event2.set()
-            else:
-                event1.set()
-            mock()
-            return ""
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await asyncio.wait(
-                (
-                    asyncio.create_task(broker.publish("", queue)),
-                    asyncio.create_task(broker.publish("", queue + "1")),
-                    asyncio.create_task(event1.wait()),
-                    asyncio.create_task(event2.wait()),
-                ),
-                timeout=self.timeout,
-            )
-
-        assert event1.is_set()
-        assert event2.is_set()
-        mock.start.assert_called_once()
-        mock.end.assert_called_once()
-        assert mock.call_count == 2
-
-    async def test_local_middleware_consume_not_shared_between_filters(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event1 = asyncio.Event()
-        event2 = asyncio.Event()
-
-        async def mid(call_next, msg):
-            mock.start(msg)
-            result = await call_next(msg)
-            mock.end()
-            return result
-
-        broker = self.get_broker()
-
-        args, kwargs = self.get_subscriber_params(
-            queue,
-        )
-
-        sub = broker.subscriber(*args, **kwargs)
-
-        @sub(filter=lambda m: m.content_type == "application/json")
-        async def handler(m) -> str:
-            event2.set()
-            mock()
-            return ""
-
-        @sub(middlewares=(mid,))
-        async def handler2(m) -> str:
-            event1.set()
-            mock()
-            return ""
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish({"msg": "hi"}, queue)),
-                    asyncio.create_task(br.publish("", queue)),
-                    asyncio.create_task(event1.wait()),
-                    asyncio.create_task(event2.wait()),
-                ),
-                timeout=self.timeout,
-            )
-
-        assert event1.is_set()
-        assert event2.is_set()
-        mock.start.assert_called_once()
-        mock.end.assert_called_once()
-        assert mock.call_count == 2
-
     async def test_error_traceback(
         self,
         queue: str,
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        async def mid(call_next, msg):
-            try:
-                result = await call_next(msg)
-            except Exception as e:
-                mock(isinstance(e, ValueError))
-                raise
-            else:
-                return result
+        class ErrorTraceMiddleware(BaseMiddleware):
+            async def consume_scope(self, call_next, msg):
+                try:
+                    return await call_next(msg)
+                except Exception as e:
+                    mock(isinstance(e, ValueError))
+                    raise
 
-        broker = self.get_broker()
+        broker = self.get_broker(middlewares=(ErrorTraceMiddleware,))
 
-        args, kwargs = self.get_subscriber_params(queue, middlewares=(mid,))
+        args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
         async def handler2(m):
@@ -578,9 +427,9 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
     ) -> None:
         class Mid(BaseMiddleware):
-            async def on_publish(self, msg: PublishCommand) -> PublishCommand:
-                msg.body *= 2
-                return msg
+            async def publish_scope(self, call_next, cmd):
+                cmd.body *= 2
+                return await call_next(cmd)
 
         broker = self.get_broker(middlewares=(Mid,))
 
@@ -618,15 +467,15 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
     ) -> None:
         class Mid(BaseMiddleware):
-            async def on_publish(self, msg: PublishCommand) -> PublishCommand:
-                msg.body *= 2
-                mock.enter(msg.body)
-                return msg
-
-            async def after_publish(self, *args, **kwargs) -> None:
-                mock.end()
-                if mock.end.call_count > 2:
-                    event.set()
+            async def publish_scope(self, call_next, cmd):
+                cmd.body *= 2
+                mock.enter(cmd.body)
+                try:
+                    return await call_next(cmd)
+                finally:
+                    mock.end()
+                    if mock.end.call_count > 2:
+                        event.set()
 
         broker = self.get_broker(middlewares=(Mid,))
 
@@ -879,7 +728,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         mid2 = ExceptionMiddleware(handlers={ValueError: value_error_handler})
 
-        assert [x[0] for x in mid1._handlers] == [x[0] for x in mid2._handlers]
+        assert list(mid1._handlers.keys()) == list(mid2._handlers.keys())
 
     async def test_exception_middleware_init_publish_handler_same(self) -> None:
         mid1 = ExceptionMiddleware()
@@ -890,9 +739,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         mid2 = ExceptionMiddleware(publish_handlers={ValueError: value_error_handler})
 
-        assert [x[0] for x in mid1._publish_handlers] == [
-            x[0] for x in mid2._publish_handlers
-        ]
+        assert list(mid1._publish_handlers.keys()) == list(mid2._publish_handlers.keys())
 
     async def test_exception_middleware_decoder_error(
         self,
@@ -931,3 +778,56 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
             )
 
         assert event.is_set()
+
+    async def test_exception_middleware_mro_resolution(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """Test MRO-based resolution picks the most specific handler."""
+
+        class ExcAError(Exception):
+            pass
+
+        class ExcBError(ExcAError):
+            pass
+
+        mid = ExceptionMiddleware()
+
+        # Register parent handler BEFORE child handler
+        @mid.add_handler(ExcAError, publish=True)
+        async def handle_a(exc) -> str:
+            return "parent"
+
+        @mid.add_handler(ExcBError, publish=True)
+        async def handle_b(exc) -> str:
+            return "child"
+
+        broker = self.get_broker(apply_types=True, middlewares=(mid,))
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        @broker.publisher(queue + "1")
+        async def subscriber1(m):
+            raise ExcBError
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "1")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def subscriber2(msg=Context("message")) -> None:
+            mock(await msg.decode())
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with("child")

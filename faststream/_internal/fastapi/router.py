@@ -25,6 +25,7 @@ from fastapi.datastructures import Default
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
+from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, _DefaultLifespan
 
@@ -37,7 +38,8 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import fake_context, to_async
+from faststream._internal.utils.functions import to_async
+from faststream.asgi.factories.asyncapi.try_it_out import TryItOutProcessor
 from faststream.middlewares import BaseMiddleware
 from faststream.specification.asyncapi.site import get_asyncapi_html
 
@@ -390,7 +392,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     self.schema.to_specification().to_jsonable(),
                     indent=2,
                 ),
-                headers={"Content-Type": "application/octet-stream"},
+                headers={"Content-Type": "application/json"},
             )
 
         def download_app_yaml_schema() -> Response:
@@ -423,6 +425,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     schemas=schemas,
                     errors=errors,
                     expand_message_examples=expandMessageExamples,
+                    try_it_out_path=f"{schema_url}/try",
                 ),
             )
 
@@ -436,6 +439,38 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         docs_router.get(schema_url)(serve_asyncapi_schema)
         docs_router.get(f"{schema_url}.json")(download_app_json_schema)
         docs_router.get(f"{schema_url}.yaml")(download_app_yaml_schema)
+
+        # The AsyncAPI docs page renders an interactive "try it out" plugin
+        # that POSTs to ``{schema_url}/try``. Register that endpoint so the
+        # FastAPI plugin can publish messages to the broker, mirroring the
+        # standalone AsgiFastStream behaviour (see issue #2869).
+        try:
+            try_processor = TryItOutProcessor(self.broker)
+        except ValueError:
+            # Broker has no associated TestBroker (e.g. a custom broker):
+            # serve the docs without the interactive "try it out" endpoint.
+            try_processor = None
+
+        if try_processor is not None:
+
+            async def try_asyncapi_schema(request: Request) -> Response:
+                """Publish a message coming from the AsyncAPI try-it-out plugin."""
+                try:
+                    body = await request.json()
+                except Exception as e:
+                    return JSONResponse({"details": f"Invalid JSON: {e}"}, 400)
+
+                result = await try_processor.process(body)
+                return Response(
+                    content=result.body,
+                    status_code=result.status_code,
+                    media_type="application/json",
+                )
+
+            docs_router.post(f"{schema_url}/try", include_in_schema=False)(
+                try_asyncapi_schema,
+            )
+
         return docs_router
 
     def include_router(  # type: ignore[override]
@@ -465,20 +500,12 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             self.broker.include_router(router)
             return
 
-        if isinstance(router, StreamRouter):  # pragma: no branch
-            router.lifespan_context = fake_context
-            self.broker.include_router(router.broker)
-            router.fastapi_config = self.fastapi_config
-
-        super().include_router(
-            router=router,
-            prefix=prefix,
-            tags=tags,
-            dependencies=dependencies,
-            default_response_class=default_response_class,
-            responses=responses,
-            callbacks=callbacks,
-            deprecated=deprecated,
-            include_in_schema=include_in_schema,
-            generate_unique_id_function=generate_unique_id_function,
+        msg = (
+            "Including a StreamRouter into another StreamRouter is not supported "
+            "and may cause subtle context issues (e.g. message dependencies "
+            "returning EmptyPlaceholder). "
+            "Use a regular broker router (e.g. KafkaRouter, RabbitRouter, etc.) "
+            "for grouping subscribers and include that into the StreamRouter instead. "
+            "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers"
         )
+        raise TypeError(msg)

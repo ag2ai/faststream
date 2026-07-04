@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 from faststream._internal._compat import dump_json, json_loads
 from faststream._internal.basic_types import DecodedMessage
 from faststream._internal.constants import EMPTY, ContentTypes
+from faststream._internal.utils.path import match_path
 from faststream.message import decode_message, gen_cor_id
 from faststream.redis.message import (
     RedisBatchListMessage,
@@ -55,7 +56,11 @@ class SimpleParser:
         return self.msg_class(
             raw_message=message,
             body=data,
-            path=self.get_path(message),
+            # Only pattern-subscribed messages have "pattern" set;
+            # guard here before calling match_path.
+            path=match_path(self.pattern, message["channel"])
+            if message.get("pattern")
+            else {},
             headers=headers,
             batch_headers=batch_headers,
             reply_to=headers.get("reply_to", ""),
@@ -69,16 +74,6 @@ class SimpleParser:
         message: Mapping[str, Any],
     ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         return (*self.config.message_format.parse(message["data"]), [])
-
-    def get_path(self, message: Mapping[str, Any]) -> dict[str, Any]:
-        if (
-            (path_re := self.pattern)
-            and message.get("pattern")
-            and (match := path_re.match(message["channel"]))
-        ):
-            return match.groupdict()
-
-        return {}
 
     async def decode_message(
         self,

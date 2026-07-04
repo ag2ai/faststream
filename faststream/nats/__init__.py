@@ -1,4 +1,7 @@
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
+
+NatsParserType = ParserProto["Msg"]  # type: ignore[name-defined]
 
 try:
     from nats.js.api import (
@@ -41,6 +44,7 @@ __all__ = (
     "KvWatch",
     "NatsBroker",
     "NatsMessage",
+    "NatsParserType",
     "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",

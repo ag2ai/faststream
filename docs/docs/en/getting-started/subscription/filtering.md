@@ -42,6 +42,11 @@ As an example, let's create a subscriber for both `JSON` and non-`JSON` messages
     {!> docs_src/getting_started/subscription/redis/filter.py [ln:1-18] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="7 9-11 16"
+    {!> docs_src/getting_started/subscription/mqtt/filter.py [ln:1-18] !}
+    ```
+
 !!! note
     A subscriber without a filter is a default subscriber. It consumes messages that have not been consumed yet.
 
@@ -72,6 +77,11 @@ For now, the following message will be delivered to the `handle` function
     {!> docs_src/getting_started/subscription/redis/filter.py [ln:24.5,25.5,26.5,27.5] !}
     ```
 
+=== "MQTT"
+    ```python hl_lines="2"
+    {!> docs_src/getting_started/subscription/mqtt/filter.py [ln:24.5,25.5,26.5,27.5] !}
+    ```
+
 And this one will be delivered to the `default_handler`
 
 === "AIOKafka"
@@ -97,6 +107,11 @@ And this one will be delivered to the `default_handler`
 === "Redis"
     ```python hl_lines="2"
     {!> docs_src/getting_started/subscription/redis/filter.py [ln:29.5,30.5,31.5,32.5] !}
+    ```
+
+=== "MQTT"
+    ```python hl_lines="2"
+    {!> docs_src/getting_started/subscription/mqtt/filter.py [ln:29.5,30.5,31.5,32.5] !}
     ```
 
 ---

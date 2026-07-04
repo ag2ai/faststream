@@ -14,6 +14,7 @@ from faststream.redis import (
     RedisRouter,
     RedisStreamMessage,
     StreamSub,
+    TestRedisBroker,
 )
 from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
@@ -35,6 +36,18 @@ from faststream.redis.subscriber.usecases import (
     StreamConcurrentSubscriber,
     StreamSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestRedisBroker(RedisBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestRedisBroker(
+        RedisBroker(),
+        RedisBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:

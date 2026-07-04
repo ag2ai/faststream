@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal._compat import json_loads
 
-from .json import JSONMessageFormat
 from .message import MessageFormat
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
 
 
 class FastStreamMessageVersion(int, enum.Enum):
@@ -24,7 +24,7 @@ class BinaryMessageFormatV1(MessageFormat):
     IDENTITY_HEADER = b"\x89BIN\x0d\x0a\x1a\x0a"  # to avoid confusion with other formats
 
     @classmethod
-    def encode(
+    async def encode(
         cls,
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
@@ -32,13 +32,15 @@ class BinaryMessageFormatV1(MessageFormat):
         headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
     ) -> bytes:
-        msg = cls.build(
+        msg = await cls.build(
             message=message,
             reply_to=reply_to,
             headers=headers,
             correlation_id=correlation_id,
             serializer=serializer,
+            codec=codec,
         )
         headers_writer = BinaryWriter()
         for key, value in msg.headers.items():
@@ -90,9 +92,15 @@ class BinaryMessageFormatV1(MessageFormat):
                 headers = parsed_data["headers"]
 
         except Exception:
-            # Raw Redis message format
-            # TODO: fallback to raw data after JSONMessageFormat removed
-            return JSONMessageFormat.parse(data)
+            # Raw Redis message format or legacy JSON envelope
+            try:
+                parsed_data = json_loads(data)
+                final_data = parsed_data["data"].encode()
+                headers = parsed_data.get("headers", {})
+            except Exception:
+                final_data = data
+                headers = {}
+            return final_data, headers
 
         return final_data, headers
 

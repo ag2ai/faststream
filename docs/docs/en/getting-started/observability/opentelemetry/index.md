@@ -66,6 +66,14 @@ To use **OpenTelemetry** in **FastStream**, you just need to:
     {!> docs_src/getting_started/opentelemetry/redis_telemetry.py!}
     ```
 
+=== "MQTT"
+    !!! warning
+        OpenTelemetry middleware is supported only for **MQTT 5**. It is not compatible with MQTT 3.1.1, as that protocol version does not support user properties required for trace context propagation.
+
+    ```python linenums="1" hl_lines="3 7"
+    {!> docs_src/getting_started/opentelemetry/mqtt_telemetry.py!}
+    ```
+
 In the following documentation sections, you can find detailed information about all **OpenTelemetry** features available in **FastStream**.
 
 ## OpenTelemetry FastStream Example

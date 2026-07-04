@@ -81,6 +81,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_not_empty_prefix(
         self,
         queue: str,

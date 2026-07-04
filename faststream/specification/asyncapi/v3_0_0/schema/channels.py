@@ -42,7 +42,12 @@ class Channel(BaseModel):
             extra = "allow"
 
     @classmethod
-    def from_sub(cls, address: str, subscriber: SubscriberSpec) -> Self:
+    def from_sub(
+        cls,
+        address: str,
+        subscriber: SubscriberSpec,
+        servers: list[dict[str, str]] | None = None,
+    ) -> Self:
         message = subscriber.operation.message
         assert message.title
 
@@ -56,11 +61,16 @@ class Channel(BaseModel):
                 "SubscribeMessage": Message.from_spec(message),
             },
             bindings=ChannelBinding.from_sub(subscriber.bindings),
-            servers=None,
+            servers=servers,
         )
 
     @classmethod
-    def from_pub(cls, address: str, publisher: PublisherSpec) -> Self:
+    def from_pub(
+        cls,
+        address: str,
+        publisher: PublisherSpec,
+        servers: list[dict[str, str]] | None = None,
+    ) -> Self:
         return cls(
             description=publisher.description,
             address=address,
@@ -68,5 +78,5 @@ class Channel(BaseModel):
                 "Message": Message.from_spec(publisher.operation.message),
             },
             bindings=ChannelBinding.from_pub(publisher.bindings),
-            servers=None,
+            servers=servers,
         )

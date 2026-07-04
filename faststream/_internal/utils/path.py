@@ -1,6 +1,7 @@
 import re
 from collections.abc import Callable
 from re import Pattern
+from typing import Any
 
 from faststream.exceptions import SetupError
 
@@ -11,6 +12,8 @@ def compile_path(
     path: str,
     replace_symbol: str,
     patch_regex: Callable[[str], str] = lambda x: x,
+    *,
+    param_regex: str = "[^.]+",
 ) -> tuple[Pattern[str] | None, str]:
     path_regex = "^.*?"
     original_path = ""
@@ -22,7 +25,7 @@ def compile_path(
         param_name = match.groups("str")[0]
 
         path_regex += re.escape(path[idx : match.start()])
-        path_regex += f"(?P<{param_name.replace('+', '')}>[^.]+)"
+        path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
         original_path += replace_symbol
@@ -48,3 +51,10 @@ def compile_path(
 
     original_path += path[idx:]
     return regex, original_path
+
+
+def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
+    """Match subject against pattern and return named groups, or {} if no match."""
+    if pattern is not None and (match := pattern.match(subject)):
+        return match.groupdict()
+    return {}

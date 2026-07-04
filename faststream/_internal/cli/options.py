@@ -11,7 +11,6 @@ RELOAD_FLAG = typer.Option(
     False,
     "-r",
     "--reload",
-    is_flag=True,
     help="Restart app at directory files changes.",
 )
 

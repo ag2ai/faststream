@@ -26,8 +26,6 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
     channel_sub: PubSub | None = field(default=None, repr=False)
     stream_sub: StreamSub | None = field(default=None, repr=False)
 
-    _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
-
     _message_format: type["MessageFormat"] | None = field(default=None, repr=False)
 
     @property
@@ -36,9 +34,6 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def ack_policy(self) -> AckPolicy:
-        if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.MANUAL
-
         if self.list_sub:
             return AckPolicy.MANUAL
 
@@ -49,6 +44,8 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
             return AckPolicy.MANUAL
 
         if self._ack_policy is EMPTY:
+            if self._outer_config.ack_policy is not EMPTY:
+                return self._outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
         return self._ack_policy

@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, deprecated
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
@@ -61,13 +61,12 @@ T_HookReturn = TypeVar("T_HookReturn")
 class StartAbleApplication:
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self._init_setupable_(
-            broker,
+            *brokers,
             config=config,
             specification=specification,
         )
@@ -78,8 +77,7 @@ class StartAbleApplication:
 
     def _init_setupable_(  # noqa: PLW3201
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
@@ -89,8 +87,8 @@ class StartAbleApplication:
 
         self.schema: SpecificationFactory = specification or AsyncAPI()
 
-        if broker:
-            self._add_broker(broker)
+        for br in brokers:
+            self.add_broker(br)
 
     async def _start_broker(self) -> None:
         assert self.brokers, "You should setup a broker"
@@ -101,20 +99,21 @@ class StartAbleApplication:
     def broker(self) -> Optional["BrokerUsecase[Any, Any]"]:
         return self.brokers[0] if self.brokers else None
 
+    @deprecated(
+        "This method is deprecated and will be removed in 0.8.0 Use `add_broker` instead."
+    )
     def set_broker(self, broker: "BrokerUsecase[Any, Any]") -> None:
         """Set already existed App object broker.
 
         Useful then you create/init broker in `on_startup` hook.
         """
-        if self.brokers:
-            msg = f"`{self}` already has a broker. You can't use multiple brokers until 1.0.0 release."
-            raise SetupError(msg)
-        self._add_broker(broker)
+        self.add_broker(broker)
 
-    def _add_broker(self, broker: "BrokerUsecase[Any, Any]") -> None:
+    def add_broker(self, broker: "BrokerUsecase[Any, Any]") -> None:
         if broker in self.brokers:
             msg = f"Broker {broker} is already added"
             raise SetupError(msg)
+
         self.brokers.append(broker)
         self.schema.add_broker(broker)
         broker._update_fd_config(self.config)
@@ -123,8 +122,7 @@ class StartAbleApplication:
 class Application(StartAbleApplication):
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         config: Optional["FastDependsConfig"] = None,
         logger: Optional["LoggerProto"] = logger,
         lifespan: Optional["Lifespan"] = None,
@@ -136,7 +134,7 @@ class Application(StartAbleApplication):
     ) -> None:
         self.logger = logger
 
-        super().__init__(broker, config=config, specification=specification)
+        super().__init__(*brokers, config=config, specification=specification)
 
         self._on_startup_calling: list[AsyncFunc] = [
             apply_types(

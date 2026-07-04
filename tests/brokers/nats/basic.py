@@ -12,13 +12,10 @@ class NatsTestcaseConfig(BaseTestcaseConfig):
     ) -> NatsBroker:
         return NatsBroker(apply_types=apply_types, **kwargs)
 
-    def patch_broker(self, broker: NatsBroker, **kwargs: Any) -> NatsBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> NatsRouter:
         return NatsRouter(**kwargs)
 
 
 class NatsMemoryTestcaseConfig(NatsTestcaseConfig):
-    def patch_broker(self, broker: NatsBroker, **kwargs: Any) -> NatsBroker:
-        return TestNatsBroker(broker, **kwargs)
+    def patch_broker(self, *brokers: NatsBroker, **kwargs: Any) -> TestNatsBroker:
+        return TestNatsBroker(*brokers, **kwargs)

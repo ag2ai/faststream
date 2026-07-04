@@ -31,6 +31,25 @@ if TYPE_CHECKING:
         on_delivery: NotRequired[Callable[..., None]]
 
 
+class _LazyLoggerProxy(logging.Logger):
+    """A logger proxy that lazily delegates to LoggerState.
+
+    confluent-kafka requires a logger at construction time, but LoggerState
+    may not be initialized yet (it is set up after ``_connect()``).  This
+    proxy silently drops log records until the underlying LoggerState is
+    ready, then forwards them to the real logger.
+    """
+
+    def __init__(self, logger_state: "LoggerState") -> None:
+        super().__init__("faststream.confluent._proxy", logging.NOTSET)
+        self._logger_state = logger_state
+
+    def handle(self, record: logging.LogRecord) -> None:
+        real_logger = self._logger_state.logger.logger
+        if real_logger is not None and hasattr(real_logger, "handle"):
+            real_logger.handle(record)
+
+
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
 
@@ -43,9 +62,9 @@ class AsyncConfluentProducer:
         self.logger_state = logger
 
         self.config = config.producer_config
-        self.producer = Producer(  # type: ignore[call-arg]
+        self.producer = Producer(
             self.config,
-            logger=self.logger_state.logger.logger,
+            logger=_LazyLoggerProxy(logger),
         )
 
         self.__running = True
@@ -215,9 +234,17 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
     ) -> None:
         self.admin_client = admin_service
         self.logger_state = logger
+
+        self._on_assign = on_assign
+        self._on_revoke = on_revoke
+        self._on_lost = on_lost
 
         self.topics = list(topics)
         self.partitions = partitions
@@ -257,9 +284,7 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(  # type: ignore[call-arg]
-            self.config, logger=self.logger_state.logger.logger
-        )
+        self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
@@ -292,10 +317,17 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
+            subscribe_kwargs: dict[str, Any] = {"topics": self.topics}
+            if self._on_assign is not None:
+                subscribe_kwargs["on_assign"] = self._on_assign
+            if self._on_revoke is not None:
+                subscribe_kwargs["on_revoke"] = self._on_revoke
+            if self._on_lost is not None:
+                subscribe_kwargs["on_lost"] = self._on_lost
             await run_in_executor(
                 self._thread_pool,
                 self.consumer.subscribe,
-                topics=self.topics,
+                **subscribe_kwargs,
             )
 
         elif self.partitions:

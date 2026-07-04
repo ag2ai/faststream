@@ -53,6 +53,11 @@ To add a metrics to your broker, you need to:
     {!> docs_src/getting_started/prometheus/redis.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="6 10"
+    {!> docs_src/getting_started/prometheus/mqtt.py!}
+    ```
+
 ### Exposing the `/metrics` endpoint
 
 The way Prometheus works requires the service to expose an HTTP endpoint for analysis.
@@ -86,6 +91,11 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 === "Redis"
     ```python linenums="1" hl_lines="6 10 13 16"
     {!> docs_src/getting_started/prometheus/redis_asgi.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="6 10 13 16"
+    {!> docs_src/getting_started/prometheus/mqtt_asgi.py!}
     ```
 
 ---

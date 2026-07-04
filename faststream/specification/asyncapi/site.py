@@ -34,8 +34,7 @@ def get_asyncapi_html(
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
     try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
-    try_it_out: bool = True,
-    try_it_out_url: str = "asyncapi/try",
+    try_it_out_path: str | None = "asyncapi/try",
 ) -> str:
     """Generate HTML for displaying an AsyncAPI document."""
     config = {
@@ -57,14 +56,14 @@ def get_asyncapi_html(
         },
     }
 
-    if try_it_out:
+    if try_it_out_path is not None:
         plugins_js = f"""
         <script src="{asyncapi_js_url}"></script>
         <script src="{try_it_out_plugin_url}"></script>
         <script>
             const schema = {schema.to_json()};
             const config = {json_dumps(config).decode()};
-            const endpoint = {try_it_out_url!r};
+            const endpoint = {try_it_out_path!r};
             const plugin = window.AsyncApiTryItPlugin.createTryItOutPlugin({{
                 endpointBase: endpoint.replace(/^\\//, ""),
                 resolveEndpoint: () => endpoint,
@@ -163,7 +162,7 @@ class _Handler(server.BaseHTTPRequestHandler):
             schemas=query_dict.get("schemas", True),
             errors=query_dict.get("errors", True),
             expand_message_examples=query_dict.get("expandMessageExamples", True),
-            try_it_out=False,  # CLI serve has no broker — use AsgiFastStream for try-it
+            try_it_out_path=None,  # CLI serve has no broker — use AsgiFastStream for try-it
         )
         body = html.encode(encoding=encoding)
 

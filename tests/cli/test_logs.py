@@ -1,4 +1,6 @@
 import logging
+import time
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -117,20 +119,24 @@ def test_run_as_asgi_with_log_config(
 def test_run_as_asgi_mp_with_log_level(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
+    tmp_path: Path,
 ) -> None:
+    marker_file = tmp_path / "log_level"
+
     app_code = """
     import logging
+    import os
+    from pathlib import Path
 
     from faststream.asgi import AsgiFastStream
     from faststream.nats import NatsBroker
 
     app = AsgiFastStream(NatsBroker())
 
-    logger = logging.getLogger("faststream")
-
     @app.on_startup
-    def print_log_level() -> None:
-        logger.critical(f"Current log level is {logging.getLogger('uvicorn.asgi').level}")
+    def write_log_level() -> None:
+        level = logging.getLogger("uvicorn.asgi").level
+        Path(os.environ["LOG_LEVEL_FILE"]).write_text(str(level))
     """
     log_level, numeric_log_level = "warn", 30
 
@@ -144,9 +150,18 @@ def test_run_as_asgi_mp_with_log_level(
             "2",
             "--log-level",
             log_level,
-        ) as cli,
+            extra_env={"LOG_LEVEL_FILE": str(marker_file)},
+        ),
     ):
-        assert cli.wait_for_stderr(f"Current log level is {numeric_log_level}")
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            if marker_file.exists() and (content := marker_file.read_text().strip()):
+                assert content == str(numeric_log_level)
+                return
+            time.sleep(0.1)
+
+        msg = f"Marker file {marker_file} was never written"
+        raise AssertionError(msg)
 
 
 def test_run_with_log_level(runner: CliRunner) -> None:

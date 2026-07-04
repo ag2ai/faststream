@@ -78,7 +78,7 @@ async def test_msgspec_serialize(
     expected_message: Any,
     mock: MagicMock,
     broker_cls: type[BrokerUsecase[Any, Any]],
-    test_cls: type[TestBroker[Any]],
+    test_cls: type[TestBroker[Any, Any]],
 ) -> None:
     broker = broker_cls(serializer=MsgSpecSerializer())
 
