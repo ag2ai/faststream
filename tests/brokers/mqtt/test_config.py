@@ -66,3 +66,9 @@ def test_sub_overrides_broker_and_router() -> None:
 
     sub = router.subscriber("test", ack_policy=AckPolicy.ACK_FIRST)
     assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.mqtt()
+def test_mqtt_connect_timeout_threaded_to_client() -> None:
+    broker = MQTTBroker(mqtt_connect_timeout=7.0)
+    assert broker._connection_kwargs["mqtt_connect_timeout"] == 7.0

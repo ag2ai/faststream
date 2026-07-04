@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 from unittest import mock
 from unittest.mock import AsyncMock
 
@@ -13,7 +13,11 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.broker import (
+    EnterType,
+    TestBroker,
+    change_producer,
+)
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.rabbit.broker.broker import RabbitBroker
@@ -39,8 +43,38 @@ if TYPE_CHECKING:
 __all__ = ("TestRabbitBroker",)
 
 
-class TestRabbitBroker(TestBroker[RabbitBroker]):
+class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
     """A class to test RabbitMQ brokers."""
+
+    @overload
+    def __init__(
+        self: "TestRabbitBroker[RabbitBroker]",
+        broker: RabbitBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestRabbitBroker[tuple[RabbitBroker, ...]]",
+        *brokers: RabbitBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: RabbitBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     @contextmanager
     def _patch_broker(self, broker: "RabbitBroker") -> Generator[None, None, None]:

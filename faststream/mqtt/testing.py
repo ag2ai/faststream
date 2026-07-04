@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 from unittest.mock import MagicMock
 
 import anyio
@@ -11,7 +11,11 @@ from zmqtt._internal.protocol import _shared_filter_to_actual, _topic_matches
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.broker import (
+    EnterType,
+    TestBroker,
+    change_producer,
+)
 from faststream.exceptions import SubscriberNotFound
 from faststream.mqtt.broker.broker import MQTTBroker
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
@@ -66,7 +70,7 @@ def _parser_for_version(
     return MQTTParserV311() if version == "3.1.1" else MQTTParserV5()
 
 
-class TestMQTTBroker(TestBroker[MQTTBroker]):
+class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
     """In-memory test double for MQTTBroker.
 
     Routes published messages to matching subscribers without a real
@@ -80,6 +84,36 @@ class TestMQTTBroker(TestBroker[MQTTBroker]):
             await br.publish("hello", "sensors/temp")
             handler.mock.assert_called_once_with("hello")
     """
+
+    @overload
+    def __init__(
+        self: "TestMQTTBroker[MQTTBroker]",
+        broker: MQTTBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestMQTTBroker[tuple[MQTTBroker, ...]]",
+        *brokers: MQTTBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: MQTTBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     def create_publisher_fake_subscriber(
         self,

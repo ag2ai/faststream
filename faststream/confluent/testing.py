@@ -1,7 +1,7 @@
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -9,7 +9,11 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
-from faststream._internal.testing.broker import TestBroker, change_producer
+from faststream._internal.testing.broker import (
+    EnterType,
+    TestBroker,
+    change_producer,
+)
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -32,8 +36,38 @@ if TYPE_CHECKING:
 __all__ = ("TestKafkaBroker",)
 
 
-class TestKafkaBroker(TestBroker[KafkaBroker]):
+class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
     """A class to test Kafka brokers."""
+
+    @overload
+    def __init__(
+        self: "TestKafkaBroker[KafkaBroker]",
+        broker: KafkaBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestKafkaBroker[tuple[KafkaBroker, ...]]",
+        *brokers: KafkaBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: KafkaBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     @contextmanager
     def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:
