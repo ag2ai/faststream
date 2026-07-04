@@ -1,13 +1,14 @@
 import asyncio
 from unittest.mock import MagicMock
 
+import anyio
 import pytest
 
 from faststream import Context
 from faststream.sqs import SQSResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
 
-from .basic import SQSTestcaseConfig
+from .basic import SQSMemoryTestcaseConfig, SQSTestcaseConfig
 
 
 @pytest.mark.connected()
@@ -43,3 +44,65 @@ class TestPublish(SQSTestcaseConfig, BrokerPublishTestcase):
 
         assert event.is_set()
         mock.assert_called_once_with(body=b"1", correlation_id="1")
+
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_real(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+        publisher = broker.publisher(queue, batch=True)
+
+        collected: list[int] = []
+        done = asyncio.Event()
+
+        @broker.subscriber(queue)
+        async def handler(msg: int) -> None:
+            collected.append(msg)
+            if len(collected) == 3:
+                done.set()
+
+        async with broker:
+            await broker.start()
+            await publisher.publish(1, 2, 3)
+            with anyio.fail_after(self.timeout):
+                await done.wait()
+
+        assert sorted(collected) == [1, 2, 3]
+
+
+@pytest.mark.sqs()
+@pytest.mark.asyncio()
+class TestBatchPublisher(SQSMemoryTestcaseConfig):
+    async def test_batch_publisher_publishes_each_message(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+        publisher = broker.publisher(queue, batch=True)
+
+        received: list[int] = []
+
+        @broker.subscriber(queue)
+        async def handler(msg: int) -> None:
+            received.append(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish(1, 2, 3)
+
+        assert sorted(received) == [1, 2, 3]
+
+    async def test_batch_publisher_decorator(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        received: list[int] = []
+
+        @broker.subscriber(queue + "out")
+        async def sink(msg: int) -> None:
+            received.append(msg)
+
+        @broker.publisher(queue + "out", batch=True)
+        @broker.subscriber(queue)
+        async def handler(msg: int) -> list[int]:
+            return [msg, msg + 1]
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish(1, queue)
+
+        assert sorted(received) == [1, 2]

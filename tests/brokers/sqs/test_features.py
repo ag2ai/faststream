@@ -429,3 +429,28 @@ class TestConnectedFeatures(SQSTestcaseConfig):
 
         assert event.is_set()
         assert received == ["ordered"]
+
+
+@pytest.mark.sqs()
+class TestQueueAttributes:
+    def test_policy_attribute_rendered_as_json(self) -> None:
+        import json
+
+        from faststream.sqs import SQSQueue
+
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {"Effect": "Allow", "Principal": "*", "Action": "sqs:SendMessage"},
+            ],
+        }
+        queue = SQSQueue(name="q", policy=policy)
+
+        attrs = queue.to_attributes()
+
+        assert json.loads(attrs["Policy"]) == policy
+
+    def test_policy_absent_by_default(self) -> None:
+        from faststream.sqs import SQSQueue
+
+        assert "Policy" not in SQSQueue(name="q").to_attributes()
