@@ -90,6 +90,11 @@ For this reason, **FastStream** supports per-argument message serialization: you
     {!> docs_src/getting_started/subscription/redis/annotation.py [ln:8-14] !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="3-4"
+    {!> docs_src/getting_started/subscription/mqtt/annotation.py [ln:8-14] !}
+    ```
+
 
 !!! tip
     By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} just install it and framework will use it automatically.

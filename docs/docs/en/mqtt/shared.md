@@ -20,15 +20,8 @@ $share/<group_name>/<topic_filter>
 
 Pass **`shared="group_name"`** to `subscriber`. FastStream prepends `$share/<group_name>/` to your topic filter.
 
-```python
-from faststream.mqtt import MQTTBroker, QoS
-
-broker = MQTTBroker("localhost", version="5.0")
-
-
-@broker.subscriber("workers/jobs/#", qos=QoS.AT_LEAST_ONCE, shared="pool-a")
-async def handle_job(cmd: dict) -> None:
-    ...
+```python linenums="1" hl_lines="8"
+{! docs_src/mqtt/shared/basic.py !}
 ```
 
 Multiple application instances using the same `shared` name and topic filter compete for messages the way the broker defines for shared subscriptions.

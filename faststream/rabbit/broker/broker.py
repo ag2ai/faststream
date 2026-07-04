@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -93,6 +94,7 @@ class RabbitBroker(
         graceful_timeout: float | None = None,
         ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -130,6 +132,7 @@ class RabbitBroker(
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder: Custom decoder object.
+            codec: Custom codec object.
             parser: Custom parser object.
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
@@ -197,6 +200,7 @@ class RabbitBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_rabbit_logger_state(
                     logger=logger,
                     log_level=log_level,

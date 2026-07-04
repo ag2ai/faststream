@@ -40,13 +40,10 @@ class ConfluentTestcaseConfig(BaseTestcaseConfig):
     ) -> KafkaBroker:
         return KafkaBroker(apply_types=apply_types, **kwargs)
 
-    def patch_broker(self, broker: KafkaBroker, **kwargs: Any) -> KafkaBroker:
-        return broker
-
     def get_router(self, **kwargs: Any) -> KafkaRouter:
         return KafkaRouter(**kwargs)
 
 
 class ConfluentMemoryTestcaseConfig(ConfluentTestcaseConfig):
-    def patch_broker(self, broker: KafkaBroker, **kwargs: Any) -> KafkaBroker:
-        return TestKafkaBroker(broker, **kwargs)
+    def patch_broker(self, *brokers: KafkaBroker, **kwargs: Any) -> TestKafkaBroker:
+        return TestKafkaBroker(*brokers, **kwargs)

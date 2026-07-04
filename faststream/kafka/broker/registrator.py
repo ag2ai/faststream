@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -58,6 +59,7 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -90,6 +92,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -106,6 +109,7 @@ class KafkaRegistrator(
         batch: Literal[True] = ...,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -138,6 +142,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -154,6 +159,7 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         group_id: None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -186,6 +192,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -202,6 +209,7 @@ class KafkaRegistrator(
         batch: Literal[False] = False,
         group_id: str = ...,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -234,6 +242,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -250,6 +259,7 @@ class KafkaRegistrator(
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -282,6 +292,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -303,6 +314,7 @@ class KafkaRegistrator(
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
+        client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
         value_deserializer: Callable[[bytes], Any] | None = None,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -335,6 +347,7 @@ class KafkaRegistrator(
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -363,6 +376,10 @@ class KafkaRegistrator(
                 membership (KIP-345). If set, the consumer is treated as a
                 static member, which means it does not join/leave the group
                 on each restart, avoiding unnecessary rebalances.
+            client_rack:
+                A rack identifier for the consumer, used for rack-aware
+                fetching from the closest replica. Overrides the broker-level
+                ``client_rack`` when set. Requires aiokafka 0.14.0 or newer.
             key_deserializer:
                 Any callable that takes a raw message `bytes`
                 key and returns a deserialized one.
@@ -529,6 +546,7 @@ class KafkaRegistrator(
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **ConsumerRecord** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
+            codec: Custom codec object.
             middlewares: Subscriber middlewares to wrap incoming message processing.
             max_workers: Number of workers to process messages concurrently.
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
@@ -570,6 +588,9 @@ class KafkaRegistrator(
                 "max_poll_records": max_poll_records,
                 "exclude_internal_topics": exclude_internal_topics,
                 "isolation_level": isolation_level,
+                # Forwarded only when set, so an unset subscriber value leaves
+                # the broker-level client_rack default intact.
+                **({"client_rack": client_rack} if client_rack is not None else {}),
             },
             partitions=partitions,
             ack_policy=ack_policy,
@@ -586,6 +607,7 @@ class KafkaRegistrator(
         subscriber.add_call(
             parser_=parser,
             decoder_=decoder,
+            codec_=codec,
             dependencies_=dependencies,
         )
 

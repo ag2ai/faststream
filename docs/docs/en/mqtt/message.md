@@ -27,14 +27,59 @@ Typical fields used in handlers:
 
 Access via a parameter, [`Context`](../getting-started/context.md){.internal-link}, or `Annotated` shortcuts, same as other brokers.
 
-```python
-from faststream.mqtt.annotations import MQTTMessage
-
-@broker.subscriber("devices/+/status")
-async def handle(msg: MQTTMessage):
-    props = msg.raw_message.properties  # MQTT 5.0 only
-    ...
+```python linenums="1" hl_lines="1 3"
+{! docs_src/mqtt/message/fields.py [ln:9-12] !}
 ```
+
+## Topic Path Access
+
+MQTT topic filters support `+` (single level) and `#` (multi level) wildcards. **FastStream** lets you **capture** single-level matches by naming them in the subscriber topic template and reading them back via `Path` (a shortcut for `#!python Context("message.path.*")`).
+
+{% raw %}
+| Syntax | Replaces | Captures | Placement constraint |
+| ------ | -------- | -------- | -------------------- |
+| `"{name}"`, `f"{{name}}"` | `+` | One topic level as `#!python str` | Must occupy a whole topic level (surrounded by `/` or string boundaries). |
+| `"{{name}}"`, `f"{{{{name}}}}"` | `{name}` | No capture | Allows braces to be treated as literal characters. |
+{% endraw %}
+
+### Single-level capture
+
+```python linenums="1" hl_lines="1 2 5"
+{! docs_src/mqtt/message/path.py [ln:1,8-13] !}
+```
+
+### Literal braces
+
+MQTT topics may contain `{` and `}` as regular characters. Escape them by doubling braces so FastStream does not treat them as path parameters:
+
+```python linenums="1" hl_lines="1"
+{! docs_src/mqtt/message/literal_braces.py [ln:8-10] !}
+```
+
+For f-strings, double the escaping because Python consumes one brace level first:
+
+```python linenums="1" hl_lines="1 4"
+{! docs_src/mqtt/message/literal_braces.py [ln:13-17] !}
+```
+
+Both examples subscribe to the literal MQTT topic `/root/{braced}`.
+
+### Multi-level topics
+
+`#` subscriptions are supported as raw MQTT topic filters, but they are not captured through `Path`. Use `MQTTMessage.raw_message.topic` when you need the full topic.
+
+```python linenums="1" hl_lines="1 3 7"
+{! docs_src/mqtt/message/wildcard.py [ln:3,8-13] !}
+```
+
+### Validation
+
+Templates that violate MQTT topic rules are rejected at subscriber creation with `SetupError`:
+
+- `"/pre{name}/x"` or `"/{name}post/x"` — `{name}` does not occupy a whole topic level.
+- `"/{id}/x/{id}"` — duplicated parameter name.
+
+Raw MQTT `+` and `#` wildcards may be used alongside captured `{name}` levels. Only named single-level parameters are captured; use `MQTTMessage.raw_message.topic` for full-topic access when `#` is involved.
 
 ## Serialization pipeline
 

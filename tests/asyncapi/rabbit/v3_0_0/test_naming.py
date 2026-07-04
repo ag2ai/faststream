@@ -70,7 +70,7 @@ class TestNaming(NamingTestCase):
                             "bindingVersion": "0.3.0",
                             "queue": {
                                 "name": "test",
-                                "durable": False,
+                                "durable": True,
                                 "exclusive": False,
                                 "autoDelete": False,
                                 "vhost": "/",

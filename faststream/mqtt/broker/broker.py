@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
     from faststream.security import BaseSecurity
@@ -61,16 +62,19 @@ class MQTTBroker(
         clean_session: bool = True,
         version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
+        mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,
         # AsyncAPI args
         specification_url: str | None = None,
+        protocol: str | None = None,
         protocol_version: str | None = None,
         description: str | None = None,
         tags: Iterable["Tag | TagDict"] = (),
@@ -110,6 +114,7 @@ class MQTTBroker(
             clean_session=clean_session,
             version=version,
             reconnect=reconnect,
+            mqtt_connect_timeout=mqtt_connect_timeout,
             session_expiry_interval=session_expiry_interval,
             **secure_kwargs,
             # broker config
@@ -120,6 +125,7 @@ class MQTTBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_mqtt_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -140,7 +146,7 @@ class MQTTBroker(
             specification=BrokerSpec(
                 description=description,
                 url=[specification_url],
-                protocol="mqtt",
+                protocol=protocol or "mqtt",
                 protocol_version=protocol_version or version,
                 tags=tags,
                 security=security,

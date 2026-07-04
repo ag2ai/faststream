@@ -1,4 +1,7 @@
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
+
+RedisParserType = ParserProto["Mapping[str, Any]"]  # type: ignore[name-defined]
 
 try:
     from .annotations import (
@@ -9,7 +12,14 @@ try:
         RedisMessage,
         RedisStreamMessage,
     )
-    from .broker import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
+    from .broker import (
+        RedisBroker,
+        RedisClusterBroker,
+        RedisPublisher,
+        RedisRoute,
+        RedisRouter,
+    )
+    from .exceptions import StreamGroupNotFoundError
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
@@ -31,14 +41,17 @@ __all__ = (
     "Redis",
     "RedisBroker",
     "RedisChannelMessage",
+    "RedisClusterBroker",
     "RedisListMessage",
     "RedisMessage",
+    "RedisParserType",
     "RedisPublishCommand",
     "RedisPublisher",
     "RedisResponse",
     "RedisRoute",
     "RedisRouter",
     "RedisStreamMessage",
+    "StreamGroupNotFoundError",
     "StreamSub",
     "TestApp",
     "TestRedisBroker",

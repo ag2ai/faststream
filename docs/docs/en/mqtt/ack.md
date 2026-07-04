@@ -51,17 +51,6 @@ Call `await msg.ack()` yourself when processing is done.
 
 You can raise `AckMessage` or `NackMessage` from `faststream.exceptions` to short-circuit processing, consistent with other brokers ([acknowledgement docs](../getting-started/acknowledgement.md){.internal-link}).
 
-```python
-from faststream import AckPolicy
-from faststream.mqtt import MQTTBroker, MQTTMessage, QoS
-
-broker = MQTTBroker(version="5.0")
-
-
-@broker.subscriber("jobs/run", qos=QoS.AT_LEAST_ONCE, ack_policy=AckPolicy.MANUAL)
-async def work(payload: dict, msg: MQTTMessage) -> None:
-    try:
-        ...
-    finally:
-        await msg.ack()
+```python linenums="1" hl_lines="8 13"
+{! docs_src/mqtt/ack/manual.py !}
 ```

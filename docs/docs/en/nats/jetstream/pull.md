@@ -37,4 +37,15 @@ The batch size doesn't mean that your `msg` argument is a list of messages, but 
 !!! tip
     If you want to consume list of messages, just set the `batch=True` in `PullSub` class.
 
+### Batch Pull Subscriber Example
+
+This example demonstrates how to use `batch=True` with a Pull subscriber.
+The message bodies are passed as a list into `bodies`, while the native NATS
+messages are available via `msg.raw_message` (type `NatsBatchMessage`),
+allowing per‑message `ack()` inside a batch.
+
+```python linenums="1" hl_lines="10-11"
+{! docs_src/nats/js/pull_sub_batch_example.py !}
+```
+
 So, your subject will be processed much faster, without blocking for each message processing. However, if your subject has fewer than `#!python 10` messages, your request to **NATS** will be blocked for `timeout` (5 seconds by default) while trying to collect the required number of messages. Therefore, you should choose `batch_size` and `timeout` accurately to optimize your consumer efficiency.

@@ -1,9 +1,13 @@
 from abc import abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
+
+from faststream.message.utils import decode_message, encode_message
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import DecodedMessage
+    from fast_depends.library.serializer import SerializerProto
+
+    from faststream._internal.basic_types import DecodedMessage, SendableMessage
     from faststream.message import StreamMessage
 
 MsgType = TypeVar("MsgType")
@@ -47,3 +51,47 @@ class BatchDecoderProto(Protocol[MsgType]):
     ) -> list["DecodedMessage"]:
         """Decode a batch of StreamMessage into a list of DecodedMessage."""
         ...
+
+
+class CodecProto(Protocol):
+    """Protocol for encoding and decoding message bodies."""
+
+    @abstractmethod
+    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+        """Decode a StreamMessage body into a Python object."""
+        ...
+
+    @abstractmethod
+    async def encode(
+        self,
+        msg: "SendableMessage",
+        serializer: "SerializerProto | None" = None,
+    ) -> tuple[bytes, str | None]: ...
+
+
+@runtime_checkable
+class BatchCodecProto(Protocol):
+    @abstractmethod
+    async def encode_batch(
+        self,
+        msgs: Sequence["SendableMessage"],
+        serializer: "SerializerProto | None" = None,
+    ) -> list[tuple[bytes, str | None]]: ...
+
+    @abstractmethod
+    async def decode_batch(
+        self,
+        msg: "StreamMessage[Sequence[Any]]",
+    ) -> list["DecodedMessage"]: ...
+
+
+class DefaultCodec:
+    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+        return decode_message(msg)
+
+    async def encode(
+        self,
+        msg: "SendableMessage",
+        serializer: "SerializerProto | None" = None,
+    ) -> tuple[bytes, str | None]:
+        return encode_message(msg, serializer)

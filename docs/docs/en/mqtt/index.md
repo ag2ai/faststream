@@ -23,27 +23,8 @@ Compared to Kafka or RabbitMQ, MQTT emphasizes simple topic namespaces, optional
 
 Import the broker and optional helpers from `#!python faststream.mqtt`:
 
-```python
-from faststream import FastStream
-from faststream.mqtt import MQTTBroker, MQTTMessage, QoS
-
-broker = MQTTBroker("localhost", port=1883, version="5.0")
-app = FastStream(broker)
-
-
-@broker.subscriber(
-    "sensors/+/temp",
-    qos=QoS.AT_LEAST_ONCE,
-    # shared="workers",  # optional: $share/workers/... for load-balanced consumers
-    # max_workers=4,     # optional: concurrent handler tasks
-)
-async def on_temp(degrees: float, message: MQTTMessage) -> None:
-    print(message.raw_message.topic)
-
-
-@app.after_startup
-async def publish_demo() -> None:
-    await broker.publish(21.5, "sensors/room1/temp", qos=QoS.AT_LEAST_ONCE)
+```python linenums="1" hl_lines="4 8-13 20"
+{! docs_src/mqtt/basic.py !}
 ```
 
 ### Connection parameters
@@ -59,13 +40,14 @@ The broker constructor mirrors common `zmqtt.MQTTClient` options:
 | `keepalive`, `clean_session` | Session behaviour. |
 | `reconnect` | Optional `ReconnectConfig` (from `#!python faststream.mqtt`) for automatic reconnect with backoff. |
 | `session_expiry_interval` | MQTT 5.0 session expiry (seconds). |
+| `mqtt_connect_timeout` | Seconds to wait for the broker's CONNACK during the MQTT connect handshake (default `30`); raises `MQTTTimeoutError` (from `#!python zmqtt`), and is retried when `reconnect` is enabled. |
 
 Routers reuse the same API via `MQTTRouter` / `MQTTRoute` (see [routers](../getting-started/routers/index.md){.internal-link}).
 
 ## Where to read next
 
 - [Publishing](publishing.md){.internal-link} — `qos`, `retain`, MQTT 5.0 headers and reply topics
-- [Message object](message.md){.internal-link} — body, headers, `correlation_id`, serialization
+- [Message object](message.md){.internal-link} — body, headers, `correlation_id`, serialization, topic path capture
 - [Acknowledgement](ack.md){.internal-link} — `AckPolicy`, QoS, and manual ack
 - [Request / response](rpc.md){.internal-link} — `broker.request()` and handler replies
 - [MQTT 3.1.1 vs 5.0](versions.md){.internal-link} — feature matrix

@@ -1,4 +1,5 @@
 from contextlib import suppress
+from re import Pattern
 from typing import TYPE_CHECKING, Any
 
 import zmqtt
@@ -15,6 +16,20 @@ if TYPE_CHECKING:
 class MQTTBaseParser:
     """Base parser for MQTT messages — shared parse + decode logic."""
 
+    def __init__(
+        self,
+        path_regex: Pattern[str] | None = None,
+    ) -> None:
+        self._path_regex = path_regex
+
+    def _extract_path(self, topic: str) -> dict[str, Any]:
+        if self._path_regex is None:
+            return {}
+        match = self._path_regex.match(topic)
+        if match is None:
+            return {}
+        return match.groupdict()
+
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
 
@@ -30,6 +45,7 @@ class MQTTParserV311(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers={},
+            path=self._extract_path(msg.topic),
             content_type=None,
             reply_to="",
             correlation_id=None,
@@ -70,6 +86,7 @@ class MQTTParserV5(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers=headers,
+            path=self._extract_path(msg.topic),
             content_type=content_type,
             reply_to=reply_to,
             correlation_id=correlation_id,

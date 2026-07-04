@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -86,5 +87,21 @@ async def test_base_router_redis() -> None:
     from faststream.redis import TestRedisBroker
 
     async with TestRedisBroker(broker), TestApp(app):
+        handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
+        handle_response.mock.assert_called_once_with("Hi!")
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_base_router_mqtt() -> None:
+    from docs.docs_src.getting_started.routers.mqtt.router import (
+        app,
+        broker,
+        handle,
+        handle_response,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker), TestApp(app):
         handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
         handle_response.mock.assert_called_once_with("Hi!")

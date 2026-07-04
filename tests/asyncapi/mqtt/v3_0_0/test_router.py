@@ -93,13 +93,13 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = MQTTRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(MQTTBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(MQTTBroker(routers=broker))
 
 
 @pytest.mark.mqtt()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = MQTTRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(MQTTBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(MQTTBroker(routers=broker))

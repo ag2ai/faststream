@@ -42,6 +42,7 @@ search:
     - [CLI](getting-started/cli.md)
     - [Acknowledgement](getting-started/acknowledgement.md)
     - [ASGI](getting-started/asgi.md)
+    - [Multiple Brokers](getting-started/multiple_brokers.md)
     - Observability
         - [Healthcheks](getting-started/observability/healthcheks.md)
         - [Prometheus](getting-started/observability/prometheus.md)
@@ -114,6 +115,7 @@ search:
         - [DynaConf](howto/nats/dynaconf.md)
         - [In-Progress](howto/nats/in-progress.md)
 - [Redis](redis/index.md)
+    - [Cluster](redis/cluster.md)
     - [Pub/Sub](redis/pubsub/index.md)
         - [Subscription](redis/pubsub/subscription.md)
         - [Publishing](redis/pubsub/publishing.md)

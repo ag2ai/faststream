@@ -62,7 +62,7 @@ class TestRouter(RouterTestcase):
                             "bindingVersion": "0.3.0",
                             "queue": {
                                 "name": "test_test",
-                                "durable": False,
+                                "durable": True,
                                 "exclusive": False,
                                 "autoDelete": False,
                                 "vhost": "/",
@@ -114,13 +114,13 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RabbitRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(RabbitBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RabbitBroker(routers=broker))
 
 
 @pytest.mark.rabbit()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RabbitRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(RabbitBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RabbitBroker(routers=broker))

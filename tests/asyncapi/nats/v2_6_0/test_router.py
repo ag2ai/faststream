@@ -76,13 +76,13 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(NatsBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(NatsBroker(routers=broker))
 
 
 @pytest.mark.nats()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(NatsBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(NatsBroker(routers=broker))

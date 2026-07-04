@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -79,5 +80,16 @@ class TestRedis(BaseCase):
     @pytest.fixture(scope="class")
     def data(self):
         from docs.docs_src.integrations.fastapi.redis.router import app, core_router
+
+        return (app, core_router.broker)
+
+
+@pytest.mark.connected()
+@pytest.mark.mqtt()
+@require_mqtt
+class TestMQTT(BaseCase):
+    @pytest.fixture(scope="class")
+    def data(self):
+        from docs.docs_src.integrations.fastapi.mqtt.router import app, core_router
 
         return (app, core_router.broker)

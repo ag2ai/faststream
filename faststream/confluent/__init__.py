@@ -1,4 +1,7 @@
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
+
+ConfluentParserType = ParserProto["Message"]  # type: ignore[name-defined]
 
 try:
     from .annotations import KafkaMessage
@@ -16,6 +19,7 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_CONFLUENT) from e
 
 __all__ = (
+    "ConfluentParserType",
     "KafkaBroker",
     "KafkaMessage",
     "KafkaPublishCommand",

@@ -56,6 +56,43 @@ The application in the example implements both of these ways, so feel free to us
     Also, you can publishes messages in batches right from a `broker` object: just call
     `#!python broker.publish_batch("msg2", "msg2", topic="output_data")`
 
+## Per-Message Attributes with `KafkaPublishMessage`
+
+When publishing in batches, you often need to assign **different keys, headers, or timestamps to each message** within the same batch. To support this scenario, **FastStream** provides the `#!python KafkaPublishMessage` helper — a semantic alias for `#!python KafkaResponse` that is intended to be used directly inside `#!python publish_batch(...)` calls.
+
+By wrapping a payload into `#!python KafkaPublishMessage`, you can attach per-message attributes such as:
+
+* `#!python key` — the **Kafka** message key used for partitioning;
+* `#!python headers` — custom headers for the individual message;
+* `#!python timestamp_ms` — an explicit message timestamp;
+* `#!python correlation_id` — a custom correlation identifier.
+
+You can freely mix `#!python KafkaPublishMessage` instances with raw payloads in the same call. Plain values (strings, bytes, dicts, models, etc.) are published as-is and use the default key (`#!python None`) inherited from the `#!python publish_batch(...)` call:
+
+```python linenums="1"
+from faststream.confluent import KafkaBroker, KafkaPublishMessage
+
+broker = KafkaBroker()
+
+
+@broker.subscriber("input")
+async def handler() -> None:
+    await broker.publish_batch(
+        KafkaPublishMessage("user:1", key=b"user1"),
+        KafkaPublishMessage("user:2", key=b"user2"),
+        "user:3",  # Uses default key (None)
+        topic="output",
+    )
+```
+
+In the example above, the first two messages are sent with their own dedicated keys (`#!python b"user1"` and `#!python b"user2"`), while the third message — passed as a plain string — falls back to the default key.
+
+!!! note
+    `#!python KafkaPublishMessage` is the recommended, more semantic name when constructing outgoing messages for `#!python publish_batch(...)`. Under the hood it is the same object as `#!python KafkaResponse`, so both names are fully interchangeable.
+
+!!! tip
+    Use `#!python KafkaPublishMessage` whenever messages within a single batch need to be routed to different partitions via distinct keys, or when you need to attach per-message metadata — this is the cleanest way to control individual message attributes without splitting the batch into separate `#!python publish(...)` calls.
+
 ## Why Publish in Batches?
 
 In the above example, we've explored how to leverage the `#!python @broker.publisher(...)` decorator to efficiently publish messages in batches using **FastStream** and **Kafka**. By following the two key steps outlined in the previous sections, you can significantly enhance the performance and reliability of your **Kafka**-based applications.

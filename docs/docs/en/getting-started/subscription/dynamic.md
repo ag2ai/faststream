@@ -66,6 +66,18 @@ However, the framework still allows you to do so in a suitable manner.
             await subscriber.stop()
         ```
 
+    === "MQTT"
+        ```python linenums="1"
+        broker = MQTTBroker("localhost", port=1883)
+
+        async with TestMQTTBroker(broker) as br:
+            subscriber = br.subscriber("test-topic", persistent=False)
+
+            await subscriber.start()
+            message = await subscriber.get_one()  # does not work
+            await subscriber.stop()
+        ```
+
 ## Consuming a Single Message
 
 To process a single message, you should create a subscriber and call the appropriate method on it. Don't forget to start the subscriber.
@@ -130,6 +142,18 @@ To process a single message, you should create a subscriber and call the appropr
         {!> docs_src/getting_started/subscription/redis/dynamic.py [ln:6-10] !}
         ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="8"
+    {!> docs_src/getting_started/subscription/mqtt/dynamic.py [ln:1-10] !}
+    ```
+
+    !!! note "Important"
+        Do not forget to `start` and `stop` subscriber manually
+
+        ```python linenums="1" hl_lines="1 5"
+        {!> docs_src/getting_started/subscription/mqtt/dynamic.py [ln:6-10] !}
+        ```
+
 ## Iteration over messages
 
 However, if you want to process a stream of messages in a dynamic way, you should not use such unattractive methods as this one:
@@ -166,6 +190,11 @@ It would be much better to use the built-in iteration mechanism:
 === "Redis"
     ```python linenums="1" hl_lines="8-9"
     {!> docs_src/getting_started/subscription/redis/dynamic_iter.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="8-9"
+    {!> docs_src/getting_started/subscription/mqtt/dynamic_iter.py !}
     ```
 
 !!! tip "Technical Details"

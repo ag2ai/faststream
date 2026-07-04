@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import anyio
 from fast_depends import Provider, dependency_provider
+from typing_extensions import Self
 
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
@@ -18,8 +19,8 @@ from faststream._internal.logger import logger
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
 from .factories import AsyncAPIRoute, make_try_it_out_handler
-from .handlers import HttpHandler
-from .response import AsgiResponse
+from .handlers import HttpHandler, get
+from .response import AsgiResponse, JSONResponse
 from .websocket import WebSocketClose
 
 if TYPE_CHECKING:
@@ -90,8 +91,7 @@ class AsgiFastStream(Application):
 
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
@@ -108,7 +108,7 @@ class AsgiFastStream(Application):
         self.routes = list(asgi_routes)
 
         super().__init__(
-            broker,
+            *brokers,
             logger=logger,
             config=FastDependsConfig(
                 provider=provider or dependency_provider,
@@ -129,17 +129,24 @@ class AsgiFastStream(Application):
             handler.set_logger(logger)
             self.routes.append((asyncapi_route.path, handler))
 
-            if asyncapi_route.try_it_out and self.broker is not None:
+            if asyncapi_route.asyncapi_json_path:
+
+                @get(include_in_schema=asyncapi_route.include_in_schema)
+                async def json_handler(scope: "Scope") -> AsgiResponse:
+                    return JSONResponse(self.schema.to_specification().to_jsonable())
+
+                self.routes.append((asyncapi_route.asyncapi_json_path, json_handler))
+
+            if asyncapi_route.try_it_out_path is not None and self.brokers:
                 try_it_out_route = make_try_it_out_handler(
-                    self.broker,
+                    self.brokers,
                     include_in_schema=asyncapi_route.include_in_schema,
                 )
-
                 try_it_out_route.update_fd_config(self.config)
                 try_it_out_route.set_logger(logger)
 
                 self.routes.append((
-                    asyncapi_route.try_it_out_url,
+                    asyncapi_route.try_it_out_path,
                     try_it_out_route,
                 ))
 
@@ -150,12 +157,11 @@ class AsgiFastStream(Application):
 
     def _init_setupable_(  # noqa: PLW3201
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
-        /,
+        *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
-        super()._init_setupable_(broker, specification, config)
+        super()._init_setupable_(*brokers, specification=specification, config=config)
         for route in self.routes:
             self._register_route(route)
 
@@ -165,9 +171,9 @@ class AsgiFastStream(Application):
         app: Application,
         asgi_routes: Sequence[tuple[str, "ASGIApp"]],
         asyncapi_path: str | AsyncAPIRoute | None = None,
-    ) -> "AsgiFastStream":
+    ) -> Self:
         asgi_app = cls(
-            app.broker,
+            *app.brokers,
             asgi_routes=asgi_routes,
             asyncapi_path=asyncapi_path,
             logger=app.logger,
