@@ -22,6 +22,26 @@ Never inline non-trivial code in markdown. Put a runnable Python file in `docs/d
 
 New `docs_src` snippets should get a test under `tests/docs/<topic>/test_<feature>.py` — one test file covers all broker variants via require marks (e.g. `@require_aiokafka`), not one file per broker subdir (see the **testing-patterns** skill). Some examples are intentionally untested; the exemptions are listed in the coverage `omit` list in `pyproject.toml`.
 
+A snippet test imports the runnable objects from the module and exercises them in-memory — never a bare `import module` (it tests nothing and trips ruff `F401`):
+
+```python
+import pytest
+
+from faststream.nats import TestApp, TestNatsBroker
+
+
+@pytest.mark.nats()
+@pytest.mark.asyncio()
+async def test_basic() -> None:
+    from docs.docs_src.nats.js.pull_sub import app, broker, handle
+
+    async with TestNatsBroker(broker), TestApp(app):
+        await broker.publish("Hi!", "test")
+        handle.mock.assert_called_once_with("Hi!")
+```
+
+The test imports via the `docs.docs_src.…` package path, while the markdown embeds it via the `docs_src/…` path (mdx_include `base_path` is `docs/`). Either way the snippet MUST live under `docs/docs_src/`, not repo-root `docs_src/` — otherwise the embed silently resolves to nothing and the import fails.
+
 ## Markdown conventions
 
 - External links: `[text](https://...){.external-link target="_blank"}`; internal links: `{.internal-link}`.
