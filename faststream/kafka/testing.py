@@ -41,35 +41,35 @@ __all__ = ("TestKafkaBroker",)
 class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
     """A class to test Kafka brokers."""
 
-    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
-    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
-    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
-    if TYPE_CHECKING:
+    @overload
+    def __init__(
+        self: "TestKafkaBroker[KafkaBroker]",
+        broker: KafkaBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestKafkaBroker[KafkaBroker]",
-            broker: KafkaBroker,
-            /,
-            *,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    @overload
+    def __init__(
+        self: "TestKafkaBroker[tuple[KafkaBroker, ...]]",
+        *brokers: KafkaBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestKafkaBroker[tuple[KafkaBroker, ...]]",
-            *brokers: KafkaBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
-
-        def __init__(
-            self,
-            *brokers: KafkaBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    def __init__(
+        self,
+        *brokers: KafkaBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     @contextmanager
     def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:

@@ -52,35 +52,35 @@ def change_producer(
 class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
     """A class to test NATS brokers."""
 
-    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
-    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
-    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
-    if TYPE_CHECKING:
+    @overload
+    def __init__(
+        self: "TestNatsBroker[NatsBroker]",
+        broker: NatsBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestNatsBroker[NatsBroker]",
-            broker: NatsBroker,
-            /,
-            *,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    @overload
+    def __init__(
+        self: "TestNatsBroker[tuple[NatsBroker, ...]]",
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestNatsBroker[tuple[NatsBroker, ...]]",
-            *brokers: NatsBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
-
-        def __init__(
-            self,
-            *brokers: NatsBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    def __init__(
+        self,
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     def create_publisher_fake_subscriber(
         self,

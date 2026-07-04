@@ -39,35 +39,35 @@ class TestSQSBroker(TestBroker[SQSBroker, EnterType]):
     name) without any AWS connection.
     """
 
-    # ``TYPE_CHECKING``-only overloads: they bind ``EnterType`` (single broker
-    # vs tuple) for mypy without adding a runtime ``__init__`` frame, which the
-    # AST-based ``connect_only`` detection in ``TestBroker`` relies on.
-    if TYPE_CHECKING:
+    @overload
+    def __init__(
+        self: "TestSQSBroker[SQSBroker]",
+        broker: SQSBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestSQSBroker[SQSBroker]",
-            broker: SQSBroker,
-            /,
-            *,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    @overload
+    def __init__(
+        self: "TestSQSBroker[tuple[SQSBroker, ...]]",
+        *brokers: SQSBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
 
-        @overload
-        def __init__(
-            self: "TestSQSBroker[tuple[SQSBroker, ...]]",
-            *brokers: SQSBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
-
-        def __init__(
-            self,
-            *brokers: SQSBroker,
-            with_real: bool = False,
-            connect_only: bool | None = None,
-        ) -> None: ...
+    def __init__(
+        self,
+        *brokers: SQSBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
 
     def create_publisher_fake_subscriber(
         self,

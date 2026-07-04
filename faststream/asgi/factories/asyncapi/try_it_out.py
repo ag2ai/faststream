@@ -1,7 +1,7 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, TypedDict, Union, cast
 
 from faststream.asgi.annotations import Request
 from faststream.asgi.handlers import PostHandler, post
@@ -112,7 +112,14 @@ class TryItOutProcessor:
                     if cls is test_broker_cls and b is not broker
                 ),
             )
-            async with test_broker_cls(*same_type_brokers):
+            # ``test_broker_cls`` is typed as the abstract ``TestBroker`` base, whose
+            # overloaded ``__init__`` would make mypy try to instantiate the abstract
+            # class. At runtime it is always a concrete subclass; the enter result is
+            # unused here, so call it through a plain factory type.
+            test_broker_factory = cast(
+                "Callable[..., TestBroker[Any, Any]]", test_broker_cls
+            )
+            async with test_broker_factory(*same_type_brokers):
                 data = await broker.request(payload, destination, timeout=30)
                 decoded = None
                 with suppress(Exception):
