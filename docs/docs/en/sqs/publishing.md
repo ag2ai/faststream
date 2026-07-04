@@ -41,4 +41,12 @@ Register a reusable publisher with `@broker.publisher`:
 {! docs_src/sqs/publishing/batch.py [ln:16] !}
 ```
 
-A single `SendMessageBatch` request carries up to 10 messages.
+A single `SendMessageBatch` request carries up to 10 messages; larger batches
+are split into several requests automatically.
+
+You can also declare a reusable batch publisher — every `publish(*messages)`
+call becomes one `SendMessageBatch` request:
+
+```python linenums="1"
+{! docs_src/sqs/publishing/batch_publisher.py [ln:9,16-17] !}
+```
