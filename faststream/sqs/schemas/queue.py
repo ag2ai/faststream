@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -58,6 +58,8 @@ class SQSQueue(BaseModel):
     visibility_timeout: int | None = Field(
         default=None, alias="VisibilityTimeout", ge=0, le=43200
     )
+    # Full IAM access-policy document for the queue (rendered as JSON).
+    policy: dict[str, Any] | None = Field(default=None, alias="Policy")
     redrive_policy: RedrivePolicy | None = Field(default=None, alias="RedrivePolicy")
     redrive_allow_policy: RedriveAllowPolicy | None = Field(
         default=None, alias="RedriveAllowPolicy"
