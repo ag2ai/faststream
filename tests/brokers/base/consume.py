@@ -372,6 +372,27 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
 
         assert event.is_set()
 
+    async def test_sub_start_use_context_manager(self, queue: str, event: asyncio.Event) -> None:
+        consume_broker = self.get_broker()
+
+        async def subscriber(m) -> None:
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            args, kwargs = self.get_subscriber_params(queue)
+            sub = br.subscriber(*args, **kwargs)
+            sub(subscriber)
+
+            async with sub:
+                await br.publish("hello", queue)
+
+                with anyio.move_on_after(self.timeout):
+                    await event.wait()
+
+        assert event.is_set()
+
     async def test_get_one_conflicts_with_handler(self, queue) -> None:
         broker = self.get_broker(apply_types=True)
         args, kwargs = self.get_subscriber_params(queue)
