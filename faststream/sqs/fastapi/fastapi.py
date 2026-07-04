@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast, overload
 
 from fastapi.datastructures import Default
 from fastapi.routing import APIRoute
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
-    from faststream.sqs.publisher.usecase import SQSPublisher
+    from faststream.sqs.publisher.usecase import SQSBatchPublisher, SQSDefaultPublisher
     from faststream.sqs.schemas import SQSQueue
     from faststream.sqs.subscriber.usecase import SQSSubscriber
 
@@ -208,11 +208,12 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
             ),
         )
 
-    @override
-    def publisher(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def publisher(
         self,
         queue: Union[str, "SQSQueue"],
         *,
+        batch: Literal[True],
         headers: dict[str, str] | None = None,
         group_id: str | None = None,
         deduplication_id: str | None = None,
@@ -223,9 +224,64 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "SQSPublisher":
+    ) -> "SQSBatchPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: Literal[False] = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: bool = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher | SQSBatchPublisher": ...
+
+    @override
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: bool = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher | SQSBatchPublisher":
         return self.broker.publisher(
             queue,
+            batch=batch,
             headers=headers,
             group_id=group_id,
             deduplication_id=deduplication_id,

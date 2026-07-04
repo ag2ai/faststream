@@ -27,6 +27,7 @@ class SQSPublisher(ArgsContainer):
         self,
         queue: Union[str, "SQSQueue"],
         *,
+        batch: bool = False,
         headers: dict[str, str] | None = None,
         group_id: str | None = None,
         deduplication_id: str | None = None,
@@ -39,6 +40,7 @@ class SQSPublisher(ArgsContainer):
     ) -> None:
         super().__init__(
             queue,
+            batch=batch,
             headers=headers,
             group_id=group_id,
             deduplication_id=deduplication_id,

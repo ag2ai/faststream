@@ -8,14 +8,13 @@ from unittest.mock import AsyncMock, MagicMock
 import anyio
 from typing_extensions import override
 
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import EnterType, TestBroker, change_producer
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.sqs.broker.broker import SQSBroker
 from faststream.sqs.parser import BASE64_BODY_ATTR
 from faststream.sqs.publisher.producer import SQSFastProducer
-from faststream.sqs.response import SQSPublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -23,6 +22,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
     from faststream.sqs.publisher.usecase import SQSPublisher
+    from faststream.sqs.response import SQSPublishCommand
     from faststream.sqs.subscriber.usecase import SQSSubscriber
 
 __all__ = ("TestSQSBroker",)
@@ -159,17 +159,34 @@ class FakeProducer(SQSFastProducer):
 
     @override
     async def publish_batch(self, cmd: "SQSPublishCommand") -> None:
-        for body in cmd.batch_bodies:
-            await self.publish(
-                SQSPublishCommand(
-                    body,
-                    queue=cmd.destination,
-                    headers=cmd.headers,
+        serializer = self.broker.config.fd_config._serializer
+
+        if isinstance(self.codec, BatchCodecProto):
+            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
+        else:
+            encoded = [
+                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
+            ]
+
+        for handler in self.subscribers:
+            if not _queue_matches(handler.queue, cmd.destination):
+                continue
+
+            messages = [
+                _raw_message_from_payload(
+                    payload,
+                    content_type,
                     correlation_id=gen_cor_id(),
-                    group_id=getattr(cmd, "group_id", None),
-                    _publish_type=cmd.publish_type,
-                ),
-            )
+                    headers=cmd.headers,
+                )
+                for payload, content_type in encoded
+            ]
+
+            if handler._batch:
+                await handler.process_message(messages)
+            else:
+                for message in messages:
+                    await handler.process_message(message)
 
     @override
     async def request(self, cmd: "SQSPublishCommand") -> Any:
@@ -202,21 +219,15 @@ class FakeProducer(SQSFastProducer):
         raise SubscriberNotFound
 
 
-async def build_message(
-    message: "SendableMessage",
-    queue: str,
+def _raw_message_from_payload(
+    payload: Any,
+    content_type: str | None,
     *,
     correlation_id: str | None = None,
     reply_to: str = "",
     headers: dict[str, str] | None = None,
-    serializer: Optional["SerializerProto"] = None,
-    codec: Optional["CodecProto"] = None,
 ) -> dict[str, Any]:
-    """Build a fake raw SQS message dict from publish parameters."""
-    if codec is None:
-        codec = DefaultCodec()
-    payload, content_type = await codec.encode(message, serializer=serializer)
-
+    """Build a fake raw SQS message dict from an already-encoded payload."""
     base64_body = False
     if isinstance(payload, bytes):
         try:
@@ -246,3 +257,27 @@ async def build_message(
         "Body": body,
         "MessageAttributes": attributes,
     }
+
+
+async def build_message(
+    message: "SendableMessage",
+    queue: str,
+    *,
+    correlation_id: str | None = None,
+    reply_to: str = "",
+    headers: dict[str, str] | None = None,
+    serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
+) -> dict[str, Any]:
+    """Build a fake raw SQS message dict from publish parameters."""
+    if codec is None:
+        codec = DefaultCodec()
+    payload, content_type = await codec.encode(message, serializer=serializer)
+
+    return _raw_message_from_payload(
+        payload,
+        content_type,
+        correlation_id=correlation_id,
+        reply_to=reply_to,
+        headers=headers,
+    )

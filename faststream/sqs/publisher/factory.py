@@ -4,7 +4,7 @@ from faststream.sqs.schemas import SQSQueue
 
 from .config import SQSPublisherConfig, SQSPublisherSpecificationConfig
 from .specification import SQSPublisherSpecification
-from .usecase import SQSPublisher
+from .usecase import SQSBatchPublisher, SQSDefaultPublisher
 
 if TYPE_CHECKING:
     from faststream.sqs.configs import SQSBrokerConfig
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 def create_publisher(
     *,
     queue: Union[str, "SQSQueue"],
+    batch: bool,
     headers: dict[str, str] | None,
     group_id: str | None,
     deduplication_id: str | None,
@@ -23,7 +24,7 @@ def create_publisher(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> SQSPublisher:
+) -> SQSDefaultPublisher | SQSBatchPublisher:
     queue_name = queue.queue_name if isinstance(queue, SQSQueue) else queue
 
     publisher_config = SQSPublisherConfig(
@@ -46,4 +47,6 @@ def create_publisher(
         ),
     )
 
-    return SQSPublisher(publisher_config, specification)
+    if batch:
+        return SQSBatchPublisher(publisher_config, specification)
+    return SQSDefaultPublisher(publisher_config, specification)

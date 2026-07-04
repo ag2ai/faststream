@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast, overload
 
 from typing_extensions import override
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
-    from faststream.sqs.publisher.usecase import SQSPublisher
+    from faststream.sqs.publisher.usecase import SQSBatchPublisher, SQSDefaultPublisher
     from faststream.sqs.schemas import SQSQueue
     from faststream.sqs.subscriber.usecase import SQSSubscriber
 
@@ -95,11 +95,12 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
             dependencies_=dependencies,
         )
 
-    @override
-    def publisher(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def publisher(
         self,
         queue: Union[str, "SQSQueue"],
         *,
+        batch: Literal[True],
         headers: dict[str, str] | None = None,
         group_id: str | None = None,
         deduplication_id: str | None = None,
@@ -110,11 +111,67 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "SQSPublisher":
+    ) -> "SQSBatchPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: Literal[False] = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: bool = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher | SQSBatchPublisher": ...
+
+    @override
+    def publisher(
+        self,
+        queue: Union[str, "SQSQueue"],
+        *,
+        batch: bool = False,
+        headers: dict[str, str] | None = None,
+        group_id: str | None = None,
+        deduplication_id: str | None = None,
+        delay_seconds: int = 0,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "SQSDefaultPublisher | SQSBatchPublisher":
         """Create a persistent publisher object for the given SQS queue.
 
         Args:
             queue: Queue name or an ``SQSQueue``/``FifoQueue`` declaration.
+            batch: Send every ``publish(*messages)`` call as one
+                ``SendMessageBatch`` request instead of a single message.
             headers: Default headers to include in every published message.
             group_id: Default ``MessageGroupId`` for FIFO queues.
             deduplication_id: Default ``MessageDeduplicationId`` for FIFO queues.
@@ -127,6 +184,7 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
         """
         publisher = create_publisher(
             queue=queue,
+            batch=batch,
             headers=headers,
             group_id=group_id,
             deduplication_id=deduplication_id,
