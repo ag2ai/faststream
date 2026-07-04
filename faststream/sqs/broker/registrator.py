@@ -35,6 +35,8 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
         visibility_timeout: int | None = None,
         batch: bool = False,
         request_attempt_id: str | None = None,
+        max_workers: int = 1,
+        extend_visibility: bool = False,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -60,6 +62,11 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
                 receive-side deduplication token used to retry a failed
                 ``ReceiveMessage`` call and get the same messages back. FIFO-only;
                 a ``SetupError`` is raised if set for a non-FIFO queue.
+            max_workers: Number of concurrent handler tasks; ``>1`` selects a
+                concurrent subscriber. Not allowed with ``batch=True`` or FIFO
+                queues (concurrency would break message-group ordering).
+            extend_visibility: Keep extending the message's ``VisibilityTimeout``
+                while the handler is running (requires ``visibility_timeout``).
             ack_policy: Acknowledgement policy for message processing.
             no_reply: Whether to disable FastStream RPC / reply-to responses.
             dependencies: Dependencies list to apply to the subscriber.
@@ -78,6 +85,8 @@ class SQSRegistrator(Registrator[SQSRawMessage, SQSBrokerConfig]):
             visibility_timeout=visibility_timeout,
             batch=batch,
             request_attempt_id=request_attempt_id,
+            max_workers=max_workers,
+            extend_visibility=extend_visibility,
             ack_policy=ack_policy,
             no_reply=no_reply,
             config=cast("SQSBrokerConfig", self.config),

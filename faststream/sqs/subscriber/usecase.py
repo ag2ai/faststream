@@ -1,11 +1,14 @@
+import asyncio
 from collections.abc import AsyncIterator, Sequence
-from typing import TYPE_CHECKING, Any
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, cast
 
 import anyio
+from botocore.exceptions import BotoCoreError, ClientError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.mixins import TasksMixin
+from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.sqs.helpers import poll_with_backoff
 from faststream.sqs.parser import SQSParser
@@ -44,6 +47,7 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         self._max_messages = config.max_messages
         self._visibility_timeout = config.visibility_timeout
         self._request_attempt_id = config.request_attempt_id
+        self._extend_visibility = config.extend_visibility
         self._queue_url: str = ""
 
     @property
@@ -144,12 +148,6 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         In batch mode the whole poll result is one ``consume`` call (the handler
         receives a list); otherwise each message is consumed individually.
         """
-        # TODO: visibility-timeout heartbeat for long-running handlers.
-        # If a handler runs longer than the queue's VisibilityTimeout, the message
-        # becomes visible again and is redelivered (duplicate processing). For now
-        # the guidance is to raise `visibility_timeout` on the subscriber. A future
-        # enhancement could spawn a background task per in-flight message that calls
-        # `change_message_visibility` periodically (opt-in via e.g. `extend_visibility`).
         if self._batch:
             if messages:
                 await self.consume(messages)
@@ -157,12 +155,54 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
             for message in messages:
                 await self.consume(message)
 
+    def _receipt_handles(self, msg: Any) -> list[str]:
+        raw_messages = msg if isinstance(msg, list) else [msg]
+        return [h for m in raw_messages if (h := m.get("ReceiptHandle"))]
+
+    async def _heartbeat_loop(self, handles: list[str]) -> None:
+        """Periodically re-extend VisibilityTimeout while a handler runs."""
+        assert self._visibility_timeout is not None
+        interval = max(self._visibility_timeout / 2, 1.0)
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                for start in range(0, len(handles), 10):
+                    chunk = handles[start : start + 10]
+                    await self._outer_config.client.change_message_visibility_batch(
+                        QueueUrl=self._queue_url,
+                        Entries=[
+                            {
+                                "Id": str(idx),
+                                "ReceiptHandle": handle,
+                                "VisibilityTimeout": self._visibility_timeout,
+                            }
+                            for idx, handle in enumerate(chunk)
+                        ],
+                    )
+            except (ClientError, BotoCoreError):
+                # message already deleted / handle expired — stop extending
+                return
+
+    @override
+    async def consume(self, msg: Any) -> Any:
+        if not self._extend_visibility:
+            return await super().consume(msg)
+
+        handles = self._receipt_handles(msg)
+        heartbeat = asyncio.create_task(self._heartbeat_loop(handles))
+        try:
+            return await super().consume(msg)
+        finally:
+            heartbeat.cancel()
+            with suppress(asyncio.CancelledError):
+                await heartbeat
+
     @override
     async def get_one(
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[SQSRawMessage] | None":
+    ) -> "SQSMessage | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -189,12 +229,13 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
         async_parser, async_decoder = self._get_parser_and_decoder()
         # In batch mode the parser expects a list of raw messages.
         msg_input: Any = [raw_msg] if (self._batch and raw_msg is not None) else raw_msg
-        return await process_msg(
+        msg = await process_msg(
             msg=msg_input,
             middlewares=(m(msg_input, context=context) for m in self._broker_middlewares),
             parser=async_parser,
             decoder=async_decoder,
         )
+        return cast("SQSMessage | None", msg)
 
     @override
     async def __aiter__(self) -> AsyncIterator["SQSMessage"]:  # type: ignore[override]
@@ -221,3 +262,19 @@ class SQSSubscriber(TasksMixin, SubscriberUsecase["SQSRawMessage"]):
                     decoder=async_decoder,
                 )
                 yield msg
+
+
+class ConcurrentSQSSubscriber(ConcurrentMixin["SQSRawMessage"], SQSSubscriber):
+    """SQS subscriber processing polled messages concurrently (`max_workers` tasks)."""
+
+    @override
+    async def start(self) -> None:
+        if self.calls:
+            self.start_consume_task()
+        await super().start()
+
+    @override
+    async def _dispatch(self, messages: list["SQSRawMessage"]) -> None:
+        # batch=True is rejected by the factory, so messages are always individual.
+        for message in messages:
+            await self._put_msg(message)

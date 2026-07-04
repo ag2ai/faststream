@@ -157,6 +157,8 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
         visibility_timeout: int | None = None,
         batch: bool = False,
         request_attempt_id: str | None = None,
+        max_workers: int = 1,
+        extend_visibility: bool = False,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -187,6 +189,8 @@ class SQSRouter(StreamRouter[SQSRawMessage]):
                 visibility_timeout=visibility_timeout,
                 batch=batch,
                 request_attempt_id=request_attempt_id,
+                max_workers=max_workers,
+                extend_visibility=extend_visibility,
                 ack_policy=ack_policy,
                 no_reply=no_reply,
                 dependencies=dependencies,

@@ -30,6 +30,8 @@ class SQSSubscriberConfig(SubscriberUsecaseConfig):
     batch: bool = False
     # ReceiveRequestAttemptId — FIFO-only receive-retry dedup token.
     request_attempt_id: str | None = None
+    # Opt-in ChangeMessageVisibility heartbeat for long-running handlers.
+    extend_visibility: bool = False
 
     @property
     def ack_policy(self) -> AckPolicy:

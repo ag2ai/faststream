@@ -6,7 +6,7 @@ from faststream.sqs.schemas import SQSQueue
 
 from .config import SQSSubscriberConfig, SQSSubscriberSpecificationConfig
 from .specification import SQSSubscriberSpecification
-from .usecase import SQSSubscriber
+from .usecase import ConcurrentSQSSubscriber, SQSSubscriber
 
 if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
@@ -21,6 +21,8 @@ def create_subscriber(
     visibility_timeout: int | None,
     batch: bool,
     request_attempt_id: str | None,
+    max_workers: int,
+    extend_visibility: bool,
     # Subscriber args
     ack_policy: "AckPolicy",
     no_reply: bool,
@@ -43,6 +45,27 @@ def create_subscriber(
         )
         raise SetupError(msg)
 
+    if max_workers > 1 and batch:
+        msg = (
+            "Can't combine `max_workers` with `batch=True` — a batch handler "
+            "already receives the whole poll (up to `max_messages` messages)."
+        )
+        raise SetupError(msg)
+
+    if max_workers > 1 and queue_name.endswith(".fifo"):
+        msg = (
+            "`max_workers` can't be used with FIFO queues: concurrent processing "
+            "would break message-group ordering."
+        )
+        raise SetupError(msg)
+
+    if extend_visibility and visibility_timeout is None:
+        msg = (
+            "`extend_visibility=True` requires an explicit `visibility_timeout` "
+            "so the heartbeat knows how far to extend it."
+        )
+        raise SetupError(msg)
+
     subscriber_config = SQSSubscriberConfig(
         queue=queue_name,
         declare=queue_obj,
@@ -51,6 +74,7 @@ def create_subscriber(
         visibility_timeout=visibility_timeout,
         batch=batch,
         request_attempt_id=request_attempt_id,
+        extend_visibility=extend_visibility,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
@@ -70,5 +94,13 @@ def create_subscriber(
         specification_config,
         calls,
     )
+
+    if max_workers > 1:
+        return ConcurrentSQSSubscriber(
+            subscriber_config,
+            specification,
+            calls,
+            max_workers=max_workers,
+        )
 
     return SQSSubscriber(subscriber_config, specification, calls)
