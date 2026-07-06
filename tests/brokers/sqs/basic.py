@@ -11,7 +11,7 @@ ELASTICMQ_CONNECTION: dict[str, str] = {
     "endpoint_url": "http://localhost:9324",
     "region_name": "us-east-1",
     "aws_access_key_id": "test",
-    "aws_secret_access_key": "test",
+    "aws_secret_access_key": "test",  # pragma: allowlist secret
 }
 
 
