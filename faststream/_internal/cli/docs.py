@@ -168,6 +168,31 @@ def gen(
         typer.echo(f"Your project AsyncAPI scheme was placed to `{filename}`")
 
 
+def _yaml_quoting_hint(
+    validation_errors: "list[tuple[str, ValidationError]]",
+) -> "str | None":
+    """Build a single quoting hint for a bare YAML scalar typed as a number.
+
+    PyYAML parses unquoted values like `protocolVersion: 3.2` as int/float, which
+    the string schema fields reject. Return the hint for the first such field
+    across all versions, or ``None`` when no numeric-where-string error is present.
+    """
+    for _version_label, error in validation_errors:
+        for sub_error in error.errors():
+            if sub_error.get("type") == "string_type" and isinstance(
+                sub_error.get("input"),
+                (int, float),
+            ):
+                value = sub_error["input"]
+                loc = ".".join(str(p) for p in sub_error.get("loc", ()))
+                return (
+                    f"Hint: YAML parses bare `{value}` at `{loc}` as "
+                    f"{type(value).__name__}; quote it as `'{value}'` "
+                    "to keep it a string."
+                )
+    return None
+
+
 def _parse_and_serve(args: RunArgs) -> None:
     if ":" in args.app:
         _, app_obj = import_from_string(args.app, is_factory=args.is_factory)
@@ -182,11 +207,12 @@ def _parse_and_serve(args: RunArgs) -> None:
 
     else:
         schema_filepath = Path.cwd() / args.app
+        is_yaml = schema_filepath.suffix in {".yaml", ".yml"}
 
         if schema_filepath.suffix == ".json":
             data = schema_filepath.read_bytes()
 
-        elif schema_filepath.suffix in {".yaml", ".yml"}:
+        elif is_yaml:
             try:
                 import yaml
             except ImportError as e:  # pragma: no cover
@@ -225,22 +251,17 @@ def _parse_and_serve(args: RunArgs) -> None:
                     f"\nAsyncAPI v{version_label} validation errors:\n{error}",
                     err=True,
                 )
-                # Emit the hint once per version (bare scalars like `protocolVersion: 3.2`
-                # are typed as int/float by PyYAML and rejected by the string schema field).
-                for sub_error in error.errors():
-                    if sub_error.get("type") == "string_type" and isinstance(
-                        sub_error.get("input"), (int, float),
-                    ):
-                        loc = ".".join(str(p) for p in sub_error.get("loc", ()))
-                        typer.echo(
-                            f"Hint: YAML parses bare `{sub_error['input']}` at `{loc}` as "
-                            f"{type(sub_error['input']).__name__}; quote it as `'{sub_error['input']}'` "
-                            "to keep it a string.",
-                            err=True,
-                        )
-                        break
+            # The quoting hint is YAML-specific: JSON keeps numbers and strings
+            # distinct, so a numeric value there is a genuine schema error, not a
+            # PyYAML coercion. Emit the hint at most once for YAML inputs.
+            if is_yaml:
+                hint = _yaml_quoting_hint(validation_errors)
+                if hint is not None:
+                    typer.echo(hint, err=True)
             raise typer.Exit(1)
 
+    # Both branches above guarantee a schema here (the parse branch exits on failure).
+    assert raw_schema is not None
     serve_app(
         raw_schema,
         cast("str", args.extra_options.get("host", "localhost")),
