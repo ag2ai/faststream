@@ -351,3 +351,20 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
         )
 
         assert messages_queue.empty()
+
+    @pytest.mark.asyncio()
+    async def test_publish_none_sends_a_real_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish(None, queue, key=b"tombstone-key")
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+        assert value is None
