@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from faststream.message.utils import decode_message
+from faststream.message.utils import TOMBSTONE, decode_message
 
 
 @dataclass
@@ -60,3 +60,16 @@ def test_unknown_content_type_ok(content_type: str) -> None:
 )
 def test_no_content_type_ok(body: Any, expected: bytes | dict[str, str]) -> None:
     assert decode_message(body) == expected
+
+
+def test_tombstone_decodes_to_none() -> None:
+    msg: Any = _MessageStub(TOMBSTONE)  # type: ignore[arg-type]
+
+    assert decode_message(msg) is None
+
+
+def test_genuine_empty_body_is_not_a_tombstone() -> None:
+    """A real but empty payload must stay distinguishable from TOMBSTONE."""
+    msg: Any = _MessageStub(b"")
+
+    assert decode_message(msg) == b""

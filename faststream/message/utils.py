@@ -21,9 +21,33 @@ def gen_cor_id() -> str:
     return str(uuid4())
 
 
+class _Tombstone:
+    """Sentinel marking a message body as a genuine null value.
+
+    E.g. a Kafka tombstone on a compacted topic, as opposed to an
+    empty-but-present payload. Unlike a raw byte pattern (`b"null"`,
+    `b""`), this can never collide with real message content.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "TOMBSTONE"
+
+    def __bool__(self) -> bool:
+        return False
+
+
+TOMBSTONE = _Tombstone()
+
+
 def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
     """Decodes a message."""
     body: Any = getattr(message, "body", message)
+
+    if body is TOMBSTONE:
+        return None
+
     m: DecodedMessage = body
 
     if content_type := getattr(message, "content_type", False):
