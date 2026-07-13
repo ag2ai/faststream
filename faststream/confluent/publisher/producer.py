@@ -139,7 +139,10 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        if cmd.body is None:
+            message, content_type = None, None
+        else:
+            message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
