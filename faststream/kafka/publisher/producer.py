@@ -110,7 +110,12 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        if cmd.body is None and cmd.key is not None:
+            # keyed None is a tombstone: aiokafka requires at least key or value,
+            # so a keyless None still goes through the codec as b""
+            message, content_type = None, None
+        else:
+            message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
