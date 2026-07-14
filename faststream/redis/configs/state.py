@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import Any, Generic, TypeVar
@@ -6,6 +7,7 @@ from typing import Any, Generic, TypeVar
 from redis.asyncio.client import Redis
 from redis.asyncio.cluster import RedisCluster
 from redis.asyncio.connection import ConnectionPool
+from redis.asyncio.sentinel import Sentinel
 from redis.cluster import (
     ClusterNode,
     RedisCluster as SyncRC,
@@ -59,6 +61,51 @@ class RedisConnectionState(ConnectionState["Redis[bytes]"]):
             lib_version=__version__,
         )
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
+
+        self._client = client
+        self._connected = True
+
+        return client
+
+
+class RedisSentinelConnectionState(RedisConnectionState):
+    """Builds the client via ``Sentinel.master_for`` for HA / failover.
+
+    The underlying ``SentinelConnectionPool`` re-discovers the current master
+    on every reconnect, so publishers and stream consumers fail over for free
+    (both go through ``connection.client``).
+    """
+
+    def __init__(
+        self,
+        options: dict[str, Any] | None = None,
+        *,
+        sentinels: Sequence[tuple[str, int]],
+        master_name: str,
+        sentinel_kwargs: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(options)
+        self._sentinels = list(sentinels)
+        self._master_name = master_name
+        self._sentinel_kwargs = sentinel_kwargs
+
+    async def connect(self) -> "Redis[bytes]":
+        # ``host``/``port`` describe a single node and are meaningless for
+        # Sentinel — the master address is discovered from the sentinels.
+        connection_kwargs = {
+            k: v for k, v in self._options.items() if k not in {"host", "port"}
+        }
+        connection_kwargs["lib_name"] = "faststream"
+        connection_kwargs["lib_version"] = __version__
+
+        manager = Sentinel(
+            self._sentinels,
+            sentinel_kwargs=dict(self._sentinel_kwargs)
+            if self._sentinel_kwargs is not None
+            else None,
+            **connection_kwargs,
+        )
+        client: Redis[bytes] = manager.master_for(self._master_name)
 
         self._client = client
         self._connected = True

@@ -6,7 +6,7 @@ from faststream._internal.fastapi.context import Context, ContextRepo, Logger
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import BaseMessage as RM  # noqa: N814
 
-from .fastapi import RedisRouter
+from .fastapi import RedisRouter, RedisSentinelRouter
 
 __all__ = (
     "Context",
@@ -16,6 +16,7 @@ __all__ = (
     "RedisBroker",
     "RedisChannelMessage",
     "RedisRouter",
+    "RedisSentinelRouter",
 )
 
 RedisChannelMessage = Annotated[RM, Context("message")]
