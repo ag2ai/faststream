@@ -6,7 +6,11 @@ from urllib.parse import urlparse
 
 from faststream._internal._compat import DEF_KEY
 from faststream._internal.constants import ContentTypes
-from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs
+from faststream.specification.asyncapi.utils import (
+    clear_key,
+    clear_message_key,
+    move_pydantic_refs,
+)
 from faststream.specification.asyncapi.v3_0_0.schema import (
     ApplicationInfo,
     ApplicationSchema,
@@ -304,9 +308,10 @@ def _resolve_msg_payloads(
         payloads.update(processed_payloads)
         m.payload["oneOf"] = one_of_list
         assert m.title
-        messages[clear_key(m.title)] = m
+        message_component_key = clear_message_key(m.title)
+        messages[message_component_key] = m
         return Reference(
-            **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+            **{"$ref": f"#/components/messages/{message_component_key}"},
         )
 
     payloads.update(m.payload.pop(DEF_KEY, {}))
@@ -323,7 +328,8 @@ def _resolve_msg_payloads(
     payloads[payload_name] = m.payload
     m.payload = {"$ref": f"#/components/schemas/{payload_name}"}
     assert m.title
-    messages[clear_key(m.title)] = m
+    message_component_key = clear_message_key(m.title)
+    messages[message_component_key] = m
     return Reference(
-        **{"$ref": f"#/components/messages/{channel_name}:{message_name}"},
+        **{"$ref": f"#/components/messages/{message_component_key}"},
     )

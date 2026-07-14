@@ -48,6 +48,10 @@ def clear_key(key: str) -> str:
     return key.replace("/", ".")
 
 
+def clear_message_key(key: str) -> str:
+    return clear_key(key).replace("[", "").replace("]", "")
+
+
 def move_pydantic_refs(
     original: Any,
     key: str,

@@ -539,12 +539,19 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert (
-            len(
-                next(iter(schema["components"]["messages"].values()))["payload"]["oneOf"],
-            )
-            == 2
+        component_key, component_message = next(
+            iter(schema["components"]["messages"].items()),
         )
+        channel_message_ref = next(iter(schema["channels"].values()))["messages"][
+            "SubscribeMessage"
+        ]["$ref"]
+
+        assert "[" not in component_key and "]" not in component_key
+        assert "[" not in channel_message_ref and "]" not in channel_message_ref
+        assert channel_message_ref == f"#/components/messages/{component_key}"
+        assert "[" in component_message["title"] and "]" in component_message["title"]
+
+        assert len(component_message["payload"]["oneOf"]) == 2
 
         payload = schema["components"]["schemas"]
 
