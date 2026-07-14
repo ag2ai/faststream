@@ -1,9 +1,10 @@
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from faststream import AckPolicy, BaseMiddleware
+from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
@@ -16,6 +17,22 @@ from .basic import ConfluentMemoryTestcaseConfig
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
+    async def test_publish_none_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @broker.subscriber(queue)
+        async def handler(raw: Any = Context("message")) -> None:
+            await values.put(raw.raw_message.value())
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(None, queue, key=b"tombstone-key")
+
+            value = await asyncio.wait_for(values.get(), timeout=3)
+
+        assert value is None
+
     async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 

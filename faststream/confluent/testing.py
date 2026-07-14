@@ -279,7 +279,7 @@ class FakeProducer(AsyncConfluentFastProducer):
 class MockConfluentMessage:
     def __init__(
         self,
-        raw_msg: bytes,
+        raw_msg: bytes | None,
         topic: str,
         key: bytes | str,
         headers: list[tuple[str, bytes]],
@@ -304,7 +304,7 @@ class MockConfluentMessage:
         self._timestamp = (timestamp_type, timestamp_ms)
 
     def len(self) -> int:
-        return len(self._raw_msg)
+        return 0 if self._raw_msg is None else len(self._raw_msg)
 
     def error(self) -> str | None:
         return self._error
@@ -327,7 +327,7 @@ class MockConfluentMessage:
     def topic(self) -> str:
         return self._topic
 
-    def value(self) -> bytes:
+    def value(self) -> bytes | None:
         return self._raw_msg
 
 
@@ -345,8 +345,12 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    codec_instance = codec or DefaultCodec()
-    msg, content_type = await codec_instance.encode(message, serializer)
+    if message is None:
+        # keep a real tombstone (message.value() is None) distinct from b""
+        msg, content_type = None, None
+    else:
+        codec_instance = codec or DefaultCodec()
+        msg, content_type = await codec_instance.encode(message, serializer)
     k = key or b""
     headers = {
         "content-type": content_type or "",

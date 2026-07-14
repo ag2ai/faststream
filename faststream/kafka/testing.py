@@ -309,7 +309,12 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
+    if message is None and key is not None:
+        # keyed None is a real tombstone, matching publish()'s own rule
+        # (aiokafka needs a key or value, a keyless None still goes b"")
+        msg, content_type = None, None
+    else:
+        msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
 
     k = key or b""
 
@@ -328,8 +333,8 @@ async def build_message(
         partition=partition or 0,
         key=k,
         serialized_key_size=len(k),
-        serialized_value_size=len(msg),
-        checksum=sum(msg),
+        serialized_value_size=0 if msg is None else len(msg),
+        checksum=0 if msg is None else sum(msg),
         offset=0,
         headers=[(i, j.encode()) for i, j in headers.items()],
         timestamp_type=1,
