@@ -47,7 +47,6 @@ from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandle
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
-
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
@@ -106,7 +105,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                         await broker.connect()
 
                     cluster_stack.enter_context(self._patch_producer(broker))
-
+            self.pel: PEL = PEL()
             async with super()._create_ctx() as brokers:
                 yield brokers
 
@@ -186,7 +185,14 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         connection_state._connected = True
         return connection
 
-
+    async def publish(
+        self,
+        *args, 
+        **kwargs) -> int | bytes:
+        #Publish message to PEL here
+        super().publish(*args, **kwargs)
+    
+    
 class FakeProducer(RedisFastProducer):
     def __init__(
         self,
@@ -314,7 +320,7 @@ class FakeProducer(RedisFastProducer):
         handler: "LogicSubscriber",
     ) -> "PubSubMessage":
         result = await handler.process_message(msg)
-
+        # Here we call out self.broker.pel and remove entries from PEL
         return PubSubMessage(
             type="message",
             data=await build_message(
@@ -499,3 +505,7 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
         raise SetupError(INCORRECT_SETUP_MSG)
 
     return destination
+
+
+class PEL:
+    ...
