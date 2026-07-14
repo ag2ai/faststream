@@ -240,3 +240,13 @@ try:
 except ImportError:
     uvicorn = None
     HAS_UVICORN = False
+
+opentelemetry: Any
+
+try:
+    import opentelemetry
+except ImportError:
+    opentelemetry = None
+    HAS_OPENTELEMETRY = False
+else:
+    HAS_OPENTELEMETRY = True

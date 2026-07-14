@@ -1,17 +1,20 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
+from faststream._internal._compat import HAS_OPENTELEMETRY
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
-from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 if TYPE_CHECKING:
     import zmqtt
 
     from faststream._internal.types import BrokerMiddleware
     from faststream.mqtt.publisher.producer import ZmqttBaseProducer
+
+if HAS_OPENTELEMETRY:
+    from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
 MQTTVersionUnset = cast("str", object())
@@ -54,6 +57,10 @@ class MQTTBrokerConfig(BrokerConfig):
         return super().insert_middleware(middleware)
 
     def _validate_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
-        if self.version == "3.1.1" and isinstance(middleware, TelemetryMiddleware):
+        if (
+            HAS_OPENTELEMETRY
+            and self.version == "3.1.1"
+            and isinstance(middleware, TelemetryMiddleware)
+        ):
             msg = "Opentelementry don`t work in 3.1.1 mqtt"
             raise FeatureNotSupportedException(msg)
