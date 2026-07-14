@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from fast_depends import dependency_provider
 from redis.asyncio.cluster import ClusterNode
+from redis.asyncio.connection import SSLConnection
 from typing_extensions import Unpack
 
 from faststream._internal.constants import EMPTY
@@ -275,6 +276,29 @@ class RedisClusterBroker(RedisBroker):
         for h, p in startup_nodes:
             nodes.append(ClusterNode(h, int(p)))
 
-        return {
+        # TLS is conveyed via `connection_class` (from `parse_security()` or a
+        # `rediss://` URL), but RedisCluster doesn't accept it — translate to
+        # its native `ssl` flag before the filter drops it.
+        connection_class = options.get("connection_class")
+        use_ssl = (security is not None and security.use_ssl) or (
+            isinstance(connection_class, type)
+            and issubclass(connection_class, SSLConnection)
+        )
+
+        result = {
             k: v for k, v in options.items() if k not in CLUSTER_INCOMPATIBLE_PARAMS
         } | {"startup_nodes": nodes}
+
+        if use_ssl:
+            result.setdefault("ssl", True)
+
+            if security is not None and security.ssl_context is not None:
+                warnings.warn(
+                    "RedisCluster does not support a custom `ssl_context`, so it"
+                    " will be ignored. Use `ssl_ca_certs`, `ssl_certfile`,"
+                    " `ssl_keyfile` and other `ssl_*` connection options instead.",
+                    category=RuntimeWarning,
+                    stacklevel=3,
+                )
+
+        return result
