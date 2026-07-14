@@ -35,7 +35,6 @@ async def test_parse_message_maps_null_value_to_tombstone() -> None:
 @pytest.mark.asyncio()
 @pytest.mark.confluent()
 async def test_parse_message_keeps_genuine_empty_value_as_bytes() -> None:
-    """An actual empty payload must stay distinguishable from a tombstone."""
     parsed = await AsyncConfluentParser().parse_message(_fake_message(b""))
 
     assert parsed.body == b""

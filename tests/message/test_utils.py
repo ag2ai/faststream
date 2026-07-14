@@ -69,7 +69,6 @@ def test_tombstone_decodes_to_none() -> None:
 
 
 def test_genuine_empty_body_is_not_a_tombstone() -> None:
-    """A real but empty payload must stay distinguishable from TOMBSTONE."""
     msg: Any = _MessageStub(b"")
 
     assert decode_message(msg) == b""

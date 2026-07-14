@@ -22,12 +22,7 @@ def gen_cor_id() -> str:
 
 
 class _Tombstone:
-    """Sentinel marking a message body as a genuine null value.
-
-    E.g. a Kafka tombstone on a compacted topic, as opposed to an
-    empty-but-present payload. Unlike a raw byte pattern (`b"null"`,
-    `b""`), this can never collide with real message content.
-    """
+    """Sentinel for a genuine null message body, distinct from b"" or b"null"."""
 
     __slots__ = ()
 

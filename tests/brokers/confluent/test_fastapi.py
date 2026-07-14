@@ -54,10 +54,6 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
         self,
         queue: str,
     ) -> None:
-        """Optional body param should resolve to None for a real tombstone.
-
-        Not crash-loop on required fields.
-        """
         router = self.router_class()
         received: list[tuple[object, bytes | None]] = []
 
@@ -75,10 +71,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
             await br.publish(b'{"x": 5}', queue, key=b"k1")
 
-            # bypass the encoder to construct a genuine null value directly -
-            # same technique the maintainer used to repro ag2ai/faststream#1967,
-            # since this test must stand on its own without depending on the
-            # separate publish(None, ...) producer-side fix
+            # send a real null directly, independent of the publish(None, ...) fix
             raw_producer = br._producer._producer.producer
             await raw_producer.send(topic=queue, key=b"k2", value=None)
 
