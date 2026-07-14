@@ -47,6 +47,7 @@ from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandle
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
+
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
@@ -185,14 +186,11 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         connection_state._connected = True
         return connection
 
-    async def publish(
-        self,
-        *args, 
-        **kwargs) -> int | bytes:
-        #Publish message to PEL here
+    async def publish(self, *args: Any, **kwargs: Any) -> int | bytes:
+        # Publish message to PEL here
         super().publish(*args, **kwargs)
-    
-    
+
+
 class FakeProducer(RedisFastProducer):
     def __init__(
         self,
@@ -507,5 +505,4 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
     return destination
 
 
-class PEL:
-    ...
+class PEL: ...
