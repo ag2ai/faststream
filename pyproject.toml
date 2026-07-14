@@ -64,7 +64,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-rabbit = ["aio-pika>=9,<10"]
+rabbit = ["aio-pika>=9,<11"]
 
 kafka = ["aiokafka>=0.9,<0.15"]
 
