@@ -34,6 +34,8 @@ This object serves as a unified **FastStream** wrapper around the native broker 
 !!! note
     A `None` value is a Kafka tombstone, the delete marker on a compacted topic. FastStream represents it as `faststream.message.TOMBSTONE`, kept distinct from an empty payload (`b""`).
 
+    To publish a tombstone, pass `faststream.message.TOMBSTONE` as the message body and a key. `broker.publish(TOMBSTONE, key=b"...")`
+
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 
 ```python hl_lines="1 6"

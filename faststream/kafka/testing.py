@@ -16,7 +16,7 @@ from faststream._internal.testing.broker import (
     TestBroker,
     change_producer,
 )
-from faststream.exceptions import SubscriberNotFound
+from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.kafka import TopicPartition
 from faststream.kafka.broker import KafkaBroker
 from faststream.kafka.message import KafkaMessage
@@ -25,6 +25,7 @@ from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.kafka.publisher.usecase import BatchPublisher
 from faststream.kafka.subscriber.usecase import BatchSubscriber
 from faststream.message import gen_cor_id
+from faststream.message.utils import _Tombstone
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -296,7 +297,7 @@ class FakeProducer(AioKafkaFastProducer):
 
 
 async def build_message(
-    message: "SendableMessage",
+    message: "SendableMessage | _Tombstone",
     topic: str,
     partition: int | None = None,
     timestamp_ms: int | None = None,
@@ -309,9 +310,10 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    if message is None and key is not None:
-        # keyed None is a real tombstone, matching publish()'s own rule
-        # (aiokafka needs a key or value, a keyless None still goes b"")
+    if isinstance(message, _Tombstone):
+        if key is None:
+            msg_text = "a Kafka tombstone requires a key"
+            raise SetupError(msg_text)
         msg, content_type = None, None
     else:
         msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)

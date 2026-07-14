@@ -6,11 +6,12 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
-from faststream.exceptions import FeatureNotSupportedException
+from faststream.exceptions import FeatureNotSupportedException, SetupError
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
+from faststream.message import TOMBSTONE
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -110,9 +111,14 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        if cmd.body is None and cmd.key is not None:
-            # keyed None is a tombstone: aiokafka requires at least key or value,
-            # so a keyless None still goes through the codec as b""
+        if cmd.body is TOMBSTONE:
+            # None now goes through the codec like any other value.
+            # TOMBSTONE is the explicit way to send a real Kafka tombstone.
+            # aiokafka requires at least a key or value, so a tombstone
+            # needs a key.
+            if cmd.key is None:
+                msg = "a Kafka tombstone requires a key"
+                raise SetupError(msg)
             message, content_type = None, None
         else:
             message, content_type = await self.codec.encode(cmd.body, self.serializer)

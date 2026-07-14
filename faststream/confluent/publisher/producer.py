@@ -9,6 +9,7 @@ from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
+from faststream.message import TOMBSTONE
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -139,7 +140,10 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        if cmd.body is None:
+        if cmd.body is TOMBSTONE:
+            # None goes through the codec like any other value now (it can
+            # encode to a real b"null"). TOMBSTONE is the explicit way to
+            # send a real Kafka tombstone.
             message, content_type = None, None
         else:
             message, content_type = await self.codec.encode(cmd.body, self.serializer)

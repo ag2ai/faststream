@@ -6,8 +6,10 @@ import pytest
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
+from faststream.exceptions import SetupError
 from faststream.kafka import KafkaPublishMessage, KafkaResponse
 from faststream.kafka.exceptions import BatchBufferOverflowException
+from faststream.message import TOMBSTONE
 from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import KafkaTestcaseConfig
@@ -349,7 +351,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
         assert messages_queue.empty()
 
     @pytest.mark.asyncio()
-    async def test_publish_none_sends_a_real_tombstone(self, queue: str) -> None:
+    async def test_publish_none_encodes_normally(self, queue: str) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         values: asyncio.Queue[bytes | None] = asyncio.Queue()
@@ -360,7 +362,33 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
-            await br.publish(None, queue, key=b"tombstone-key")
+            await br.publish(None, queue)
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+        assert value == b""
+
+    @pytest.mark.asyncio()
+    async def test_publish_tombstone_sends_a_real_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
+
+    @pytest.mark.asyncio()
+    async def test_publish_tombstone_without_key_raises(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            with pytest.raises(SetupError):
+                await br.publish(TOMBSTONE, queue)

@@ -22,6 +22,7 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
+from faststream.message.utils import _Tombstone
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -332,7 +333,7 @@ class MockConfluentMessage:
 
 
 async def build_message(
-    message: "SendableMessage",
+    message: "SendableMessage | _Tombstone",
     topic: str,
     *,
     correlation_id: str | None = None,
@@ -345,8 +346,7 @@ async def build_message(
     codec: Optional["CodecProto"] = None,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    if message is None:
-        # keep a real tombstone (message.value() is None) distinct from b""
+    if isinstance(message, _Tombstone):
         msg, content_type = None, None
     else:
         codec_instance = codec or DefaultCodec()
