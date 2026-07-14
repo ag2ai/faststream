@@ -36,6 +36,18 @@ class _Tombstone:
 TOMBSTONE = _Tombstone()
 
 
+def body_size(body: Any) -> int:
+    return 0 if body is TOMBSTONE else len(body)
+
+
+def batch_body_size(bodies: Sequence[Any]) -> int:
+    return sum(body_size(b) for b in bodies)
+
+
+def value_or_tombstone(value: Optional["bytes"]) -> bytes | _Tombstone:
+    return TOMBSTONE if value is None else value
+
+
 def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
     """Decodes a message."""
     body: Any = getattr(message, "body", message)

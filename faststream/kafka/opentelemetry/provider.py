@@ -5,6 +5,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 
 from faststream._internal.types import MsgType
 from faststream.kafka.response import KafkaPublishCommand
+from faststream.message import batch_body_size, body_size
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
 
@@ -59,7 +60,7 @@ class KafkaTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: body_size(msg.body),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition,
             SpanAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset,
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic,
@@ -90,8 +91,8 @@ class BatchKafkaTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
-                bytearray().join(cast("Sequence[bytes]", msg.body)),
+            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: batch_body_size(
+                msg.body
             ),
             SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,

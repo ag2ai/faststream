@@ -18,6 +18,7 @@ from starlette.requests import Request
 from faststream._internal.context import Context, ContextRepo
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
+from faststream.message import TOMBSTONE
 from faststream.response import Response, ensure_response
 
 from ._compat import (
@@ -178,7 +179,7 @@ def build_faststream_to_fastapi_parser(
                 path = fastapi_body = body or {}
             elif isinstance(body, list):
                 fastapi_body, path = body, {}
-            elif body is None:
+            elif message.body is TOMBSTONE:
                 fastapi_body, path = None, {}
             else:
                 path = fastapi_body = {first_arg: body}

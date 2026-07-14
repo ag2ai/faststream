@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, cast
 
-from faststream.message import TOMBSTONE, StreamMessage, decode_message
+from faststream.message import StreamMessage, decode_message, value_or_tombstone
 
 from .message import FAKE_CONSUMER, KafkaMessage
 
@@ -38,8 +38,7 @@ class AsyncConfluentParser:
         """Parses a Kafka message."""
         headers = _parse_msg_headers(cast("_HeadersInput", message.headers() or ()))
 
-        value = message.value()
-        body = TOMBSTONE if value is None else value
+        body = value_or_tombstone(message.value())
         offset = message.offset()
         _, timestamp = message.timestamp()
 
@@ -67,8 +66,7 @@ class AsyncConfluentParser:
         last = message[-1]
 
         for m in message:
-            m_value = m.value()
-            body.append(TOMBSTONE if m_value is None else m_value)
+            body.append(value_or_tombstone(m.value()))
             batch_headers.append(
                 _parse_msg_headers(cast("_HeadersInput", m.headers() or ()))
             )

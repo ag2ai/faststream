@@ -323,7 +323,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(queue)
-        async def handler(msg: bytes) -> None:
+        async def handler(msg: bytes | None) -> None:
             event.set()
             mock(msg)
 
@@ -340,7 +340,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
                 timeout=3,
             )
 
-            mock.assert_called_once_with(b"")
+            mock.assert_called_once_with(None)
 
     @pytest.mark.asyncio()
     async def test_consume_batch_without_value(
@@ -352,7 +352,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(queue, batch=True)
-        async def handler(msg: list[bytes]) -> None:
+        async def handler(msg: list[bytes | None]) -> None:
             event.set()
             mock(msg)
 
@@ -369,7 +369,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
                 timeout=3,
             )
 
-            mock.assert_called_once_with([b""])
+            mock.assert_called_once_with([None])
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()

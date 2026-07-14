@@ -56,6 +56,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
     ) -> None:
         router = self.router_class()
         received: list[tuple[object, bytes | None]] = []
+        event = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
 
@@ -65,22 +66,22 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
             raw: KafkaMessage = Context("message"),
         ) -> None:
             received.append((msg, raw.raw_message.value()))
+            if len(received) == 2:
+                event.set()
 
         async with self.patch_broker(router.broker) as br:
             await br.start()
 
             await br.publish(b'{"x": 5}', queue, key=b"k1")
 
-            # send a real null directly, independent of the publish(None, ...) fix
             raw_producer = br._producer._producer.producer
             await raw_producer.send(topic=queue, key=b"k2", value=None)
 
-            await asyncio.sleep(self.timeout)
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-        assert received == [
-            (_Foo(x=5), b'{"x": 5}'),
-            (None, None),
-        ]
+        assert len(received) == 2
+        assert (_Foo(x=5), b'{"x": 5}') in received
+        assert (None, None) in received
 
 
 @pytest.mark.confluent()

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, Union
 
+from faststream.message import batch_body_size, body_size
 from faststream.message.message import MsgType, StreamMessage
 from faststream.prometheus import MetricsSettingsProvider
 
@@ -31,7 +32,7 @@ class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRec
     ) -> "ConsumeAttrs":
         return {
             "destination_name": msg.raw_message.topic,
-            "message_size": len(msg.body),
+            "message_size": body_size(msg.body),
             "messages_count": 1,
         }
 
@@ -46,7 +47,7 @@ class BatchKafkaMetricsSettingsProvider(
         raw_message = msg.raw_message[0]
         return {
             "destination_name": raw_message.topic,
-            "message_size": len(bytearray().join(cast("Sequence[bytes]", msg.body))),
+            "message_size": batch_body_size(msg.body),
             "messages_count": len(msg.raw_message),
         }
 

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union, cast
 
+from faststream.message import batch_body_size, body_size
 from faststream.message.message import MsgType, StreamMessage
 from faststream.prometheus import (
     ConsumeAttrs,
@@ -33,7 +34,7 @@ class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Mes
     ) -> ConsumeAttrs:
         return {
             "destination_name": cast("str", msg.raw_message.topic()),
-            "message_size": len(msg.body),
+            "message_size": body_size(msg.body),
             "messages_count": 1,
         }
 
@@ -48,7 +49,7 @@ class BatchConfluentMetricsSettingsProvider(
         raw_message = msg.raw_message[0]
         return {
             "destination_name": cast("str", raw_message.topic()),
-            "message_size": len(bytearray().join(cast("Sequence[bytes]", msg.body))),
+            "message_size": batch_body_size(msg.body),
             "messages_count": len(msg.raw_message),
         }
 
