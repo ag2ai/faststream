@@ -186,10 +186,6 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         connection_state._connected = True
         return connection
 
-    async def publish(self, *args: Any, **kwargs: Any) -> int | bytes:
-        # Publish message to PEL here
-        super().publish(*args, **kwargs)
-
 
 class FakeProducer(RedisFastProducer):
     def __init__(
@@ -237,7 +233,7 @@ class FakeProducer(RedisFastProducer):
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
-
+        # Put a message into self.broker.pel here
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
