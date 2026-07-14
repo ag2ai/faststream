@@ -26,6 +26,9 @@ This object serves as a unified **FastStream** wrapper around the native broker 
 * `#!python topic(): str`
 * `#!python value(): Optional[Union[str, bytes]]`
 
+!!! note
+    A `None` value() is a Kafka tombstone, the delete marker on a compacted topic. FastStream represents it as `faststream.message.TOMBSTONE`, kept distinct from an empty payload (`b""`).
+
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 
 ```python hl_lines="1 6"
