@@ -9,12 +9,14 @@ from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import TOMBSTONE
+from faststream.message import TOMBSTONE, Tombstone
+from faststream.message.utils import encode_or_tombstone, ensure_tombstone_key
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
     import asyncio
+    from collections.abc import Sequence
 
     from confluent_kafka import Message
     from fast_depends.library.serializer import SerializerProto
@@ -141,12 +143,10 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         if cmd.body is TOMBSTONE:
-            # None goes through the codec like any other value now (it can
-            # encode to a real b"null"). TOMBSTONE is the explicit way to
-            # send a real Kafka tombstone.
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+            ensure_tombstone_key(cmd.key)
+        message, content_type = await encode_or_tombstone(
+            cmd.body, self.codec, self.serializer
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -170,13 +170,23 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
+        encoded_batch: Sequence[tuple[bytes | None, str | None]]
         if isinstance(self.codec, BatchCodecProto):
+            if any(isinstance(body, Tombstone) for body in cmd.batch_bodies):
+                msg = (
+                    "a tombstone in a batch isn't supported with a custom BatchCodecProto"
+                )
+                raise ValueError(msg)
             encoded_batch = await self.codec.encode_batch(
                 cmd.batch_bodies, self.serializer
             )
         else:
+            for message_position, body in enumerate(cmd.batch_bodies):
+                if body is TOMBSTONE:
+                    ensure_tombstone_key(cmd.key_for(message_position))
             encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
+                await encode_or_tombstone(msg, self.codec, self.serializer)
+                for msg in cmd.batch_bodies
             ]
 
         for message_position, (message, content_type) in enumerate(encoded_batch):

@@ -6,17 +6,19 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
-from faststream.exceptions import FeatureNotSupportedException, SetupError
+from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.message import TOMBSTONE
+from faststream.message import TOMBSTONE, Tombstone
+from faststream.message.utils import encode_or_tombstone, ensure_tombstone_key
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
     import asyncio
+    from collections.abc import Sequence
 
     from aiokafka import AIOKafkaProducer
     from aiokafka.structs import RecordMetadata
@@ -112,16 +114,10 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
         if cmd.body is TOMBSTONE:
-            # None now goes through the codec like any other value.
-            # TOMBSTONE is the explicit way to send a real Kafka tombstone.
-            # aiokafka requires at least a key or value, so a tombstone
-            # needs a key.
-            if cmd.key is None:
-                msg = "a Kafka tombstone requires a key"
-                raise SetupError(msg)
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+            ensure_tombstone_key(cmd.key)
+        message, content_type = await encode_or_tombstone(
+            cmd.body, self.codec, self.serializer
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -151,13 +147,22 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
+        encoded_batch: Sequence[tuple[bytes | None, str | None]]
         if isinstance(self.codec, BatchCodecProto):
+            if any(isinstance(body, Tombstone) for body in cmd.batch_bodies):
+                msg = (
+                    "a tombstone in a batch isn't supported with a custom BatchCodecProto"
+                )
+                raise ValueError(msg)
             encoded_batch = await self.codec.encode_batch(
                 cmd.batch_bodies, self.serializer
             )
         else:
+            for message_position, body in enumerate(cmd.batch_bodies):
+                if body is TOMBSTONE:
+                    ensure_tombstone_key(cmd.key_for(message_position))
             encoded_batch = [
-                await self.codec.encode(body, self.serializer)
+                await encode_or_tombstone(body, self.codec, self.serializer)
                 for body in cmd.batch_bodies
             ]
 

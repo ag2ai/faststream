@@ -334,3 +334,40 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
+
+    @pytest.mark.asyncio()
+    async def test_publish_tombstone_without_key_raises(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            with pytest.raises(ValueError, match="requires a key"):
+                await br.publish(TOMBSTONE, queue)
+
+    @pytest.mark.asyncio()
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value())
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish_batch(
+                "hi",
+                KafkaResponse(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+            received = [
+                await asyncio.wait_for(values.get(), timeout=self.timeout)
+                for _ in range(2)
+            ]
+
+        assert b"hi" in received
+        assert None in received

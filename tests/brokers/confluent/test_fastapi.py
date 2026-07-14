@@ -2,7 +2,6 @@ import asyncio
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import BaseModel
 
 from faststream import Context
 from faststream.confluent import KafkaRouter
@@ -10,13 +9,14 @@ from faststream.confluent.fastapi import (
     KafkaMessage,
     KafkaRouter as StreamRouter,
 )
-from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
+from tests.brokers.base.fastapi import (
+    FastAPILocalTestcase,
+    FastAPITestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+    _Foo,
+)
 
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
-
-
-class _Foo(BaseModel):
-    x: int
 
 
 @pytest.mark.connected()
@@ -50,13 +50,13 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
         assert event.is_set()
         mock.assert_called_with(["hi"])
 
-    async def test_optional_body_resolves_to_none_for_tombstone(
+    async def test_external_tombstone_resolves_to_none(
         self,
         queue: str,
+        event: asyncio.Event,
     ) -> None:
         router = self.router_class()
         received: list[tuple[object, bytes | None]] = []
-        event = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
 
@@ -85,7 +85,11 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
 
 @pytest.mark.confluent()
-class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
+class TestRouterLocal(
+    ConfluentMemoryTestcaseConfig,
+    FastAPILocalTestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 

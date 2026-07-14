@@ -6,7 +6,6 @@ import pytest
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
-from faststream.exceptions import SetupError
 from faststream.kafka import KafkaPublishMessage, KafkaResponse
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.message import TOMBSTONE
@@ -390,5 +389,31 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
-            with pytest.raises(SetupError):
+            with pytest.raises(ValueError, match="requires a key"):
                 await br.publish(TOMBSTONE, queue)
+
+    @pytest.mark.asyncio()
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish_batch(
+                "hi",
+                KafkaResponse(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+            received = [
+                await asyncio.wait_for(values.get(), timeout=self.timeout)
+                for _ in range(2)
+            ]
+
+        assert b"hi" in received
+        assert None in received

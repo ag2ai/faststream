@@ -4,8 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
-from faststream.exceptions import SetupError
-from faststream.kafka import TopicPartition
+from faststream.kafka import KafkaResponse, TopicPartition
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
 from faststream.kafka.testing import FakeProducer
@@ -382,5 +381,24 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(apply_types=True)
 
         async with self.patch_broker(broker) as br:
-            with pytest.raises(SetupError):
+            with pytest.raises(ValueError, match="requires a key"):
                 await br.publish(TOMBSTONE, queue)
+
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: list[bytes | None] = []
+
+        @broker.subscriber(queue, batch=True)
+        async def handler(msg: list[bytes | None]) -> None:
+            values.extend(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(
+                b"hi",
+                KafkaResponse(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+        assert b"hi" in values
+        assert None in values

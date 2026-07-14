@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
+from faststream.confluent import KafkaResponse
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
@@ -321,3 +322,31 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             value = await asyncio.wait_for(values.get(), timeout=3)
 
         assert value is None
+
+    async def test_publish_tombstone_without_key_raises(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            with pytest.raises(ValueError, match="requires a key"):
+                await br.publish(TOMBSTONE, queue)
+
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: list[bytes | None] = []
+
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: list[bytes | None]) -> None:
+            values.extend(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(
+                b"hi",
+                KafkaResponse(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+        assert b"hi" in values
+        assert None in values

@@ -2,6 +2,7 @@ from .message import AckStatus, StreamMessage
 from .source_type import SourceType
 from .utils import (
     TOMBSTONE,
+    Tombstone,
     batch_body_size,
     body_size,
     decode_message,
@@ -15,6 +16,7 @@ __all__ = (
     "AckStatus",
     "SourceType",
     "StreamMessage",
+    "Tombstone",
     "batch_body_size",
     "body_size",
     "decode_message",
