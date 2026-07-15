@@ -2,6 +2,7 @@ import logging
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Optional,
     cast,
 )
@@ -21,9 +22,13 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
-from faststream.redis.configs import RedisBrokerConfig, RedisConnectionState
+from faststream.redis.configs import (
+    ConnectionState,
+    RedisBrokerConfig,
+    RedisConnectionState,
+)
 from faststream.redis.message import UnifyRedisDict
-from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.redis.schemas.types import NON_CONNECTION_PARAMS
@@ -41,6 +46,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
+    from faststream.redis.publisher.producer import RedisClusterFastProducer
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
@@ -51,19 +57,36 @@ class RedisBroker(
 ):
     """Redis broker."""
 
+    # Extra params (beyond NON_CONNECTION_PARAMS) that must not leak into the
+    # connection options. Subclasses extend it (e.g. Sentinel adds SENTINEL_PARAMS).
+    _EXTRA_NON_CONNECTION_PARAMS: ClassVar[frozenset[str]] = frozenset()
+
     def __init__(
         self,
         url: str = "redis://localhost:6379",
         **kwargs: Unpack["RedisBrokerParams"],
     ) -> None:
         """Initialized the RedisBroker."""
+        self._init_broker(url, dict(kwargs))
+
+    def _init_broker(self, url: str, kwargs: dict[str, Any]) -> None:
+        """Shared setup for RedisBroker and its Cluster/Sentinel subclasses.
+
+        The parts that differ between brokers — connection state, producer and
+        constructor validation — are delegated to the ``_make_connection_state``,
+        ``_make_producer`` and ``_validate_init_params`` hooks, so the subclasses
+        only override those hooks instead of copying this method.
+        """
+        self._validate_init_params(kwargs)
+
         host = kwargs.pop("host", EMPTY)
         port = kwargs.pop("port", EMPTY)
         security = kwargs.pop("security", None)
         specification_url = kwargs.pop("specification_url", None)
         protocol = kwargs.pop("protocol", None)
-        message_format = kwargs.pop("message_format", BinaryMessageFormatV1)
-
+        message_format: type[MessageFormat] = kwargs.pop(
+            "message_format", BinaryMessageFormatV1
+        )
         self.message_format = message_format
 
         if specification_url is None:
@@ -71,9 +94,8 @@ class RedisBroker(
         if protocol is None:
             protocol = urlparse(specification_url).scheme
 
-        connection_kwargs = {
-            k: v for k, v in kwargs.items() if k not in NON_CONNECTION_PARAMS
-        }
+        excluded_params = NON_CONNECTION_PARAMS | self._EXTRA_NON_CONNECTION_PARAMS
+        connection_kwargs = {k: v for k, v in kwargs.items() if k not in excluded_params}
         connection_options = self._resolve_url_options(
             url,
             security=security,
@@ -82,20 +104,15 @@ class RedisBroker(
             **connection_kwargs,
         )
 
-        connection_state = RedisConnectionState(connection_options)
+        connection_state = self._make_connection_state(connection_options, kwargs)
+        producer = self._make_producer(connection_state, kwargs)
 
         super().__init__(
             **connection_options,
             routers=kwargs.get("routers", ()),
             config=RedisBrokerConfig(
                 connection=connection_state,
-                producer=RedisFastProducer(
-                    connection=connection_state,
-                    parser=kwargs.get("parser"),
-                    decoder=kwargs.get("decoder"),
-                    message_format=self.message_format,
-                    serializer=kwargs.get("serializer"),
-                ),
+                producer=producer,
                 message_format=self.message_format,
                 broker_middlewares=kwargs.get("middlewares", ()),
                 broker_parser=kwargs.get("parser"),
@@ -124,6 +141,31 @@ class RedisBroker(
                 security=security,
                 tags=kwargs.get("tags", ()),
             ),
+        )
+
+    def _validate_init_params(self, kwargs: dict[str, Any]) -> None:
+        """Validate constructor params. Hook for subclasses; no-op by default."""
+
+    def _make_connection_state(
+        self,
+        connection_options: dict[str, Any],
+        kwargs: dict[str, Any],
+    ) -> "ConnectionState[Any]":
+        """Build the connection state. Overridden by Cluster/Sentinel brokers."""
+        return RedisConnectionState(connection_options)
+
+    def _make_producer(
+        self,
+        connection_state: "ConnectionState[Any]",
+        kwargs: dict[str, Any],
+    ) -> "RedisFastProducer | RedisClusterFastProducer":
+        """Build the producer. Overridden by the Cluster broker."""
+        return RedisFastProducer(
+            connection=connection_state,
+            parser=kwargs.get("parser"),
+            decoder=kwargs.get("decoder"),
+            message_format=self.message_format,
+            serializer=kwargs.get("serializer"),
         )
 
     @override

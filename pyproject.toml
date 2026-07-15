@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.1"
+version = "0.7.2"
 
 keywords = [
     "rabbitmq",
@@ -64,7 +64,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-rabbit = ["aio-pika>=9,<10"]
+rabbit = ["aio-pika>=9,<11"]
 
 kafka = ["aiokafka>=0.9,<0.15"]
 
@@ -213,6 +213,7 @@ markers = [
     "nats",
     "redis",
     "redis_cluster",
+    "redis_sentinel",
     "mqtt",
     "slow",
     "connected",

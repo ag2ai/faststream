@@ -116,6 +116,7 @@ search:
         - [In-Progress](howto/nats/in-progress.md)
 - [Redis](redis/index.md)
     - [Cluster](redis/cluster.md)
+    - [Sentinel](redis/sentinel.md)
     - [Pub/Sub](redis/pubsub/index.md)
         - [Subscription](redis/pubsub/subscription.md)
         - [Publishing](redis/pubsub/publishing.md)

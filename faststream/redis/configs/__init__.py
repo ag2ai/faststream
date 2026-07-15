@@ -3,6 +3,7 @@ from .state import (
     ConnectionState,
     RedisClusterConnectionState,
     RedisConnectionState,
+    RedisSentinelConnectionState,
 )
 
 __all__ = (
@@ -10,4 +11,5 @@ __all__ = (
     "RedisBrokerConfig",
     "RedisClusterConnectionState",
     "RedisConnectionState",
+    "RedisSentinelConnectionState",
 )

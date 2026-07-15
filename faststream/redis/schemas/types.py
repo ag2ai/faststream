@@ -109,6 +109,21 @@ class RedisClusterParams(RedisBrokerParams, total=False):
     ]
 
 
+class RedisSentinelParams(RedisBrokerParams, total=False):
+    sentinels: Annotated[
+        Sequence[tuple[str, int]],
+        "Redis Sentinel ``(host, port)`` nodes to discover the master from. Required.",
+    ]
+    sentinel_master_name: Annotated[
+        str,
+        "Sentinel master group name. Required.",
+    ]
+    sentinel_kwargs: Annotated[
+        Mapping[str, Any] | None,
+        "Connection kwargs for the Sentinel nodes themselves. Defaults to ``None``.",
+    ]
+
+
 CLUSTER_INCOMPATIBLE_PARAMS = frozenset({
     "db",
     "socket_read_size",
@@ -119,6 +134,13 @@ CLUSTER_INCOMPATIBLE_PARAMS = frozenset({
     "connection_class",
     "host",
     "port",
+})
+
+
+SENTINEL_PARAMS = frozenset({
+    "sentinels",
+    "sentinel_master_name",
+    "sentinel_kwargs",
 })
 
 NON_CONNECTION_PARAMS = frozenset({
