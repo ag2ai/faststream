@@ -1,6 +1,5 @@
 import asyncio
-from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -18,21 +17,21 @@ from .basic import KafkaMemoryTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
-    async def test_publish_none_tombstone(self, queue: str) -> None:
+    async def test_publish_none_tombstone(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
         broker = self.get_broker(apply_types=True)
 
-        values: asyncio.Queue[bytes | None] = asyncio.Queue()
-
         @broker.subscriber(queue)
-        async def handler(raw: Any = Context("message")) -> None:
-            await values.put(raw.raw_message.value)
+        async def handler(msg=Context("message")) -> None:
+            mock(msg.raw_message.value)
 
         async with self.patch_broker(broker) as br:
             await br.publish(None, queue, key=b"tombstone-key")
 
-            value = await asyncio.wait_for(values.get(), timeout=3)
-
-        assert value is None
+        mock.assert_called_once_with(None)
 
     async def test_partition_match(
         self,
