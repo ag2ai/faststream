@@ -50,6 +50,11 @@ class _LazyLoggerProxy(logging.Logger):
             real_logger.handle(record)
 
 
+# How long (in seconds) to wait while draining librdkafka's local produce
+# queue before retrying a message that hit ``BufferError`` ("Local: Queue full").
+_BUFFER_FULL_POLL_TIMEOUT = 1.0
+
+
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
 
@@ -148,7 +153,17 @@ class AsyncConfluentProducer:
             produce_kwargs["partition"] = kwargs["partition"]
         if kwargs.get("timestamp") is not None:
             produce_kwargs["timestamp"] = kwargs["timestamp"]
-        self.producer.produce(topic, **produce_kwargs)
+        while True:
+            try:
+                self.producer.produce(topic, **produce_kwargs)
+                break
+            except BufferError:
+                # librdkafka's local produce queue is full
+                # (queue.buffering.max.messages / queue.buffering.max.kbytes).
+                # Serve delivery reports to drain it and retry this message,
+                # instead of raising and cancelling the whole batch through the
+                # task group in ``send_batch``.
+                await call_or_await(self.producer.poll, _BUFFER_FULL_POLL_TIMEOUT)
 
         if no_confirm:
             return result_future
