@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -92,5 +93,22 @@ async def test_broker_context_redis() -> None:
     from faststream.redis import TestRedisBroker
 
     async with TestRedisBroker(broker, with_real=True), TestApp(app):
+        await handle.wait_call(3)
+        handle.mock.assert_called_once_with("Hi!")
+
+
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+@pytest.mark.mqtt()
+@require_mqtt
+async def test_broker_context_mqtt() -> None:
+    from docs.docs_src.getting_started.publishing.mqtt.broker_context import (
+        app,
+        broker,
+        handle,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker, with_real=True), TestApp(app):
         await handle.wait_call(3)
         handle.mock.assert_called_once_with("Hi!")

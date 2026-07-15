@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import anyio
 from aio_pika import IncomingMessage, RobustConnection, connect_robust
 from fast_depends import Provider, dependency_provider
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -20,6 +20,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.helpers.channel_manager import ChannelManagerImpl
 from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
@@ -56,6 +57,7 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -90,7 +92,9 @@ class RabbitBroker(
         app_id: str | None = SERVICE_NAME,
         # broker base args
         graceful_timeout: float | None = None,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -126,7 +130,9 @@ class RabbitBroker(
             default_channel: Default channel settings to use.
             app_id: Application name to mark outgoing messages by.
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy: Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder: Custom decoder object.
+            codec: Custom codec object.
             parser: Custom parser object.
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
@@ -194,6 +200,7 @@ class RabbitBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_rabbit_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -207,6 +214,7 @@ class RabbitBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },
@@ -255,21 +263,6 @@ class RabbitBroker(
             self._connection = None
 
         self.config.disconnect()
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Connect broker to RabbitMQ and startup all subscribers."""

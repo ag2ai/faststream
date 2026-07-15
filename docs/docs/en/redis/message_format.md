@@ -2,13 +2,15 @@
 
 To provide great features like observability and more, **FastStream** needs to include extra data in your message. **Redis**, in turn, provides the ability to send any type of data within a message. Therefore, **FastStream** uses its own binary format for messages, which supports any type of data you want to use and can include any additional information.
 
-### Migration plan
+### Migration history
 
-Currently, **FastStream** uses JSON as the default format for encoding and parsing messages internally. However, in future updates, JSON will be deprecated and eventually removed, as per the following plan:
+The binary format replaced JSON as the default over several releases:
 
-- In versions 0.5.x - JSON will continue to be the default message format
-- In versions 0.6.x - the new binary format will become the default, with JSON being deprecated
-- In versions 0.7.x and beyond - JSON will no longer be supported and will be removed completely
+- In versions 0.5.x - JSON was the default message format
+- In versions 0.6.x - the binary format became the default, with JSON deprecated
+- In versions 0.7.x and beyond - the dedicated JSON format (`JSONMessageFormat`) is removed; the binary format is the only built-in one
+
+If you communicate with external, non-**FastStream** systems that still send plain JSON, you don't need the old format — the binary parser falls back to raw JSON automatically. See [Interoperability with non-FastStream systems](#interoperability-with-non-faststream-systems).
 
 ### Message structure
 
@@ -37,6 +39,11 @@ The message compiled by **FastStream** in binary format has the following struct
     The [...] blocks are arranged in a sequence, with no symbols or data separating them.
 ### Switching between formats
 
+`BinaryMessageFormatV1` is the only built-in format and the default one, so you usually don't need to set it explicitly. The `message_format` option exists so you can plug in your own [custom format](#custom-message-format) implementation.
+
+!!! warning
+    The old `JSONMessageFormat` was deprecated in **0.6.x** and **removed in 0.7.0**. If you upgraded from `0.5.x`/`0.6.x` and relied on it for compatibility with external systems, see [Interoperability with non-FastStream systems](#interoperability-with-non-faststream-systems) below — you no longer need a dedicated JSON format, because `BinaryMessageFormatV1` already falls back to plain JSON automatically.
+
 #### On the publisher's side
 
 ```python
@@ -44,8 +51,6 @@ from faststream import FastStream
 from faststream.redis import RedisBroker
 from faststream.redis.parser import BinaryMessageFormatV1
 
-# BinaryMessageFormatV1, but you can switch it to
-# JSONMessageFormat to be compatible with old FastStream versions
 broker = RedisBroker(message_format=BinaryMessageFormatV1)
 
 app =  FastStream(broker)
@@ -67,12 +72,87 @@ broker = RedisBroker()
 
 app =  FastStream(broker)
 
-# BinaryMessageFormatV1, but you can switch it to
-# JSONMessageFormat to be compatible with old FastStream versions
 @broker.subscriber("queue", message_format=BinaryMessageFormatV1)
 async def message_handler(msg):
     print(msg)
 ```
+
+### Interoperability with non-FastStream systems
+
+A common need is to exchange messages with applications that are **not** built with **FastStream** (services written in other languages, plain `redis-py` producers, etc.). Such systems don't know about the binary format described above, so they publish **raw payloads** — usually plain JSON.
+
+You don't need a special message format for this. `BinaryMessageFormatV1.parse` automatically **falls back** to non-binary payloads, so a **FastStream** subscriber consumes raw messages out of the box. When the incoming bytes don't start with the binary identity header, the parser tries, in order:
+
+1. A **legacy JSON envelope** — `{"data": ..., "headers": {...}}` — produced by old (`<= 0.5.x`) **FastStream** versions or by systems that mimic that shape. Both `data` and `headers` are extracted.
+2. **Any other bytes** — treated as a raw payload with empty headers. The body is still decoded normally afterwards (JSON is parsed into a Python object, plain text is kept as a string), so a message like `b'{"id": "1", "name": "John"}'` arrives in your handler as a `dict`.
+
+#### Consuming raw JSON from an external producer
+
+A non-**FastStream** producer can publish plain JSON bytes directly:
+
+```python
+# Any external client, e.g. plain redis-py
+await redis.publish("test", b'{"id": "1", "name": "John"}')
+```
+
+And a regular **FastStream** subscriber receives the decoded payload without any extra configuration:
+
+```python
+from faststream import FastStream
+from faststream.redis import RedisBroker
+
+broker = RedisBroker()
+app = FastStream(broker)
+
+@broker.subscriber("test")
+async def handler(msg: dict[str, Any]) -> None:
+    # {"id": "1", "name": "John"}
+    print(msg)
+```
+
+#### Publishing to an external consumer
+
+When you publish with **FastStream** (`broker.publish(...)` or a `@broker.publisher`), the message is wrapped in the binary format. A non-**FastStream** consumer can still read it, but it has to parse that format — see the [Go](#parsing-in-go) and [Java](#parsing-in-java) examples below, which decode the envelope into data + headers.
+
+If the other side cannot (or should not) parse the binary format and you only need to send a raw payload, publish bytes through the underlying **Redis** client directly. `broker._connection` is the native `redis.asyncio.Redis` instance (also available inside handlers via the `Redis` annotation from `faststream.redis.annotations`, see [Context](../getting-started/context.md)):
+
+```python
+import json
+
+from faststream.redis import Redis
+
+@broker.subscriber("test")
+async def handler(msg, redis: Redis) -> None:
+    # Pub/Sub channel
+    await redis.publish(
+        "test",
+        json.dumps({"id": "1", "name": "John"}).encode(),
+    )
+```
+
+This bypasses the **FastStream** envelope entirely, so the external consumer receives exactly the bytes you sent. Because you are calling the native client, use the method that matches the destination type — `publish` for channels, `rpush` for [lists](./list/index.md), `xadd` for [streams](./streams/index.md):
+
+
+### Custom message format
+
+If neither the binary format nor the JSON fallback fits your needs, implement your own format by subclassing `MessageFormat` and providing `encode`/`parse`:
+
+```python
+from typing import Any
+from faststream.redis.parser import MessageFormat
+
+
+class MyMessageFormat(MessageFormat):
+    @classmethod
+    async def encode(cls, *, message, reply_to, headers, correlation_id, serializer=None, codec=None) -> bytes:
+        ...
+
+    @classmethod
+    def parse(cls, data: bytes) -> tuple[bytes, dict[str, Any]]:
+        ...
+```
+
+Then pass it via `message_format=` on the broker, publisher, or subscriber exactly like `BinaryMessageFormatV1`.
 
 ### Parsing in FastStream application
 

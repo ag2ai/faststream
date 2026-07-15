@@ -21,3 +21,8 @@
 # CLI
 /faststream/cli @Sehat1137
 /tests/cli @Sehat1137
+
+# MQTT
+/faststream/mqtt/ @borisalekseev
+/tests/brokers/mqtt/ @borisalekseev
+/docs/docs/en/mqtt/ @borisalekseev

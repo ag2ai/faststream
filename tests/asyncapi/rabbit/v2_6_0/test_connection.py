@@ -68,7 +68,7 @@ def test_custom() -> None:
                         "is": "routingKey",
                         "queue": {
                             "autoDelete": False,
-                            "durable": False,
+                            "durable": True,
                             "exclusive": False,
                             "name": "test",
                             "vhost": "/vh",

@@ -26,7 +26,7 @@ from nats.aio.client import (
 from nats.aio.msg import Msg
 from nats.errors import Error
 from nats.js.errors import BadRequestError
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -34,6 +34,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.publisher.producer import (
     NatsFastProducerImpl,
@@ -66,6 +67,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
@@ -210,7 +212,9 @@ class NatsBroker(
         flush_timeout: float | None = None,
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
         graceful_timeout: float | None = None,
+        ack_policy: AckPolicy = EMPTY,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -295,8 +299,12 @@ class NatsBroker(
                 JetStream initialization options.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
             decoder:
-                Custom decoder object
+                Custom decoder object.
+            codec:
+                Custom codec object.
             parser:
                 Custom parser object.
             dependencies:
@@ -396,6 +404,7 @@ class NatsBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_nats_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -409,6 +418,7 @@ class NatsBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
                 extra_context={
                     "broker": self,
                 },
@@ -441,21 +451,6 @@ class NatsBroker(
             self._connection = None
 
         self.config.disconnect()
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""

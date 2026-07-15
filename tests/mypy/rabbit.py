@@ -6,12 +6,30 @@ from aiormq.abc import ConfirmationFrameType
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream.rabbit import RabbitBroker, RabbitMessage, RabbitRoute, RabbitRouter
+from faststream.rabbit import (
+    RabbitBroker,
+    RabbitMessage,
+    RabbitRoute,
+    RabbitRouter,
+    TestRabbitBroker,
+)
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
 from faststream.rabbit.publisher.usecase import RabbitPublisher
 from faststream.rabbit.subscriber.usecase import RabbitSubscriber
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestRabbitBroker(RabbitBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestRabbitBroker(
+        RabbitBroker(),
+        RabbitBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: RabbitMessage) -> DecodedMessage:

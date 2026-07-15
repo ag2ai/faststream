@@ -76,13 +76,13 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(KafkaBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(KafkaBroker(routers=broker))
 
 
 @pytest.mark.confluent()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(KafkaBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(KafkaBroker(routers=broker))

@@ -25,7 +25,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "topic",
                     "vhost": "/",
@@ -33,7 +33,7 @@ class TestArguments(ArgumentsTestcase):
                 "is": "routingKey",
                 "queue": {
                     "autoDelete": True,
-                    "durable": False,
+                    "durable": True,
                     "exclusive": False,
                     "name": "test",
                     "vhost": "/",
@@ -58,7 +58,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "fanout",
                     "vhost": "/",
@@ -84,7 +84,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "headers",
                     "vhost": "/",
@@ -110,7 +110,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "x-delayed-message",
                     "vhost": "/",
@@ -136,7 +136,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "x-consistent-hash",
                     "vhost": "/",
@@ -162,7 +162,7 @@ class TestArguments(ArgumentsTestcase):
                 "bindingVersion": "0.2.0",
                 "exchange": {
                     "autoDelete": False,
-                    "durable": False,
+                    "durable": True,
                     "name": "test-ex",
                     "type": "x-modulus-hash",
                     "vhost": "/",

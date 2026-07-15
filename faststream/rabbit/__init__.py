@@ -1,4 +1,7 @@
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
+
+RabbitParserType = ParserProto["IncomingMessage"]  # type: ignore[name-defined]
 
 try:
     from .annotations import RabbitMessage
@@ -28,6 +31,7 @@ __all__ = (
     "RabbitBroker",
     "RabbitExchange",
     "RabbitMessage",
+    "RabbitParserType",
     "RabbitPublishCommand",
     "RabbitPublisher",
     "RabbitQueue",

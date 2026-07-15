@@ -80,13 +80,13 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RedisRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(RedisBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RedisBroker(routers=broker))
 
 
 @pytest.mark.redis()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RedisRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(RedisBroker(routers=[broker]))
+    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+        return super().get_spec(RedisBroker(routers=broker))

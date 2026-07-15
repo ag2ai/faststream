@@ -34,8 +34,7 @@ def make_asyncapi_asgi(
     asyncapi_js_url: str = ASYNCAPI_JS_DEFAULT_URL,
     asyncapi_css_url: str = ASYNCAPI_CSS_DEFAULT_URL,
     try_it_out_plugin_url: str = ASYNCAPI_TRY_IT_PLUGIN_URL,
-    try_it_out: bool = True,
-    try_it_out_url: str = "asyncapi/try",
+    try_it_out_path: str | None = "asyncapi/try",
 ) -> "GetHandler":
     """Create AsyncAPI documentation ASGI handler."""
     cached_docs: str | None = None
@@ -62,8 +61,7 @@ def make_asyncapi_asgi(
                 asyncapi_js_url=asyncapi_js_url,
                 asyncapi_css_url=asyncapi_css_url,
                 try_it_out_plugin_url=try_it_out_plugin_url,
-                try_it_out=try_it_out,
-                try_it_out_url=try_it_out_url,
+                try_it_out_path=try_it_out_path,
             )
 
         return AsgiResponse(

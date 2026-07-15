@@ -1,6 +1,8 @@
 from typing import Any
+from urllib.parse import quote
 
-from dirty_equals import Contains, HasLen, IsStr
+import pytest
+from dirty_equals import Contains, HasLen, IsPartialDict, IsStr
 from pydantic import create_model
 
 from faststream._internal.broker import BrokerUsecase
@@ -10,6 +12,146 @@ from .basic import AsyncAPI300Factory
 
 class BaseNaming(AsyncAPI300Factory):
     broker_class: type[BrokerUsecase[Any, Any]]
+
+
+class MultibrokersSchema(BaseNaming):
+    def test_multi_shared_server(self, recwarn: pytest.WarningsRecorder) -> None:
+        schema = self.get_spec(
+            self.broker_class(),
+            self.broker_class(),
+        ).to_jsonable()
+
+        # assert no warning raised
+        assert len(recwarn.list) == 0, [w.message for w in recwarn.list]
+
+        assert schema == IsPartialDict({
+            "servers": {"development": IsPartialDict()},
+        })
+
+    def test_multi_different_servers(self, recwarn: pytest.WarningsRecorder) -> None:
+        schema = self.get_spec(
+            self.broker_class(description="broker1"),
+            self.broker_class(description="broker2"),
+        ).to_jsonable()
+
+        # assert no warning raised
+        assert len(recwarn.list) == 0, [w.message for w in recwarn.list]
+
+        assert schema == IsPartialDict({
+            "servers": {
+                "Server1": IsPartialDict({"description": "broker1"}),
+                "Server2": IsPartialDict({"description": "broker2"}),
+            },
+        })
+
+    def test_multi_subscribers_same_channel(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        broker_first = self.broker_class()
+
+        @broker_first.subscriber("test")
+        async def handle_broker_first() -> None: ...
+
+        broker_second = self.broker_class()
+
+        @broker_second.subscriber("test")
+        async def handle_broker_second() -> None: ...
+
+        schema = self.get_spec(broker_first, broker_second).to_jsonable()
+
+        # assert no warning raised
+        assert len(recwarn.list) == 0, [w.message for w in recwarn.list]
+
+        assert list(schema["channels"].items()) == [
+            (
+                IsStr(regex=r"test[\w:]*:HandleBrokerFirst"),
+                IsPartialDict({"servers": [{"$ref": "#/servers/development"}]}),
+            ),
+            (
+                IsStr(regex=r"test[\w:]*:HandleBrokerSecond"),
+                IsPartialDict({"servers": [{"$ref": "#/servers/development"}]}),
+            ),
+        ]
+
+    def test_multi_subscribers_same_channel_different_servers(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        broker_first = self.broker_class(description="1")
+
+        @broker_first.subscriber("test")
+        async def handle_broker_first() -> None: ...
+
+        broker_second = self.broker_class(description="2")
+
+        @broker_second.subscriber("test")
+        async def handle_broker_second() -> None: ...
+
+        schema = self.get_spec(broker_first, broker_second).to_jsonable()
+
+        # assert no warning raised
+        assert len(recwarn.list) == 0, [w.message for w in recwarn.list]
+
+        assert list(schema["channels"].items()) == [
+            (
+                IsStr(regex=r"test[\w:]*:HandleBrokerFirst"),
+                IsPartialDict({"servers": [{"$ref": "#/servers/Server1"}]}),
+            ),
+            (
+                IsStr(regex=r"test[\w:]*:HandleBrokerSecond"),
+                IsPartialDict({"servers": [{"$ref": "#/servers/Server2"}]}),
+            ),
+        ]
+
+    def test_multi_shared_pydantic_subscriber_payload(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        broker_first = self.broker_class(description="1")
+
+        model = create_model("SimpleModel")
+
+        @broker_first.subscriber("test")
+        async def handle_broker_first(msg: model) -> None: ...
+
+        broker_second = self.broker_class(description="2")
+
+        @broker_second.subscriber("test2")
+        async def handle_broker_second(msg: model) -> None: ...
+
+        schema = self.get_spec(broker_first, broker_second).to_jsonable()
+
+        # assert no warning raised
+        assert len(recwarn.list) == 0, [w.message for w in recwarn.list]
+
+        assert list(schema["components"]["messages"].keys()) == [
+            IsStr(regex=r"test[\w:]*:HandleBrokerFirst:SubscribeMessage"),
+            IsStr(regex=r"test2[\w:]*:HandleBrokerSecond:SubscribeMessage"),
+        ], schema["components"]["messages"].keys()
+
+        assert schema == IsPartialDict({
+            "components": IsPartialDict({
+                "schemas": {
+                    "SimpleModel": IsPartialDict(),
+                }
+            })
+        })
+
+        # def test_multi_subscribers_conflict(self) -> None:
+        broker_first = self.broker_class(description="1")
+
+        @broker_first.subscriber("test")
+        async def handle_broker() -> None: ...
+
+        broker_second = self.broker_class(description="2")
+
+        @broker_second.subscriber("test")
+        async def handle_broker() -> None: ...  # noqa: F811
+
+        with pytest.warns(RuntimeWarning, match=r"test[\w:]*:HandleBroke"):
+            schema = self.get_spec(broker_first, broker_second).to_jsonable()
+
+        assert list(schema["channels"].keys()) == [
+            IsStr(regex=r"test[\w:]*:HandleBroker")
+        ]
 
 
 class SubscriberNaming(BaseNaming):
@@ -131,6 +273,30 @@ class SubscriberNaming(BaseNaming):
         assert schema["components"]["schemas"]["custom:Message:Payload"] == {
             "title": "custom:Message:Payload",
         }
+
+    def test_path_channel_refs_are_uri_encoded(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("/test/topic/{user_id}")
+        async def sub(name: str, age: int) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        channel_key = next(iter(schema["channels"]))
+        message_name = next(iter(schema["channels"][channel_key]["messages"]))
+        message_key = next(iter(schema["components"]["messages"]))
+        operation = next(iter(schema["operations"].values()))
+
+        encoded_channel_key = quote(channel_key, safe="~:._-")
+        encoded_message_key = quote(message_key, safe="~:._-")
+
+        assert schema["channels"][channel_key]["messages"][message_name] == {
+            "$ref": f"#/components/messages/{encoded_message_key}",
+        }
+        assert operation["channel"] == {"$ref": f"#/channels/{encoded_channel_key}"}
+        assert operation["messages"] == [
+            {"$ref": f"#/channels/{encoded_channel_key}/messages/{message_name}"},
+        ]
 
     def test_multi_subscribers_naming_default(self) -> None:
         broker = self.broker_class()
@@ -410,5 +576,5 @@ class PublisherNaming(BaseNaming):
         ]
 
 
-class NamingTestCase(SubscriberNaming, FilterNaming, PublisherNaming):
+class NamingTestCase(MultibrokersSchema, SubscriberNaming, FilterNaming, PublisherNaming):
     pass

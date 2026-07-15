@@ -70,6 +70,17 @@ The basic syntax is the same for all brokers:
         ...
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883)
+
+    @broker.subscriber("test")  # topic name
+    async def handle_msg(msg_body):
+        ...
+    ```
+
 !!! tip
     If you want to use Message Broker specific features, please visit the corresponding broker documentation section.
     In the **Tutorial** section, the general features are described.
@@ -127,6 +138,17 @@ Also, synchronous functions are supported as well:
     broker = RedisBroker()
 
     @broker.subscriber("test")  # channel name
+    def handle_msg(msg_body):
+        ...
+    ```
+
+=== "MQTT"
+    ```python
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883)
+
+    @broker.subscriber("test")  # topic name
     def handle_msg(msg_body):
         ...
     ```
@@ -202,6 +224,17 @@ This way **FastStream** still consumes `#!python json.loads` result, but without
     from faststream.redis import RedisBroker
 
     broker = RedisBroker(apply_types=False)
+
+    @broker.subscriber("test")
+    async def handle_msg(msg_body: str):  # just an annotation, has no real effect
+        ...
+    ```
+
+=== "MQTT"
+    ```python hl_lines="3"
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883, apply_types=False)
 
     @broker.subscriber("test")
     async def handle_msg(msg_body: str):  # just an annotation, has no real effect

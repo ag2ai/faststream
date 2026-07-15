@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
@@ -11,7 +12,9 @@ from faststream._internal.producer import ProducerProto, ProducerUnset
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.middlewares import AckPolicy
 
 
 @dataclass(kw_only=True)
@@ -22,6 +25,7 @@ class BrokerConfig:
     broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["CustomCallable"] = None
     broker_decoder: Optional["CustomCallable"] = None
+    broker_codec: Optional["CodecProto"] = None
 
     producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)
@@ -30,6 +34,7 @@ class BrokerConfig:
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = None
+    ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:
@@ -59,7 +64,7 @@ BrokerConfigType = TypeVar313(
 ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):
+class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     def __init__(self, config: BrokerConfigType) -> None:
         self.configs: tuple[ConfigType, ...] = (config,)
 
@@ -121,6 +126,21 @@ class ConfigComposition(Generic[BrokerConfigType]):
             if c.broker_decoder:
                 return c.broker_decoder
         return None
+
+    @property
+    def broker_codec(self) -> Optional["CodecProto"]:
+        for c in self.configs:
+            if c.broker_codec:
+                return c.broker_codec
+        return None
+
+    @property
+    def ack_policy(self) -> "AckPolicy":
+        for c in reversed(self.configs):
+            ack = c.ack_policy
+            if ack is not EMPTY:
+                return ack
+        return EMPTY  # type: ignore[no-any-return]
 
     # merged options
     @property

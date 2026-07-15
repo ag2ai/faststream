@@ -56,6 +56,11 @@ It creates a structured DataPipeline unit with an input and output. The order of
     {!> docs_src/getting_started/publishing/redis/decorator.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="9"
+    {!> docs_src/getting_started/publishing/mqtt/decorator.py !}
+    ```
+
 `#!python @broker.publisher(...)` properly sets the same `correlation_id` as the incoming message. This way, you get the same `correlation_id` for the entire message pipeline across all services, allowing you to collect a trace.
 
 ## Message Broadcasting

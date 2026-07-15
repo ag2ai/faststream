@@ -1,13 +1,16 @@
 import asyncio
+import logging
 import math
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
+import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream.redis.exceptions import StreamGroupNotFoundError
 from faststream.redis.message import (
     BatchStreamMessage,
     DefaultStreamMessage,
@@ -18,7 +21,7 @@ from faststream.redis.parser import (
     RedisStreamParser,
 )
 
-from .basic import LogicSubscriber
+from .basic import CONSUME_ERROR_BACKOFF_SECONDS, LogicSubscriber
 
 if TYPE_CHECKING:
     from anyio import Event
@@ -83,7 +86,33 @@ class _StreamHandlerMixin(LogicSubscriber):
     async def _consume(self, *args: Any, start_signal: "Event") -> None:
         if await self._client.ping():
             start_signal.set()
-        await super()._consume(*args, start_signal=start_signal)
+
+        while self.running:
+            try:
+                await self._get_msgs(*args)
+
+            except ResponseError as e:  # noqa: PERF203
+                if "NOGROUP" in str(e):
+                    msg = (
+                        f"Consumer group `{self.stream_sub.group}` for stream "
+                        f"`{self.stream_sub.name}` no longer exists. "
+                        "The stream was likely deleted or flushed. "
+                        "Stopping subscriber — restart the application to recreate the group."
+                    )
+                    raise StreamGroupNotFoundError(msg) from e
+                raise
+
+            except Exception as e:
+                self._log(
+                    log_level=logging.ERROR,
+                    message="Message fetch error",
+                    exc_info=e,
+                )
+                await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
+
+            finally:
+                if not start_signal.is_set():
+                    start_signal.set()
 
     @override
     async def start(self) -> None:

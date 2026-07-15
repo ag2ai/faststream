@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -75,5 +76,19 @@ async def test_nested_depends_redis() -> None:
     from faststream.redis import TestRedisBroker
 
     async with TestRedisBroker(broker):
+        await broker.publish({}, "test")
+        handler.mock.assert_called_once_with({})
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_nested_depends_mqtt() -> None:
+    from docs.docs_src.getting_started.dependencies.basic.mqtt.nested_depends import (
+        broker,
+        handler,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker):
         await broker.publish({}, "test")
         handler.mock.assert_called_once_with({})

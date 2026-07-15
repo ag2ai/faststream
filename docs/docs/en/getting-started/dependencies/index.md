@@ -46,6 +46,12 @@ By default, it applies to all event handlers, unless you disabled the same optio
     broker = RedisBroker(..., apply_types=False)
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.mqtt import MQTTBroker
+    broker = MQTTBroker("localhost", port=1883, apply_types=False)
+    ```
+
 !!! warning
     Setting the `apply_types=False` flag not only disables type casting but also `Depends` and `Context`.
     If you want to disable only type casting, use `serializer=None` instead.
@@ -94,6 +100,11 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
     {!> docs_src/getting_started/dependencies/basic/redis/depends.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="7-8"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/depends.py !}
+    ```
+
 **The first step**: You need to declare a dependency, which can be any `Callable` object.
 
 ??? note "Callable"
@@ -126,6 +137,11 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
     {!> docs_src/getting_started/dependencies/basic/redis/depends.py [ln:11-12] !}
     ```
 
+=== "MQTT"
+    ```python linenums="11" hl_lines="1"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/depends.py [ln:11-12] !}
+    ```
+
 **Second step**: Declare which dependencies you need using `Depends`
 
 === "AIOKafka"
@@ -151,6 +167,11 @@ To implement dependencies in **FastStream**, a special class called **Depends** 
 === "Redis"
     ```python linenums="11" hl_lines="2"
     {!> docs_src/getting_started/dependencies/basic/redis/depends.py [ln:11-12] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="11" hl_lines="2"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/depends.py [ln:11-12] !}
     ```
 
 **The last step**: Use the result of executing your dependency!
@@ -213,6 +234,13 @@ Dependencies can also contain other dependencies. This works in a very predictab
 === "Redis"
     ```python linenums="1" hl_lines="7-8 10-11 16-17"
     {!> docs_src/getting_started/dependencies/basic/redis/nested_depends.py !}
+    ```
+
+    1. A nested dependency is called here
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="7-8 10-11 16-17"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/nested_depends.py !}
     ```
 
     1. A nested dependency is called here

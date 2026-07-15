@@ -61,6 +61,15 @@ The original decoder function has a relatively simple signature (this is a simpl
         ...
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.types import DecodedMessage
+    from faststream.mqtt import MQTTMessage
+
+    def decoder(msg: MQTTMessage) -> DecodedMessage:
+        ...
+    ```
+
 
 Alternatively, you can reuse the original decoder function with the following signature:
 
@@ -125,6 +134,19 @@ Alternatively, you can reuse the original decoder function with the following si
     async def decoder(
         msg: RedisMessage,
         original_decoder: Callable[[RedisMessage], Awaitable[DecodedMessage]],
+    ) -> DecodedMessage:
+        return await original_decoder(msg)
+    ```
+
+=== "MQTT"
+    ```python
+    from typing import Callable, Awaitable
+    from faststream.types import DecodedMessage
+    from faststream.mqtt import MQTTMessage
+
+    async def decoder(
+        msg: MQTTMessage,
+        original_decoder: Callable[[MQTTMessage], Awaitable[DecodedMessage]],
     ) -> DecodedMessage:
         return await original_decoder(msg)
     ```

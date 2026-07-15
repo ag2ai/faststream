@@ -150,7 +150,7 @@ class _BaseExceptionMiddleware(BaseMiddleware):
         msg: "StreamMessage[Any]",
     ) -> Any:
         try:
-            return await call_next(await self.on_consume(msg))
+            return await call_next(msg)
 
         except Exception as exc:
             for cls in type(exc).__mro__:

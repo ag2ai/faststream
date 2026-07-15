@@ -1,12 +1,11 @@
-from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from faststream._internal.types import AsyncCallable, PublisherMiddleware
+    from faststream._internal.types import AsyncCallable
 
     from .broker import BrokerConfig
 
@@ -18,7 +17,7 @@ class EndpointConfig:
 
 @dataclass(kw_only=True)
 class PublisherUsecaseConfig(EndpointConfig):
-    middlewares: Sequence["PublisherMiddleware[Any]"]
+    pass
 
 
 @dataclass(kw_only=True)

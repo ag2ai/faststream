@@ -2,9 +2,9 @@ from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
 from itertools import chain
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Generic,
     NamedTuple,
@@ -12,10 +12,11 @@ from typing import (
     Union,
 )
 
-from typing_extensions import Self, deprecated, overload, override
+from typing_extensions import Self, overload, override
 
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import BatchCodecProto
 from faststream._internal.types import (
     AsyncCallable,
     MsgType,
@@ -41,12 +42,12 @@ if TYPE_CHECKING:
     from faststream._internal.configs import SubscriberUsecaseConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncFilter,
         BrokerMiddleware,
         CustomCallable,
         Filter,
-        SubscriberMiddleware,
     )
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
@@ -59,8 +60,8 @@ if TYPE_CHECKING:
 class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
-    middlewares: Sequence["SubscriberMiddleware[Any]"]
     dependencies: Iterable["Dependant"]
+    codec: Optional["CodecProto"] = None
 
 
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
@@ -92,8 +93,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_options = _CallOptions(
             parser=None,
             decoder=None,
-            middlewares=(),
             dependencies=(),
+            codec=None,
         )
 
         self._call_decorators: tuple[Decorator, ...] = ()
@@ -106,6 +107,18 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
         return self._outer_config.broker_middlewares
+
+    async def __aenter__(self) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.stop()
 
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
@@ -148,12 +161,34 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         else:
             async_parser = self._parser
 
-        if decoder := (
+        # Codec takes priority over legacy decoder.
+        # Having both is an error — it's ambiguous which takes effect.
+        codec = self._call_options.codec or self._outer_config.broker_codec
+        decoder = (
             item_decoder
             or self._call_options.decoder
             or self._outer_config.broker_decoder
-        ):
-            async_decoder: AsyncCallable = ParserComposition(decoder, self._decoder)
+        )
+
+        if codec and decoder:
+            msg = "Cannot use both 'codec' and 'decoder' — 'codec' replaces 'decoder'."
+            raise ValueError(msg)
+
+        is_batch = getattr(self._decoder, "__name__", "") == "decode_batch"
+
+        if codec:
+            if is_batch:
+                if isinstance(codec, BatchCodecProto):
+                    async_decoder: AsyncCallable = codec.decode_batch
+                else:
+                    msg = (
+                        "Batch subscriber requires a codec implementing BatchCodecProto."
+                    )
+                    raise ValueError(msg)
+            else:
+                async_decoder = codec.decode
+        elif decoder:
+            async_decoder = ParserComposition(decoder, self._decoder)
         else:
             async_decoder = self._decoder
 
@@ -196,14 +231,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         *,
         parser_: Optional["CustomCallable"],
         decoder_: Optional["CustomCallable"],
-        middlewares_: Sequence["SubscriberMiddleware[Any]"],
         dependencies_: Iterable["Dependant"],
+        codec_: Optional["CodecProto"] = None,
     ) -> Self:
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
-            middlewares=middlewares_,
             dependencies=dependencies_,
+            codec=codec_,
         )
         return self
 
@@ -215,13 +250,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         dependencies: Iterable["Dependant"] = (),
     ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
 
@@ -233,13 +261,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         dependencies: Iterable["Dependant"] = (),
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
@@ -254,13 +275,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         dependencies: Iterable["Dependant"] = (),
     ) -> Union[
         "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
@@ -270,7 +284,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         ],
     ]:
         total_deps = (*self._call_options.dependencies, *dependencies)
-        total_middlewares = (*self._call_options.middlewares, *middlewares)
         async_filter: AsyncFilter[StreamMessage[MsgType]] = to_async(filter)
 
         def real_wrapper(
@@ -285,7 +298,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     filter=async_filter,
                     item_parser=parser,
                     item_decoder=decoder,
-                    item_middlewares=total_middlewares,
                     dependencies=total_deps,
                 ),
             )

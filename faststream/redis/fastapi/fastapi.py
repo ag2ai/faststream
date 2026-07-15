@@ -2,7 +2,6 @@ import logging
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Optional,
     Union,
@@ -19,7 +18,7 @@ from redis.asyncio.connection import (
 )
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -27,6 +26,7 @@ from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.redis.broker.broker import RedisBroker as RB
+from faststream.redis.broker.sentinel_broker import RedisSentinelBroker as RSB
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
@@ -43,8 +43,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.redis.publisher.factory import PublisherType
     from faststream.redis.publisher.usecase import (
@@ -124,18 +122,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         default_response_class: type["Response"] = Default(JSONResponse),
         responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list[BaseRoute] | None = None,
-        routes: Annotated[
-            list[BaseRoute] | None,
-            deprecated(
-                """
-                You normally wouldn't use this parameter with FastAPI, it is inherited
-                from Starlette and supported for compatibility.
-
-                In FastAPI, you normally would use the *path operation methods*,
-                like `router.get()`, `router.post()`, etc.
-                """,
-            ),
-        ] = None,
+        routes: list[BaseRoute] | None = None,
         redirect_slashes: bool = True,
         default: Optional["ASGIApp"] = None,
         dependency_overrides_provider: Any | None = None,
@@ -148,6 +135,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         generate_unique_id_function: Callable[["APIRoute"], str] = Default(
             generate_unique_id
         ),
+        **connection_kwargs: Any,
     ) -> None:
         """Initialize the RedisRouter object.
 
@@ -328,6 +316,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
 
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
+            connection_kwargs:
+                Extra connection arguments forwarded to the underlying broker.
 
         """
         super().__init__(
@@ -386,6 +376,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
+            **connection_kwargs,
         )
 
     @overload  # type: ignore[override]
@@ -399,20 +390,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -441,20 +418,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -483,20 +446,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -525,20 +474,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -567,20 +502,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -609,20 +530,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -651,20 +558,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -693,20 +586,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -735,20 +614,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -775,9 +640,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
                 dependencies=dependencies,
                 parser=parser,
                 decoder=decoder,
-                middlewares=middlewares,
                 ack_policy=ack_policy,
-                no_ack=no_ack,
                 no_reply=no_reply,
                 title=title,
                 description=description,
@@ -801,13 +664,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: str | StreamSub = ...,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -823,13 +679,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -845,13 +694,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -867,13 +709,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -889,13 +724,6 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: str | StreamSub | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -908,11 +736,38 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
-            # broker options
-            middlewares=middlewares,
             # AsyncAPI options
             title=title,
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+        )
+
+
+class RedisSentinelRouter(RedisRouter):
+    """A Redis Sentinel router (high-availability with master failover).
+
+    Behaves like :class:`RedisRouter` but builds a :class:`RedisSentinelBroker`,
+    discovering the master through the ``sentinels`` nodes. All other arguments
+    are forwarded to the underlying broker unchanged.
+    """
+
+    broker_class = RSB
+    broker: RSB
+
+    def __init__(
+        self,
+        url: str = "redis://localhost:6379",
+        *,
+        sentinels: Sequence[tuple[str, int]],
+        sentinel_master_name: str | None = None,
+        sentinel_kwargs: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            url,
+            sentinels=sentinels,
+            sentinel_master_name=sentinel_master_name,
+            sentinel_kwargs=sentinel_kwargs,
+            **kwargs,
         )

@@ -22,3 +22,8 @@
     ```python linenums="1"
     {!> docs_src/index/redis/basic.py!}
     ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/index/mqtt/basic.py!}
+    ```
