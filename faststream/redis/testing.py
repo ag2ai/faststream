@@ -2,6 +2,7 @@ import re
 from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
+from dataclasses import dataclass
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -56,6 +57,29 @@ if TYPE_CHECKING:
 __all__ = ("TestRedisBroker",)
 
 
+@dataclass(kw_only=True)
+class Entry:
+    handler: Any
+    msg: Any
+
+
+class PEL:
+    def __init__(self) -> None:
+        self._entries: dict[str, Entry] = {}
+
+    def remove(self, correlation_id: Any) -> None:
+        self._entries.pop(correlation_id)
+
+    def put(self, 
+            msg: Any, 
+            handler: Any,
+            correlation_id: Any) -> None:
+        self._entries.update({correlation_id: Entry(msg=msg, handler=handler)})
+
+    def get_entry(self, correlation_id: Any) -> Entry | None:
+        return self._entries.get(correlation_id)
+
+
 class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
     """A class to test Redis brokers."""
 
@@ -82,7 +106,14 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         *brokers: RedisBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None:
+
+        if pel is not None:
+            self.pel: PEL = pel
+        else:
+            self.pel: PEL = PEL()
+
         super().__init__(
             *brokers,
             with_real=with_real,
@@ -104,9 +135,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                         wraps=partial(self._fake_connect, broker),
                     ):
                         await broker.connect()
-
                     cluster_stack.enter_context(self._patch_producer(broker))
-            self.pel: PEL = PEL()
             async with super()._create_ctx() as brokers:
                 yield brokers
 
@@ -116,7 +145,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
             es.enter_context(
                 change_producer(
                     broker.config.broker_config,
-                    FakeProducer(broker, self.brokers, broker.config),
+                    FakeProducer(broker, self.brokers, broker.config, self.pel),
                 ),
             )
 
@@ -124,7 +153,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                 es.enter_context(
                     change_producer(
                         publisher,
-                        FakeProducer(broker, self.brokers, publisher.config),
+                        FakeProducer(broker, self.brokers, publisher.config, self.pel),
                     ),
                 )
 
@@ -193,6 +222,7 @@ class FakeProducer(RedisFastProducer):
         broker: RedisBroker,
         brokers: Sequence[RedisBroker],
         config: ParserConfig,
+        pel: PEL,
     ) -> None:
         self.broker = broker
         self.brokers = brokers
@@ -209,6 +239,7 @@ class FakeProducer(RedisFastProducer):
             default.decode_message,
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
+        self.pel: PEL = pel
 
     @property
     def subscribers(self) -> "Iterable[LogicSubscriber]":
@@ -233,19 +264,24 @@ class FakeProducer(RedisFastProducer):
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
-        # Put a message into self.broker.pel here
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.subscribers:  # pragma: no branch
+        for handler in self.subscribers:  # pragma: no branch                
             for visitor in visitors:
                 if visited_ch := visitor.visit(**destination, sub=handler):
+                    pel_entry = self.pel.get_entry(correlation_id=cmd.correlation_id)
+                    if pel_entry is not None:
+                        await self._execute_handler(pel_entry.msg, pel_entry.handler)
+                        continue
                     msg = visitor.get_message(
                         visited_ch,
                         body,
                         handler,  # type: ignore[arg-type]
                     )
-
+                    self.pel.put(msg=msg, 
+                                 handler=handler, 
+                                 correlation_id=cmd.correlation_id)
                     await self._execute_handler(msg, handler)
 
         return 0
@@ -303,7 +339,6 @@ class FakeProducer(RedisFastProducer):
                         body=data_to_send,
                         sub=casted_handler,
                     )
-
                     await self._execute_handler(msg, handler)
 
         return 0
@@ -314,7 +349,8 @@ class FakeProducer(RedisFastProducer):
         handler: "LogicSubscriber",
     ) -> "PubSubMessage":
         result = await handler.process_message(msg)
-        # Here we call out self.broker.pel and remove entries from PEL
+        if result.correlation_id:
+            self.pel.remove(correlation_id=result.correlation_id)
         return PubSubMessage(
             type="message",
             data=await build_message(
@@ -499,6 +535,3 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
         raise SetupError(INCORRECT_SETUP_MSG)
 
     return destination
-
-
-class PEL: ...
