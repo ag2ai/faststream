@@ -1,6 +1,10 @@
+import ssl
+import warnings
+
 import pytest
 
 from faststream.redis import RedisClusterBroker, RedisRouter
+from faststream.security import BaseSecurity, SASLPlaintext
 
 pytestmark = pytest.mark.redis_cluster
 
@@ -284,6 +288,64 @@ def test_different_parameter_forms(kwargs) -> None:
     broker = RedisClusterBroker(**kwargs)
     s = broker.config.broker_config.connection
     assert len(s._options["startup_nodes"]) == 1
+
+
+class TestClusterSecurity:
+    """TLS options from BaseSecurity must survive the incompatible-params filter."""
+
+    def test_base_security_ssl_enabled(self) -> None:
+        broker = RedisClusterBroker(security=BaseSecurity(use_ssl=True))
+        opts = broker.config.broker_config.connection._options
+        assert opts.get("ssl") is True
+        assert "connection_class" not in opts
+
+    def test_base_security_no_ssl(self) -> None:
+        broker = RedisClusterBroker(security=BaseSecurity(use_ssl=False))
+        opts = broker.config.broker_config.connection._options
+        assert "ssl" not in opts
+
+    def test_no_security_no_ssl(self) -> None:
+        broker = RedisClusterBroker()
+        opts = broker.config.broker_config.connection._options
+        assert "ssl" not in opts
+
+    def test_ssl_context_not_supported_warns(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            ssl_context = ssl.create_default_context()
+
+        with pytest.warns(RuntimeWarning, match="ssl_context"):
+            broker = RedisClusterBroker(
+                security=BaseSecurity(ssl_context=ssl_context),
+            )
+
+        opts = broker.config.broker_config.connection._options
+        assert opts.get("ssl") is True
+        assert "ssl_context" not in opts
+
+    def test_rediss_url_enables_ssl(self) -> None:
+        broker = RedisClusterBroker(url="rediss://localhost:6379")
+        opts = broker.config.broker_config.connection._options
+        assert opts.get("ssl") is True
+        assert "connection_class" not in opts
+
+    def test_explicit_ssl_kwarg_preserved(self) -> None:
+        broker = RedisClusterBroker(
+            security=BaseSecurity(use_ssl=True),
+            ssl_ca_certs="/path/to/ca.pem",
+        )
+        opts = broker.config.broker_config.connection._options
+        assert opts.get("ssl") is True
+        assert opts.get("ssl_ca_certs") == "/path/to/ca.pem"
+
+    def test_sasl_plaintext_with_ssl(self) -> None:
+        broker = RedisClusterBroker(
+            security=SASLPlaintext(username="user", password="pass", use_ssl=True),
+        )
+        opts = broker.config.broker_config.connection._options
+        assert opts.get("ssl") is True
+        assert opts.get("username") == "user"
+        assert opts.get("password") == "pass"
 
 
 def test_exported_from_redis_package() -> None:

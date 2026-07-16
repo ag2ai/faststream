@@ -1,31 +1,24 @@
-import logging
 import warnings
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
-from urllib.parse import urlparse
 
-from fast_depends import dependency_provider
 from redis.asyncio.cluster import ClusterNode
+from redis.asyncio.connection import SSLConnection
 from typing_extensions import Unpack
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
 from faststream.redis.broker import RedisBroker
-from faststream.redis.configs import RedisBrokerConfig
-from faststream.redis.configs.state import RedisClusterConnectionState
-from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.configs.state import (
+    ConnectionState,
+    RedisClusterConnectionState,
+)
 from faststream.redis.publisher.producer import (
     RedisClusterFastProducer,
 )
 from faststream.redis.schemas.types import (
     CLUSTER_INCOMPATIBLE_PARAMS,
-    NON_CONNECTION_PARAMS,
 )
 from faststream.redis.subscriber.usecases.basic import LogicSubscriber
-from faststream.specification.schema import BrokerSpec
-
-from .logging import make_redis_logger_state
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -47,75 +40,28 @@ class RedisClusterBroker(RedisBroker):
         url: str = "redis://localhost:6379",
         **kwargs: Unpack["RedisClusterParams"],
     ) -> None:
-        startup_nodes = kwargs.get("startup_nodes") or ()
-        message_format = kwargs.pop("message_format", BinaryMessageFormatV1)
-        specification_url = kwargs.pop("specification_url", None)
-        protocol = kwargs.pop("protocol", None)
-        self.message_format = message_format
+        self._init_broker(url, dict(kwargs))
 
-        if specification_url is None:
-            specification_url = url
-        if protocol is None:
-            protocol = urlparse(specification_url).scheme
+    def _make_connection_state(
+        self,
+        connection_options: dict[str, Any],
+        kwargs: dict[str, Any],
+    ) -> "ConnectionState[Any]":
+        return RedisClusterConnectionState(connection_options)
 
-        connection_options = self._resolve_url_options(
-            url,
-            startup_nodes=startup_nodes,
-            host=kwargs.get("host", EMPTY),
-            port=kwargs.get("port", EMPTY),
-            security=kwargs.get("security"),
-            **{
-                k: v
-                for k, v in kwargs.items()
-                if k
-                not in NON_CONNECTION_PARAMS
-                | {"startup_nodes", "host", "port", "security"}
-            },
-        )
-
-        connection_state = RedisClusterConnectionState(connection_options)
-
-        super(RedisBroker, self).__init__(
-            **connection_options,
-            routers=kwargs.get("routers", ()),
-            config=RedisBrokerConfig(
-                connection=connection_state,
-                producer=RedisClusterFastProducer(
-                    connection=connection_state,
-                    cluster_state=connection_state,
-                    parser=kwargs.get("parser"),
-                    decoder=kwargs.get("decoder"),
-                    message_format=self.message_format,
-                    serializer=kwargs.get("serializer"),
-                ),
-                message_format=self.message_format,
-                broker_middlewares=kwargs.get("middlewares", ()),
-                broker_parser=kwargs.get("parser"),
-                broker_decoder=kwargs.get("decoder"),
-                broker_codec=kwargs.get("codec"),
-                logger=make_redis_logger_state(
-                    logger=kwargs.get("logger", EMPTY),
-                    log_level=kwargs.get("log_level", logging.INFO),
-                ),
-                fd_config=FastDependsConfig(
-                    use_fastdepends=kwargs.get("apply_types", True),
-                    serializer=kwargs.get("serializer", EMPTY),
-                    provider=kwargs.get("provider") or dependency_provider,
-                    context=kwargs.get("context") or ContextRepo(),
-                ),
-                broker_dependencies=kwargs.get("dependencies", ()),
-                graceful_timeout=kwargs.get("graceful_timeout", 15.0),
-                ack_policy=kwargs.get("ack_policy", EMPTY),
-                extra_context={"broker": self},
-            ),
-            specification=BrokerSpec(
-                description=kwargs.get("description"),
-                url=[specification_url],
-                protocol=protocol,
-                protocol_version=kwargs.get("protocol_version", "custom"),
-                security=kwargs.get("security"),
-                tags=kwargs.get("tags", ()),
-            ),
+    def _make_producer(
+        self,
+        connection_state: "ConnectionState[Any]",
+        kwargs: dict[str, Any],
+    ) -> "RedisClusterFastProducer":
+        state = cast("RedisClusterConnectionState", connection_state)
+        return RedisClusterFastProducer(
+            connection=state,
+            cluster_state=state,
+            parser=kwargs.get("parser"),
+            decoder=kwargs.get("decoder"),
+            message_format=self.message_format,
+            serializer=kwargs.get("serializer"),
         )
 
     @property
@@ -275,6 +221,29 @@ class RedisClusterBroker(RedisBroker):
         for h, p in startup_nodes:
             nodes.append(ClusterNode(h, int(p)))
 
-        return {
+        # TLS is conveyed via `connection_class` (from `parse_security()` or a
+        # `rediss://` URL), but RedisCluster doesn't accept it — translate to
+        # its native `ssl` flag before the filter drops it.
+        connection_class = options.get("connection_class")
+        use_ssl = (security is not None and security.use_ssl) or (
+            isinstance(connection_class, type)
+            and issubclass(connection_class, SSLConnection)
+        )
+
+        result = {
             k: v for k, v in options.items() if k not in CLUSTER_INCOMPATIBLE_PARAMS
         } | {"startup_nodes": nodes}
+
+        if use_ssl:
+            result.setdefault("ssl", True)
+
+            if security is not None and security.ssl_context is not None:
+                warnings.warn(
+                    "RedisCluster does not support a custom `ssl_context`, so it"
+                    " will be ignored. Use `ssl_ca_certs`, `ssl_certfile`,"
+                    " `ssl_keyfile` and other `ssl_*` connection options instead.",
+                    category=RuntimeWarning,
+                    stacklevel=3,
+                )
+
+        return result

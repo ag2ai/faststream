@@ -12,6 +12,13 @@ if TYPE_CHECKING:
 if HAS_UVICORN:
     from uvicorn.supervisors.multiprocess import Multiprocess, Process
 
+    # uvicorn 0.51 removed the `target` argument from Multiprocess and Process:
+    # Process now builds its own Server from the config. Drop the legacy branches
+    # once the supported uvicorn floor reaches 0.51.
+    _UVICORN_TAKES_TARGET = (
+        "target" in inspect.signature(Multiprocess.__init__).parameters
+    )
+
     class UvicornExtraConfig(uvicorn.Config):  # type: ignore[misc]
         def __init__(
             self,
@@ -32,7 +39,10 @@ if HAS_UVICORN:
         def init_processes(self) -> None:
             for i in range(self.processes_num):
                 self.config._run_extra_options["worker_id"] = i
-                process = Process(self.config, self.target, self.sockets)
+                extra: dict[str, Any] = {"sockets": self.sockets}
+                if _UVICORN_TAKES_TARGET:
+                    extra["target"] = self.target
+                process = Process(self.config, **extra)
                 process.start()
                 self.processes.append(process)
 
@@ -66,6 +76,8 @@ class ASGIMultiprocess:
             },
             run_extra_options=self._run_extra_options,
         )
-        server = uvicorn.Server(config)
         sock = config.bind_socket()
-        UvicornMultiprocess(config, target=server.run, sockets=[sock]).run()
+        extra: dict[str, Any] = {"sockets": [sock]}
+        if _UVICORN_TAKES_TARGET:
+            extra["target"] = uvicorn.Server(config).run
+        UvicornMultiprocess(config, **extra).run()

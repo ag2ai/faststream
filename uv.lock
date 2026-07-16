@@ -1062,7 +1062,7 @@ wheels = [
 
 [[package]]
 name = "faststream"
-version = "0.7.1"
+version = "0.7.2"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -1230,7 +1230,7 @@ testing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aio-pika", marker = "extra == 'rabbit'", specifier = ">=9,<10" },
+    { name = "aio-pika", marker = "extra == 'rabbit'", specifier = ">=9,<11" },
     { name = "aiobotocore", marker = "extra == 'sqs'", specifier = ">=2.13,<3" },
     { name = "aiokafka", marker = "extra == 'kafka'", specifier = ">=0.9,<0.15" },
     { name = "anyio", specifier = ">=4.0,<5" },
