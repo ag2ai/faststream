@@ -200,7 +200,7 @@ def _parse_and_serve(args: RunArgs) -> None:
             data = json_dumps(schema)
 
         else:
-            msg = f"Unknown extension given - {args.app}; Please provide app in format [python_module:Specification] or [asyncapi.yaml/.json] - path to your application or documentation"
+            msg = f"Unknown extension given - {args.app}; Please provide app in format [python_module:FastStream] or [asyncapi.yaml/.json] - path to your application or documentation"
             raise ValueError(msg)
 
         for schema in (SchemaV3, SchemaV2_6):
