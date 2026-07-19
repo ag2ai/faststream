@@ -375,7 +375,7 @@ if __name__ == "__main__":
 
 The integration has been moved to the
 **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-package and will be removed in future versions.
+package and will be removed in 1.0.0 version.
 
 Also, **FastStream** can be used as part of **FastAPI**.
 

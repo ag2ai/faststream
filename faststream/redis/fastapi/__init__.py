@@ -11,7 +11,7 @@ from .fastapi import RedisRouter, RedisSentinelRouter
 
 warnings.warn(
     "The integration has been moved to the faststream_fastapi package"
-    " and will be removed in future versions."
+    " and will be removed in 1.0.0 version."
     "\n`pip install faststream_fastapi`"
     "\nhttps://github.com/faststream-community/faststream_fastapi",
     DeprecationWarning,

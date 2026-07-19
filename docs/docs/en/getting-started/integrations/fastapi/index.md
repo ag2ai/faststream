@@ -13,7 +13,7 @@ search:
 !!! warning "Plugin deprecated"
     The integration has been moved to the
     **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-    package and will be removed in future versions.
+    package and will be removed in 1.0.0 version.
 
     ```bash
     pip install faststream_fastapi
