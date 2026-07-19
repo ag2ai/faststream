@@ -371,7 +371,11 @@ if __name__ == "__main__":
     web.run_app(app)
 ```
 
-### **FastAPI** Plugin
+### **FastAPI** Plugin (deprecated)
+
+The integration has been moved to the
+**[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
+package and will be removed in future versions.
 
 Also, **FastStream** can be used as part of **FastAPI**.
 
