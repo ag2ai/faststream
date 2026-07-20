@@ -269,9 +269,9 @@ class FakeProducer(RedisFastProducer):
                     if pel_entry := self.pel.get_entry(
                         correlation_id=(cmd.correlation_id, session_id)
                     ):
-                        await self._execute_handler(pel_entry.msg, 
-                                                    pel_entry.handler, 
-                                                    session_id=session_id)
+                        await self._execute_handler(
+                            pel_entry.msg, pel_entry.handler, session_id=session_id
+                        )
                         continue
                     msg = visitor.get_message(
                         visited_ch,
@@ -308,9 +308,9 @@ class FakeProducer(RedisFastProducer):
                     if pel_entry := self.pel.get_entry(
                         correlation_id=(cmd.correlation_id, session_id)
                     ):
-                        await self._execute_handler(pel_entry.msg, 
-                                                    pel_entry.handler, 
-                                                    session_id=session_id)
+                        await self._execute_handler(
+                            pel_entry.msg, pel_entry.handler, session_id=session_id
+                        )
                         continue
                     msg = visitor.get_message(
                         visited_ch,
@@ -352,9 +352,9 @@ class FakeProducer(RedisFastProducer):
                     if pel_entry := self.pel.get_entry(
                         correlation_id=(cmd.correlation_id, session_id)
                     ):
-                        await self._execute_handler(pel_entry.msg, 
-                                                    pel_entry.handler,
-                                                    session_id=session_id)
+                        await self._execute_handler(
+                            pel_entry.msg, pel_entry.handler, session_id=session_id
+                        )
                         continue
                     msg = visitor.get_message(
                         channel=cmd.destination,
