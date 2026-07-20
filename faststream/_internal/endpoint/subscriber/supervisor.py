@@ -113,11 +113,16 @@ class TaskCallbackSupervisor:
             if identifier not in self.__cache:
                 self.__cache.add(identifier)
                 logger.log(
-                    f"{task.get_name()} raised an exception, retrying...\n"
+                    f"{task.get_name()} raised an exception.\n"
                     "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
                     "Also, please consider opening issue on the repository: https://github.com/ag2ai/faststream.",
                     exc_info=exc,
                     log_level=logging.ERROR,
                 )
 
-            self.subscriber.add_task(self.func, self.args, self.kwargs)
+            self.subscriber._handle_task_exception(
+                exc,
+                self.func,
+                self.args,
+                self.kwargs,
+            )
