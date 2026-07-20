@@ -26,6 +26,7 @@ from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.middlewares import AckPolicy
 from faststream.redis.broker.broker import RedisBroker as RB
+from faststream.redis.broker.sentinel_broker import RedisSentinelBroker as RSB
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
@@ -134,6 +135,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         generate_unique_id_function: Callable[["APIRoute"], str] = Default(
             generate_unique_id
         ),
+        **connection_kwargs: Any,
     ) -> None:
         """Initialize the RedisRouter object.
 
@@ -314,6 +316,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
 
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
+            connection_kwargs:
+                Extra connection arguments forwarded to the underlying broker.
 
         """
         super().__init__(
@@ -372,6 +376,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             include_in_schema=include_in_schema,
             lifespan=lifespan,
             generate_unique_id_function=generate_unique_id_function,
+            **connection_kwargs,
         )
 
     @overload  # type: ignore[override]
@@ -736,4 +741,33 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+        )
+
+
+class RedisSentinelRouter(RedisRouter):
+    """A Redis Sentinel router (high-availability with master failover).
+
+    Behaves like :class:`RedisRouter` but builds a :class:`RedisSentinelBroker`,
+    discovering the master through the ``sentinels`` nodes. All other arguments
+    are forwarded to the underlying broker unchanged.
+    """
+
+    broker_class = RSB
+    broker: RSB
+
+    def __init__(
+        self,
+        url: str = "redis://localhost:6379",
+        *,
+        sentinels: Sequence[tuple[str, int]],
+        sentinel_master_name: str | None = None,
+        sentinel_kwargs: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            url,
+            sentinels=sentinels,
+            sentinel_master_name=sentinel_master_name,
+            sentinel_kwargs=sentinel_kwargs,
+            **kwargs,
         )
