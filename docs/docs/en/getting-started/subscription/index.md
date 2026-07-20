@@ -157,6 +157,20 @@ Also, synchronous functions are supported as well:
 
     Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
 
+## Subscriber task failure handling
+
+FastStream runs long-lived subscriber consume loops in background tasks. If one of
+these tasks raises an exception, FastStream calls the subscriber task-failure
+handler. The default behavior is to start the failed task again.
+
+For advanced recovery logic, override the returned subscriber object's task
+failure handler and delegate back to the default handler for errors you do not
+handle yourself:
+
+```python linenums="1"
+{! docs_src/getting_started/subscription/task_exception.py !}
+```
+
 ## Message Body Serialization
 
 Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).

@@ -46,6 +46,24 @@ Define a subscription to a Redis stream with a specific Consumer Group using the
 {! docs_src/redis/stream/group.py [ln:8-10] !}
 ```
 
+## Handling missing consumer groups
+
+If the Redis stream or consumer group is deleted while the application is
+running, Redis returns a `NOGROUP` error. FastStream converts this condition to
+`#!python StreamGroupNotFoundError` in the stream subscriber task.
+
+By default, subscriber task failures are retried. You can override the returned
+subscriber object's task-failure handler to handle this error differently, then
+delegate all other errors back to the default handler:
+
+```python linenums="1"
+{! docs_src/redis/stream/group_task_exception.py !}
+```
+
+In this example the app exits when the consumer group disappears, allowing a
+process manager or orchestrator to restart it. On restart, FastStream runs the
+consumer group creation step again.
+
 ## Publishing a message
 
 Publishing a message is the same as what's defined on [Stream Publishing](./publishing.md).
