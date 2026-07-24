@@ -50,6 +50,20 @@ from faststream.rabbit.utils import build_url
             URL("amqp://guest:guest@localhost:5672/test"),
             id="url with slash virtualhost without slash",
         ),
+        pytest.param(
+            {
+                "url": "amqp://guest:guest@localhost/",
+                "ssl": True,
+                "auth": "EXTERNAL",
+            },
+            URL("amqps://localhost:5671/?auth=EXTERNAL"),
+            id="external auth removes credentials",
+        ),
+        pytest.param(
+            {"url": "amqps://guest:guest@localhost/?auth=EXTERNAL"},
+            URL("amqps://localhost:5671/?auth=EXTERNAL"),
+            id="external auth from url removes credentials",
+        ),
     ),
 )
 def test_unpack_args(url_kwargs: dict[str, Any], expected_url: URL) -> None:

@@ -2,7 +2,7 @@ import ssl
 
 import pytest
 
-from faststream.rabbit import RabbitBroker
+from faststream.rabbit import RabbitBroker, RabbitExternalAuth
 from faststream.security import (
     BaseSecurity,
     SASLPlaintext,
@@ -111,6 +111,41 @@ def test_plaintext_security_schema_without_ssl() -> None:
                 "protocolVersion": "0.9.1",
                 "security": [{"$ref": "#/components/securitySchemes/user-password"}],
                 "host": "admin:password@localhost:5672",
+                "pathname": "/",
+            },
+        },
+    }
+
+
+@pytest.mark.rabbit()
+def test_external_auth_security_schema() -> None:
+    ssl_context = ssl.create_default_context()
+    security = RabbitExternalAuth(ssl_context=ssl_context)
+
+    broker = RabbitBroker("amqp://guest:guest@localhost/", security=security)
+
+    assert broker.specification.url == ["amqps://localhost:5671/?auth=EXTERNAL"]
+    assert broker._connection_kwargs.get("ssl_context") is ssl_context
+
+    schema = get_3_0_0_schema(broker)
+
+    assert schema == {
+        "asyncapi": "3.0.0",
+        "channels": {},
+        "operations": {},
+        "components": {
+            "messages": {},
+            "schemas": {},
+            "securitySchemes": {"rabbitmq-external": {"type": "X509"}},
+        },
+        "defaultContentType": "application/json",
+        "info": {"title": "FastStream", "version": "0.1.0"},
+        "servers": {
+            "development": {
+                "protocol": "amqps",
+                "protocolVersion": "0.9.1",
+                "security": [{"$ref": "#/components/securitySchemes/rabbitmq-external"}],
+                "host": "localhost:5671",
                 "pathname": "/",
             },
         },

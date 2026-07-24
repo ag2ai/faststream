@@ -8,6 +8,7 @@ from typing_extensions import assert_type
 from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import (
     RabbitBroker,
+    RabbitExternalAuth,
     RabbitMessage,
     RabbitRoute,
     RabbitRouter,
@@ -50,6 +51,7 @@ async def custom_decoder(
 RabbitBroker(decoder=sync_decoder)
 RabbitBroker(decoder=async_decoder)
 RabbitBroker(decoder=custom_decoder)
+RabbitBroker(security=RabbitExternalAuth())
 
 
 def sync_parser(msg: IncomingMessage) -> RabbitMessage:

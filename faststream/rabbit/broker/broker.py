@@ -138,6 +138,7 @@ class RabbitBroker(
             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: RabbitRouters to build a broker with.
             security: Security options to connect broker and generate AsyncAPI server security information.
+                Use RabbitExternalAuth for RabbitMQ SASL EXTERNAL.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
             protocol: AsyncAPI server protocol.
             protocol_version: AsyncAPI server protocol version.
@@ -162,6 +163,7 @@ class RabbitBroker(
             login=security_args.get("login"),
             password=security_args.get("password"),
             ssl=security_args.get("ssl"),
+            auth=security_args.get("auth"),
         )
 
         if specification_url is None:
