@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
@@ -139,6 +140,26 @@ class KafkaPublishCommand(BatchPublishCommand):
             headers["reply_to"] = self.reply_to
 
         return headers | self.headers
+
+    @BatchPublishCommand.batch_bodies.setter  # type: ignore[attr-defined, untyped-decorator]
+    def batch_bodies(self, value: Sequence["Any"]) -> None:
+        if len(value) == 0:
+            self.body = None
+            self.extra_bodies = ()
+        else:
+            self._align_keys(value)
+            self.body = value[0]
+            self.extra_bodies = tuple(value[1:])
+
+    def _align_keys(self, value: Sequence["Any"]) -> None:
+        """Align the per-message keys with the batch_bodies."""
+        if len(self.batch_bodies) == 0:
+            return
+        if isinstance(self.batch_bodies[0], KafkaResponse):
+            return
+
+        new_indexes = tuple(self.batch_bodies.index(body) for body in value)
+        self._per_message_keys = tuple(self._per_message_keys[i] for i in new_indexes)
 
 
 # Semantic alias for publish operations
