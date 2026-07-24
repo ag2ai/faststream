@@ -5,7 +5,7 @@ from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
 from redis.asyncio.connection import BaseParser, Connection, Encoder
-from typing_extensions import TypedDict
+from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
 from faststream._internal.context.repository import ContextRepo
@@ -111,11 +111,11 @@ class RedisClusterParams(RedisBrokerParams, total=False):
 
 class RedisSentinelParams(RedisBrokerParams, total=False):
     sentinels: Annotated[
-        Sequence[tuple[str, int]],
+        Required[Sequence[tuple[str, int]]],
         "Redis Sentinel ``(host, port)`` nodes to discover the master from. Required.",
     ]
     sentinel_master_name: Annotated[
-        str,
+        Required[str],
         "Sentinel master group name. Required.",
     ]
     sentinel_kwargs: Annotated[
