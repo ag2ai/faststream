@@ -83,6 +83,7 @@ class RedisBroker(
         port = kwargs.pop("port", EMPTY)
         security = kwargs.pop("security", None)
         specification_url = kwargs.pop("specification_url", None)
+        retry_on_error = kwargs.pop("retry_on_error", None)
         protocol = kwargs.pop("protocol", None)
         message_format: type[MessageFormat] = kwargs.pop(
             "message_format", BinaryMessageFormatV1
@@ -93,6 +94,8 @@ class RedisBroker(
             specification_url = url
         if protocol is None:
             protocol = urlparse(specification_url).scheme
+        if retry_on_error is None:
+            retry_on_error = []
 
         excluded_params = NON_CONNECTION_PARAMS | self._EXTRA_NON_CONNECTION_PARAMS
         connection_kwargs = {k: v for k, v in kwargs.items() if k not in excluded_params}
@@ -101,6 +104,7 @@ class RedisBroker(
             security=security,
             host=host,
             port=port,
+            retry_on_error=retry_on_error,
             **connection_kwargs,
         )
 
