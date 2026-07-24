@@ -16,6 +16,11 @@ from redis.cluster import (
 from faststream.__about__ import __version__
 from faststream._internal.utils.functions import run_in_executor
 from faststream.exceptions import IncorrectState
+from faststream.redis._compat import REDIS_V720
+
+if REDIS_V720:
+    from redis.driver_info import DriverInfo
+
 
 ClientT = TypeVar("ClientT")
 
@@ -55,10 +60,24 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
     async def connect(self) -> "Redis[bytes]":
+        extra_options: dict[str, Any]
+
+        if REDIS_V720:
+            extra_options = {
+                "driver_info": DriverInfo(
+                    name="faststream",
+                    lib_version=__version__,
+                )
+            }
+        else:
+            extra_options = {
+                "lib_name": "faststream",
+                "lib_version": __version__,
+            }
+
         pool = ConnectionPool(
+            **extra_options,
             **self._options,
-            lib_name="faststream",
-            lib_version=__version__,
         )
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
