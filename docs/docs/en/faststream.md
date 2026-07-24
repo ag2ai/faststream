@@ -556,6 +556,15 @@ Just *start* and *stop* them according to your application's lifespan.
 
 ### **FastAPI** Plugin
 
+!!! warning "Plugin deprecated"
+    The integration has been moved to the
+    **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
+    package and will be removed in 1.0.0 version.
+
+    ```bash
+    pip install faststream_fastapi
+    ```
+
 Also, **FastStream** can be used as part of **FastAPI**.
 
 Just import a **StreamRouter** you need and declare the message handler with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators.
