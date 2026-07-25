@@ -158,8 +158,25 @@ class KafkaPublishCommand(BatchPublishCommand):
         if isinstance(self.batch_bodies[0], KafkaResponse):
             return
 
-        new_indexes = tuple(self.batch_bodies.index(body) for body in value)
+        new_indexes = self._form_indexes(value)
         self._per_message_keys = tuple(self._per_message_keys[i] for i in new_indexes)
+
+    def _form_indexes(self, value: Sequence["Any"]) -> tuple[int, ...]:
+        """Form a list of indexes for the given value sequence based on batch_bodies."""
+        bodies_seen: dict[int, Any] = {}
+        for body in value:
+            index = self.batch_bodies.index(body)
+            self._update_bodies(bodies_seen, index, body)
+
+        return tuple(i for i in bodies_seen)
+
+    def _update_bodies(self, bodies_seen: dict[int, Any], index: int, body: Any) -> None:
+        """Update the bodies_seen dictionary with the given index and body."""
+        if bodies_seen.get(index) is None and self.batch_bodies[index] == body:
+            bodies_seen.update({index: body})
+        else:
+            index += 1
+            self._update_bodies(bodies_seen, index, body)
 
 
 # Semantic alias for publish operations
