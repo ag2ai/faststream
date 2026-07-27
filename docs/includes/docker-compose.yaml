@@ -79,3 +79,11 @@ services:
       - "1883:1883"
     security_opt:
       - no-new-privileges:true
+
+  sqs:
+    image: softwaremill/elasticmq-native:1.7.1
+    ports:
+      - "9324:9324" # SQS API
+      - "9325:9325" # web UI
+    security_opt:
+      - no-new-privileges:true

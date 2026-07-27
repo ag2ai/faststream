@@ -591,6 +591,72 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
+  test-sqs-smoke:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest -n auto
+          -vv -m "sqs and not connected"
+
+  test-sqs-real:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs:
+      - test-basic
+      - test-sqs-smoke
+    services:
+      sqs:
+        image: softwaremill/elasticmq-native:1.7.1
+        ports:
+          - 9324:9324
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:9324/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest --cov --cov-report=
+          -vv -m "(slow and sqs and connected) or (sqs and connected)"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.sqs-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: .coverage.sqs-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
   coverage-combine:
     if: github.event.pull_request.draft == false
     needs:
@@ -604,6 +670,7 @@ jobs:
       - test-redis-real
       - test-redis-cluster-real
       - test-mqtt-real
+      - test-sqs-real
     runs-on: ubuntu-latest
 
     steps:

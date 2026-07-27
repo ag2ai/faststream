@@ -195,6 +195,11 @@ To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
 """
 
+INSTALL_FASTSTREAM_SQS = """
+To use AWS SQS with FastStream, please install dependencies:\n
+pip install "faststream[sqs]"
+"""
+
 INSTALL_UVICORN = """
 To run FastStream ASGI App via CLI, please install uvicorn:\n
 pip install uvicorn

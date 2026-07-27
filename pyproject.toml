@@ -22,6 +22,7 @@ keywords = [
     "nats",
     "redis",
     "mqtt",
+    "sqs",
     "asyncapi",
     "framework",
     "message brokers",
@@ -87,9 +88,12 @@ cli = [
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
+sqs = [
+    "aiobotocore>=2.13,<3",
+]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,sqs,otel,cli,prometheus]"]
 
 docs = [
     "mkdocs-material==9.7.1",
@@ -123,6 +127,7 @@ lint = [
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
+    "types-aiobotocore[sqs]>=2.13,<3",
 ]
 
 test-core = [
@@ -215,6 +220,7 @@ markers = [
     "redis_cluster",
     "redis_sentinel",
     "mqtt",
+    "sqs",
     "slow",
     "connected",
     "all",

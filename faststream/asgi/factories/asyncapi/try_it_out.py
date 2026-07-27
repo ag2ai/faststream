@@ -236,4 +236,9 @@ def _get_broker_registry() -> dict[
 
         registry[MQTTBroker] = TestMQTTBroker
 
+    with suppress(ImportError):
+        from faststream.sqs import SQSBroker, TestSQSBroker
+
+        registry[SQSBroker] = TestSQSBroker
+
     return registry
