@@ -1,10 +1,12 @@
 import inspect
 from collections.abc import Callable, Iterable
+from dataclasses import fields
 from typing import TYPE_CHECKING, Annotated, Any, cast, get_args, get_origin
 
 from fast_depends.library.serializer import OptionItem
 from fast_depends.utils import get_typed_annotation
 from fastapi import params
+from fastapi.dependencies.models import Dependant
 from fastapi.dependencies.utils import (
     get_dependant,
     get_parameterless_sub_dependant,
@@ -15,6 +17,21 @@ from faststream._internal._compat import PYDANTIC_V2
 
 if TYPE_CHECKING:
     from fastapi.dependencies import models
+
+
+class _FastStreamDependant(Dependant):
+    """FastAPI dependant extended with fields required by FastStream."""
+
+    model: type[Any]
+    custom_fields: dict[str, Any]
+    flat_params: list[OptionItem]
+
+
+def _extend_fastapi_dependant(dependant: Dependant) -> _FastStreamDependant:
+    """Copy a native FastAPI dependant into an extensible subclass."""
+    return _FastStreamDependant(**{
+        field.name: getattr(dependant, field.name) for field in fields(dependant)
+    })
 
 
 def get_fastapi_dependant(
@@ -55,6 +72,7 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
 
     from faststream._internal._compat import PydanticUndefined
 
+    dependant = _extend_fastapi_dependant(dependant)
     params = dependant.query_params + dependant.body_params
 
     for d in dependant.dependencies:
@@ -128,12 +146,12 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
                 f,
             )
 
-    dependant.model = create_model(  # type: ignore[attr-defined]
+    dependant.model = create_model(
         getattr(call, "__name__", type(call).__name__),
     )
 
-    dependant.custom_fields = {}  # type: ignore[attr-defined]
-    dependant.flat_params = [  # type: ignore[attr-defined]
+    dependant.custom_fields = {}
+    dependant.flat_params = [
         OptionItem(field_name=name, field_type=type_, default_value=default)
         for name, (type_, default) in params_unique.items()
     ]
