@@ -172,7 +172,7 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     def _update_bodies(self, bodies_seen: dict[int, Any], index: int, body: Any) -> None:
         """Update the bodies_seen dictionary with the given index and body."""
-        if bodies_seen.get(index) is None and self.batch_bodies[index] == body:
+        if self.batch_bodies[index] == body and bodies_seen.get(index) is None:
             bodies_seen.update({index: body})
         else:
             index += 1
