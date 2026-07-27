@@ -4208,9 +4208,12 @@ wheels = [
 
 [[package]]
 name = "zmqtt"
-version = "0.0.5"
+version = "0.0.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a0/45/a9b903d7ee61405c58930c55550b530519152012c2ff6f65626199e96204/zmqtt-0.0.5.tar.gz", hash = "sha256:97e9ac9714070fa3d65006d932bc3e4da905ac5e634bde93e63e6f12848a196f", size = 27938, upload-time = "2026-06-08T13:50:39.208Z" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/04/3a/c81bcfa737fd7d5c3361a7817099c7b1a0d2959d7e1a11e7736198595e7d/zmqtt-0.0.6.tar.gz", hash = "sha256:56053bd503ca9ba4428e0d43975227254e89de2b4fcd7338de89a4cd6cf9ee44", size = 30912, upload-time = "2026-07-26T23:04:06.782Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/b8/dcd7f4c40ef83d3081de292b13f755f78e24d55daf552229ac29432e33cc/zmqtt-0.0.5-py3-none-any.whl", hash = "sha256:377d255772e87999ce0e8555aed162c0e30a3b2869e45c81a21aab2f9fd031a8", size = 37626, upload-time = "2026-06-08T13:50:38.112Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/f4/6f25f746c2dfb9932ba40642fe03e30d718247e418aed3062f9c9a692f6b/zmqtt-0.0.6-py3-none-any.whl", hash = "sha256:cd1a348c9e1f19e6c6c934b85d904152b3e2d8f61eaef9ce0ab4ae10af9e3bff", size = 40748, upload-time = "2026-07-26T23:04:05.898Z" },
 ]
