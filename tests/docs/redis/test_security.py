@@ -64,8 +64,12 @@ async def test_plaintext_security() -> None:
     with patch_asyncio_open_connection() as connection:
         from docs.docs_src.redis.security.plaintext import broker
 
-        with pytest.raises(AuthenticationError):
+        with pytest.raises(AuthenticationError):  # noqa: PT012
             async with broker:
+                # in 8.0.0, the default version of the protocol changed to 3.
+                # because of this, the mocked response does not work.
+                broker._connection.connection_pool.connection_kwargs["protocol"] = 2
+
                 await broker._connection.ping()
 
         assert connection.call_args.kwargs["ssl"]
