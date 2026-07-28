@@ -60,21 +60,26 @@ __all__ = ("TestRedisBroker",)
 
 @dataclass(kw_only=True)
 class Entry:
-    handler: Any
+    handler: "LogicSubscriber"
     msg: Any
 
 
 class PEL:
     def __init__(self) -> None:
-        self._entries: dict[str, Entry] = {}
+        self._entries: dict[tuple[str | None, uuid.UUID], Entry] = {}
 
-    def remove(self, correlation_id: Any) -> None:
+    def remove(self, correlation_id: tuple[str | None, uuid.UUID]) -> None:
         self._entries.pop(correlation_id)
 
-    def put(self, msg: Any, handler: Any, correlation_id: Any) -> None:
+    def put(
+        self,
+        msg: Any,
+        handler: "LogicSubscriber",
+        correlation_id: tuple[str | None, uuid.UUID],
+    ) -> None:
         self._entries.update({correlation_id: Entry(msg=msg, handler=handler)})
 
-    def get_entry(self, correlation_id: Any) -> Entry | None:
+    def get_entry(self, correlation_id: tuple[str | None, uuid.UUID]) -> Entry | None:
         return self._entries.get(correlation_id)
 
 

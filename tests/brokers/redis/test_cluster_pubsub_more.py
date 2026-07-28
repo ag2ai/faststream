@@ -44,7 +44,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert set(received) == {"a", "b"}
+        assert received == ["a", "b"]
 
     @pytest.mark.asyncio()
     async def test_multiple_subscribers_same_channel(
