@@ -16,8 +16,27 @@ from redis.cluster import (
 from faststream.__about__ import __version__
 from faststream._internal.utils.functions import run_in_executor
 from faststream.exceptions import IncorrectState
+from faststream.redis._compat import REDIS_V720
+
+if REDIS_V720:
+    from redis.driver_info import DriverInfo
+
 
 ClientT = TypeVar("ClientT")
+
+
+def _get_driver_info() -> dict[str, Any]:
+    if REDIS_V720:
+        return {
+            "driver_info": DriverInfo(
+                name="faststream",
+                lib_version=__version__,
+            )
+        }
+    return {
+        "lib_name": "faststream",
+        "lib_version": __version__,
+    }
 
 
 class ConnectionState(ABC, Generic[ClientT]):
@@ -55,11 +74,9 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
     async def connect(self) -> "Redis[bytes]":
-        pool = ConnectionPool(
-            **self._options,
-            lib_name="faststream",
-            lib_version=__version__,
-        )
+        connection_kwargs = self._options | _get_driver_info()
+
+        pool = ConnectionPool(**connection_kwargs)
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
         self._client = client
@@ -95,8 +112,7 @@ class RedisSentinelConnectionState(RedisConnectionState):
         connection_kwargs = {
             k: v for k, v in self._options.items() if k not in {"host", "port"}
         }
-        connection_kwargs["lib_name"] = "faststream"
-        connection_kwargs["lib_version"] = __version__
+        connection_kwargs |= _get_driver_info()
 
         manager = Sentinel(
             self._sentinels,
@@ -144,11 +160,10 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
         if self._connected:
             return self._client  # type: ignore[return-value]
 
-        opts = {k: v for k, v in self._options.items() if v is not None}
-        opts["lib_name"] = "faststream"
-        opts["lib_version"] = __version__
+        connection_kwargs = {k: v for k, v in self._options.items() if v is not None}
+        connection_kwargs |= _get_driver_info()
 
-        client: RedisCluster[bytes] = RedisCluster(**opts)
+        client: RedisCluster[bytes] = RedisCluster(**connection_kwargs)
         self._client = client
         self._connected = True
         return client
