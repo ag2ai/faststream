@@ -7,7 +7,11 @@ from unittest.mock import MagicMock
 import anyio
 import zmqtt
 from typing_extensions import override
-from zmqtt._internal.protocol import _shared_filter_to_actual, _topic_matches
+from zmqtt._internal.protocol import (
+    _DEFAULT_STRIPPED_PREFIXES,
+    _shared_filter_to_actual,
+    _topic_matches,
+)
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
@@ -56,8 +60,12 @@ class _BlockingSubscription:
         raise StopAsyncIteration  # pragma: no cover
 
 
-def mqtt_topic_matches(pattern: str, topic: str) -> bool:
-    return _topic_matches(_shared_filter_to_actual(pattern), topic)
+def mqtt_topic_matches(
+    pattern: str,
+    topic: str,
+    stripped_prefixes: tuple[str, ...] = _DEFAULT_STRIPPED_PREFIXES,
+) -> bool:
+    return _topic_matches(_shared_filter_to_actual(pattern, stripped_prefixes), topic)
 
 
 def _broker_version(broker: MQTTBroker) -> Literal["3.1.1", "5.0"]:
