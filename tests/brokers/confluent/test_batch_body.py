@@ -1,5 +1,11 @@
 import pytest
 
+from faststream import BaseMiddleware, Context
+from faststream.confluent import KafkaBroker, TestKafkaBroker
+from faststream.confluent.response import (
+    KafkaPublishCommand as ConfluentPublishCommand,
+    KafkaPublishMessage as ConfluentPublishMessage,
+)
 from faststream.kafka.response import KafkaPublishCommand, KafkaPublishMessage
 from faststream.response.publish_type import PublishType
 
@@ -22,6 +28,16 @@ def remove_body(batch_bodies):
 
 def do_nothing(batch_bodies):
     return batch_bodies
+
+
+def dedup_bodies(batch_bodies):
+    seen = set()
+    deduped = []
+    for body in batch_bodies:
+        if body not in seen:
+            seen.add(body)
+            deduped.append(body)
+    return tuple(deduped)
 
 
 @pytest.mark.kafka()
@@ -165,3 +181,72 @@ def test_random_bodies(kafka_messages, changing_pattern, expected) -> None:
     delivered_cmd = delivered(cmd)
     for body in expected:
         assert body in delivered_cmd
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    ("kafka_messages", "changing_pattern", "expected"),
+    (
+        (
+            [
+                ConfluentPublishMessage("body-A", key=b"key-A"),
+                ConfluentPublishMessage("body-B", key=b"key-B"),
+            ],
+            reverse_bodies,
+            [("body-B", b"key-B"), ("body-A", b"key-A")],
+        ),
+        (
+            [
+                ConfluentPublishMessage("body-A", key=b"key-A"),
+                ConfluentPublishMessage("body-B", key=b"key-B"),
+                ConfluentPublishMessage("body-C", key=b"key-C"),
+            ],
+            remove_body,
+            [("body-B", b"key-B"), ("body-C", b"key-C")],
+        ),
+        (
+            [
+                ConfluentPublishMessage("body-A", key=b"key-A"),
+                ConfluentPublishMessage("body-B", key=b"key-B"),
+                ConfluentPublishMessage("body-B", key=b"key-B"),
+            ],
+            reverse_bodies,
+            [("body-B", b"key-B"), ("body-B", b"key-B"), ("body-A", b"key-A")],
+        ),
+        (
+            [
+                ConfluentPublishMessage("body-A", key=b"key-1"),
+                ConfluentPublishMessage("body-A", key=b"key-2"),
+                ConfluentPublishMessage("body-B", key=b"key-3"),
+            ],
+            dedup_bodies,
+            [("body-A", b"key-1"), ("body-B", b"key-3")],
+        ),
+    ),
+)
+async def test_publish_middleware_keeps_keys_aligned(
+    queue: str,
+    kafka_messages,
+    changing_pattern,
+    expected,
+) -> None:
+    received = []
+
+    class MutatingMiddleware(BaseMiddleware):
+        async def publish_scope(self, call_next, cmd):
+            if isinstance(cmd, ConfluentPublishCommand):
+                cmd.batch_bodies = changing_pattern(cmd.batch_bodies)
+            return await call_next(cmd)
+
+    broker = KafkaBroker(apply_types=True, middlewares=(MutatingMiddleware,))
+
+    @broker.subscriber(queue, batch=True)
+    async def handler(msgs, raw=Context("message")) -> None:
+        received.extend(zip(msgs, (m.key() for m in raw.raw_message), strict=True))
+
+    async with TestKafkaBroker(broker) as br:
+        await br.start()
+        await br.publish_batch(*kafka_messages, topic=queue)
+
+    assert received == expected
