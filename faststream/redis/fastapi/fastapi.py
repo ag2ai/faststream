@@ -752,7 +752,7 @@ class RedisSentinelRouter(RedisRouter):
     are forwarded to the underlying broker unchanged.
     """
 
-    broker_class = RSB
+    broker_class = RSB  # type: ignore[assignment]
     broker: RSB
 
     def __init__(

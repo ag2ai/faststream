@@ -5,7 +5,8 @@ from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
 from redis.asyncio.connection import BaseParser, Connection, Encoder
-from typing_extensions import TypedDict
+from redis.asyncio.retry import Retry
+from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
 from faststream._internal.context.repository import ContextRepo
@@ -48,6 +49,10 @@ class RedisConnectionParams(TypedDict, total=False):
         Mapping[int, int | bytes] | None, "TCP keepalive options. Defaults to ``None``."
     ]
     socket_type: Annotated[int, "Socket type. Defaults to ``0``."]
+    retry: Annotated[Retry | None, "Retry object. Defaults to ``None``"]
+    retry_on_error: Annotated[
+        list[Any], "List of exceptions for which you need to retry. Defaults to ``[]``"
+    ]
     retry_on_timeout: Annotated[bool, "Retry on timeout. Defaults to ``False``."]
     encoding: Annotated[str, 'Encoding for data. Defaults to ``"utf-8"``.']
     encoding_errors: Annotated[str, 'Encoding error handling. Defaults to ``"strict"``.']
@@ -111,11 +116,11 @@ class RedisClusterParams(RedisBrokerParams, total=False):
 
 class RedisSentinelParams(RedisBrokerParams, total=False):
     sentinels: Annotated[
-        Sequence[tuple[str, int]],
+        Required[Sequence[tuple[str, int]]],
         "Redis Sentinel ``(host, port)`` nodes to discover the master from. Required.",
     ]
     sentinel_master_name: Annotated[
-        str,
+        Required[str],
         "Sentinel master group name. Required.",
     ]
     sentinel_kwargs: Annotated[

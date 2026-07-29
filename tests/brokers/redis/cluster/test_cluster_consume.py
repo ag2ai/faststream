@@ -1,8 +1,7 @@
 import pytest
 
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-
-from .basic import RedisClusterTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 
 @pytest.mark.connected()

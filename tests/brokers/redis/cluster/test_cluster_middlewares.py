@@ -5,8 +5,10 @@ from tests.brokers.base.middlewares import (
     MiddlewareTestcase,
     MiddlewaresOrderTestcase,
 )
-
-from .basic import RedisClusterMemoryTestcaseConfig, RedisClusterTestcaseConfig
+from tests.brokers.redis.basic import (
+    RedisClusterMemoryTestcaseConfig,
+    RedisClusterTestcaseConfig,
+)
 
 
 @pytest.mark.redis_cluster()

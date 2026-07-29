@@ -203,6 +203,72 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 
+    async def test_stream_same_group_delivers_to_one_consumer(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-1"),
+        )
+        async def subscriber1(msg) -> None: ...
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-2"),
+        )
+        async def subscriber2(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            # exactly one consumer of the group handles the message
+            called = [m for m in (subscriber1.mock, subscriber2.mock) if m.call_count]
+            assert len(called) == 1
+            called[0].assert_called_once_with("hello")
+
+    async def test_stream_different_groups_all_receive(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers-a", consumer="consumer-1"),
+        )
+        async def subscriber1(msg) -> None: ...
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers-b", consumer="consumer-1"),
+        )
+        async def subscriber2(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            subscriber1.mock.assert_called_once_with("hello")
+            subscriber2.mock.assert_called_once_with("hello")
+
+    async def test_stream_without_group_always_receives(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-1"),
+        )
+        async def grouped(msg) -> None: ...
+
+        @broker.subscriber(stream=queue)
+        async def ungrouped(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            grouped.mock.assert_called_once_with("hello")
+            ungrouped.mock.assert_called_once_with("hello")
+
     async def test_publish_to_none(self) -> None:
         broker = self.get_broker()
 

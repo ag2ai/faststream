@@ -10,6 +10,7 @@ from typing import (
 import zmqtt
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
+from zmqtt._internal.protocol import _DEFAULT_STRIPPED_PREFIXES
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -64,6 +65,7 @@ class MQTTBroker(
         reconnect: zmqtt.ReconnectConfig | None = None,
         mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
+        stripped_prefixes: tuple[str, ...] = _DEFAULT_STRIPPED_PREFIXES,
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
@@ -116,6 +118,7 @@ class MQTTBroker(
             reconnect=reconnect,
             mqtt_connect_timeout=mqtt_connect_timeout,
             session_expiry_interval=session_expiry_interval,
+            stripped_prefixes=stripped_prefixes,
             **secure_kwargs,
             # broker config
             routers=routers,

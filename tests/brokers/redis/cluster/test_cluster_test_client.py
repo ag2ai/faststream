@@ -3,14 +3,20 @@ import pytest
 from faststream.redis import ListSub, StreamSub
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
-
-from .basic import RedisClusterMemoryTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
 
 
 @pytest.mark.redis_cluster()
 @pytest.mark.asyncio()
 class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTestcase):
     """TestClient tests for RedisClusterBroker (memory-based)."""
+
+    @pytest.mark.connected()
+    async def test_broker_with_real_patches_publishers_and_subscribers(
+        self,
+        queue: str,
+    ) -> None:
+        await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
