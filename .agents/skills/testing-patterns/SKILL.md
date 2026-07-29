@@ -76,6 +76,8 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase): ...
 - `tests/mocks.py`: `mock_pydantic_settings_env` for env-driven settings tests.
 - `dirty-equals` and `freezegun` are available as test deps.
 
+**Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
+
 ## Related skills
 
 - **dev-workflow** — docker broker management and the full just recipe matrix.

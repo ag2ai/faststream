@@ -30,7 +30,9 @@ class _FastStreamDependant(Dependant):
 def _extend_fastapi_dependant(dependant: Dependant) -> _FastStreamDependant:
     """Copy a native FastAPI dependant into an extensible subclass."""
     return _FastStreamDependant(**{
-        field.name: getattr(dependant, field.name) for field in fields(dependant)
+        field.name: getattr(dependant, field.name)
+        for field in fields(dependant)
+        if field.init
     })
 
 
