@@ -1,14 +1,8 @@
-from dataclasses import dataclass
-
 import pytest
 
 from faststream.mqtt.broker.router import MQTTRouter
 
-
-@dataclass
-class Settings:
-    host: str = "localhost"
-    port: int = 1883
+from .settings import Settings
 
 
 @pytest.fixture(scope="session")
