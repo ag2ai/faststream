@@ -7,8 +7,7 @@ import pytest
 from faststream import Context
 from faststream.redis import RedisResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
-
-from .basic import RedisClusterTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 
 @pytest.mark.connected()

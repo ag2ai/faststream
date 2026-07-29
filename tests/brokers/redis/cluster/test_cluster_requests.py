@@ -3,8 +3,7 @@ import pytest
 from faststream import BaseMiddleware
 from faststream.redis.parser import BinaryMessageFormatV1
 from tests.brokers.base.requests import RequestsTestcase
-
-from .basic import RedisClusterMemoryTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
 
 
 class Mid(BaseMiddleware):

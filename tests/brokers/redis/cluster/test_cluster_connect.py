@@ -13,8 +13,7 @@ import pytest
 
 from faststream.redis import RedisClusterBroker, StreamSub
 from tests.brokers.base.connection import BrokerConnectionTestcase
-
-from .conftest import SettingsCluster
+from tests.brokers.redis.conftest import SettingsCluster
 
 
 @pytest.mark.connected()
