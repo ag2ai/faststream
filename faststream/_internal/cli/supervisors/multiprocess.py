@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 from faststream._internal.cli.supervisors.basereload import BaseReload
 from faststream._internal.logger import logger
 
+SIGKILL: int | None = getattr(signal, "SIGKILL", None)
+
 if TYPE_CHECKING:
     from multiprocessing.context import SpawnProcess
 
@@ -50,7 +52,11 @@ class Multiprocess(BaseReload):
                 continue
 
             log_msg = "Worker %s (pid:%s) exited with code %s."
-            if process.exitcode and abs(process.exitcode) == signal.SIGKILL:
+            if (
+                SIGKILL is not None
+                and process.exitcode
+                and abs(process.exitcode) == SIGKILL
+            ):
                 log_msg += " Perhaps out of memory?"
             logger.error(log_msg, worker_id, process.pid, process.exitcode)
 
