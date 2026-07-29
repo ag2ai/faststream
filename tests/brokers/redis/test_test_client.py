@@ -222,30 +222,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
 
-            # only one consumer in the group should receive the message
-            assert {subscriber1.mock.call_count, subscriber2.mock.call_count} == {
-                0,
-                1,
-            }
-
-    async def test_stream_same_group_executes_message_exactly_once(
-        self,
-        queue: str,
-    ) -> None:
-        broker = self.get_broker()
-
-        @broker.subscriber(
-            stream=StreamSub(queue, group="workers", consumer="claimer"),
-        )
-        @broker.subscriber(
-            stream=StreamSub(queue, group="workers", consumer="w1"),
-        )
-        async def worker(msg: str) -> None: ...
-
-        async with self.patch_broker(broker) as br:
-            await br.publish("hello", stream=queue)
-
-            worker.mock.assert_called_once_with("hello")
+            # exactly one consumer of the group handles the message
+            called = [m for m in (subscriber1.mock, subscriber2.mock) if m.call_count]
+            assert len(called) == 1
+            called[0].assert_called_once_with("hello")
 
     async def test_stream_different_groups_all_receive(
         self,
