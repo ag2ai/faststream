@@ -5,7 +5,7 @@ import pytest
 from faststream.kafka import KafkaBroker
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
-from .conftest import Settings
+from .settings import Settings
 
 
 @pytest.mark.kafka()

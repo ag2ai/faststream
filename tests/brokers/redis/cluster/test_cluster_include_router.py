@@ -4,8 +4,7 @@ from tests.brokers.base.include_router import (
     IncludePublisherTestcase,
     IncludeSubscriberTestcase,
 )
-
-from .basic import RedisClusterTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 
 @pytest.mark.redis_cluster()
