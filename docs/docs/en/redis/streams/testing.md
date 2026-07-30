@@ -94,5 +94,3 @@ async with TestRedisBroker(broker, pel=pel) as br:
 
     put_mock.assert_not_called()
 ```
-
-Sharing a single `PEL` instance is also how you'd simulate two independent app instances competing for the same consumer group in a test - pass the same `pel` to multiple `TestRedisBroker` context managers instead of letting each create its own.
