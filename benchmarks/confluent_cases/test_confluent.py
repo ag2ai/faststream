@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import pytest
@@ -37,7 +37,7 @@ class TestConfluentCase:
         self.consumer.assign([TopicPartition("in", 0, 0)])
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]:
+    async def start(self) -> AsyncGenerator[float, None]:
         stop_event = asyncio.Event()
 
         def acked(err, msg) -> None:  # noqa: ANN001

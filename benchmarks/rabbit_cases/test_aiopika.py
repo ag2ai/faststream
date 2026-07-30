@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import aio_pika
@@ -23,7 +23,7 @@ class TestRabbitCase:
         self.EVENTS_PROCESSED = 0
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]:
+    async def start(self) -> AsyncGenerator[float, None]:
         connection = await aio_pika.connect_robust("amqp://guest:guest@localhost:5672/")
         channel = await connection.channel()
 

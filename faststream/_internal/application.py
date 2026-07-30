@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
@@ -32,7 +32,7 @@ try:
     from faststream.exceptions import StartupValidationError
 
     @asynccontextmanager
-    async def catch_startup_validation_error() -> AsyncIterator[None]:
+    async def catch_startup_validation_error() -> AsyncGenerator[None, None]:
         try:
             yield
         except PValidation as e:
@@ -216,7 +216,7 @@ class Application(StartAbleApplication):
     async def _start_hooks_context(
         self,
         **run_extra_options: "SettingField",
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None, None]:
         async with catch_startup_validation_error():
             for func in self._on_startup_calling:
                 await func(**run_extra_options)
@@ -230,7 +230,7 @@ class Application(StartAbleApplication):
     async def _startup_logging(
         self,
         log_level: int = logging.INFO,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None, None]:
         """Separated startup logging."""
         self._log(
             log_level,
@@ -260,7 +260,7 @@ class Application(StartAbleApplication):
                 await broker.stop()
 
     @asynccontextmanager
-    async def _shutdown_hooks_context(self) -> AsyncIterator[None]:
+    async def _shutdown_hooks_context(self) -> AsyncGenerator[None, None]:
         for func in self._on_shutdown_calling:
             await func()
 
@@ -273,7 +273,7 @@ class Application(StartAbleApplication):
     async def _shutdown_logging(
         self,
         log_level: int = logging.INFO,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None, None]:
         """Separated startup logging."""
         self._log(log_level, "FastStream app shutting down...")
 

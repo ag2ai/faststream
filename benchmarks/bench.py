@@ -3,7 +3,7 @@ import csv
 import platform
 import sys
 import time
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -23,10 +23,10 @@ class TestCase(Protocol):
     def setup_method(self) -> None: ...
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]: ...
+    def start(self) -> AsyncGenerator[float, None]: ...
 
     @asynccontextmanager
-    async def test_consume_message(self) -> None: ...
+    def test_consume_message(self) -> AsyncGenerator[None, None]: ...
 
 
 @dataclass

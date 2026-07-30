@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any
 
@@ -27,7 +27,7 @@ class BaseTestcaseConfig:
             return brokers[0]
 
         @asynccontextmanager
-        async def enter_broker() -> AsyncIterator[list[BrokerUsecase]]:
+        async def enter_broker() -> AsyncGenerator[list[BrokerUsecase], None]:
             started_brokers = []
 
             async with AsyncExitStack() as stack:
