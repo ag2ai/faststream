@@ -14,6 +14,7 @@ try:
         RabbitExchange,
         RabbitQueue,
     )
+    from .security import RabbitExternalAuth
     from .testing import TestRabbitBroker
 
 except ImportError as e:
@@ -30,6 +31,7 @@ __all__ = (
     "QueueType",
     "RabbitBroker",
     "RabbitExchange",
+    "RabbitExternalAuth",
     "RabbitMessage",
     "RabbitParserType",
     "RabbitPublishCommand",

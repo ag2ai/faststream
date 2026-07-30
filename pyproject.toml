@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.2"
+version = "0.7.3"
 
 keywords = [
     "rabbitmq",
@@ -75,7 +75,7 @@ confluent = [
 
 nats = ["nats-py>=2.12.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<8.0.0"]
+redis = ["redis>=5.0.0,<9.0.0"]
 
 mqtt = ["zmqtt>=0.0.5"]
 
@@ -140,7 +140,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.128.0",
+    "fastapi==0.140.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",

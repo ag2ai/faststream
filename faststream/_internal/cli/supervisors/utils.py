@@ -25,7 +25,9 @@ HANDLED_SIGNALS: tuple[int, ...] = (
 )
 if IS_WINDOWS:  # pragma: py-not-win32
     # Windows signal 21. Sent by Ctrl+Break.
-    HANDLED_SIGNALS += (signal.SIGBREAK,)  # type: ignore[attr-defined]
+    sigbreak: int | None = getattr(signal, "SIGBREAK", None)
+    if sigbreak is not None:
+        HANDLED_SIGNALS += (sigbreak,)
 
 
 def set_exit(

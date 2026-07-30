@@ -1,8 +1,7 @@
 import pytest
 
 from tests.brokers.base.codec import CodecTestcase
-
-from .basic import RedisClusterMemoryTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
 
 
 @pytest.mark.redis_cluster()

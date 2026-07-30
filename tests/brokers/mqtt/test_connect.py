@@ -5,7 +5,7 @@ import pytest
 from faststream.mqtt.broker.broker import MQTTBroker
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
-from .conftest import Settings
+from .settings import Settings
 
 
 @pytest.mark.connected()

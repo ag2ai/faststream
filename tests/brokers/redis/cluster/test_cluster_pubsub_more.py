@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream.redis import RedisClusterBroker
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
-from .basic import RedisClusterTestcaseConfig
-from .conftest import SettingsCluster
+from .settings import SettingsCluster
 
 
 @pytest.mark.slow()
