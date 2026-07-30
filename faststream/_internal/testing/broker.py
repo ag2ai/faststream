@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Generator, Iterator
+from collections.abc import AsyncIterator, Generator
 from contextlib import (
     AsyncExitStack,
     asynccontextmanager,
@@ -134,11 +134,11 @@ class TestBroker(Generic[Broker, EnterType]):
             self._fake_close(broker)
 
     @contextmanager
-    def _patch_producer(self, broker: Broker) -> Iterator[None]:
+    def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
         raise NotImplementedError
 
     @contextmanager
-    def _patch_logger(self, broker: Broker) -> Iterator[None]:
+    def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
         broker._setup_logger()
 
         logger_state = broker.config.logger

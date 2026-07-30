@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from typing import Any
@@ -97,7 +97,7 @@ class ContextRepo:
         return context_value
 
     @contextmanager
-    def scope(self, key: str, value: Any) -> Iterator[None]:
+    def scope(self, key: str, value: Any) -> Generator[None, None, None]:
         """Sets a local variable and yields control to the caller. After the caller is done, the local variable is reset.
 
         Args:

@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,7 +8,9 @@ from faststream.exceptions import SetupError
 
 
 @contextmanager
-def patch_aio_consumer_and_producer() -> tuple[MagicMock, MagicMock]:
+def patch_aio_consumer_and_producer() -> Generator[
+    tuple[MagicMock, MagicMock], None, None
+]:
     try:
         producer = MagicMock(return_value=AsyncMock())
 
