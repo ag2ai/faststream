@@ -1,10 +1,13 @@
-from typing import Any
+from contextlib import AbstractAsyncContextManager
+from typing import Any, overload
+
+from typing_extensions import override
 
 from faststream.kafka import KafkaBroker, KafkaRouter, TestKafkaBroker
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
-class KafkaTestcaseConfig(BaseTestcaseConfig):
+class KafkaTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
     def get_broker(
         self,
         apply_types: bool = False,
@@ -17,5 +20,24 @@ class KafkaTestcaseConfig(BaseTestcaseConfig):
 
 
 class KafkaMemoryTestcaseConfig(KafkaTestcaseConfig):
-    def patch_broker(self, *brokers: KafkaBroker, **kwargs: Any) -> TestKafkaBroker:
+    @overload
+    def patch_broker(
+        self,
+        brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[KafkaBroker]: ...
+
+    @overload
+    def patch_broker(
+        self,
+        *brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[tuple[KafkaBroker, ...]]: ...
+
+    @override
+    def patch_broker(
+        self,
+        *brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> Any:
         return TestKafkaBroker(*brokers, **kwargs)
