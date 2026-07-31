@@ -25,12 +25,8 @@ if TYPE_CHECKING:
 class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     async def test_reply_config(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         reply_queue = queue + "reply"
@@ -71,12 +67,8 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)

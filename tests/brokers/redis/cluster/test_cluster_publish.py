@@ -35,11 +35,8 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         await super().test_no_reply(queue, mock)
 
     async def test_list_publisher(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(list=queue)
@@ -90,11 +87,8 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         assert {1, "hi"} == {r.result() for r in result}
 
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(list=queue)
@@ -160,9 +154,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Publish to channel via cluster Pub/Sub."""
-        event = asyncio.Event()
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(channel=queue)
@@ -187,9 +181,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Headers and correlation_id are propagated via Pub/Sub."""
-        event = asyncio.Event()
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(channel=queue)

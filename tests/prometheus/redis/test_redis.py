@@ -17,12 +17,7 @@ from .basic import BatchRedisPrometheusSettings, RedisPrometheusSettings
 @pytest.mark.connected()
 @pytest.mark.redis()
 class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 

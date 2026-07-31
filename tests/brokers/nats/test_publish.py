@@ -19,12 +19,8 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -85,9 +81,8 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
 async def test_publish_with_schedule(
     queue: str,
     mock: MagicMock,
+    event: asyncio.Event,
 ) -> None:
-    event = asyncio.Event()
-
     pub_broker = NatsBroker()
     await pub_broker.connect()
 

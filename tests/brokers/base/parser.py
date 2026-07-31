@@ -112,8 +112,9 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         self,
         mock: MagicMock,
         queue: str,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        event, event2 = asyncio.Event(), asyncio.Event()
         broker = self.get_broker()
 
         async def custom_parser(msg, original):
@@ -153,9 +154,9 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         self,
         mock: MagicMock,
         queue: str,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        event, event2 = asyncio.Event(), asyncio.Event()
-
         broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -196,13 +197,12 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         self,
         mock: MagicMock,
         queue: str,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+        event3: asyncio.Event,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2554."""
-        start_event, consumed_event, stopped_event = (
-            asyncio.Event(),
-            asyncio.Event(),
-            asyncio.Event(),
-        )
+        start_event, consumed_event, stopped_event = event, event2, event3
 
         broker = self.get_broker()
 

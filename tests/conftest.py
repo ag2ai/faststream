@@ -33,6 +33,16 @@ def event() -> asyncio.Event:
     return asyncio.Event()
 
 
+@pytest.fixture()
+def event2() -> asyncio.Event:
+    return asyncio.Event()
+
+
+@pytest.fixture()
+def event3() -> asyncio.Event:
+    return asyncio.Event()
+
+
 @pytest.fixture(scope="session")
 def runner() -> CliRunner:
     return CliRunner()

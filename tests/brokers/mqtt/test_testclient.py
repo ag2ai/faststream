@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from faststream.mqtt.broker.broker import MQTTBroker
@@ -15,20 +17,22 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
     def get_fake_producer_class(self) -> type:
         return FakeProducer
 
-    async def test_consume_with_filter(self, queue, mock):
+    async def test_consume_with_filter(
+        self, queue, mock, event: asyncio.Event, event2: asyncio.Event
+    ):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
-        await super().test_consume_with_filter(queue, mock)
+        await super().test_consume_with_filter(queue, mock, event, event2)
 
-    async def test_response(self, queue, mock):
+    async def test_response(self, queue, mock, event: asyncio.Event):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
-        await super().test_response(queue, mock)
+        await super().test_response(queue, mock, event)
 
-    async def test_reply_to(self, queue, mock):
+    async def test_reply_to(self, queue, mock, event: asyncio.Event):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
-        await super().test_reply_to(queue, mock)
+        await super().test_reply_to(queue, mock, event)
 
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:

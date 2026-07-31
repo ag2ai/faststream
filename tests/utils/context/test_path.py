@@ -72,9 +72,8 @@ async def test_nats_path() -> None:
 async def test_nats_kv_path(
     queue: str,
     mock: MagicMock,
+    event: asyncio.Event,
 ) -> None:
-    event = asyncio.Event()
-
     from faststream.nats import NatsBroker
 
     broker = NatsBroker()
