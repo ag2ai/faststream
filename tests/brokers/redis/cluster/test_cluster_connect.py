@@ -6,7 +6,6 @@ Run with: ``just test-redis-cluster tests/brokers/redis/test_cluster_connect.py`
 """
 
 import asyncio
-import uuid
 from typing import Any
 
 import pytest
@@ -56,6 +55,7 @@ class TestClusterList:
     @pytest.mark.asyncio()
     async def test_list_subscriber(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         broker = RedisClusterBroker(
@@ -64,9 +64,8 @@ class TestClusterList:
         )
         event = asyncio.Event()
         received = []
-        uid = uuid.uuid4().hex
 
-        @broker.subscriber(list=f"test-cluster-list-{uid}")
+        @broker.subscriber(list=f"test-cluster-list-{queue}")
         async def handler(msg: str) -> None:
             received.append(msg)
             if len(received) == 2:
@@ -74,8 +73,8 @@ class TestClusterList:
 
         async with broker:
             await broker.start()
-            await broker.publish("a", list=f"test-cluster-list-{uid}")
-            await broker.publish("b", list=f"test-cluster-list-{uid}")
+            await broker.publish("a", list=f"test-cluster-list-{queue}")
+            await broker.publish("b", list=f"test-cluster-list-{queue}")
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=5,
@@ -86,6 +85,7 @@ class TestClusterList:
     @pytest.mark.asyncio()
     async def test_publish_batch(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         broker = RedisClusterBroker(
@@ -94,9 +94,8 @@ class TestClusterList:
         )
         event = asyncio.Event()
         received = []
-        uid = uuid.uuid4().hex
 
-        @broker.subscriber(list=f"test-cluster-batch-{uid}")
+        @broker.subscriber(list=f"test-cluster-batch-{queue}")
         async def handler(msg: str) -> None:
             received.append(msg)
             if len(received) == 3:
@@ -104,7 +103,7 @@ class TestClusterList:
 
         async with broker:
             await broker.start()
-            await broker.publish_batch("x", "y", "z", list=f"test-cluster-batch-{uid}")
+            await broker.publish_batch("x", "y", "z", list=f"test-cluster-batch-{queue}")
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=5,
@@ -119,6 +118,7 @@ class TestClusterStream:
     @pytest.mark.asyncio()
     async def test_stream_consume(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         broker = RedisClusterBroker(
@@ -127,9 +127,8 @@ class TestClusterStream:
         )
         event = asyncio.Event()
         received = []
-        uid = uuid.uuid4().hex
 
-        @broker.subscriber(stream=f"test-stream-{uid}")
+        @broker.subscriber(stream=f"test-stream-{queue}")
         async def handler(msg: str) -> None:
             received.append(msg)
             event.set()
@@ -137,7 +136,7 @@ class TestClusterStream:
         async with broker:
             await broker.start()
             for _ in range(10):
-                await broker.publish("hello", stream=f"test-stream-{uid}")
+                await broker.publish("hello", stream=f"test-stream-{queue}")
                 done, _ = await asyncio.wait(
                     (asyncio.create_task(event.wait()),),
                     timeout=1.0,
@@ -150,6 +149,7 @@ class TestClusterStream:
     @pytest.mark.asyncio()
     async def test_stream_consume_group(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         broker = RedisClusterBroker(
@@ -158,13 +158,12 @@ class TestClusterStream:
         )
         event = asyncio.Event()
         received = []
-        uid = uuid.uuid4().hex
 
         @broker.subscriber(
             stream=StreamSub(
-                f"test-stream-group-{uid}",
-                group=f"group-{uid}",
-                consumer=f"consumer-{uid}",
+                f"test-stream-group-{queue}",
+                group=f"group-{queue}",
+                consumer=f"consumer-{queue}",
             ),
         )
         async def handler(msg: str) -> None:
@@ -173,7 +172,7 @@ class TestClusterStream:
 
         async with broker:
             await broker.start()
-            await broker.publish("group msg", stream=f"test-stream-group-{uid}")
+            await broker.publish("group msg", stream=f"test-stream-group-{queue}")
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=5,
@@ -188,12 +187,12 @@ class TestClusterStreamAutoclaim:
     @pytest.mark.asyncio()
     async def test_consume_stream_with_min_idle_time(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         """min_idle_time subscriber uses XAUTOCLAIM to reclaim pending messages."""
-        uid = uuid.uuid4().hex
-        stream = f"test-autoclaim-{uid}"
-        group = f"group-{uid}"
+        stream = f"test-autoclaim-{queue}"
+        group = f"group-{queue}"
 
         broker = RedisClusterBroker(
             url=settings_cluster.url,
@@ -246,12 +245,12 @@ class TestClusterStreamAutoclaim:
     @pytest.mark.asyncio()
     async def test_xautoclaim_circular_scanning(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         """XAUTOCLAIM cursor wraps back to 0-0 at end of PEL."""
-        uid = uuid.uuid4().hex
-        stream = f"test-circ-{uid}"
-        group = f"group-{uid}"
+        stream = f"test-circ-{queue}"
+        group = f"group-{queue}"
 
         broker = RedisClusterBroker(
             url=settings_cluster.url,
@@ -297,6 +296,7 @@ class TestClusterPubSub:
     @pytest.mark.asyncio()
     async def test_publish_subscribe(
         self,
+        queue: str,
         settings_cluster: SettingsCluster,
     ) -> None:
         """Pub/Sub via sync cluster wrapper."""
@@ -311,16 +311,15 @@ class TestClusterPubSub:
         )
         event = asyncio.Event()
         received = []
-        uid = uuid.uuid4().hex
 
-        @broker.subscriber(f"test-pubsub-{uid}")
+        @broker.subscriber(f"test-pubsub-{queue}")
         async def handler(msg: str) -> None:
             received.append(msg)
             event.set()
 
         async with broker:
             await broker.start()
-            await broker.publish("hello", channel=f"test-pubsub-{uid}")
+            await broker.publish("hello", channel=f"test-pubsub-{queue}")
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=5,

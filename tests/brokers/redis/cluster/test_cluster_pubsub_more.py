@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.redis import RedisClusterBroker
 from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 from .settings import SettingsCluster
@@ -22,10 +21,8 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         self,
         settings_cluster: SettingsCluster,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         event = asyncio.Event()
         received = []
 
@@ -51,10 +48,8 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         self,
         settings_cluster: SettingsCluster,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         event1 = asyncio.Event()
         event2 = asyncio.Event()
         received1 = []
@@ -90,10 +85,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         settings_cluster: SettingsCluster,
         mock: MagicMock,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         sub = broker.subscriber(channel="get-one-channel")
 
@@ -125,10 +117,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         settings_cluster: SettingsCluster,
         mock: MagicMock,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         sub = broker.subscriber(channel="empty-channel")
 
@@ -147,11 +136,11 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     ) -> None:
         from faststream import Context
 
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
+        broker = self.get_broker(
             apply_types=True,
+            startup_nodes=settings_cluster.startup_nodes,
         )
+
         event = asyncio.Event()
 
         @broker.subscriber(channel="headers-channel")
@@ -192,10 +181,8 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     ) -> None:
         from faststream.exceptions import StopConsume
 
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         event = asyncio.Event()
 
         @broker.subscriber(channel="stop-channel")
@@ -223,10 +210,8 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         self,
         settings_cluster: SettingsCluster,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         event = asyncio.Event()
 
         sub = broker.subscriber(channel="restart-channel")
