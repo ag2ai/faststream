@@ -20,12 +20,8 @@ from .basic import RabbitTestcaseConfig
 class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
     async def test_consume_from_exchange(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -46,12 +42,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_with_get_old(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
@@ -86,12 +78,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_ack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -121,12 +109,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_ack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -156,12 +140,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_exception_ack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -193,12 +173,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_nack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -229,12 +205,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_exception_nack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -266,12 +238,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_manual_reject(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -302,12 +270,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_exception_reject(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
@@ -338,12 +302,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     @pytest.mark.asyncio()
-    async def test_consume_skip_message(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_skip_message(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue)
@@ -388,12 +347,8 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_no_ack(
-        self,
-        queue: str,
-        exchange: RabbitExchange,
+        self, queue: str, exchange: RabbitExchange, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(

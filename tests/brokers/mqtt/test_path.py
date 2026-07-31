@@ -15,11 +15,8 @@ from .basic import MQTTTestcaseConfig
 @pytest.mark.asyncio()
 class TestPathExtraction(MQTTTestcaseConfig):
     async def test_single_level(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(f"{queue}/devices/{{device_id}}/temperature")
@@ -38,11 +35,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with("temp-22", "abc")
 
     async def test_multiple_single_levels(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(f"{queue}/devices/{{device_id}}/{{metric}}")
@@ -61,11 +55,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with("abc", "humidity")
 
     async def test_raw_plus_with_named_capture(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(f"{queue}/+/devices/{{device_id}}")
@@ -81,11 +72,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with("abc")
 
     async def test_router_path_with_prefix(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
         router = self.get_router(prefix=f"{queue}/")
 
@@ -104,11 +92,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with("prefixed")
 
     async def test_raw_hash_topic_access_via_raw_message(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(f"{queue}/logs/#")
@@ -124,11 +109,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with(f"{queue}/logs/system/errors")
 
     async def test_escaped_braces_are_literal_topic(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         subscriber = broker.subscriber(f"{queue}/root/{{{{braced}}}}")
@@ -148,11 +130,8 @@ class TestPathExtraction(MQTTTestcaseConfig):
         mock.assert_called_once_with("entry")
 
     async def test_named_capture_with_raw_hash(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(f"{queue}/devices/{{device_id}}/#")

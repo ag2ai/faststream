@@ -28,13 +28,7 @@ class TestRouter(MQTTFastAPITestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = MQTTRouter
 
-    async def test_path(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_path(self, queue: str, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()
 
         @router.subscriber(queue + "/{name}")

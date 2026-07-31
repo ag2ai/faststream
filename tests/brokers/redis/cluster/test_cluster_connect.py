@@ -57,12 +57,12 @@ class TestClusterList:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         broker = RedisClusterBroker(
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         received = []
 
         @broker.subscriber(list=f"test-cluster-list-{queue}")
@@ -87,12 +87,12 @@ class TestClusterList:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         broker = RedisClusterBroker(
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         received = []
 
         @broker.subscriber(list=f"test-cluster-batch-{queue}")
@@ -120,12 +120,12 @@ class TestClusterStream:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         broker = RedisClusterBroker(
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         received = []
 
         @broker.subscriber(stream=f"test-stream-{queue}")
@@ -151,12 +151,12 @@ class TestClusterStream:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         broker = RedisClusterBroker(
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         received = []
 
         @broker.subscriber(
@@ -189,6 +189,7 @@ class TestClusterStreamAutoclaim:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         """min_idle_time subscriber uses XAUTOCLAIM to reclaim pending messages."""
         stream = f"test-autoclaim-{queue}"
@@ -216,7 +217,6 @@ class TestClusterStreamAutoclaim:
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         claimed = []
 
         @claimer.subscriber(
@@ -298,6 +298,7 @@ class TestClusterPubSub:
         self,
         queue: str,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
         """Pub/Sub via sync cluster wrapper."""
         from redis.cluster import RedisCluster as _SyncRC
@@ -309,7 +310,6 @@ class TestClusterPubSub:
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
         received = []
 
         @broker.subscriber(f"test-pubsub-{queue}")

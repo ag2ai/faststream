@@ -17,12 +17,8 @@ class TestKafkaRouter(FastAPITestcase):
     broker_router_class = KafkaRouter
 
     async def test_batch_real(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
@@ -61,12 +57,8 @@ class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
         assert sub._connection_args["group_instance_id"] == "instance-4"
 
     async def test_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
