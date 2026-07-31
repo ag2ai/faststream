@@ -50,17 +50,8 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         event: asyncio.Event,
         event2: asyncio.Event,
     ) -> None:
-<<<<<<< HEAD
         broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
-        event1 = asyncio.Event()
-        event2 = asyncio.Event()
-=======
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
->>>>>>> f44f1f1f (refactor: using a fixture event, instead of creating an asyncio.Event)
         received1 = []
         received2 = []
 
@@ -150,11 +141,6 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
             apply_types=True,
             startup_nodes=settings_cluster.startup_nodes,
         )
-<<<<<<< HEAD
-
-        event = asyncio.Event()
-=======
->>>>>>> f44f1f1f (refactor: using a fixture event, instead of creating an asyncio.Event)
 
         @broker.subscriber(channel="headers-channel")
         async def handler(
@@ -195,16 +181,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     ) -> None:
         from faststream.exceptions import StopConsume
 
-<<<<<<< HEAD
         broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
-
-        event = asyncio.Event()
-=======
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
->>>>>>> f44f1f1f (refactor: using a fixture event, instead of creating an asyncio.Event)
 
         @broker.subscriber(channel="stop-channel")
         async def handler(msg: str) -> None:
@@ -232,16 +209,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         settings_cluster: SettingsCluster,
         event: asyncio.Event,
     ) -> None:
-<<<<<<< HEAD
         broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
-
-        event = asyncio.Event()
-=======
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
->>>>>>> f44f1f1f (refactor: using a fixture event, instead of creating an asyncio.Event)
 
         sub = broker.subscriber(channel="restart-channel")
 
