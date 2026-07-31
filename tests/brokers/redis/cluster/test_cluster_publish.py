@@ -27,12 +27,16 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         await super().test_reusable_publishers(queue, mock)
 
     @pytest.mark.slow()
-    async def test_reply_to(self, queue: str, mock: MagicMock) -> None:
-        await super().test_reply_to(queue, mock)
+    async def test_reply_to(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        await super().test_reply_to(queue, mock, event)
 
     @pytest.mark.slow()
-    async def test_no_reply(self, queue: str, mock: MagicMock) -> None:
-        await super().test_no_reply(queue, mock)
+    async def test_no_reply(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        await super().test_no_reply(queue, mock, event)
 
     async def test_list_publisher(
         self, queue: str, mock: MagicMock, event: asyncio.Event
