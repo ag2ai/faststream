@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Annotated
 
 from redis.asyncio.client import (
@@ -45,7 +45,7 @@ RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
 
 
-async def get_pipe(redis: Redis) -> AsyncIterator[RedisPipeline]:
+async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
     async with redis.pipeline() as pipe:
         yield pipe
 

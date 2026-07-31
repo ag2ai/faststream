@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 from unittest import mock
@@ -94,7 +94,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
             yield
 
     @contextmanager
-    def _patch_producer(self, broker: RabbitBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: RabbitBroker) -> Generator[None, None, None]:
         fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:

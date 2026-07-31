@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -24,7 +24,7 @@ class TestNatsTestCase:
         self.EVENTS_PROCESSED = 0
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]:
+    async def start(self) -> AsyncGenerator[float, None]:
         nc = await nats.connect(servers=["nats://localhost:4222"])
 
         async def message_handler(msg: Any) -> None:

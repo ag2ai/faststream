@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 
 import pytest
@@ -34,7 +34,7 @@ class TestKafkaCase:
             await admin.close()
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]:
+    async def start(self) -> AsyncGenerator[float, None]:
         await self.create_topic()
         producer = AIOKafkaProducer(bootstrap_servers="localhost:9092")
         consumer = AIOKafkaConsumer(

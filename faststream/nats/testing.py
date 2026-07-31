@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock
@@ -107,7 +107,7 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
         return sub, is_real
 
     @contextmanager
-    def _patch_producer(self, broker: NatsBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: NatsBroker) -> Generator[None, None, None]:
         fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:

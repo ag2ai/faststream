@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 from unittest.mock import MagicMock
@@ -158,7 +158,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         super()._fake_start(broker, *args, **kwargs)
 
     @contextmanager
-    def _patch_producer(self, broker: MQTTBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: MQTTBroker) -> Generator[None, None, None]:
         fake_producer = FakeProducer(broker, self.brokers)
         with change_producer(broker.config.broker_config, fake_producer):
             yield

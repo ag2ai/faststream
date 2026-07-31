@@ -1,6 +1,6 @@
 import asyncio
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -34,7 +34,7 @@ class TestKafkaCase:
         self.handler = handle
 
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]:
+    async def start(self) -> AsyncGenerator[float, None]:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
