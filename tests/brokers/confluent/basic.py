@@ -1,4 +1,7 @@
-from typing import Any
+from contextlib import AbstractAsyncContextManager
+from typing import Any, overload
+
+from typing_extensions import override
 
 from faststream.confluent import (
     KafkaBroker,
@@ -9,7 +12,7 @@ from faststream.confluent import (
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
-class ConfluentTestcaseConfig(BaseTestcaseConfig):
+class ConfluentTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
     timeout: float = 10.0
 
     def get_subscriber_params(
@@ -45,5 +48,24 @@ class ConfluentTestcaseConfig(BaseTestcaseConfig):
 
 
 class ConfluentMemoryTestcaseConfig(ConfluentTestcaseConfig):
-    def patch_broker(self, *brokers: KafkaBroker, **kwargs: Any) -> TestKafkaBroker:
+    @overload
+    def patch_broker(
+        self,
+        brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[KafkaBroker]: ...
+
+    @overload
+    def patch_broker(
+        self,
+        *brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[tuple[KafkaBroker, ...]]: ...
+
+    @override
+    def patch_broker(
+        self,
+        *brokers: KafkaBroker,
+        **kwargs: Any,
+    ) -> Any:
         return TestKafkaBroker(*brokers, **kwargs)
