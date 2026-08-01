@@ -129,6 +129,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         if stream.group and stream.consumer:
             group_create_id = "$" if self.last_id == ">" else self.last_id
+            read_id = self.last_id
             try:
                 await client.xgroup_create(
                     name=stream.name,
@@ -139,6 +140,10 @@ class _StreamHandlerMixin(LogicSubscriber):
             except ResponseError as e:
                 if "already exists" not in str(e):
                     raise
+            else:
+                read_id = ">"
+
+            self.last_id = read_id
 
             if stream.min_idle_time is None:
 
@@ -148,7 +153,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     return client.xreadgroup(
                         groupname=stream.group,
                         consumername=stream.consumer,
-                        streams={stream.name: stream.last_id},
+                        streams={stream.name: read_id},
                         count=stream.max_records,
                         block=stream.polling_interval,
                         noack=stream.no_ack,
