@@ -1,3 +1,4 @@
+from asyncio import Event
 from typing import Any
 
 import pytest
@@ -19,12 +20,12 @@ class TestPrometheus(
     LocalPrometheusTestcase,
     LocalRPCPrometheusTestcase,
 ):
-    async def test_rpc_request(self, queue: str) -> None:
+    async def test_rpc_request(self, queue: str, event: Event) -> None:
         if self.version == "3.1.1":
             pytest.skip(
                 "request/reply not supported in MQTT 3.1.1 without explicit reply_to",
             )
-        await super().test_rpc_request(queue)
+        await super().test_rpc_request(queue, event)
 
 
 @pytest.mark.connected()

@@ -13,11 +13,10 @@ from .basic import BaseTestcaseConfig
 
 @pytest.mark.asyncio()
 class MultibrokerTestcase(BaseTestcaseConfig):
-    async def test_multi_consume(self, queue: str, mock: MagicMock) -> None:
+    async def test_multi_consume(
+        self, queue: str, mock: MagicMock, event: asyncio.Event, event2: asyncio.Event
+    ) -> None:
         broker1, broker2 = self.get_broker(), self.get_broker()
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
@@ -27,9 +26,9 @@ class MultibrokerTestcase(BaseTestcaseConfig):
         def subscriber(m) -> None:
             mock()
             if mock.call_count == 1:
-                consume.set()
+                event.set()
             else:
-                consume2.set()
+                event2.set()
 
         app = FastStream(broker1, broker2)
 
@@ -42,14 +41,14 @@ class MultibrokerTestcase(BaseTestcaseConfig):
                 (
                     asyncio.create_task(br1.publish("hello", queue)),
                     asyncio.create_task(br2.publish("hello", queue + "1")),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
+        assert event.is_set()
+        assert event2.is_set()
         assert mock.call_count == 2
 
     async def test_another_broker_publisher(
@@ -155,11 +154,10 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
@@ -168,10 +166,10 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         @consume_broker.subscriber(*args2, **kwargs2)
         def subscriber(m) -> None:
             mock()
-            if not consume.is_set():
-                consume.set()
+            if not event.is_set():
+                event.set()
             else:
-                consume2.set()
+                event2.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -179,35 +177,34 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
                 (
                     asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(br.publish("hello", queue + "1")),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
+        assert event.is_set()
+        assert event2.is_set()
         assert mock.call_count == 2
 
     async def test_consume_double(
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @consume_broker.subscriber(*args, **kwargs)
         async def handler(m) -> None:
             mock()
-            if not consume.is_set():
-                consume.set()
+            if not event.is_set():
+                event.set()
             else:
-                consume2.set()
+                event2.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -215,32 +212,31 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
                 (
                     asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert consume2.is_set()
-        assert consume.is_set()
+        assert event2.is_set()
+        assert event.is_set()
         assert mock.call_count == 2
 
     async def test_different_consume(
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @consume_broker.subscriber(*args, **kwargs)
         def handler(m) -> None:
             mock.handler()
-            consume.set()
+            event.set()
 
         another_topic = queue + "1"
         args, kwargs = self.get_subscriber_params(another_topic)
@@ -248,7 +244,7 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         @consume_broker.subscriber(*args, **kwargs)
         def handler2(m) -> None:
             mock.handler2()
-            consume2.set()
+            event2.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -256,14 +252,14 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
                 (
                     asyncio.create_task(br.publish("hello", queue)),
                     asyncio.create_task(br.publish("hello", another_topic)),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
+        assert event.is_set()
+        assert event2.is_set()
         mock.handler.assert_called_once()
         mock.handler2.assert_called_once()
 
@@ -271,11 +267,10 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(
             queue,
@@ -286,12 +281,12 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         @sub(filter=lambda m: m.content_type == "application/json")
         async def handler(m) -> None:
             mock.handler(m)
-            consume.set()
+            event.set()
 
         @sub
         async def handler2(m) -> None:
             mock.handler2(m)
-            consume2.set()
+            event2.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -299,14 +294,14 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
                 (
                     asyncio.create_task(br.publish({"msg": "hello"}, queue)),
                     asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
+        assert event.is_set()
+        assert event2.is_set()
         mock.handler.assert_called_once_with({"msg": "hello"})
         mock.handler2.assert_called_once_with("hello")
 

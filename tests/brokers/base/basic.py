@@ -45,7 +45,7 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
             return brokers[0]
 
         @asynccontextmanager
-        async def enter_broker() -> AsyncGenerator[tuple[BrokerUsecase, ...], None]:
+        async def enter_broker() -> AsyncGenerator[list[BrokerUsecase], None]:
             started_brokers = []
 
             async with AsyncExitStack() as stack:

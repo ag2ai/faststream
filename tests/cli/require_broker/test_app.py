@@ -1,7 +1,7 @@
 import logging
 import os
 import signal
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -282,7 +282,7 @@ async def test_running_lifespan_contextmanager(
     app: FastStream,
 ) -> None:
     @asynccontextmanager
-    async def lifespan(env: str) -> AsyncIterator[None]:
+    async def lifespan(env: str) -> AsyncGenerator[None, None]:
         mock.on(env)
         yield
         mock.off()
@@ -357,7 +357,7 @@ def test_sync_test_app_with_excp(mock: MagicMock) -> None:
 @pytest.mark.asyncio()
 async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -> None:
     @asynccontextmanager
-    async def lifespan(env: str) -> AsyncIterator[None]:
+    async def lifespan(env: str) -> AsyncGenerator[None, None]:
         await async_mock.on(env)
         yield
         await async_mock.off()
@@ -379,7 +379,7 @@ async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -
 
 def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -> None:
     @asynccontextmanager
-    async def lifespan(env: str) -> AsyncIterator[None]:
+    async def lifespan(env: str) -> AsyncGenerator[None, None]:
         await async_mock.on(env)
         yield
         await async_mock.off()

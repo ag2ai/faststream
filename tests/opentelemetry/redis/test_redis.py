@@ -37,9 +37,8 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(
             meter_provider=meter_provider,
             tracer_provider=tracer_provider,
@@ -157,9 +156,8 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
         trace_exporter: InMemorySpanExporter,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         mid = self.telemetry_middleware_class(
             meter_provider=meter_provider,
             tracer_provider=tracer_provider,

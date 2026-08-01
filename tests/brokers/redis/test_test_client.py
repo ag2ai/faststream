@@ -14,12 +14,7 @@ from .basic import RedisMemoryTestcaseConfig
 @pytest.mark.asyncio()
 class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
     @pytest.mark.connected()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue)

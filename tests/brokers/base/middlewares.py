@@ -250,9 +250,8 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         class TapMiddleware(BaseMiddleware):
             async def consume_scope(self, call_next, msg):
                 mock.start(await msg.decode())
@@ -371,6 +370,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         queue: str,
         mock: MagicMock,
         event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
         class mid(BaseMiddleware):  # noqa: N801
             async def on_receive(self):
@@ -393,8 +393,6 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
 
         # should affect to already registered and a new subscriber both
         broker.add_middleware(mid)
-
-        event2 = asyncio.Event()
 
         # new subscriber
         args2, kwargs2 = self.get_subscriber_params(queue + "1")

@@ -155,7 +155,7 @@ You can choose the method that best fits with your application architecture.
 
 === "ASGI Application"
     ```python linenums="1" hl_lines="5 22"
-    from typing import AsyncIterator
+    from typing import AsyncGenerator
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI
@@ -170,7 +170,7 @@ You can choose the method that best fits with your application architecture.
         print(msg)
 
     @asynccontextmanager
-    async def broker_lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def broker_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         async with broker:
             await broker.start()
             yield
@@ -181,7 +181,7 @@ You can choose the method that best fits with your application architecture.
 
 === "Any HTTP Application"
     ```python linenums="1" hl_lines="23-26"
-    from typing import AsyncIterator
+    from typing import AsyncGenerator
     from contextlib import asynccontextmanager
 
     from fastapi import FastAPI, responses
@@ -195,7 +195,7 @@ You can choose the method that best fits with your application architecture.
         print(msg)
 
     @asynccontextmanager
-    async def broker_lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def broker_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         async with broker:
             await broker.start()
             yield
