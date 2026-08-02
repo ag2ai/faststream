@@ -136,6 +136,7 @@ test-core = [
     "pytest-cov>=6.2.1",
     "covdefaults>=2.3.0",
     "freezegun>=1.5.5",
+    "syrupy>=5.0.0",
 ]
 
 testing = [
