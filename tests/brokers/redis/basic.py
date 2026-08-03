@@ -1,4 +1,7 @@
-from typing import Any
+from contextlib import AbstractAsyncContextManager
+from typing import Any, overload
+
+from typing_extensions import override
 
 from faststream.redis import (
     RedisBroker,
@@ -9,7 +12,7 @@ from faststream.redis import (
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
-class RedisTestcaseConfig(BaseTestcaseConfig):
+class RedisTestcaseConfig(BaseTestcaseConfig[RedisBroker]):
     def get_broker(
         self,
         apply_types: bool = False,
@@ -22,11 +25,30 @@ class RedisTestcaseConfig(BaseTestcaseConfig):
 
 
 class RedisMemoryTestcaseConfig(RedisTestcaseConfig):
-    def patch_broker(self, *brokers: RedisBroker, **kwargs: Any) -> TestRedisBroker:
+    @overload
+    def patch_broker(
+        self,
+        brokers: RedisBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[RedisBroker]: ...
+
+    @overload
+    def patch_broker(
+        self,
+        *brokers: RedisBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[tuple[RedisBroker, ...]]: ...
+
+    @override
+    def patch_broker(
+        self,
+        *brokers: RedisBroker,
+        **kwargs: Any,
+    ) -> Any:
         return TestRedisBroker(*brokers, **kwargs)
 
 
-class RedisClusterTestcaseConfig(BaseTestcaseConfig):
+class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
     """Test config for ``RedisClusterBroker``.
 
     Connects to a real Redis Cluster.
@@ -49,9 +71,24 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig):
 
 
 class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
+    @overload
+    def patch_broker(
+        self,
+        brokers: RedisClusterBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[RedisClusterBroker]: ...
+
+    @overload
     def patch_broker(
         self,
         *brokers: RedisClusterBroker,
         **kwargs: Any,
-    ) -> TestRedisBroker:
+    ) -> AbstractAsyncContextManager[tuple[RedisClusterBroker, ...]]: ...
+
+    @override
+    def patch_broker(
+        self,
+        *brokers: RedisClusterBroker,
+        **kwargs: Any,
+    ) -> Any:
         return TestRedisBroker(*brokers, **kwargs)

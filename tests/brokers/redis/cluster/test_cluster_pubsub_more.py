@@ -3,10 +3,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.redis import RedisClusterBroker
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
-from .basic import RedisClusterTestcaseConfig
-from .conftest import SettingsCluster
+from .settings import SettingsCluster
 
 
 @pytest.mark.slow()
@@ -21,12 +20,10 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     async def test_pattern_subscribe(
         self,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
-        event = asyncio.Event()
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         received = []
 
         @broker.subscriber(channel="test.pattern.*")
@@ -50,20 +47,18 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     async def test_multiple_subscribers_same_channel(
         self,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
-        event1 = asyncio.Event()
-        event2 = asyncio.Event()
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
+
         received1 = []
         received2 = []
 
         @broker.subscriber(channel="multi-channel")
         async def handler1(msg: str) -> None:
             received1.append(msg)
-            event1.set()
+            event.set()
 
         @broker.subscriber(channel="multi-channel")
         async def handler2(msg: str) -> None:
@@ -75,7 +70,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
             await broker.publish("shared", channel="multi-channel")
             await asyncio.wait(
                 (
-                    asyncio.create_task(event1.wait()),
+                    asyncio.create_task(event.wait()),
                     asyncio.create_task(event2.wait()),
                 ),
                 timeout=self.timeout,
@@ -90,10 +85,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         settings_cluster: SettingsCluster,
         mock: MagicMock,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         sub = broker.subscriber(channel="get-one-channel")
 
@@ -125,10 +117,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         settings_cluster: SettingsCluster,
         mock: MagicMock,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         sub = broker.subscriber(channel="empty-channel")
 
@@ -144,15 +133,14 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         self,
         settings_cluster: SettingsCluster,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         from faststream import Context
 
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
+        broker = self.get_broker(
             apply_types=True,
+            startup_nodes=settings_cluster.startup_nodes,
         )
-        event = asyncio.Event()
 
         @broker.subscriber(channel="headers-channel")
         async def handler(
@@ -189,14 +177,11 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         self,
         settings_cluster: SettingsCluster,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         from faststream.exceptions import StopConsume
 
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
-        event = asyncio.Event()
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         @broker.subscriber(channel="stop-channel")
         async def handler(msg: str) -> None:
@@ -222,12 +207,9 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     async def test_unsubscribe_cleans_up(
         self,
         settings_cluster: SettingsCluster,
+        event: asyncio.Event,
     ) -> None:
-        broker = RedisClusterBroker(
-            url=settings_cluster.url,
-            startup_nodes=settings_cluster.startup_nodes,
-        )
-        event = asyncio.Event()
+        broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         sub = broker.subscriber(channel="restart-channel")
 

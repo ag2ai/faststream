@@ -35,3 +35,15 @@ This chapter discusses the security options available in **FastStream** and how 
 ```python linenums="1" hl_lines="6-11 13"
 {! docs_src/rabbit/security/plaintext.py [ln:1-10.25,11-] !}
 ```
+
+### 3. RabbitExternalAuth Object with SSL/TLS
+
+**Purpose:** The `RabbitExternalAuth` object is used for RabbitMQ SASL EXTERNAL authentication. It enables TLS and builds the AMQP URL with `auth=EXTERNAL` without username/password credentials.
+
+Before using this in production, load your CA certificate and client certificate/key into the `SSLContext`.
+
+**Usage:**
+
+```python linenums="1" hl_lines="3 6 8"
+{! docs_src/rabbit/security/external.py !}
+```

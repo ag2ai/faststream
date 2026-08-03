@@ -6,7 +6,7 @@ import pytest
 from faststream.nats import NatsBroker
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
-from .conftest import Settings
+from .settings import Settings
 
 
 @pytest.mark.connected()

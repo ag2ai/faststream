@@ -1,5 +1,5 @@
 import re
-from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from functools import partial
@@ -111,7 +111,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                 yield brokers
 
     @contextmanager
-    def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: RedisBroker) -> Generator[None, None, None]:
         with ExitStack() as es:
             es.enter_context(
                 change_producer(
@@ -237,16 +237,17 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.subscribers:  # pragma: no branch
-            for visitor in visitors:
-                if visited_ch := visitor.visit(**destination, sub=handler):
-                    msg = visitor.get_message(
-                        visited_ch,
-                        body,
-                        handler,  # type: ignore[arg-type]
-                    )
+        for visitor, visited_ch, handler in self._find_handlers(
+            destination,
+            visitors,
+        ):
+            msg = visitor.get_message(
+                visited_ch,
+                body,
+                handler,
+            )
 
-                    await self._execute_handler(msg, handler)
+            await self._execute_handler(msg, handler)
 
         return 0
 
@@ -264,17 +265,18 @@ class FakeProducer(RedisFastProducer):
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
 
-        for handler in self.subscribers:  # pragma: no branch
-            for visitor in visitors:
-                if visited_ch := visitor.visit(**destination, sub=handler):
-                    msg = visitor.get_message(
-                        visited_ch,
-                        body,
-                        handler,  # type: ignore[arg-type]
-                    )
+        for visitor, visited_ch, handler in self._find_handlers(
+            destination,
+            visitors,
+        ):
+            msg = visitor.get_message(
+                visited_ch,
+                body,
+                handler,
+            )
 
-                    with anyio.fail_after(cmd.timeout):
-                        return await self._execute_handler(msg, handler)
+            with anyio.fail_after(cmd.timeout):
+                return await self._execute_handler(msg, handler)
 
         raise SubscriberNotFound
 
@@ -292,19 +294,20 @@ class FakeProducer(RedisFastProducer):
             for m in cmd.batch_bodies
         ]
 
-        visitor = ListVisitor()
-        for handler in self.subscribers:  # pragma: no branch
-            if visitor.visit(list=cmd.destination, sub=handler):
-                casted_handler = cast("_ListHandlerMixin", handler)
+        for visitor, visited_ch, handler in self._find_handlers(
+            {"list": cmd.destination},
+            (ListVisitor(),),
+        ):
+            casted_handler = cast("_ListHandlerMixin", handler)
 
-                if casted_handler.list_sub.batch:
-                    msg = visitor.get_message(
-                        channel=cmd.destination,
-                        body=data_to_send,
-                        sub=casted_handler,
-                    )
+            if casted_handler.list_sub.batch:
+                msg = visitor.get_message(
+                    visited_ch,
+                    data_to_send,
+                    casted_handler,
+                )
 
-                    await self._execute_handler(msg, handler)
+                await self._execute_handler(msg, handler)
 
         return 0
 
@@ -328,6 +331,28 @@ class FakeProducer(RedisFastProducer):
             channel="",
             pattern=None,
         )
+
+    def _find_handlers(
+        self,
+        destination: "_DestinationKwargs",
+        visitors: "Sequence[Visitor]",
+    ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
+        published_groups: set[tuple[str, str]] = set()
+
+        for handler in self.subscribers:  # pragma: no branch
+            for visitor in visitors:
+                visited_ch = visitor.visit(**destination, sub=handler)
+                if visited_ch is None:
+                    continue
+
+                if isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.group:
+                    group_key = (visited_ch, handler.stream_sub.group)
+                    if group_key in published_groups:
+                        break
+                    published_groups.add(group_key)
+
+                yield visitor, visited_ch, handler
+                break
 
 
 async def build_message(

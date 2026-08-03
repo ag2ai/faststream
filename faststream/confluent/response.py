@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
@@ -139,6 +140,42 @@ class KafkaPublishCommand(BatchPublishCommand):
             headers["reply_to"] = self.reply_to
 
         return headers | self.headers
+
+    @BatchPublishCommand.batch_bodies.setter  # type: ignore[attr-defined, untyped-decorator]
+    def batch_bodies(self, value: Sequence["Any"]) -> None:
+        if len(value) == 0:
+            self.body = None
+            self.extra_bodies = ()
+        else:
+            self._align_keys(value)
+            self.body = value[0]
+            self.extra_bodies = tuple(value[1:])
+
+    def _align_keys(self, value: Sequence["Any"]) -> None:
+        """Align the per-message keys with the batch_bodies."""
+        if len(self.batch_bodies) == 0:
+            return
+        if isinstance(self.batch_bodies[0], KafkaResponse):
+            return
+        new_indexes = self._form_indexes(value)
+        self._per_message_keys = tuple(self._per_message_keys[i] for i in new_indexes)
+
+    def _form_indexes(self, value: Sequence["Any"]) -> tuple[int, ...]:
+        """Form a list of indexes for the given value sequence based on batch_bodies."""
+        bodies_seen: dict[int, Any] = {}
+        for body in value:
+            index = self.batch_bodies.index(body)
+            self._update_bodies(bodies_seen, index, body)
+
+        return tuple(i for i in bodies_seen)
+
+    def _update_bodies(self, bodies_seen: dict[int, Any], index: int, body: Any) -> None:
+        """Update the bodies_seen dictionary with the given index and body."""
+        if self.batch_bodies[index] == body and bodies_seen.get(index) is None:
+            bodies_seen.update({index: body})
+        else:
+            index += 1
+            self._update_bodies(bodies_seen, index, body)
 
 
 # Semantic alias for publish operations

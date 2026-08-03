@@ -84,8 +84,8 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         queue: str,
         status: AckStatus,
         exception_class: type[Exception] | None,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
         registry = CollectorRegistry()
         custom_labels: dict[str, str | Callable[[Any], str]] = {
             "static": "pupupu",
@@ -285,11 +285,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
 
 class LocalRPCPrometheusTestcase:
     @pytest.mark.asyncio()
-    async def test_rpc_request(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
+    async def test_rpc_request(self, queue: str, event: asyncio.Event) -> None:
         registry = CollectorRegistry()
 
         middleware = self.get_middleware(registry=registry)

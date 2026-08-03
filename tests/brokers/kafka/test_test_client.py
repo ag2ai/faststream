@@ -147,12 +147,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             publisher.flush.assert_awaited_once()
 
     @pytest.mark.connected()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue)

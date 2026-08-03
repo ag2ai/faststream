@@ -7,8 +7,7 @@ import pytest
 from faststream import Context
 from faststream.redis import RedisResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
-
-from .basic import RedisClusterTestcaseConfig
+from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 
 @pytest.mark.connected()
@@ -28,19 +27,20 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         await super().test_reusable_publishers(queue, mock)
 
     @pytest.mark.slow()
-    async def test_reply_to(self, queue: str, mock: MagicMock) -> None:
-        await super().test_reply_to(queue, mock)
+    async def test_reply_to(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        await super().test_reply_to(queue, mock, event)
 
     @pytest.mark.slow()
-    async def test_no_reply(self, queue: str, mock: MagicMock) -> None:
-        await super().test_no_reply(queue, mock)
+    async def test_no_reply(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        await super().test_no_reply(queue, mock, event)
 
     async def test_list_publisher(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(list=queue)
@@ -91,11 +91,8 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         assert {1, "hi"} == {r.result() for r in result}
 
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(list=queue)
@@ -161,9 +158,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Publish to channel via cluster Pub/Sub."""
-        event = asyncio.Event()
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(channel=queue)
@@ -188,9 +185,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
     ) -> None:
         """Headers and correlation_id are propagated via Pub/Sub."""
-        event = asyncio.Event()
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(channel=queue)

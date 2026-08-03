@@ -106,12 +106,8 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)

@@ -19,9 +19,8 @@ class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase)
     async def test_metrics(
         self,
         queue: str,
+        event: asyncio.Event,
     ):
-        event = asyncio.Event()
-
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
