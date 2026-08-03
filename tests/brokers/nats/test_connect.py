@@ -5,6 +5,7 @@ import pytest
 from nats.errors import Error
 
 from faststream.nats import NatsBroker
+from faststream.nats.broker.broker import UNRECOVERABLE_CONNECT_ERRORS
 from tests.brokers.base.connection import BrokerConnectionTestcase
 
 from .settings import Settings
@@ -26,10 +27,19 @@ class TestConnection(BrokerConnectionTestcase):
 
 @pytest.mark.nats()
 @pytest.mark.asyncio()
-async def test_initial_authorization_violation_fails_fast() -> None:
-
+@pytest.mark.parametrize("reason", UNRECOVERABLE_CONNECT_ERRORS)
+async def test_unrecoverable_connect_error_fails_fast(reason: str) -> None:
     broker = NatsBroker()
     error_cb = broker._connection_kwargs["error_cb"]
 
     with pytest.raises(Error):
-        await error_cb(Error("nats: 'Authorization Violation'"))
+        await error_cb(Error(f"nats: '{reason.title()}'"))
+
+
+@pytest.mark.nats()
+@pytest.mark.asyncio()
+async def test_recoverable_connect_error_does_not_raise() -> None:
+    broker = NatsBroker()
+    error_cb = broker._connection_kwargs["error_cb"]
+
+    await error_cb(Error("nats: 'Slow Consumer'"))

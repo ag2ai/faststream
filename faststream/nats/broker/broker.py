@@ -170,6 +170,22 @@ if TYPE_CHECKING:
         flush_timeout: float | None
 
 
+# Server-sent `-ERR` reasons that will never succeed on retry, so the
+# initial connection attempt should fail fast instead of being silently
+# retried like a transient error until `max_reconnect_attempts` is hit.
+UNRECOVERABLE_CONNECT_ERRORS = (
+    "authorization violation",
+    "authorization timeout",
+    "invalid client protocol",
+    "maximum payload violation",
+    "invalid subject",
+    "stale connection",
+    "maximum connections exceeded",
+    "parser error",
+    "secure connection - tls required",
+)
+
+
 class NatsBroker(
     NatsRegistrator,
     BrokerUsecase[Msg, Client],
@@ -715,8 +731,10 @@ class NatsBroker(
             if error_cb is not None:
                 await error_cb(err)
 
-            if isinstance(err, Error) and "authorization violation" in str(err).lower():
-                raise err
+            if isinstance(err, Error):
+                reason = str(err).removeprefix("nats: ").strip("'").lower()
+                if reason in UNRECOVERABLE_CONNECT_ERRORS:
+                    raise err
 
             if isinstance(err, Error) and self.config.connection_state:
                 self.config.logger.log(
