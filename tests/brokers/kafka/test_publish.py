@@ -337,7 +337,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
                 received.append((msg, key))
 
         received_set = set(received)
-        expected_set = { 
+        expected_set = {
             ("message1", b"default_key"),
             ("message2", b"explicit_key"),
             ("message3", b"another_key"),
