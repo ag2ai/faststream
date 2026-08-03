@@ -100,10 +100,10 @@ class KafkaPublishCommand(BatchPublishCommand):
         self.timeout = timeout
 
         # per-message keys support
+        self._per_message_keys = keys        
         keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
         if normalized is not None:
             self.batch_bodies = normalized
-        self._per_message_keys = keys
 
     @classmethod
     def from_cmd(
@@ -154,17 +154,13 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     def _align_keys(self, value: Sequence["Any"]) -> None:
         """Align the per-message keys with the batch_bodies."""
+        if not self._per_message_keys:
+            return
         self._per_message_keys = realign_keys(
             self._per_message_keys, self.batch_bodies, value
         )
 
-    def _update_bodies(self, bodies_seen: dict[int, Any], index: int, body: Any) -> None:
-        """Update the bodies_seen dictionary with the given index and body."""
-        if self.batch_bodies[index] == body and bodies_seen.get(index) is None:
-            bodies_seen.update({index: body})
-        else:
-            index += 1
-            self._update_bodies(bodies_seen, index, body)
+
 
 
 # Semantic alias for publish operations
