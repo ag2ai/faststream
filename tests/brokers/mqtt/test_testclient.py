@@ -25,6 +25,11 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
             pytest.skip(_SKIP_V311)
         await super().test_response(queue, mock)
 
+    async def test_custom_id_generator(self, queue, mock):
+        if self.version == "3.1.1":
+            pytest.skip(_SKIP_V311)
+        await super().test_custom_id_generator(queue, mock)
+
     async def test_reply_to(self, queue, mock):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)

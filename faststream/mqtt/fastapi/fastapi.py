@@ -13,6 +13,7 @@ from typing_extensions import override
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.broker import MQTTBroker
 
@@ -62,6 +63,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         codec: Optional["CodecProto"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         ack_policy: AckPolicy = EMPTY,
+        id_generator: Callable[[], str] = gen_cor_id,
         serializer: Optional["SerializerProto"] = EMPTY,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -114,6 +116,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             codec=codec,
             middlewares=middlewares,
             ack_policy=ack_policy,
+            id_generator=id_generator,
             serializer=serializer,
             schema_url=schema_url,
             setup_state=setup_state,

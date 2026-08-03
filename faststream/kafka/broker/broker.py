@@ -227,6 +227,7 @@ class KafkaBroker(
         # broker base args
         graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
+        id_generator: Callable[[], str] = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
@@ -335,6 +336,9 @@ class KafkaBroker(
             ack_policy (AckPolicy):
                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
                 If not set, each broker type uses its built-in default.
+            id_generator (Callable[[], str]):
+                Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder (Optional[CustomCallable]):
                 Custom decoder object.
             codec (Optional[CodecProto]):
@@ -462,6 +466,7 @@ class KafkaBroker(
                 # subscriber args
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
+                id_generator=id_generator,
                 broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
@@ -605,7 +610,7 @@ class KafkaBroker(
             headers=headers,
             reply_to=reply_to,
             no_confirm=no_confirm,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
         )
         return await super()._basic_publish(cmd, producer=self.config.producer)
@@ -655,7 +660,7 @@ class KafkaBroker(
             timestamp_ms=timestamp_ms,
             headers=headers,
             timeout=timeout,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.REQUEST,
         )
 
@@ -750,7 +755,7 @@ class KafkaBroker(
             headers=headers,
             reply_to=reply_to,
             no_confirm=no_confirm,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
         )
 

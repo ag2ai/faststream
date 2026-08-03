@@ -194,6 +194,7 @@ class FakeProducer(AioKafkaFastProducer):
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -217,6 +218,7 @@ class FakeProducer(AioKafkaFastProducer):
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -266,6 +268,7 @@ class FakeProducer(AioKafkaFastProducer):
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
+                    id_generator=self.broker.config.id_generator,
                 )
                 for message_position, (body, content_type) in enumerate(encoded)
             ]
@@ -292,6 +295,7 @@ class FakeProducer(AioKafkaFastProducer):
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 
@@ -307,6 +311,7 @@ async def build_message(
     reply_to: str = "",
     serializer: Optional["SerializerProto"],
     codec: Optional["CodecProto"] = None,
+    id_generator: Callable[[], str] = gen_cor_id,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
     if message is None and key is not None:
@@ -320,7 +325,7 @@ async def build_message(
 
     headers = {
         "content-type": content_type or "",
-        "correlation_id": correlation_id or gen_cor_id(),
+        "correlation_id": correlation_id or id_generator(),
         **(headers or {}),
     }
 
@@ -352,11 +357,12 @@ def _build_record(
     headers: dict[str, str] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
+    id_generator: Callable[[], str] = gen_cor_id,
 ) -> "ConsumerRecord":
     k = key or b""
     h = {
         "content-type": content_type or "",
-        "correlation_id": correlation_id or gen_cor_id(),
+        "correlation_id": correlation_id or id_generator(),
         **(headers or {}),
     }
     if reply_to:

@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
 
 from aio_pika import Message
@@ -75,6 +76,7 @@ class AioPikaParser:
         app_id: str | None = None,
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
+        id_generator: Callable[[], str] = gen_cor_id,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):
@@ -93,7 +95,7 @@ class AioPikaParser:
             content_type=content_type or generated_content_type,
             delivery_mode=delivery_mode,
             reply_to=reply_to,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or id_generator(),
             headers=headers,
             content_encoding=content_encoding,
             priority=priority,

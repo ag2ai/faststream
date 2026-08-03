@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 from unittest import mock
@@ -176,6 +176,7 @@ async def build_message(
     app_id: str | None = None,
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
+    id_generator: Callable[[], str] = gen_cor_id,
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)
@@ -183,7 +184,7 @@ async def build_message(
 
     routing = routing_key or que.routing()
 
-    correlation_id = correlation_id or gen_cor_id()
+    correlation_id = correlation_id or id_generator()
     msg = await AioPikaParser.encode_message(
         message=message,
         persist=persist,
@@ -272,6 +273,7 @@ class FakeProducer(AioPikaFastProducer):
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
             **cmd.message_options,
         )
 
@@ -304,6 +306,7 @@ class FakeProducer(AioPikaFastProducer):
             headers=cmd.headers,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
             **cmd.message_options,
         )
 
@@ -333,6 +336,7 @@ class FakeProducer(AioPikaFastProducer):
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 

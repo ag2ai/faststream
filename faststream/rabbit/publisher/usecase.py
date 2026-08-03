@@ -5,7 +5,6 @@ from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
-from faststream.message import gen_cor_id
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -99,7 +98,10 @@ class RabbitPublisher(PublisherUsecase):
         else:
             headers = self.headers
 
-        correlation_id = publish_kwargs.pop("correlation_id", gen_cor_id())
+        correlation_id = (
+            publish_kwargs.pop("correlation_id", None)
+            or self._outer_config.id_generator()
+        )
 
         cmd = RabbitPublishCommand(
             message,
@@ -160,7 +162,10 @@ class RabbitPublisher(PublisherUsecase):
         else:
             headers = self.headers
 
-        correlation_id = publish_kwargs.pop("correlation_id", gen_cor_id())
+        correlation_id = (
+            publish_kwargs.pop("correlation_id", None)
+            or self._outer_config.id_generator()
+        )
 
         cmd = RabbitPublishCommand(
             message,
