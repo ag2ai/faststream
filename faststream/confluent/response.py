@@ -100,8 +100,8 @@ class KafkaPublishCommand(BatchPublishCommand):
         self.timeout = timeout
 
         # per-message keys support
-        self._per_message_keys = keys        
         keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
+        self._per_message_keys = keys
         if normalized is not None:
             self.batch_bodies = normalized
 
@@ -159,8 +159,6 @@ class KafkaPublishCommand(BatchPublishCommand):
         self._per_message_keys = realign_keys(
             self._per_message_keys, self.batch_bodies, value
         )
-
-
 
 
 # Semantic alias for publish operations
