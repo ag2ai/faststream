@@ -155,7 +155,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         """Align the per-message keys with the batch_bodies."""
         if len(self.batch_bodies) == 0:
             return
-        if isinstance(self.batch_bodies[0], KafkaResponse):
+        if not hasattr(self, "_per_message_keys"):
             return
 
         new_indexes = self._form_indexes(value)

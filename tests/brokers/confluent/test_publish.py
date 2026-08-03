@@ -227,9 +227,9 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             await publisher.publish(
-                KafkaPublishMessage("message1", key=b"key1"),
-                KafkaPublishMessage("message2", key=b"key2"),
-                "message3",
+                "message1",
+                KafkaPublishMessage("message2", key=b"key1"),
+                KafkaPublishMessage("message3", key=b"key2"),
             )
 
             received = []
@@ -241,9 +241,9 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
         received_set = set(received)
         expected_set = {
-            ("message1", b"key1"),
-            ("message2", b"key2"),
-            ("message3", None),
+            ("message1", None),
+            ("message2", b"key1"),
+            ("message3", b"key2"),
         }
         assert received_set == expected_set, (
             f"Expected {expected_set}, got {received_set}"

@@ -116,6 +116,12 @@ KEY_ALIGNMENT_CASES = (
         id="reversed",
     ),
     pytest.param(
+        (BODY_A, (BODY_B, b"key-B")),
+        reverse,
+        ((BODY_B, b"key-B"), (BODY_A, None)),
+        id="reverse-with-default-none",
+    ),
+    pytest.param(
         ((BODY_A, b"key-A"), (BODY_B, b"key-B"), (BODY_C, b"key-C")),
         drop_first,
         ((BODY_B, b"key-B"), (BODY_C, b"key-C")),
@@ -134,10 +140,22 @@ KEY_ALIGNMENT_CASES = (
         id="reversed-with-duplicates",
     ),
     pytest.param(
+        (BODY_B, (BODY_B, b"key-B"), (BODY_A, b"key-A")),
+        reverse,
+        ((BODY_A, b"key-A"), (BODY_B, b"key-B"), (BODY_B, None)),
+        id="reversed-with-duplicates-and-default-none",
+    ),
+    pytest.param(
         ((BODY_A, b"key-1"), (BODY_A, b"key-2"), (BODY_B, b"key-3")),
         dedup,
         ((BODY_A, b"key-1"), (BODY_B, b"key-3")),
         id="deduplicated",
+    ),
+    pytest.param(
+        (BODY_B, (BODY_B, b"key-B"), BODY_A),
+        reverse,
+        ((BODY_A, None), (BODY_B, b"key-B"), (BODY_B, None)),
+        id="reversed-with-duplicates-and-double-none",
     ),
     pytest.param(SHUFFLED, keep, SHUFFLED, id="untouched-shuffled"),
     # Every pair below is one of the original ones, but identical bodies keep their
