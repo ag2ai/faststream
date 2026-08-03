@@ -715,6 +715,9 @@ class NatsBroker(
             if error_cb is not None:
                 await error_cb(err)
 
+            if isinstance(err, Error) and "authorization violation" in str(err).lower():
+                raise err
+
             if isinstance(err, Error) and self.config.connection_state:
                 self.config.logger.log(
                     f"Connection broken with {err!r}",
