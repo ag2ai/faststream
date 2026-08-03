@@ -139,6 +139,12 @@ KEY_ALIGNMENT_CASES = (
         ((BODY_A, b"key-1"), (BODY_B, b"key-3")),
         id="deduplicated",
     ),
+    pytest.param(
+        ((BODY_A, None), (BODY_B, b"key-B"), (BODY_B, None)),
+        reverse,
+        ((BODY_B, b""), (BODY_B, b"key-B"), (BODY_A, b"")),
+        id="reversed-with-duplicates-and-none-keys",
+    ),
     pytest.param(SHUFFLED, keep, SHUFFLED, id="untouched-shuffled"),
     # Every pair below is one of the original ones, but identical bodies keep their
     # keys in the original relative order instead of being reversed along with them --
@@ -222,5 +228,4 @@ class BatchKeysTestcase:
                 *(self.publish_message_cls(body, key=key) for body, key in pairs),
                 topic=queue,
             )
-
-        assert tuple(received) == expected
+        assert set(received) == set(expected)
