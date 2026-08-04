@@ -217,7 +217,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                 response_model_exclude_unset=response_model_exclude_unset,
                 response_model_exclude_defaults=response_model_exclude_defaults,
                 response_model_exclude_none=response_model_exclude_none,
-                context=self.context,
+                context=self.broker.context,
                 fastapi_config=self.fastapi_config,
             )
 
