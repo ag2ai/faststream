@@ -21,6 +21,8 @@ from typing import (
     overload,
 )
 
+from typing_extensions import override
+
 from fastapi.datastructures import Default
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, APIRouter
@@ -187,6 +189,11 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         self._lifespan_started = False
 
+    @property
+    @override
+    def context(self) -> ContextRepo:
+        return self.broker.context
+
     def _subscriber_compatibility_wrapper(
         self,
         dependencies: Iterable["params.Depends"] = (),
@@ -217,7 +224,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                 response_model_exclude_unset=response_model_exclude_unset,
                 response_model_exclude_defaults=response_model_exclude_defaults,
                 response_model_exclude_none=response_model_exclude_none,
-                context=self.broker.context,
+                context=self.context,
                 fastapi_config=self.fastapi_config,
             )
 
