@@ -6,6 +6,8 @@ import pytest
 from pydantic import BaseModel
 
 from faststream import Context, Depends, FastStream, TestApp
+from faststream._internal.context.repository import ContextRepo
+from faststream.app import FastDependsConfig
 from faststream.exceptions import StopConsume
 
 from .basic import BaseTestcaseConfig
@@ -403,6 +405,41 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
 
             with pytest.raises(AssertionError):
                 await subscriber.get_one(timeout=1e-24)
+
+    async def test_composition_context(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(context=ContextRepo({"var1": "var1"}))
+
+        broker._update_fd_config(
+            FastDependsConfig(
+                context=ContextRepo({"var2": "var2"}),
+            ),
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(var1=Context(), var2=Context()) -> None:
+            event.set()
+            mock(var1, var2)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+            mock.assert_called_once_with("var1", "var2")
 
 
 @pytest.mark.asyncio()

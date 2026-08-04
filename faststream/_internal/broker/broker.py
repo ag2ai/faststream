@@ -6,6 +6,7 @@ from fast_depends import Provider
 from typing_extensions import Self
 
 from faststream._internal.configs import BrokerConfigType
+from faststream._internal.context.composition import ContextRepoComposition
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
@@ -85,7 +86,15 @@ class BrokerUsecase(
 
     def _update_fd_config(self, config: "FastDependsConfig") -> None:
         """Private method to change broker config state by outer application."""
+        context = ContextRepoComposition(
+            config.context,
+            self.context,
+        )
+
+        config.context = context
+
         self.config.fd_config = config | self.config.fd_config
+        self.config.fd_config.context = context
 
     async def start(self) -> None:
         # TODO: filter by already running handlers after TestClient refactor

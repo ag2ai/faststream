@@ -1,34 +1,43 @@
-from collections.abc import Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Generator
+from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar, Token
 from typing import Any, TypeVar
 
+from typing_extensions import override
+
 from faststream._internal.constants import EMPTY
+from faststream._internal.context.repository import ContextRepo
 from faststream.exceptions import ContextError
 
 T = TypeVar("T")
 
 
-class ContextRepo:
-    """A class to represent a context repository."""
+class ContextRepoComposition(ContextRepo):
+    def __init__(
+        self,
+        lgh_context: ContextRepo,
+        rgh_context: ContextRepo,
+    ) -> None:
+        self._lgh_context = lgh_context
+        self._rgh_context = rgh_context
 
-    def __init__(self, initial: dict[str, Any] | None = None, /) -> None:
-        """Initialize the class.
+        self._set_context()
 
-        Attributes:
-            _global_context : a dictionary representing the global context
-            _scope_context : a dictionary representing the scope context
-        """
-        self._global_context: dict[str, Any] = {"context": self} | (initial or {})
-        self._scope_context: dict[str, ContextVar[Any]] = {}
+        super().__init__()
 
     @property
+    @override
     def context(self) -> dict[str, Any]:
         return {
-            **self._global_context,
-            **{i: j.get() for i, j in self._scope_context.items()},
+            **self._lgh_context.context,
+            **self._rgh_context.context,
         }
 
+    def _set_context(self) -> None:
+        self._lgh_context.set_global("context", self)
+        self._rgh_context.set_global("context", self)
+
+    @override
     def set_global(self, key: str, v: Any) -> None:
         """Sets a value in the global context.
 
@@ -39,8 +48,10 @@ class ContextRepo:
         Returns:
             None.
         """
-        self._global_context[key] = v
+        self._lgh_context.set_global(key, v)
+        self._rgh_context.set_global(key, v)
 
+    @override
     def reset_global(self, key: str) -> None:
         """Resets a key in the global context.
 
@@ -50,8 +61,10 @@ class ContextRepo:
         Returns:
             None
         """
-        self._global_context.pop(key, None)
+        self._lgh_context.reset_global(key)
+        self._rgh_context.reset_global(key)
 
+    @override
     def set_local(self, key: str, value: T) -> "Token[T]":
         """Set a local context variable.
 
@@ -62,12 +75,19 @@ class ContextRepo:
         Returns:
             Token[T]: A token representing the context variable.
         """
-        context_var = self._scope_context.get(key)
+        context_var = self._lgh_context._scope_context.get(key)
+        if context_var is None:
+            context_var = self._rgh_context._scope_context.get(key)
+
         if context_var is None:
             context_var = ContextVar(key, default=EMPTY)
-            self._scope_context[key] = context_var
+
+            self._lgh_context._scope_context[key] = context_var
+            self._rgh_context._scope_context[key] = context_var
+
         return context_var.set(value)
 
+    @override
     def reset_local(self, key: str, tag: "Token[Any]") -> None:
         """Resets the local context for a given key.
 
@@ -78,8 +98,12 @@ class ContextRepo:
         Returns:
             None
         """
-        self._scope_context[key].reset(tag)
+        variable = self._lgh_context._scope_context.get(key)
 
+        if variable is not None:
+            variable.reset(tag)
+
+    @override
     def get_local(self, key: str, default: Any = None) -> Any:
         """Get the value of a local variable.
 
@@ -90,15 +114,14 @@ class ContextRepo:
         Returns:
             The value of the local variable.
         """
-        if (context_var := self._scope_context.get(key)) is None:
-            return default
+        variable = self._lgh_context.get_local(key, default)
+        if variable is default:
+            variable = self._rgh_context.get_local(key, default)
 
-        if (context_value := context_var.get()) is EMPTY:
-            return default
-
-        return context_value
+        return variable
 
     @contextmanager
+    @override
     def scope(self, key: str, value: Any) -> Generator[None, None, None]:
         """Sets a local variable and yields control to the caller. After the caller is done, the local variable is reset.
 
@@ -112,12 +135,13 @@ class ContextRepo:
         Returns:
             An iterator that yields None
         """
-        token = self.set_local(key, value)
-        try:
-            yield
-        finally:
-            self.reset_local(key, token)
+        with ExitStack() as stack:
+            stack.enter_context(self._lgh_context.scope(key, value))
+            stack.enter_context(self._rgh_context.scope(key, value))
 
+            yield
+
+    @override
     def get(self, key: str, default: Any = None) -> Any:
         """Get the value associated with a key.
 
@@ -128,10 +152,13 @@ class ContextRepo:
         Returns:
             The value associated with the key.
         """
-        if (glob := self._global_context.get(key, EMPTY)) is EMPTY:
-            return self.get_local(key, default)
-        return glob
+        variable = self._lgh_context.get(key, default)
+        if variable is default:
+            variable = self._rgh_context.get(key, default)
 
+        return variable
+
+    @override
     def __getattr__(self, name: str, /) -> Any:
         """This is a function that is part of a class. It is used to get an attribute value using the `__getattr__` method.
 
@@ -141,8 +168,13 @@ class ContextRepo:
         Returns:
             The value of the attribute.
         """
-        return self.get(name)
+        variable = getattr(self._lgh_context, name)
+        if variable is None:
+            variable = getattr(self._rgh_context, name)
 
+        return variable
+
+    @override
     def resolve(self, argument: str) -> Any:
         """Resolve the context of an argument.
 
@@ -155,16 +187,21 @@ class ContextRepo:
         Raises:
             AttributeError, KeyError: If the argument does not exist in the context.
         """
-        first, *keys = argument.split(".")
+        try:
+            return self._lgh_context.resolve(argument)
+        except ContextError:
+            pass
 
-        if (v := self.get(first, EMPTY)) is EMPTY:
-            raise ContextError(self.context, first)
+        try:
+            return self._rgh_context.resolve(argument)
+        except ContextError as error:
+            field = error.field
 
-        for i in keys:
-            v = v[i] if isinstance(v, Mapping) else getattr(v, i)
+        raise ContextError(self.context, field)
 
-        return v
-
+    @override
     def clear(self) -> None:
-        self._global_context = {"context": self}
-        self._scope_context.clear()
+        self._lgh_context.clear()
+        self._rgh_context.clear()
+
+        self._set_context()
