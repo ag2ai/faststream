@@ -1,5 +1,7 @@
 import pytest
 
+from faststream.redis.testing import PEL
+
 
 @pytest.mark.redis()
 @pytest.mark.asyncio()
@@ -8,7 +10,7 @@ async def test_pending_message_stays_without_a_claimer() -> None:
         test_pending_message_stays_without_a_claimer as run,
     )
 
-    await run()
+    await run(PEL())
 
 
 @pytest.mark.redis()
@@ -18,7 +20,7 @@ async def test_each_group_gets_its_own_pel_entry() -> None:
         test_each_group_gets_its_own_pel_entry as run,
     )
 
-    await run()
+    await run(PEL())
 
 
 @pytest.mark.redis()
@@ -28,7 +30,7 @@ async def test_no_ack_worker_never_touches_the_pel() -> None:
         test_no_ack_worker_never_touches_the_pel as run,
     )
 
-    await run()
+    await run(PEL())
 
 
 @pytest.mark.redis()
@@ -38,4 +40,4 @@ async def test_message_is_caught_by_reprocessing_worker() -> None:
         test_message_is_caught_by_reprocessing_worker as run,
     )
 
-    await run()
+    await run(PEL())
