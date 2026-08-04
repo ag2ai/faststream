@@ -1,4 +1,4 @@
-from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
@@ -70,7 +70,7 @@ class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
         )
 
     @contextmanager
-    def _patch_producer(self, broker: KafkaBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: KafkaBroker) -> Generator[None, None, None]:
         fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:

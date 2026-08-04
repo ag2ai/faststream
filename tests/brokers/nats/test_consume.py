@@ -22,10 +22,9 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
         broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue, max_workers=2)
@@ -60,12 +59,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert mock.call_count == 2, mock.call_count
 
     async def test_consume_js(
-        self,
-        queue: str,
-        stream: JStream,
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream)
@@ -88,12 +83,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     async def test_consume_with_filter(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
@@ -118,13 +109,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         mock.assert_called_once_with(2)
 
     async def test_consume_pull(
-        self,
-        queue: str,
-        stream: JStream,
-        mock,
+        self, queue: str, stream: JStream, mock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
@@ -151,13 +137,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             mock.assert_called_once_with("hello")
 
     async def test_consume_batch(
-        self,
-        queue: str,
-        stream: JStream,
-        mock,
+        self, queue: str, stream: JStream, mock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
@@ -184,12 +165,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             mock.assert_called_once_with([b"hello"])
 
     async def test_core_consume_no_ack(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -224,12 +201,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         mock.assert_called_once_with(True)  # True was set by parser
 
     async def test_consume_ack(
-        self,
-        queue: str,
-        stream: JStream,
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, stream=stream)
@@ -252,12 +225,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     async def test_consume_ack_manual(
-        self,
-        queue: str,
-        stream: JStream,
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, stream=stream)
@@ -309,12 +278,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     async def test_consume_ack_raise(
-        self,
-        queue: str,
-        stream: JStream,
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, stream=stream)
@@ -337,13 +302,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
         assert event.is_set()
 
-    async def test_nack(
-        self,
-        queue: str,
-        stream: JStream,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_nack(self, queue: str, stream: JStream, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, stream=stream)
@@ -367,12 +326,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     async def test_consume_no_ack(
-        self,
-        queue: str,
-        stream: str,
+        self, queue: str, stream: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -399,13 +354,8 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             assert event.is_set()
 
     async def test_consume_batch_headers(
-        self,
-        queue: str,
-        stream: JStream,
-        mock,
+        self, queue: str, stream: JStream, mock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -438,13 +388,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         mock.assert_called_once_with(True)
 
     @pytest.mark.asyncio()
-    async def test_consume_kv(
-        self,
-        queue: str,
-        mock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_kv(self, queue: str, mock, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, kv_watch=queue + "1")
@@ -473,13 +417,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         mock.assert_called_with(b"world")
 
     @pytest.mark.asyncio()
-    async def test_consume_os(
-        self,
-        queue: str,
-        mock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_os(self, queue: str, mock, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue, obj_watch=True)

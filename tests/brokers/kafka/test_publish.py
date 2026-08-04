@@ -102,12 +102,8 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
@@ -328,8 +324,8 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             await publisher.publish(
-                KafkaResponse("message1", key=b"explicit_key"),
-                "message2",
+                "message1",
+                KafkaResponse("message2", key=b"explicit_key"),
                 KafkaResponse("message3", key=b"another_key"),
             )
 
@@ -342,8 +338,8 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         received_set = set(received)
         expected_set = {
-            ("message1", b"explicit_key"),
-            ("message2", b"default_key"),
+            ("message1", b"default_key"),
+            ("message2", b"explicit_key"),
             ("message3", b"another_key"),
         }
         assert received_set == expected_set, (

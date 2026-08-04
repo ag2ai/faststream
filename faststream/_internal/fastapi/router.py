@@ -2,7 +2,7 @@ import json
 import warnings
 from abc import abstractmethod
 from collections.abc import (
-    AsyncIterator,
+    AsyncGenerator,
     Awaitable,
     Callable,
     Iterable,
@@ -273,7 +273,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         @asynccontextmanager
         async def start_broker_lifespan(
             app: "FastAPI",
-        ) -> AsyncIterator[Mapping[str, Any] | None]:
+        ) -> AsyncGenerator[Mapping[str, Any] | None, None]:
             """Starts the lifespan of a broker."""
             self.fastapi_config.set_application(app)
 

@@ -45,12 +45,8 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_consume_batch_headers(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
@@ -83,12 +79,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    async def test_consume_auto_ack(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_auto_ack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -127,12 +118,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    async def test_consume_ack_manual(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_ack_manual(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -167,12 +153,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    async def test_consume_ack_raise(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_ack_raise(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -207,12 +188,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    async def test_nack(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_nack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -247,12 +223,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
-    async def test_consume_no_ack(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_no_ack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -292,11 +263,8 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
     @pytest.mark.slow()
     async def test_consume_with_no_auto_commit(
-        self,
-        queue: str,
+        self, queue: str, event: asyncio.Event, event2: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(
@@ -311,7 +279,6 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             event.set()
 
         broker2 = self.get_broker()
-        event2 = asyncio.Event()
 
         args, kwargs = self.get_subscriber_params(
             queue,
@@ -348,10 +315,9 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
     @pytest.mark.asyncio()
     @pytest.mark.slow()
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
-    async def test_concurrent_consume(self, queue: str, mock: MagicMock) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
+    async def test_concurrent_consume(
+        self, queue: str, mock: MagicMock, event: asyncio.Event, event2: asyncio.Event
+    ) -> None:
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue, max_workers=2)

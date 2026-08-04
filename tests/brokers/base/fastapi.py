@@ -30,9 +30,7 @@ class FastAPITestcase(BaseTestcaseConfig):
     router_class: type[StreamRouter[BrokerUsecase]]
     broker_router_class: type[BrokerRouter[Any]]
 
-    async def test_base_real(self, mock: Mock, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_base_real(self, mock: Mock, queue: str, event: asyncio.Event) -> None:
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -177,10 +175,9 @@ class FastAPITestcase(BaseTestcaseConfig):
         assert context.get(queue) == {1, 2}
         context.reset_global(queue)
 
-    async def test_double_real(self, mock: Mock, queue: str) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
+    async def test_double_real(
+        self, mock: Mock, queue: str, event: asyncio.Event, event2: asyncio.Event
+    ) -> None:
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -217,9 +214,8 @@ class FastAPITestcase(BaseTestcaseConfig):
         self,
         mock: Mock,
         queue: str,
+        event: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)

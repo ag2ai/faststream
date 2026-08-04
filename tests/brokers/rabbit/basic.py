@@ -1,10 +1,13 @@
-from typing import Any
+from contextlib import AbstractAsyncContextManager
+from typing import Any, overload
+
+from typing_extensions import override
 
 from faststream.rabbit import RabbitBroker, RabbitRouter, TestRabbitBroker
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
-class RabbitTestcaseConfig(BaseTestcaseConfig):
+class RabbitTestcaseConfig(BaseTestcaseConfig[RabbitBroker]):
     def get_broker(
         self,
         apply_types: bool = False,
@@ -17,5 +20,24 @@ class RabbitTestcaseConfig(BaseTestcaseConfig):
 
 
 class RabbitMemoryTestcaseConfig(RabbitTestcaseConfig):
-    def patch_broker(self, *brokers: RabbitBroker, **kwargs: Any) -> TestRabbitBroker:
+    @overload
+    def patch_broker(
+        self,
+        brokers: RabbitBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[RabbitBroker]: ...
+
+    @overload
+    def patch_broker(
+        self,
+        *brokers: RabbitBroker,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[tuple[RabbitBroker, ...]]: ...
+
+    @override
+    def patch_broker(
+        self,
+        *brokers: RabbitBroker,
+        **kwargs: Any,
+    ) -> Any:
         return TestRabbitBroker(*brokers, **kwargs)

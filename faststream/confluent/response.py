@@ -10,6 +10,7 @@ from faststream.response.response import (
     Response,
     extract_per_message_keys_and_bodies,
     key_for_index,
+    realign_keys,
 )
 
 if TYPE_CHECKING:
@@ -100,9 +101,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
         # per-message keys support
         keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
+        self._per_message_keys = keys
         if normalized is not None:
             self.batch_bodies = normalized
-        self._per_message_keys = keys
 
     @classmethod
     def from_cmd(
@@ -153,29 +154,11 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     def _align_keys(self, value: Sequence["Any"]) -> None:
         """Align the per-message keys with the batch_bodies."""
-        if len(self.batch_bodies) == 0:
+        if not self._per_message_keys:
             return
-        if isinstance(self.batch_bodies[0], KafkaResponse):
-            return
-        new_indexes = self._form_indexes(value)
-        self._per_message_keys = tuple(self._per_message_keys[i] for i in new_indexes)
-
-    def _form_indexes(self, value: Sequence["Any"]) -> tuple[int, ...]:
-        """Form a list of indexes for the given value sequence based on batch_bodies."""
-        bodies_seen: dict[int, Any] = {}
-        for body in value:
-            index = self.batch_bodies.index(body)
-            self._update_bodies(bodies_seen, index, body)
-
-        return tuple(i for i in bodies_seen)
-
-    def _update_bodies(self, bodies_seen: dict[int, Any], index: int, body: Any) -> None:
-        """Update the bodies_seen dictionary with the given index and body."""
-        if self.batch_bodies[index] == body and bodies_seen.get(index) is None:
-            bodies_seen.update({index: body})
-        else:
-            index += 1
-            self._update_bodies(bodies_seen, index, body)
+        self._per_message_keys = realign_keys(
+            self._per_message_keys, self.batch_bodies, value
+        )
 
 
 # Semantic alias for publish operations

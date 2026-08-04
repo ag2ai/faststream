@@ -16,13 +16,7 @@ class TestRouter(NatsTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = NatsRouter
 
-    async def test_path(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_path(self, queue: str, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()
 
         @router.subscriber(queue + ".{name}")
@@ -46,13 +40,8 @@ class TestRouter(NatsTestcaseConfig, FastAPITestcase):
         mock.assert_called_once_with(msg="hello", name="john")
 
     async def test_consume_batch(
-        self,
-        queue: str,
-        stream: JStream,
-        mock: MagicMock,
+        self, queue: str, stream: JStream, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(
@@ -84,13 +73,8 @@ class TestRouterLocal(NatsMemoryTestcaseConfig, FastAPILocalTestcase):
     broker_router_class = NatsRouter
 
     async def test_consume_batch(
-        self,
-        queue: str,
-        stream: JStream,
-        mock: MagicMock,
+        self, queue: str, stream: JStream, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(

@@ -107,13 +107,12 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
     async def test_queue_obj(
         self,
         queue: str,
+        event: asyncio.Event,
     ) -> None:
         broker = self.get_broker()
         router = self.get_router(prefix="test/")
 
         r_queue = RabbitQueue(queue)
-
-        event = asyncio.Event()
 
         @router.subscriber(r_queue)
         def subscriber(m) -> None:
@@ -137,11 +136,8 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
             assert event.is_set()
 
     async def test_queue_obj_with_routing_key(
-        self,
-        queue: str,
+        self, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         broker = self.get_broker()
         router = self.get_router(prefix="test/")
 
@@ -170,11 +166,8 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
             assert event.is_set()
 
     async def test_delayed_handlers_with_queue(
-        self,
-        queue: str,
+        self, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         def response(m) -> None:
             event.set()
 

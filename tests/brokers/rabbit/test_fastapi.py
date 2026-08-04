@@ -17,13 +17,7 @@ class TestRouter(FastAPITestcase):
     broker_router_class = RabbitRouter
 
     @pytest.mark.asyncio()
-    async def test_path(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_path(self, queue: str, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()
 
         @router.subscriber(
