@@ -64,7 +64,7 @@ class ContextRepoComposition(ContextRepo):
     @override
     def get(self, key: str, default: Any = None) -> Any:
         for context in self._contexts:
-            variable = context.get_local(key, default)
+            variable = context.get(key, default)
             if variable is not default:
                 return variable
         return default
