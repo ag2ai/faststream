@@ -412,20 +412,23 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(context=ContextRepo({"var1": "var1"}))
-
-        broker._update_fd_config(
-            FastDependsConfig(
-                context=ContextRepo({"var2": "var2"}),
-            ),
+        broker = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"var1": "var1"}),
         )
+
+        # Emulate FastStream obj
+        faststream_app_fd_config = FastDependsConfig(
+            context=ContextRepo({"var2": "var2"})
+        )
+        broker._update_fd_config(faststream_app_fd_config)
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(var1=Context(), var2=Context()) -> None:
-            event.set()
+        async def handle(msg, var1=Context(), var2=Context()) -> None:
             mock(var1, var2)
+            event.set()
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -440,6 +443,42 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
 
             assert event.is_set()
             mock.assert_called_once_with("var1", "var2")
+
+    async def test_composition_context_merge(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"var": "BROKER"}),
+        )
+
+        # Emulate FastStream obj
+        faststream_app_fd_config = FastDependsConfig(context=ContextRepo({"var": "APP"}))
+        broker._update_fd_config(faststream_app_fd_config)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(var=Context()) -> None:
+            mock(var)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+            mock.assert_called_once_with("BROKER")
 
 
 @pytest.mark.asyncio()

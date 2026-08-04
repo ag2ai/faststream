@@ -80,16 +80,66 @@ Afterward, you can access your `secret` field in the usual way:
 
 In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
 
-!!! tip
-    Alternatively you can setup global context objects in `FastStream` object constructor:
+Alternatively you can setup global context objects in `FastStream` object constructor:
+
+```python
+from faststream import FastStream
+from faststream.context import ContextRepo
+
+context = ContextRepo({"secret_str": "my-perfect-secret"})
+app = FastStream(context=context)
+```
+
+And in brokers:
+
+=== "AIOKafka"
 
     ```python
-    from faststream import FastStream
     from faststream.context import ContextRepo
+    from faststream.kafka import KafkaBroker
 
-    app = FastStream(context=ContextRepo({
-        "secret_str": "my-perfect-secret"
-    }))
+    context = ContextRepo({"secret_str": "my-perfect-secret"})
+    broker = KafkaBroker(context=context)
+    ```
+
+=== "Confluent"
+
+    ```python
+    from faststream.context import ContextRepo
+    from faststream.confluent import KafkaBroker
+
+    context = ContextRepo({"secret_str": "my-perfect-secret"})
+    broker = KafkaBroker(context=context)
+    ```
+
+=== "RabbitMQ"
+
+    ```python
+    from faststream.context import ContextRepo
+    from faststream.rabbit import RabbitBroker
+
+    context = ContextRepo({"secret_str": "my-perfect-secret"})
+    broker = RabbitBroker(context=context)
+    ```
+
+=== "NATS"
+
+    ```python
+    from faststream.context import ContextRepo
+    from faststream.nats import NatsBroker
+
+    context = ContextRepo({"secret_str": "my-perfect-secret"})
+    broker = NatsBroker(context=context)
+    ```
+
+=== "Redis"
+
+    ```python
+    from faststream.context import ContextRepo
+    from faststream.redis import RedisBroker
+
+    context = ContextRepo({"secret_str": "my-perfect-secret"})
+    broker = RedisBroker(context=context)
     ```
 
 To remove a field from the context use the `reset_global` method:
@@ -97,6 +147,22 @@ To remove a field from the context use the `reset_global` method:
 ```python
 context.reset_global("my_key")
 ```
+
+!!! tip
+    It is important to keep in mind that the broker context takes precedence over the FastStream context.
+
+    ```python
+    from faststream import FastStream
+    from faststream.context import ContextRepo
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker(context=ContextRepo({"data": "BROKER"}))
+    app = FastStream(broker, context=ContextRepo({"data": "APP"}))
+
+    @broker.subscriber("queue")
+    async def handle(data = Context()) -> None:
+        assert data == "BROKER"
+    ```
 
 ## Local
 
