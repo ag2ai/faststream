@@ -26,4 +26,3 @@ broker.subscribers[0].specification.call_name != "FlakyWorker":
     async def claiming_worker(order_id: str, logger: Logger) -> None:
         logger.info(f"Recovered order: {order_id}")
 
-print("Broker subscribers after:", broker.subscribers[0].specification.call_name)
