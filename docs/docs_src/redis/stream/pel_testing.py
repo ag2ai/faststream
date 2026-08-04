@@ -14,13 +14,9 @@ from .pel_reprocessing import claiming_worker
 from .pel_reprocessing import flaky_worker as reprocessing_worker
 
 
-@pytest.fixture()
-def pel() -> PEL:
-    return PEL()
-
-
 @pytest.mark.asyncio
-async def test_pending_message_stays_without_a_claimer(pel: PEL) -> None:
+async def test_pending_message_stays_without_a_claimer() -> None:
+    pel = PEL()
     async with TestRedisBroker(pending_broker, pel=pel) as br:
         await br.publish("order-1", stream="orders")
 
@@ -30,7 +26,8 @@ async def test_pending_message_stays_without_a_claimer(pel: PEL) -> None:
 
 
 @pytest.mark.asyncio
-async def test_each_group_gets_its_own_pel_entry(pel: PEL) -> None:
+async def test_each_group_gets_its_own_pel_entry() -> None:
+    pel = PEL()
     async with TestRedisBroker(multiple_groups_broker, pel=pel) as br:
         await br.publish("order-4", stream="orders")
 
@@ -41,7 +38,8 @@ async def test_each_group_gets_its_own_pel_entry(pel: PEL) -> None:
 
 
 @pytest.mark.asyncio
-async def test_no_ack_worker_never_touches_the_pel(pel: PEL) -> None:
+async def test_no_ack_worker_never_touches_the_pel() -> None:
+    pel = PEL()
     async with TestRedisBroker(no_ack_broker, pel=pel) as br:
         with pytest.raises(ValueError, match="Could not process order"):
             await br.publish("order-3", stream="orders")
@@ -52,7 +50,8 @@ async def test_no_ack_worker_never_touches_the_pel(pel: PEL) -> None:
 
 
 @pytest.mark.asyncio
-async def test_message_is_caught_by_reprocessing_worker(pel: PEL) -> None:
+async def test_message_is_caught_by_reprocessing_worker() -> None:
+    pel = PEL()
     async with TestRedisBroker(reprocessing_broker, pel=pel) as br:
         await br.publish("order", stream="orders")
         reprocessing_worker.mock.assert_called_once_with("order")
