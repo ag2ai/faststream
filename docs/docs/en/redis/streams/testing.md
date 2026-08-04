@@ -59,7 +59,7 @@ Add a `min_idle_time` consumer to the same group, and it reclaims the pending en
 ```
 
 ```python linenums="1"
-{! docs_src/redis/stream/pel_testing.py [ln:26-36] !}
+{! docs_src/redis/stream/pel_testing.py [ln:55-62] !}
 ```
 
 !!! tip

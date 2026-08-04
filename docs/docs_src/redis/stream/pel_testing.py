@@ -50,3 +50,13 @@ async def test_no_ack_worker_never_touches_the_pel() -> None:
         fire_and_forget_worker.mock.assert_called_once_with("order-3")
         # no_ack means nothing was ever recorded, failure or not
         assert pel._entries == {}
+
+
+@pytest.mark.asyncio
+async def test_message_is_caught_by_reprocessing_worker() -> None:
+    pel = PEL()
+    async with TestRedisBroker(reprocessing_broker, pel=pel) as br:
+        await br.publish("order", stream="orders")
+        reprocessing_worker.mock.assert_called_once_with("order")
+        claiming_worker.mock.assert_called_once_with("order")
+    assert len(pel._entries) == 0

@@ -29,3 +29,13 @@ async def test_no_ack_worker_never_touches_the_pel() -> None:
     )
 
     await run()
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+async def test_message_is_caught_by_reprocessing_worker() -> None:
+    from docs.docs_src.redis.stream.pel_testing import (
+        test_message_is_caught_by_reprocessing_worker as run,
+    )
+
+    await run()
