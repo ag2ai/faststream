@@ -662,6 +662,55 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         assert next(iter(consume_broker.subscribers)).last_id == "0"
 
+    async def test_consume_group_from_beginning(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "before-group"}, stream=queue)
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with({"data": "before-group"})
+
+    async def test_consume_existing_group_from_last_id(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "pending"}, stream=queue)
+            client = br._connection
+            assert client is not None
+            await client.xgroup_create(queue, "group", id="0")
+            await client.xreadgroup("group", queue, {queue: ">"})
+
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with({"data": "pending"})
+
     async def test_consume_nack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
