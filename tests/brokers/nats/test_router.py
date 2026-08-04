@@ -122,12 +122,8 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
         mock.assert_called_once_with(name="john", id=2)
 
     async def test_delayed_handlers_with_queue(
-        self,
-        router: NatsRouter,
-        queue: str,
+        self, router: NatsRouter, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         def response(m) -> None:

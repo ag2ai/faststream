@@ -18,12 +18,8 @@ from .basic import RedisTestcaseConfig
 @pytest.mark.asyncio()
 class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     async def test_list_publisher(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(list=queue)
@@ -78,12 +74,8 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         assert {1, "hi"} == {r.result() for r in result}
 
     async def test_batch_list_publisher(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         batch_list = ListSub(queue + "resp", batch=True)
@@ -113,12 +105,8 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         mock.assert_called_once_with([1, 2, 3])
 
     async def test_publisher_with_maxlen(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         stream = StreamSub(queue + "resp", maxlen=1)
@@ -151,12 +139,8 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         assert m.mock.call_args_list[-1].kwargs["maxlen"] == 1
 
     async def test_response(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(list=queue)

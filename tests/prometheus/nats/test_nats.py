@@ -23,12 +23,8 @@ def stream(queue):
 @pytest.mark.nats()
 class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
     async def test_metrics(
-        self,
-        queue: str,
-        stream: JStream,
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 

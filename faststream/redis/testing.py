@@ -1,6 +1,6 @@
 import re
 import uuid
-from collections.abc import AsyncGenerator, Iterable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from dataclasses import dataclass
@@ -146,7 +146,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                 yield brokers
 
     @contextmanager
-    def _patch_producer(self, broker: RedisBroker) -> Iterator[None]:
+    def _patch_producer(self, broker: RedisBroker) -> Generator[None, None, None]:
         with ExitStack() as es:
             es.enter_context(
                 change_producer(

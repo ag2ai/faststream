@@ -2,7 +2,7 @@ import inspect
 import logging
 import traceback
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
@@ -250,7 +250,7 @@ class AsgiFastStream(Application):
     async def start_lifespan_context(
         self,
         run_extra_options: dict[str, "SettingField"] | None = None,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None, None]:
         run_extra_options = run_extra_options or self._run_extra_options
 
         async with self.lifespan_context(**run_extra_options):

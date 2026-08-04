@@ -138,6 +138,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
         if error:
             self.future.set_exception(error)
+            # Mark the mirrored error as retrieved to avoid unhandled-future reports.
+            self.future.exception()
 
         else:
             self.future.set_result(result)

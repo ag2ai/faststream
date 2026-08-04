@@ -1,13 +1,21 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Generator, Iterator
+from collections.abc import AsyncGenerator, Generator
 from contextlib import (
     AsyncExitStack,
     asynccontextmanager,
     contextmanager,
 )
 from functools import partial
-from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Optional,
+    Protocol,
+    TypeVar,
+    cast,
+)
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -97,7 +105,7 @@ class TestBroker(Generic[Broker, EnterType]):
         await self._ctx.__aexit__(exc_type, exc_val, exc_tb)
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncIterator[list[Broker]]:
+    async def _create_ctx(self) -> AsyncGenerator[list[Broker], None]:
         async with AsyncExitStack() as stack:
             saved_running = {}
             started_brokers = []
@@ -123,7 +131,7 @@ class TestBroker(Generic[Broker, EnterType]):
                 sub.running = was_running
 
     @asynccontextmanager
-    async def _do_start(self, broker: Broker) -> AsyncIterator[Broker]:
+    async def _do_start(self, broker: Broker) -> AsyncGenerator[Broker, None]:
         try:
             if not self.connect_only:
                 await broker.start()
@@ -134,11 +142,11 @@ class TestBroker(Generic[Broker, EnterType]):
             self._fake_close(broker)
 
     @contextmanager
-    def _patch_producer(self, broker: Broker) -> Iterator[None]:
+    def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
         raise NotImplementedError
 
     @contextmanager
-    def _patch_logger(self, broker: Broker) -> Iterator[None]:
+    def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
         broker._setup_logger()
 
         logger_state = broker.config.logger

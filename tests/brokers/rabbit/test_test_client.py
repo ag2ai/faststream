@@ -30,12 +30,7 @@ class TestTestclient(
     PublishWithExchangeCase, RabbitMemoryTestcaseConfig, BrokerTestclientTestcase
 ):
     @pytest.mark.connected()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue)
@@ -83,28 +78,27 @@ class TestTestclient(
         self,
         queue: str,
         exchange: RabbitExchange,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+        event3: asyncio.Event,
     ) -> None:
         broker = self.get_broker(apply_types=True)
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
-        consume3 = asyncio.Event()
 
         @broker.subscriber(queue=queue, exchange=exchange)
         async def handler(msg: RabbitMessage) -> None:
             await msg.raw_message.ack()
-            consume.set()
+            event.set()
 
         @broker.subscriber(queue=queue + "1", exchange=exchange)
         async def handler2(msg: RabbitMessage) -> None:
             await msg.raw_message.nack()
-            consume2.set()
+            event2.set()
             raise ValueError
 
         @broker.subscriber(queue=queue + "2", exchange=exchange)
         async def handler3(msg: RabbitMessage) -> None:
             await msg.raw_message.reject()
-            consume3.set()
+            event3.set()
             raise ValueError
 
         async with self.patch_broker(broker) as br:
@@ -119,16 +113,16 @@ class TestTestclient(
                     asyncio.create_task(
                         br.publish("hello", queue=queue + "2", exchange=exchange),
                     ),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
-                    asyncio.create_task(consume3.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                    asyncio.create_task(event3.wait()),
                 ),
                 timeout=3,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
-        assert consume3.is_set()
+        assert event.is_set()
+        assert event2.is_set()
+        assert event3.is_set()
 
     async def test_respect_middleware(self, queue: str) -> None:
         routes = []

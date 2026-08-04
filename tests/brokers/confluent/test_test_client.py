@@ -55,9 +55,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
                 mocked.mock.assert_called_once()
 
     @pytest.mark.connected()
-    async def test_with_real_testclient(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)

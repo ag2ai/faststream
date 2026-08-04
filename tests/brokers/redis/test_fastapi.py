@@ -16,9 +16,7 @@ class TestRouter(FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = RedisRouter
 
-    async def test_path(self, mock: MagicMock) -> None:
-        event = asyncio.Event()
-
+    async def test_path(self, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()
 
         @router.subscriber("in.{name}")
@@ -40,12 +38,8 @@ class TestRouter(FastAPITestcase):
         mock.assert_called_once_with(msg="hello", name="john")
 
     async def test_batch_real(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
@@ -68,12 +62,8 @@ class TestRouter(FastAPITestcase):
 
     @pytest.mark.slow()
     async def test_consume_stream(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000))
@@ -97,12 +87,8 @@ class TestRouter(FastAPITestcase):
 
     @pytest.mark.slow()
     async def test_consume_stream_batch(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000, batch=True))
@@ -131,12 +117,8 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
     broker_router_class = RedisRouter
 
     async def test_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
@@ -157,12 +139,8 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         mock.assert_called_with(["hi"])
 
     async def test_stream_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, batch=True))

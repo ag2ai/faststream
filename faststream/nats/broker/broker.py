@@ -22,6 +22,7 @@ from nats.aio.client import (
     DEFAULT_PING_INTERVAL,
     DEFAULT_RECONNECT_TIME_WAIT,
     Client,
+    ReconnectToServerHandler,
 )
 from nats.aio.msg import Msg
 from nats.errors import Error
@@ -138,13 +139,17 @@ if TYPE_CHECKING:
                 Max size of the pending buffer for publishing commands.
             flush_timeout:
                 Max duration to wait for a forced flush to occur
+            ws_connection_headers:
+                WebSockets connection headers.
+            reconnect_to_server_handler:
+                Reconnect to server handler.
         """
 
-        error_cb: "ErrorCallback" | None
-        disconnected_cb: "Callback" | None
+        error_cb: "ErrorCallback | None"
+        disconnected_cb: "Callback | None"
         closed_cb: Callback | None
-        discovered_server_cb: "Callback" | None
-        reconnected_cb: "Callback" | None
+        discovered_server_cb: "Callback | None"
+        reconnected_cb: "Callback | None"
         name: str | None
         pedantic: bool
         verbose: bool
@@ -160,14 +165,32 @@ if TYPE_CHECKING:
         tls_hostname: str | None
         token: str | None
         drain_timeout: int
-        signature_cb: "SignatureCallback" | None
-        user_jwt_cb: "JWTCallback" | None
-        user_credentials: "Credentials" | None
+        signature_cb: "SignatureCallback | None"
+        user_jwt_cb: "JWTCallback | None"
+        user_credentials: "Credentials | None"
         nkeys_seed: str | None
         nkeys_seed_str: str | None
         inbox_prefix: str | bytes
         pending_size: int
         flush_timeout: float | None
+        ws_connection_headers: dict[str, list[str]] | None
+        reconnect_to_server_handler: ReconnectToServerHandler | None
+
+
+# Server-sent `-ERR` reasons that will never succeed on retry, so the
+# initial connection attempt should fail fast instead of being silently
+# retried like a transient error until `max_reconnect_attempts` is hit.
+UNRECOVERABLE_CONNECT_ERRORS = (
+    "authorization violation",
+    "authorization timeout",
+    "invalid client protocol",
+    "maximum payload violation",
+    "invalid subject",
+    "stale connection",
+    "maximum connections exceeded",
+    "parser error",
+    "secure connection - tls required",
+)
 
 
 class NatsBroker(
@@ -210,6 +233,8 @@ class NatsBroker(
         inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
         pending_size: int = DEFAULT_PENDING_SIZE,
         flush_timeout: float | None = None,
+        ws_connection_headers: dict[str, list[str]] | None = None,
+        reconnect_to_server_handler: ReconnectToServerHandler | None = None,
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
         graceful_timeout: float | None = None,
         ack_policy: AckPolicy = EMPTY,
@@ -294,7 +319,11 @@ class NatsBroker(
             pending_size:
                 Max size of the pending buffer for publishing commands.
             flush_timeout:
-                Max duration to wait for a forced flush to occur
+                Max duration to wait for a forced flush to occur.
+            ws_connection_headers:
+                WebSockets connection headers.
+            reconnect_to_server_handler:
+                Reconnect to server handler.
             js_options:
                 JetStream initialization options.
             graceful_timeout:
@@ -379,6 +408,7 @@ class NatsBroker(
             max_outstanding_pings=max_outstanding_pings,
             dont_randomize=dont_randomize,
             flusher_queue_size=flusher_queue_size,
+            ws_connection_headers=ws_connection_headers,
             # security
             tls_hostname=tls_hostname,
             token=token,
@@ -394,6 +424,7 @@ class NatsBroker(
             discovered_server_cb=discovered_server_cb,
             signature_cb=signature_cb,
             user_jwt_cb=user_jwt_cb,
+            reconnect_to_server_handler=reconnect_to_server_handler,
             # Basic args
             routers=routers,
             config=NatsBrokerConfig(
@@ -714,6 +745,11 @@ class NatsBroker(
         async def wrapper(err: Exception) -> None:
             if error_cb is not None:
                 await error_cb(err)
+
+            if isinstance(err, Error):
+                reason = str(err).removeprefix("nats: ").strip("'").lower()
+                if reason in UNRECOVERABLE_CONNECT_ERRORS:
+                    raise err
 
             if isinstance(err, Error) and self.config.connection_state:
                 self.config.logger.log(
