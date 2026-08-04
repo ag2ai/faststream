@@ -219,27 +219,26 @@ def key_for_index(
     return k if k is not None else default_key
 
 
+def _update_bodies(
+    bodies_seen: dict[int, Any], current_bodies: Sequence[Any], index: int, body: Any
+) -> None:
+    """Helper function to update the bodies_seen dictionary."""
+    if current_bodies[index] == body and bodies_seen.get(index) is None:
+        bodies_seen.update({index: body})
+    else:
+        index += 1
+        _update_bodies(bodies_seen, current_bodies, index, body)
+
+
 def realign_keys(
     keys: Sequence[Any | None],
     current_bodies: Sequence[Any],
     new_bodies: Sequence[Any],
 ) -> tuple[Any | None, ...]:
-    """Carry per-message keys over to a reordered, filtered or normalized batch.
-
-    Bodies are matched against the unwrapped form of ``current_bodies``, so a
-    ``Response`` wrapper and its own body claim the same slot. Each slot is
-    claimed once, so equal bodies keep distinct keys.
-    """
-    unclaimed = [(i, _extract_body_and_key(b)[0]) for i, b in enumerate(current_bodies)]
-
-    aligned: list[Any | None] = []
+    """Realign per-message keys with a new batch of bodies."""
+    bodies_seen: dict[int, Any] = {}
     for body in new_bodies:
-        for position, (index, current) in enumerate(unclaimed):
-            if current == body:
-                aligned.append(keys[index] if index < len(keys) else None)
-                del unclaimed[position]
-                break
-        else:
-            aligned.append(None)
+        index = current_bodies.index(body)
+        _update_bodies(bodies_seen, current_bodies, index, body)
 
-    return tuple(aligned)
+    return tuple(keys[i] for i in bodies_seen)
