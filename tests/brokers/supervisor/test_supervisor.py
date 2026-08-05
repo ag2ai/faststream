@@ -38,6 +38,21 @@ async def test_task_successful(subscriber_with_task_mixin):
 
 
 @pytest.mark.asyncio()
+async def test_task_exception_hook(subscriber_with_task_mixin, mock):
+    async def failing_task():
+        raise ValueError
+
+    subscriber_with_task_mixin._handle_task_exception = mock
+
+    task = subscriber_with_task_mixin.add_task(failing_task)
+    with suppress(ValueError):
+        await task
+
+    mock.assert_called_once()
+    assert len(subscriber_with_task_mixin.tasks) == 1
+
+
+@pytest.mark.asyncio()
 @pytest.mark.slow()
 async def test_ignore_cancellation_error(subscriber_with_task_mixin):
     async def cancelled_task():
