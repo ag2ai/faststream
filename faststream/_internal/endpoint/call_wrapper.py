@@ -10,6 +10,10 @@ from unittest.mock import MagicMock
 
 import anyio
 
+from faststream._internal.configs import BrokerConfig
+from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
 
@@ -26,11 +30,12 @@ if TYPE_CHECKING:
 
 def ensure_call_wrapper(
     call: Callable[P_HandlerParams, T_HandlerReturn],
+    outer_config: BrokerConfig,
 ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
     if isinstance(call, HandlerCallWrapper):
         return call
 
-    return HandlerCallWrapper(call)
+    return HandlerCallWrapper(call, outer_config)
 
 
 class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
@@ -48,6 +53,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     __slots__ = (
         "_original_call",
+        "_outer_config",
         "_publishers",
         "_subscribers",
         "_wrapped_call",
@@ -59,6 +65,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     def __init__(
         self,
         call: Callable[P_HandlerParams, T_HandlerReturn],
+        outer_config: BrokerConfig,
     ) -> None:
         """Initialize a handler."""
         self._original_call = call
@@ -71,6 +78,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         self.future = None
         self.is_test = False
 
+        self._outer_config = outer_config
+
     def __call__(
         self,
         *args: P_HandlerParams.args,
@@ -79,15 +88,19 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         """Calls the object as a function."""
         return self._original_call(*args, **kwargs)
 
-    async def call_wrapped(
-        self,
-        message: "StreamMessage[Any]",
-    ) -> Any:
-        """Calls the wrapped function with the given message."""
-        assert self._wrapped_call, "You should use `set_wrapped` first"
-        if self.is_test:
-            self.mock(await message.decode())
-        return await self._wrapped_call(message)
+    def call_wrapped(
+        self, context: ContextRepo
+    ) -> Callable[["StreamMessage[Any]"], Awaitable[Any]]:
+        async def _call_wrapped(message: "StreamMessage[Any]") -> Any:
+            """Calls the wrapped function with the given message."""
+            assert self._wrapped_call, "You should use `set_wrapped` first"
+            if self.is_test:
+                self.mock(message.body)
+                self.mock.context = context.context
+
+            return await self._wrapped_call(message)
+
+        return _call_wrapped
 
     def set_wrapped(
         self,
@@ -150,3 +163,23 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
         if with_mock and self.mock is not None:
             self.mock.reset_mock()
+
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        context: dict[str, Any] = EMPTY,
+    ) -> None:
+        if not self.is_test:
+            return
+
+        if body != EMPTY:
+            serializer = self._outer_config.fd_config._serializer
+            codec = self._outer_config.broker_codec or DefaultCodec()
+
+            encoded_message, _ = await codec.encode(body, serializer)
+            self.mock.assert_called_once_with(encoded_message)
+
+        if context != EMPTY:
+            context_repo = ContextRepo(self.mock.context)
+            for key, value in context.items():
+                assert context_repo.resolve(key) == value

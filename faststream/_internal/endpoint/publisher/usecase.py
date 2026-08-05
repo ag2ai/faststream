@@ -11,6 +11,7 @@ from faststream._internal.endpoint.call_wrapper import (
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
@@ -45,6 +46,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
         self._fake_handler = False
         self.mock = MagicMock()
+        self.is_test = False
 
     async def start(self) -> None:
         pass
@@ -56,13 +58,15 @@ class PublisherUsecase(Endpoint, PublisherProto):
         with_fake: bool,
     ) -> None:
         """Turn publisher to testing mode."""
+        self.is_test = True
         self.mock = mock
         self._fake_handler = with_fake
 
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
-        self._fake_handler = False
+        self.is_test = False
         self.mock.reset_mock()
+        self._fake_handler = False
 
     def __call__(
         self,
@@ -140,3 +144,14 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
     def schema(self) -> dict[str, "PublisherSpec"]:
         return self.specification.get_schema()
+
+    async def assert_called_once_with(self, body: Any) -> None:
+        if not self.is_test:
+            return
+
+        serializer = self._outer_config.fd_config._serializer
+        codec = self._outer_config.broker_codec or DefaultCodec()
+
+        encoded_message, _ = await codec.encode(body, serializer)
+
+        self.mock.assert_called_once_with(encoded_message)
