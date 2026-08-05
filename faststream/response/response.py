@@ -219,17 +219,6 @@ def key_for_index(
     return k if k is not None else default_key
 
 
-def _update_bodies(
-    bodies_seen: dict[int, Any], current_bodies: Sequence[Any], index: int, body: Any
-) -> None:
-    """Helper function to update the bodies_seen dictionary."""
-    if current_bodies[index] == body and bodies_seen.get(index) is None:
-        bodies_seen.update({index: body})
-    else:
-        index += 1
-        _update_bodies(bodies_seen, current_bodies, index, body)
-
-
 def realign_keys(
     keys: Sequence[Any | None],
     current_bodies: Sequence[Any],
@@ -239,6 +228,10 @@ def realign_keys(
     bodies_seen: dict[int, Any] = {}
     for body in new_bodies:
         index = current_bodies.index(body)
-        _update_bodies(bodies_seen, current_bodies, index, body)
-
+        if bodies_seen.get(index) is None:
+            bodies_seen.update({index: body})
+            continue
+        while bodies_seen.get(index) is not None or current_bodies[index] != body:
+            index += 1
+        bodies_seen.update({index: body})
     return tuple(keys[i] for i in bodies_seen)
