@@ -2,10 +2,14 @@ from faststream.exceptions import StartupValidationError
 
 
 def draw_startup_errors(startup_exc: StartupValidationError) -> None:
-    from click.exceptions import BadParameter, MissingParameter
     from typer.core import TyperOption
 
-    def draw_error(click_exc: BadParameter) -> None:
+    try:
+        from typer._click import exceptions as click_exceptions
+    except ImportError:  # pragma: no cover - Typer < 0.26
+        from click import exceptions as click_exceptions  # type: ignore[no-redef]
+
+    def draw_error(click_exc: click_exceptions.ClickException) -> None:
         try:
             from typer import rich_utils
 
@@ -15,7 +19,7 @@ def draw_startup_errors(startup_exc: StartupValidationError) -> None:
 
     for field in startup_exc.invalid_fields:
         draw_error(
-            BadParameter(
+            click_exceptions.BadParameter(
                 message=(
                     "extra option in your application "
                     "`lifespan/on_startup` hook has a wrong type."
@@ -26,7 +30,7 @@ def draw_startup_errors(startup_exc: StartupValidationError) -> None:
 
     if startup_exc.missed_fields:
         draw_error(
-            MissingParameter(
+            click_exceptions.MissingParameter(
                 message=(
                     "You registered extra options in your application "
                     "`lifespan/on_startup` hook, but does not set in CLI."
