@@ -144,6 +144,10 @@ async def worker(task): ...
 - **Empty Results**: When no pending messages meet the idle time criteria, the consumer will continue polling
 - **ACK Handling**: Claimed messages must still be acknowledged using `msg.ack()` to be removed from the [PEL](https://redis.io/docs/latest/develop/data-types/streams/#working-with-multiple-consumer-groups)
 
+## Testing
+
+Claiming behaves the same way in tests, without waiting on real `min_idle_time` timeouts. See [Testing Consumer Groups](./testing.md){.internal-link} for details and runnable examples.
+
 ## References
 
 For more information about Redis Streams message claiming:
