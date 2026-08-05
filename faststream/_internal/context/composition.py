@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import override
 
+from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream.exceptions import ContextError
 
@@ -50,8 +51,8 @@ class ContextRepoComposition(ContextRepo):
     @override
     def get_local(self, key: str, default: Any = None) -> Any:
         for context in self._contexts:
-            variable = context.get_local(key, default)
-            if variable is not default:
+            variable = context.get_local(key, EMPTY)
+            if variable != EMPTY:
                 return variable
         return default
 
@@ -64,8 +65,8 @@ class ContextRepoComposition(ContextRepo):
     @override
     def get(self, key: str, default: Any = None) -> Any:
         for context in self._contexts:
-            variable = context.get(key, default)
-            if variable is not default:
+            variable = context.get(key, EMPTY)
+            if variable != EMPTY:
                 return variable
         return default
 

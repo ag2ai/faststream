@@ -6,8 +6,7 @@ import pytest
 from pydantic import BaseModel
 
 from faststream import Context, Depends, FastStream, TestApp
-from faststream._internal.context.repository import ContextRepo
-from faststream.app import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.exceptions import StopConsume
 
 from .basic import BaseTestcaseConfig
@@ -414,25 +413,19 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
     ) -> None:
         broker = self.get_broker(
             apply_types=True,
-            context=ContextRepo({"var1": "var1"}),
+            context=ContextRepo({"broker_context": "broker_context"}),
         )
 
-        # Emulate FastStream obj
-        faststream_app_fd_config = FastDependsConfig(
-            context=ContextRepo({"var2": "var2"})
-        )
-        broker._update_fd_config(faststream_app_fd_config)
+        app = FastStream(broker, context=ContextRepo({"app_context": "app_context"}))
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(msg, var1=Context(), var2=Context()) -> None:
-            mock(var1, var2)
+        async def handle(app_context=Context(), broker_context=Context()) -> None:
+            mock(app_context, broker_context)
             event.set()
 
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
+        async with self.patch_broker(broker) as br, TestApp(app):
             await asyncio.wait(
                 (
                     asyncio.create_task(br.publish("", queue)),
@@ -442,7 +435,7 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
             )
 
             assert event.is_set()
-            mock.assert_called_once_with("var1", "var2")
+            mock.assert_called_once_with("app_context", "broker_context")
 
     async def test_composition_context_merge(
         self,
@@ -452,23 +445,19 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
     ) -> None:
         broker = self.get_broker(
             apply_types=True,
-            context=ContextRepo({"var": "BROKER"}),
+            context=ContextRepo({"context_var": "BROKER"}),
         )
 
-        # Emulate FastStream obj
-        faststream_app_fd_config = FastDependsConfig(context=ContextRepo({"var": "APP"}))
-        broker._update_fd_config(faststream_app_fd_config)
+        app = FastStream(broker, context=ContextRepo({"context_var": "APP"}))
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(var=Context()) -> None:
-            mock(var)
+        async def handle(context_var=Context()) -> None:
+            mock(context_var)
             event.set()
 
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
+        async with self.patch_broker(broker) as br, TestApp(app):
             await asyncio.wait(
                 (
                     asyncio.create_task(br.publish("", queue)),
@@ -479,6 +468,59 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
 
             assert event.is_set()
             mock.assert_called_once_with("BROKER")
+
+    async def test_multi_broker_composition_context(
+        self,
+        queue: str,
+        mock: MagicMock,
+        mock2: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"broker_var": "BROKER 1"}),
+        )
+        broker2 = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"broker_var": "BROKER 2"}),
+        )
+
+        app = FastStream(broker, broker2, context=ContextRepo({"app_var": "APP"}))
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(app_var=Context(), broker_var=Context()) -> None:
+            event.set()
+            mock(app_var, broker_var)
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker2.subscriber(*args2, **kwargs2)
+        async def handle2(app_var=Context(), broker_var=Context()) -> None:
+            event2.set()
+            mock2(app_var, broker_var)
+
+        async with (
+            self.patch_broker(broker) as br,
+            self.patch_broker(broker2) as br2,
+            TestApp(app),
+        ):
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(br2.publish("", queue + "2")),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        assert event2.is_set()
+        mock.assert_called_once_with("APP", "BROKER 1")
+        mock2.assert_called_once_with("APP", "BROKER 2")
 
 
 @pytest.mark.asyncio()
