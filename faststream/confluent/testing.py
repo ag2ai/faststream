@@ -366,7 +366,9 @@ async def build_message(
         msg, content_type = None, None
     else:
         codec_instance = codec or DefaultCodec()
-        publish_cmd = _BasePublishCommand(body=message, destination=topic, _publish_type=PublishType.PUBLISH)
+        publish_cmd = _BasePublishCommand(
+            body=message, destination=topic, _publish_type=PublishType.PUBLISH
+        )
         msg, content_type = await codec_instance.encode(publish_cmd, serializer)
     k = key or b""
     headers = {

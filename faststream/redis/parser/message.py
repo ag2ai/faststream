@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.parser import DefaultCodec
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
     from faststream.response.response import PublishCommand
 

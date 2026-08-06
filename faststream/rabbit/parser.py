@@ -88,7 +88,7 @@ class AioPikaParser:
             return message
 
         if cmd is None:
-            publish_cmd: "PublishCommand" = _BasePublishCommand(
+            publish_cmd: PublishCommand = _BasePublishCommand(
                 body=message, destination=destination, _publish_type=PublishType.PUBLISH
             )
         else:
