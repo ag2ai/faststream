@@ -44,6 +44,8 @@ from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.redis.subscriber.usecases.channel_subscriber import ChannelSubscriber
 from faststream.redis.subscriber.usecases.list_subscriber import _ListHandlerMixin
 from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandlerMixin
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand as _BaseCmd
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -368,9 +370,6 @@ async def build_message(
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
 ) -> bytes:
-    from faststream.response.publish_type import PublishType
-    from faststream.response.response import PublishCommand as _BaseCmd
-
     cmd = _BaseCmd(
         body=message,
         destination=destination,
