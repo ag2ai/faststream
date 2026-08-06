@@ -11,6 +11,7 @@ from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
+from faststream.response.response import PublishCommand as _BaseCmd
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -148,8 +149,6 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         if isinstance(self.codec, BatchCodecProto):
             encoded_batch = await self.codec.encode_batch(cmd, self.serializer)
         else:
-            from faststream.response.response import PublishCommand as _BaseCmd
-
             encoded_batch = [
                 await self.codec.encode(
                     _BaseCmd(
