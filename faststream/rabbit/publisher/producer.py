@@ -203,7 +203,6 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         message = await AioPikaParser.encode_message(
             message=message,
             cmd=cmd,
-            destination=routing_key,
             serializer=self.serializer,
             codec=self.codec,
             id_generator=self.id_generator,

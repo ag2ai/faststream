@@ -203,7 +203,6 @@ async def build_message(
     msg = await AioPikaParser.encode_message(
         message=message,
         cmd=cmd,
-        destination=routing,
         persist=persist,
         reply_to=reply_to,
         headers=headers,
