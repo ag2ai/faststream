@@ -188,7 +188,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self,
         message: "AioPikaSendableMessage",
         *,
-        cmd: "RabbitPublishCommand | None" = None,
+        cmd: "RabbitPublishCommand",
         exchange: "RabbitExchange",
         routing_key: str,
         mandatory: bool = True,
