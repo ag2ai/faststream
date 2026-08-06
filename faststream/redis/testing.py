@@ -368,12 +368,19 @@ async def build_message(
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
 ) -> bytes:
-    return await message_format.encode(
-        message=message,
+    from faststream.response.publish_type import PublishType
+    from faststream.response.response import PublishCommand as _BaseCmd
+
+    cmd = _BaseCmd(
+        body=message,
+        destination=destination,
+        correlation_id=correlation_id,
         reply_to=reply_to,
         headers=headers,
-        correlation_id=correlation_id,
-        destination=destination,
+        _publish_type=PublishType.PUBLISH,
+    )
+    return await message_format.encode(
+        cmd=cmd,
         serializer=serializer,
         codec=codec,
     )

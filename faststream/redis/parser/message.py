@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
+    from faststream.response.response import PublishCommand
 
 
 class MessageFormat(ABC):
@@ -31,35 +32,25 @@ class MessageFormat(ABC):
     async def build(
         cls,
         *,
-        message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: str | None,
-        headers: dict[str, Any] | None,
-        correlation_id: str,
-        destination: str = "",
+        cmd: "PublishCommand",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
-        from faststream.response.publish_type import PublishType
-        from faststream.response.response import PublishCommand as _BaseCmd
-
         codec_instance = codec or DefaultCodec()
-        publish_cmd = _BaseCmd(
-            body=message, destination=destination, _publish_type=PublishType.PUBLISH
-        )
-        payload, content_type = await codec_instance.encode(publish_cmd, serializer)
+        payload, content_type = await codec_instance.encode(cmd, serializer)
 
         headers_to_send = {
-            "correlation_id": correlation_id,
+            "correlation_id": cmd.correlation_id or "",
         }
 
         if content_type:
             headers_to_send["content-type"] = content_type
 
-        if reply_to:
-            headers_to_send["reply_to"] = reply_to
+        if cmd.reply_to:
+            headers_to_send["reply_to"] = cmd.reply_to
 
-        if headers is not None:
-            headers_to_send.update(headers)
+        if cmd.headers is not None:
+            headers_to_send.update(cmd.headers)
 
         return cls(
             data=payload,
@@ -71,11 +62,7 @@ class MessageFormat(ABC):
     async def encode(
         cls,
         *,
-        message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: str | None,
-        headers: dict[str, Any] | None,
-        correlation_id: str,
-        destination: str = "",
+        cmd: "PublishCommand",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> bytes:

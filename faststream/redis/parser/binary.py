@@ -1,7 +1,6 @@
 import enum
-from collections.abc import Sequence
 from struct import pack, unpack
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal._compat import json_loads
 
@@ -10,8 +9,8 @@ from .message import MessageFormat
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
+    from faststream.response.response import PublishCommand
 
 
 class FastStreamMessageVersion(int, enum.Enum):
@@ -27,20 +26,12 @@ class BinaryMessageFormatV1(MessageFormat):
     async def encode(
         cls,
         *,
-        message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: str | None,
-        headers: dict[str, Any] | None,
-        correlation_id: str,
-        destination: str = "",
+        cmd: "PublishCommand",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> bytes:
         msg = await cls.build(
-            message=message,
-            reply_to=reply_to,
-            headers=headers,
-            correlation_id=correlation_id,
-            destination=destination,
+            cmd=cmd,
             serializer=serializer,
             codec=codec,
         )
