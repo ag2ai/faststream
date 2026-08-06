@@ -13,6 +13,8 @@ from faststream.redis.exceptions import UnreachablePathError
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RedisPubSubParser, SimpleParserConfig
 from faststream.redis.response import DestinationType, RedisPublishCommand
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand as _BaseCmd
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -57,9 +59,6 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
 
     @override
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
-        from faststream.response.publish_type import PublishType
-        from faststream.response.response import PublishCommand as _BaseCmd
-
         batch = [
             await cmd.message_format.encode(
                 cmd=_BaseCmd(
@@ -160,9 +159,6 @@ class RedisFastProducer(BaseRedisFastProducer):
         try:
             await psub.subscribe(reply_to)
 
-            from faststream.response.publish_type import PublishType
-            from faststream.response.response import PublishCommand as _BaseCmd
-
             request_cmd = _BaseCmd(
                 body=cmd.body,
                 destination=cmd.destination,
@@ -256,9 +252,6 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
 
         try:
             await psub.subscribe(reply_to)
-
-            from faststream.response.publish_type import PublishType
-            from faststream.response.response import PublishCommand as _BaseCmd
 
             request_cmd = _BaseCmd(
                 body=cmd.body,
