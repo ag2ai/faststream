@@ -324,8 +324,12 @@ async def build_message(
         # (aiokafka needs a key or value, a keyless None still goes b"")
         msg, content_type = None, None
     else:
-        publish_cmd = _BasePublishCommand(body=message, destination=topic, _publish_type=PublishType.PUBLISH)
-        msg, content_type = await (codec or DefaultCodec()).encode(publish_cmd, serializer)
+        publish_cmd = _BasePublishCommand(
+            body=message, destination=topic, _publish_type=PublishType.PUBLISH
+        )
+        msg, content_type = await (codec or DefaultCodec()).encode(
+            publish_cmd, serializer
+        )
 
     k = key or b""
 
