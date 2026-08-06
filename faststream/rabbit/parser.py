@@ -12,8 +12,6 @@ from faststream.message import (
     gen_cor_id,
 )
 from faststream.rabbit.message import RabbitMessage
-from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -63,8 +61,7 @@ class AioPikaParser:
     async def encode_message(
         message: "AioPikaSendableMessage",
         *,
-        cmd: "PublishCommand | None" = None,
-        destination: str = "",
+        cmd: "PublishCommand",
         persist: bool = False,
         reply_to: str | None = None,
         headers: Optional["HeadersType"] = None,
@@ -85,15 +82,8 @@ class AioPikaParser:
         if isinstance(message, Message):
             return message
 
-        if cmd is None:
-            publish_cmd: PublishCommand = _BasePublishCommand(
-                body=message, destination=destination, _publish_type=PublishType.PUBLISH
-            )
-        else:
-            publish_cmd = cmd
-
         message_body, generated_content_type = await (codec or DefaultCodec()).encode(
-            publish_cmd, serializer
+            cmd, serializer
         )
 
         delivery_mode = (
