@@ -14,7 +14,7 @@ from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RedisPubSubParser, SimpleParserConfig
 from faststream.redis.response import DestinationType, RedisPublishCommand
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand as _BaseCmd
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -61,7 +61,7 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         batch = [
             await cmd.message_format.encode(
-                cmd=_BaseCmd(
+                cmd=_BasePublishCommand(
                     body=msg,
                     destination=cmd.destination,
                     correlation_id=cmd.correlation_id,
@@ -159,7 +159,7 @@ class RedisFastProducer(BaseRedisFastProducer):
         try:
             await psub.subscribe(reply_to)
 
-            request_cmd = _BaseCmd(
+            request_cmd = _BasePublishCommand(
                 body=cmd.body,
                 destination=cmd.destination,
                 correlation_id=cmd.correlation_id,
@@ -253,7 +253,7 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
         try:
             await psub.subscribe(reply_to)
 
-            request_cmd = _BaseCmd(
+            request_cmd = _BasePublishCommand(
                 body=cmd.body,
                 destination=cmd.destination,
                 correlation_id=cmd.correlation_id,

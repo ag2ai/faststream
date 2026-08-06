@@ -253,7 +253,7 @@ class FakeProducer(AioKafkaFastProducer):
         else:
             encoded = [
                 await self.codec.encode(
-                    _BaseCmd(
+                    _BasePublishCommand(
                         body=body,
                         destination=cmd.destination,
                         _publish_type=cmd.publish_type,
