@@ -186,8 +186,23 @@ async def build_message(
     routing = routing_key or que.routing()
 
     correlation_id = correlation_id or id_generator()
+
+    from faststream.rabbit.response import RabbitPublishCommand
+    from faststream.response.publish_type import PublishType
+
+    cmd = RabbitPublishCommand(
+        message=message,
+        _publish_type=PublishType.PUBLISH,
+        routing_key=routing,
+        exchange=exch,
+        headers=headers,
+        correlation_id=correlation_id,
+        reply_to=reply_to,
+    )
+
     msg = await AioPikaParser.encode_message(
         message=message,
+        cmd=cmd,
         destination=routing,
         persist=persist,
         reply_to=reply_to,

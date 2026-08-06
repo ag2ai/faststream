@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import DecodedMessage
     from faststream._internal.parser import CodecProto
     from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.response.response import PublishCommand
 
 
 class AioPikaParser:
@@ -61,6 +62,7 @@ class AioPikaParser:
     async def encode_message(
         message: "AioPikaSendableMessage",
         *,
+        cmd: "PublishCommand | None" = None,
         destination: str = "",
         persist: bool = False,
         reply_to: str | None = None,
@@ -86,9 +88,13 @@ class AioPikaParser:
         from faststream.response.publish_type import PublishType
         from faststream.response.response import PublishCommand as _BaseCmd
 
-        publish_cmd = _BaseCmd(
-            body=message, destination=destination, _publish_type=PublishType.PUBLISH
-        )
+        if cmd is None:
+            publish_cmd: "PublishCommand" = _BaseCmd(
+                body=message, destination=destination, _publish_type=PublishType.PUBLISH
+            )
+        else:
+            publish_cmd = cmd
+
         message_body, generated_content_type = await (codec or DefaultCodec()).encode(
             publish_cmd, serializer
         )

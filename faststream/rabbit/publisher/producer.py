@@ -157,6 +157,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         return await self._publish(
+            cmd=cmd,
             message=cmd.body,
             exchange=cmd.exchange,
             routing_key=cmd.destination,
@@ -175,6 +176,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         ) as response_queue:
             with anyio.fail_after(cmd.timeout):
                 await self._publish(
+                    cmd=cmd,
                     message=cmd.body,
                     exchange=cmd.exchange,
                     routing_key=cmd.destination,
@@ -190,6 +192,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self,
         message: "AioPikaSendableMessage",
         *,
+        cmd: "RabbitPublishCommand | None" = None,
         exchange: "RabbitExchange",
         routing_key: str,
         mandatory: bool = True,
@@ -199,6 +202,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         message = await AioPikaParser.encode_message(
             message=message,
+            cmd=cmd,
             destination=routing_key,
             serializer=self.serializer,
             codec=self.codec,
