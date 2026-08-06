@@ -234,6 +234,85 @@ Scoping rule: all handles' mock objects will be cleared when the context manager
     {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:9-16] !}
     ```
 
+### Advanced Validates Input
+
+Also, all handlers have `assert_called_once_with` method for advanced validations input.
+
+Using this method, you can check the message body and context at the time of the application call in a more convenient way.
+
+Let's take an example of such an application:
+
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-3,6-25] !}
+    ```
+
+
+Using `assert_called_once_with` method, you can check the text of the message and the context during the application call in a more convenient way.
+
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    ```
+
+!!! tip
+    You can check the entire context, not just the one that is passed to the handler.
+
+    ```python
+    await handle.assert_called_once_with(context={"broker": broker})
+    ```
+
+
 ## Real Broker Testing
 
 If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.

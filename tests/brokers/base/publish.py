@@ -574,3 +574,43 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             )
 
         mock.assert_called_with("Hello!")
+
+    @pytest.mark.asyncio()
+    async def test_publisher_assert_called_once_with(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        class BodyModel(BaseModel):
+            name: str
+            age: int
+
+        broker = self.get_broker(apply_types=True)
+
+        publisher2 = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None:
+            await publisher2.publish(BodyModel(name="John", age=19))
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handle2(body: BodyModel) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+            await publisher2.assert_called_once_with({"name": "John", "age": 19})
+            await publisher2.assert_called_once_with(BodyModel(name="John", age=19))

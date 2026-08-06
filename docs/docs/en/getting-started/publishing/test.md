@@ -136,6 +136,13 @@ Also, it allows you to check the outgoing message body in the same way as with a
 publisher.mock.assert_called_once_with("Hi!")
 ```
 
+In addition, you can use the `assert_called_once_with` method from the publisher to check the message body through your models.
+
+```python
+publisher.assert_called_once_with(AddUser(name="John", age=19))
+```
+
+
 !!! note
     The Publisher mock contains not just a `publish` method input value. It sets up a virtual consumer for an outgoing topic, consumes a message, and stores this consumed one.
 
