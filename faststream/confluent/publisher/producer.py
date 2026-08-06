@@ -9,7 +9,7 @@ from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.response.response import PublishCommand as _BaseCmd
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -172,7 +172,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         else:
             encoded_batch = [
                 await self.codec.encode(
-                    _BaseCmd(
+                    _BasePublishCommand(
                         body=msg,
                         destination=cmd.destination,
                         _publish_type=cmd.publish_type,

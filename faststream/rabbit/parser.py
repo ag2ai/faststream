@@ -13,7 +13,7 @@ from faststream.message import (
 )
 from faststream.rabbit.message import RabbitMessage
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand as _BaseCmd
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -86,7 +86,7 @@ class AioPikaParser:
             return message
 
         if cmd is None:
-            publish_cmd: "PublishCommand" = _BaseCmd(
+            publish_cmd: "PublishCommand" = _BasePublishCommand(
                 body=message, destination=destination, _publish_type=PublishType.PUBLISH
             )
         else:
