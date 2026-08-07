@@ -4,8 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import DefaultCodec, EncodedMessage
 from faststream.message.utils import encode_message
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
@@ -121,9 +123,6 @@ class CodecTestcase(BaseTestcaseConfig):
         assert mock.called, "codec.encode was not called on publish"
 
     async def test_default_codec_encode_matches_encode_message(self, queue: str) -> None:
-        from faststream.response.publish_type import PublishType
-        from faststream.response.response import PublishCommand
-
         codec = DefaultCodec()
 
         test_cases = [
@@ -141,7 +140,7 @@ class CodecTestcase(BaseTestcaseConfig):
                 None,
             )
             direct_result = encode_message(msg, None)
-            assert codec_result == direct_result, (
+            assert (codec_result.body, codec_result.content_type) == direct_result, (
                 f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
                 f"but encode_message({msg!r}) = {direct_result!r}"
             )
@@ -161,9 +160,7 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 cmd,
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
-                from faststream.response.response import PublishCommand
-
+            ) -> list[EncodedMessage]:
                 return [
                     await DefaultCodec.encode(
                         self,
@@ -205,9 +202,7 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 cmd,
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
-                from faststream.response.response import PublishCommand
-
+            ) -> list[EncodedMessage]:
                 encode_batch_mock()
                 return [
                     await DefaultCodec.encode(
@@ -258,7 +253,7 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 msgs: Sequence[Any],
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
+            ) -> list[EncodedMessage]:
                 return [await super().encode(m, serializer) for m in msgs]
 
             async def decode_batch(self, msg: Any) -> list[Any]:

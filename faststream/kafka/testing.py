@@ -267,8 +267,8 @@ class FakeProducer(AioKafkaFastProducer):
         ):
             messages = [
                 _build_record(
-                    body=body,
-                    content_type=content_type,
+                    body=item.body,
+                    content_type=item.content_type,
                     topic=cmd.destination,
                     partition=cmd.partition,
                     timestamp_ms=cmd.timestamp_ms,
@@ -277,7 +277,7 @@ class FakeProducer(AioKafkaFastProducer):
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
                 )
-                for message_position, (body, content_type) in enumerate(encoded)
+                for message_position, item in enumerate(encoded)
             ]
 
             if isinstance(handler, BatchSubscriber):
@@ -327,9 +327,8 @@ async def build_message(
         publish_cmd = _BasePublishCommand(
             body=message, destination=topic, _publish_type=PublishType.PUBLISH
         )
-        msg, content_type = await (codec or DefaultCodec()).encode(
-            publish_cmd, serializer
-        )
+        encoded = await (codec or DefaultCodec()).encode(publish_cmd, serializer)
+        msg, content_type = encoded.body, encoded.content_type
 
     k = key or b""
 

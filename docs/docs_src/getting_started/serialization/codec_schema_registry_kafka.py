@@ -56,14 +56,16 @@ class SchemaRegistryCodec:
         self,
         cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]:
+    ) -> "EncodedMessage":
+        from faststream._internal.parser import EncodedMessage
+
         schema_id, schema = self._topic_schemas[cmd.destination]
         body = cmd.body
         data = body.model_dump(mode="json") if hasattr(body, "model_dump") else body
         buf = io.BytesIO()
         buf.write(HEADER.pack(0, schema_id))
         fastavro.schemaless_writer(buf, schema, data)
-        return buf.getvalue(), "application/avro"
+        return EncodedMessage(body=buf.getvalue(), content_type="application/avro")
 
 
 codec = SchemaRegistryCodec(
