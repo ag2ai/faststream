@@ -1,0 +1,91 @@
+# serializer version: 1
+# name: TestRouterArguments.test_pydantic_model_mixed_regular
+  dict({
+    'Email': dict({
+      'properties': dict({
+        'addr': dict({
+          'title': 'Addr',
+          'type': 'string',
+        }),
+      }),
+      'required': list([
+        'addr',
+      ]),
+      'title': 'Email',
+      'type': 'object',
+    }),
+    'Handle:Message:Payload': dict({
+      'properties': dict({
+        'description': dict({
+          'default': '',
+          'title': 'Description',
+          'type': 'string',
+        }),
+        'user': dict({
+          '$ref': '#/components/schemas/User',
+        }),
+      }),
+      'required': list([
+        'user',
+      ]),
+      'title': 'Handle:Message:Payload',
+      'type': 'object',
+    }),
+    'User': dict({
+      'properties': dict({
+        'email': dict({
+          '$ref': '#/components/schemas/Email',
+        }),
+        'id': dict({
+          'title': 'Id',
+          'type': 'integer',
+        }),
+        'name': dict({
+          'default': '',
+          'title': 'Name',
+          'type': 'string',
+        }),
+      }),
+      'required': list([
+        'id',
+        'email',
+      ]),
+      'title': 'User',
+      'type': 'object',
+    }),
+  })
+# ---
+# name: TestRouterArguments.test_pydantic_model_with_enum
+  dict({
+    'Status': dict({
+      'enum': list([
+        'registered',
+        'banned',
+      ]),
+      'title': 'Status',
+      'type': 'string',
+    }),
+    'User': dict({
+      'properties': dict({
+        'id': dict({
+          'title': 'Id',
+          'type': 'integer',
+        }),
+        'name': dict({
+          'default': '',
+          'title': 'Name',
+          'type': 'string',
+        }),
+        'status': dict({
+          '$ref': '#/components/schemas/Status',
+        }),
+      }),
+      'required': list([
+        'id',
+        'status',
+      ]),
+      'title': 'User',
+      'type': 'object',
+    }),
+  })
+# ---

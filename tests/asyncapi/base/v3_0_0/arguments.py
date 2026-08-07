@@ -8,6 +8,7 @@ import pytest
 from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
 from fastapi import Depends as APIDepends
+from syrupy.assertion import SnapshotAssertion
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
@@ -317,7 +318,7 @@ class FastAPICompatible(AsyncAPI300Factory):
                 "type": "object",
             }
 
-    def test_pydantic_model_with_enum(self) -> None:
+    def test_pydantic_model_with_enum(self, snapshot: SnapshotAssertion) -> None:
         class Status(str, Enum):
             registered = "registered"
             banned = "banned"
@@ -336,27 +337,9 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        assert payload == {
-            "Status": IsPartialDict(
-                {
-                    "enum": ["registered", "banned"],
-                    "title": "Status",
-                    "type": "string",
-                },
-            ),
-            "User": {
-                "properties": {
-                    "id": {"title": "Id", "type": "integer"},
-                    "name": {"default": "", "title": "Name", "type": "string"},
-                    "status": {"$ref": "#/components/schemas/Status"},
-                },
-                "required": ["id", "status"],
-                "title": "User",
-                "type": "object",
-            },
-        }, payload
+        assert payload == snapshot
 
-    def test_pydantic_model_mixed_regular(self) -> None:
+    def test_pydantic_model_mixed_regular(self, snapshot: SnapshotAssertion) -> None:
         class Email(pydantic.BaseModel):
             addr: str
 
@@ -374,37 +357,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
         payload = schema["components"]["schemas"]
 
-        assert payload == {
-            "Email": {
-                "title": "Email",
-                "type": "object",
-                "properties": {"addr": {"title": "Addr", "type": "string"}},
-                "required": ["addr"],
-            },
-            "User": {
-                "title": "User",
-                "type": "object",
-                "properties": {
-                    "name": {"title": "Name", "default": "", "type": "string"},
-                    "id": {"title": "Id", "type": "integer"},
-                    "email": {"$ref": "#/components/schemas/Email"},
-                },
-                "required": ["id", "email"],
-            },
-            "Handle:Message:Payload": {
-                "title": "Handle:Message:Payload",
-                "type": "object",
-                "properties": {
-                    "user": {"$ref": "#/components/schemas/User"},
-                    "description": {
-                        "title": "Description",
-                        "default": "",
-                        "type": "string",
-                    },
-                },
-                "required": ["user"],
-            },
-        }
+        assert payload == snapshot
 
     def test_nested_models_in_union_should_be_in_schemas(self) -> None:
         """Test that nested Pydantic models in union types are promoted to components/schemas.
