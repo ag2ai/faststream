@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-from redis import event
 
 from tests.brokers.base.publish import BrokerPublishTestcase
 
@@ -28,4 +27,3 @@ class TestPublish(MQTTTestcaseConfig, BrokerPublishTestcase):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_custom_id_generator(queue, mock)
-        await super().test_reply_to(queue, mock, event)
