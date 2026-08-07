@@ -28,6 +28,7 @@ from faststream.rabbit.schemas import (
     RabbitExchange,
     RabbitQueue,
 )
+from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
@@ -184,8 +185,22 @@ async def build_message(
     routing = routing_key or que.routing()
 
     correlation_id = correlation_id or gen_cor_id()
+
+    from faststream.rabbit.response import RabbitPublishCommand
+
+    cmd = RabbitPublishCommand(
+        message=message,
+        _publish_type=PublishType.PUBLISH,
+        routing_key=routing,
+        exchange=exch,
+        headers=headers,
+        correlation_id=correlation_id,
+        reply_to=reply_to,
+    )
+
     msg = await AioPikaParser.encode_message(
         message=message,
+        cmd=cmd,
         persist=persist,
         reply_to=reply_to,
         headers=headers,

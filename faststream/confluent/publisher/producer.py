@@ -9,6 +9,7 @@ from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -140,18 +141,18 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         if cmd.body is None:
-            message, content_type = None, None
+            encoded = None
         else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+            encoded = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
-            "content-type": content_type or "",
+            "content-type": (encoded.content_type if encoded else None) or "",
             **cmd.headers_to_publish(),
         }
 
         return await self._producer.producer.send(
             topic=cmd.destination,
-            value=message,
+            value=encoded.body if encoded else None,
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
@@ -167,18 +168,24 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
-            )
+            encoded_batch = await self.codec.encode_batch(cmd, self.serializer)
         else:
             encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
+                await self.codec.encode(
+                    _BasePublishCommand(
+                        body=msg,
+                        destination=cmd.destination,
+                        _publish_type=cmd.publish_type,
+                    ),
+                    self.serializer,
+                )
+                for msg in cmd.batch_bodies
             ]
 
-        for message_position, (message, content_type) in enumerate(encoded_batch):
-            if content_type:
+        for message_position, encoded in enumerate(encoded_batch):
+            if encoded.content_type:
                 final_headers = {
-                    "content-type": content_type,
+                    "content-type": encoded.content_type,
                     **headers_to_send,
                 }
             else:
@@ -186,7 +193,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
             batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=encoded.body,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
             )

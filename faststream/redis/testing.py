@@ -44,6 +44,8 @@ from faststream.redis.schemas import INCORRECT_SETUP_MSG
 from faststream.redis.subscriber.usecases.channel_subscriber import ChannelSubscriber
 from faststream.redis.subscriber.usecases.list_subscriber import _ListHandlerMixin
 from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandlerMixin
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand as _BasePublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -230,6 +232,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            destination=cmd.destination,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
@@ -258,6 +261,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or gen_cor_id(),
             headers=cmd.headers,
             message_format=cmd.message_format,
+            destination=cmd.destination,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
@@ -362,14 +366,20 @@ async def build_message(
     message_format: type["MessageFormat"],
     reply_to: str = "",
     headers: dict[str, Any] | None = None,
+    destination: str = "",
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
 ) -> bytes:
-    return await message_format.encode(
-        message=message,
+    cmd = _BasePublishCommand(
+        body=message,
+        destination=destination,
+        correlation_id=correlation_id,
         reply_to=reply_to,
         headers=headers,
-        correlation_id=correlation_id,
+        _publish_type=PublishType.PUBLISH,
+    )
+    return await message_format.encode(
+        cmd=cmd,
         serializer=serializer,
         codec=codec,
     )
