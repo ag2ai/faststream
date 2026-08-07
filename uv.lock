@@ -1024,7 +1024,7 @@ requires-dist = [
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.9,!=0.12,<=0.27.1" },
     { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "watchfiles", marker = "extra == 'cli'", specifier = ">=0.15.0,<1.2.0" },
-    { name = "zmqtt", marker = "extra == 'mqtt'", specifier = ">=0.0.5" },
+    { name = "zmqtt", marker = "extra == 'mqtt'", specifier = ">=0.1.0,<0.2.0" },
 ]
 provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "cli", "otel", "prometheus"]
 
@@ -4205,12 +4205,12 @@ wheels = [
 
 [[package]]
 name = "zmqtt"
-version = "0.0.6"
+version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/04/3a/c81bcfa737fd7d5c3361a7817099c7b1a0d2959d7e1a11e7736198595e7d/zmqtt-0.0.6.tar.gz", hash = "sha256:56053bd503ca9ba4428e0d43975227254e89de2b4fcd7338de89a4cd6cf9ee44", size = 30912, upload-time = "2026-07-26T23:04:06.782Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/b3/1e399acf9e939e663a8c6149a7d4eb875e376d63c2ac8c3cd361f197d3af/zmqtt-0.1.0.tar.gz", hash = "sha256:2f8aa02f10ecf17e6447a5c93ae9f91a36cf2a0d436cf8dd9adb6f478e590d89", size = 35124, upload-time = "2026-08-07T12:53:14.792Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/f4/6f25f746c2dfb9932ba40642fe03e30d718247e418aed3062f9c9a692f6b/zmqtt-0.0.6-py3-none-any.whl", hash = "sha256:cd1a348c9e1f19e6c6c934b85d904152b3e2d8f61eaef9ce0ab4ae10af9e3bff", size = 40748, upload-time = "2026-07-26T23:04:05.898Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/fb/a574b2aedf21d4bebc688554c9f93bd66aca01933c4117f9e533cae99f1c/zmqtt-0.1.0-py3-none-any.whl", hash = "sha256:2cc6d3e081284836371acda86ff2d8413d0230317a28f665a0f08ff8544f3d1d", size = 46079, upload-time = "2026-08-07T12:53:13.508Z" },
 ]
