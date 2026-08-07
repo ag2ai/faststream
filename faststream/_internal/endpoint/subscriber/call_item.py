@@ -10,6 +10,7 @@ from typing import (
     cast,
 )
 
+from faststream._internal.context import ContextRepo
 from faststream._internal.types import MsgType
 from faststream.exceptions import IgnoredException, SetupError
 from faststream.specification.asyncapi.utils import to_camelcase
@@ -131,9 +132,10 @@ class HandlerItem(Generic[MsgType]):
         /,
         message: "StreamMessage[MsgType]",
         _extra_middlewares: Iterable["SubscriberMiddleware[Any]"],
+        context: ContextRepo,
     ) -> Any:
         """Execute wrapped handler with consume middlewares."""
-        call: AsyncFuncAny = self.handler.call_wrapped
+        call: AsyncFuncAny = self.handler.call_wrapped(context)
 
         for middleware in _extra_middlewares:
             call = partial(middleware, call)

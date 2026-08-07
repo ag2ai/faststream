@@ -404,6 +404,40 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
             with pytest.raises(AssertionError):
                 await subscriber.get_one(timeout=1e-24)
 
+    async def test_subsciber_assert_called_once_with(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        class BodyModel(BaseModel):
+            name: str
+            age: int
+
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(body: BodyModel) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        broker.publish(BodyModel(name="John", age=19), queue)
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+            await handle.assert_called_once_with({"name": "John", "age": 19})
+            await handle.assert_called_once_with(BodyModel(name="John", age=19))
+            await handle.assert_called_once_with(context={"broker": broker})
+
 
 @pytest.mark.asyncio()
 class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
