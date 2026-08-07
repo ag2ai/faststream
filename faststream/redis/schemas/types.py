@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Annotated, Any
 
 from fast_depends import Provider
@@ -68,6 +68,11 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     ]
     ack_policy: Annotated[
         AckPolicy, "Default acknowledgement policy. Defaults to ``EMPTY``."
+    ]
+    id_generator: Annotated[
+        Callable[[], str],
+        "Factory used to generate `correlation_id` when a publish/request call "
+        "doesn't set one explicitly. Defaults to `gen_cor_id` (uuid4-based).",
     ]
     decoder: Annotated[
         CustomCallable | None, "Custom message decoder. Defaults to ``None``."
@@ -151,6 +156,7 @@ SENTINEL_PARAMS = frozenset({
 NON_CONNECTION_PARAMS = frozenset({
     "graceful_timeout",
     "ack_policy",
+    "id_generator",
     "decoder",
     "codec",
     "parser",

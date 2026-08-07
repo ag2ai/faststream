@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock
@@ -159,6 +159,7 @@ class FakeProducer(NatsFastProducer):
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -184,6 +185,7 @@ class FakeProducer(NatsFastProducer):
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -218,6 +220,7 @@ class FakeProducer(NatsFastProducer):
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 
@@ -268,6 +271,7 @@ async def build_message(
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
+    id_generator: Callable[[], str] = gen_cor_id,
 ) -> "PatchedMessage":
     if codec is None:
         codec = DefaultCodec()
@@ -279,7 +283,7 @@ async def build_message(
         data=msg,
         headers={
             "content-type": content_type or "",
-            "correlation_id": correlation_id or gen_cor_id(),
+            "correlation_id": correlation_id or id_generator(),
             **(headers or {}),
         },
     )
