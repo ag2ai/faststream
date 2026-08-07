@@ -80,13 +80,11 @@ app = FastStream(broker)
 
 
 @broker.subscriber("orders")
-async def handle_order(body: dict[str, Any]) -> None:
-    ...
+async def handle_order(body: dict[str, Any]) -> None: ...
 
 
 @broker.subscriber("users")
-async def handle_user(body: dict[str, Any]) -> None:
-    ...
+async def handle_user(body: dict[str, Any]) -> None: ...
 
 
 @app.after_startup
