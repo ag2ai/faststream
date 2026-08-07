@@ -57,6 +57,14 @@ def mock() -> Generator[MagicMock, Any, None]:
 
 
 @pytest.fixture()
+def mock2() -> Generator[MagicMock, Any, None]:
+    """Should be generator to share mock between tests."""
+    m = MagicMock()
+    yield m
+    m.reset_mock()
+
+
+@pytest.fixture()
 def async_mock() -> Generator[AsyncMock, Any, None]:
     """Should be generator to share mock between tests."""
     m = AsyncMock()
