@@ -114,18 +114,18 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         if cmd.body is None and cmd.key is not None:
             # keyed None is a tombstone: aiokafka requires at least key or value,
             # so a keyless None still goes through the codec as b""
-            message, content_type = None, None
+            encoded = None
         else:
-            message, content_type = await self.codec.encode(cmd, self.serializer)
+            encoded = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
-            "content-type": content_type or "",
+            "content-type": (encoded.content_type if encoded else None) or "",
             **cmd.headers_to_publish(),
         }
 
         send_future = await self._producer.producer.send(
             topic=cmd.destination,
-            value=message,
+            value=encoded.body if encoded else None,
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
@@ -161,10 +161,10 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                 for body in cmd.batch_bodies
             ]
 
-        for message_position, (message, content_type) in enumerate(encoded_batch):
-            if content_type:
+        for message_position, encoded in enumerate(encoded_batch):
+            if encoded.content_type:
                 final_headers = {
-                    "content-type": content_type,
+                    "content-type": encoded.content_type,
                     **headers_to_send,
                 }
             else:
@@ -172,7 +172,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
             metadata = batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=encoded.body,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
             )

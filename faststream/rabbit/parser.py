@@ -84,17 +84,15 @@ class AioPikaParser:
         if isinstance(message, Message):
             return message
 
-        message_body, generated_content_type = await (codec or DefaultCodec()).encode(
-            cmd, serializer
-        )
+        encoded = await (codec or DefaultCodec()).encode(cmd, serializer)
 
         delivery_mode = (
             DeliveryMode.PERSISTENT if persist else DeliveryMode.NOT_PERSISTENT
         )
 
         return Message(
-            message_body,
-            content_type=content_type or generated_content_type,
+            encoded.body,
+            content_type=content_type or encoded.content_type,
             delivery_mode=delivery_mode,
             reply_to=reply_to,
             correlation_id=correlation_id or id_generator(),

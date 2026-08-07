@@ -96,10 +96,10 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         if cmd.headers:
             msg = "MQTT 3.1.1 does not support message headers. Use MQTT 5.0."
             raise FeatureNotSupportedException(msg)
-        payload, _ = await self.codec.encode(cmd, self.serializer)
+        encoded = await self.codec.encode(cmd, self.serializer)
         await self._connected_client.publish(
             cmd.destination,
-            payload,
+            encoded.body,
             qos=zmqtt.QoS(cmd.qos),
             retain=cmd.retain,
         )
@@ -121,10 +121,10 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         await sub.start()
 
         try:
-            payload, _ = await self.codec.encode(cmd, self.serializer)
+            encoded = await self.codec.encode(cmd, self.serializer)
             await self._connected_client.publish(
                 cmd.destination,
-                payload,
+                encoded.body,
                 qos=cmd.qos,
                 retain=cmd.retain,
             )
@@ -149,14 +149,14 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
     @override
     async def publish(self, cmd: "MQTTPublishCommand") -> None:
-        payload, content_type = await self.codec.encode(cmd, self.serializer)
+        encoded = await self.codec.encode(cmd, self.serializer)
 
         user_props: list[tuple[str, str]] = [
             (k, str(v)) for k, v in (cmd.headers or {}).items()
         ]
 
         properties = PublishProperties(
-            content_type=content_type or None,
+            content_type=encoded.content_type or None,
             response_topic=cmd.reply_to or None,
             correlation_data=cmd.correlation_id.encode() if cmd.correlation_id else None,
             user_properties=tuple(user_props),
@@ -165,7 +165,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
         await self._connected_client.publish(
             cmd.destination,
-            payload,
+            encoded.body,
             qos=cmd.qos,
             retain=cmd.retain,
             properties=properties,
@@ -179,7 +179,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         ID explicitly so the responder echoes it back and the caller can
         verify it on the response StreamMessage.
         """
-        payload, content_type = await self.codec.encode(cmd, self.serializer)
+        encoded = await self.codec.encode(cmd, self.serializer)
         correlation_id = cmd.correlation_id or self.id_generator()
 
         user_props: list[tuple[str, str]] = [
@@ -189,7 +189,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         # Pass correlation_data explicitly so the responder echoes it back.
         # Do NOT set response_topic — let zmqtt generate it.
         properties = PublishProperties(
-            content_type=content_type or None,
+            content_type=encoded.content_type or None,
             correlation_data=correlation_id.encode(),
             user_properties=tuple(user_props),
             message_expiry_interval=cmd.message_expiry_interval,
@@ -197,7 +197,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
         return await self._connected_client.request(
             cmd.destination,
-            payload,
+            encoded.body,
             qos=cmd.qos,
             timeout=cmd.timeout or 30.0,
             properties=properties,

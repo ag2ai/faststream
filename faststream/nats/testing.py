@@ -283,14 +283,14 @@ async def build_message(
         destination=subject,
         _publish_type=PublishType.PUBLISH,
     )
-    msg, content_type = await codec.encode(publish_cmd, serializer=serializer)
+    encoded = await codec.encode(publish_cmd, serializer=serializer)
     return PatchedMessage(
         _client=None,  # type: ignore[arg-type]
         subject=subject,
         reply=reply_to,
-        data=msg,
+        data=encoded.body,
         headers={
-            "content-type": content_type or "",
+            "content-type": encoded.content_type or "",
             "correlation_id": correlation_id or id_generator(),
             **(headers or {}),
         },

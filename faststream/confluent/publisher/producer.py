@@ -141,18 +141,18 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         if cmd.body is None:
-            message, content_type = None, None
+            encoded = None
         else:
-            message, content_type = await self.codec.encode(cmd, self.serializer)
+            encoded = await self.codec.encode(cmd, self.serializer)
 
         headers_to_send = {
-            "content-type": content_type or "",
+            "content-type": (encoded.content_type if encoded else None) or "",
             **cmd.headers_to_publish(),
         }
 
         return await self._producer.producer.send(
             topic=cmd.destination,
-            value=message,
+            value=encoded.body if encoded else None,
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
@@ -182,10 +182,10 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
                 for msg in cmd.batch_bodies
             ]
 
-        for message_position, (message, content_type) in enumerate(encoded_batch):
-            if content_type:
+        for message_position, encoded in enumerate(encoded_batch):
+            if encoded.content_type:
                 final_headers = {
-                    "content-type": content_type,
+                    "content-type": encoded.content_type,
                     **headers_to_send,
                 }
             else:
@@ -193,7 +193,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
             batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=encoded.body,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
             )

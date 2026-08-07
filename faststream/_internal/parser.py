@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 from faststream.message.utils import decode_message, encode_message
@@ -12,6 +13,14 @@ if TYPE_CHECKING:
     from faststream.response.response import PublishCommand
 
 MsgType = TypeVar("MsgType")
+
+
+@dataclass(frozen=True)
+class EncodedMessage:
+    """Result of codec encoding."""
+
+    body: bytes
+    content_type: str | None = None
 
 
 class ParserProto(Protocol[MsgType]):
@@ -67,7 +76,7 @@ class CodecProto(Protocol):
         self,
         cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]: ...
+    ) -> "EncodedMessage": ...
 
 
 @runtime_checkable
@@ -77,7 +86,7 @@ class BatchCodecProto(Protocol):
         self,
         cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> list[tuple[bytes, str | None]]: ...
+    ) -> list["EncodedMessage"]: ...
 
     @abstractmethod
     async def decode_batch(
@@ -94,5 +103,6 @@ class DefaultCodec:
         self,
         cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]:
-        return encode_message(cmd.body, serializer)
+    ) -> "EncodedMessage":
+        body, content_type = encode_message(cmd.body, serializer)
+        return EncodedMessage(body=body, content_type=content_type)

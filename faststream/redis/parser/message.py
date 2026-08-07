@@ -35,14 +35,14 @@ class MessageFormat(ABC):
         codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
         codec_instance = codec or DefaultCodec()
-        payload, content_type = await codec_instance.encode(cmd, serializer)
+        encoded = await codec_instance.encode(cmd, serializer)
 
         headers_to_send = {
             "correlation_id": cmd.correlation_id or "",
         }
 
-        if content_type:
-            headers_to_send["content-type"] = content_type
+        if encoded.content_type:
+            headers_to_send["content-type"] = encoded.content_type
 
         if cmd.reply_to:
             headers_to_send["reply_to"] = cmd.reply_to
@@ -51,7 +51,7 @@ class MessageFormat(ABC):
             headers_to_send.update(cmd.headers)
 
         return cls(
-            data=payload,
+            data=encoded.body,
             headers=headers_to_send,
         )
 

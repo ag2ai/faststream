@@ -294,12 +294,12 @@ async def build_message(
         destination=topic,
         _publish_type=PublishType.PUBLISH,
     )
-    payload, content_type = await codec.encode(publish_cmd, serializer=serializer)
+    encoded = await codec.encode(publish_cmd, serializer=serializer)
 
     if version == "3.1.1":
         return zmqtt.Message(
             topic=topic,
-            payload=payload,
+            payload=encoded.body,
             qos=zmqtt.QoS(qos),
             retain=retain,
         )
@@ -307,7 +307,7 @@ async def build_message(
     user_props: list[tuple[str, str]] = list((headers or {}).items())
 
     properties = zmqtt.PublishProperties(
-        content_type=content_type or None,
+        content_type=encoded.content_type or None,
         response_topic=reply_to or None,
         correlation_data=correlation_id.encode() if correlation_id else None,
         user_properties=tuple(user_props),
@@ -315,7 +315,7 @@ async def build_message(
 
     return zmqtt.Message(
         topic=topic,
-        payload=payload,
+        payload=encoded.body,
         qos=zmqtt.QoS(qos),
         retain=retain,
         properties=properties,
