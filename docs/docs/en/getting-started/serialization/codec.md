@@ -16,18 +16,10 @@ A codec provides a unified interface for both encoding (publishing) and decoding
 
 Implement the `CodecProto` interface to create a custom codec:
 
-```python
-class CodecProto(Protocol):
-    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage": ...
-    async def encode(
-        self,
-        cmd: "PublishCommand",
-        serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]: ...
-```
+::: faststream._internal.parser.CodecProto
 
 - **`decode`** — receives a `StreamMessage` with raw bytes in `msg.body` and returns the decoded Python value.
-- **`encode`** — receives a `PublishCommand` containing the message body, destination, and headers. Returns a `(bytes, content_type)` tuple. Access the payload via `cmd.body` and the target topic/subject/queue via `cmd.destination`.
+- **`encode`** — receives a `PublishCommand` containing the message body, destination, and headers. Returns an `EncodedMessage` dataclass with `body: bytes` and `content_type: str | None`. Access the payload via `cmd.body` and the target topic/subject/queue via `cmd.destination`.
 
 If no codec is set, `DefaultCodec` is used automatically. It handles JSON objects, plain text, and raw bytes.
 
