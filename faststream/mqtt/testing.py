@@ -22,7 +22,7 @@ from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand as _BasePublishCommand
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -289,7 +289,7 @@ async def build_message(
     """
     if codec is None:
         codec = DefaultCodec()
-    publish_cmd = _BasePublishCommand(
+    publish_cmd = PublishCommand(
         body=message,
         destination=topic,
         _publish_type=PublishType.PUBLISH,

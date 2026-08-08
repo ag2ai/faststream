@@ -24,7 +24,7 @@ from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand as _BasePublishCommand
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -203,7 +203,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         else:
             encoded = [
                 await self.codec.encode(
-                    _BasePublishCommand(
+                    PublishCommand(
                         body=body,
                         destination=cmd.destination,
                         _publish_type=cmd.publish_type,
@@ -366,7 +366,7 @@ async def build_message(
         msg, content_type = None, None
     else:
         codec_instance = codec or DefaultCodec()
-        publish_cmd = _BasePublishCommand(
+        publish_cmd = PublishCommand(
             body=message, destination=topic, _publish_type=PublishType.PUBLISH
         )
         encoded = await codec_instance.encode(publish_cmd, serializer)
