@@ -111,7 +111,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        if cmd.body is None:
+        if cmd.body is None and cmd.key is not None:
             body = None
             content_type = None
         else:

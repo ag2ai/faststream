@@ -140,7 +140,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        if cmd.body is None:
+        if cmd.body is None and cmd.key is not None:
             body = None
             content_type = None
         else:

@@ -18,13 +18,11 @@ if TYPE_CHECKING:
     from re import Pattern
 
     from aio_pika import IncomingMessage
-    from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import DecodedMessage
     from faststream._internal.parser import CodecProto
     from faststream.rabbit.response import RabbitPublishCommand
-    from faststream.rabbit.types import AioPikaSendableMessage
 
 
 class AioPikaParser:
@@ -60,49 +58,38 @@ class AioPikaParser:
 
     @staticmethod
     async def encode_message(
-        message: "AioPikaSendableMessage",
-        *,
         cmd: "RabbitPublishCommand",
-        persist: bool = False,
-        reply_to: str | None = None,
-        headers: Optional["HeadersType"] = None,
-        content_type: str | None = None,
-        content_encoding: str | None = None,
-        priority: int | None = None,
-        correlation_id: str | None = None,
-        expiration: "DateType" = None,
-        message_id: str | None = None,
-        timestamp: "DateType" = None,
-        message_type: str | None = None,
-        user_id: str | None = None,
-        app_id: str | None = None,
+        *,
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
         id_generator: IdGenerator = gen_cor_id,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
-        if isinstance(message, Message):
-            return message
+        if isinstance(cmd.body, Message):
+            return cmd.body
 
         encoded = await (codec or DefaultCodec()).encode(cmd, serializer)
 
+        opts = cmd.message_options
+        persist = opts.get("persist", False)
         delivery_mode = (
             DeliveryMode.PERSISTENT if persist else DeliveryMode.NOT_PERSISTENT
         )
 
         return Message(
             encoded.body,
-            content_type=content_type or encoded.content_type,
+            content_type=opts.get("content_type") or encoded.content_type,
             delivery_mode=delivery_mode,
-            reply_to=reply_to,
-            correlation_id=correlation_id or id_generator(),
-            headers=headers,
-            content_encoding=content_encoding,
-            priority=priority,
-            expiration=expiration,
-            message_id=message_id,
-            timestamp=timestamp or datetime.datetime.now(tz=datetime.timezone.utc),
-            type=message_type,
-            user_id=user_id,
-            app_id=app_id,
+            reply_to=cmd.reply_to or None,
+            correlation_id=cmd.correlation_id or id_generator(),
+            headers=cmd.headers,
+            content_encoding=opts.get("content_encoding"),
+            priority=opts.get("priority"),
+            expiration=opts.get("expiration"),
+            message_id=opts.get("message_id"),
+            timestamp=opts.get("timestamp")
+            or datetime.datetime.now(tz=datetime.timezone.utc),
+            type=opts.get("message_type"),
+            user_id=opts.get("user_id"),
+            app_id=opts.get("app_id"),
         )

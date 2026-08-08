@@ -198,24 +198,20 @@ async def build_message(
         headers=headers,
         correlation_id=correlation_id,
         reply_to=reply_to,
-    )
-
-    msg = await AioPikaParser.encode_message(
-        message=message,
-        cmd=cmd,
         persist=persist,
-        reply_to=reply_to,
-        headers=headers,
         content_type=content_type,
         content_encoding=content_encoding,
         priority=priority,
-        correlation_id=correlation_id,
         expiration=expiration,
         message_id=message_id or correlation_id,
         timestamp=timestamp,
         message_type=message_type,
         user_id=user_id,
         app_id=app_id,
+    )
+
+    msg = await AioPikaParser.encode_message(
+        cmd,
         serializer=serializer,
         codec=codec,
     )
