@@ -12,6 +12,7 @@ search:
         - [Filtering](getting-started/subscription/filtering.md)
         - [Testing](getting-started/subscription/test.md)
         - [Dynamic Subscribers](getting-started/subscription/dynamic.md)
+        - [Concurrency](getting-started/subscription/concurrency.md)
     - [Publishing](getting-started/publishing/index.md)
         - [Broker Publish](getting-started/publishing/broker.md)
         - [Decorator](getting-started/publishing/decorator.md)
