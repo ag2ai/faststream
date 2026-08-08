@@ -146,9 +146,6 @@ class PublisherUsecase(Endpoint, PublisherProto):
         return self.specification.get_schema()
 
     async def assert_called_once_with(self, body: Any) -> None:
-        if not self.is_test:
-            return
-
         serializer = self._outer_config.fd_config._serializer
         codec = self._outer_config.broker_codec or DefaultCodec()
 

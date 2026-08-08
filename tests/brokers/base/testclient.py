@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import anyio
 import pytest
+from pydantic import BaseModel
 
 from .consume import BrokerConsumeTestcase
 from .publish import BrokerPublishTestcase
@@ -234,3 +235,84 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             # test request
             data = await br.request(ModelA(param1=1), queue)
             assert json.loads(data.body) == {"param2": 1}, data.body
+
+    async def test_publisher_assert_called_once_with(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        class BodyModel(BaseModel):
+            name: str
+            age: int
+
+        broker = self.get_broker(apply_types=True)
+
+        publisher2 = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None:
+            await publisher2.publish(BodyModel(name="John", age=19))
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handle2(body: BodyModel) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker.publish("", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+            assert publisher2.is_test
+
+            await publisher2.assert_called_once_with({"name": "John", "age": 19})
+            await publisher2.assert_called_once_with(BodyModel(name="John", age=19))
+
+            with pytest.raises(AssertionError):
+                await publisher2.assert_called_once_with({"city": "Moscow"})
+
+    async def test_subsciber_assert_called_once_with(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        class BodyModel(BaseModel):
+            name: str
+            age: int
+
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(body: BodyModel) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        broker.publish(BodyModel(name="John", age=19), queue)
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+            assert handle.is_test
+
+            await handle.assert_called_once_with({"name": "John", "age": 19})
+            await handle.assert_called_once_with(BodyModel(name="John", age=19))
+            await handle.assert_called_once_with(context={"broker": broker})
+
+            with pytest.raises(AssertionError):
+                await handle.assert_called_once_with({"city": "Moscow"})

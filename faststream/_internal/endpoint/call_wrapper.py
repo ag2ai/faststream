@@ -169,9 +169,6 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         body: Any = EMPTY,
         context: dict[str, Any] = EMPTY,
     ) -> None:
-        if not self.is_test:
-            return
-
         if body != EMPTY:
             serializer = self._outer_config.fd_config._serializer
             codec = self._outer_config.broker_codec or DefaultCodec()
@@ -180,6 +177,11 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
             self.mock.assert_called_once_with(encoded_message)
 
         if context != EMPTY:
-            context_repo = ContextRepo(self.mock.context)
+            context_ = getattr(self.mock, "context", None)
+            if context_ is None:
+                msg = "The context is not set. Make sure that the test mod is installed."
+                raise SetupError(msg)
+
+            context_repo = ContextRepo(context_)
             for key, value in context.items():
                 assert context_repo.resolve(key) == value
