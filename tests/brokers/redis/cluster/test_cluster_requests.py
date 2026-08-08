@@ -2,6 +2,8 @@ import pytest
 
 from faststream import BaseMiddleware
 from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 from tests.brokers.base.requests import RequestsTestcase
 from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
 
@@ -10,9 +12,6 @@ class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
         data, headers = BinaryMessageFormatV1.parse(self.msg["data"])
         data *= 2
-
-        from faststream.response.publish_type import PublishType
-        from faststream.response.response import PublishCommand
 
         cmd = PublishCommand(
             body=data,

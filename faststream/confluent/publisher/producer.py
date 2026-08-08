@@ -141,18 +141,21 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
         if cmd.body is None:
-            encoded = None
+            body = None
+            content_type = None
         else:
             encoded = await self.codec.encode(cmd, self.serializer)
+            body = encoded.body
+            content_type = encoded.content_type
 
         headers_to_send = {
-            "content-type": (encoded.content_type if encoded else None) or "",
+            "content-type": content_type or "",
             **cmd.headers_to_publish(),
         }
 
         return await self._producer.producer.send(
             topic=cmd.destination,
-            value=encoded.body if encoded else None,
+            value=body,
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,

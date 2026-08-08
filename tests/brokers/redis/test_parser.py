@@ -9,6 +9,8 @@ import pytest
 from faststream._internal._compat import json_dumps
 from faststream.redis import RedisBroker, TestRedisBroker
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 from tests.brokers.base.parser import CustomParserTestcase
 
 from .basic import RedisTestcaseConfig
@@ -65,9 +67,6 @@ class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 async def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
-    from faststream.response.publish_type import PublishType
-    from faststream.response.response import PublishCommand
-
     cmd = PublishCommand(
         body=input,
         destination="",
