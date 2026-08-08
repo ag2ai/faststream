@@ -7,7 +7,7 @@ from faststream.kafka.message import (
     KafkaMessage,
     KafkaRawMessage,
 )
-from faststream.message import decode_message
+from faststream.message import decode_message, value_or_tombstone
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -42,7 +42,7 @@ class AioKafkaParser:
         headers = {i: j.decode() for i, j in message.headers}
 
         return self.msg_class(
-            body=message.value or b"",
+            body=value_or_tombstone(message.value),
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
@@ -74,7 +74,7 @@ class AioKafkaBatchParser(AioKafkaParser):
         last = message[-1]
 
         for m in message:
-            body.append(m.value or b"")
+            body.append(value_or_tombstone(m.value))
             batch_headers.append({i: j.decode() for i, j in m.headers})
 
         headers = next(iter(batch_headers), {})

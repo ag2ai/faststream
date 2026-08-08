@@ -18,6 +18,7 @@ from starlette.requests import Request
 from faststream._internal.context import Context, ContextRepo
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
+from faststream.message import TOMBSTONE
 from faststream.response import Response, ensure_response
 
 from ._compat import (
@@ -51,13 +52,13 @@ class StreamMessage(Request):
     scope: "dict[str, Any]"
     _cookies: "dict[str, Any]"
     _headers: "dict[str, Any]"  # type: ignore[assignment]
-    _body: Union["dict[str, Any]", list[Any]]  # type: ignore[assignment]
+    _body: Union["dict[str, Any]", list[Any], None]  # type: ignore[assignment]
     _query_params: "dict[str, Any]"  # type: ignore[assignment]
 
     def __init__(
         self,
         *,
-        body: Union["dict[str, Any]", list[Any]],
+        body: Union["dict[str, Any]", list[Any], None],
         headers: "dict[str, Any]",
         path: "dict[str, Any]",
     ) -> None:
@@ -172,9 +173,15 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
-        fastapi_body: dict[str, Any] | list[Any]
+        fastapi_body: dict[str, Any] | list[Any] | None
         if first_arg is not None:
-            if isinstance(body, dict):
+            # NOTE: checks the raw pre-decode body, not the already-decoded
+            # `body` local (also None here) - a real b"null" payload decodes
+            # to None too but must still fall through to {first_arg: body}
+            # below, unchanged from before this sentinel existed.
+            if message.body is TOMBSTONE:
+                fastapi_body, path = None, {}
+            elif isinstance(body, dict):
                 path = fastapi_body = body or {}
             elif isinstance(body, list):
                 fastapi_body, path = body, {}
