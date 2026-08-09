@@ -161,9 +161,11 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 cmd,
                 serializer: Any = None,
             ) -> list[EncodedMessage]:
+                # Bind super() outside comprehension: zero-arg super() can't resolve
+                # __class__ inside list-comp's implicit nested scope (Python limitation).
+                _encode = super().encode
                 return [
-                    await DefaultCodec.encode(
-                        self,
+                    await _encode(
                         PublishCommand(
                             body=body,
                             destination=cmd.destination,
@@ -204,9 +206,11 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 serializer: Any = None,
             ) -> list[EncodedMessage]:
                 encode_batch_mock()
+                # Bind super() outside comprehension: zero-arg super() can't resolve
+                # __class__ inside list-comp's implicit nested scope (Python limitation).
+                _encode = super().encode
                 return [
-                    await DefaultCodec.encode(
-                        self,
+                    await _encode(
                         PublishCommand(
                             body=body,
                             destination=cmd.destination,
