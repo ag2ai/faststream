@@ -261,14 +261,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-
-            await asyncio.wait(
-                (
-                    asyncio.create_task(broker.publish("", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
+            await broker.publish("", queue)
 
             assert event.is_set()
             assert publisher2.is_test
@@ -296,16 +289,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-
-            await asyncio.wait(
-                (
-                    asyncio.create_task(
-                        broker.publish(BodyModel(name="John", age=19), queue)
-                    ),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
+            await broker.publish(BodyModel(name="John", age=19), queue)
 
             assert event.is_set()
             assert handle.is_test

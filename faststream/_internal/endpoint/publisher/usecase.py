@@ -6,6 +6,8 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
+from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
@@ -145,10 +147,21 @@ class PublisherUsecase(Endpoint, PublisherProto):
     def schema(self) -> dict[str, "PublisherSpec"]:
         return self.specification.get_schema()
 
-    async def assert_called_once_with(self, body: Any) -> None:
-        serializer = self._outer_config.fd_config._serializer
-        codec = self._outer_config.broker_codec or DefaultCodec()
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        context: dict[str, Any] = EMPTY,
+    ) -> None:
+        self.mock.assert_called_once()
 
-        encoded_message, _ = await codec.encode(body, serializer)
+        if body != EMPTY:
+            serializer = self._outer_config.fd_config._serializer
+            codec = self._outer_config.broker_codec or DefaultCodec()
 
-        self.mock.assert_called_once_with(encoded_message)
+            encoded_message, _ = await codec.encode(body, serializer)
+            assert self.mock.body == encoded_message
+
+        if context != EMPTY:
+            context_repo = ContextRepo(self.mock.context)
+            for key, value in context.items():
+                assert context_repo.resolve(key) == value

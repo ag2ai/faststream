@@ -95,8 +95,9 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
             """Calls the wrapped function with the given message."""
             assert self._wrapped_call, "You should use `set_wrapped` first"
             if self.is_test:
-                self.mock(message.body)
                 self.mock.context = context.context
+                self.mock.body = message.body
+                self.mock(await message.decode())
 
             return await self._wrapped_call(message)
 
@@ -169,19 +170,16 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         body: Any = EMPTY,
         context: dict[str, Any] = EMPTY,
     ) -> None:
+        self.mock.assert_called_once()
+
         if body != EMPTY:
             serializer = self._outer_config.fd_config._serializer
             codec = self._outer_config.broker_codec or DefaultCodec()
 
             encoded_message, _ = await codec.encode(body, serializer)
-            self.mock.assert_called_once_with(encoded_message)
+            assert self.mock.body == encoded_message
 
         if context != EMPTY:
-            context_ = getattr(self.mock, "context", None)
-            if context_ is None:
-                msg = "The context is not set. Make sure that the test mod is installed."
-                raise SetupError(msg)
-
-            context_repo = ContextRepo(context_)
+            context_repo = ContextRepo(self.mock.context)
             for key, value in context.items():
                 assert context_repo.resolve(key) == value
