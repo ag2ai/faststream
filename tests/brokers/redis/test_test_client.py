@@ -1,9 +1,13 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
 from faststream import BaseMiddleware
-from faststream.redis import ListSub, StreamSub
+from faststream.redis import ListSub, RedisBatchStreamMessage, StreamSub
+from faststream.redis.message import (
+    RedisBatchStreamMessage as RawRedisBatchStreamMessage,
+)
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 
@@ -178,6 +182,22 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_stream_batch_message_annotation(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(stream=StreamSub(queue, batch=True))
+        async def handler(message: RedisBatchStreamMessage) -> None:
+            mock(type(message), await message.decode())
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+        mock.assert_called_once_with(RawRedisBatchStreamMessage, ["hello"])
 
     async def test_stream_publisher(
         self,
