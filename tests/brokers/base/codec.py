@@ -161,20 +161,19 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 cmd,
                 serializer: Any = None,
             ) -> list[EncodedMessage]:
-                # Bind super() outside comprehension: zero-arg super() can't resolve
-                # __class__ inside list-comp's implicit nested scope (Python limitation).
-                _encode = super().encode
-                return [
-                    await _encode(
-                        PublishCommand(
-                            body=body,
-                            destination=cmd.destination,
-                            _publish_type=cmd.publish_type,
-                        ),
-                        serializer,
+                encoded_messages = []
+                for body in cmd.batch_bodies:
+                    encoded_messages.append(  # noqa: PERF401
+                        await super().encode(
+                            PublishCommand(
+                                body=body,
+                                destination=cmd.destination,
+                                _publish_type=cmd.publish_type,
+                            ),
+                            serializer,
+                        )
                     )
-                    for body in cmd.batch_bodies
-                ]
+                return encoded_messages
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 decode_batch_mock()
@@ -206,20 +205,19 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 serializer: Any = None,
             ) -> list[EncodedMessage]:
                 encode_batch_mock()
-                # Bind super() outside comprehension: zero-arg super() can't resolve
-                # __class__ inside list-comp's implicit nested scope (Python limitation).
-                _encode = super().encode
-                return [
-                    await _encode(
-                        PublishCommand(
-                            body=body,
-                            destination=cmd.destination,
-                            _publish_type=cmd.publish_type,
-                        ),
-                        serializer,
+                encoded_messages = []
+                for body in cmd.batch_bodies:
+                    encoded_messages.append(  # noqa: PERF401
+                        await super().encode(
+                            PublishCommand(
+                                body=body,
+                                destination=cmd.destination,
+                                _publish_type=cmd.publish_type,
+                            ),
+                            serializer,
+                        )
                     )
-                    for body in cmd.batch_bodies
-                ]
+                return encoded_messages
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 return [b.decode() if isinstance(b, bytes) else b for b in msg.body]
