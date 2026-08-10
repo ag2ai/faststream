@@ -549,7 +549,7 @@ queue = RabbitQueue("my-queue", durable=False)
 * bug(kafka): [#2943] Added sinchronization for key's indexes by [@ApusBerliozi](https://github.com/ApusBerliozi){.external-link target="_blank"} in [#2951](https://github.com/ag2ai/faststream/pull/2951){.external-link target="_blank"}
 * Update Release Notes for 0.7.3 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2964](https://github.com/ag2ai/faststream/pull/2964){.external-link target="_blank"}
 * fix (fastapi): skip init=False fields when copying Dependant by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2966](https://github.com/ag2ai/faststream/pull/2966){.external-link target="_blank"}
-* feat(rabbit): support EXTERNAL authentication by [@WellFREEzZ](https://github.com/WellFREEzZ){.external-link target="_blank"} in [#2953](https://github.com/ag2ai/faststream/pull/2953){.external-link target="_blank"}
+* feat(rabbit): support EXTERNAL authentication by [@WellFREEEzZ](https://github.com/WellFREEzZ){.external-link target="_blank"} in [#2953](https://github.com/ag2ai/faststream/pull/2953){.external-link target="_blank"}
 * fix(cli): make supervisor signal handling portable by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#2967](https://github.com/ag2ai/faststream/pull/2967){.external-link target="_blank"}
 * refactor: use queue fixture and RedisClusterTestcaseConfig by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#2973](https://github.com/ag2ai/faststream/pull/2973){.external-link target="_blank"}
 * refactor: typing.Iterator has been replaced by typing.Generator in al… by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#2970](https://github.com/ag2ai/faststream/pull/2970){.external-link target="_blank"}
@@ -564,7 +564,7 @@ queue = RabbitQueue("my-queue", durable=False)
 * chore: Bump zmqtt to 0.1 and fix compat by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2997](https://github.com/ag2ai/faststream/pull/2997){.external-link target="_blank"}
 
 ### New Contributors
-* [@WellFREEzZ](https://github.com/WellFREEzZ){.external-link target="_blank"} made their first contribution in [#2953](https://github.com/ag2ai/faststream/pull/2953){.external-link target="_blank"}
+* [@WellFREEEzZ](https://github.com/WellFREEzZ){.external-link target="_blank"} made their first contribution in [#2953](https://github.com/ag2ai/faststream/pull/2953){.external-link target="_blank"}
 * [@arimu1](https://github.com/arimu1){.external-link target="_blank"} made their first contribution in [#2994](https://github.com/ag2ai/faststream/pull/2994){.external-link target="_blank"}
 
 **Full Changelog**: [#0.7.3...0.7.4](https://github.com/ag2ai/faststream/compare/0.7.3...0.7.4){.external-link target="_blank"}
