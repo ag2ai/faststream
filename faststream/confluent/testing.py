@@ -14,6 +14,7 @@ from faststream._internal.testing.broker import (
     TestBroker,
     change_producer,
 )
+from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -347,7 +348,7 @@ async def build_message(
     reply_to: str = "",
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
     if message is None:
@@ -387,7 +388,7 @@ def _build_mock_message(
     headers: dict[str, str] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     k = key or b""
     h = {

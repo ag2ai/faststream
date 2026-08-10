@@ -1,11 +1,11 @@
 import datetime
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
 
 from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
 from faststream._internal.parser import DefaultCodec
+from faststream._internal.types import IdGenerator
 from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
@@ -76,7 +76,7 @@ class AioPikaParser:
         app_id: str | None = None,
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):

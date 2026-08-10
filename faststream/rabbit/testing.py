@@ -1,4 +1,4 @@
-from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 from unittest import mock
@@ -18,6 +18,7 @@ from faststream._internal.testing.broker import (
     TestBroker,
     change_producer,
 )
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.rabbit.broker.broker import RabbitBroker
@@ -176,7 +177,7 @@ async def build_message(
     app_id: str | None = None,
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> PatchedMessage:
     """Build a patched RabbitMQ message for testing."""
     que = RabbitQueue.validate(queue)

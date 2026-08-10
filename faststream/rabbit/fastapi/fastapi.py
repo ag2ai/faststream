@@ -20,6 +20,7 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.broker.broker import RabbitBroker as RB
@@ -70,7 +71,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         default_channel: Optional["Channel"] = None,
         app_id: str | None = SERVICE_NAME,
         graceful_timeout: float | None = 15.0,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),

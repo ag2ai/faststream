@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Optional,
@@ -13,6 +12,7 @@ from typing_extensions import Unpack, override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.rabbit.parser import AioPikaParser
@@ -122,7 +122,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         declarer: "RabbitDeclarer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         self.declarer = declarer
         self.id_generator = id_generator

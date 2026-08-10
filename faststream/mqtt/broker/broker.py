@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,6 +16,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -74,7 +75,7 @@ class MQTTBroker(
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         # AsyncAPI args
         specification_url: str | None = None,
         protocol: str | None = None,

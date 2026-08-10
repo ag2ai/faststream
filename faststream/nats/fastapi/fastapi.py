@@ -32,6 +32,7 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
@@ -127,7 +128,7 @@ class NatsRouter(StreamRouter["Msg"]):
         flush_timeout: float | None = None,
         # broker args
         graceful_timeout: float | None = 15.0,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Msg, Any]"] = (),

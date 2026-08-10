@@ -21,6 +21,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers import (
     AsyncConfluentConsumer,
@@ -97,7 +98,7 @@ class KafkaBroker(
         # broker base args
         graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,

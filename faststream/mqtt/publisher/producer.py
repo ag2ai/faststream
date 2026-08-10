@@ -1,5 +1,4 @@
 import asyncio
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Optional
 
 import zmqtt
@@ -9,6 +8,7 @@ from zmqtt import PublishProperties
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
@@ -30,7 +30,7 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
         default_parser: Any,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         self.serializer: SerializerProto | None = None
         self._client: zmqtt.MQTTClient | None = None
@@ -87,7 +87,7 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         super().__init__(MQTTParserV311(), parser, decoder, id_generator)
 
@@ -143,7 +143,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         super().__init__(MQTTParserV5(), parser, decoder, id_generator)
 

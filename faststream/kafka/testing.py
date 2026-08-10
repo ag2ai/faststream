@@ -16,6 +16,7 @@ from faststream._internal.testing.broker import (
     TestBroker,
     change_producer,
 )
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.kafka import TopicPartition
 from faststream.kafka.broker import KafkaBroker
@@ -311,7 +312,7 @@ async def build_message(
     reply_to: str = "",
     serializer: Optional["SerializerProto"],
     codec: Optional["CodecProto"] = None,
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
     if message is None and key is not None:
@@ -357,7 +358,7 @@ def _build_record(
     headers: dict[str, str] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
     k = key or b""
     h = {

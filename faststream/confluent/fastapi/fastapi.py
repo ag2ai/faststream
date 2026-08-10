@@ -23,6 +23,7 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker as KB
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
@@ -91,7 +92,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
         graceful_timeout: float | None = 15.0,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),

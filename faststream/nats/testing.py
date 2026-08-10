@@ -1,4 +1,4 @@
-from collections.abc import Callable, Generator, Iterable, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock
@@ -10,6 +10,7 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import EnterType, TestBroker
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
@@ -271,7 +272,7 @@ async def build_message(
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
-    id_generator: Callable[[], str] = gen_cor_id,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> "PatchedMessage":
     if codec is None:
         codec = DefaultCodec()

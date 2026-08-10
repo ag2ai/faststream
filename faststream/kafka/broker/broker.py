@@ -25,6 +25,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
 from faststream.kafka.configs import KafkaBrokerConfig
@@ -227,7 +228,7 @@ class KafkaBroker(
         # broker base args
         graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
-        id_generator: Callable[[], str] = gen_cor_id,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
@@ -336,7 +337,7 @@ class KafkaBroker(
             ack_policy (AckPolicy):
                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
                 If not set, each broker type uses its built-in default.
-            id_generator (Callable[[], str]):
+            id_generator (IdGenerator):
                 Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
                 Defaults to `gen_cor_id` (uuid4-based).
             decoder (Optional[CustomCallable]):
