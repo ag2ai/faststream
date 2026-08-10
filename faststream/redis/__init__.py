@@ -7,6 +7,7 @@ try:
     from .annotations import (
         Pipeline,
         Redis,
+        RedisBatchStreamMessage,
         RedisChannelMessage,
         RedisListMessage,
         RedisMessage,
@@ -40,6 +41,7 @@ __all__ = (
     "Pipeline",
     "PubSub",
     "Redis",
+    "RedisBatchStreamMessage",
     "RedisBroker",
     "RedisChannelMessage",
     "RedisClusterBroker",
