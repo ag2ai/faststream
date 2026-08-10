@@ -1,5 +1,6 @@
+from collections import Counter
 from collections.abc import Sequence
-from typing import Any, Counter
+from typing import Any
 
 import pytest
 
