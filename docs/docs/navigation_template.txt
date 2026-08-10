@@ -87,6 +87,7 @@ search:
     - [Publishing](rabbit/publishing.md)
     - [RPC](rabbit/rpc.md)
     - [Acknowledgement](rabbit/ack.md)
+    - [Concurrency and Prefetch](rabbit/prefetch.md)
     - [Declare Queue/Exchange](rabbit/declare.md)
     - [Message Information](rabbit/message.md)
     - [Security Configuration](rabbit/security.md)
