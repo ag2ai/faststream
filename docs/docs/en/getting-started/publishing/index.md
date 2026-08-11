@@ -37,6 +37,21 @@ Content-Type can be:
 
 By the way, you can use `application/json` for all of your messages if they are not raw bytes. You can even omit using any header at all, but it makes serialization slightly slower.
 
+## Correlation ID
+
+By default, **FastStream** generates a random UUID4 string for `correlation_id` whenever a `#!python publish(...)`/`#!python request(...)` call doesn't set one explicitly.
+
+You can replace this generator for the whole broker by passing `id_generator` when creating it. This is handy, for example, to use [ULIDs](https://github.com/ulid/spec){.external-link target="_blank"} instead of UUIDs, since they are lexicographically sortable by creation time:
+
+```python
+from faststream.kafka import KafkaBroker
+from ulid import ULID
+
+broker = KafkaBroker(id_generator=lambda: str(ULID()))
+```
+
+This works the same way for every broker's constructor (`#!python RabbitBroker(id_generator=...)`, `#!python NatsBroker(id_generator=...)`, etc.).
+
 ## Publishing
 
 **FastStream** can also be used as a Broker client to send messages in other applications.

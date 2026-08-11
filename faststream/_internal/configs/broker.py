@@ -8,6 +8,8 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
+from faststream._internal.types import IdGenerator
+from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -30,6 +32,7 @@ class BrokerConfig:
     producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)
     fd_config: "FastDependsConfig" = field(default_factory=FastDependsConfig)
+    id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
@@ -102,6 +105,10 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     @property
     def graceful_timeout(self) -> float | None:
         return self.broker_config.graceful_timeout
+
+    @property
+    def id_generator(self) -> IdGenerator:
+        return self.broker_config.id_generator
 
     def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
         self.broker_config.add_middleware(middleware)
