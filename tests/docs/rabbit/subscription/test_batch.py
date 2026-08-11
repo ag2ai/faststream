@@ -1,6 +1,9 @@
-import pytest
-from faststream.rabbit import TestApp, TestRabbitBroker
 import asyncio
+
+import pytest
+
+from faststream.rabbit import TestApp, TestRabbitBroker
+
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
