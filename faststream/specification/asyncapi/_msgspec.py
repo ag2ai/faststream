@@ -20,15 +20,12 @@ def struct_schema(struct: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build a JSON Schema for a Struct, shaped like the one Pydantic emits.
 
     Returns the struct's own schema inline, plus the definitions its nested
-    structs live in. `msgspec.json.schema()` returns both in one dict, but it
-    hardcodes `#/$defs/` references, while DEF_KEY is `definitions` under
-    Pydantic v1; `schema_components()` lets the references follow DEF_KEY, so
-    the generators hoist them into `components/schemas` unchanged.
+    structs live in, so the generators can hoist them into `components/schemas`
+    unchanged.
     """
-    (schema,), definitions = msgspec.json.schema_components(
-        [struct],
-        ref_template=f"#/{DEF_KEY}/{{name}}",
-    )
+    schema = msgspec.json.schema(struct)
+    definitions = schema.pop("$defs", {})
+
     # A Struct is always emitted as a reference into the definitions, but stay
     # defensive: an inline schema is still usable as-is.
     name = schema.get("$ref", "").rsplit("/", 1)[-1]
