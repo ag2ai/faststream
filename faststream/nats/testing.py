@@ -10,6 +10,7 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import EnterType, TestBroker
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
@@ -159,6 +160,7 @@ class FakeProducer(NatsFastProducer):
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -184,6 +186,7 @@ class FakeProducer(NatsFastProducer):
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -218,6 +221,7 @@ class FakeProducer(NatsFastProducer):
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 
@@ -268,6 +272,7 @@ async def build_message(
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> "PatchedMessage":
     if codec is None:
         codec = DefaultCodec()
@@ -279,7 +284,7 @@ async def build_message(
         data=msg,
         headers={
             "content-type": content_type or "",
-            "correlation_id": correlation_id or gen_cor_id(),
+            "correlation_id": correlation_id or id_generator(),
             **(headers or {}),
         },
     )

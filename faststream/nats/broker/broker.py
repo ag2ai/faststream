@@ -34,6 +34,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
@@ -177,6 +178,22 @@ if TYPE_CHECKING:
         reconnect_to_server_handler: ReconnectToServerHandler | None
 
 
+# Server-sent `-ERR` reasons that will never succeed on retry, so the
+# initial connection attempt should fail fast instead of being silently
+# retried like a transient error until `max_reconnect_attempts` is hit.
+UNRECOVERABLE_CONNECT_ERRORS = (
+    "authorization violation",
+    "authorization timeout",
+    "invalid client protocol",
+    "maximum payload violation",
+    "invalid subject",
+    "stale connection",
+    "maximum connections exceeded",
+    "parser error",
+    "secure connection - tls required",
+)
+
+
 class NatsBroker(
     NatsRegistrator,
     BrokerUsecase[Msg, Client],
@@ -222,6 +239,7 @@ class NatsBroker(
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
         graceful_timeout: float | None = None,
         ack_policy: AckPolicy = EMPTY,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
@@ -314,6 +332,9 @@ class NatsBroker(
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             ack_policy:
                 Default acknowledgement policy for all subscribers. Individual subscribers can override.
+            id_generator:
+                Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder:
                 Custom decoder object.
             codec:
@@ -434,6 +455,7 @@ class NatsBroker(
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
+                id_generator=id_generator,
                 extra_context={
                     "broker": self,
                 },
@@ -596,7 +618,7 @@ class NatsBroker(
         """
         cmd = NatsPublishCommand(
             message=message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             subject=subject,
             headers=headers,
             reply_to=reply_to,
@@ -650,7 +672,7 @@ class NatsBroker(
         """
         cmd = NatsPublishCommand(
             message=message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             subject=subject,
             headers=headers,
             timeout=timeout,
@@ -729,6 +751,11 @@ class NatsBroker(
         async def wrapper(err: Exception) -> None:
             if error_cb is not None:
                 await error_cb(err)
+
+            if isinstance(err, Error):
+                reason = str(err).removeprefix("nats: ").strip("'").lower()
+                if reason in UNRECOVERABLE_CONNECT_ERRORS:
+                    raise err
 
             if isinstance(err, Error) and self.config.connection_state:
                 self.config.logger.log(

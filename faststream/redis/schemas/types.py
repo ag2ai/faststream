@@ -11,7 +11,7 @@ from typing_extensions import Required, TypedDict
 from faststream._internal.basic_types import LoggerProto
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.parser import CodecProto
-from faststream._internal.types import BrokerMiddleware, CustomCallable
+from faststream._internal.types import BrokerMiddleware, CustomCallable, IdGenerator
 from faststream.middlewares import AckPolicy
 from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.parser import MessageFormat
@@ -68,6 +68,11 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     ]
     ack_policy: Annotated[
         AckPolicy, "Default acknowledgement policy. Defaults to ``EMPTY``."
+    ]
+    id_generator: Annotated[
+        IdGenerator,
+        "Factory used to generate `correlation_id` when a publish/request call "
+        "doesn't set one explicitly. Defaults to `gen_cor_id` (uuid4-based).",
     ]
     decoder: Annotated[
         CustomCallable | None, "Custom message decoder. Defaults to ``None``."
@@ -151,6 +156,7 @@ SENTINEL_PARAMS = frozenset({
 NON_CONNECTION_PARAMS = frozenset({
     "graceful_timeout",
     "ack_policy",
+    "id_generator",
     "decoder",
     "codec",
     "parser",
