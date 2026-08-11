@@ -213,6 +213,35 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         )
 
     @pytest.mark.asyncio()
+    async def test_custom_id_generator(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        event = asyncio.Event()
+
+        pub_broker = self.get_broker(apply_types=True, id_generator=lambda: "custom-id")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(msg=Context("message")) -> None:
+            event.set()
+            mock(correlation_id=msg.correlation_id)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        mock.assert_called_with(correlation_id="custom-id")
+
+    @pytest.mark.asyncio()
     async def test_unwrap_dict(
         self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:

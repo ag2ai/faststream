@@ -135,6 +135,7 @@ class RedisBroker(
                 broker_dependencies=kwargs.get("dependencies", ()),
                 graceful_timeout=kwargs.get("graceful_timeout", 15.0),
                 ack_policy=kwargs.get("ack_policy", EMPTY),
+                id_generator=kwargs.get("id_generator", gen_cor_id),
                 extra_context={"broker": self},
             ),
             specification=BrokerSpec(
@@ -265,7 +266,7 @@ class RedisBroker(
         """
         cmd = RedisPublishCommand(
             message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             channel=channel,
             list=list,
             stream=stream,
@@ -298,7 +299,7 @@ class RedisBroker(
     ) -> "RedisChannelMessage":
         cmd = RedisPublishCommand(
             message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             channel=channel,
             list=list,
             stream=stream,
@@ -342,7 +343,7 @@ class RedisBroker(
             list=list,
             reply_to=reply_to,
             headers=headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             pipeline=pipeline,
             _publish_type=PublishType.PUBLISH,
             message_format=self.message_format,

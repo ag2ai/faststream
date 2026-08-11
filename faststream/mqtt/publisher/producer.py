@@ -8,6 +8,7 @@ from zmqtt import PublishProperties
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
@@ -29,10 +30,12 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
         default_parser: Any,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         self.serializer: SerializerProto | None = None
         self._client: zmqtt.MQTTClient | None = None
         self.codec: CodecProto = DefaultCodec()
+        self.id_generator = id_generator
 
         self._parser = ParserComposition(parser, default_parser.parse_message)
         self._decoder = ParserComposition(decoder, default_parser.decode_message)
@@ -84,8 +87,9 @@ class ZmqttProducerV311(ZmqttBaseProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
-        super().__init__(MQTTParserV311(), parser, decoder)
+        super().__init__(MQTTParserV311(), parser, decoder, id_generator)
 
     @override
     async def publish(self, cmd: "MQTTPublishCommand") -> None:
@@ -139,8 +143,9 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         self,
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
-        super().__init__(MQTTParserV5(), parser, decoder)
+        super().__init__(MQTTParserV5(), parser, decoder, id_generator)
 
     @override
     async def publish(self, cmd: "MQTTPublishCommand") -> None:
@@ -175,7 +180,7 @@ class ZmqttProducerV5(ZmqttBaseProducer):
         verify it on the response StreamMessage.
         """
         payload, content_type = await self.codec.encode(cmd.body, self.serializer)
-        correlation_id = cmd.correlation_id or gen_cor_id()
+        correlation_id = cmd.correlation_id or self.id_generator()
 
         user_props: list[tuple[str, str]] = [
             (k, str(v)) for k, v in (cmd.headers or {}).items()

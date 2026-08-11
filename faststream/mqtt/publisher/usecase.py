@@ -5,7 +5,6 @@ from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.message import gen_cor_id
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -57,7 +56,7 @@ class MQTTPublisher(PublisherUsecase):
             qos=qos if qos is not None else self.qos,
             retain=retain if retain is not None else self.retain,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             _publish_type=PublishType.PUBLISH,
         )
 
@@ -104,7 +103,7 @@ class MQTTPublisher(PublisherUsecase):
             qos=self.qos,
             retain=self.retain,
             headers=self.headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             reply_to=reply_to,
             timeout=timeout,
             _publish_type=PublishType.REQUEST,
