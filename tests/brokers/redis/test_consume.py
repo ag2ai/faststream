@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -180,9 +181,9 @@ class TestConsumeList(RedisTestcaseConfig):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
-            list=ListSub(queue, batch=True, polling_interval=0.01),
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -695,7 +696,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
         )
-        async def handler(msg: RedisMessage) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
