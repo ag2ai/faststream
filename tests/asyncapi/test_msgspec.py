@@ -3,6 +3,7 @@ import pytest
 from fast_depends.msgspec import MsgSpecSerializer
 from pydantic import BaseModel
 
+from faststream import Context
 from faststream.nats import NatsBroker
 from faststream.specification import AsyncAPI
 
@@ -75,6 +76,34 @@ def test_struct_alongside_other_arguments(version: str) -> None:
     assert payload["properties"]["count"] == {"title": "Count", "type": "integer"}
     assert payload["properties"]["user"]["title"] == "User"
     assert payload["required"] == ["user", "count"]
+
+
+@pytest.mark.parametrize("version", VERSIONS)
+def test_struct_alongside_a_pydantic_model(version: str) -> None:
+    class Meta(BaseModel):
+        tag: str
+
+    broker = NatsBroker()
+
+    @broker.subscriber("test")
+    async def handler(user: User, meta: Meta) -> None: ...
+
+    payload = schemas(broker, version)["Handler:Message:Payload"]
+
+    assert payload["properties"]["user"]["title"] == "User"
+    assert payload["properties"]["meta"] == {"$ref": "#/components/schemas/Meta"}
+
+
+@pytest.mark.parametrize("version", VERSIONS)
+def test_struct_alongside_an_excluded_argument(version: str) -> None:
+    broker = NatsBroker()
+
+    @broker.subscriber("test")
+    async def handler(user: User, msg=Context("message")) -> None: ...
+
+    # `msg` is a custom field rather than part of the payload, so `user` is left
+    # as the only argument and is described by its own schema.
+    assert schemas(broker, version)["User"]["required"] == ["name", "age", "address"]
 
 
 @pytest.mark.parametrize("version", VERSIONS)

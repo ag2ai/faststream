@@ -10,39 +10,15 @@ from faststream._internal._compat import (
     get_model_fields,
     model_schema,
 )
-
-try:
-    import msgspec
-
-    HAS_MSGSPEC = True
-except ImportError:  # pragma: no cover
-    HAS_MSGSPEC = False
+from faststream.specification.asyncapi._msgspec import (
+    is_struct,
+    struct_payload_schema,
+    struct_schema,
+)
 
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
-
-
-def is_msgspec_struct(annotation: Any) -> bool:
-    """Whether `annotation` is a msgspec Struct type."""
-    return HAS_MSGSPEC and isclass(annotation) and issubclass(annotation, msgspec.Struct)
-
-
-def get_msgspec_schema(struct: Any) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Build a JSON Schema for a msgspec Struct, shaped like Pydantic's.
-
-    Returns the struct's own schema inline plus the definitions any nested
-    structs live in, using the same `#/$defs/{name}` references Pydantic emits,
-    so the generators can hoist them into `components/schemas` unchanged.
-    """
-    (schema,), definitions = msgspec.json.schema_components(
-        [struct],
-        ref_template=f"#/{DEF_KEY}/{{name}}",
-    )
-    # A Struct is always emitted as a reference into the definitions, but stay
-    # defensive: an inline schema is still usable as-is.
-    name = schema.get("$ref", "").rsplit("/", 1)[-1]
-    body = dict(definitions.pop(name)) if name in definitions else dict(schema)
-    return body, definitions
+    from fast_depends.library.serializer import OptionItem
 
 
 def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
@@ -51,33 +27,62 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
     assert model
 
-    # Pydantic cannot build a schema for a msgspec Struct and raises rather than
-    # degrading, so structs are kept out of the model entirely and their schema
-    # is spliced back in by get_model_schema().
-    structs = {
-        p.field_name: p.field_type
-        for p in call.flat_params
-        if is_msgspec_struct(p.field_type)
-    }
+    exclude = tuple(call.custom_fields.keys())
+    params = [p for p in call.flat_params if p.field_name not in exclude]
+
+    if any(is_struct(p.field_type) for p in params):
+        return parse_struct_params(params, model.__name__, prefix=prefix)
 
     body = get_model_schema(
         create_model(
             model.__name__,
-            **{  # type: ignore[call-overload]
-                p.field_name: (
-                    Any if p.field_name in structs else p.field_type,
-                    p.default_value,
-                )
-                for p in call.flat_params
-            },
+            **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},  # type: ignore[call-overload]
         ),
         prefix=prefix,
-        exclude=tuple(call.custom_fields.keys()),
-        structs=structs,
+        exclude=exclude,
     )
 
     if body is None:
         return {"title": "EmptyPayload", "type": "null"}
+
+    return body
+
+
+def parse_struct_params(
+    params: list["OptionItem"],
+    model_name: str,
+    prefix: str = "",
+) -> dict[str, Any]:
+    """Parse handler parameters when at least one of them is a msgspec Struct.
+
+    Pydantic raises on a Struct rather than degrading, so Structs never reach it:
+    a lone Struct is described by msgspec alone, exactly like a lone Pydantic
+    model is, and in a mixed payload each Struct stands in the model as `Any`
+    until its own schema is merged into the properties Pydantic produced.
+    """
+    if len(params) == 1:
+        return struct_payload_schema(params[0].field_type)
+
+    structs = {p.field_name: p.field_type for p in params if is_struct(p.field_type)}
+
+    model: type[BaseModel] = create_model(
+        model_name,
+        **{  # type: ignore[call-overload]
+            p.field_name: (
+                Any if p.field_name in structs else p.field_type,
+                p.default_value,
+            )
+            for p in params
+        },
+    )
+
+    body = get_model_schema(model, prefix=prefix)
+
+    for field_name, struct in structs.items():
+        body["properties"][field_name], definitions = struct_schema(struct)
+
+        if definitions:
+            body.setdefault(DEF_KEY, {}).update(definitions)
 
     return body
 
@@ -110,7 +115,6 @@ def get_model_schema(
     call: None,
     prefix: str = "",
     exclude: Sequence[str] = (),
-    structs: dict[str, Any] | None = None,
 ) -> None: ...
 
 
@@ -119,7 +123,6 @@ def get_model_schema(
     call: type[BaseModel],
     prefix: str = "",
     exclude: Sequence[str] = (),
-    structs: dict[str, Any] | None = None,
 ) -> dict[str, Any]: ...
 
 
@@ -127,29 +130,13 @@ def get_model_schema(
     call: type[BaseModel] | None,
     prefix: str = "",
     exclude: Sequence[str] = (),
-    structs: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    """Get the schema of a model.
-
-    `structs` maps parameter names to msgspec Structs that stand in the model as
-    `Any`, because Pydantic cannot describe them; their real schema is spliced
-    back in here.
-    """
+    """Get the schema of a model."""
     if call is None:
         return None
 
-    structs = dict(structs or {})
-
     params = {k: v for k, v in get_model_fields(call).items() if k not in exclude}
     params_number = len(params)
-
-    # Return annotations reach us as a model built elsewhere, with the Struct
-    # still on the field, so pick those up too.
-    for field_name, field in params.items():
-        if field_name not in structs and is_msgspec_struct(
-            getattr(field, "annotation", None),
-        ):
-            structs[field_name] = field.annotation
 
     if params_number == 0:
         return None
@@ -158,13 +145,6 @@ def get_model_schema(
     use_original_model = False
     if params_number == 1:
         name, param = next(iter(params.items()))
-        if name in structs:
-            # A lone Struct is described by its own schema, exactly like a lone
-            # Pydantic model is.
-            struct_body, definitions = get_msgspec_schema(structs[name])
-            if definitions:
-                struct_body[DEF_KEY] = definitions
-            return struct_body
         if (
             param.annotation
             and isclass(param.annotation)
@@ -178,12 +158,6 @@ def get_model_schema(
 
     body: dict[str, Any] = model_schema(model)
     body["properties"] = body.get("properties", {})
-    for param_name, struct in structs.items():
-        if param_name in body["properties"]:
-            struct_body, definitions = get_msgspec_schema(struct)
-            body["properties"][param_name] = struct_body
-            if definitions:
-                body.setdefault(DEF_KEY, {}).update(definitions)
     for i in exclude:
         body["properties"].pop(i, None)
     if required := body.get("required"):
