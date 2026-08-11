@@ -15,6 +15,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -73,6 +74,7 @@ class MQTTBroker(
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,
+        id_generator: IdGenerator = gen_cor_id,
         # AsyncAPI args
         specification_url: str | None = None,
         protocol: str | None = None,
@@ -97,9 +99,13 @@ class MQTTBroker(
 
         producer: ZmqttBaseProducer
         if version == "5.0":
-            producer = ZmqttProducerV5(parser=parser, decoder=decoder)
+            producer = ZmqttProducerV5(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
         else:
-            producer = ZmqttProducerV311(parser=parser, decoder=decoder)
+            producer = ZmqttProducerV311(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
 
         if ":" in host:
             host, p = host.split(":", 2)
@@ -145,6 +151,7 @@ class MQTTBroker(
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
+                id_generator=id_generator,
                 extra_context={
                     "broker": self,
                 },
@@ -228,7 +235,7 @@ class MQTTBroker(
             qos=qos,
             retain=retain,
             headers=headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             reply_to=reply_to,
             _publish_type=PublishType.PUBLISH,
         )
@@ -250,7 +257,7 @@ class MQTTBroker(
         cmd = MQTTPublishCommand(
             message,
             topic=topic,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             headers=headers,
             qos=qos,
             reply_to=reply_to,
