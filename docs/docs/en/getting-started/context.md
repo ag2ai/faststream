@@ -90,56 +90,20 @@ context = ContextRepo({"secret_str": "my-perfect-secret"})
 app = FastStream(context=context)
 ```
 
-And in brokers:
-
-=== "AIOKafka"
-
-    ```python
-    from faststream.context import ContextRepo
-    from faststream.kafka import KafkaBroker
-
-    context = ContextRepo({"secret_str": "my-perfect-secret"})
-    broker = KafkaBroker(context=context)
-    ```
-
-=== "Confluent"
+!!! tip
+    It is important to keep in mind that the broker context takes precedence over the FastStream context.
 
     ```python
-    from faststream.context import ContextRepo
-    from faststream.confluent import KafkaBroker
-
-    context = ContextRepo({"secret_str": "my-perfect-secret"})
-    broker = KafkaBroker(context=context)
-    ```
-
-=== "RabbitMQ"
-
-    ```python
-    from faststream.context import ContextRepo
-    from faststream.rabbit import RabbitBroker
-
-    context = ContextRepo({"secret_str": "my-perfect-secret"})
-    broker = RabbitBroker(context=context)
-    ```
-
-=== "NATS"
-
-    ```python
-    from faststream.context import ContextRepo
+    from typing import Annotated
+    from faststream import FastStream, ContextRepo, Context
     from faststream.nats import NatsBroker
 
-    context = ContextRepo({"secret_str": "my-perfect-secret"})
-    broker = NatsBroker(context=context)
-    ```
+    broker = NatsBroker(context=ContextRepo({"data": "BROKER"}))
+    app = FastStream(broker, context=ContextRepo({"data": "APP"}))
 
-=== "Redis"
-
-    ```python
-    from faststream.context import ContextRepo
-    from faststream.redis import RedisBroker
-
-    context = ContextRepo({"secret_str": "my-perfect-secret"})
-    broker = RedisBroker(context=context)
+    @broker.subscriber("queue")
+    async def handle(data: Annotated[str, Context()]) -> None:
+        assert data == "BROKER"
     ```
 
 To remove a field from the context use the `reset_global` method:
@@ -147,22 +111,6 @@ To remove a field from the context use the `reset_global` method:
 ```python
 context.reset_global("my_key")
 ```
-
-!!! tip
-    It is important to keep in mind that the broker context takes precedence over the FastStream context.
-
-    ```python
-    from faststream import FastStream
-    from faststream.context import ContextRepo
-    from faststream.nats import NatsBroker
-
-    broker = NatsBroker(context=ContextRepo({"data": "BROKER"}))
-    app = FastStream(broker, context=ContextRepo({"data": "APP"}))
-
-    @broker.subscriber("queue")
-    async def handle(data = Context()) -> None:
-        assert data == "BROKER"
-    ```
 
 ## Local
 
