@@ -32,6 +32,8 @@ from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
+from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
 
@@ -126,6 +128,7 @@ class NatsRouter(StreamRouter["Msg"]):
         flush_timeout: float | None = None,
         # broker args
         graceful_timeout: float | None = 15.0,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Msg, Any]"] = (),
@@ -202,6 +205,8 @@ class NatsRouter(StreamRouter["Msg"]):
             pending_size: Max size of the pending buffer for publishing commands.
             flush_timeout: Max duration to wait for a forced flush to occur.
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            id_generator: Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder: Custom decoder object.
             parser: Custom parser object.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
@@ -316,6 +321,7 @@ class NatsRouter(StreamRouter["Msg"]):
             specification=specification,
             # broker options
             graceful_timeout=graceful_timeout,
+            id_generator=id_generator,
             decoder=decoder,
             parser=parser,
             middlewares=middlewares,

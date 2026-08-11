@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.3"
+version = "0.7.4"
 
 keywords = [
     "rabbitmq",
@@ -77,10 +77,10 @@ nats = ["nats-py>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<9.0.0"]
 
-mqtt = ["zmqtt>=0.0.5"]
+mqtt = ["zmqtt>=0.1.0,<0.2.0"]
 
 cli = [
-    "typer>=0.9,!=0.12,<=0.21.1",
+    "typer>=0.9,!=0.12,<=0.27.1",
     "watchfiles>=0.15.0,<1.2.0"
 ]
 

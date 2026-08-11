@@ -96,3 +96,6 @@ class PublisherMiddleware(Protocol[PublishCommandType]):
         call_next: Callable[[PublishCommandType], Awaitable[Any]],
         cmd: PublishCommandType,
     ) -> Any: ...
+
+
+IdGenerator: TypeAlias = Callable[[], str]
