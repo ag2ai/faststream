@@ -8,6 +8,8 @@ from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class NatsTestcaseConfig(BaseTestcaseConfig[NatsBroker]):
+    supports_cancel_ack_skip: bool = False
+
     def get_broker(
         self,
         apply_types: bool = False,

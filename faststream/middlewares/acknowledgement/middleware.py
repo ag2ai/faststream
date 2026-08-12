@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -100,6 +101,9 @@ class _AcknowledgementMiddleware(BaseMiddleware):
 
             # Exception was processed and suppressed
             return True
+
+        elif isinstance(exc_val, asyncio.CancelledError):
+            return False
 
         elif self.ack_policy is AckPolicy.REJECT_ON_ERROR:
             await self.__reject()
