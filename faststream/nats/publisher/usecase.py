@@ -60,6 +60,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
+        **kwargs,
     ) -> None: ...
 
     @overload
@@ -72,6 +73,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        **kwargs,
     ) -> "PubAck": ...
 
     @override
@@ -84,6 +86,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        **kwargs,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -130,6 +133,7 @@ class LogicPublisher(PublisherUsecase):
                     cmd,
                     producer=self._outer_config.js_producer,
                     _extra_middlewares=(),
+                    **kwargs,
                 ),
             )
         else:
@@ -137,6 +141,7 @@ class LogicPublisher(PublisherUsecase):
                 cmd,
                 producer=self._outer_config.producer,
                 _extra_middlewares=(),
+                **kwargs,
             )
 
         return response
@@ -147,6 +152,7 @@ class LogicPublisher(PublisherUsecase):
         cmd: Union["PublishCommand", "NatsPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = NatsPublishCommand.from_cmd(cmd)
@@ -168,6 +174,7 @@ class LogicPublisher(PublisherUsecase):
             cmd,
             producer=producer,
             _extra_middlewares=_extra_middlewares,
+            **kwargs,
         )
 
     @override
@@ -179,6 +186,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float = 0.5,
+        **kwargs,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
 
@@ -220,5 +228,5 @@ class LogicPublisher(PublisherUsecase):
         else:
             producer = self._outer_config.producer
 
-        msg: NatsMessage = await self._basic_request(cmd, producer=producer)
+        msg: NatsMessage = await self._basic_request(cmd, producer=producer, **kwargs)
         return msg

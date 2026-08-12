@@ -124,6 +124,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
+        **kwargs,
     ) -> "RecordMetadata": ...
 
     @overload
@@ -139,6 +140,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
+        kwargs,
     ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
@@ -154,6 +156,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        **kwargs,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     @override
@@ -169,6 +172,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        **kwargs,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publishes a message to Kafka.
 
@@ -221,6 +225,7 @@ class DefaultPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
+            **kwargs,
         )
 
     @override
@@ -229,6 +234,7 @@ class DefaultPublisher(LogicPublisher):
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd)
@@ -244,6 +250,7 @@ class DefaultPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=_extra_middlewares,
+            **kwargs,
         )
 
     @override
@@ -316,6 +323,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
+        **kwargs,
     ) -> "RecordMetadata": ...
 
     @overload
@@ -330,6 +338,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[True] = ...,
+        **kwargs,
     ) -> "asyncio.Future[RecordMetadata]": ...
 
     @overload
@@ -344,6 +353,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
+        **kwargs,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
     @override
@@ -358,6 +368,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
+        **kwargs,
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message batch as a single request to broker.
 
@@ -410,6 +421,7 @@ class BatchPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
+            **kwargs,
         )
 
     @override
@@ -418,6 +430,7 @@ class BatchPublisher(LogicPublisher):
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
+        **kwargs,
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd, batch=True)
@@ -433,4 +446,5 @@ class BatchPublisher(LogicPublisher):
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=_extra_middlewares,
+            **kwargs,
         )
