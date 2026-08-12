@@ -1,5 +1,9 @@
-import msgspec
 import pytest
+
+pytest.importorskip("msgspec")
+pytest.importorskip("nats")
+
+import msgspec
 from fast_depends.msgspec import MsgSpecSerializer
 from pydantic import BaseModel
 
