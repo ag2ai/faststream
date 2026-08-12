@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.message import gen_cor_id
 from faststream.nats.response import NatsPublishCommand
 from faststream.nats.schemas.js_stream import compile_nats_wildcard
 from faststream.response.publish_type import PublishType
@@ -117,7 +116,7 @@ class LogicPublisher(PublisherUsecase):
             subject=subject or self.subject,
             headers=self.headers | (headers or {}),
             reply_to=reply_to or self.reply_to,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             timeout=timeout or self.timeout,
             _publish_type=PublishType.PUBLISH,
@@ -211,7 +210,7 @@ class LogicPublisher(PublisherUsecase):
             subject=subject or self.subject,
             headers=self.headers | (headers or {}),
             timeout=timeout or self.timeout,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             _publish_type=PublishType.REQUEST,
         )

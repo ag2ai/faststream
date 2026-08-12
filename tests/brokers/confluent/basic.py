@@ -36,6 +36,9 @@ class ConfluentTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
             **kwargs,
         }
 
+    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
+        return {"group_id": f"{queue}-cancel-ack"}
+
     def get_broker(
         self,
         apply_types: bool = False,
