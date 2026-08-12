@@ -39,32 +39,25 @@ def test_struct_argument_is_described_by_its_own_schema(version: str) -> None:
     @broker.subscriber("test")
     async def handler(user: User) -> None: ...
 
-    assert schemas(broker, version)["User"] == {
-        "title": "User",
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer"},
-            "address": {"$ref": "#/components/schemas/Address"},
-        },
-        "required": ["name", "age", "address"],
-    }
-
-
-@pytest.mark.parametrize("version", VERSIONS)
-def test_nested_struct_is_hoisted_into_components(version: str) -> None:
-    broker = NatsBroker()
-
-    @broker.subscriber("test")
-    async def handler(user: User) -> None: ...
-
     # Like a nested Pydantic model, the nested Struct becomes its own component
     # rather than being inlined or left as a dangling `#/$defs` reference.
-    assert schemas(broker, version)["Address"] == {
-        "title": "Address",
-        "type": "object",
-        "properties": {"city": {"type": "string"}},
-        "required": ["city"],
+    assert schemas(broker, version) == {
+        "User": {
+            "title": "User",
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer"},
+                "address": {"$ref": "#/components/schemas/Address"},
+            },
+            "required": ["name", "age", "address"],
+        },
+        "Address": {
+            "title": "Address",
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"],
+        },
     }
 
 
@@ -75,11 +68,21 @@ def test_struct_alongside_other_arguments(version: str) -> None:
     @broker.subscriber("test")
     async def handler(user: User, count: int) -> None: ...
 
-    payload = schemas(broker, version)["Handler:Message:Payload"]
+    result = schemas(broker, version)
+    payload = result["Handler:Message:Payload"]
 
     assert payload["properties"]["count"] == {"title": "Count", "type": "integer"}
     assert payload["properties"]["user"]["title"] == "User"
+    assert payload["properties"]["user"]["properties"]["address"] == {
+        "$ref": "#/components/schemas/Address"
+    }
     assert payload["required"] == ["user", "count"]
+    assert result["Address"] == {
+        "title": "Address",
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"],
+    }
 
 
 @pytest.mark.parametrize("version", VERSIONS)
@@ -92,10 +95,17 @@ def test_struct_alongside_a_pydantic_model(version: str) -> None:
     @broker.subscriber("test")
     async def handler(user: User, meta: Meta) -> None: ...
 
-    payload = schemas(broker, version)["Handler:Message:Payload"]
+    result = schemas(broker, version)
+    payload = result["Handler:Message:Payload"]
 
     assert payload["properties"]["user"]["title"] == "User"
     assert payload["properties"]["meta"] == {"$ref": "#/components/schemas/Meta"}
+    assert result["Meta"] == {
+        "title": "Meta",
+        "type": "object",
+        "properties": {"tag": {"title": "Tag", "type": "string"}},
+        "required": ["tag"],
+    }
 
 
 @pytest.mark.parametrize("version", VERSIONS)
