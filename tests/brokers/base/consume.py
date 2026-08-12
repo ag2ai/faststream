@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import anyio
@@ -426,11 +427,11 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         self,
         queue: str,
         ack_policy: AckPolicy,
+        event: asyncio.Event,
     ) -> None:
         if not self.supports_cancel_ack_skip:
             pytest.skip("broker default subscriber has no acknowledgement middleware")
 
-        started = asyncio.Event()
         broker = self.get_broker(graceful_timeout=0.2)
         args, kwargs = self.get_subscriber_params(
             queue,
@@ -439,8 +440,8 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
         )
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(_msg: object) -> None:
-            started.set()
+        async def handler(_msg: Any) -> None:
+            event.set()
             await asyncio.sleep(60)
 
         with (
@@ -463,18 +464,18 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
             async with self.patch_broker(broker) as br:
                 await br.start()
                 publish_task = asyncio.create_task(br.publish("hello", queue))
-                await asyncio.wait_for(started.wait(), timeout=self.timeout)
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
                 # TestBroker awaits the handler inside publish; real brokers
-                # return after enqueue, so cancel publish when still running,
-                # otherwise stop and let graceful_timeout cancel the consume task.
+                # return after enqueue, so cancel publish when still running.
+                # Otherwise broker context exit stops and cancels after
+                # graceful_timeout.
                 if not publish_task.done():
                     publish_task.cancel()
                     with pytest.raises(asyncio.CancelledError):
                         await publish_task
                 else:
                     await publish_task
-                    await br.stop()
 
         nack.mock.assert_not_awaited()
         ack.mock.assert_not_awaited()

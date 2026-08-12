@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -17,11 +18,13 @@ class TestKafkaCancellation(KafkaTestcaseConfig):
     async def test_graceful_shutdown_redelivers_interrupted_message(
         self,
         queue: str,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         group_id = f"{queue}-group"
         payload = f"{queue}-payload"
-        started = asyncio.Event()
-        redelivered = asyncio.Event()
+        started, redelivered = event, event2
 
         broker = self.get_broker(graceful_timeout=0.3)
 
@@ -39,7 +42,6 @@ class TestKafkaCancellation(KafkaTestcaseConfig):
             await br.start()
             await br.publish(payload, queue)
             await asyncio.wait_for(started.wait(), timeout=self.timeout)
-            await br.stop()
 
         restart_broker = self.get_broker()
 
@@ -50,9 +52,11 @@ class TestKafkaCancellation(KafkaTestcaseConfig):
             auto_offset_reset="earliest",
         )
         async def handle_retry(msg: str) -> None:
-            assert msg == payload
+            mock(msg)
             redelivered.set()
 
         async with self.patch_broker(restart_broker) as br:
             await br.start()
             await asyncio.wait_for(redelivered.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with(payload)
