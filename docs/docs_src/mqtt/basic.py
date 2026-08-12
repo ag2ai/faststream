@@ -1,7 +1,7 @@
 from faststream import FastStream
 from faststream.mqtt import MQTTBroker, MQTTMessage, QoS
 
-broker = MQTTBroker("localhost", port=1883, version="5.0")
+broker = MQTTBroker("mqtt://localhost:1883", version="5.0")
 app = FastStream(broker)
 
 
