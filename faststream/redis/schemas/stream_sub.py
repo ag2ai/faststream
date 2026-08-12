@@ -19,6 +19,9 @@ class StreamSub(NameRequired):
             https://redis.io/docs/latest/develop/tools/insight/tutorials/insight-stream-consumer/#run-the-consumer
         group:
             The name of consumer group
+        declare:
+            Whether to create the Redis Stream when setting up a consumer group.
+            When False, Redis raises an error if the stream does not already exist.
         last_id:
             An Entry ID, which uses to pick up from where it left off after it is restarted.
         maxlen:
@@ -44,6 +47,7 @@ class StreamSub(NameRequired):
     __slots__ = (
         "batch",
         "consumer",
+        "declare",
         "group",
         "last_id",
         "max_records",
@@ -60,6 +64,7 @@ class StreamSub(NameRequired):
         polling_interval: int | None = None,
         group: str | None = None,
         consumer: str | None = None,
+        declare: bool = True,
         batch: bool = False,
         no_ack: bool = False,
         last_id: str | None = None,
@@ -73,6 +78,13 @@ class StreamSub(NameRequired):
 
         if last_id is None:
             last_id = ">" if group and consumer else "$"
+
+        if not declare and not (group and consumer):
+            warnings.warn(
+                message="`declare` has no effect without consumer group",
+                category=RuntimeWarning,
+                stacklevel=1,
+            )
 
         if group and consumer:
             if last_id != ">":
@@ -101,6 +113,7 @@ class StreamSub(NameRequired):
 
         self.group = group
         self.consumer = consumer
+        self.declare = declare
         self.polling_interval = polling_interval or 100
         self.batch = batch
         self.no_ack = no_ack

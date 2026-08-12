@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
+from redis.exceptions import ResponseError
 
 from faststream import AckPolicy
 from faststream.redis import (
@@ -684,6 +685,42 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with({"data": "before-group"})
+
+    async def test_stream_group_declare_creates_missing_stream(
+        self,
+        queue: str,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+        )
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            client = br._connection
+            assert client is not None
+            assert await client.exists(queue) == 1
+
+    async def test_stream_group_declare_false_requires_existing_stream(
+        self,
+        queue: str,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, declare=False),
+        )
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            with pytest.raises(ResponseError, match="key to exist"):
+                await br.start()
+
+            client = br._connection
+            assert client is not None
+            assert await client.exists(queue) == 0
 
     async def test_consume_existing_group_from_last_id(
         self,

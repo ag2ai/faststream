@@ -135,7 +135,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     name=stream.name,
                     id=group_create_id,
                     groupname=stream.group,
-                    mkstream=True,
+                    mkstream=stream.declare,
                 )
             except ResponseError as e:
                 if "already exists" not in str(e):
