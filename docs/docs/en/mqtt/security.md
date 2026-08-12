@@ -16,11 +16,11 @@ search:
 
 Use the URL scheme to select the transport. `mqtt://` uses plain TCP and defaults to port `1883`; `mqtts://` enables TLS and defaults to port `8883`.
 
-Provide `BaseSecurity` with an SSL context when you need custom TLS settings. A secure URL cannot be downgraded by `BaseSecurity(use_ssl=False)`.
+For custom TLS settings, pass an SSL context with `BaseSecurity`.
 
 ## Username and password
 
-Put percent-encoded credentials in the URL, or use **`SASLPlaintext`** from `faststream.security`. Credentials from `SASLPlaintext` override credentials from the URL.
+Provide percent-encoded credentials in the URL or use **`SASLPlaintext`** from `faststream.security`.
 
 ```python linenums="1" hl_lines="4 5 6"
 {! docs_src/mqtt/security/plaintext.py !}

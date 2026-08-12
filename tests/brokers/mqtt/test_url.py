@@ -36,7 +36,7 @@ from faststream.mqtt import MQTTBroker
                 "host": "broker",
                 "port": 8884,
                 "username": "device",
-                "password": "p@ss",
+                "password": "public",
                 "tls": True,
             },
             "mqtts://broker:8884",
