@@ -5,7 +5,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.message import gen_cor_id
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
@@ -85,7 +84,7 @@ class LogicPublisher(PublisherUsecase):
             key=key,
             partition=partition if partition is not None else self.partition,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             timeout=timeout,
             _publish_type=PublishType.REQUEST,
@@ -213,7 +212,7 @@ class DefaultPublisher(LogicPublisher):
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,
@@ -401,7 +400,7 @@ class BatchPublisher(LogicPublisher):
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,

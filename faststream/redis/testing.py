@@ -28,7 +28,6 @@ from faststream._internal.testing.broker import (
     change_producer,
 )
 from faststream.exceptions import SetupError, SubscriberNotFound
-from faststream.message import gen_cor_id
 from faststream.redis.broker.broker import RedisBroker
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.message import (
@@ -264,7 +263,7 @@ class FakeProducer(RedisFastProducer):
         body = await build_message(
             message=cmd.body,
             reply_to=cmd.reply_to,
-            correlation_id=cmd.correlation_id or gen_cor_id(),
+            correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
@@ -293,7 +292,7 @@ class FakeProducer(RedisFastProducer):
     async def request(self, cmd: "RedisPublishCommand") -> "PubSubMessage":
         body = await build_message(
             message=cmd.body,
-            correlation_id=cmd.correlation_id or gen_cor_id(),
+            correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
             headers=cmd.headers,
             message_format=cmd.message_format,
             serializer=self.broker.config.fd_config._serializer,
@@ -326,7 +325,7 @@ class FakeProducer(RedisFastProducer):
         data_to_send = [
             await build_message(
                 m,
-                correlation_id=cmd.correlation_id or gen_cor_id(),
+                correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
                 serializer=self.broker.config.fd_config._serializer,

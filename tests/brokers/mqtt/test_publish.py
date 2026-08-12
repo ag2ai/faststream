@@ -22,3 +22,8 @@ class TestPublish(MQTTTestcaseConfig, BrokerPublishTestcase):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_reply_to(queue, mock, event)
+
+    async def test_custom_id_generator(self, queue, mock):
+        if self.version == "3.1.1":
+            pytest.skip(_SKIP_V311)
+        await super().test_custom_id_generator(queue, mock)

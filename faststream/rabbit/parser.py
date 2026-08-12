@@ -5,6 +5,7 @@ from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
 from faststream._internal.parser import DefaultCodec
+from faststream._internal.types import IdGenerator
 from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
@@ -75,6 +76,7 @@ class AioPikaParser:
         app_id: str | None = None,
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
+        id_generator: IdGenerator = gen_cor_id,
     ) -> Message:
         """Encodes a message for sending using AioPika."""
         if isinstance(message, Message):
@@ -93,7 +95,7 @@ class AioPikaParser:
             content_type=content_type or generated_content_type,
             delivery_mode=delivery_mode,
             reply_to=reply_to,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or id_generator(),
             headers=headers,
             content_encoding=content_encoding,
             priority=priority,
