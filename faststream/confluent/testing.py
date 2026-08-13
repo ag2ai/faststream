@@ -14,6 +14,7 @@ from faststream._internal.testing.broker import (
     TestBroker,
     change_producer,
 )
+from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -178,6 +179,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -217,6 +219,7 @@ class FakeProducer(AsyncConfluentFastProducer):
                     headers=cmd.headers,
                     correlation_id=cmd.correlation_id,
                     reply_to=cmd.reply_to,
+                    id_generator=self.broker.config.id_generator,
                 )
                 for message_position, (body, content_type) in enumerate(encoded)
             ]
@@ -240,6 +243,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
@@ -270,9 +274,10 @@ class FakeProducer(AsyncConfluentFastProducer):
             topic=topic,
             message=result.body,
             headers=result.headers,
-            correlation_id=result.correlation_id or gen_cor_id(),
+            correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 
@@ -343,6 +348,7 @@ async def build_message(
     reply_to: str = "",
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
     if message is None:
@@ -354,7 +360,7 @@ async def build_message(
     k = key or b""
     headers = {
         "content-type": content_type or "",
-        "correlation_id": correlation_id or gen_cor_id(),
+        "correlation_id": correlation_id or id_generator(),
         "reply_to": reply_to,
         **(headers or {}),
     }
@@ -382,11 +388,12 @@ def _build_mock_message(
     headers: dict[str, str] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
+    id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     k = key or b""
     h = {
         "content-type": content_type or "",
-        "correlation_id": correlation_id or gen_cor_id(),
+        "correlation_id": correlation_id or id_generator(),
         "reply_to": reply_to,
         **(headers or {}),
     }

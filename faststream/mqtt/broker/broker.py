@@ -6,6 +6,7 @@ from typing import (
     Literal,
     Optional,
 )
+from urllib.parse import urlsplit
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
@@ -15,6 +16,7 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -26,6 +28,7 @@ from faststream.mqtt.publisher.producer import (
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.mqtt.security import parse_security
 from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
+from faststream.mqtt.utils import build_mqtt_url, parse_mqtt_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
 
@@ -54,9 +57,10 @@ class MQTTBroker(
 
     def __init__(
         self,
-        host: str = "localhost:1883",
+        url: str = "mqtt://localhost:1883",
         port: int = EMPTY,
         *,
+        host: str = EMPTY,
         client_id: str = "",
         keepalive: int = 60,
         clean_session: bool = True,
@@ -73,6 +77,7 @@ class MQTTBroker(
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,
+        id_generator: IdGenerator = gen_cor_id,
         # AsyncAPI args
         specification_url: str | None = None,
         protocol: str | None = None,
@@ -89,31 +94,62 @@ class MQTTBroker(
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
     ) -> None:
+        url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
 
-        connection_kwargs = {}
+        connection_host = url_options.host
+        connection_port = url_options.port
+
+        if host is not EMPTY:
+            host_options = parse_mqtt_url(host)
+            connection_host = host_options.host
+            if port is EMPTY and host_options.port_provided:
+                connection_port = host_options.port
+
+        if port is not EMPTY:
+            connection_port = port
+
+        security_tls = secure_kwargs.pop("tls", None)
+        connection_tls = security_tls or url_options.tls
+        username = secure_kwargs.pop("username", url_options.username)
+        password = secure_kwargs.pop("password", url_options.password)
+
+        connection_kwargs = {
+            "host": connection_host,
+            "port": connection_port,
+            "username": username,
+            "password": password,
+            "tls": connection_tls,
+        }
         if stripped_prefixes is not None:
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
 
         producer: ZmqttBaseProducer
         if version == "5.0":
-            producer = ZmqttProducerV5(parser=parser, decoder=decoder)
+            producer = ZmqttProducerV5(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
         else:
-            producer = ZmqttProducerV311(parser=parser, decoder=decoder)
+            producer = ZmqttProducerV311(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
 
-        if ":" in host:
-            host, p = host.split(":", 2)
-        else:
-            p = "1883"
-        if port is EMPTY:
-            port = int(p)
+        connection_url = build_mqtt_url(
+            host=connection_host,
+            port=connection_port,
+            tls=bool(connection_tls),
+        )
 
         if specification_url is None:
-            specification_url = f"mqtt://{host}:{port}"
+            specification_url = connection_url
+
+        specification_protocol = (
+            urlsplit(specification_url).scheme
+            if "://" in specification_url
+            else connection_url.split(":", 1)[0]
+        )
 
         super().__init__(
-            host=host,
-            port=port,
             client_id=client_id,
             keepalive=keepalive,
             clean_session=clean_session,
@@ -145,6 +181,7 @@ class MQTTBroker(
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
+                id_generator=id_generator,
                 extra_context={
                     "broker": self,
                 },
@@ -152,7 +189,7 @@ class MQTTBroker(
             specification=BrokerSpec(
                 description=description,
                 url=[specification_url],
-                protocol=protocol or "mqtt",
+                protocol=protocol or specification_protocol,
                 protocol_version=protocol_version or version,
                 tags=tags,
                 security=security,
@@ -228,7 +265,7 @@ class MQTTBroker(
             qos=qos,
             retain=retain,
             headers=headers,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             reply_to=reply_to,
             _publish_type=PublishType.PUBLISH,
         )
@@ -250,7 +287,7 @@ class MQTTBroker(
         cmd = MQTTPublishCommand(
             message,
             topic=topic,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             headers=headers,
             qos=qos,
             reply_to=reply_to,

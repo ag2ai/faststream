@@ -8,6 +8,10 @@ queue = RabbitQueue(
     name="test-stream",
     durable=True,
     queue_type=QueueType.STREAM,
+    arguments={
+        "x-max-age": "7D",
+        "x-max-length-bytes": 20_000_000_000,
+    },
 )
 
 

@@ -15,6 +15,9 @@ _BrokerT = TypeVar(
 
 class BaseTestcaseConfig(Generic[_BrokerT]):
     timeout: float = 3.0
+    # Default channel/list/core subscribers that force MANUAL ack have no
+    # AcknowledgementMiddleware, so cancel cannot hit the shared ack skip path.
+    supports_cancel_ack_skip: bool = True
 
     @abstractmethod
     def get_broker(
@@ -67,6 +70,10 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
         dict[str, Any],
     ]:
         return args, kwargs
+
+    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
+        """Extra subscriber kwargs for cancel acknowledgement-skip consume tests."""
+        return {}
 
     @abstractmethod
     def get_router(self, **kwargs: Any) -> BrokerRouter:

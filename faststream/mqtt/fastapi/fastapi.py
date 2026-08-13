@@ -13,6 +13,8 @@ from typing_extensions import override
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
+from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.broker import MQTTBroker
 
@@ -46,9 +48,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
 
     def __init__(
         self,
-        host: str = "localhost:1883",
+        url: str = "mqtt://localhost:1883",
         port: int = EMPTY,
         *,
+        host: str = EMPTY,
         client_id: str = "",
         keepalive: int = 60,
         clean_session: bool = True,
@@ -62,6 +65,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         codec: Optional["CodecProto"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         ack_policy: AckPolicy = EMPTY,
+        id_generator: IdGenerator = gen_cor_id,
         serializer: Optional["SerializerProto"] = EMPTY,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
@@ -100,6 +104,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         ),
     ) -> None:
         super().__init__(
+            url=url,
             host=host,
             port=port,
             client_id=client_id,
@@ -114,6 +119,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             codec=codec,
             middlewares=middlewares,
             ack_policy=ack_policy,
+            id_generator=id_generator,
             serializer=serializer,
             schema_url=schema_url,
             setup_state=setup_state,

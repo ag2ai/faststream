@@ -12,7 +12,9 @@ from typing_extensions import Unpack, override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
+from faststream.message import gen_cor_id
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
@@ -120,8 +122,10 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         declarer: "RabbitDeclarer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         self.declarer = declarer
+        self.id_generator = id_generator
 
         self.__lock: LockState = LockUnset()
         self.serializer: SerializerProto | None = None
@@ -197,6 +201,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
             message=message,
             serializer=self.serializer,
             codec=self.codec,
+            id_generator=self.id_generator,
             **message_options,
         )
 

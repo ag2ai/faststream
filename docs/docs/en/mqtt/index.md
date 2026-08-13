@@ -33,7 +33,8 @@ The broker constructor mirrors common `zmqtt.MQTTClient` options:
 
 | Parameter | Role |
 | --------- | ---- |
-| `host`, `port` | Broker address (default port `1883`). |
+| `url` | Broker URL. `mqtt://` uses plain TCP and port `1883`; `mqtts://` uses TLS and port `8883`. Username and password can be included in the URL. |
+| `host`, `port` | Legacy parameters retained for backward compatibility. |
 | `version` | `#!python "3.1.1"` or `#!python "5.0"` — selects protocol features and how FastStream maps metadata (see [MQTT versions](versions.md){.internal-link}). |
 | `client_id` | Client identity string. |
 | `security` | Pass `SASLPlaintext(username, password)` or `BaseSecurity(ssl_context)` for credentials and TLS (see [Security](security.md){.internal-link}). |
