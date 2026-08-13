@@ -175,7 +175,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         self._metrics = metrics_container
         self._current_span: Span | None = None
         self._origin_context: Context | None = None
-        self._scope_tokens_stask = ExitStack()
+        self._scope_tokens_stack = ExitStack()
         self.__settings_provider = settings_provider_factory(msg)
 
     async def publish_scope(
@@ -250,7 +250,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
             duration = time.perf_counter() - start_time
             self._metrics.observe_publish(metrics_attributes, duration, msg_count)
 
-        self._scope_tokens_stask.close()
+        self._scope_tokens_stack.close()
 
         return result
 
@@ -303,8 +303,8 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
                 )
                 self._current_span = span
 
-                self._scope_tokens_stask.enter_context(self.context.scope("span", span))
-                self._scope_tokens_stask.enter_context(
+                self._scope_tokens_stack.enter_context(self.context.scope("span", span))
+                self._scope_tokens_stack.enter_context(
                     self.context.scope("baggage", Baggage.from_msg(msg))
                 )
 
