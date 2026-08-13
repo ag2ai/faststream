@@ -66,6 +66,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         assert config.stream_sub
         self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
+        self.read_id = self.last_id
         self.min_idle_time = config.stream_sub.min_idle_time
         self.autoclaim_start_id = b"0-0"
 
@@ -139,6 +140,10 @@ class _StreamHandlerMixin(LogicSubscriber):
             except ResponseError as e:
                 if "already exists" not in str(e):
                     raise
+            else:
+                self.read_id = ">"
+
+            self.last_id = self.read_id
 
             if stream.min_idle_time is None:
 
@@ -148,7 +153,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     return client.xreadgroup(
                         groupname=stream.group,
                         consumername=stream.consumer,
-                        streams={stream.name: stream.last_id},
+                        streams={stream.name: self.read_id},
                         count=stream.max_records,
                         block=stream.polling_interval,
                         noack=stream.no_ack,
