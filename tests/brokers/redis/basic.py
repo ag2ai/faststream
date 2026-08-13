@@ -13,6 +13,8 @@ from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class RedisTestcaseConfig(BaseTestcaseConfig[RedisBroker]):
+    supports_cancel_ack_skip: bool = False
+
     def get_broker(
         self,
         apply_types: bool = False,
@@ -54,6 +56,8 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
     Connects to a real Redis Cluster.
     A single startup node is enough — the cluster auto-discovers the rest.
     """
+
+    supports_cancel_ack_skip: bool = False
 
     def get_broker(
         self,

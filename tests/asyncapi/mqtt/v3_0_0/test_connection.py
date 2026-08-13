@@ -59,3 +59,11 @@ def test_custom() -> None:
         "operations": {},
         "components": {"messages": {}, "schemas": {}},
     }
+
+
+@pytest.mark.mqtt()
+def test_tls_url() -> None:
+    schema = get_3_0_0_schema(MQTTBroker("mqtts://user:password@localhost"))
+
+    assert schema["servers"]["development"]["host"] == "localhost:8883"
+    assert schema["servers"]["development"]["protocol"] == "mqtts"

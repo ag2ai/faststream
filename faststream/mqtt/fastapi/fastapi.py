@@ -48,9 +48,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
 
     def __init__(
         self,
-        host: str = "localhost:1883",
+        url: str = "mqtt://localhost:1883",
         port: int = EMPTY,
         *,
+        host: str = EMPTY,
         client_id: str = "",
         keepalive: int = 60,
         clean_session: bool = True,
@@ -103,6 +104,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         ),
     ) -> None:
         super().__init__(
+            url=url,
             host=host,
             port=port,
             client_id=client_id,

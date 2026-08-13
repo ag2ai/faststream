@@ -14,14 +14,19 @@ search:
 
 ## TLS
 
-Provide `BaseSecurity` with an SSL context, or pass `tls=` directly to `MQTTBroker` (`False`, `True`, or `ssl.SSLContext`) — forwarded to `zmqtt.MQTTClient`.
+Use the URL scheme to select the transport. `mqtt://` uses plain TCP and defaults to port `1883`; `mqtts://` enables TLS and defaults to port `8883`.
+
+For custom TLS settings, pass an SSL context with `BaseSecurity`.
 
 ## Username and password
 
-Use constructor `username` / `password`, or **`SASLPlaintext`** from `faststream.security` so credentials are merged consistently with TLS settings.
+Provide percent-encoded credentials in the URL or use **`SASLPlaintext`** from `faststream.security`.
 
-```python linenums="1" hl_lines="4 5"
+```python linenums="1" hl_lines="4 5 6"
 {! docs_src/mqtt/security/plaintext.py !}
 ```
 
 Unsupported `security` subclasses raise `NotImplementedError` at broker construction time.
+
+!!! note
+    MQTT connection URLs support only `mqtt://` and `mqtts://` TCP/TLS endpoints. Paths, query parameters, and fragments are rejected.
