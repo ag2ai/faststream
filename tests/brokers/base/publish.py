@@ -605,6 +605,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
 
         mock.assert_called_with("Hello!")
 
+    @pytest.mark.asyncio()
     async def test_composition_context(
         self,
         queue: str,
