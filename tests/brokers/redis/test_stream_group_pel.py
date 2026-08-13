@@ -32,7 +32,7 @@ async def test_different_groups_do_not_interfere(
 
     async with TestRedisBroker(broker, pel=pel) as br:
         await br.publish("data", stream="tasks")
-        assert len(pel._entries) == 1
+        assert len(pel.entries) == 1
 
 
 @pytest.mark.redis()
@@ -50,7 +50,7 @@ async def test_no_ack_policy_skips_pel_tracking(
 
         worker.mock.assert_called_once_with("data")
         put_mock.assert_not_called()
-        assert pel._entries == {}
+        assert pel.entries == {}
 
 
 @pytest.mark.redis()
@@ -73,7 +73,7 @@ async def test_no_ack_policy_skips_pel_tracking_on_failure(
 
         worker.mock.assert_called_once_with("data")
         put_mock.assert_not_called()
-        assert pel._entries == {}
+        assert pel.entries == {}
 
 
 @pytest.mark.redis()
@@ -105,7 +105,7 @@ async def test_only_min_idle_time_subscriber_processes_pel(
         pel = PEL()
         async with TestRedisBroker(broker, pel=pel) as br:
             await br.publish("data", stream="tasks")
-    assert len(pel._entries) == 0
+    assert len(pel.entries) == 0
 
 
 @pytest.mark.redis()
@@ -132,7 +132,7 @@ async def test_pel_cleared_after_claimer_processes_it(
         await br.publish("data", stream="tasks")
 
         claimer.mock.assert_called_once_with("data")
-        assert pel._entries == {}
+        assert pel.entries == {}
 
 
 @pytest.mark.redis()
@@ -149,4 +149,4 @@ async def test_pel_not_cleared_without_a_claimer(
         await br.publish("data", stream="tasks")
 
         worker.mock.assert_called_once_with("data")
-        assert len(pel._entries) == 1
+        assert len(pel.entries) == 1

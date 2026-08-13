@@ -69,12 +69,12 @@ PELKey = tuple[str | None, uuid.UUID, str | None]
 
 class PEL:
     def __init__(self) -> None:
-        self._entries: dict[PELKey, Entry] = {}
+        self.entries: dict[PELKey, Entry] = {}
         self.put = MagicMock(wraps=self._put)
         self.remove = MagicMock(wraps=self._remove)
 
     def _remove(self, correlation_id: PELKey) -> None:
-        self._entries.pop(correlation_id)
+        self.entries.pop(correlation_id)
 
     def _put(
         self,
@@ -82,10 +82,10 @@ class PEL:
         handler: "LogicSubscriber",
         correlation_id: PELKey,
     ) -> None:
-        self._entries.update({correlation_id: Entry(msg=msg, handler=handler)})
+        self.entries.update({correlation_id: Entry(msg=msg, handler=handler)})
 
     def get_entry(self, correlation_id: PELKey) -> Entry | None:
-        return self._entries.get(correlation_id)
+        return self.entries.get(correlation_id)
 
 
 class TestRedisBroker(TestBroker[RedisBroker, EnterType]):

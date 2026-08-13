@@ -22,7 +22,7 @@ async def test_pending_message_stays_without_a_claimer() -> None:
 
         pending_worker.mock.assert_called_once_with("order-1")
         # nothing exists to reclaim it, so the entry just stays pending
-        assert len(pel._entries) == 1
+        assert len(pel.entries) == 1
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_each_group_gets_its_own_pel_entry() -> None:
         billing_worker.mock.assert_called_once_with("order-4")
         shipping_worker.mock.assert_called_once_with("order-4")
         # one entry per group, tracked independently for the same message
-        assert len(pel._entries) == 2
+        assert len(pel.entries) == 2
 
 
 @pytest.mark.asyncio
@@ -46,7 +46,7 @@ async def test_no_ack_worker_never_touches_the_pel() -> None:
 
         fire_and_forget_worker.mock.assert_called_once_with("order-3")
         # no_ack means nothing was ever recorded, failure or not
-        assert pel._entries == {}
+        assert pel.entries == {}
 
 
 @pytest.mark.asyncio
@@ -56,4 +56,4 @@ async def test_message_is_caught_by_reprocessing_worker() -> None:
         await br.publish("order", stream="orders")
         reprocessing_worker.mock.assert_called_once_with("order")
         claiming_worker.mock.assert_called_once_with("order")
-    assert len(pel._entries) == 0
+    assert len(pel.entries) == 0

@@ -79,7 +79,7 @@ Because `#!python no_ack=True` disables acknowledgement altogether, the fake bro
 
 ## Inspecting the `PEL`
 
-By default, each `TestRedisBroker` creates its own private `PEL`. Passing one explicitly (as in the examples above) lets you assert against it directly - either by reading `pel._entries`, or through the `put`/`remove` spies it exposes:
+By default, each `TestRedisBroker` creates its own private `PEL`. Passing one explicitly (as in the examples above) lets you assert against it directly - either by reading `pel.entries`, or through the `put`/`remove` spies it exposes:
 
 ```python
 from unittest.mock import patch
