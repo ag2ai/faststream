@@ -9,8 +9,9 @@ import anyio
 import pytest
 from pydantic import BaseModel
 
-from faststream import BaseMiddleware, Context, Response
+from faststream import BaseMiddleware, Context, FastStream, Response, TestApp
 from faststream._internal._compat import dump_json, model_to_json
+from faststream.context import ContextRepo
 from faststream.exceptions import SubscriberNotFound
 
 from .basic import BaseTestcaseConfig
@@ -603,3 +604,55 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
             )
 
         mock.assert_called_with("Hello!")
+
+    async def test_composition_context(
+        self,
+        queue: str,
+        mock: MagicMock,
+        mock2: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"broker_var": "BROKER 1"}),
+        )
+        broker2 = self.get_broker(
+            apply_types=True,
+            context=ContextRepo({"broker_var": "BROKER 2"}),
+        )
+
+        app = FastStream(broker, broker2, context=ContextRepo({"app_var": "APP"}))
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(app_var=Context(), broker_var=Context()) -> None:
+            mock(app_var, broker_var)
+            event.set()
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker2.subscriber(*args2, **kwargs2)
+        async def handle2(app_var=Context(), broker_var=Context()) -> None:
+            mock2(app_var, broker_var)
+            event2.set()
+
+        async with (
+            self.patch_broker(broker, broker2) as (br, br2),
+            TestApp(app),
+        ):
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("", queue)),
+                    asyncio.create_task(br2.publish("", queue + "2")),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        assert event2.is_set()
+        mock.assert_called_once_with("APP", "BROKER 1")
+        mock2.assert_called_once_with("APP", "BROKER 2")
