@@ -6,12 +6,7 @@ import anyio
 import pytest
 from pydantic import BaseModel
 
-<<<<<<< HEAD
-from faststream import Context, Depends, FastStream, TestApp
-from faststream.context import ContextRepo
-=======
 from faststream import AckPolicy, Context, Depends, FastStream, TestApp
->>>>>>> 83fab8807f619944cd87c0cd522e132777fd55a2
 from faststream.exceptions import StopConsume
 from faststream.message import StreamMessage
 from tests.tools import spy_decorator
