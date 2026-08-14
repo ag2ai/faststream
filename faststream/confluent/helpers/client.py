@@ -163,7 +163,7 @@ class AsyncConfluentProducer:
             if not retry_on_buffer_error:
                 raise
 
-            # Safety net for `send_batch`: even with count-based chunking the
+            # Opt-in safety net for `send_batch`: even with count-based chunking the
             # local queue can still overflow on `queue.buffering.max.kbytes`.
             # The background `_poll_loop` serves delivery reports every 100 ms,
             # so just sleep and retry until the queue drains, bounded by the
@@ -203,6 +203,7 @@ class AsyncConfluentProducer:
         *,
         partition: int | None,
         no_confirm: bool = False,
+        retry_on_buffer_error: bool = False,
     ) -> None:
         """Sends a batch of messages to a Kafka topic."""
         messages = batch._builder
@@ -226,7 +227,7 @@ class AsyncConfluentProducer:
                         msg["timestamp_ms"],
                         msg["headers"],
                         no_confirm,
-                        True,  # retry_on_buffer_error
+                        retry_on_buffer_error,
                     )
 
     async def ping(

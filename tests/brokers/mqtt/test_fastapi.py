@@ -22,6 +22,15 @@ class MQTTFastAPIMemoryTestcaseConfig(MQTTMemoryTestcaseConfig):
         self.version = "5.0"
 
 
+@pytest.mark.mqtt()
+def test_router_url() -> None:
+    router = StreamRouter("mqtts://router:8884")
+
+    assert router.broker._connection_kwargs["host"] == "router"
+    assert router.broker._connection_kwargs["port"] == 8884
+    assert router.broker._connection_kwargs["tls"] is True
+
+
 @pytest.mark.connected()
 @pytest.mark.mqtt()
 class TestRouter(MQTTFastAPITestcaseConfig, FastAPITestcase):

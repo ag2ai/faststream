@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from faststream._internal._compat import ExceptionGroup
 from faststream._internal.logger.logger_proxy import EmptyLoggerObject
 from faststream._internal.logger.state import LoggerState
 from faststream.confluent.helpers.client import AsyncConfluentProducer
@@ -70,7 +71,8 @@ async def test_send_batch_survives_buffer_full() -> None:
     Regression test for #2836: a message over ``queue.buffering.max.messages``
     used to raise ``BufferError`` inside one ``send`` task, which cascaded
     through the ``send_batch`` task group and cancelled every sibling message.
-    The overflowing message should instead be retried after the queue drains.
+    With ``retry_on_buffer_error=True`` the overflowing message should instead
+    be retried after the queue drains.
     """
     # The first produce call hits a full queue; the retry must succeed.
     fake = _FakeProducer(fail_calls={1})
@@ -83,7 +85,12 @@ async def test_send_batch_survives_buffer_full() -> None:
             batch.append(value=f"msg-{i}".encode())
 
         # Must not raise an ExceptionGroup / BufferError.
-        await producer.send_batch(batch, "topic", partition=None)
+        await producer.send_batch(
+            batch,
+            "topic",
+            partition=None,
+            retry_on_buffer_error=True,
+        )
 
         # Every message is enqueued, with exactly one extra produce call for
         # the retry that followed the BufferError.
@@ -103,6 +110,26 @@ async def test_send_fails_fast_on_buffer_full() -> None:
     try:
         with pytest.raises(BufferError):
             await producer.send("topic", value=b"msg")
+    finally:
+        await producer.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_send_batch_fails_fast_by_default() -> None:
+    """Without the opt-in, batch publishing surfaces ``BufferError`` immediately."""
+    fake = _FakeProducer(fail_calls={1})
+    producer = _make_producer(fake)
+
+    try:
+        batch = producer.create_batch()
+        for i in range(3):
+            batch.append(value=f"msg-{i}".encode())
+
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await producer.send_batch(batch, "topic", partition=None)
+
+        assert any(isinstance(exc, BufferError) for exc in exc_info.value.exceptions)
     finally:
         await producer.stop()
 

@@ -39,11 +39,14 @@ class StreamSub(NameRequired):
             reclaimed by this consumer. Only applicable when using consumer groups.
 
             https://redis.io/docs/latest/commands/xautoclaim/
+        declare:
+            Whether to create the stream when creating a consumer group.
     """
 
     __slots__ = (
         "batch",
         "consumer",
+        "declare",
         "group",
         "last_id",
         "max_records",
@@ -66,10 +69,18 @@ class StreamSub(NameRequired):
         maxlen: int | None = None,
         max_records: int | None = None,
         min_idle_time: int | None = None,
+        declare: bool = True,
     ) -> None:
         if (group and not consumer) or (not group and consumer):
             msg = "You should specify `group` and `consumer` both"
             raise SetupError(msg)
+
+        if not declare and not group:
+            warnings.warn(
+                message="`declare` has no effect without consumer group",
+                category=RuntimeWarning,
+                stacklevel=1,
+            )
 
         if last_id is None:
             last_id = ">" if group and consumer else "$"
@@ -101,6 +112,7 @@ class StreamSub(NameRequired):
 
         self.group = group
         self.consumer = consumer
+        self.declare = declare
         self.polling_interval = polling_interval or 100
         self.batch = batch
         self.no_ack = no_ack
