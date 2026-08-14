@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
@@ -14,7 +15,6 @@ from typing import (
 
 from typing_extensions import Self, overload, override
 
-from faststream._internal._compat import warn_deprecated_param
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -235,10 +235,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         dependencies_: Iterable["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
-        if parser_ is not None:
-            warn_deprecated_param("parser")
         if decoder_ is not None:
-            warn_deprecated_param("decoder")
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
         self._call_options = _CallOptions(
             parser=parser_,
@@ -289,10 +292,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         ],
     ]:
-        if parser is not None:
-            warn_deprecated_param("parser")
         if decoder is not None:
-            warn_deprecated_param("decoder")
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
         total_deps = (*self._call_options.dependencies, *dependencies)
         async_filter: AsyncFilter[StreamMessage[MsgType]] = to_async(filter)

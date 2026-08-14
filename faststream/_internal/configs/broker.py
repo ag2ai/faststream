@@ -1,10 +1,10 @@
+import warnings
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
-from faststream._internal._compat import warn_deprecated_param
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
@@ -42,10 +42,13 @@ class BrokerConfig:
     extra_context: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.broker_parser is not None:
-            warn_deprecated_param("parser")
         if self.broker_decoder is not None:
-            warn_deprecated_param("decoder")
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
