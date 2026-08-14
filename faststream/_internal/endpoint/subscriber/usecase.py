@@ -14,6 +14,7 @@ from typing import (
 
 from typing_extensions import Self, overload, override
 
+from faststream._internal._compat import warn_deprecated_param
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -234,8 +235,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         dependencies_: Iterable["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
-        from faststream._internal._compat import warn_deprecated_param
-
         if parser_ is not None:
             warn_deprecated_param("parser")
         if decoder_ is not None:
@@ -290,8 +289,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         ],
     ]:
-        from faststream._internal._compat import warn_deprecated_param
-
         if parser is not None:
             warn_deprecated_param("parser")
         if decoder is not None:
