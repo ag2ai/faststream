@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
+from faststream._internal._compat import warn_deprecated_param
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
@@ -39,6 +40,12 @@ class BrokerConfig:
     graceful_timeout: float | None = None
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.broker_parser is not None:
+            warn_deprecated_param("parser")
+        if self.broker_decoder is not None:
+            warn_deprecated_param("decoder")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

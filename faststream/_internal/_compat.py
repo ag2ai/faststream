@@ -250,3 +250,12 @@ except ImportError:
     HAS_OPENTELEMETRY = False
 else:
     HAS_OPENTELEMETRY = True
+
+
+def warn_deprecated_param(name: str) -> None:
+    warnings.warn(
+        f"`{name}` parameter is deprecated and will be removed in 1.0.0. "
+        "Use `codec` with a custom `encode()`/`decode()` method instead.",
+        DeprecationWarning,
+        stacklevel=3,
+    )

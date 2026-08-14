@@ -234,6 +234,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         dependencies_: Iterable["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
+        from faststream._internal._compat import warn_deprecated_param
+
+        if parser_ is not None:
+            warn_deprecated_param("parser")
+        if decoder_ is not None:
+            warn_deprecated_param("decoder")
+
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
@@ -283,6 +290,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         ],
     ]:
+        from faststream._internal._compat import warn_deprecated_param
+
+        if parser is not None:
+            warn_deprecated_param("parser")
+        if decoder is not None:
+            warn_deprecated_param("decoder")
+
         total_deps = (*self._call_options.dependencies, *dependencies)
         async_filter: AsyncFilter[StreamMessage[MsgType]] = to_async(filter)
 
