@@ -95,7 +95,7 @@ class BatchCodecProto(Protocol):
     ) -> list["DecodedMessage"]: ...
 
 
-class DefaultCodec:
+class DefaultCodec(CodecProto):
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         return decode_message(msg)
 
