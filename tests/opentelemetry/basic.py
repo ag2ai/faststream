@@ -583,3 +583,53 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             await asyncio.wait(tasks, timeout=self.timeout)
 
         assert event.is_set()
+
+    async def test_correct_finalize_tokens(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+        mock: MagicMock,
+        tracer_provider: TracerProvider,
+    ) -> None:
+        mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
+        broker = self.get_broker(middlewares=(mid,), apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        @broker.publisher("out1")
+        @broker.publisher("out2")
+        async def handler(msg: str) -> str:
+            return f"handled:{msg}"
+
+        args2, kwargs2 = self.get_subscriber_params("out1")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handler_out1(msg: str) -> None:
+            mock(msg)
+            event.set()
+
+        args3, kwargs3 = self.get_subscriber_params("out2")
+
+        @broker.subscriber(*args3, **kwargs3)
+        async def handler_out2(msg: str) -> None:
+            mock(msg)
+            event2.set()
+
+        async with broker:
+            await broker.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(broker.publish("msg", queue)),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        assert event2.is_set()
+        assert mock.call_count == 2
+        mock.assert_called_with("handled:msg")
