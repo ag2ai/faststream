@@ -53,7 +53,7 @@ class LogicPublisher(PublisherUsecase):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
-    ) -> "KafkaMessage":
+    ) -> "KafkaMessage | None":
         """Send a request message to Kafka topic.
 
         Args:
@@ -77,6 +77,7 @@ class LogicPublisher(PublisherUsecase):
 
         Returns:
             KafkaMessage: The response message.
+            `None` if `skip_none` is enabled and the message is `None`.
         """
         cmd = KafkaPublishCommand(
             message,
@@ -124,7 +125,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+    ) -> "RecordMetadata | None": ...
 
     @overload
     async def publish(
@@ -139,7 +140,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
-    ) -> "asyncio.Future[RecordMetadata]": ...
+    ) -> "asyncio.Future[RecordMetadata] | None": ...
 
     @overload
     async def publish(
@@ -154,7 +155,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
+    ) -> "asyncio.Future[RecordMetadata] | RecordMetadata | None": ...
 
     @override
     async def publish(
@@ -169,7 +170,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+    ) -> "asyncio.Future[RecordMetadata] | RecordMetadata | None":
         """Publishes a message to Kafka.
 
         Args:
@@ -204,6 +205,7 @@ class DefaultPublisher(LogicPublisher):
         Returns:
             `asyncio.Future[RecordMetadata]` if no_confirm = True.
             `RecordMetadata` if no_confirm = False.
+            `None` if `skip_none` is enabled and the message is `None`.
         """
         cmd = KafkaPublishCommand(
             message,
@@ -258,7 +260,7 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
-    ) -> "KafkaMessage":
+    ) -> "KafkaMessage | None":
         """Send a request message and wait for a response.
 
         Args:
@@ -281,7 +283,8 @@ class DefaultPublisher(LogicPublisher):
             timeout: Timeout to send RPC request.
 
         Returns:
-            The response message.
+            The response message, or `None` if `skip_none` is enabled and
+            the message is `None`.
         """
         return await super().request(
             message,
@@ -316,7 +319,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
-    ) -> "RecordMetadata": ...
+    ) -> "RecordMetadata | None": ...
 
     @overload
     async def publish(
@@ -330,7 +333,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[True] = ...,
-    ) -> "asyncio.Future[RecordMetadata]": ...
+    ) -> "asyncio.Future[RecordMetadata] | None": ...
 
     @overload
     async def publish(
@@ -344,7 +347,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
+    ) -> "asyncio.Future[RecordMetadata] | RecordMetadata | None": ...
 
     @override
     async def publish(
@@ -358,7 +361,7 @@ class BatchPublisher(LogicPublisher):
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
-    ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
+    ) -> "asyncio.Future[RecordMetadata] | RecordMetadata | None":
         """Publish a message batch as a single request to broker.
 
         Args:
@@ -392,6 +395,7 @@ class BatchPublisher(LogicPublisher):
         Returns:
             `asyncio.Future[RecordMetadata]` if no_confirm = True.
             `RecordMetadata` if no_confirm = False.
+            `None` if `skip_none` is enabled and every batch value is `None`.
         """
         cmd = KafkaPublishCommand(
             *messages,
