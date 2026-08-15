@@ -109,7 +109,10 @@ class BatchPublishCommand(PublishCommand):
 
     @property
     def batch_bodies(self) -> tuple["Any", ...]:
-        return (*super().batch_bodies, *self.extra_bodies)
+        if self.body is None and not self.extra_bodies:
+            return ()
+
+        return (self.body, *self.extra_bodies)
 
     @batch_bodies.setter
     def batch_bodies(self, value: Sequence["Any"]) -> None:
