@@ -503,7 +503,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
-            await publisher.publish(None, "hi")
+            await publisher.publish(None, "hi", None)
 
             received = {
                 await asyncio.wait_for(values.get(), timeout=self.timeout)
@@ -511,6 +511,41 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             }
 
         assert received == {b"", b"hi"}
+
+    @pytest.mark.asyncio()
+    async def test_batch_publish_skip_none_keeps_per_message_keys(
+        self, queue: str
+    ) -> None:
+        """`skip_none` filtering keeps per-message keys aligned.
+
+        Regression: `batch_bodies` used to hide a leading `None` batch
+        item, so filtering it out shifted the per-message keys of the
+        surviving messages by one position.
+        """
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[tuple[bytes | None, bytes | None]] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put((msg.raw_message.key, msg.raw_message.value))
+
+        publisher = pub_broker.publisher(queue, batch=True, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await publisher.publish(
+                KafkaResponse(None, key=b"skipped-key"),
+                KafkaResponse("hi", key=b"kept-key"),
+            )
+
+            key, value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
+
+        assert (key, value) == (b"kept-key", b"hi")
 
     @pytest.mark.asyncio()
     async def test_handler_return_none_is_skipped(self, queue: str) -> None:
