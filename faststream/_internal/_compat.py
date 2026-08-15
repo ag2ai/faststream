@@ -250,4 +250,3 @@ except ImportError:
     HAS_OPENTELEMETRY = False
 else:
     HAS_OPENTELEMETRY = True
-
