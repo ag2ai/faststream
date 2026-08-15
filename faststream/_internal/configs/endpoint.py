@@ -17,7 +17,7 @@ class EndpointConfig:
 
 @dataclass(kw_only=True)
 class PublisherUsecaseConfig(EndpointConfig):
-    pass
+    skip_none: bool = False
 
 
 @dataclass(kw_only=True)

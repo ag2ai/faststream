@@ -13,3 +13,4 @@ class SpecificationConfig:
 @dataclass(kw_only=True)
 class PublisherSpecificationConfig(SpecificationConfig):
     schema_: Any | None
+    allow_nonetype: bool = True
