@@ -364,3 +364,134 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
+
+    @pytest.mark.asyncio()
+    async def test_publish_none_is_not_skipped_by_default(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        publisher = pub_broker.publisher(queue)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await publisher.publish(None)
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+        assert value == b""
+
+    @pytest.mark.asyncio()
+    async def test_publisher_skips_none(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        publisher = pub_broker.publisher(queue, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            result = await publisher.publish(None)
+
+            assert result is None
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
+
+    @pytest.mark.asyncio()
+    async def test_batch_publish_skips_all_none_batch(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        publisher = pub_broker.publisher(queue, batch=True, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            result = await publisher.publish(None, None)
+
+            assert result is None
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
+
+    @pytest.mark.asyncio()
+    async def test_batch_publish_filters_none_values(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        publisher = pub_broker.publisher(queue, batch=True, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await publisher.publish(None, "hi")
+
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
+
+        assert value == b"hi"
+
+    @pytest.mark.asyncio()
+    async def test_batch_publish_without_skip_none_keeps_none_values(
+        self, queue: str
+    ) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        publisher = pub_broker.publisher(queue, batch=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await publisher.publish(None, "hi")
+
+            received = {
+                await asyncio.wait_for(values.get(), timeout=self.timeout)
+                for _ in range(2)
+            }
+
+        assert received == {b"", b"hi"}
+
+    @pytest.mark.asyncio()
+    async def test_handler_return_none_is_skipped(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.publisher(queue + "1", skip_none=True)
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None: ...
+
+        @pub_broker.subscriber(queue + "1")
+        async def out_handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish("test", queue)
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
