@@ -64,6 +64,7 @@ class MQTTBroker(
         client_id: str = "",
         keepalive: int = 60,
         clean_session: bool = True,
+        will: zmqtt.Will | None = None,
         version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         mqtt_connect_timeout: float = 30.0,
@@ -120,6 +121,7 @@ class MQTTBroker(
             "username": username,
             "password": password,
             "tls": connection_tls,
+            "will": will,
         }
         if stripped_prefixes is not None:
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
