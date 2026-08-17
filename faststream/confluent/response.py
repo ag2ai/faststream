@@ -79,6 +79,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        retry_on_buffer_error: bool = False,
         timeout: float = 0.5,
     ) -> None:
         super().__init__(
@@ -95,6 +96,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         self.partition = partition
         self.timestamp_ms = timestamp_ms
         self.no_confirm = no_confirm
+        self.retry_on_buffer_error = retry_on_buffer_error
 
         # request option
         self.timeout = timeout
