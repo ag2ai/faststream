@@ -48,7 +48,7 @@ jobs:
       - name: Test
         run: >
           pytest --cov --cov-report=
-          -vv -m "(slow and not connected) or not connected"
+          -vv -m "(slow and not connected) or not connected" --timeout=60
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}
       - name: Store coverage files
