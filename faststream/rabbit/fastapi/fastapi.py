@@ -389,6 +389,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -412,6 +413,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
             persist=persist,
             reply_to=reply_to,
             priority=priority,
+            skip_none=skip_none,
             title=title,
             description=description,
             schema=schema,

@@ -9,6 +9,7 @@ from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import (
     RabbitBroker,
     RabbitMessage,
+    RabbitPublisher,
     RabbitRoute,
     RabbitRouter,
     TestRabbitBroker,
@@ -16,7 +17,9 @@ from faststream.rabbit import (
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
-from faststream.rabbit.publisher.usecase import RabbitPublisher
+from faststream.rabbit.publisher.usecase import (
+    RabbitPublisher as RabbitPublisherUsecase,
+)
 from faststream.rabbit.subscriber.usecase import RabbitSubscriber
 
 
@@ -195,6 +198,16 @@ def handle13() -> None: ...
 async def handle14() -> None: ...
 
 
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+def handle_router_skip_none() -> None: ...
+
+
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+async def handle_router_skip_none_async() -> None: ...
+
+
 def sync_handler() -> None: ...
 
 
@@ -222,6 +235,11 @@ RabbitRouter(
             "test",
             parser=custom_parser,
             decoder=custom_decoder,
+        ),
+        RabbitRoute(
+            sync_handler,
+            "test",
+            publishers=(RabbitPublisher("test2", skip_none=True),),
         ),
     ),
 )
@@ -292,6 +310,16 @@ def handle20() -> None: ...
 async def handle21() -> None: ...
 
 
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+def handle_fastapi_skip_none() -> None: ...
+
+
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+async def handle_fastapi_skip_none_async() -> None: ...
+
+
 otlp_middleware = RabbitTelemetryMiddleware()
 RabbitBroker().add_middleware(otlp_middleware)
 RabbitBroker(middlewares=[otlp_middleware])
@@ -322,7 +350,11 @@ async def check_request_response_type() -> None:
 
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None, "test")
-    assert_type(publisher_response, RabbitMessage)
+    assert_type(publisher_response, RabbitMessage | None)
+
+    skip_publisher = broker.publisher("test", skip_none=True)
+    skip_response = await skip_publisher.request(None, "test")
+    assert_type(skip_response, RabbitMessage | None)
 
 
 async def check_subscriber_get_one_type(
@@ -344,7 +376,7 @@ async def check_instance_type(
     assert_type(subscriber, RabbitSubscriber)
 
     publisher = broker.publisher(queue="test")
-    assert_type(publisher, RabbitPublisher)
+    assert_type(publisher, RabbitPublisherUsecase)
 
 
 RabbitBroker(routers=[RabbitRouter()])

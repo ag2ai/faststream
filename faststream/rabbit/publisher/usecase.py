@@ -156,7 +156,7 @@ class RabbitPublisher(PublisherUsecase):
         *,
         routing_key: str = "",
         **publish_kwargs: "Unpack[PublishKwargs]",
-    ) -> "RabbitMessage":
+    ) -> "RabbitMessage | None":
         if "headers" in publish_kwargs:
             headers = self.headers | (publish_kwargs.pop("headers") or {})
         else:
