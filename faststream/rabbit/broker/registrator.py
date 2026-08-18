@@ -114,6 +114,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
+        skip_none: bool = False,
         persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
@@ -148,6 +149,12 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             persist: Restore the message on RabbitMQ reboot.
             reply_to: Reply message routing key to send with (always sending to default exchange).
             priority: The message priority (0 by default).
+            skip_none: Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and `request(None)` returns
+                `None` without sending a request to the broker. Such skipped
+                values are excluded from the generated AsyncAPI Message schema
+                as well, while `None` types nested inside the message data
+                (e.g. `dict[str, int | None]`) are preserved.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
             schema: AsyncAPI publishing message type. Should be any python-native
@@ -183,6 +190,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             queue=RabbitQueue.validate(queue),
             exchange=RabbitExchange.validate(exchange),
             message_kwargs=message_kwargs,
+            skip_none=skip_none,
             # broker args
             config=cast("RabbitBrokerConfig", self.config),
             # specification args

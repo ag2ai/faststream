@@ -630,6 +630,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
+        skip_none: bool = False,
         # basic args
         persistent: bool = True,
         # Specification args
@@ -650,6 +651,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
+        skip_none: bool = False,
         # basic args
         persistent: bool = True,
         title: str | None = None,
@@ -669,6 +671,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        skip_none: bool = False,
         # basic args
         persistent: bool = True,
         # Specification args
@@ -692,6 +695,7 @@ class KafkaRegistrator(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        skip_none: bool = False,
         # basic args
         persistent: bool = True,
         # Specification args
@@ -730,6 +734,19 @@ class KafkaRegistrator(
                 Can be overridden by `publish.headers` if specified.
             reply_to: Topic name to send response.
             batch: Whether to send messages in batches or not.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and for batch publishers
+                every `None` value is excluded from the batch; publishing is
+                skipped entirely if the batch becomes empty.
+                Such skipped values are excluded from the generated AsyncAPI
+                Message schema as well: neither the returned `None` nor the
+                `None` batch items appear in the schema, while `None` types
+                nested inside the message data (e.g. `dict[str, int | None]`)
+                are preserved.
+                As `None` messages are never sent, this option explicitly
+                disables Kafka tombstones (null-valued messages used for log
+                compaction).
             title: Specification publisher object title.
             description: Specification publisher object description.
             schema:
@@ -743,6 +760,7 @@ class KafkaRegistrator(
             autoflush=autoflush,
             # batch flag
             batch=batch,
+            skip_none=skip_none,
             # default args
             key=key,
             # both args

@@ -9,6 +9,7 @@ from faststream.kafka import (
     ConsumerRecord,
     KafkaBroker,
     KafkaMessage,
+    KafkaPublisher,
     KafkaRoute,
     KafkaRouter,
     RecordMetadata,
@@ -202,6 +203,16 @@ def handle13() -> None: ...
 async def handle14() -> None: ...
 
 
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+def handle_router_skip_none() -> None: ...
+
+
+@router.subscriber("test")
+@router.publisher("test2", batch=True, skip_none=True)
+async def handle_router_skip_none_batch() -> None: ...
+
+
 def sync_handler() -> None: ...
 
 
@@ -229,6 +240,16 @@ KafkaRouter(
             "test",
             parser=custom_parser,
             decoder=custom_decoder,
+        ),
+        KafkaRoute(
+            sync_handler,
+            "test",
+            publishers=(KafkaPublisher("test2", skip_none=True),),
+        ),
+        KafkaRoute(
+            sync_handler,
+            "test",
+            publishers=(KafkaPublisher("test2", batch=True, skip_none=True),),
         ),
     ),
 )
@@ -298,6 +319,16 @@ def handle20() -> None: ...
 async def handle21() -> None: ...
 
 
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+def handle_fastapi_skip_none() -> None: ...
+
+
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", batch=True, skip_none=True)
+async def handle_fastapi_skip_none_batch() -> None: ...
+
+
 otlp_middleware = KafkaTelemetryMiddleware()
 KafkaBroker().add_middleware(otlp_middleware)
 KafkaBroker(middlewares=[otlp_middleware])
@@ -321,22 +352,7 @@ async def check_broker_publish_result_type() -> None:
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
 
 
-async def check_publisher_publish_result_types() -> None:
-    broker = KafkaBroker()
-
-    publisher = broker.publisher("test")
-
-    publish_with_confirm = await publisher.publish(None, "test")
-    assert_type(publish_with_confirm, RecordMetadata)
-
-    publish_without_confirm = await publisher.publish(None, "test", no_confirm=True)
-    assert_type(await publish_without_confirm, RecordMetadata)
-
-    publish_confirm_bool = await publisher.publish(None, "test", no_confirm=fake_bool())
-    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
-
-
-async def check_publish_batch_result_type() -> None:
+async def check_broker_publish_batch_result_type() -> None:
     broker = KafkaBroker()
 
     publish_with_confirm = await broker.publish_batch(None, topic="test")
@@ -353,21 +369,40 @@ async def check_publish_batch_result_type() -> None:
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
 
 
+async def check_publisher_publish_result_types() -> None:
+    broker = KafkaBroker()
+
+    publisher = broker.publisher("test")
+
+    publish_with_confirm = await publisher.publish(None, "test")
+    assert_type(publish_with_confirm, RecordMetadata | None)
+
+    publish_without_confirm = await publisher.publish(None, "test", no_confirm=True)
+    assert_type(publish_without_confirm, asyncio.Future[RecordMetadata] | None)
+
+    publish_confirm_bool = await publisher.publish(None, "test", no_confirm=fake_bool())
+    assert_type(
+        publish_confirm_bool, asyncio.Future[RecordMetadata] | RecordMetadata | None
+    )
+
+
 async def check_publisher_publish_batch_result_type() -> None:
     broker = KafkaBroker()
 
     publisher = broker.publisher("test", batch=True)
 
     publish_with_confirm = await publisher.publish(None, topic="test")
-    assert_type(publish_with_confirm, RecordMetadata)
+    assert_type(publish_with_confirm, RecordMetadata | None)
 
     publish_without_confirm = await publisher.publish(None, topic="test", no_confirm=True)
-    assert_type(await publish_without_confirm, RecordMetadata)
+    assert_type(publish_without_confirm, asyncio.Future[RecordMetadata] | None)
 
     publish_confirm_bool = await publisher.publish(
         None, topic="test", no_confirm=fake_bool()
     )
-    assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
+    assert_type(
+        publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata] | None
+    )
 
 
 async def check_request_response_type() -> None:
@@ -378,7 +413,11 @@ async def check_request_response_type() -> None:
 
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None, "test")
-    assert_type(publisher_response, KafkaMessage)
+    assert_type(publisher_response, KafkaMessage | None)
+
+    skip_publisher = broker.publisher("test", skip_none=True)
+    skip_response = await skip_publisher.request(None, "test")
+    assert_type(skip_response, KafkaMessage | None)
 
 
 async def check_subscriber_message_type(

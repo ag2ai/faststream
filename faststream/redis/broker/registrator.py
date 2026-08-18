@@ -329,6 +329,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str] = ...,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -347,6 +348,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -365,6 +367,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -383,6 +386,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -401,6 +405,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str, None] = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -419,6 +424,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         stream: Union["StreamSub", str, None] = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -441,6 +447,16 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             headers: Message headers to store meta-information. Can be overridden
                 by `publish.headers` if specified.
             reply_to: Reply message destination PubSub object name.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and for batch publishers
+                every `None` value is excluded from the batch; publishing is
+                skipped entirely if the batch becomes empty.
+                Such skipped values are excluded from the generated AsyncAPI
+                Message schema as well: neither the returned `None` nor the
+                `None` batch items appear in the schema, while `None` types
+                nested inside the message data (e.g. `dict[str, int | None]`)
+                are preserved.
             message_format: Which format to use when parsing messages.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
@@ -455,6 +471,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
+            skip_none=skip_none,
             # Specific
             config=cast("RedisBrokerConfig", self.config),
             message_format=message_format,
