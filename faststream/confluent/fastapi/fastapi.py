@@ -921,6 +921,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
+        skip_none: bool = False,
         # basic args
         # Specification args
         title: str | None = None,
@@ -939,6 +940,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
+        skip_none: bool = False,
         # basic args
         # Specification args
         title: str | None = None,
@@ -957,6 +959,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        skip_none: bool = False,
         # basic args
         # Specification args
         title: str | None = None,
@@ -975,6 +978,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         batch: bool = False,
+        skip_none: bool = False,
         # basic args
         # Specification args
         title: str | None = None,
@@ -1000,6 +1004,13 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 Can be overridden by `publish.headers` if specified.
             reply_to: Topic name to send response.
             batch: Whether to send messages in batches or not.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and for batch publishers
+                every `None` value is excluded from the batch; publishing is
+                skipped entirely if the batch becomes empty.
+                As `None` messages are never sent, this option explicitly
+                disables tombstones.
             title: Specification publisher object title.
             description: Specification publisher object description.
             schema: Specification publishing message type.
@@ -1015,6 +1026,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             partition=partition,
             headers=headers,
             batch=batch,
+            skip_none=skip_none,
             reply_to=reply_to,
             # Specification options
             title=title,
