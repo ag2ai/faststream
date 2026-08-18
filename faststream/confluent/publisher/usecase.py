@@ -53,7 +53,7 @@ class LogicPublisher(PublisherUsecase):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
-    ) -> "KafkaMessage":
+    ) -> "KafkaMessage | None":
         cmd = KafkaPublishCommand(
             message,
             topic=topic or self.topic,
@@ -100,7 +100,7 @@ class DefaultPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
-    ) -> asyncio.Future[Message | None]: ...
+    ) -> asyncio.Future[Message | None] | None: ...
 
     @overload
     async def publish(
@@ -158,12 +158,12 @@ class DefaultPublisher(LogicPublisher):
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,
         )
-        msg: asyncio.Future[Message | None] | Message | None = await self._basic_publish(
+
+        return await self._basic_publish(
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
         )
-        return msg
 
     @override
     async def _publish(
@@ -200,7 +200,7 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
-    ) -> "KafkaMessage":
+    ) -> "KafkaMessage | None":
         return await super().request(
             message,
             topic=topic,

@@ -15,6 +15,7 @@ def create_publisher(
     *,
     autoflush: bool,
     batch: bool,
+    skip_none: bool,
     key: bytes | str | None,
     topic: str,
     partition: int | None,
@@ -34,6 +35,7 @@ def create_publisher(
         partition=partition,
         headers=headers,
         reply_to=reply_to,
+        skip_none=skip_none,
         _outer_config=config,
     )
 
@@ -45,6 +47,7 @@ def create_publisher(
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
+            allow_nonetype=not skip_none,
         ),
     )
 

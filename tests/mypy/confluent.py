@@ -3,7 +3,14 @@ import asyncio
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
-from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter, TestKafkaBroker
+from faststream.confluent import (
+    KafkaBroker,
+    KafkaMessage,
+    KafkaPublisher,
+    KafkaRoute,
+    KafkaRouter,
+    TestKafkaBroker,
+)
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -39,8 +46,12 @@ async def check_response_type() -> None:
         await publisher.request(
             None,
         ),
-        KafkaMessage,
+        KafkaMessage | None,
     )
+
+    skip_publisher = broker.publisher("test", skip_none=True)
+    skip_response = await skip_publisher.request(None, "test")
+    assert_type(skip_response, KafkaMessage | None)
 
 
 async def check_publish_type(fake_bool: bool = True) -> None:
@@ -52,7 +63,9 @@ async def check_publish_type(fake_bool: bool = True) -> None:
     publish_without_confirm = await broker.publish(None, "test", no_confirm=False)
     assert_type(publish_without_confirm, Message | None)
 
-    publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
+    publish_confirm_bool = await broker.publish(
+        None, topic="test", no_confirm=fake_bool
+    )
     assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
 
 
@@ -63,7 +76,7 @@ async def check_publisher_publish_type(
     assert_type(p1, DefaultPublisher)
 
     publish_without_confirm = await p1.publish(None, "test", no_confirm=True)
-    assert_type(publish_without_confirm, asyncio.Future[Message | None])
+    assert_type(publish_without_confirm, asyncio.Future[Message | None] | None)
 
     publish_with_confirm = await p1.publish(None, "test", no_confirm=False)
     assert_type(publish_with_confirm, Message | None)
@@ -134,6 +147,51 @@ KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
 
 
-@KafkaBroker().subscriber("mykey", group_id="my_group", batch=True)
-async def process_msgs() -> None:
-    pass
+router = KafkaRouter()
+fastapi_router = FastAPIRouter()
+
+
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+def handle_router_skip_none() -> None: ...
+
+
+@router.subscriber("test")
+@router.publisher("test2", batch=True, skip_none=True)
+async def handle_router_skip_none_batch() -> None: ...
+
+
+def sync_handler() -> None: ...
+
+
+KafkaRouter(
+    handlers=(
+        KafkaRoute(
+            sync_handler,
+            "test",
+            publishers=(KafkaPublisher("test2", skip_none=True),),
+        ),
+        KafkaRoute(
+            sync_handler,
+            "test",
+            publishers=(KafkaPublisher("test2", batch=True, skip_none=True),),
+        ),
+    ),
+)
+
+
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+def handle_fastapi_skip_none() -> None: ...
+
+
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", batch=True, skip_none=True)
+async def handle_fastapi_skip_none_batch() -> None: ...
+
+
+broker = KafkaBroker()
+
+
+@broker.subscriber("mykey", group_id="my_group", batch=True)
+async def process_msgs() -> None: ...
