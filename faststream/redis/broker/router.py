@@ -38,6 +38,7 @@ class RedisPublisher(ArgsContainer):
         stream: str | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -56,6 +57,16 @@ class RedisPublisher(ArgsContainer):
                 Message headers to store metainformation. Can be overridden by `publish.headers` if specified.
             reply_to:
                 Reply message destination PubSub object name.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and for batch publishers
+                every `None` value is excluded from the batch; publishing is
+                skipped entirely if the batch becomes empty.
+                Such skipped values are excluded from the generated AsyncAPI
+                Message schema as well: neither the returned `None` nor the
+                `None` batch items appear in the schema, while `None` types
+                nested inside the message data (e.g. `dict[str, int | None]`)
+                are preserved.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -72,6 +83,7 @@ class RedisPublisher(ArgsContainer):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
+            skip_none=skip_none,
             title=title,
             description=description,
             schema=schema,
