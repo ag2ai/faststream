@@ -76,6 +76,7 @@ You can read more about all the available flags in the [RabbitMQ documentation](
 * `#!python content_encoding: str | None = None` - encoding of the message (used by consumers)
 * `#!python persist: bool = False` - restore messages on *RabbitMQ* reboot
 * `#!python priority: int | None = None` - the priority of the message
+* `#!python skip_none: bool = False` - skip publishing `None` message values: a returned `None` is not published, and `request(None)` returns `None` without sending a request to the broker
 * `#!python correlation_id: str | None = None` - message id, which helps to match the original message with the reply to it (generated automatically)
 * `#!python message_id: str | None = None` - message ID (generated automatically)
 * `#!python timestamp: int | float | time delta | datetime | None = None` - message sending time (set automatically)

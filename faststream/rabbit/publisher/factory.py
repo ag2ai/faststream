@@ -17,6 +17,7 @@ def create_publisher(
     queue: "RabbitQueue",
     exchange: "RabbitExchange",
     message_kwargs: "PublishKwargs",
+    skip_none: bool,
     # Broker args
     config: "RabbitBrokerConfig",
     # Specification args
@@ -30,6 +31,7 @@ def create_publisher(
         message_kwargs=message_kwargs,
         queue=queue,
         exchange=exchange,
+        skip_none=skip_none,
         # broker
         _outer_config=config,
     )
@@ -46,6 +48,7 @@ def create_publisher(
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
+            allow_nonetype=not skip_none,
         ),
     )
 

@@ -47,6 +47,7 @@ class RabbitPublisher(ArgsContainer):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
+        skip_none: bool = False,
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -87,6 +88,10 @@ class RabbitPublisher(ArgsContainer):
                 Reply message routing key to send with (always sending to default exchange).
             priority:
                 The message priority (0 by default).
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and `request(None)` returns
+                `None` without sending a request to the broker.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -118,6 +123,7 @@ class RabbitPublisher(ArgsContainer):
             persist=persist,
             reply_to=reply_to,
             priority=priority,
+            skip_none=skip_none,
             headers=headers,
             content_type=content_type,
             content_encoding=content_encoding,
