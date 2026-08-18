@@ -91,7 +91,7 @@ class ChannelPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+    ) -> int | None:
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -139,7 +139,7 @@ class ChannelPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage":
+    ) -> "RedisChannelMessage | None":
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -191,7 +191,7 @@ class ListPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+    ) -> int | None:
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -240,7 +240,7 @@ class ListPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage":
+    ) -> "RedisChannelMessage | None":
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -268,7 +268,7 @@ class ListBatchPublisher(ListPublisher):
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+    ) -> int | None:
         cmd = RedisPublishCommand(
             *messages,
             list=list or self.list.name,
@@ -345,7 +345,7 @@ class StreamPublisher(LogicPublisher):
         *,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> bytes:
+    ) -> bytes | None:
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
@@ -397,7 +397,7 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage":
+    ) -> "RedisChannelMessage | None":
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,

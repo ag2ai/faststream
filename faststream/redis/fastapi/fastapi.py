@@ -671,6 +671,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: str | StreamSub = ...,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -686,6 +687,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -701,6 +703,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -716,6 +719,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -731,6 +735,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         stream: str | StreamSub | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -743,6 +748,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
+            skip_none=skip_none,
             # AsyncAPI options
             title=title,
             description=description,

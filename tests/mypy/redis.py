@@ -10,6 +10,7 @@ from faststream.redis import (
     RedisChannelMessage,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
     RedisStreamMessage,
@@ -215,6 +216,16 @@ def handle13() -> None: ...
 async def handle14() -> None: ...
 
 
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+def handle_router_skip_none() -> None: ...
+
+
+@router.subscriber("test")
+@router.publisher(list=ListSub("test2", batch=True), skip_none=True)
+async def handle_router_skip_none_batch() -> None: ...
+
+
 def sync_handler() -> None: ...
 
 
@@ -242,6 +253,18 @@ RedisRouter(
             "test",
             parser=custom_parser,
             decoder=custom_decoder,
+        ),
+        Route(
+            sync_handler,
+            "test",
+            publishers=(RedisPublisher("test2", skip_none=True),),
+        ),
+        Route(
+            sync_handler,
+            "test",
+            publishers=(
+                RedisPublisher(list=ListSub("test2", batch=True), skip_none=True),
+            ),
         ),
     ),
 )
@@ -311,6 +334,16 @@ def handle20() -> None: ...
 async def handle21() -> None: ...
 
 
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+def handle_fastapi_skip_none() -> None: ...
+
+
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher(list=ListSub("test2", batch=True), skip_none=True)
+async def handle_fastapi_skip_none_batch() -> None: ...
+
+
 otlp_middleware = RedisTelemetryMiddleware()
 RedisBroker().add_middleware(otlp_middleware)
 RedisBroker(middlewares=[otlp_middleware])
@@ -342,19 +375,22 @@ async def check_publisher_publish_result_types(
 ) -> None:
     p = broker.publisher(channel="test")
     assert_type(p, ChannelPublisher)
-    assert_type(await p.publish(None), int)
+    assert_type(await p.publish(None), int | None)
 
     p1 = broker.publisher(list="test")
     assert_type(p1, ListPublisher)
-    assert_type(await p1.publish(None), int)
+    assert_type(await p1.publish(None), int | None)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
     assert_type(p2, ListBatchPublisher | ListPublisher)
-    assert_type(await p2.publish(None), int)
+    assert_type(await p2.publish(None), int | None)
 
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
-    assert_type(await p3.publish(None), bytes)
+    assert_type(await p3.publish(None), bytes | None)
+
+    skip_publisher = broker.publisher(channel="test", skip_none=True)
+    assert_type(await skip_publisher.publish(None), int | None)
 
 
 async def check_request_response_type(
@@ -367,19 +403,23 @@ async def check_request_response_type(
 
     p = broker.publisher("test")
     publisher_response = await p.request(None)
-    assert_type(publisher_response, RedisChannelMessage)
+    assert_type(publisher_response, RedisChannelMessage | None)
 
     p1 = broker.publisher(list="test")
     publisher_response = await p1.request(None)
-    assert_type(publisher_response, RedisChannelMessage)
+    assert_type(publisher_response, RedisChannelMessage | None)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
     publisher_response = await p2.request(None)
-    assert_type(publisher_response, RedisChannelMessage)
+    assert_type(publisher_response, RedisChannelMessage | None)
 
     p3 = broker.publisher(stream="stream")
     publisher_response = await p3.request(None)
-    assert_type(publisher_response, RedisChannelMessage)
+    assert_type(publisher_response, RedisChannelMessage | None)
+
+    skip_publisher = broker.publisher("test", skip_none=True)
+    skip_response = await skip_publisher.request(None)
+    assert_type(skip_response, RedisChannelMessage | None)
 
 
 async def check_channel_subscriber_message_type(

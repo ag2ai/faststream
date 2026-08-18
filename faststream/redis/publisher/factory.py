@@ -34,6 +34,7 @@ def create_publisher(
     stream: Union["StreamSub", str, None],
     headers: dict[str, Any] | None,
     reply_to: str,
+    skip_none: bool,
     config: "RedisBrokerConfig",
     message_format: type["MessageFormat"] | None,
     # AsyncAPI args
@@ -47,6 +48,7 @@ def create_publisher(
     publisher_config = RedisPublisherConfig(
         reply_to=reply_to,
         headers=headers,
+        skip_none=skip_none,
         _message_format=message_format,
         _outer_config=config,
     )
@@ -56,6 +58,7 @@ def create_publisher(
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,
+        allow_nonetype=not skip_none,
     )
 
     specification: RedisPublisherSpecification
