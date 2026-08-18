@@ -147,7 +147,7 @@ class AsyncConfluentProducer:
             produce_kwargs["partition"] = kwargs["partition"]
         if kwargs.get("timestamp") is not None:
             produce_kwargs["timestamp"] = kwargs["timestamp"]
-        await self.producer.produce(topic, **produce_kwargs)
+        self.producer._producer.produce(topic, **produce_kwargs)
 
         if no_confirm:
             return result_future
