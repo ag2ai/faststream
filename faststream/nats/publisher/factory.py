@@ -16,6 +16,7 @@ def create_publisher(
     headers: dict[str, str] | None,
     stream: Optional["JStream"],
     timeout: float | None,
+    skip_none: bool,
     # Publisher args
     broker_config: "NatsBrokerConfig",
     # AsyncAPI args
@@ -30,6 +31,7 @@ def create_publisher(
         reply_to=reply_to,
         headers=headers,
         timeout=timeout,
+        skip_none=skip_none,
         _outer_config=broker_config,
     )
 
@@ -41,6 +43,7 @@ def create_publisher(
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
+            allow_nonetype=not skip_none,
         ),
     )
 

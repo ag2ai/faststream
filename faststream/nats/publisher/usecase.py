@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import overload, override
 
@@ -72,7 +72,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
-    ) -> "PubAck": ...
+    ) -> Optional["PubAck"]: ...
 
     @override
     async def publish(
@@ -110,6 +110,7 @@ class LogicPublisher(PublisherUsecase):
         Returns:
             `None` if you publishes a regular message.
             `faststream.nats.PubAck` if you publishes a message to stream.
+            `None` if `skip_none` is enabled and the message is `None`.
         """
         cmd = NatsPublishCommand(
             message,
@@ -122,22 +123,16 @@ class LogicPublisher(PublisherUsecase):
             _publish_type=PublishType.PUBLISH,
         )
 
-        response: PubAck | None
         if cmd.stream:
-            response = cast(
-                "PubAck",
-                await self._basic_publish(
-                    cmd,
-                    producer=self._outer_config.js_producer,
-                    _extra_middlewares=(),
-                ),
-            )
+            producer: ProducerProto[Any] = self._outer_config.js_producer
         else:
-            response = await self._basic_publish(
-                cmd,
-                producer=self._outer_config.producer,
-                _extra_middlewares=(),
-            )
+            producer = self._outer_config.producer
+
+        response: PubAck | None = await self._basic_publish(
+            cmd,
+            producer=producer,
+            _extra_middlewares=(),
+        )
 
         return response
 
@@ -179,7 +174,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float = 0.5,
-    ) -> "NatsMessage":
+    ) -> Optional["NatsMessage"]:
         """Make a synchronous request to outer subscriber.
 
         If out subscriber listens subject by stream, you should setup the same **stream** explicitly.
@@ -203,7 +198,8 @@ class LogicPublisher(PublisherUsecase):
                 Timeout to send message to NATS.
 
         Returns:
-            `faststream.nats.message.NatsMessage` object as an outer subscriber response.
+            `faststream.nats.message.NatsMessage` object as an outer subscriber response,
+            or `None` if `skip_none` is enabled and the message is `None`.
         """
         cmd = NatsPublishCommand(
             message=message,
@@ -220,5 +216,5 @@ class LogicPublisher(PublisherUsecase):
         else:
             producer = self._outer_config.producer
 
-        msg: NatsMessage = await self._basic_request(cmd, producer=producer)
+        msg: NatsMessage | None = await self._basic_request(cmd, producer=producer)
         return msg
