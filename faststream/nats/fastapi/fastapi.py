@@ -1001,6 +1001,7 @@ class NatsRouter(StreamRouter["Msg"]):
         # JS
         stream: Union[str, "JStream", None] = None,
         timeout: float | None = None,
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -1018,6 +1019,13 @@ class NatsRouter(StreamRouter["Msg"]):
             stream: This option validates that the target `subject` is in presented stream.
                 Can be omitted without any effect.
             timeout: Timeout to send message to NATS.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published.
+                Such skipped values are excluded from the generated AsyncAPI
+                Message schema as well: the returned `None` does not appear
+                in the schema, while `None` types nested inside the message
+                data (e.g. `dict[str, int | None]`) are preserved.
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
             schema: AsyncAPI publishing message type.
@@ -1030,6 +1038,7 @@ class NatsRouter(StreamRouter["Msg"]):
             reply_to=reply_to,
             stream=stream,
             timeout=timeout,
+            skip_none=skip_none,
             title=title,
             description=description,
             schema=schema,

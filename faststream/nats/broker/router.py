@@ -41,6 +41,7 @@ class NatsPublisher(ArgsContainer):
         # JS
         stream: Union[str, "JStream", None] = None,
         timeout: float | None = None,
+        skip_none: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -62,6 +63,13 @@ class NatsPublisher(ArgsContainer):
                 Can be omitted without any effect.
             timeout:
                 Timeout to send message to NATS.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published.
+                Such skipped values are excluded from the generated AsyncAPI
+                Message schema as well: the returned `None` does not appear
+                in the schema, while `None` types nested inside the message
+                data (e.g. `dict[str, int | None]`) are preserved.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -78,6 +86,7 @@ class NatsPublisher(ArgsContainer):
             reply_to=reply_to,
             stream=stream,
             timeout=timeout,
+            skip_none=skip_none,
             title=title,
             description=description,
             schema=schema,

@@ -8,6 +8,7 @@ from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import (
     NatsBroker,
     NatsMessage,
+    NatsPublisher,
     NatsRoute,
     NatsRouter,
     PubAck,
@@ -208,6 +209,11 @@ def handle13() -> None: ...
 async def handle14() -> None: ...
 
 
+@router.subscriber("test")
+@router.publisher("test2", skip_none=True)
+def handle_router_skip_none() -> None: ...
+
+
 def sync_handler() -> None: ...
 
 
@@ -218,6 +224,11 @@ NatsRouter(
     handlers=(
         NatsRoute(sync_handler, "test"),
         NatsRoute(async_handler, "test"),
+        NatsRoute(
+            sync_handler,
+            "test",
+            publishers=(NatsPublisher("test2", skip_none=True),),
+        ),
         NatsRoute(
             sync_handler,
             "test",
@@ -304,6 +315,11 @@ def handle20() -> None: ...
 async def handle21() -> None: ...
 
 
+@fastapi_router.subscriber("test")
+@fastapi_router.publisher("test2", skip_none=True)
+def handle_fastapi_skip_none() -> None: ...
+
+
 otlp_middleware = NatsTelemetryMiddleware()
 NatsBroker().add_middleware(otlp_middleware)
 NatsBroker(middlewares=[otlp_middleware])
@@ -327,7 +343,7 @@ async def check_publisher_publish_result_type() -> None:
     publisher = broker.publisher("test")
 
     assert_type(await publisher.publish(None, "test"), None)
-    assert_type(await publisher.publish(None, "test", stream="stream"), PubAck)
+    assert_type(await publisher.publish(None, "test", stream="stream"), PubAck | None)
 
 
 async def check_request_response_type() -> None:
@@ -337,7 +353,12 @@ async def check_request_response_type() -> None:
     assert_type(broker_response, NatsMessage)
 
     publisher = broker.publisher("test")
-    assert_type(await publisher.request(None, "test"), NatsMessage)
+    publisher_response = await publisher.request(None, "test")
+    assert_type(publisher_response, NatsMessage | None)
+
+    skip_publisher = broker.publisher("test", skip_none=True)
+    skip_response = await skip_publisher.request(None, "test")
+    assert_type(skip_response, NatsMessage | None)
 
 
 async def check_core_subscriber_message_type(

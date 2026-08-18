@@ -49,3 +49,15 @@ The `publish` method accepts the following arguments:
 * `#!python stream: str | None = None` - validate that the subject is in the stream.
 * `#!python timeout: float | None = None` - wait for the NATS server response.
 * `#!python schedule: Optional[Schedule] = None` - Schedule to publish message at a specific time.
+
+## Skipping None Values
+
+By default, a `None` message body is published as an empty payload. To skip
+such messages instead, use the `skip_none` option of the publisher:
+
+```python
+publisher = broker.publisher("test", skip_none=True)
+```
+
+A `None` handler return value is not published, and `publisher.request(None)`
+returns `None` without reaching the subscriber.

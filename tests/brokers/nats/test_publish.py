@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -9,7 +10,7 @@ from faststream import Context
 from faststream.nats import JStream, NatsBroker, NatsMessage, NatsResponse, Schedule
 from tests.brokers.base.publish import BrokerPublishTestcase
 
-from .basic import NatsTestcaseConfig
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
 @pytest.mark.connected()
@@ -116,3 +117,83 @@ async def test_publish_with_schedule(
 
     assert event.is_set()
     mock.assert_called_once_with({"type": "do_something"})
+
+
+@pytest.mark.nats()
+class TestPublishSkipNone(NatsMemoryTestcaseConfig):
+    """`skip_none` publisher option tests (in-memory)."""
+
+    @pytest.mark.asyncio()
+    async def test_publish_none_is_not_skipped_by_default(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.data)
+
+        publisher = pub_broker.publisher(queue)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await publisher.publish(None)
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+        assert value == b""
+
+    @pytest.mark.asyncio()
+    async def test_publisher_skips_none(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.data)
+
+        publisher = pub_broker.publisher(queue, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            result = await publisher.publish(None)
+
+            assert result is None
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
+
+    @pytest.mark.asyncio()
+    async def test_publisher_skips_none_with_stream(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        stream_name = f"{queue}st"
+
+        publisher = pub_broker.publisher(queue, stream=stream_name, skip_none=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            result = await publisher.publish(None, stream=stream_name)
+
+        assert result is None
+
+    @pytest.mark.asyncio()
+    async def test_handler_return_none_is_skipped(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @pub_broker.publisher(queue + "1", skip_none=True)
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None: ...
+
+        @pub_broker.subscriber(queue + "1")
+        async def out_handler(msg: Any = Context("message")) -> None:
+            await values.put(msg.raw_message.data)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish("test", queue)
+
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(values.get(), timeout=1.0)
