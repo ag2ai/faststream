@@ -36,6 +36,8 @@ MQTT 3.1.1 rejects `headers`, `correlation_id`, and `reply_to`; use MQTT 5.0 for
 
 `broker.publisher("topic", qos=..., retain=..., headers=...)` returns an `MQTTPublisher` with the same semantics. Per-call `publish()` can override `qos` / `retain` / `headers` where applicable.
 
+* `#!python skip_none: bool = False` - skip publishing `None` message values: a returned `None` is not published, and `request(None)` returns `None` without sending a request to the broker
+
 ```python linenums="1" hl_lines="7-11 16"
 {! docs_src/mqtt/publishing/publisher_object.py !}
 ```

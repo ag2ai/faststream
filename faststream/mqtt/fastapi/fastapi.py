@@ -278,6 +278,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
         retain: bool = False,
         headers: dict[str, str] | None = None,
+        skip_none: bool = False,
         persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
@@ -290,6 +291,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             qos=qos,
             retain=retain,
             headers=headers,
+            skip_none=skip_none,
             persistent=persistent,
             title=title,
             description=description,
