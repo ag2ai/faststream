@@ -375,13 +375,10 @@ class AsyncConfluentConsumer:
         max_records: int | None = 10,
     ) -> tuple[Message, ...]:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
-        raw_messages: list[Message | None] = (
-            await cast(
-                "Callable[..., list[Message | None]]",
-                self.consumer.consume(
-                    num_messages=max_records or 10,
-                    timeout=timeout,
-                ),
+        raw_messages = (
+            await self.consumer.consume(
+                num_messages=max_records or 10,
+                timeout=timeout,
             ),
         )
 
