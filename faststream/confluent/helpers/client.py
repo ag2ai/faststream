@@ -375,12 +375,10 @@ class AsyncConfluentConsumer:
         max_records: int | None = 10,
     ) -> tuple[Message, ...]:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
-        raw_messages = (
-            await self.consumer.consume(
+        raw_messages = await self.consumer.consume(
                 num_messages=max_records or 10,
                 timeout=timeout,
-            ),
-        )
+            )
 
         return tuple(x for x in map(check_msg_error, raw_messages) if x is not None)
 
