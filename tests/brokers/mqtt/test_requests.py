@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from faststream import BaseMiddleware
@@ -50,6 +52,63 @@ class MQTTRequestsTestcase(RequestsTestcase):
     async def test_router_publisher_request_respect_middleware(self, queue):
         self._skip_if_v311()
         await super().test_router_publisher_request_respect_middleware(queue)
+
+    async def test_skip_none_request(self, queue: str) -> None:
+        """A `None` request is skipped before the producer is reached.
+
+        With `skip_none` enabled, `request(None)` must return `None`
+        immediately and never invoke the subscriber handler.
+        """
+        self._skip_if_v311()
+
+        broker = self.get_broker()
+
+        called = asyncio.Event()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg) -> str:
+            called.set()
+            return "Response"
+
+        publisher = broker.publisher(queue, skip_none=True)
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            response = await publisher.request(None, timeout=self.timeout)
+
+        assert response is None
+        assert not called.is_set()
+
+    async def test_request_without_skip_none_returns_response(
+        self,
+        queue: str,
+    ) -> None:
+        """Guard the default path: without `skip_none` RPC still works.
+
+        Explicitly pins the flag to `False` so a skip-guard regression is
+        caught here.
+        """
+        self._skip_if_v311()
+
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg) -> str:
+            return "Response"
+
+        publisher = broker.publisher(queue, skip_none=False)
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            response = await publisher.request(None, timeout=self.timeout)
+
+        assert await response.decode() == "Response"
 
 
 @pytest.mark.connected()

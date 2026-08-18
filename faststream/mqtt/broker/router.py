@@ -34,6 +34,7 @@ class MQTTPublisher(ArgsContainer):
         qos: QoS = QoS.AT_MOST_ONCE,
         retain: bool = False,
         headers: dict[str, str] | None = None,
+        skip_none: bool = False,
         persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
@@ -41,11 +42,32 @@ class MQTTPublisher(ArgsContainer):
         schema: Any | None = None,
         include_in_schema: bool = True,
     ) -> None:
+        """Initialize MQTTPublisher.
+
+        Args:
+            topic: MQTT topic to publish to. Must not contain wildcards.
+            qos: QoS level for published messages (0, 1, or 2).
+            retain: Whether the broker should retain the last message.
+            headers: Default headers to include in every published message.
+            skip_none:
+                Whether to skip publishing `None` message values or not.
+                A returned `None` is not published, and `request(None)` returns
+                `None` without sending a request to the broker. Such skipped
+                values are excluded from the generated AsyncAPI Message schema
+                as well, while `None` types nested inside the message data
+                (e.g. `dict[str, int | None]`) are preserved.
+            persistent: Whether to retain the publisher across broker restarts.
+            title: AsyncAPI publisher object title.
+            description: AsyncAPI publisher object description.
+            schema: AsyncAPI publishing message type.
+            include_in_schema: Whether to include operation in AsyncAPI schema.
+        """
         super().__init__(
             topic,
             qos=qos,
             retain=retain,
             headers=headers,
+            skip_none=skip_none,
             persistent=persistent,
             title=title,
             description=description,

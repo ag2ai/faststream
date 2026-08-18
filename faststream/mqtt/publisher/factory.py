@@ -16,6 +16,7 @@ def create_publisher(
     qos: QoS,
     retain: bool,
     headers: dict[str, str] | None,
+    skip_none: bool,
     # Publisher args
     broker_config: "MQTTBrokerConfig",
     # AsyncAPI args
@@ -29,6 +30,7 @@ def create_publisher(
         qos=qos,
         retain=retain,
         headers=headers,
+        skip_none=skip_none,
         _outer_config=broker_config,
     )
 
@@ -42,6 +44,7 @@ def create_publisher(
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,
+            allow_nonetype=not skip_none,
         ),
     )
 
