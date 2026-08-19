@@ -281,11 +281,14 @@ class AsyncConfluentConsumer:
 
         self.config = config_from_params
         self.config["logger"] = _LazyLoggerProxy(logger)
-        self.consumer = AIOConsumer(self.config)
 
-        # A pool with single thread is used in order to execute the commands of the consumer sequentially:
+        # A pool with a single thread is used so that AIOConsumer executes all
+        # consumer commands (poll/consume/commit/close/...) sequentially on one
+        # thread. The underlying confluent_kafka.Consumer isn't safe to call
+        # concurrently (e.g. polling while closing can crash the process):
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
+        self.consumer = AIOConsumer(self.config, executor=self._thread_pool)
 
     @property
     def topics_to_create(self) -> list[str]:
