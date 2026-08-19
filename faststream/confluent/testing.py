@@ -442,5 +442,5 @@ def _is_handler_matches(
             p.topic == topic and (partition is None or p.partition == partition)
             for p in handler.partitions
         )
-        or topic in handler.topics,
+        or any(t.name == topic for t in handler.topics),
     )
