@@ -101,9 +101,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
         # per-message keys support
         keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
-        self._per_message_keys = keys
         if normalized is not None:
             self.batch_bodies = normalized
+        self._per_message_keys = keys
 
     @classmethod
     def from_cmd(
@@ -154,7 +154,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     def _align_keys(self, value: Sequence["Any"]) -> None:
         """Align the per-message keys with the batch_bodies."""
-        if not self._per_message_keys:
+        if not hasattr(self, "_per_message_keys"):
+            return
+        if len(self._per_message_keys) == 0:
             return
         self._per_message_keys = realign_keys(
             self._per_message_keys, self.batch_bodies, value

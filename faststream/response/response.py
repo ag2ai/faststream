@@ -224,22 +224,14 @@ def realign_keys(
     current_bodies: Sequence[Any],
     new_bodies: Sequence[Any],
 ) -> tuple[Any | None, ...]:
-    """Carry per-message keys over to a reordered, filtered or normalized batch.
-
-    Bodies are matched against the unwrapped form of ``current_bodies``, so a
-    ``Response`` wrapper and its own body claim the same slot. Each slot is
-    claimed once, so equal bodies keep distinct keys.
-    """
-    unclaimed = [(i, _extract_body_and_key(b)[0]) for i, b in enumerate(current_bodies)]
-
-    aligned: list[Any | None] = []
+    """Realign per-message keys with a new batch of bodies."""
+    bodies_seen: dict[int, Any] = {}
     for body in new_bodies:
-        for position, (index, current) in enumerate(unclaimed):
-            if current == body:
-                aligned.append(keys[index] if index < len(keys) else None)
-                del unclaimed[position]
-                break
-        else:
-            aligned.append(None)
-
-    return tuple(aligned)
+        index = current_bodies.index(body)
+        if bodies_seen.get(index) is None:
+            bodies_seen.update({index: body})
+            continue
+        while bodies_seen.get(index) is not None or current_bodies[index] != body:
+            index += 1
+        bodies_seen.update({index: body})
+    return tuple(keys[i] for i in bodies_seen)
