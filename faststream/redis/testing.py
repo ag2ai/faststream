@@ -55,7 +55,10 @@ if TYPE_CHECKING:
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
     from faststream.response import Response
 
-__all__ = ("TestRedisBroker",)
+__all__ = (
+    "PEL",
+    "TestRedisBroker",
+)
 
 
 @dataclass(kw_only=True)
@@ -117,7 +120,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         pel: PEL | None = None,
     ) -> None:
 
-        self.pel: PEL = pel or PEL()
+        self.pel = pel or PEL()
 
         super().__init__(
             *brokers,
@@ -244,7 +247,7 @@ class FakeProducer(RedisFastProducer):
             default.decode_message,
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
-        self.pel: PEL = pel or PEL()
+        self.pel = pel or PEL()
 
     @property
     def subscribers(self) -> "Iterable[LogicSubscriber]":

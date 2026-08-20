@@ -5,8 +5,10 @@ from faststream.redis import RedisBroker, StreamSub
 broker = RedisBroker()
 app = FastStream(broker)
 
-while len(broker.subscribers) < 2 or \
-broker.subscribers[0].specification.call_name != "FlakyWorker":
+while (
+    len(broker.subscribers) < 2
+    or broker.subscribers[0].specification.call_name != "FlakyWorker"
+):
     broker = RedisBroker()
     @broker.subscriber(
         stream=StreamSub("orders", group="order-processors", consumer="worker-1"),
