@@ -39,6 +39,7 @@ The broker constructor mirrors common `zmqtt.MQTTClient` options:
 | `client_id` | Client identity string. |
 | `security` | Pass `SASLPlaintext(username, password)` or `BaseSecurity(ssl_context)` for credentials and TLS (see [Security](security.md){.internal-link}). |
 | `keepalive`, `clean_session` | Session behaviour. |
+| `will` | Optional `Will` (from `#!python faststream.mqtt`) published by the broker after an unexpected disconnect. `WillProperties` are supported with MQTT 5.0. |
 | `reconnect` | Optional `ReconnectConfig` (from `#!python faststream.mqtt`) for automatic reconnect with backoff. |
 | `session_expiry_interval` | MQTT 5.0 session expiry (seconds). |
 | `mqtt_connect_timeout` | Seconds to wait for the broker's CONNACK during the MQTT connect handshake (default `30`); raises `MQTTTimeoutError` (from `#!python zmqtt`), and is retried when `reconnect` is enabled. |
