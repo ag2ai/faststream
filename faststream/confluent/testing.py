@@ -8,7 +8,7 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.parser import DefaultCodec, encode_batch_or_tombstone
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -22,7 +22,7 @@ from faststream.confluent.publisher.usecase import BatchPublisher
 from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import gen_cor_id
+from faststream.message import Tombstone, encode_or_tombstone, gen_cor_id
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -170,6 +170,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         """Publish a message to the Kafka broker."""
         incoming = await build_message(
             message=cmd.body,
+            none_is_tombstone=True,
             topic=cmd.destination,
             key=cmd.key,
             partition=cmd.partition,
@@ -195,13 +196,9 @@ class FakeProducer(AsyncConfluentFastProducer):
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
         serializer = self.broker.config.fd_config._serializer
-
-        if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
-        else:
-            encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
-            ]
+        encoded = await encode_batch_or_tombstone(
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for
+        )
 
         for handler in _find_handler(
             self.subscribers,
@@ -235,6 +232,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     async def request(self, cmd: "KafkaPublishCommand") -> "MockConfluentMessage":
         incoming = await build_message(
             message=cmd.body,
+            none_is_tombstone=True,
             topic=cmd.destination,
             key=cmd.key,
             partition=cmd.partition,
@@ -337,7 +335,7 @@ class MockConfluentMessage:
 
 
 async def build_message(
-    message: "SendableMessage",
+    message: "SendableMessage | Tombstone",
     topic: str,
     *,
     correlation_id: str | None = None,
@@ -349,14 +347,16 @@ async def build_message(
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
     id_generator: IdGenerator = gen_cor_id,
+    none_is_tombstone: bool = False,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    if message is None:
-        # keep a real tombstone (message.value() is None) distinct from b""
-        msg, content_type = None, None
-    else:
-        codec_instance = codec or DefaultCodec()
-        msg, content_type = await codec_instance.encode(message, serializer)
+    msg, content_type = await encode_or_tombstone(
+        message,
+        codec or DefaultCodec(),
+        serializer,
+        key=key,
+        none_is_tombstone=none_is_tombstone,
+    )
     k = key or b""
     headers = {
         "content-type": content_type or "",
@@ -379,7 +379,7 @@ async def build_message(
 
 
 def _build_mock_message(
-    body: bytes,
+    body: bytes | None,
     content_type: str | None,
     topic: str,
     partition: int | None = None,

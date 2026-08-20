@@ -10,7 +10,7 @@ from aiokafka import ConsumerRecord
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.parser import DefaultCodec, encode_batch_or_tombstone
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -25,7 +25,7 @@ from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.kafka.publisher.usecase import BatchPublisher
 from faststream.kafka.subscriber.usecase import BatchSubscriber
-from faststream.message import gen_cor_id
+from faststream.message import Tombstone, encode_or_tombstone, gen_cor_id
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -245,13 +245,9 @@ class FakeProducer(AioKafkaFastProducer):
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
         serializer = self.broker.config.fd_config._serializer
-
-        if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
-        else:
-            encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
-            ]
+        encoded = await encode_batch_or_tombstone(
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for
+        )
 
         for handler in _find_handler(
             self.subscribers,
@@ -301,7 +297,7 @@ class FakeProducer(AioKafkaFastProducer):
 
 
 async def build_message(
-    message: "SendableMessage",
+    message: "SendableMessage | Tombstone",
     topic: str,
     partition: int | None = None,
     timestamp_ms: int | None = None,
@@ -315,12 +311,13 @@ async def build_message(
     id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    if message is None and key is not None:
-        # keyed None is a real tombstone, matching publish()'s own rule
-        # (aiokafka needs a key or value, a keyless None still goes b"")
-        msg, content_type = None, None
-    else:
-        msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
+    msg, content_type = await encode_or_tombstone(
+        message,
+        codec or DefaultCodec(),
+        serializer,
+        key=key,
+        none_is_tombstone=key is not None,
+    )
 
     k = key or b""
 
@@ -349,7 +346,7 @@ async def build_message(
 
 
 def _build_record(
-    body: bytes,
+    body: bytes | None,
     content_type: str | None,
     topic: str,
     partition: int | None = None,
@@ -374,8 +371,8 @@ def _build_record(
         partition=partition or 0,
         key=k,
         serialized_key_size=len(k),
-        serialized_value_size=len(body),
-        checksum=sum(body),
+        serialized_value_size=0 if body is None else len(body),
+        checksum=0 if body is None else sum(body),
         offset=0,
         headers=[(i, j.encode()) for i, j in h.items()],
         timestamp_type=1,

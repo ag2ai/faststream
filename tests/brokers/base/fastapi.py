@@ -20,6 +20,7 @@ from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
 from faststream._internal.fastapi.router import StreamRouter
 from faststream.exceptions import SetupError
+from faststream.message import TOMBSTONE
 
 from .basic import BaseTestcaseConfig
 
@@ -279,7 +280,11 @@ class FastAPITestcase(BaseTestcaseConfig):
         mock.assert_called_once_with(True)
 
 
-# NOTE: kafka/confluent only - other brokers have no tombstone concept.
+# NOTE: fake-broker only (uses the in-memory TestKafkaBroker/TestConfluentBroker
+# so publish() drives the handler synchronously) - rabbit/nats/redis/mqtt
+# inherit FastAPILocalTestcase too and don't support a real tombstone or a
+# publish `key`, and a real connected broker doesn't propagate the handler's
+# validation error back to the awaiting publish() call the way the fake one does.
 @pytest.mark.asyncio()
 class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig):
     router_class: type[StreamRouter[BrokerUsecase]]
@@ -303,7 +308,7 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig):
         async with self.patch_broker(router.broker) as br:
             with TestClient(app):
                 await br.publish(b'{"x": 5}', queue, key=b"k1")
-                await br.publish(None, queue, key=b"k2")
+                await br.publish(TOMBSTONE, queue, key=b"k2")
 
                 # an empty (non-null) body is not a tombstone and must
                 # still fail validation.
