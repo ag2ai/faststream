@@ -43,6 +43,7 @@ class AioKafkaParser:
 
         return self.msg_class(
             body=message.value or b"",
+            tombstone=message.value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
