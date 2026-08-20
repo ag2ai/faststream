@@ -27,9 +27,11 @@ This object serves as a unified **FastStream** wrapper around the native broker 
 * `#!python value(): Optional[Union[str, bytes]]`
 
 !!! note
-    A record with a `None value()` is a Kafka tombstone, the delete marker on a compacted topic. `#!python msg.tombstone` is `#!python True` for it, keeping it distinct from an empty payload (`#!python b""`), and a `#!python None`-able body parameter of a **FastAPI** subscriber resolves to `#!python None` instead of failing validation.
+    A record with a `None value()` is a Kafka tombstone, the delete marker on a compacted topic. `#!python msg.body` is `#!python faststream.message.TOMBSTONE` - a `#!python bytes` subclass equal to `#!python b""`, so a handler that doesn't care sees an empty body exactly as before, while `#!python isinstance(msg.body, Tombstone)` tells the two apart. For a single record `#!python msg.tombstone` says the same thing; for a batch, check each element of `#!python msg.body`.
 
-    Publish one with `#!python await broker.publish(None, "topic", key=b"...")`.
+    Publish one with `#!python await broker.publish(TOMBSTONE, "topic", key=b"...")`. An explicit `#!python TOMBSTONE` requires a key, since compaction deletes per key and a keyless one deletes nothing. Passing `#!python None` as the body does the same, with or without a key, but is deprecated; it will encode normally in 0.8.
+
+    Batching a tombstone alongside a custom `#!python BatchCodecProto` raises, since `#!python encode_batch()` has no way to express a null value for one record of the batch.
 
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 

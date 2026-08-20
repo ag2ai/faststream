@@ -1,38 +1,38 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from collections.abc import Sequence
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
-from faststream.kafka import TopicPartition
+from faststream._internal.parser import DefaultCodec
+from faststream.kafka import KafkaResponse, TopicPartition
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
 from faststream.kafka.testing import FakeProducer
+from faststream.message import TOMBSTONE, Tombstone
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.tools import spy_decorator
 
 from .basic import KafkaMemoryTestcaseConfig
 
 
+class _BatchCodec(DefaultCodec):
+    async def encode_batch(
+        self,
+        msgs: Sequence[Any],
+        serializer: Any = None,
+    ) -> list[tuple[bytes, str | None]]:
+        return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
+
+    async def decode_batch(self, msg: Any) -> list[Any]:
+        return list(msg.body)
+
+
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
-    async def test_publish_none_tombstone(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        broker = self.get_broker(apply_types=True)
-
-        @broker.subscriber(queue)
-        async def handler(msg=Context("message")) -> None:
-            mock(msg.raw_message.value)
-
-        async with self.patch_broker(broker) as br:
-            await br.publish(None, queue, key=b"tombstone-key")
-
-        mock.assert_called_once_with(None)
-
     async def test_partition_match(
         self,
         queue: str,
@@ -361,3 +361,112 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             await another_publisher.publish(None, topic="new-key")
             another_publisher.mock.assert_called_once()
+
+    async def test_publish_none_still_tombstones_but_warns(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg=Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(broker) as br:
+            with pytest.deprecated_call(match="tombstone"):
+                await br.publish(None, queue, key=b"legacy-key")
+            value = await asyncio.wait_for(values.get(), timeout=3)
+
+        assert value is None
+
+    async def test_a_tombstone_body_still_reads_as_empty_bytes(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        bodies: asyncio.Queue[bytes] = asyncio.Queue()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: bytes) -> None:
+            await bodies.put(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
+            body = await asyncio.wait_for(bodies.get(), timeout=3)
+
+        assert body == b""
+        assert isinstance(body, Tombstone)
+
+    async def test_publish_tombstone_sends_a_real_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        @broker.subscriber(queue)
+        async def handler(msg=Context("message")) -> None:
+            await values.put(msg.raw_message.value)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
+            value = await asyncio.wait_for(values.get(), timeout=3)
+
+        assert value is None
+
+    async def test_publish_tombstone_without_key_raises(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            with pytest.raises(ValueError, match="requires a key"):
+                await br.publish(TOMBSTONE, queue)
+
+    async def test_batch_tombstone_with_custom_batch_codec_raises(
+        self, queue: str
+    ) -> None:
+        broker = self.get_broker(codec=_BatchCodec())
+
+        @broker.subscriber(queue, batch=True)
+        async def handler(msg: list[bytes]) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            with pytest.raises(ValueError, match="BatchCodecProto"):
+                await br.publish_batch(
+                    b"hi",
+                    KafkaResponse(TOMBSTONE, key=b"k"),
+                    topic=queue,
+                )
+
+    async def test_plain_none_in_a_batch_is_not_a_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: list[object] = []
+
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: list[bytes]) -> None:
+            values.extend(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(b"hi", None, topic=queue)
+
+        assert not any(isinstance(v, Tombstone) for v in values)
+
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        values: list[bytes | None] = []
+
+        @broker.subscriber(queue, batch=True)
+        async def handler(msg: list[bytes | None]) -> None:
+            values.extend(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(
+                b"hi",
+                KafkaResponse(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+        assert b"hi" in values
+        assert any(isinstance(v, Tombstone) for v in values)

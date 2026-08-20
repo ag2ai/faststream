@@ -74,11 +74,12 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
             await br.publish(b'{"x": 5}', queue, key=b"k1")
             # bypass the encoder to prove this works for a tombstone
-            # produced by any client, not only faststream's publish(None)
+            # produced by any client, not only faststream's publish(TOMBSTONE)
             await br._producer._producer.producer.send(topic=queue, key=b"k2", value=None)
 
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
+        assert len(received) == 2
         assert (_Foo(x=5), b'{"x": 5}') in received
         assert (None, None) in received
 

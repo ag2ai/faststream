@@ -2,7 +2,8 @@ import pytest
 from aiokafka import ConsumerRecord
 
 from faststream.kafka.message import KafkaMessage
-from faststream.kafka.parser import AioKafkaParser
+from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
+from faststream.message import TOMBSTONE
 from tests.brokers.base.parser import CustomParserTestcase
 
 from .basic import KafkaTestcaseConfig
@@ -44,4 +45,18 @@ async def test_parse_message_flags_only_a_null_value(
     parsed = await parser.parse_message(_record(value))
 
     assert parsed.tombstone is tombstone
-    assert parsed.body == (value or b"")
+    if tombstone:
+        assert parsed.body is TOMBSTONE
+    else:
+        assert parsed.body == value
+
+
+@pytest.mark.asyncio()
+async def test_parse_batch_flags_a_batch_holding_a_tombstone() -> None:
+    parser = AioKafkaBatchParser(msg_class=KafkaMessage, regex=None)
+
+    mixed = await parser.parse_batch((_record(b"{}"), _record(None)))
+    plain = await parser.parse_batch((_record(b"{}"), _record(b"")))
+
+    assert mixed.tombstone is True
+    assert plain.tombstone is False
