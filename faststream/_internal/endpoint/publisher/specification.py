@@ -6,6 +6,7 @@ from fast_depends.pydantic._compat import create_model, get_config_base
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig
+from faststream.specification.asyncapi.exclusion import NullExclusion
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
 
@@ -46,14 +47,7 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
         payloads: list[tuple[dict[str, Any], str]] = []
 
         if self.config.schema_:
-            body = get_model_schema(
-                call=create_model(
-                    "",
-                    __config__=get_config_base(),
-                    response__=(self.config.schema_, ...),
-                ),
-                prefix=f"{self.name}:Message",
-            )
+            body = self._build_payload(self.config.schema_, is_generator=False)
 
             if body:  # pragma: no branch
                 payloads.append((body, ""))
@@ -76,19 +70,59 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
                     response_type = None
 
                 if response_type is not None and response_type is not Parameter.empty:
-                    body = get_model_schema(
-                        create_model(
-                            "",
-                            __config__=get_config_base(),
-                            response__=(response_type, ...),
-                        ),
-                        prefix=f"{self.name}:Message",
+                    body = self._build_payload(
+                        response_type, is_generator=call_model.is_generator
                     )
 
                     if body:
                         payloads.append((body, to_camelcase(unwrap(call).__name__)))
 
         return payloads
+
+    def _build_payload(
+        self, annotation: Any, *, is_generator: bool
+    ) -> dict[str, Any] | None:
+        """Compile a publisher annotation into an AsyncAPI payload schema.
+
+        When `allow_nonetype` is disabled (`skip_none=True`), NoneType is
+        excluded from the message-level annotation: the top-level `| None`
+        union and, for batch publishers, the direct item type. Nested None
+        types (e.g. `dict[str, int | None]` values) are preserved, mirroring
+        the `skip_none` runtime behavior.
+
+        Args:
+            annotation: Python annotation describing the published message.
+            is_generator: Whether the annotation is already unwrapped to the
+                generator yield type (fast-depends does it for generators).
+
+        Returns:
+            The payload schema or `None` when nothing can be sent.
+        """
+        excluder: NullExclusion | None = None
+
+        if not self.config.allow_nonetype:
+            excluder = NullExclusion(
+                batch=self.config.batch,
+                is_generator=is_generator,
+            )
+
+            annotation = excluder.exclude_from_annotation(annotation)
+            if annotation is None:
+                return None
+
+        body = get_model_schema(
+            call=create_model(
+                "",
+                __config__=get_config_base(),
+                response__=(annotation, ...),
+            ),
+            prefix=f"{self.name}:Message",
+        )
+
+        if body is not None and excluder is not None:
+            body = excluder.exclude_from_schema(body)
+
+        return body
 
     @property
     def name(self) -> str:

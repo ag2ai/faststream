@@ -14,3 +14,4 @@ class SpecificationConfig:
 class PublisherSpecificationConfig(SpecificationConfig):
     schema_: Any | None
     allow_nonetype: bool = True
+    batch: bool = False

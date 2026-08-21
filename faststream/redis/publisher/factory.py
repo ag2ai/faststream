@@ -45,6 +45,9 @@ def create_publisher(
 ) -> PublisherType:
     validate_options(channel=channel, list=list, stream=stream)
 
+    list_sub = ListSub.validate(list)
+    batch = list_sub.batch if list_sub is not None else False
+
     publisher_config = RedisPublisherConfig(
         reply_to=reply_to,
         headers=headers,
@@ -59,6 +62,7 @@ def create_publisher(
         description_=description_,
         include_in_schema=include_in_schema,
         allow_nonetype=not skip_none,
+        batch=batch,
     )
 
     specification: RedisPublisherSpecification
@@ -80,7 +84,7 @@ def create_publisher(
 
         return StreamPublisher(publisher_config, specification, stream=stream_sub)
 
-    if list_sub := ListSub.validate(list):
+    if list_sub:
         specification = ListPublisherSpecification(config, specification_config, list_sub)
 
         if list_sub.batch:

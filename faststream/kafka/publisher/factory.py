@@ -51,6 +51,7 @@ def create_publisher(
             description_=description_,
             include_in_schema=include_in_schema,
             allow_nonetype=not skip_none,
+            batch=batch,
         ),
     )
 
