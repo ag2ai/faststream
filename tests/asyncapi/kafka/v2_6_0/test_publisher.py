@@ -1,11 +1,14 @@
 import pytest
 
 from faststream.kafka import KafkaBroker
-from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
+from tests.asyncapi.base.v2_6_0.publisher import (
+    BatchSkipNonePublisherTestcase,
+    PublisherTestcase,
+)
 
 
 @pytest.mark.kafka()
-class TestArguments(PublisherTestcase):
+class TestArguments(PublisherTestcase, BatchSkipNonePublisherTestcase):
     broker_class = KafkaBroker
 
     def test_publisher_bindings(self) -> None:
