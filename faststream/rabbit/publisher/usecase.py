@@ -177,7 +177,7 @@ class RabbitPublisher(PublisherUsecase):
             **(self.publish_options | self.message_options | publish_kwargs),  # type: ignore[operator]
         )
 
-        msg: RabbitMessage = await self._basic_request(
+        msg: RabbitMessage | None = await self._basic_request(
             cmd,
             producer=self._outer_config.producer,
         )

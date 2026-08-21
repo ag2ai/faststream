@@ -263,7 +263,7 @@ RedisRouter(
             sync_handler,
             "test",
             publishers=(
-                RedisPublisher(list=ListSub("test2", batch=True), skip_none=True),
+                RedisPublisher(list=ListSub("test2", batch=True).name, skip_none=True),
             ),
         ),
     ),
@@ -354,7 +354,9 @@ RedisBroker().add_middleware(prometheus_middleware)
 RedisBroker(middlewares=[prometheus_middleware])
 
 
-async def check_broker_publish_result_type(optional_stream: str | None = "test") -> None:
+async def check_broker_publish_result_type(
+    optional_stream: str | None = "test",
+) -> None:
     broker = RedisBroker()
 
     publish_with_confirm = await broker.publish(None)

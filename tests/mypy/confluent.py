@@ -63,9 +63,7 @@ async def check_publish_type(fake_bool: bool = True) -> None:
     publish_without_confirm = await broker.publish(None, "test", no_confirm=False)
     assert_type(publish_without_confirm, Message | None)
 
-    publish_confirm_bool = await broker.publish(
-        None, topic="test", no_confirm=fake_bool
-    )
+    publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
     assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
 
 

@@ -410,11 +410,14 @@ class BatchPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(
+        response: asyncio.Future[RecordMetadata] | RecordMetadata | None
+        response = await self._basic_publish_batch(
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
         )
+
+        return response
 
     @override
     async def _publish(

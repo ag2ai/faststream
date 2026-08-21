@@ -319,9 +319,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         async def handler(msg: Any = Context("message")) -> None:
             await values.put(msg.body)
 
-        publisher = pub_broker.publisher(
-            list=ListSub(queue, batch=True), skip_none=True
-        )
+        publisher = pub_broker.publisher(list=ListSub(queue, batch=True), skip_none=True)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
@@ -342,9 +340,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         async def handler(msg: Any = Context("message")) -> None:
             await values.put(msg.body)
 
-        publisher = pub_broker.publisher(
-            list=ListSub(queue, batch=True), skip_none=True
-        )
+        publisher = pub_broker.publisher(list=ListSub(queue, batch=True), skip_none=True)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
