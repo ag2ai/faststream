@@ -1,6 +1,5 @@
 import json
 from collections.abc import AsyncIterator
-from typing import Optional
 
 import pydantic
 
@@ -161,7 +160,7 @@ class PublisherTestcase(AsyncAPI300Factory):
 
         broker = self.broker_class()
 
-        broker.publisher("test", schema=Optional[User], skip_none=True)
+        broker.publisher("test", schema=User | None, skip_none=True)
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -180,11 +179,7 @@ class PublisherTestcase(AsyncAPI300Factory):
     def test_skip_none_publisher_nested_values_preserved(self) -> None:
         broker = self.broker_class()
 
-        broker.publisher(
-            "test",
-            schema=Optional[dict[str, Optional[int]]],
-            skip_none=True,
-        )
+        broker.publisher("test", schema=dict[str, int | None] | None, skip_none=True)
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -197,11 +192,7 @@ class PublisherTestcase(AsyncAPI300Factory):
     def test_skip_none_publisher_single_list_keeps_item_none(self) -> None:
         broker = self.broker_class()
 
-        broker.publisher(
-            "test",
-            schema=Optional[list[Optional[int]]],
-            skip_none=True,
-        )
+        broker.publisher("test", schema=list[int | None] | None, skip_none=True)
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -214,7 +205,7 @@ class PublisherTestcase(AsyncAPI300Factory):
     def test_skip_none_publisher_with_schema(self) -> None:
         broker = self.broker_class()
 
-        broker.publisher("test", schema=Optional[int], skip_none=True)
+        broker.publisher("test", schema=int | None, skip_none=True)
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -226,7 +217,7 @@ class PublisherTestcase(AsyncAPI300Factory):
     def test_publisher_without_skip_none_keeps_null(self) -> None:
         broker = self.broker_class()
 
-        broker.publisher("test", schema=Optional[int])
+        broker.publisher("test", schema=int | None)
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -272,10 +263,7 @@ class BatchSkipNonePublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         broker.publisher(
-            "test",
-            batch=True,
-            skip_none=True,
-            schema=Optional[list[Optional[int]]],
+            "test", batch=True, skip_none=True, schema=list[int | None] | None
         )
 
         schema = self.get_spec(broker).to_jsonable()
@@ -293,7 +281,7 @@ class BatchSkipNonePublisherTestcase(AsyncAPI300Factory):
             "test",
             batch=True,
             skip_none=True,
-            schema=list[dict[str, Optional[int]]],
+            schema=list[dict[str, int | None]],
         )
 
         schema = self.get_spec(broker).to_jsonable()
@@ -309,7 +297,7 @@ class BatchSkipNonePublisherTestcase(AsyncAPI300Factory):
         broker.publisher(
             "test",
             batch=True,
-            schema=Optional[list[Optional[int]]],
+            schema=list[int | None] | None,
         )
 
         schema = self.get_spec(broker).to_jsonable()

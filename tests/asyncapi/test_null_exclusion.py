@@ -22,10 +22,10 @@ def test_exclude_none_simple_optional() -> None:
     schema = int | None
     assert excluder.exclude_from_annotation(schema) is int
 
-    schema = Optional[int]
+    schema = Optional[int]  # noqa: UP045
     assert excluder.exclude_from_annotation(schema) is int
 
-    schema = Union[int, None]
+    schema = Union[int, None]  # noqa: UP007
     assert excluder.exclude_from_annotation(schema) is int
 
 
@@ -63,9 +63,9 @@ def test_exclude_none_single_keeps_nested() -> None:
     result = excluder.exclude_from_annotation(schema)
     assert result == list[int | None]
 
-    annotation = dict[str, None | int] | None
+    annotation = dict[str, None | int] | None  # noqa: RUF036
     result = excluder.exclude_from_annotation(annotation)
-    assert result == dict[str, None | int]
+    assert result == dict[str, None | int]  # noqa: RUF036
 
 
 def test_exclude_none_batch_items() -> None:
