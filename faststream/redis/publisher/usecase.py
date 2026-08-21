@@ -102,11 +102,12 @@ class ChannelPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
-        result: int = await self._basic_publish(
+        result: int | None = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
         )
+
         return result
 
     @override
@@ -139,7 +140,7 @@ class ChannelPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage | None":
+    ) -> Optional["RedisChannelMessage"]:
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -150,7 +151,7 @@ class ChannelPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage | None = await self._basic_request(
             cmd,
             producer=self.producer,
         )
@@ -203,11 +204,12 @@ class ListPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish(
+        result: int | None = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
         )
+
         return result
 
     @override
@@ -240,7 +242,7 @@ class ListPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage | None":
+    ) -> Optional["RedisChannelMessage"]:
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -251,10 +253,11 @@ class ListPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage | None = await self._basic_request(
             cmd,
             producer=self.producer,
         )
+
         return msg
 
 
@@ -280,11 +283,12 @@ class ListBatchPublisher(ListPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: int | None = await self._basic_publish_batch(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
         )
+
         return result
 
     @override
@@ -358,11 +362,12 @@ class StreamPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        result: bytes = await self._basic_publish(
+        result: bytes | None = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
         )
+
         return result
 
     @override
@@ -397,7 +402,7 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage | None":
+    ) -> Optional["RedisChannelMessage"]:
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
@@ -409,7 +414,7 @@ class StreamPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage | None = await self._basic_request(
             cmd,
             producer=self.producer,
         )

@@ -159,11 +159,14 @@ class DefaultPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish(
+        response: asyncio.Future[Message | None] | Message | None
+        response = await self._basic_publish(
             cmd,
             producer=self._outer_config.producer,
             _extra_middlewares=(),
         )
+
+        return response
 
     @override
     async def _publish(
