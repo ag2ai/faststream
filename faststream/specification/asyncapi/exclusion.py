@@ -148,8 +148,8 @@ class NullExclusion:
         if self._is_null_schema(schema):
             return None
 
-        cleaned = schema.copy()
-        if (cleaned := self._strip_branches(cleaned)) is None:
+        cleaned = self._strip_branches(schema.copy())
+        if cleaned is None:
             return None
 
         return self._strip_null_type(cleaned)
