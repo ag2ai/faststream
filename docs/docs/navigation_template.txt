@@ -91,6 +91,7 @@ search:
     - [Message Information](rabbit/message.md)
     - [Security Configuration](rabbit/security.md)
     - [How-To](howto/rabbit/index.md)
+        - [Batch Subscriber](howto/rabbit/batch.md)
 - [MQTT](mqtt/index.md)
     - [Publishing](mqtt/publishing.md)
     - [Message & serialization](mqtt/message.md)
