@@ -28,6 +28,18 @@ class ConfigTestcase(BaseTestcaseConfig):
         """
         return address
 
+    def get_publisher_params(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """The arguments declaring a Publisher against `args[0]` as its address.
+
+        The mirror of `get_subscriber_params`, overridden by brokers whose
+        publisher takes its destination somewhere other than first positional.
+        """
+        return args, kwargs
+
     async def assert_consume(
         self,
         broker: Any,
@@ -233,6 +245,81 @@ class ConfigTestcase(BaseTestcaseConfig):
 
             await br.publish("hello", queue)
             await br.publish("hello", f"prefix-literal-{queue}")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+                await event2.wait()
+
+        assert event.is_set()
+        assert event2.is_set()
+        assert mock.call_count == 2, mock.call_args_list
+
+    @pytest.mark.asyncio()
+    async def test_publisher_sends_to_the_resolved_address(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(config={"OUT": queue})
+
+        args, kwargs = self.get_publisher_params(Config("OUT"))
+        publisher = broker.publisher(*args, **kwargs)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("hello")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()
+
+    @pytest.mark.asyncio()
+    async def test_publisher_resolved_value_ignores_the_router_prefix(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+    ) -> None:
+        """A Publisher's resolved destination is used as supplied; a literal is prefixed."""
+        router = self.get_router(prefix="prefix-")
+
+        args, kwargs = self.get_publisher_params(Config("OUT"))
+        resolved_publisher = router.publisher(*args, **kwargs)
+
+        args, kwargs = self.get_publisher_params(f"literal-{queue}")
+        literal_publisher = router.publisher(*args, **kwargs)
+
+        broker = self.get_broker(config={"OUT": queue})
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def resolved(msg: Any) -> None:
+            mock("resolved")
+            event.set()
+
+        args, kwargs = self.get_subscriber_params(f"prefix-literal-{queue}")
+
+        @broker.subscriber(*args, **kwargs)
+        async def literal(msg: Any) -> None:
+            mock("literal")
+            event2.set()
+
+        broker.include_router(router)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await resolved_publisher.publish("hello")
+            await literal_publisher.publish("hello")
 
             with anyio.move_on_after(self.timeout):
                 await event.wait()

@@ -75,6 +75,34 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         assert mock.call_count == 2, mock.call_args_list
 
     @pytest.mark.asyncio()
+    async def test_publisher_reply_to_value(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """The reply destination is configurable along with the primary one."""
+        broker = self.get_broker(config={"REPLY": f"{queue}-reply"})
+
+        publisher = broker.publisher(queue, reply_to=Config("REPLY"))
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any) -> str:
+            return "pong"
+
+        @broker.subscriber(f"{queue}-reply")
+        async def reply_handler(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("ping")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()
+
+    @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
         broker = self.get_broker(config={"IN": queue})
 

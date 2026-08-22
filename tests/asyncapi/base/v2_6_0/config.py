@@ -45,6 +45,17 @@ class ConfigTestcase(AsyncAPI260Factory):
             "channels"
         ]
 
+    def test_publisher_channel_names_the_resolved_address(self) -> None:
+        broker = self.get_broker(config={"OUT": "resolved-publisher-address"})
+
+        broker.publisher(Config("OUT"))
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert any("resolved-publisher-address" in key for key in schema["channels"]), (
+            schema["channels"]
+        )
+
     def test_excluded_endpoint_is_never_read(self) -> None:
         """A value missing for an endpoint outside the schema is not an error here.
 

@@ -5,7 +5,7 @@ which record how a Broker, Subscriber or Publisher was constructed.
 """
 
 from collections.abc import Iterator, Mapping
-from typing import Any, TypeAlias, TypeVar, Union, cast
+from typing import Any, TypeAlias, TypeVar, cast
 
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
@@ -51,6 +51,14 @@ class Config:
         return f"{self.__class__.__name__}({self.key!r}, default={self.default!r})"
 
 
+Configurable: TypeAlias = T | Config
+"""An option that accepts either a literal value or a `Config` placeholder.
+
+`Configurable[str]` reads as "a string, or a Config value standing in for one",
+and keeps every declaration site from spelling the union out by hand.
+"""
+
+
 def lookup_config_value(source: "ConfigSource", key: str) -> Any:
     """Read `key` out of a single source, falling back from item to attribute access.
 
@@ -87,7 +95,7 @@ class ConfigResolutionMixin:
         """Every Config value source in scope, most specific first."""
         raise NotImplementedError
 
-    def resolve_address(self, option: Union["Config", str]) -> str:
+    def resolve_address(self, option: Configurable[str]) -> str:
         """Return the address to use on the infrastructure broker.
 
         A Config value reaches the broker exactly as supplied; the Router prefix
@@ -100,7 +108,7 @@ class ConfigResolutionMixin:
 
         return f"{self.prefix}{option}"
 
-    def resolve_option(self, option: Union["Config", T]) -> T:
+    def resolve_option(self, option: Configurable[T]) -> T:
         """Return `option` itself, or the Config value it stands for."""
         if not isinstance(option, Config):
             return option

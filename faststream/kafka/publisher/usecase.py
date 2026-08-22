@@ -34,12 +34,22 @@ class LogicPublisher(PublisherUsecase):
 
         self._topic = config.topic
         self.partition = config.partition
-        self.reply_to = config.reply_to
+        self._reply_to = config.reply_to
         self.headers = config.headers or {}
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        return self._outer_config.resolve_address(self._topic)
+
+    @property
+    def reply_to(self) -> str:
+        """The reply destination, resolved but never prefixed.
+
+        `resolve_option` rather than `resolve_address`: a literal `reply_to` has
+        never been decorated with the Router prefix, and adopting a placeholder
+        for it must not change that for the literal beside it.
+        """
+        return self._outer_config.resolve_option(self._reply_to)
 
     @override
     async def request(

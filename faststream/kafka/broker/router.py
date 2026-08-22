@@ -14,6 +14,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.configs import KafkaBrokerConfig
@@ -26,7 +27,6 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.config_value import Config
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -41,12 +41,12 @@ class KafkaPublisher(ArgsContainer):
 
     def __init__(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # AsyncAPI args
         title: str | None = None,
@@ -104,10 +104,10 @@ class KafkaRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        *topics: Union[str, "Config"],
+        *topics: Configurable[str],
         publishers: Iterable[KafkaPublisher] = (),
         batch: bool = False,
-        group_id: Union[str, "Config", None] = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -135,7 +135,7 @@ class KafkaRoute(SubscriberRoute):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: Union[str, "Config", None] = None,
+        pattern: Configurable[str] | None = None,
         partitions: Iterable["TopicPartition"] | None = (),
         # broker args
         dependencies: Iterable["Dependant"] = (),
