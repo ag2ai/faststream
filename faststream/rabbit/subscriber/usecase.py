@@ -8,6 +8,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream.rabbit.address import as_declared, broker_exchange, broker_queue
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -49,8 +50,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             calls=calls,
         )
 
-        self.queue = config.queue
-        self.exchange = config.exchange
+        self._queue = config.queue
+        self._exchange = config.exchange
 
         self.consume_args = config.consume_args or {}
 
@@ -64,15 +65,28 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     def app_id(self) -> str | None:
         return self._outer_config.app_id
 
+    @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self._queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self._exchange)
+
+    @property
+    def declared_queue(self) -> "RabbitQueue":
+        return as_declared(self._outer_config, self._queue)
+
     def routing(self) -> str:
-        return f"{self._outer_config.prefix}{self.queue.routing()}"
+        return self.queue.routing()
 
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
         await super().start()
 
-        queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
+        queue_to_bind = self.queue
+        exchange_to_bind = self.exchange
 
         declarer = self._outer_config.declarer
 
@@ -82,12 +96,12 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         if (
-            self.exchange is not None
+            exchange_to_bind is not None
             and queue_to_bind.declare  # queue just getted from RMQ
-            and self.exchange.name  # check Exchange is not default
+            and exchange_to_bind.name  # check Exchange is not default
         ):
             exchange = await declarer.declare_exchange(
-                self.exchange,
+                exchange_to_bind,
                 channel=self.channel,
             )
 
@@ -96,7 +110,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 routing_key=queue_to_bind.routing(),
                 arguments=queue_to_bind.bind_arguments,
                 timeout=queue_to_bind.timeout,
-                robust=self.queue.robust,
+                robust=queue_to_bind.robust,
             )
 
         if self.calls:
@@ -227,6 +241,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     ) -> dict[str, str]:
         return self.build_log_context(
             message=message,
-            queue=self.queue,
+            queue=self.declared_queue,
             exchange=self.exchange,
         )

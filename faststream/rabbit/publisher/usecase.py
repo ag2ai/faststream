@@ -5,6 +5,11 @@ from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
+from faststream.rabbit.address import (
+    broker_exchange,
+    broker_queue,
+    broker_routing_key,
+)
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -36,10 +41,9 @@ class RabbitPublisher(PublisherUsecase):
     ) -> None:
         super().__init__(config, specification)
 
-        self.queue = config.queue
-        self.routing_key = config.routing_key
-
-        self.exchange = config.exchange
+        self._queue = config.queue
+        self._routing_key = config.routing_key
+        self._exchange = config.exchange
 
         self.headers = config.message_kwargs.pop("headers") or {}
         self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
@@ -53,6 +57,18 @@ class RabbitPublisher(PublisherUsecase):
 
         publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
         self.publish_options = publish_options
+
+    @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self._queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self._exchange)
+
+    @property
+    def routing_key(self) -> str:
+        return broker_routing_key(self._outer_config, self._routing_key)
 
     @property
     def message_options(self) -> "BasicMessageOptions":
@@ -73,8 +89,7 @@ class RabbitPublisher(PublisherUsecase):
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
             else:
-                r = self.routing_key or self.queue.routing()
-                routing_key = f"{self._outer_config.prefix}{r}"
+                routing_key = self.routing_key or self.queue.routing()
 
         return routing_key
 

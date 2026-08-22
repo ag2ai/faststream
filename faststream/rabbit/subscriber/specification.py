@@ -1,4 +1,7 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.rabbit.address import broker_exchange, broker_queue
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import (
@@ -14,27 +17,38 @@ from faststream.specification.schema.bindings import (
 
 from .config import RabbitSubscriberSpecificationConfig
 
+if TYPE_CHECKING:
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+
 
 class RabbitSubscriberSpecification(
     SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig],
 ):
     @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self.config.queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self.config.exchange)
+
+    @property
     def name(self) -> str:
         if self.config.title_:
             return self.config.title_
 
-        queue_name = self.config.queue.name
+        queue_name = self.queue.name
 
-        exchange_name = getattr(self.config.exchange, "name", None)
+        exchange_name = getattr(self.exchange, "name", None)
 
-        return f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
+        return f"{queue_name}:{exchange_name or '_'}:{self.call_name}"
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        queue = self.config.queue.add_prefix(self._outer_config.prefix)
+        queue = self.queue
 
-        exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
+        exchange_binding = amqp.Exchange.from_exchange(self.exchange)
         queue_binding = amqp.Queue.from_queue(queue)
 
         channel_name = self.name
