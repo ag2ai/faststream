@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
+from faststream._internal.config_value import Configurable
+
 from .config import MQTTPublisherConfig, MQTTPublisherSpecificationConfig
 from .specification import MQTTPublisherSpecification
 from .usecase import MQTTPublisher
@@ -12,7 +14,7 @@ if TYPE_CHECKING:
 
 def create_publisher(
     *,
-    topic: str,
+    topic: Configurable[str],
     qos: QoS,
     retain: bool,
     headers: dict[str, str] | None,

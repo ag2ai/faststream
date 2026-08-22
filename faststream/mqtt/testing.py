@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream.mqtt.publisher.usecase import MQTTPublisher
     from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
@@ -93,6 +94,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None: ...
 
     @overload
@@ -101,6 +103,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *brokers: MQTTBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None: ...
 
     def __init__(
@@ -108,11 +111,13 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *brokers: MQTTBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None:
         super().__init__(
             *brokers,
             with_real=with_real,
             connect_only=connect_only,
+            config=config,
         )
 
     def create_publisher_fake_subscriber(

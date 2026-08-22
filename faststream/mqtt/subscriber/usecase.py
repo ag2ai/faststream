@@ -75,23 +75,40 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         first moment the topic is known in full — the Router prefix composed,
         and any Config value resolved. Compiled once and kept: a
         Config value is fixed at `connect()` (ADR-0004).
-        """
-        return self._address.read(
-            self._outer_config.prefix,
-            lambda prefix: Address(self._topic, MQTT_ADDRESS_SYNTAX).add_prefix(prefix),
-        )
 
-        return self._address
+        The Config key travels with the address, so a value that cannot compile
+        can name the key to fix rather than only the string that arrived.
+        """
+        config = self._outer_config
+
+        return self._address.read(
+            config.prefix,
+            lambda _: Address(
+                config.resolve_address(self._topic),
+                MQTT_ADDRESS_SYNTAX,
+                config.config_key(self._topic),
+            ),
+        )
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
         yield self.address
 
     @property
+    def shared(self) -> str | None:
+        """The shared-subscription group, resolved but never prefixed.
+
+        `resolve_option` rather than `resolve_address`: a group name is not a
+        topic, and a literal one has never been decorated with the Router prefix.
+        """
+        return self._outer_config.resolve_option(self._shared)
+
+    @property
     def topic(self) -> str:
         """The topic MQTT is subscribed to, shared-subscription prefix included."""
         full = self.address.broker_address
-        return f"$share/{self._shared}/{full}" if self._shared else full
+        shared = self.shared
+        return f"$share/{shared}/{full}" if shared else full
 
     def _make_response_publisher(
         self,

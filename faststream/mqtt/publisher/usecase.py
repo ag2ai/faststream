@@ -37,7 +37,7 @@ class MQTTPublisher(PublisherUsecase):
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        return self._outer_config.resolve_address(self._topic)
 
     @override
     async def publish(

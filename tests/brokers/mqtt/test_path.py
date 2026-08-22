@@ -163,7 +163,10 @@ class TestPathExtraction(MQTTTestcaseConfig):
         queue: str,
         topic: str,
     ) -> None:
+        """A topic compiles on first read, so a bad one surfaces at `connect()`."""
         broker = self.get_broker()
+        broker.subscriber(topic.replace("{queue}", queue))(lambda: None)
 
         with pytest.raises(SetupError):
-            broker.subscriber(topic.replace("{queue}", queue))(lambda: None)
+            async with self.patch_broker(broker):
+                pass

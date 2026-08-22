@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from zmqtt import QoS
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
@@ -13,18 +14,18 @@ from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 @dataclass(kw_only=True)
 class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    topic: str
+    topic: Configurable[str]
     qos: QoS = QoS.AT_MOST_ONCE
-    shared: str | None = None
+    shared: Configurable[str] | None = None
 
 
 @dataclass(kw_only=True)
 class MQTTSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
-    topic: str
+    topic: Configurable[str]
     qos: QoS = QoS.AT_MOST_ONCE
-    shared: str | None = None
+    shared: Configurable[str] | None = None
 
     @property
     def ack_policy(self) -> AckPolicy:

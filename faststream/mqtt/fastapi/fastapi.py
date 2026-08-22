@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
 from typing_extensions import override
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
@@ -158,10 +159,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
-        shared: str | None = None,
+        shared: Configurable[str] | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -188,10 +189,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
     @overload
     def subscriber(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
-        shared: str | None = None,
+        shared: Configurable[str] | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -218,10 +219,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
     @override
     def subscriber(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
-        shared: str | None = None,
+        shared: Configurable[str] | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -247,7 +248,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         return cast(
             "MQTTDefaultSubscriber | MQTTConcurrentSubscriber",
             super().subscriber(
-                topic,
+                # The shared signature names the address types the brokers have
+                # in common; which of them accept a Config placeholder is per
+                # broker, and the overloads above are MQTT's answer.
+                cast("str", topic),
                 qos=qos,
                 shared=shared,
                 ack_policy=ack_policy,
@@ -275,7 +279,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
         retain: bool = False,
