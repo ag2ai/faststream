@@ -312,7 +312,7 @@ def publish(
 
 
 async def publish_message(
-    broker: "BrokerUsecase[Any, Any]",
+    broker: "BrokerUsecase[Any, Any, Any]",
     rpc: bool,
     message: str,
     extra: dict[str, Any],

@@ -174,8 +174,8 @@ if TYPE_CHECKING:
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None
         max_batch_size: int
         partitioner: Callable[
-            [bytes, list[Partition], list[Partition]],
-            Partition,
+            [bytes, list[Any], list[Any]],
+            Any,
         ]
         max_request_size: int
         linger_ms: int
@@ -189,6 +189,7 @@ class KafkaBroker(
     BrokerUsecase[
         aiokafka.ConsumerRecord | tuple[aiokafka.ConsumerRecord, ...],
         Callable[..., aiokafka.AIOKafkaConsumer],
+        KafkaBrokerConfig,
     ],
 ):
     url: list[str]

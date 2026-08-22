@@ -391,7 +391,8 @@ class KafkaRouter(
         Union[
             "ConsumerRecord",
             tuple["ConsumerRecord", ...],
-        ]
+        ],
+        KafkaBrokerConfig,
     ],
 ):
     """Includable to KafkaBroker router."""

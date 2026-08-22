@@ -115,7 +115,8 @@ lint = [
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "mypy==1.19.1",
-    # mypy extensions
+    "pyright==1.1.407",
+    # type checkers extensions
     "types-Deprecated",
     "types-PyYAML",
     "types-setuptools",
@@ -200,6 +201,14 @@ warn_unused_ignores = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
+
+[tool.pyright]
+# Public API surface only: `tests/mypy` exercises the documented API the way a
+# user does. Pyright still follows imports into `faststream/`, so breakage in
+# the framework surfaces here — but internal annotations are not policed.
+include = ["tests/mypy"]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

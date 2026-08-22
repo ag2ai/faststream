@@ -101,7 +101,7 @@ class ObjStoreWatchSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
