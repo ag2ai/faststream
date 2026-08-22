@@ -23,7 +23,7 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: RedisBrokerConfig
 
     list_sub: ListSub | None = field(default=None, repr=False)
-    channel_sub: PubSub | None = field(default=None, repr=False)
+    channel_sub: PubSub | str | None = field(default=None, repr=False)
     stream_sub: StreamSub | None = field(default=None, repr=False)
 
     _message_format: type["MessageFormat"] | None = field(default=None, repr=False)

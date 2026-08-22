@@ -48,7 +48,7 @@ class ObjStoreWatchSubscriber(
         *,
         obj_watch: "ObjWatch",
     ) -> None:
-        parser = ObjParser(pattern="")
+        parser = ObjParser()
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)

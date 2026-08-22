@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -13,7 +13,7 @@ from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, Tas
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, AddressSyntax
+from faststream._internal.utils.path import Address, AddressSyntax, PrefixedRead
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -65,8 +65,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._listener = config.listener
         self._connection_args = config.connection_args
 
-        self._compiled_address: Address | None = None
-        self._compiled_from: str | None = None
+        self._compiled_address: PrefixedRead[Address] = PrefixedRead()
 
         self.consumer = None
 
@@ -80,29 +79,47 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         Kafka patterns are plain strings, so — unlike the brokers whose addresses
         are value objects — there is no constructor to build the Address inside
-        after resolution. Memoised on the resolved value, which only changes when
-        the Config values in scope do.
+        after resolution. Built on first read and kept: a Config value is fixed at
+        `connect()`, so there is nothing to re-derive it for (ADR-0004).
         """
-        if not self._pattern:
+        if not (declared := self._pattern):
             return None
 
-        pattern = self._outer_config.resolve_address(self._pattern)
+        config = self._outer_config
 
-        if self._compiled_from != pattern:
-            self._compiled_from = pattern
-            self._compiled_address = Address(pattern, KAFKA_ADDRESS_SYNTAX)
+        return self._compiled_address.read(
+            config.prefix,
+            lambda _: Address(
+                config.resolve_address(declared),
+                KAFKA_ADDRESS_SYNTAX,
+                config.config_key(declared),
+            ),
+        )
 
-        assert self._compiled_address is not None
-        return self._compiled_address
-
-    def get_pattern_regex(self) -> Optional["Pattern[str]"]:
+    def get_pattern_regex(self) -> "Pattern[str] | None":
         """The regex pulling path parameters out of a topic name, if any.
 
         A method rather than a property because the parser holds on to it and
-        asks per message, the pattern being resolved anew on every read.
+        asks per message, the pattern being read through this Subscriber.
         """
         pattern = self.pattern
         return pattern.regex if pattern is not None else None
+
+    @override
+    def subscription_addresses(self) -> Iterable[Address]:
+        config = self._outer_config
+
+        if (pattern := self.pattern) is not None:
+            yield pattern
+            return
+
+        # Topics are never compiled — `topics` hands them to the broker verbatim —
+        # so they are read as literal addresses, holding no capture group.
+        for topic in self._topics:
+            yield Address.literal(
+                config.resolve_address(topic),
+                config.config_key(topic),
+            )
 
     @property
     def topics(self) -> list[str]:

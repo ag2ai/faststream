@@ -6,9 +6,11 @@ from typing import (
     Optional,
 )
 
+from typing_extensions import override
+
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address
+from faststream._internal.utils.path import Address, PrefixedRead
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
@@ -47,20 +49,50 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self.extra_options = config.extra_options or {}
 
+        self._subject_address: PrefixedRead[Address] = PrefixedRead()
+        self._filter_addresses: PrefixedRead[list[Address]] = PrefixedRead()
+
         self._fetch_sub = None
         self.subscription = None
 
     @property
     def subject(self) -> "Address":
-        """The subject this Subscriber was declared with, and its Broker address."""
-        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
+        """The subject this Subscriber was declared with, and its Broker address.
+
+        Kept rather than re-derived on every read (ADR-0004); see `PrefixedRead`.
+        """
+        return self._subject_address.read(
             self._outer_config.prefix,
+            lambda prefix: Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
+                prefix,
+            ),
+        )
+
+    @property
+    def filter_addresses(self) -> list["Address"]:
+        """The subjects a JetStream consumer filters on, each read as an Address."""
+        return self._filter_addresses.read(
+            self._outer_config.prefix,
+            lambda prefix: [
+                Address(subject, NATS_ADDRESS_SYNTAX).add_prefix(prefix)
+                for subject in (self.config.filter_subjects or ())
+            ],
         )
 
     @property
     def filter_subjects(self) -> list[str]:
-        prefix = self._outer_config.prefix
-        return [f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())]
+        return [address.broker_address for address in self.filter_addresses]
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        if subject := self.subject:
+            # A declared subject is the address; filter subjects only narrow which
+            # of its messages the consumer is handed, and the parser reads Path
+            # parameters out of the subject.
+            yield subject
+            return
+
+        yield from self.filter_addresses
 
     @property
     def connection(self) -> "Client":

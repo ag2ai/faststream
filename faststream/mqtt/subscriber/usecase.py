@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
@@ -11,8 +11,10 @@ from typing_extensions import override
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address, PrefixedRead
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.parser import MQTTBaseParser, MQTTParserV5, MQTTParserV311
+from faststream.mqtt.path import MQTT_ADDRESS_SYNTAX
 from faststream.mqtt.publisher.fake import MQTTFakePublisher
 
 if TYPE_CHECKING:
@@ -36,7 +38,6 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[zmqtt.Message]",
     ) -> None:
-        self._path_regex = config.path_regex
         # version may not be available yet when subscriber is created on a router
         # before include_router is called; default to V5 and re-resolve in start().
         parser = self._make_parser(config._outer_config)
@@ -44,6 +45,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
         self._topic = config.topic
+        self._address: PrefixedRead[Address] = PrefixedRead()
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
@@ -63,11 +65,32 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
         version = getattr(outer_config, "version", "5.0")
         cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
-        return cls(path_regex=self._path_regex)
+        return cls(regex=lambda: self.address.regex)
+
+    @property
+    def address(self) -> "Address":
+        """The topic this Subscriber was declared with, and its Broker address.
+
+        Compiled here rather than at the declaration site, because that is the
+        first moment the topic is known in full — the Router prefix composed,
+        and any Config value resolved. Compiled once and kept: a
+        Config value is fixed at `connect()` (ADR-0004).
+        """
+        return self._address.read(
+            self._outer_config.prefix,
+            lambda prefix: Address(self._topic, MQTT_ADDRESS_SYNTAX).add_prefix(prefix),
+        )
+
+        return self._address
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        yield self.address
 
     @property
     def topic(self) -> str:
-        full = f"{self._outer_config.prefix}{self._topic}"
+        """The topic MQTT is subscribed to, shared-subscription prefix included."""
+        full = self.address.broker_address
         return f"$share/{self._shared}/{full}" if self._shared else full
 
     def _make_response_publisher(

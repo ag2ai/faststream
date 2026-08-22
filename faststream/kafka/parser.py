@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, Union, cast
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
@@ -16,16 +15,8 @@ if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
     from faststream._internal.basic_types import DecodedMessage
+    from faststream._internal.utils.path import RegexSource
     from faststream.message import StreamMessage
-
-
-RegexSource: TypeAlias = Callable[[], Optional["Pattern[str]"]] | None
-"""Produces the pattern's regex when a message arrives, or `None` for no pattern.
-
-Asked per message rather than taken once: a subscriber whose pattern is a Config
-placeholder has nothing to compile until the value is resolved, and resolution
-happens on read.
-"""
 
 
 class AioKafkaParser:
@@ -42,7 +33,7 @@ class AioKafkaParser:
         self._consumer: ConsumerProtocol = FAKE_CONSUMER
 
     @property
-    def regex(self) -> Optional["Pattern[str]"]:
+    def regex(self) -> "Pattern[str] | None":
         return self._regex() if self._regex is not None else None
 
     def _setup(self, consumer: ConsumerProtocol) -> None:

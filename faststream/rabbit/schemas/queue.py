@@ -97,7 +97,7 @@ class RabbitQueue(NameRequired):
         return self.routing_address.broker_address
 
     @property
-    def path_regex(self) -> Optional["Pattern[str]"]:
+    def path_regex(self) -> "Pattern[str] | None":
         return self.routing_address.regex
 
     def routing(self) -> str:

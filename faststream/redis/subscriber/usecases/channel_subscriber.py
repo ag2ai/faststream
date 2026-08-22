@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
@@ -9,6 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import PrefixedRead
 from faststream.redis.message import (
     PubSubMessage,
     RedisChannelMessage,
@@ -16,6 +17,7 @@ from faststream.redis.message import (
 from faststream.redis.parser import (
     RedisPubSubParser,
 )
+from faststream.redis.schemas import PubSub
 
 from .basic import LogicSubscriber
 
@@ -24,8 +26,8 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.schemas import PubSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -40,18 +42,35 @@ class ChannelSubscriber(LogicSubscriber):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        assert config.channel_sub
-        parser = RedisPubSubParser(config, pattern=config.channel_sub.path_regex)
+        assert config.channel_sub is not None
+        parser = RedisPubSubParser(config, regex=lambda: self.channel.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
         self._channel = config.channel_sub
+        self._channel_read: PrefixedRead[PubSub] = PrefixedRead()
         self.subscription: RPubSub | None = None
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        """The channel this Subscriber (p)subscribes to.
+
+        The `PubSub` is built here rather than at the declaration site, because
+        that is the first moment its channel is known in full — the Router prefix
+        composed, and any Config value resolved. Built once and
+        kept: a Config value is fixed at `connect()` (ADR-0004).
+        """
+        return self._channel_read.read(
+            self._outer_config.prefix,
+            lambda prefix: PubSub.validate(self._channel).add_prefix(prefix),
+        )
+
+        return self._channel_read
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        yield self.channel.address
 
     def get_log_context(
         self,

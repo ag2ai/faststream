@@ -74,7 +74,7 @@ Both examples subscribe to the literal MQTT topic `/root/{braced}`.
 
 ### Validation
 
-Templates that violate MQTT topic rules are rejected at subscriber creation with `SetupError`:
+Templates that violate MQTT topic rules are rejected when the broker connects, with `SetupError`:
 
 - `"/pre{name}/x"` or `"/{name}post/x"` — `{name}` does not occupy a whole topic level.
 - `"/{id}/x/{id}"` — duplicated parameter name.

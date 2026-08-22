@@ -1,7 +1,11 @@
 from abc import abstractmethod
 from typing import Any
 
+import pytest
+
 from faststream._internal.utils.path import Address
+from faststream.exceptions import SetupError
+from faststream.params import Path
 
 from .basic import BaseTestcaseConfig
 
@@ -15,6 +19,12 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
 
     template = "logs.{level}"
     broker_address: str
+
+    #: A plain address with no Path parameter in it.
+    literal = "logs.info"
+
+    #: An address the broker accepts that is not a valid Address template.
+    broken_template = "logs.${ENV"
 
     @abstractmethod
     def get_subscriber_address(self, subscriber: Any) -> Address:
@@ -45,12 +55,93 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         assert address.template == f"prefix_{self.template}"
         assert address.broker_address == f"prefix_{self.broker_address}"
 
+    def test_an_early_read_does_not_pin_an_outer_router_prefix(self) -> None:
+        """A read before `include_router` must not freeze the prefix it saw.
+
+        A Router included into another Router composes a longer prefix than its
+        endpoints saw when they were declared. An AsyncAPI render or a `repr`
+        taken in between is a legitimate read, and must not leave the endpoint
+        subscribing to the short prefix for the rest of its life.
+        """
+        broker = self.get_broker()
+        outer = self.get_router(prefix="outer_")
+        inner = self.get_router(prefix="inner_")
+
+        subscriber = self.declare_subscriber(inner, self.template)
+
+        # The read under test: taken while only the inner prefix is in scope.
+        assert self.get_subscriber_address(subscriber).template.startswith("inner_")
+
+        outer.include_router(inner)
+        broker.include_router(outer)
+
+        address = self.get_subscriber_address(broker.subscribers[0])
+        assert address.template == f"outer_inner_{self.template}"
+        assert address.broker_address == f"outer_inner_{self.broker_address}"
+
     def test_a_literal_address_is_its_own_broker_address(self) -> None:
         broker = self.get_broker()
 
-        subscriber = self.declare_subscriber(broker, "logs.info")
+        subscriber = self.declare_subscriber(broker, self.literal)
 
         address = self.get_subscriber_address(subscriber)
-        assert address.template == "logs.info"
-        assert address.broker_address == "logs.info"
+        assert address.template == self.literal
+        assert address.broker_address == self.literal
         assert address.regex is None
+
+    def test_the_compiled_address_is_kept_rather_than_re_derived(self) -> None:
+        """A Config value is fixed at `connect()`, so one read settles it (ADR-0004)."""
+        broker = self.get_broker()
+
+        subscriber = self.declare_subscriber(broker, self.template)
+
+        first = self.get_subscriber_address(subscriber)
+        assert self.get_subscriber_address(subscriber) is first
+
+
+class AddressCheckTestcase(AddressTemplateTestcase):
+    """What `connect()` refuses: an address that cannot deliver what was promised."""
+
+    @pytest.mark.asyncio()
+    async def test_a_path_parameter_with_a_capture_group_is_accepted(self) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @self.declare_subscriber(broker, self.template)
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+    @pytest.mark.asyncio()
+    async def test_a_path_parameter_without_a_capture_group_fails_at_connect(
+        self,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @self.declare_subscriber(broker, self.literal)
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        with pytest.raises(SetupError, match="level"):
+            async with self.patch_broker(broker):
+                pass
+
+    @pytest.mark.asyncio()
+    async def test_a_path_parameter_with_a_default_needs_no_capture_group(self) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @self.declare_subscriber(broker, self.literal)
+        async def handler(msg: Any, level: str = Path(default="unknown")) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+    @pytest.mark.asyncio()
+    async def test_an_address_that_is_not_a_template_fails_at_connect(self) -> None:
+        broker = self.get_broker()
+
+        @self.declare_subscriber(broker, self.broken_template)
+        async def handler(msg: Any) -> None: ...
+
+        with pytest.raises(SetupError, match=r"\$\{ENV"):
+            async with self.patch_broker(broker):
+                pass

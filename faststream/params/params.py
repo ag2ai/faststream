@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from faststream._internal.constants import EMPTY
+from faststream._internal.constants import EMPTY, PATH_CONTEXT_PREFIX
 from faststream._internal.context import Context as Context_
 
 
@@ -44,5 +44,5 @@ def Path(  # noqa: N802
         real_name=real_name,
         cast=cast,
         default=default,
-        prefix="message.path.",
+        prefix=PATH_CONTEXT_PREFIX,
     )

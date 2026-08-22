@@ -5,13 +5,13 @@ from typing_extensions import override
 
 from faststream._internal.utils.path import Address
 from faststream.redis.schemas import PubSub
-from tests.brokers.base.address import AddressTemplateTestcase
+from tests.brokers.base.address import AddressCheckTestcase
 
-from .basic import RedisTestcaseConfig
+from .basic import RedisMemoryTestcaseConfig
 
 
 @pytest.mark.redis()
-class TestRedisAddressTemplate(RedisTestcaseConfig, AddressTemplateTestcase):
+class TestRedisAddressTemplate(RedisMemoryTestcaseConfig, AddressCheckTestcase):
     broker_address = "logs.*"
 
     @override

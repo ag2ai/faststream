@@ -108,6 +108,15 @@ class ConfigResolutionMixin:
 
         return f"{self.prefix}{option}"
 
+    def config_key(self, option: Configurable[Any]) -> str | None:
+        """The Config value an option stands for, or `None` if it was written literally.
+
+        Read sites are the only place that still knows the difference — a resolved
+        value is indistinguishable from a literal one — so an error message that
+        wants to name the key to fix has to ask here.
+        """
+        return option.key if isinstance(option, Config) else None
+
     def resolve_option(self, option: Configurable[T]) -> T:
         """Return `option` itself, or the Config value it stands for."""
         if not isinstance(option, Config):

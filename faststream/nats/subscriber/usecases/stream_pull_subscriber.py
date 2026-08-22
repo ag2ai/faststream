@@ -124,7 +124,7 @@ class BatchPullStreamSubscriber(
         stream: "JStream",
         pull_sub: "PullSub",
     ) -> None:
-        parser = BatchParser(pattern=config.subject)
+        parser = BatchParser(regex=lambda: self.subject.regex)
         config.decoder = parser.decode_batch
         config.parser = parser.parse_batch
         super().__init__(config, specification, calls)

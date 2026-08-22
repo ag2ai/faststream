@@ -40,7 +40,7 @@ class KeyValueWatchSubscriber(
         *,
         kv_watch: "KvWatch",
     ) -> None:
-        parser = KvParser(pattern=config.subject)
+        parser = KvParser(regex=lambda: self.subject.regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)

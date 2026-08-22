@@ -48,10 +48,19 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
-        channel: PubSub,
+        channel: PubSub | str,
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
-        self.channel = channel
+        self._channel = channel
+        self._channel_read: PubSub | None = None
+
+    @property
+    def channel(self) -> PubSub:
+        """The channel this endpoint is documented under, built on first read."""
+        if self._channel_read is None:
+            self._channel_read = PubSub.validate(self._channel)
+
+        return self._channel_read
 
     @property
     def name(self) -> str:

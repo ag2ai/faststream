@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from faststream._internal._compat import dump_json, json_loads
 from faststream._internal.basic_types import DecodedMessage
@@ -19,6 +19,7 @@ from faststream.redis.message import (
 if TYPE_CHECKING:
     from re import Pattern
 
+    from faststream._internal.utils.path import RegexSource
     from faststream.message import StreamMessage
 
     from .message import MessageFormat
@@ -40,10 +41,19 @@ class SimpleParser:
     def __init__(
         self,
         config: "ParserConfig" = EMPTY,
-        pattern: Optional["Pattern[str]"] = None,
+        regex: "RegexSource" = None,
     ) -> None:
-        self.pattern = pattern
+        self._regex = regex
         self.config = config
+
+    @property
+    def pattern(self) -> "Pattern[str] | None":
+        """The channel's capture regex, asked for anew on every message.
+
+        The parser is built while its Subscriber is, before the channel is known
+        in full, so it holds the read rather than the compiled result.
+        """
+        return self._regex() if self._regex is not None else None
 
     async def parse_message(
         self,

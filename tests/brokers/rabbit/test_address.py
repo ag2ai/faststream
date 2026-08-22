@@ -5,13 +5,13 @@ from typing_extensions import override
 
 from faststream._internal.utils.path import Address
 from faststream.rabbit import RabbitQueue
-from tests.brokers.base.address import AddressTemplateTestcase
+from tests.brokers.base.address import AddressCheckTestcase
 
-from .basic import RabbitTestcaseConfig
+from .basic import RabbitMemoryTestcaseConfig
 
 
 @pytest.mark.rabbit()
-class TestRabbitAddressTemplate(RabbitTestcaseConfig, AddressTemplateTestcase):
+class TestRabbitAddressTemplate(RabbitMemoryTestcaseConfig, AddressCheckTestcase):
     broker_address = "logs.*"
 
     @override

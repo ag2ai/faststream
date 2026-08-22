@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from faststream._internal.endpoint.publisher import PublisherSpecification
 from faststream.rabbit.address import (
     as_declared,
+    as_declared_queue,
     broker_exchange,
     broker_queue,
     broker_routing_key,
@@ -44,7 +45,7 @@ class RabbitPublisherSpecification(
 
     @property
     def declared_queue(self) -> "RabbitQueue":
-        return as_declared(self._outer_config, self.config.queue)
+        return as_declared_queue(self._outer_config, self.config.queue)
 
     @property
     def declared_routing_key(self) -> str:

@@ -108,10 +108,22 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
+            self._check_addresses()
             self._connection = await self._connect()
             self._setup_logger()
 
         return self._connection
+
+    def _check_addresses(self) -> None:
+        """Read every Subscriber's addresses once, before a message can arrive.
+
+        This is the moment an address is first known in full — the Router prefix
+        composed, any Config value resolved — and the last one before the endpoint
+        starts consuming, so it is where an address that cannot deliver its
+        `Path()` parameters is refused.
+        """
+        for sub in self.subscribers:
+            sub.check_addresses()
 
     @abstractmethod
     async def _connect(self) -> ConnectionType:

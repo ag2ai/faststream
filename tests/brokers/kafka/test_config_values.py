@@ -6,6 +6,8 @@ import anyio
 import pytest
 
 from faststream import Config
+from faststream.exceptions import SetupError
+from faststream.params import Path
 from tests.brokers.base.config import ConfigOverrideTestcase
 
 from .basic import KafkaMemoryTestcaseConfig
@@ -121,3 +123,49 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
             }
 
         assert topics == {queue}, topics
+
+    @pytest.mark.asyncio()
+    async def test_a_config_value_holding_an_address_template_fills_path(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """A Config value is read as an Address template, exactly as a literal is."""
+        broker = self.get_broker(
+            apply_types=True,
+            config={"PATTERN": f"{queue}.{{level}}"},
+        )
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any, level: str = Path()) -> None:
+            mock(level)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", f"{queue}.info")
+
+        mock.assert_called_once_with("info")
+
+    @pytest.mark.asyncio()
+    async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True, config={"PATTERN": queue})
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        with pytest.raises(SetupError, match="PATTERN"):
+            async with self.patch_broker(broker):
+                pass
+
+    @pytest.mark.asyncio()
+    async def test_a_config_value_that_is_not_a_template_names_the_config_key(
+        self,
+    ) -> None:
+        broker = self.get_broker(config={"PATTERN": "logs.${ENV"})
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any) -> None: ...
+
+        with pytest.raises(SetupError, match="PATTERN"):
+            async with self.patch_broker(broker):
+                pass

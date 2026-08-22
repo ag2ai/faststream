@@ -55,8 +55,12 @@ async def test_wildcard_example() -> None:
 
 
 @pytest.mark.mqtt()
-def test_invalid_template_example() -> None:
+@pytest.mark.asyncio()
+async def test_invalid_template_example() -> None:
+    """A topic is compiled on first read, so a bad one surfaces at `connect()`."""
     broker = MQTTBroker("localhost", version="5.0")
+    broker.subscriber("/pre{name}/x")(lambda: None)
 
     with pytest.raises(SetupError):
-        broker.subscriber("/pre{name}/x")(lambda: None)
+        async with TestMQTTBroker(broker):
+            pass

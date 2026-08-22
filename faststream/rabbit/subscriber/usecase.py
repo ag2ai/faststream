@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -8,10 +8,15 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream.rabbit.address import as_declared, broker_exchange, broker_queue
+from faststream._internal.utils.path import PrefixedRead
+from faststream.rabbit.address import (
+    as_declared_queue,
+    broker_exchange,
+    broker_queue,
+)
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
-from faststream.rabbit.schemas import RabbitExchange
+from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITER
 
 if TYPE_CHECKING:
@@ -22,10 +27,10 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.specification import (
         SubscriberSpecification,
     )
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
-    from faststream.rabbit.schemas import RabbitQueue
 
     from .config import RabbitSubscriberConfig
 
@@ -41,7 +46,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        parser = AioPikaParser(pattern=config.queue.path_regex)
+        parser = AioPikaParser(regex=lambda: self.queue.path_regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(
@@ -51,6 +56,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         self._queue = config.queue
+        self._queue_read: PrefixedRead[RabbitQueue] = PrefixedRead()
         self._exchange = config.exchange
 
         self.consume_args = config.consume_args or {}
@@ -67,7 +73,23 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @property
     def queue(self) -> "RabbitQueue":
-        return broker_queue(self._outer_config, self._queue)
+        """The queue this Subscriber consumes from, and the routing key binding it.
+
+        The `RabbitQueue` is built here rather than at the declaration site,
+        because that is the first moment its addresses are known in full — the
+        Router prefix composed, and any Config value resolved.
+        Built once and kept: a Config value is fixed at `connect()` (ADR-0004).
+        """
+        return self._queue_read.read(
+            self._outer_config.prefix,
+            lambda _: broker_queue(self._outer_config, self._queue),
+        )
+
+        return self._queue_read
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        yield self.queue.routing_address
 
     @property
     def exchange(self) -> "RabbitExchange":
@@ -75,7 +97,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @property
     def declared_queue(self) -> "RabbitQueue":
-        return as_declared(self._outer_config, self._queue)
+        return as_declared_queue(self._outer_config, self._queue)
 
     def routing(self) -> str:
         return self.queue.routing()

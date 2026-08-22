@@ -11,39 +11,45 @@ endpoint reading through a shared point. RabbitMQ carries three addresses per
 endpoint instead of one, so the point is spelled out here and the endpoints'
 properties delegate to it.
 
+The value objects are built here too, rather than at the declaration site. They own
+their broker's address grammar — `RabbitQueue` compiles its routing key's Address
+template, and validates queue type against durability — and none of that can happen
+until the address is known in full, which is first true here (ADR-0004).
+
 These functions produce a Broker address — the address an endpoint actually gives
 to RabbitMQ. They perform no Config Resolution, which is a separate step under a
-reserved name (`ConfigResolutionMixin.resolve_address`); ticket 09 adds it behind
-these same points.
+reserved name (`ConfigResolutionMixin.resolve_address`); it arrives behind these
+same points, ahead of the `validate()` calls below.
 """
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, Union
+
+from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
     from faststream.rabbit.configs import RabbitBrokerConfig
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 T = TypeVar("T")
 
 
 def broker_queue(
     config: "RabbitBrokerConfig",
-    queue: "RabbitQueue",
+    queue: Union["RabbitQueue", str],
 ) -> "RabbitQueue":
     """Return the queue an endpoint declared, as it reaches the broker."""
-    return queue.add_prefix(config.prefix)
+    return RabbitQueue.validate(queue).add_prefix(config.prefix)
 
 
 def broker_exchange(
     config: "RabbitBrokerConfig",
-    exchange: "RabbitExchange",
+    exchange: Union["RabbitExchange", str],
 ) -> "RabbitExchange":
     """Return the exchange an endpoint declared, as it reaches the broker.
 
     An exchange lives outside the Router's namespace: the prefix decorates the
     queues and the routing keys binding them, never the exchange they bind to.
     """
-    return exchange
+    return RabbitExchange.validate(exchange)
 
 
 def broker_routing_key(config: "RabbitBrokerConfig", routing_key: str) -> str:
@@ -69,3 +75,11 @@ def as_declared(config: "RabbitBrokerConfig", option: T) -> T:
     address supplied from outside has one place to arrive at.
     """
     return option
+
+
+def as_declared_queue(
+    config: "RabbitBrokerConfig",
+    queue: Union["RabbitQueue", str],
+) -> "RabbitQueue":
+    """Return the queue an endpoint declared, undecorated. See `as_declared`."""
+    return RabbitQueue.validate(queue)

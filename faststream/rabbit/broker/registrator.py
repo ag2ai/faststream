@@ -77,7 +77,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             RabbitSubscriber: The subscriber specification object.
         """
         subscriber = create_subscriber(
-            queue=RabbitQueue.validate(queue),
+            queue=queue,
             exchange=RabbitExchange.validate(exchange),
             consume_args=consume_args,
             channel=channel,

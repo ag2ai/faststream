@@ -1,5 +1,4 @@
 from contextlib import suppress
-from re import Pattern
 from typing import TYPE_CHECKING, Any
 
 import zmqtt
@@ -11,6 +10,7 @@ from .message import MQTTMessage
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import DecodedMessage
+    from faststream._internal.utils.path import RegexSource
 
 
 class MQTTBaseParser:
@@ -18,14 +18,22 @@ class MQTTBaseParser:
 
     def __init__(
         self,
-        path_regex: Pattern[str] | None = None,
+        regex: "RegexSource" = None,
     ) -> None:
-        self._path_regex = path_regex
+        self._regex = regex
 
     def _extract_path(self, topic: str) -> dict[str, Any]:
-        if self._path_regex is None:
+        """Pull the Path parameters out of an incoming topic.
+
+        The regex is asked for anew on every message: the parser is built while
+        its Subscriber is, before the topic is known in full.
+        """
+        path_regex = self._regex() if self._regex is not None else None
+
+        if path_regex is None:
             return {}
-        match = self._path_regex.match(topic)
+
+        match = path_regex.match(topic)
         if match is None:
             return {}
         return match.groupdict()

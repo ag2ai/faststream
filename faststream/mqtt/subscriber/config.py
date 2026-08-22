@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from re import Pattern
 
 from zmqtt import QoS
 
@@ -26,7 +25,6 @@ class MQTTSubscriberConfig(SubscriberUsecaseConfig):
     topic: str
     qos: QoS = QoS.AT_MOST_ONCE
     shared: str | None = None
-    path_regex: Pattern[str] | None = None
 
     @property
     def ack_policy(self) -> AckPolicy:

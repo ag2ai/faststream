@@ -29,6 +29,7 @@ from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
+from .address import check_subscription_addresses
 from .call_item import (
     CallsCollection,
     HandlerItem,
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
         CustomCallable,
         Filter,
     )
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
     from faststream.response import Response
@@ -107,6 +109,19 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
         return self._outer_config.broker_middlewares
+
+    def subscription_addresses(self) -> Iterable["Address"]:
+        """Every address this Subscriber listens on, as its read layer answers them.
+
+        Read rather than declared: a Router prefix is composed and a Config value
+        resolved by the time these arrive, which is what makes them checkable.
+        Brokers with no Address templates answer with nothing and are not checked.
+        """
+        return ()
+
+    def check_addresses(self) -> None:
+        """Refuse at `connect()` what cannot work once messages start arriving."""
+        check_subscription_addresses(self.subscription_addresses(), self.calls)
 
     async def __aenter__(self) -> Self:
         await self.start()

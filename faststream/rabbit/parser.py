@@ -23,14 +23,24 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import DecodedMessage
     from faststream._internal.parser import CodecProto
+    from faststream._internal.utils.path import RegexSource
     from faststream.rabbit.types import AioPikaSendableMessage
 
 
 class AioPikaParser:
     """A class for parsing, encoding, and decoding messages using aio-pika."""
 
-    def __init__(self, pattern: Optional["Pattern[str]"] = None) -> None:
-        self.pattern = pattern
+    def __init__(self, regex: "RegexSource" = None) -> None:
+        self._regex = regex
+
+    @property
+    def pattern(self) -> "Pattern[str] | None":
+        """The routing key's capture regex, asked for anew on every message.
+
+        The parser is built while its Subscriber is, before the routing key is
+        known in full, so it holds the read rather than the compiled result.
+        """
+        return self._regex() if self._regex is not None else None
 
     async def parse_message(
         self,

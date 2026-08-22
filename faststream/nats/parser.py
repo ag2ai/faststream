@@ -11,14 +11,16 @@ from faststream.nats.message import (
     NatsMessage,
     NatsObjMessage,
 )
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from nats.aio.msg import Msg
     from nats.js.api import ObjectInfo
     from nats.js.kv import KeyValue
 
     from faststream._internal.basic_types import DecodedMessage
+    from faststream._internal.utils.path import RegexSource
 
 
 class NatsBaseParser:
@@ -27,10 +29,18 @@ class NatsBaseParser:
     def __init__(
         self,
         *,
-        pattern: str,
+        regex: "RegexSource" = None,
     ) -> None:
-        path_re, _ = compile_nats_wildcard(pattern)
-        self._path_re = path_re
+        self._regex = regex
+
+    @property
+    def _path_re(self) -> "Pattern[str] | None":
+        """The subject's capture regex, asked for anew on every message.
+
+        The parser is built while its Subscriber is, before the subject is known
+        in full, so it holds the read rather than the compiled result.
+        """
+        return self._regex() if self._regex is not None else None
 
     async def decode_message(
         self,
@@ -42,8 +52,8 @@ class NatsBaseParser:
 class NatsParser(NatsBaseParser):
     """A class to parse NATS core messages."""
 
-    def __init__(self, *, pattern: str, is_ack_disabled: bool) -> None:
-        super().__init__(pattern=pattern)
+    def __init__(self, *, regex: "RegexSource" = None, is_ack_disabled: bool) -> None:
+        super().__init__(regex=regex)
 
         self.is_ack_disabled = is_ack_disabled
 

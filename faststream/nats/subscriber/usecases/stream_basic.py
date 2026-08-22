@@ -33,7 +33,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         stream: "JStream",
         queue: str,
     ) -> None:
-        parser = JsParser(pattern=config.subject)
+        parser = JsParser(regex=lambda: self.subject.regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)

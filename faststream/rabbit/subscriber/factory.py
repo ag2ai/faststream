@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 def create_subscriber(
     *,
-    queue: "RabbitQueue",
+    queue: Union["RabbitQueue", str],
     exchange: "RabbitExchange",
     consume_args: dict[str, Any] | None,
     channel: Optional["Channel"],

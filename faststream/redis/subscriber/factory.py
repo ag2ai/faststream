@@ -60,7 +60,7 @@ def create_subscriber(
     )
 
     subscriber_config = RedisSubscriberConfig(
-        channel_sub=PubSub.validate(channel),
+        channel_sub=channel,
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
