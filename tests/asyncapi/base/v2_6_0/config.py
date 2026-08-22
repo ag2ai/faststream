@@ -1,7 +1,10 @@
 from typing import Any
 
+import pytest
+
 from faststream import Config, FastStream
 from faststream._internal.broker import BrokerUsecase
+from faststream.exceptions import SetupError
 from faststream.specification import AsyncAPI
 
 from .basic import AsyncAPI260Factory
@@ -56,19 +59,19 @@ class ConfigTestcase(AsyncAPI260Factory):
             schema["channels"]
         )
 
-    def test_excluded_endpoint_is_never_read(self) -> None:
-        """A value missing for an endpoint outside the schema is not an error here.
+    def test_an_excluded_endpoint_is_prepared_too(self) -> None:
+        """Generation prepares the whole Broker, not only what it renders.
 
-        It surfaces at startup instead, where the endpoint is actually used.
+        A value missing behind `include_in_schema=False` is a start-up failure
+        waiting to happen, and generation is where CI can see it coming.
         """
-        broker = self.get_broker(config={"IN": "resolved-address"})
+        broker = self.get_broker()
 
-        @broker.subscriber(Config("IN"))
+        @broker.subscriber("visible")
         async def handle() -> None: ...
 
         @broker.subscriber(Config("ABSENT"), include_in_schema=False)
         async def hidden() -> None: ...
 
-        schema = self.get_spec(broker).to_jsonable()
-
-        assert len(schema["channels"]) == 1, schema["channels"]
+        with pytest.raises(SetupError, match="ABSENT"):
+            self.get_spec(broker)

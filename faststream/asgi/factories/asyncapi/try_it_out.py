@@ -163,34 +163,33 @@ def make_try_it_out_handler(
     return try_it_out
 
 
-def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
-    """Destinations declared on the broker (``schema()`` key before ``:``)."""
-    destinations: set[str] = set()
-
-    for sub in broker.subscribers:
-        with suppress(Exception):
-            destinations.update(key.split(":", 1)[0] for key in sub.schema())
-
-    for pub in broker.publishers:
-        with suppress(Exception):
-            destinations.update(key.split(":", 1)[0] for key in pub.schema())
-
-    return destinations
-
-
 def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
-    """Full AsyncAPI channel keys declared on the broker."""
+    """Full AsyncAPI channel keys declared on the broker.
+
+    Rendering an endpoint reads what its Preparation derived, so each one is
+    prepared first: a no-op under a running application, and what makes a Broker
+    readable before one starts. An endpoint that refuses to prepare drops out of
+    the lookup exactly as one that refuses to render always has -- dispatch then
+    answers 404 for a destination it cannot see rather than failing the request.
+    """
     channels: set[str] = set()
 
     for sub in broker.subscribers:
         with suppress(Exception):
+            sub.prepare()
             channels.update(sub.schema())
 
     for pub in broker.publishers:
         with suppress(Exception):
+            pub.prepare()
             channels.update(pub.schema())
 
     return channels
+
+
+def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+    """Destinations declared on the broker (``schema()`` key before ``:``)."""
+    return {key.split(":", 1)[0] for key in _iter_broker_channels(broker)}
 
 
 @lru_cache(maxsize=1)

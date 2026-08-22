@@ -61,6 +61,13 @@ class AsyncAPI(SpecificationFactory):
         return self
 
     def to_specification(self) -> Specification:
+        # A CLI run has no start-up to hang the static checks off, and rendering is
+        # a read of resolved values, so Preparation happens here rather than at a
+        # lifecycle method -- as it does on every surface that renders a Broker.
+        # Idempotent: a Broker whose own lifespan prepared it pays nothing.
+        for broker in self.brokers:
+            broker._prepare()
+
         if self.schema_version.startswith("3."):
             from .v3_0_0 import get_app_schema as schema_3_0
 

@@ -513,5 +513,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         )
 
     def schema(self) -> dict[str, "SubscriberSpec"]:
-        self._build_fastdepends_model()
+        """This Subscriber's AsyncAPI channels, keyed by channel name.
+
+        Reads the FastDepends model Preparation built. Composing it here instead
+        would freeze the parser chain at whichever render landed first, which is
+        not a moment the lifecycle names.
+        """
         return self.specification.get_schema()
