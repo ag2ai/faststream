@@ -553,7 +553,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().subscriber(subscriber, persistent=persistent)
 
-        self._stream_builder.add_subject(stream, subscriber.subject)
+        self._stream_builder.add_subject(stream, subscriber.subject.template)
 
         return subscriber.add_call(
             parser_=parser,
@@ -621,7 +621,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().publisher(publisher, persistent=persistent)
 
-        self._stream_builder.add_subject(stream, publisher.subject)
+        self._stream_builder.add_subject(stream, publisher.subject.template)
 
         return publisher
 

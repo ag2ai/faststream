@@ -558,7 +558,12 @@ class ChannelVisitor(Visitor):
             type="message",
             data=body,
             channel=channel,
-            pattern=sub.channel.pattern.encode() if sub.channel.pattern else None,
+            # Real Redis reports the pattern it was psubscribed with; this keeps
+            # reporting the template, as it did before the two were split apart.
+            # Aligning it belongs with #2450, which gives the template a meaning.
+            pattern=sub.channel.address.template.encode()
+            if sub.channel.pattern
+            else None,
         )
 
 
