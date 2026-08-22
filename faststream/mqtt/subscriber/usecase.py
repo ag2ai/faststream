@@ -147,6 +147,11 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         super()._prepare()
 
     @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._address.reset()
+
+    @override
     async def start(self) -> None:
         await super().start()
 

@@ -271,6 +271,11 @@ class TestBroker(Generic[Broker, EnterType]):
             for call in sub.calls:
                 call.handler.reset_test()
 
+        # The test double for clearing the connection: `stop` is patched out on
+        # an in-memory Broker, so this is the moment Preparation is undone and
+        # a second context over the same Broker prepares against its own values.
+        broker._invalidate()
+
     @abstractmethod
     def create_publisher_fake_subscriber(
         self,

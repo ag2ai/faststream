@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
+from typing_extensions import override
+
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream.redis.address import AddressRead
 from faststream.redis.configs import RedisBrokerConfig
@@ -55,6 +57,10 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
         super().__init__(_outer_config, specification_config, calls)
         self._channel = AddressRead(channel, PubSub)
 
+    @override
+    def invalidate(self) -> None:
+        self._channel.reset()
+
     @property
     def channel(self) -> PubSub:
         """The channel this endpoint is documented under, built on first read."""
@@ -90,6 +96,10 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
         super().__init__(_outer_config, specification_config, calls)
         self._list_sub = AddressRead(list_sub, ListSub)
 
+    @override
+    def invalidate(self) -> None:
+        self._list_sub.reset()
+
     @property
     def list_sub(self) -> ListSub:
         """The list this endpoint is documented under, built on first read."""
@@ -124,6 +134,10 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
         self._stream_sub = AddressRead(stream_sub, StreamSub)
+
+    @override
+    def invalidate(self) -> None:
+        self._stream_sub.reset()
 
     @property
     def stream_sub(self) -> StreamSub:

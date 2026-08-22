@@ -106,6 +106,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return pattern.regex if pattern is not None else None
 
     @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._compiled_address.reset()
+
+    @override
     def subscription_addresses(self) -> Iterable[Address]:
         config = self._outer_config
 

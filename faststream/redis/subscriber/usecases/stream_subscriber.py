@@ -91,6 +91,11 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         self.autoclaim_start_id = b"0-0"
 
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._stream_sub.reset()
+
     @property
     def stream_sub(self) -> "StreamSub":
         """The stream this Subscriber reads, built on first read.

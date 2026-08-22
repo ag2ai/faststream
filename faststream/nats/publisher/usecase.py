@@ -79,6 +79,11 @@ class LogicPublisher(PublisherUsecase):
 
         return self._resolved_stream
 
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._resolved_stream = None
+
     @overload
     async def publish(
         self,

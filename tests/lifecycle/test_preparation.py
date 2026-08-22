@@ -182,3 +182,54 @@ async def test_entering_a_broker_directly_refuses_the_declaration() -> None:
     with pytest.raises(ValueError, match="codec"):
         async with broker:
             pass  # pragma: no cover
+
+
+@pytest.mark.asyncio()
+async def test_a_restarted_broker_picks_up_values_that_changed_in_between(
+    queue: str,
+) -> None:
+    """A Config value is fixed at every `connect()`, not only at the first.
+
+    Read through a pattern, which is the Kafka address that is derived once and
+    kept; a topic is read through the composition on every read and would pass
+    this whether Preparation were undone or not.
+    """
+    values = {"PATTERN": f"first-{queue}.*"}
+    broker = KafkaBroker(NOWHERE, config=values)
+
+    @broker.subscriber(pattern=Config("PATTERN"))
+    async def handler(msg: Any) -> None: ...
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish("hello", f"first-{queue}-1")
+        handler.mock.assert_called_once_with("hello")
+
+    values["PATTERN"] = f"second-{queue}.*"
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish("hello", f"second-{queue}-1")
+        handler.mock.assert_called_once_with("hello")
+
+
+@pytest.mark.asyncio()
+async def test_undoing_and_redoing_preparation_accumulates_nothing(
+    queue: str,
+) -> None:
+    """Re-preparing costs the re-derivation and nothing else."""
+    broker = KafkaBroker(NOWHERE)
+
+    @broker.subscriber(queue)
+    async def handler(msg: Any) -> None: ...
+
+    (subscriber,) = broker.subscribers
+    calls = len(subscriber.calls)
+
+    for _ in range(3):
+        broker._prepare()
+        broker._invalidate()
+
+    assert len(subscriber.calls) == calls
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish("hello", queue)
+        handler.mock.assert_called_once_with("hello")

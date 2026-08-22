@@ -62,6 +62,11 @@ class KeyValueWatchSubscriber(
         return self._resolved_kv_watch
 
     @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._resolved_kv_watch = None
+
+    @override
     async def get_one(
         self,
         *,

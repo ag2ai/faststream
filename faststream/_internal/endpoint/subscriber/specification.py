@@ -36,6 +36,14 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
         self.config = specification_config
         self._outer_config = _outer_config
 
+    def invalidate(self) -> None:
+        """Forget whatever this Specification kept from the composition.
+
+        Nothing, unless it reads an address of its own. Schema generation
+        prepares the Brokers it renders, so a Specification memoises on the
+        same terms an endpoint does and is undone at the same moment.
+        """
+
     @property
     def include_in_schema(self) -> bool:
         return bool(

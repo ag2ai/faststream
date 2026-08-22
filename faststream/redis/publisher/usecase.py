@@ -81,6 +81,11 @@ class ChannelPublisher(LogicPublisher):
 
         self._channel = AddressRead(channel, PubSub)
 
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._channel.reset()
+
     @property
     def channel(self) -> "PubSub":
         """The channel this Publisher sends to, built on first read."""
@@ -185,6 +190,11 @@ class ListPublisher(LogicPublisher):
         super().__init__(config, specification)
 
         self._list = AddressRead(list, ListSub, built_as={"batch": self.batch})
+
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._list.reset()
 
     @property
     def list(self) -> "ListSub":
@@ -341,6 +351,11 @@ class StreamPublisher(LogicPublisher):
     ) -> None:
         super().__init__(config, specification)
         self._stream = AddressRead(stream, StreamSub)
+
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._stream.reset()
 
     @property
     def stream(self) -> "StreamSub":

@@ -45,9 +45,10 @@ class ConfigTestcase(BaseTestcaseConfig):
         broker: Any,
         address: str,
         event: asyncio.Event,
+        body: Any = "hello",
     ) -> None:
         await broker.start()
-        await broker.publish("hello", address)
+        await broker.publish(body, address)
 
         with anyio.move_on_after(self.timeout):
             await event.wait()
@@ -408,3 +409,30 @@ class ConfigOverrideTestcase(ConfigTestcase):
 
         async with self.patch_broker(broker, config={"IN": queue}) as br:
             await self.assert_consume(br, queue, event)
+
+    @pytest.mark.asyncio()
+    async def test_a_second_context_uses_its_own_values(self, queue: str) -> None:
+        """Each context prepares the Broker anew, against the values it was given.
+
+        ADR-0004 fixes a Config value at `connect()`. Without invalidation the
+        code fixes it at the *first* `connect()`, and the second context here
+        would listen on — and publish to — the first one's address.
+        """
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(Config("IN"))
+
+        events = {
+            f"first-{queue}": asyncio.Event(),
+            f"second-{queue}": asyncio.Event(),
+        }
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any) -> None:
+            events[msg].set()
+
+        for address, event in events.items():
+            async with self.patch_broker(broker, config={"IN": address}) as br:
+                # The body names the address, so each context's handler is seen
+                # to have received what that context published.
+                await self.assert_consume(br, address, event, body=address)

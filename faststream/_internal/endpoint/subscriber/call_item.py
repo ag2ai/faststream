@@ -84,9 +84,11 @@ class HandlerItem(Generic[MsgType]):
         broker_dependencies: Iterable["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
-        if self.dependant is None:
-            self.parser = parser
-            self.decoder = decoder
+        # Written on every composition rather than only the first: Preparation
+        # is undone with the connection, and a re-prepared endpoint composing
+        # against new Config values must not keep the old chain.
+        self.parser = parser
+        self.decoder = decoder
 
         self.dependant = self.handler.set_wrapped(
             dependencies=(*broker_dependencies, *self.dependencies),

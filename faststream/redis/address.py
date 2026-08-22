@@ -69,6 +69,13 @@ class AddressRead(Generic[AddressType]):
             lambda prefix: self._build(config, prefix),
         )
 
+    def reset(self) -> None:
+        """Forget the built address, so the next read builds it again.
+
+        Undone with the connection the Config value was fixed for (ADR-0004).
+        """
+        self._read.reset()
+
     def config_key(self, config: "BrokerConfig") -> str | None:
         """The Config key this address was declared with, or `None` if literal.
 

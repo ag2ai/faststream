@@ -56,6 +56,11 @@ class _ListHandlerMixin(LogicSubscriber):
             built_as={"batch": self.batch},
         )
 
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._list_sub.reset()
+
     @property
     def list_sub(self) -> "ListSub":
         """The list this Subscriber pops from, built on first read.

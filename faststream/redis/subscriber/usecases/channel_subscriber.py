@@ -51,6 +51,11 @@ class ChannelSubscriber(LogicSubscriber):
         self._channel = AddressRead(config.channel_sub, PubSub)
         self.subscription: RPubSub | None = None
 
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._channel.reset()
+
     @property
     def channel(self) -> "PubSub":
         """The channel this Subscriber (p)subscribes to.

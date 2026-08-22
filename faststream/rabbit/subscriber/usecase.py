@@ -86,6 +86,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
     @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._queue_read.reset()
+
+    @override
     def subscription_addresses(self) -> Iterable["Address"]:
         yield self.queue.routing_address
 

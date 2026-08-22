@@ -236,6 +236,39 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
                 pass
 
 
+    def test_a_restart_declares_the_stream_with_the_current_subjects_only(
+        self,
+        queue: str,
+    ) -> None:
+        """A subject resolved from a Config value goes with the connection that fixed it.
+
+        Stream subjects are collected in `start()` rather than in Preparation, so
+        this reads the builder directly: an in-memory Broker never runs the NATS
+        `start()` that collects them, and a real one would have to declare the
+        stream twice to show the same thing.
+        """
+        values = {"IN": f"first.{queue}"}
+        broker = self.get_broker(config=values)
+
+        @broker.subscriber(Config("IN"), stream=f"{queue}-stream")
+        async def handler(msg: Any) -> None: ...
+
+        def collected() -> list[str]:
+            _, subjects = broker._stream_builder.objects[f"{queue}-stream"]
+            return list(subjects)
+
+        broker._prepare()
+        broker._collect_stream_subjects()
+        assert collected() == [f"first.{queue}"]
+
+        broker._invalidate()
+        values["IN"] = f"second.{queue}"
+
+        broker._prepare()
+        broker._collect_stream_subjects()
+        assert collected() == [f"second.{queue}"]
+
+
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestConfigValuesConnected(NatsTestcaseConfig):

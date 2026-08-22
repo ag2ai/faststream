@@ -138,6 +138,20 @@ class BrokerUsecase(
 
         self._setup_logger()
 
+    def _invalidate(self) -> None:
+        """Undo Preparation across every endpoint.
+
+        The counterpart of `_prepare`, driven where the connection is cleared,
+        so that a stopped Broker prepares again on its next `connect()` — which
+        is what "a Config value is fixed at `connect()`" (ADR-0004) means for a
+        Broker used twice.
+        """
+        for sub in self.subscribers:
+            sub.invalidate()
+
+        for pub in self.publishers:
+            pub.invalidate()
+
     @abstractmethod
     async def _connect(self) -> ConnectionType:
         raise NotImplementedError
@@ -153,6 +167,10 @@ class BrokerUsecase(
             await sub.stop()
 
         self.running = False
+
+        # After the Subscribers have stopped reading through their addresses,
+        # and before the next `connect()` derives them again.
+        self._invalidate()
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

@@ -38,6 +38,10 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     future: Optional["asyncio.Future[Any]"]
     _wrapped_call: Callable[..., Awaitable[Any]] | None
+    # The handler as it was written, kept as written so that composing it again
+    # from an unchanged declaration produces an unchanged result.
+    _declared_call: Callable[P_HandlerParams, T_HandlerReturn]
+    # What the last composition made of it, decorators applied.
     _original_call: Callable[P_HandlerParams, T_HandlerReturn]
 
     _publishers: list["PublisherProto[Any]"]
@@ -47,6 +51,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     _subscribers: list["SubscriberUsecase[Any]"]
 
     __slots__ = (
+        "_declared_call",
         "_original_call",
         "_publishers",
         "_subscribers",
@@ -61,6 +66,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         call: Callable[P_HandlerParams, T_HandlerReturn],
     ) -> None:
         """Initialize a handler."""
+        self._declared_call = call
         self._original_call = call
         self._wrapped_call = None
 
@@ -96,8 +102,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         _call_decorators: Reversible["Decorator"],
         config: "FastDependsConfig",
     ) -> "CallModel":
+        # Composed from the declaration rather than from the last composition:
+        # `build_call` answers with the call it decorated, so reading that back
+        # as the input would decorate it again — a layer per Preparation, and
+        # Preparation happens once per connection.
         dependent = config.build_call(
-            self._original_call,
+            self._declared_call,
             dependencies=dependencies,
             call_decorators=_call_decorators,
         )

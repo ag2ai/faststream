@@ -504,15 +504,20 @@ class NatsBroker(
         stream builder. Here the Config values are in scope and both read. Adding
         a subject already registered is a no-op, so endpoints declared literally
         pass through this unchanged.
+
+        Handed to the builder as one collection rather than added one at a time,
+        so that what a previous connection collected goes with it.
         """
         endpoints: Iterable[LogicSubscriber[Any] | LogicPublisher] = chain(
             cast("Iterable[LogicSubscriber[Any]]", self.subscribers),
             cast("Iterable[LogicPublisher]", self.publishers),
         )
 
-        for endpoint in endpoints:
-            if (stream := endpoint.stream) is not None:
-                self._stream_builder.add_subject(stream, endpoint.subject.template)
+        self._stream_builder.collect(
+            (endpoint.stream, endpoint.subject.template)
+            for endpoint in endpoints
+            if endpoint.stream is not None
+        )
 
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""

@@ -54,6 +54,11 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self._extra_options = config.extra_options or {}
 
+        # What the consumer options were declared with, so that a durable name
+        # filled in from a Config value can be filled in again, against the
+        # values of the next connection.
+        self._declared_durable_name = config.sub_config.durable_name
+
         self._subject_address: PrefixedRead[Address] = PrefixedRead()
         self._filter_addresses: PrefixedRead[list[Address]] = PrefixedRead()
         self._resolved_stream: JStream | None = None
@@ -114,10 +119,12 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         """The JetStream consumer options, with the durable name filled into them.
 
         The registrar used to fill it, but a `durable` placeholder has nothing to
-        resolve against there. It is the same one-shot write into the same options
-        object, only later — a Config value is fixed at `connect()` (ADR-0004).
+        resolve against there. It is the same write into the same options object,
+        only later — and driven off what was *declared* rather than off what is
+        in the object, so that a name filled in for one connection is not read
+        back as a declaration by the next one (ADR-0004).
         """
-        if self._sub_config.durable_name is None:
+        if self._declared_durable_name is None:
             self._sub_config.durable_name = self.durable
 
         return self._sub_config
@@ -146,6 +153,13 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     @property
     def filter_subjects(self) -> list[str]:
         return [address.broker_address for address in self.filter_addresses]
+
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._subject_address.reset()
+        self._filter_addresses.reset()
+        self._resolved_stream = None
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:

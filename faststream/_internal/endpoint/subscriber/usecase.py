@@ -137,6 +137,17 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._build_fastdepends_model()
         self.lock = MultiLock()
 
+    @override
+    def _invalidate(self) -> None:
+        """Everything derived above, forgotten with the connection it was for.
+
+        The composed parser and decoder chain needs nothing here — it is written
+        on every composition rather than only the first — so what is left is the
+        Specification's own address reads, which schema generation makes as real
+        as the endpoint's.
+        """
+        self.specification.invalidate()
+
     async def __aenter__(self) -> Self:
         await self.start()
         return self

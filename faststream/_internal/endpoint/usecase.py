@@ -36,6 +36,30 @@ class Endpoint:
         contract: an implementation that needs the network belongs in `start()`.
         """
 
+    def invalidate(self) -> None:
+        """Undo Preparation, so the next `connect()` performs it again.
+
+        ADR-0004 fixes a Config value at `connect()`. Everything derived from
+        the composition is kept rather than re-derived on every read, which
+        without this would fix the value at the *first* `connect()` instead —
+        a second `TestBroker` context over one Broker would silently reuse the
+        first context's addresses.
+
+        Driven wherever the connection is cleared, and unconditional rather
+        than guarded by `_prepared`: a read taken outside any connection — an
+        AsyncAPI render, a `repr` — fills the same memos without preparing
+        anything.
+        """
+        self._prepared = False
+        self._invalidate()
+
+    def _invalidate(self) -> None:
+        """Whatever this endpoint kept while it was prepared.
+
+        Nothing, unless an endpoint keeps something. The mirror of `_prepare`:
+        an endpoint that derives an address once names here what to forget.
+        """
+
     def __call__(
         self,
         func: Callable[P_HandlerParams, T_HandlerReturn],
