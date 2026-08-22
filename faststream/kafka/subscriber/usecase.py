@@ -2,18 +2,19 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, AddressSyntax, PrefixedRead
+from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -37,6 +38,19 @@ KAFKA_ADDRESS_SYNTAX = AddressSyntax(
     replace_symbol=".*",
     patch_regex=lambda x: x.replace(r"\*", ".*"),
 )
+
+
+class _ResolvedAddresses(NamedTuple):
+    """What a Kafka Subscriber listens on, once its composition is final.
+
+    Resolved together and written once, so that the four reads below cannot
+    disagree with each other or with what the consumer subscribed to.
+    """
+
+    topics: list[str]
+    partitions: list[TopicPartition]
+    group_id: str | None
+    pattern: Address | None
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -64,81 +78,90 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._pattern = config.pattern
         self._listener = config.listener
         self._connection_args = config.connection_args
+        self._msg_class = KafkaMessage if config.ack_first else KafkaAckableMessage
 
-        self._compiled_address: PrefixedRead[Address] = PrefixedRead()
+        self._resolved: Resolved[_ResolvedAddresses] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
+        )
 
         self.consumer = None
 
-    @property
-    def group_id(self) -> str | None:
-        return self._outer_config.resolve_option(self._group_id)
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber listens on, before anything reads it.
 
-    @property
-    def pattern(self) -> Address | None:
-        """The pattern this Subscriber was declared with, and its Broker address.
-
-        Kafka patterns are plain strings, so — unlike the brokers whose addresses
-        are value objects — there is no constructor to build the Address inside
-        after resolution. Built on first read and kept: a Config value is fixed at
-        `connect()`, so there is nothing to re-derive it for (ADR-0004).
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads these values back as fields.
         """
-        if not (declared := self._pattern):
-            return None
-
         config = self._outer_config
 
-        return self._compiled_address.read(
-            config.prefix,
-            lambda _: Address(
+        pattern: Address | None = None
+        if declared := self._pattern:
+            pattern = Address(
                 config.resolve_address(declared),
                 KAFKA_ADDRESS_SYNTAX,
                 config.config_key(declared),
+            )
+
+        self._resolved.set(
+            _ResolvedAddresses(
+                topics=[config.resolve_address(t) for t in self._topics],
+                partitions=[
+                    TopicPartition(
+                        topic=config.resolve_address(p.topic),
+                        partition=p.partition,
+                    )
+                    for p in self._partitions
+                ],
+                group_id=config.resolve_option(self._group_id),
+                pattern=pattern,
             ),
         )
 
-    def get_pattern_regex(self) -> "Pattern[str] | None":
-        """The regex pulling path parameters out of a topic name, if any.
+        super()._prepare()
 
-        A method rather than a property because the parser holds on to it and
-        asks per message, the pattern being read through this Subscriber.
+    @property
+    def group_id(self) -> str | None:
+        return self._resolved.get().group_id
+
+    @property
+    def pattern(self) -> Address | None:
+        """The pattern this Subscriber was declared with, and its Broker address."""
+        return self._resolved.get().pattern
+
+    def _pattern_regex(self) -> "Pattern[str] | None":
+        """The regex pulling Path parameters out of an incoming topic name, if any.
+
+        Read once, during Preparation, and handed to the parser as a value: the
+        pattern it compiles from is resolved by then and stays so for as long as
+        the parser lives.
         """
         pattern = self.pattern
         return pattern.regex if pattern is not None else None
 
     @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._compiled_address.reset()
-
-    @override
     def subscription_addresses(self) -> Iterable[Address]:
-        config = self._outer_config
-
         if (pattern := self.pattern) is not None:
             yield pattern
             return
 
+        config = self._outer_config
+
         # Topics are never compiled — `topics` hands them to the broker verbatim —
-        # so they are read as literal addresses, holding no capture group.
-        for topic in self._topics:
-            yield Address.literal(
-                config.resolve_address(topic),
-                config.config_key(topic),
-            )
+        # so they are read as literal addresses, holding no capture group. The
+        # declared option travels alongside so that a failure can name the Config
+        # value the topic came from.
+        for declared, topic in zip(self._topics, self.topics, strict=True):
+            yield Address.literal(topic, config.config_key(declared))
 
     @property
     def topics(self) -> list[str]:
-        return [self._outer_config.resolve_address(t) for t in self._topics]
+        return self._resolved.get().topics
 
     @property
     def partitions(self) -> list[TopicPartition]:
-        return [
-            TopicPartition(
-                topic=self._outer_config.resolve_address(p.topic),
-                partition=p.partition,
-            )
-            for p in self._partitions
-        ]
+        return self._resolved.get().partitions
 
     @property
     def builder(self) -> Callable[..., "AIOKafkaConsumer"]:
@@ -328,19 +351,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
-    def __init__(
-        self,
-        config: "KafkaSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[ConsumerRecord]",
-    ) -> None:
+    @override
+    def _build_parser(self) -> None:
         self.parser = AioKafkaParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=self.get_pattern_regex,
+            msg_class=self._msg_class,
+            regex=self._pattern_regex(),
         )
-        config.parser = self.parser.parse_message
-        config.decoder = self.parser.decode_message
-        super().__init__(config, specification, calls)
+        self._parser = self.parser.parse_message
+        self._decoder = self.parser.decode_message
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."
@@ -371,16 +389,19 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
-        self.parser = AioKafkaBatchParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=self.get_pattern_regex,
-        )
-        config.decoder = self.parser.decode_batch
-        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.batch_timeout_ms = batch_timeout_ms
         self.max_records = max_records
+
+    @override
+    def _build_parser(self) -> None:
+        self.parser = AioKafkaBatchParser(
+            msg_class=self._msg_class,
+            regex=self._pattern_regex(),
+        )
+        self._parser = self.parser.parse_batch
+        self._decoder = self.parser.decode_batch
 
     async def get_msg(
         self,

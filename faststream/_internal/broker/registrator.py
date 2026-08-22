@@ -16,7 +16,17 @@ if TYPE_CHECKING:
 class Registrator(Generic[MsgType, BrokerConfigType]):
     """Basic class for brokers and routers.
 
-    Contains subscribers & publishers registration logic only.
+    Contains subscribers & publishers registration logic only — plus the one
+    thing registering can trigger: an endpoint attached to an already-prepared
+    Broker prepares at attachment, having missed the Broker's own pass.
+    """
+
+    _prepared = False
+    """Whether Preparation has run over what is registered here.
+
+    Only a Broker ever prepares. A Router is a declaration site composed into
+    one, so this stays false for the whole of its life and an endpoint declared
+    on it waits for the Broker that includes it.
     """
 
     def __init__(
@@ -83,6 +93,15 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self._publishers.add(publisher)
         if persistent:
             self.__persistent_publishers.append(publisher)
+
+        # A Publisher carries no handlers, so nothing else is coming for it: on a
+        # prepared Broker, attachment is the moment everything Preparation reads
+        # is final. A Subscriber attached now waits for its own `start()`
+        # instead, because its handlers arrive after `broker.subscriber(...)`
+        # has returned.
+        if self._prepared:
+            publisher.prepare()
+
         return publisher
 
     def include_router(
@@ -109,6 +128,14 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
 
         router.config.add_config(self.config)
         self.routers.append(router)
+
+        # Attachment through a Router is still attachment: on a prepared Broker,
+        # the composition these Publishers resolve against is final the moment
+        # the inclusion composes it. Their Subscribers wait for their own
+        # `start()`, as an individually attached one does.
+        if self._prepared:
+            for publisher in router.publishers:
+                publisher.prepare()
 
     @property
     def parent(self) -> "Registrator[MsgType, Any] | None":

@@ -94,7 +94,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     @overload
@@ -103,7 +103,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *brokers: MQTTBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     def __init__(
@@ -111,13 +111,13 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         *brokers: MQTTBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
         super().__init__(
             *brokers,
             with_real=with_real,
             connect_only=connect_only,
-            config=config,
+            config_values=config_values,
         )
 
     def create_publisher_fake_subscriber(
@@ -136,9 +136,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
             is_real = False
             sub = broker.subscriber(publisher.topic, persistent=False)
             # Apply the correct version parser so fake subs match FakeProducer output.
-            parser = sub._build_parser()
-            sub._parser = parser.parse_message
-            sub._decoder = parser.decode_message
+            sub._build_parser()
         else:
             is_real = True
 
@@ -149,9 +147,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         # (preserving each subscriber's own path_regex) before patch_broker_calls
         # builds the fastdepends model.
         for sub in cast("list[MQTTBaseSubscriber]", broker.subscribers):
-            parser = sub._build_parser()
-            sub._parser = parser.parse_message
-            sub._decoder = parser.decode_message
+            sub._build_parser()
         super()._fake_start(broker, *args, **kwargs)
 
     @contextmanager

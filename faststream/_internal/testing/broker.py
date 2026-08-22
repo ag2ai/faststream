@@ -65,11 +65,11 @@ class TestBroker(Generic[Broker, EnterType]):
         *brokers: Broker,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: ConfigSource = None,
+        config_values: ConfigSource = None,
     ) -> None:
         self.with_real = with_real
         self.brokers = brokers
-        self.config_values = config
+        self.config_values = config_values
 
         if connect_only is None:
             try:
@@ -116,12 +116,16 @@ class TestBroker(Generic[Broker, EnterType]):
             for broker in self.brokers:
                 stack.enter_context(self._patch_config_values(broker))
 
-                if self.with_real:
-                    self._fake_start(broker)
-                else:
+                if not self.with_real:
                     stack.enter_context(self._patch_broker(broker))
 
                 await stack.enter_async_context(broker)
+
+                # After the connection, because it reads a Publisher's
+                # destination and Preparation is what resolves one. An in-memory
+                # Broker reaches the same call through its patched `start`.
+                if self.with_real:
+                    self._fake_start(broker)
 
                 for sub in broker.subscribers:
                     saved_running[sub] = sub.running
@@ -158,12 +162,18 @@ class TestBroker(Generic[Broker, EnterType]):
             composition.config_values_override,
             self.config_values,
         )
+        # Both edges, because both are a change of the values in scope. Entering
+        # is as much a change as leaving: a Broker already prepared -- by an
+        # earlier context, or by an AsyncAPI render -- would otherwise keep the
+        # addresses derived against the values this context just replaced.
+        broker.invalidate()
 
         try:
             yield
 
         finally:
             composition.config_values_override = saved
+            broker.invalidate()
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
@@ -171,8 +181,11 @@ class TestBroker(Generic[Broker, EnterType]):
 
     @contextmanager
     def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
-        broker._setup_logger()
-
+        # No `_setup_logger` here: it reads every Subscriber's log context,
+        # which reads their resolved addresses, and this runs before the
+        # connection that resolves them. Preparation performs that step itself,
+        # and finds the mock already in place — it builds a logger only where
+        # there is not one.
         logger_state = broker.config.logger
 
         old_log_object, logger_state.logger = (
@@ -234,6 +247,11 @@ class TestBroker(Generic[Broker, EnterType]):
                 async def publisher_response_subscriber(msg: Any) -> None:
                     pass
 
+            # As soon as its handler is attached, rather than once the loop is
+            # done: the next Publisher scans every Subscriber for a match, and
+            # reads the addresses of the fake one just created.
+            sub.prepare()
+
             if is_real:
                 mock = MagicMock()
                 publisher.set_test(mock=mock, with_fake=False)
@@ -270,11 +288,6 @@ class TestBroker(Generic[Broker, EnterType]):
             sub.running = False
             for call in sub.calls:
                 call.handler.reset_test()
-
-        # The test double for clearing the connection: `stop` is patched out on
-        # an in-memory Broker, so this is the moment Preparation is undone and
-        # a second context over the same Broker prepares against its own values.
-        broker._invalidate()
 
     @abstractmethod
     def create_publisher_fake_subscriber(

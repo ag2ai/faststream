@@ -108,12 +108,12 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
-            self._prepare()
+            self.prepare()
             self._connection = await self._connect()
 
         return self._connection
 
-    def _prepare(self) -> None:
+    def prepare(self) -> None:
         """Preparation: everything derivable from the options composition, no I/O.
 
         The moment the composition is final — the Router prefix composed, the
@@ -129,6 +129,8 @@ class BrokerUsecase(
         loop at all. No flag guards this method: the endpoints carry their own,
         and both logger steps already settle — registering a log context widens a
         column width, and the logger object is built only if there is not one.
+        The flag it does keep records that this happened, for the sake of an
+        endpoint attached afterwards.
         """
         for sub in self.subscribers:
             sub.prepare()
@@ -138,14 +140,18 @@ class BrokerUsecase(
 
         self._setup_logger()
 
-    def _invalidate(self) -> None:
+        self._prepared = True
+
+    def invalidate(self) -> None:
         """Undo Preparation across every endpoint.
 
-        The counterpart of `_prepare`, driven where the connection is cleared,
+        The counterpart of `prepare`, driven where the connection is cleared,
         so that a stopped Broker prepares again on its next `connect()` — which
         is what "a Config value is fixed at `connect()`" (ADR-0004) means for a
         Broker used twice.
         """
+        self._prepared = False
+
         for sub in self.subscribers:
             sub.invalidate()
 
@@ -170,7 +176,7 @@ class BrokerUsecase(
 
         # After the Subscribers have stopped reading through their addresses,
         # and before the next `connect()` derives them again.
-        self._invalidate()
+        self.invalidate()
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

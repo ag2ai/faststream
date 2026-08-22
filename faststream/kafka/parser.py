@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
 
     from faststream._internal.basic_types import DecodedMessage
-    from faststream._internal.utils.path import RegexSource
     from faststream.message import StreamMessage
 
 
@@ -25,16 +24,18 @@ class AioKafkaParser:
     def __init__(
         self,
         msg_class: type[KafkaMessage],
-        regex: "RegexSource",
+        regex: "Pattern[str] | None",
     ) -> None:
         self.msg_class = msg_class
-        self._regex = regex
+
+        self.regex = regex
+        """Captures each Path parameter out of an incoming topic name.
+
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the pattern it compiles from is resolved.
+        """
 
         self._consumer: ConsumerProtocol = FAKE_CONSUMER
-
-    @property
-    def regex(self) -> "Pattern[str] | None":
-        return self._regex() if self._regex is not None else None
 
     def _setup(self, consumer: ConsumerProtocol) -> None:
         self._consumer = consumer

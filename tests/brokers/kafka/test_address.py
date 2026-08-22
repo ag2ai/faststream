@@ -4,7 +4,7 @@ import pytest
 from typing_extensions import override
 
 from faststream._internal.utils.path import Address
-from faststream.exceptions import SetupError
+from faststream.exceptions import IncorrectState, SetupError
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 from faststream.params import Path
 from tests.brokers.base.address import AddressCheckTestcase
@@ -24,10 +24,36 @@ class TestKafkaAddressTemplate(KafkaMemoryTestcaseConfig, AddressCheckTestcase):
     def get_subscriber_address(self, subscriber: Any) -> Address:
         return subscriber.pattern
 
+    @override
+    def test_an_early_read_does_not_pin_an_outer_router_prefix(self) -> None:
+        """The read Kafka refuses, in place of the one it used to defend against.
+
+        A Router included into another Router composes a longer prefix than its
+        endpoints saw when they were declared. Asked in between, a Kafka
+        Subscriber says the read came too early instead of answering with an
+        address derived from a composition that is not final.
+        """
+        broker = self.get_broker()
+        outer = self.get_router(prefix="outer_")
+        inner = self.get_router(prefix="inner_")
+
+        subscriber = self.declare_subscriber(inner, self.template)
+
+        with pytest.raises(IncorrectState, match="too early"):
+            self.get_subscriber_address(subscriber)
+
+        outer.include_router(inner)
+        broker.include_router(outer)
+
+        address = self.read_address(broker.subscribers[0])
+        assert address.template == f"outer_inner_{self.template}"
+        assert address.broker_address == f"outer_inner_{self.broker_address}"
+
     def test_a_topic_subscriber_has_no_pattern(self) -> None:
         broker = self.get_broker()
 
         subscriber = broker.subscriber("topic")
+        subscriber.prepare()
 
         assert subscriber.pattern is None
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
@@ -26,8 +26,11 @@ class SubscriberUsecaseConfig(EndpointConfig):
 
     _ack_policy: AckPolicy = field(default_factory=lambda: EMPTY, repr=False)
 
-    parser: "AsyncCallable" = field(init=False)
-    decoder: "AsyncCallable" = field(init=False)
+    # What a Subscriber's constructor built, for the Brokers that still build
+    # their parser there. `None` for a Broker that builds its own in Preparation,
+    # because the capture regex it holds needs an address that is resolved by then.
+    parser: Optional["AsyncCallable"] = field(init=False, default=None)
+    decoder: Optional["AsyncCallable"] = field(init=False, default=None)
 
     @property
     def auto_ack_disabled(self) -> bool:

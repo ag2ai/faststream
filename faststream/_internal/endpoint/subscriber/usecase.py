@@ -73,6 +73,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     extra_watcher_options: dict[str, Any]
     graceful_timeout: float | None
 
+    #: This Subscriber's own parser and decoder, the innermost of its chain.
+    #: Written by whichever of the two moments below built them.
+    _parser: "AsyncCallable"
+    _decoder: "AsyncCallable"
+
     def __init__(
         self,
         config: "SubscriberUsecaseConfig",
@@ -86,8 +91,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self.specification = specification
 
         self._no_reply = config.no_reply
-        self._parser = config.parser
-        self._decoder = config.decoder
+
+        # A Broker that builds its parser in its Subscriber's constructor has
+        # already written it into the options object. One whose parser needs a
+        # resolved address builds it in Preparation and leaves this unwritten
+        # until then.
+        if config.parser is not None and config.decoder is not None:
+            self._parser, self._decoder = config.parser, config.decoder
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -134,8 +144,19 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         half-way through a start-up that already has other Subscribers consuming.
         """
         self.check_addresses()
+        self._build_parser()
         self._build_fastdepends_model()
         self.lock = MultiLock()
+
+    def _build_parser(self) -> None:
+        """Build this Subscriber's own parser and decoder, the innermost of its chain.
+
+        Nothing here: a Broker that has not moved yet builds its parser in its
+        Subscriber's constructor, where its options object carries it away. A
+        Broker whose parser holds a capture regex builds it here instead, where
+        the address that regex compiles from is resolved, and builds it again on
+        every Preparation because that address can have changed.
+        """
 
     @override
     def _invalidate(self) -> None:
@@ -173,8 +194,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def _get_parser_and_decoder(
         self,
-        item_parser: Optional["CustomCallable"] = None,
-        item_decoder: Optional["CustomCallable"] = None,
+        declared_parser: Optional["CustomCallable"] = None,
+        declared_decoder: Optional["CustomCallable"] = None,
     ) -> tuple[AsyncCallable, AsyncCallable]:
         """Method to resolve parsers with priority.
 
@@ -195,7 +216,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         >>> ParserComposition(P0_parser or P1_parser or P2_parser, self._parser)
         """
         if parser := (
-            item_parser or self._call_options.parser or self._outer_config.broker_parser
+            declared_parser
+            or self._call_options.parser
+            or self._outer_config.broker_parser
         ):
             async_parser: AsyncCallable = ParserComposition(parser, self._parser)
         else:
@@ -205,7 +228,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # Having both is an error — it's ambiguous which takes effect.
         codec = self._call_options.codec or self._outer_config.broker_codec
         decoder = (
-            item_decoder
+            declared_decoder
             or self._call_options.decoder
             or self._outer_config.broker_decoder
         )
@@ -237,7 +260,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _build_fastdepends_model(self) -> None:
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
-                call.item_parser, call.item_decoder
+                call.declared_parser, call.declared_decoder
             )
 
             call._setup(
@@ -336,8 +359,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
-                    item_parser=parser,
-                    item_decoder=decoder,
+                    declared_parser=parser,
+                    declared_decoder=decoder,
                     dependencies=total_deps,
                 ),
             )

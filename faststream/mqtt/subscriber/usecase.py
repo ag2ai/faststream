@@ -46,7 +46,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
         self._topic = config.topic
-        self._address: PrefixedRead[Address] = PrefixedRead()
+        self._address: PrefixedRead[Address] = self._derived.add(PrefixedRead())
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
@@ -60,8 +60,11 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
                 stacklevel=3,
             )
 
-    def _build_parser(self) -> MQTTBaseParser:
-        return self._make_parser(self._outer_config)
+    @override
+    def _build_parser(self) -> None:
+        parser = self._make_parser(self._outer_config)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
         version = getattr(outer_config, "version", "5.0")
@@ -137,19 +140,6 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         message: "StreamMessage[zmqtt.Message] | None",
     ) -> dict[str, str]:
         return self.build_log_context(message=message, topic=self.topic)
-
-    @override
-    def _prepare(self) -> None:
-        parser = self._build_parser()
-        self._parser = parser.parse_message
-        self._decoder = parser.decode_message
-
-        super()._prepare()
-
-    @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._address.reset()
 
     @override
     async def start(self) -> None:

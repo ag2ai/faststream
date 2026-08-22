@@ -31,6 +31,16 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         """Return the Address the Subscriber reads through."""
         raise NotImplementedError
 
+    def read_address(self, subscriber: Any) -> Address:
+        """Prepare the Subscriber, then read — the order in which a read answers.
+
+        Preparation is the moment an address is settled, so every assertion here
+        takes it first. Skipping it would be reading from a composition the
+        Subscriber has not been told is final.
+        """
+        subscriber.prepare()
+        return self.get_subscriber_address(subscriber)
+
     def declare_subscriber(self, obj: Any, template: str) -> Any:
         args, kwargs = self.get_subscriber_params(template)
         return obj.subscriber(*args, **kwargs)
@@ -40,7 +50,7 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
 
         subscriber = self.declare_subscriber(broker, self.template)
 
-        address = self.get_subscriber_address(subscriber)
+        address = self.read_address(subscriber)
         assert address.template == self.template
         assert address.broker_address == self.broker_address
 
@@ -51,7 +61,7 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         self.declare_subscriber(router, self.template)
         broker.include_router(router)
 
-        address = self.get_subscriber_address(broker.subscribers[0])
+        address = self.read_address(broker.subscribers[0])
         assert address.template == f"prefix_{self.template}"
         assert address.broker_address == f"prefix_{self.broker_address}"
 
@@ -59,9 +69,12 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         """A read before `include_router` must not freeze the prefix it saw.
 
         A Router included into another Router composes a longer prefix than its
-        endpoints saw when they were declared. An AsyncAPI render or a `repr`
-        taken in between is a legitimate read, and must not leave the endpoint
-        subscribing to the short prefix for the rest of its life.
+        endpoints saw when they were declared, and a Broker that still resolves
+        on read would otherwise leave the endpoint subscribing to the short one
+        for the rest of its life.
+
+        A Broker whose endpoints resolve at Preparation refuses that read rather
+        than defending against it, and overrides this with the refusal.
         """
         broker = self.get_broker()
         outer = self.get_router(prefix="outer_")
@@ -84,19 +97,19 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
 
         subscriber = self.declare_subscriber(broker, self.literal)
 
-        address = self.get_subscriber_address(subscriber)
+        address = self.read_address(subscriber)
         assert address.template == self.literal
         assert address.broker_address == self.literal
         assert address.regex is None
 
     def test_the_compiled_address_is_kept_rather_than_re_derived(self) -> None:
-        """A Config value is fixed at `connect()`, so one read settles it (ADR-0004)."""
+        """A Config value is fixed at Preparation, so one read settles it (ADR-0004)."""
         broker = self.get_broker()
 
         subscriber = self.declare_subscriber(broker, self.template)
 
-        first = self.get_subscriber_address(subscriber)
-        assert self.get_subscriber_address(subscriber) is first
+        first = self.read_address(subscriber)
+        assert self.read_address(subscriber) is first
 
 
 class AddressCheckTestcase(AddressTemplateTestcase):
