@@ -18,8 +18,8 @@ from .registrator import Registrator
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from faststream._internal.configs import BrokerConfig
     from faststream._internal.context.repository import ContextRepo
-    from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
@@ -83,9 +83,9 @@ class BrokerUsecase(
     ) -> None:
         await self.stop(exc_type, exc_val, exc_tb)
 
-    def _update_fd_config(self, config: "FastDependsConfig") -> None:
+    def _update_config(self, config: "BrokerConfig") -> None:
         """Private method to change broker config state by outer application."""
-        self.config.fd_config = config | self.config.fd_config
+        self.config.add_outer_config(config)
 
     async def start(self) -> None:
         # TODO: filter by already running handlers after TestClient refactor
