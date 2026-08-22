@@ -78,9 +78,27 @@ class ConfigResolutionMixin:
     """
 
     @property
+    def prefix(self) -> str:
+        """The Router prefix in scope, which literal addresses are decorated with."""
+        raise NotImplementedError
+
+    @property
     def config_sources(self) -> Iterator["ConfigSource"]:
         """Every Config value source in scope, most specific first."""
         raise NotImplementedError
+
+    def resolve_address(self, option: Union["Config", str]) -> str:
+        """Return the address to use on the infrastructure broker.
+
+        A Config value reaches the broker exactly as supplied; the Router prefix
+        decorates literal declarations only. The branch is on how the option was
+        *declared*, so a literal address beside a placeholder is still prefixed.
+        See ADR-0003.
+        """
+        if isinstance(option, Config):
+            return cast("str", self.resolve_option(option))
+
+        return f"{self.prefix}{option}"
 
     def resolve_option(self, option: Union["Config", T]) -> T:
         """Return `option` itself, or the Config value it stands for."""

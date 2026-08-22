@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp, Lifespan
 
     from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.config_value import Config
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -383,9 +384,9 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: Literal[False] = False,
-        group_id: str | None = None,
+        group_id: Union[str, "Config", None] = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -413,7 +414,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -439,9 +440,9 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: Literal[True] = ...,
-        group_id: str | None = None,
+        group_id: Union[str, "Config", None] = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -469,7 +470,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -495,7 +496,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: Literal[False] = False,
         group_id: None = None,
         group_instance_id: str | None = None,
@@ -525,7 +526,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -551,9 +552,9 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: Literal[False] = False,
-        group_id: str = ...,
+        group_id: Union[str, "Config"] = ...,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -581,7 +582,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -607,9 +608,9 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: bool = False,
-        group_id: str | None = None,
+        group_id: Union[str, "Config", None] = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -637,7 +638,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -668,9 +669,9 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Config"],
         batch: bool = False,
-        group_id: str | None = None,
+        group_id: Union[str, "Config", None] = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -698,7 +699,7 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Union[str, "Config", None] = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         dependencies: Iterable["params.Depends"] = (),
@@ -980,7 +981,10 @@ class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
         """
         subscriber = super().subscriber(
-            *topics,
+            # The shared signature names the address types the brokers have in
+            # common; which of them accept a Config placeholder is per broker,
+            # and the overloads above are Kafka's answer.
+            *cast("tuple[str, ...]", topics),
             group_id=group_id,
             group_instance_id=group_instance_id,
             client_rack=client_rack,

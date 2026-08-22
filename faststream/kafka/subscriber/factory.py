@@ -20,18 +20,19 @@ if TYPE_CHECKING:
     from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
 
+    from faststream._internal.config_value import Config
     from faststream.kafka.configs import KafkaBrokerConfig
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Union[str, "Config"],
     batch: bool,
     batch_timeout_ms: int,
     max_records: int | None,
     # Kafka information
-    group_id: str | None,
+    group_id: Union[str, "Config", None],
     listener: Optional["ConsumerRebalanceListener"],
-    pattern: str | None,
+    pattern: Union[str, "Config", None],
     connection_args: dict[str, Any],
     partitions: Collection["TopicPartition"],
     # Subscriber args
@@ -114,10 +115,10 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: Union[str, "Config"],
     ack_policy: "AckPolicy",
     max_workers: int,
-    pattern: str | None,
+    pattern: Union[str, "Config", None],
     partitions: Iterable["TopicPartition"],
 ) -> None:
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy

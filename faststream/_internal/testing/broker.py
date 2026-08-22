@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.broker import BrokerUsecase
+from faststream._internal.config_value import ConfigSource
 from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.ast import is_contains_context_name
@@ -64,9 +65,11 @@ class TestBroker(Generic[Broker, EnterType]):
         *brokers: Broker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: ConfigSource = None,
     ) -> None:
         self.with_real = with_real
         self.brokers = brokers
+        self.config_values = config
 
         if connect_only is None:
             try:
@@ -111,6 +114,8 @@ class TestBroker(Generic[Broker, EnterType]):
             started_brokers = []
 
             for broker in self.brokers:
+                stack.enter_context(self._patch_config_values(broker))
+
                 if self.with_real:
                     self._fake_start(broker)
                 else:
@@ -140,6 +145,25 @@ class TestBroker(Generic[Broker, EnterType]):
 
         finally:
             self._fake_close(broker)
+
+    @contextmanager
+    def _patch_config_values(self, broker: Broker) -> Generator[None, None, None]:
+        """Make the test broker's Config values beat the Broker's own.
+
+        They are a level of their own, above the Broker and the App, so a Broker
+        whose values live on an App it is not part of here is still testable.
+        """
+        composition = broker.config
+        saved, composition.config_values_override = (
+            composition.config_values_override,
+            self.config_values,
+        )
+
+        try:
+            yield
+
+        finally:
+            composition.config_values_override = saved
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:

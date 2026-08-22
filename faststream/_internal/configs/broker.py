@@ -81,6 +81,11 @@ class ConfigComposition(ConfigResolutionMixin, Generic[BrokerConfigType]):  # no
         self.__own_config = config
         self.configs: tuple[ConfigType, ...] = (config,)
 
+        # Config values of the test broker wrapping this one, which beat every
+        # level below. `None` when there is no test broker, and skipped as a
+        # source then.
+        self.config_values_override: ConfigSource = None
+
     @property
     def broker_config(self) -> "BrokerConfigType":
         assert self.configs
@@ -171,6 +176,7 @@ class ConfigComposition(ConfigResolutionMixin, Generic[BrokerConfigType]):  # no
     # merged options
     @property
     def config_sources(self) -> Iterator[ConfigSource]:
+        yield self.config_values_override
         for c in self.configs:
             yield from c.config_sources
 

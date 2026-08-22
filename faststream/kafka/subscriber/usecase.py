@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
@@ -20,6 +20,8 @@ from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from aiokafka import AIOKafkaConsumer
 
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -29,6 +31,13 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
+
+
+class CompiledPattern(NamedTuple):
+    """A Kafka pattern, and the regex extracting its path parameters."""
+
+    regex: Optional["Pattern[str]"]
+    pattern: str
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -51,29 +60,70 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self._topics = config.topics
         self._partitions = config.partitions
-        self.group_id = config.group_id
+        self._group_id = config.group_id
 
         self._pattern = config.pattern
         self._listener = config.listener
         self._connection_args = config.connection_args
 
+        self._compiled_pattern: CompiledPattern | None = None
+        self._compiled_from: str | None = None
+
         self.consumer = None
+
+    @property
+    def group_id(self) -> str | None:
+        return self._outer_config.resolve_option(self._group_id)
 
     @property
     def pattern(self) -> str | None:
         if not self._pattern:
-            return self._pattern
-        return f"{self._outer_config.prefix}{self._pattern}"
+            return None
+        return self._compile_pattern().pattern
+
+    def get_pattern_regex(self) -> Optional["Pattern[str]"]:
+        """The regex pulling path parameters out of a topic name, if any.
+
+        A method rather than a property because the parser holds on to it and
+        asks per message, the pattern being resolved anew on every read.
+        """
+        if not self._pattern:
+            return None
+        return self._compile_pattern().regex
+
+    def _compile_pattern(self) -> CompiledPattern:
+        """Compile the pattern this subscriber resolves to right now.
+
+        Kafka patterns are plain strings, so — unlike the brokers whose addresses
+        are value objects — there is no constructor to compile the path inside
+        after resolution. Memoised on the resolved value, which only changes when
+        the Config values in scope do.
+        """
+        assert self._pattern is not None
+
+        pattern = self._outer_config.resolve_address(self._pattern)
+
+        if self._compiled_from != pattern:
+            regex, compiled = compile_path(
+                pattern,
+                replace_symbol=".*",
+                patch_regex=lambda x: x.replace(r"\*", ".*"),
+            )
+            self._compiled_from = pattern
+            self._compiled_pattern = CompiledPattern(regex=regex, pattern=compiled)
+
+        assert self._compiled_pattern is not None
+        return self._compiled_pattern
 
     @property
     def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+        return [self._outer_config.resolve_address(t) for t in self._topics]
 
     @property
     def partitions(self) -> list[TopicPartition]:
         return [
             TopicPartition(
-                topic=f"{self._outer_config.prefix}{p.topic}",
+                topic=self._outer_config.resolve_address(p.topic),
                 partition=p.partition,
             )
             for p in self._partitions
@@ -272,20 +322,9 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[ConsumerRecord]",
     ) -> None:
-        if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
-
-        else:
-            reg = None
-
         self.parser = AioKafkaParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
+            regex=self.get_pattern_regex,
         )
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
@@ -320,20 +359,9 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
-        if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
-
-        else:
-            reg = None
-
         self.parser = AioKafkaBatchParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
+            regex=self.get_pattern_regex,
         )
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
