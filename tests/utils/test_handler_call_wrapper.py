@@ -2,6 +2,7 @@ import gc
 
 import pytest
 
+from faststream._internal.configs import BrokerConfig
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 
 
@@ -13,7 +14,7 @@ async def test_handler_exception_does_not_leak_to_event_loop(
     async def handler() -> None:
         return None
 
-    wrapper = HandlerCallWrapper(handler)
+    wrapper = HandlerCallWrapper(handler, BrokerConfig())
     wrapper.set_test()
     error = ValueError("handler failed")
 
@@ -27,7 +28,7 @@ async def test_handler_exception_remains_available_to_wait_call() -> None:
     async def handler() -> None:
         return None
 
-    wrapper = HandlerCallWrapper(handler)
+    wrapper = HandlerCallWrapper(handler, BrokerConfig())
     wrapper.set_test()
     error = ValueError("handler failed")
 
