@@ -1,9 +1,18 @@
 from typing import TYPE_CHECKING, Any
 
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY,
+    MESSAGING_SYSTEM,
+)
 
 from faststream.opentelemetry import TelemetrySettingsProvider
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 from faststream.rabbit.response import RabbitPublishCommand
 
 if TYPE_CHECKING:
@@ -25,11 +34,11 @@ class RabbitTelemetrySettingsProvider(
         msg: "StreamMessage[IncomingMessage]",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
-            SpanAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY: msg.raw_message.routing_key,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY: msg.raw_message.routing_key,
             "messaging.rabbitmq.message.delivery_tag": msg.raw_message.delivery_tag,
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.exchange,
         }
@@ -47,10 +56,10 @@ class RabbitTelemetrySettingsProvider(
         cmd: "RabbitPublishCommand",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.exchange.name,
-            SpanAttributes.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_DESTINATION_NAME: cmd.exchange.name,
+            MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY: cmd.destination,
+            MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
     def get_publish_destination_name(

@@ -1,12 +1,24 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union, cast
 
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_KAFKA_DESTINATION_PARTITION,
+    MESSAGING_KAFKA_MESSAGE_KEY,
+    MESSAGING_KAFKA_MESSAGE_OFFSET,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_SYSTEM,
+)
 
 from faststream._internal.types import MsgType
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 
 if TYPE_CHECKING:
     from aiokafka import ConsumerRecord
@@ -28,16 +40,16 @@ class BaseKafkaTelemetrySettingsProvider(
         cmd: "KafkaPublishCommand",
     ) -> dict[str, Any]:
         attrs: dict[str, Any] = {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_DESTINATION_NAME: cmd.destination,
+            MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
         if cmd.partition is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
+            attrs[MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
 
         if cmd.key is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
+            attrs[MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
 
         return attrs
 
@@ -56,17 +68,17 @@ class KafkaTelemetrySettingsProvider(
         msg: "StreamMessage[ConsumerRecord]",
     ) -> dict[str, Any]:
         attrs = {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
-            SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition,
-            SpanAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition,
+            MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset,
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic,
         }
 
         if msg.raw_message.key is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = msg.raw_message.key
+            attrs[MESSAGING_KAFKA_MESSAGE_KEY] = msg.raw_message.key
 
         return attrs
 
@@ -87,14 +99,14 @@ class BatchKafkaTelemetrySettingsProvider(
         raw_message = msg.raw_message[0]
 
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
                 bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
-            SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
-            SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,
+            MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
+            MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic,
         }
 

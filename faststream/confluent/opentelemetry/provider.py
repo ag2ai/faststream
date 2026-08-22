@@ -1,12 +1,24 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union, cast
 
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_KAFKA_DESTINATION_PARTITION,
+    MESSAGING_KAFKA_MESSAGE_KEY,
+    MESSAGING_KAFKA_MESSAGE_OFFSET,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_SYSTEM,
+)
 
 from faststream._internal.types import MsgType
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 
 if TYPE_CHECKING:
     from confluent_kafka import Message
@@ -25,16 +37,16 @@ class BaseConfluentTelemetrySettingsProvider(
 
     def get_publish_attrs_from_cmd(self, cmd: "KafkaPublishCommand") -> dict[str, Any]:
         attrs: dict[str, Any] = {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_DESTINATION_NAME: cmd.destination,
+            MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
         if cmd.partition is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
+            attrs[MESSAGING_KAFKA_DESTINATION_PARTITION] = cmd.partition
 
         if cmd.key is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
+            attrs[MESSAGING_KAFKA_MESSAGE_KEY] = cmd.key
 
         return attrs
 
@@ -50,17 +62,17 @@ class ConfluentTelemetrySettingsProvider(
         msg: "StreamMessage[Message]",
     ) -> dict[str, Any]:
         attrs = {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
-            SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition(),
-            SpanAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset(),
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition(),
+            MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset(),
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic(),
         }
 
         if (key := msg.raw_message.key()) is not None:
-            attrs[SpanAttributes.MESSAGING_KAFKA_MESSAGE_KEY] = key
+            attrs[MESSAGING_KAFKA_MESSAGE_KEY] = key
 
         return attrs
 
@@ -80,14 +92,14 @@ class BatchConfluentTelemetrySettingsProvider(
     ) -> dict[str, Any]:
         raw_message = msg.raw_message[0]
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(
                 bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
-            SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition(),
+            MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition(),
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic(),
         }
 

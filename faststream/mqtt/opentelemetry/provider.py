@@ -1,11 +1,19 @@
 from typing import TYPE_CHECKING, Any
 
 import zmqtt
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_SYSTEM,
+)
 
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 
 if TYPE_CHECKING:
     from faststream.message import StreamMessage
@@ -24,10 +32,10 @@ class MQTTTelemetrySettingsProvider(
         msg: "StreamMessage[zmqtt.Message]",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic,
         }
 
@@ -42,9 +50,9 @@ class MQTTTelemetrySettingsProvider(
         cmd: MQTTPublishCommand,
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_DESTINATION_NAME: cmd.destination,
+            MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
     def get_publish_destination_name(

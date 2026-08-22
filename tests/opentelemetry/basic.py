@@ -13,7 +13,13 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_OPERATION,
+    MESSAGING_SYSTEM,
+)
 from opentelemetry.trace import SpanKind, get_current_span
 
 from faststream._internal.broker import BrokerUsecase
@@ -21,6 +27,7 @@ from faststream.opentelemetry import Baggage, CurrentBaggage, CurrentSpan
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
     MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
 )
 from faststream.opentelemetry.middleware import (
     MessageAction as Action,
@@ -102,40 +109,32 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes or {}
-        assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system, attrs[
-            SpanAttr.MESSAGING_SYSTEM
-        ]
-        assert attrs[SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID, attrs[
-            SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID
+        assert attrs[MESSAGING_SYSTEM] == self.messaging_system, attrs[MESSAGING_SYSTEM]
+        assert attrs[MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID, attrs[
+            MESSAGING_MESSAGE_CONVERSATION_ID
         ]
         assert span.name == f"{self.destination_name(queue)} {action}", span.name
         assert span.kind in {SpanKind.CONSUMER, SpanKind.PRODUCER}, span.kind
 
         if span.kind == SpanKind.PRODUCER and action in {Action.CREATE, Action.PUBLISH}:
-            assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue, attrs[
-                SpanAttr.MESSAGING_DESTINATION_NAME
+            assert attrs[MESSAGING_DESTINATION_NAME] == queue, attrs[
+                MESSAGING_DESTINATION_NAME
             ]
 
         if span.kind == SpanKind.CONSUMER and action in {Action.CREATE, Action.PROCESS}:
             assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == queue, attrs[
                 MESSAGING_DESTINATION_PUBLISH_NAME
             ]
-            assert attrs[SpanAttr.MESSAGING_MESSAGE_ID] == IsUUID, attrs[
-                SpanAttr.MESSAGING_MESSAGE_ID
-            ]
+            assert attrs[MESSAGING_MESSAGE_ID] == IsUUID, attrs[MESSAGING_MESSAGE_ID]
 
         if action == Action.PROCESS:
-            assert attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(msg), (
-                attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES]
-            )
-            assert attrs[SpanAttr.MESSAGING_OPERATION] == action, attrs[
-                SpanAttr.MESSAGING_OPERATION
+            assert attrs[MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(msg), attrs[
+                MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES
             ]
+            assert attrs[MESSAGING_OPERATION] == action, attrs[MESSAGING_OPERATION]
 
         if action == Action.PUBLISH:
-            assert attrs[SpanAttr.MESSAGING_OPERATION] == action, attrs[
-                SpanAttr.MESSAGING_OPERATION
-            ]
+            assert attrs[MESSAGING_OPERATION] == action, attrs[MESSAGING_OPERATION]
 
         if parent_span_id:
             assert span.parent

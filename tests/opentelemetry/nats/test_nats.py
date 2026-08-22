@@ -7,7 +7,9 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+)
 
 from faststream.nats import JStream, NatsBroker, PullSub
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
@@ -76,10 +78,7 @@ class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore
 
         assert len(create_batch.links) == expected_msg_count
         assert len(spans) == expected_span_count
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert process.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
         assert proc_msg.data.data_points[0].value == expected_msg_count
         assert pub_msg.data.data_points[0].value == expected_msg_count
         assert proc_dur.data.data_points[0].count == expected_proc_batch_count

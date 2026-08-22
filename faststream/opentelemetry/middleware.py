@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 from opentelemetry import baggage, context, metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.context import Context
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_OPERATION,
+    MESSAGING_SYSTEM,
+)
 from opentelemetry.trace import Link, Span
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
@@ -196,13 +201,13 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
 
         trace_attributes = provider.get_publish_attrs_from_cmd(msg)
         metrics_attributes = {
-            SpanAttributes.MESSAGING_SYSTEM: provider.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: destination_name,
+            MESSAGING_SYSTEM: provider.messaging_system,
+            MESSAGING_DESTINATION_NAME: destination_name,
         }
 
         # NOTE: if batch with single message?
         if (msg_count := len(msg.batch_bodies)) > 1:
-            trace_attributes[SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT] = msg_count
+            trace_attributes[MESSAGING_BATCH_MESSAGE_COUNT] = msg_count
             current_context = _BAGGAGE_PROPAGATOR.extract(headers, current_context)
             _BAGGAGE_PROPAGATOR.inject(
                 headers,
@@ -236,7 +241,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
                 context=current_context,
             ) as span:
                 span.set_attribute(
-                    SpanAttributes.MESSAGING_OPERATION,
+                    MESSAGING_OPERATION,
                     MessageAction.PUBLISH,
                 )
                 msg.headers = headers
@@ -273,7 +278,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         destination_name = provider.get_consume_destination_name(msg)
         trace_attributes = provider.get_consume_attrs_from_message(msg)
         metrics_attributes = {
-            SpanAttributes.MESSAGING_SYSTEM: provider.messaging_system,
+            MESSAGING_SYSTEM: provider.messaging_system,
             MESSAGING_DESTINATION_PUBLISH_NAME: destination_name,
         }
 
@@ -299,7 +304,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
                 end_on_exit=False,
             ) as span:
                 span.set_attribute(
-                    SpanAttributes.MESSAGING_OPERATION,
+                    MESSAGING_OPERATION,
                     MessageAction.PROCESS,
                 )
                 self._current_span = span
@@ -327,7 +332,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         finally:
             duration = time.perf_counter() - start_time
             msg_count = trace_attributes.get(
-                SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT,
+                MESSAGING_BATCH_MESSAGE_COUNT,
                 1,
             )
             self._metrics.observe_consume(metrics_attributes, duration, msg_count)
@@ -422,5 +427,5 @@ def _get_link_attributes(message_count: int) -> "Attributes":
     if message_count <= 1:
         return {}
     return {
-        SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: message_count,
+        MESSAGING_BATCH_MESSAGE_COUNT: message_count,
     }

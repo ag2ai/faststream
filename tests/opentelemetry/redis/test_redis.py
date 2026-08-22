@@ -7,7 +7,9 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+)
 
 from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.redis import ListSub, RedisBroker
@@ -71,14 +73,8 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
 
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert publish.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
+        assert process.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
         assert len(create_process.links) == expected_link_count
         assert create_process.links[0].attributes == expected_link_attrs
         self.assert_metrics(metrics, count=expected_msg_count)
@@ -134,10 +130,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         create_processes = [spans[2], spans[4], spans[6]]
 
         assert len(spans) == expected_span_count
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert publish.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
         for cp in create_processes:
             assert len(cp.links) == expected_link_count
 

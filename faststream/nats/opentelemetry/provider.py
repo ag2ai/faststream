@@ -2,11 +2,20 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from nats.aio.msg import Msg
-from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_SYSTEM,
+)
 
 from faststream._internal.types import MsgType
 from faststream.opentelemetry import TelemetrySettingsProvider
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 
 if TYPE_CHECKING:
     from faststream.message import StreamMessage
@@ -24,9 +33,9 @@ class BaseNatsTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
         cmd: "PublishCommand",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_DESTINATION_NAME: cmd.destination,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_DESTINATION_NAME: cmd.destination,
+            MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
     def get_publish_destination_name(
@@ -42,10 +51,10 @@ class NatsTelemetrySettingsProvider(BaseNatsTelemetrySettingsProvider["Msg"]):
         msg: "StreamMessage[Msg]",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.subject,
         }
 
@@ -64,11 +73,11 @@ class NatsBatchTelemetrySettingsProvider(
         msg: "StreamMessage[list[Msg]]",
     ) -> dict[str, Any]:
         return {
-            SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
-            SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
-            SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
-            SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
-            SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
+            MESSAGING_SYSTEM: self.messaging_system,
+            MESSAGING_MESSAGE_ID: msg.message_id,
+            MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
+            MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
+            MESSAGING_BATCH_MESSAGE_COUNT: len(msg.raw_message),
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message[0].subject,
         }
 

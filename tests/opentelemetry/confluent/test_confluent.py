@@ -7,12 +7,24 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
+from opentelemetry.semconv._incubating.attributes.messaging_attributes import (
+    MESSAGING_BATCH_MESSAGE_COUNT,
+    MESSAGING_DESTINATION_NAME,
+    MESSAGING_KAFKA_DESTINATION_PARTITION,
+    MESSAGING_KAFKA_MESSAGE_OFFSET,
+    MESSAGING_MESSAGE_CONVERSATION_ID,
+    MESSAGING_MESSAGE_ID,
+    MESSAGING_OPERATION,
+    MESSAGING_SYSTEM,
+)
 from opentelemetry.trace import SpanKind
 
 from faststream.confluent.opentelemetry import KafkaTelemetryMiddleware
 from faststream.opentelemetry import Baggage, CurrentBaggage
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES,
+)
 from faststream.opentelemetry.middleware import MessageAction as Action
 from tests.brokers.confluent.basic import ConfluentTestcaseConfig
 from tests.opentelemetry.basic import LocalTelemetryTestcase
@@ -34,26 +46,26 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         parent_span_id: str | None = None,
     ) -> None:
         attrs = span.attributes
-        assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system
-        assert attrs[SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID
+        assert attrs[MESSAGING_SYSTEM] == self.messaging_system
+        assert attrs[MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID
         assert span.name == f"{self.destination_name(queue)} {action}"
         assert span.kind in {SpanKind.CONSUMER, SpanKind.PRODUCER}
 
         if span.kind == SpanKind.PRODUCER and action in {Action.CREATE, Action.PUBLISH}:
-            assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
+            assert attrs[MESSAGING_DESTINATION_NAME] == queue
 
         if span.kind == SpanKind.CONSUMER and action in {Action.CREATE, Action.PROCESS}:
             assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == queue
-            assert attrs[SpanAttr.MESSAGING_MESSAGE_ID] == IsStr(regex=r"0-.+")
-            assert attrs[SpanAttr.MESSAGING_KAFKA_DESTINATION_PARTITION] == 0
-            assert attrs[SpanAttr.MESSAGING_KAFKA_MESSAGE_OFFSET] == 0
+            assert attrs[MESSAGING_MESSAGE_ID] == IsStr(regex=r"0-.+")
+            assert attrs[MESSAGING_KAFKA_DESTINATION_PARTITION] == 0
+            assert attrs[MESSAGING_KAFKA_MESSAGE_OFFSET] == 0
 
         if action == Action.PROCESS:
-            assert attrs[SpanAttr.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(msg)
-            assert attrs[SpanAttr.MESSAGING_OPERATION] == action
+            assert attrs[MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES] == len(msg)
+            assert attrs[MESSAGING_OPERATION] == action
 
         if action == Action.PUBLISH:
-            assert attrs[SpanAttr.MESSAGING_OPERATION] == action
+            assert attrs[MESSAGING_OPERATION] == action
 
         if parent_span_id:
             assert span.parent.span_id == parent_span_id
@@ -110,14 +122,8 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
 
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert publish.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
+        assert process.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
         assert len(create_process.links) == expected_link_count
         assert create_process.links[0].attributes == expected_link_attrs
         self.assert_metrics(metrics, count=expected_msg_count)
@@ -178,10 +184,7 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         create_processes = [spans[2], spans[4], spans[6]]
 
         assert len(spans) == expected_span_count
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert publish.attributes[MESSAGING_BATCH_MESSAGE_COUNT] == expected_msg_count
         for cp in create_processes:
             assert len(cp.links) == expected_link_count
 
