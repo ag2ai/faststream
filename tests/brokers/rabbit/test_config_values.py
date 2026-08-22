@@ -206,3 +206,114 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         with pytest.raises(SetupError, match="Config value 'IN'"):
             async with self.patch_broker(broker):
                 pass
+
+    @pytest.mark.asyncio()
+    async def test_publisher_routing_key_value(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """A Publisher's routing key is configurable, like its queue and exchange."""
+        exchange = RabbitExchange(f"{queue}-exchange", type=ExchangeType.TOPIC)
+        broker = self.get_broker(config={"RK": f"{queue}.info"})
+
+        publisher = broker.publisher(exchange=exchange, routing_key=Config("RK"))
+
+        @broker.subscriber(RabbitQueue(queue, routing_key=f"{queue}.*"), exchange)
+        async def handler(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("hello")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()
+
+    @pytest.mark.asyncio()
+    async def test_publisher_routing_key_decides_the_prefix_independently(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+    ) -> None:
+        """A resolved routing key is undecorated; a literal one beside it is not (ADR-0003)."""
+        exchange = RabbitExchange(f"{queue}-exchange", type=ExchangeType.TOPIC)
+        router = self.get_router(prefix="prefix-")
+
+        resolved_publisher = router.publisher(
+            exchange=exchange,
+            routing_key=Config("RK"),
+        )
+        literal_publisher = router.publisher(
+            exchange=exchange,
+            routing_key=f"literal-{queue}",
+        )
+
+        broker = self.get_broker(config={"RK": queue})
+
+        @broker.subscriber(RabbitQueue(f"{queue}-in", routing_key=queue), exchange)
+        async def resolved(msg: Any) -> None:
+            mock("resolved")
+            event.set()
+
+        @broker.subscriber(
+            RabbitQueue(f"{queue}-in2", routing_key=f"prefix-literal-{queue}"),
+            exchange,
+        )
+        async def literal(msg: Any) -> None:
+            mock("literal")
+            event2.set()
+
+        broker.include_router(router)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await resolved_publisher.publish("hello")
+            await literal_publisher.publish("hello")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+                await event2.wait()
+
+        assert event.is_set()
+        assert event2.is_set()
+        assert mock.call_count == 2, mock.call_args_list
+
+    @pytest.mark.asyncio()
+    async def test_publisher_reply_to_value(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """A Publisher's reply destination is configurable too (ADR-0002)."""
+        out_queue = f"{queue}-out"
+        reply_queue = f"{queue}-reply"
+
+        broker = self.get_broker(config={"REPLY": reply_queue})
+
+        @broker.subscriber(queue)
+        @broker.publisher(out_queue, reply_to=Config("REPLY"))
+        async def handler(msg: Any) -> str:
+            return "response"
+
+        @broker.subscriber(out_queue)
+        async def out(msg: Any) -> str:
+            return "reply"
+
+        @broker.subscriber(reply_queue)
+        async def reply(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()

@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from aio_pika import IncomingMessage
 
@@ -18,15 +18,12 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.config_value import Configurable
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
     )
     from faststream.rabbit.configs import ConfigurableExchange, ConfigurableQueue
-    from faststream.rabbit.schemas import (
-        RabbitExchange,
-        RabbitQueue,
-    )
     from faststream.rabbit.types import AioPikaSendableMessage
 
 
@@ -38,15 +35,15 @@ class RabbitPublisher(ArgsContainer):
 
     def __init__(
         self,
-        queue: Union["RabbitQueue", str] = "",
-        exchange: Union["RabbitExchange", str, None] = None,
+        queue: "ConfigurableQueue" = "",
+        exchange: "ConfigurableExchange" = None,
         *,
-        routing_key: str = "",
+        routing_key: "Configurable[str]" = "",
         mandatory: bool = True,
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: str | None = None,
+        reply_to: "Configurable[str] | None" = None,
         priority: int | None = None,
         # AsyncAPI args
         title: str | None = None,
@@ -67,13 +64,15 @@ class RabbitPublisher(ArgsContainer):
             queue:
                 Default message routing key to publish with.
                 Can be any `RabbitQueue` instance or string representation of the queue.
+                A `Config` placeholder is resolved to the value supplied at the Broker or the App.
             exchange:
                 Target exchange to publish message to.
                 Any `RabbitExchange` instance or string representation of the exchange. If not
                 specified, it will default to the value provided in `queue`.
+                Accepts a `Config` placeholder too.
             routing_key:
                 Default message routing key to publish with. Overrides `queue`
-                option if presented.
+                option if presented. Accepts a `Config` placeholder too.
             mandatory:
                 Client waits for confirmation that the message is placed to some queue.
                 RabbitMQ returns message to client if there is no suitable queue.
@@ -86,6 +85,7 @@ class RabbitPublisher(ArgsContainer):
                 Restore the message on RabbitMQ reboot.
             reply_to:
                 Reply message routing key to send with (always sending to default exchange).
+                Accepts a `Config` placeholder too.
             priority:
                 The message priority (0 by default).
             title:

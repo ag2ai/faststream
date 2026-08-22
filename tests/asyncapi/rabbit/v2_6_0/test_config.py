@@ -33,3 +33,28 @@ class TestConfigValues(ConfigTestcase):
             self.get_spec(configured).to_jsonable()
             == self.get_spec(literal).to_jsonable()
         )
+
+    def test_publisher_channel_names_the_resolved_routing_key(self) -> None:
+        broker = self.get_broker(config={"OUT": "resolved-routing-key"})
+
+        broker.publisher(routing_key=Config("OUT"))
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert list(schema["channels"].keys()) == ["resolved-routing-key:_:Publisher"], (
+            schema["channels"]
+        )
+
+    def test_publisher_schema_names_the_resolved_reply_to(self) -> None:
+        broker = self.get_broker(config={"REPLY": "resolved-reply-address"})
+
+        broker.publisher("q", reply_to=Config("REPLY"))
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert (
+            schema["channels"]["q:_:Publisher"]["subscribe"]["bindings"]["amqp"][
+                "replyTo"
+            ]
+            == "resolved-reply-address"
+        ), schema["channels"]

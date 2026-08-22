@@ -24,18 +24,18 @@ prefix branch on how the option was *declared*, never on what it resolved to
 (ADR-0003).
 """
 
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, cast
 
+from faststream._internal.config_value import Config
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
+    from faststream._internal.config_value import Configurable
     from faststream.rabbit.configs import (
         ConfigurableExchange,
         ConfigurableQueue,
         RabbitBrokerConfig,
     )
-
-T = TypeVar("T")
 
 
 def broker_queue(
@@ -73,36 +73,49 @@ def broker_exchange(
     return RabbitExchange.validate(declared)
 
 
-def broker_routing_key(config: "RabbitBrokerConfig", routing_key: str) -> str:
+def broker_routing_key(
+    config: "RabbitBrokerConfig",
+    routing_key: "Configurable[str]",
+) -> str:
     """Return the routing key an endpoint declared, as it reaches the broker.
 
     An empty routing key is not a routing key — it means the endpoint declared
     none and its queue names the binding instead — so there is nothing to
-    decorate with the prefix.
+    decorate with the prefix. A placeholder is never empty in that sense: it is
+    a marker standing for a key, so it is resolved and, like every resolved
+    value, reaches the broker undecorated (ADR-0003).
     """
-    if not routing_key:
+    if not isinstance(routing_key, Config) and not routing_key:
         return routing_key
 
-    return f"{config.prefix}{routing_key}"
+    return config.resolve_address(routing_key)
 
 
-def as_declared(config: "RabbitBrokerConfig", option: T) -> T:
-    """Return an address as the endpoint declared it, undecorated.
+def broker_reply_to(
+    config: "RabbitBrokerConfig",
+    reply_to: "Configurable[str] | None",
+) -> str:
+    """Return the reply destination an endpoint declared, as it reaches the broker.
 
-    A few reads describe the declaration rather than address the broker — the
-    queue a Subscriber names its log lines after, the address an AsyncAPI channel
-    for a Publisher is titled with — and today those keep the name the user wrote,
-    without the Router prefix. Undecorated is not unresolved: a placeholder is a
-    marker, never an address, so it is read here as it is everywhere else.
+    Resolved but never prefixed, unlike every other address here: a literal
+    `reply_to` has never been decorated with the Router prefix, and adopting a
+    placeholder for it must not change that for the literal beside it.
     """
-    return config.resolve_option(option)
+    return config.resolve_option(reply_to) or ""
 
 
 def as_declared_queue(
     config: "RabbitBrokerConfig",
     queue: "ConfigurableQueue",
 ) -> "RabbitQueue":
-    """Return the queue an endpoint declared, undecorated. See `as_declared`."""
+    """Return the queue an endpoint declared, undecorated.
+
+    One read describes the declaration rather than addresses the broker — the
+    queue a Subscriber names its log lines after — and today it keeps the name
+    the user wrote, without the Router prefix. Undecorated is not unresolved: a
+    placeholder is a marker, never an address, so it is read here as it is
+    everywhere else.
+    """
     return _resolved_queue(config, queue)
 
 

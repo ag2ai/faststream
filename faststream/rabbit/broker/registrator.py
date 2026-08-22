@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.config_value import Configurable
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -104,12 +105,12 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         queue: "ConfigurableQueue" = "",
         exchange: "ConfigurableExchange" = None,
         *,
-        routing_key: str = "",
+        routing_key: "Configurable[str]" = "",
         mandatory: bool = True,
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: str | None = None,
+        reply_to: "Configurable[str] | None" = None,
         priority: int | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -133,17 +134,17 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
 
         Args:
-            queue: Default message routing key to publish with.
-            exchange: Target exchange to publish message to.
+            queue: Default message routing key to publish with. A `Config` placeholder is resolved to the value supplied at the Broker or the App.
+            exchange: Target exchange to publish message to. Accepts a `Config` placeholder too.
             routing_key: Default message routing key to publish with.
-            Overrides `queue` option if presented.
+            Overrides `queue` option if presented. Accepts a `Config` placeholder too.
             mandatory: Client waits for confirmation that the message is placed
                 to some queue. RabbitMQ returns message to client if there is no suitable queue.
             immediate: Client expects that there is a consumer ready to take the message to work.
                 RabbitMQ returns message to client if there is no suitable consumer.
             timeout: Send confirmation time from RabbitMQ.
             persist: Restore the message on RabbitMQ reboot.
-            reply_to: Reply message routing key to send with (always sending to default exchange).
+            reply_to: Reply message routing key to send with (always sending to default exchange). Accepts a `Config` placeholder too.
             priority: The message priority (0 by default).
             title: AsyncAPI publisher object title.
             description: AsyncAPI publisher object description.
@@ -165,7 +166,6 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
             immediate=immediate,
             timeout=timeout,
             persist=persist,
-            reply_to=reply_to,
             headers=headers,
             priority=priority,
             content_type=content_type,
@@ -177,6 +177,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
 
         publisher = create_publisher(
             routing_key=routing_key,
+            reply_to=reply_to,
             queue=queue,
             exchange=exchange,
             message_kwargs=message_kwargs,

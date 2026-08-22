@@ -8,6 +8,7 @@ from faststream._internal.utils.data import filter_by_dict
 from faststream.rabbit.address import (
     broker_exchange,
     broker_queue,
+    broker_reply_to,
     broker_routing_key,
 )
 from faststream.rabbit.response import RabbitPublishCommand
@@ -44,9 +45,9 @@ class RabbitPublisher(PublisherUsecase):
         self._queue = config.queue
         self._routing_key = config.routing_key
         self._exchange = config.exchange
+        self._reply_to = config.reply_to
 
         self.headers = config.message_kwargs.pop("headers") or {}
-        self.reply_to = config.message_kwargs.pop("reply_to", None) or ""
         self.timeout = config.message_kwargs.pop("timeout", None)
 
         message_options, _ = filter_by_dict(
@@ -69,6 +70,10 @@ class RabbitPublisher(PublisherUsecase):
     @property
     def routing_key(self) -> str:
         return broker_routing_key(self._outer_config, self._routing_key)
+
+    @property
+    def reply_to(self) -> str:
+        return broker_reply_to(self._outer_config, self._reply_to)
 
     @property
     def message_options(self) -> "BasicMessageOptions":

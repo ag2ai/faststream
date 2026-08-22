@@ -68,6 +68,31 @@ class TestRouter(RouterTestcase):
             },
         }), schema["channels"]
 
+    def test_publisher_prefix(self) -> None:
+        """A Publisher's channel name agrees with the routing key beneath it.
+
+        Under a Router prefix the name, the queue binding and the `cc` routing
+        key are all prefixed, so the published contract names the address
+        messages really go to.
+        """
+        broker = self.broker_class()
+
+        router = self.router_class(prefix="test_")
+
+        router.publisher("test")
+
+        broker.include_router(router)
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert list(schema["channels"].keys()) == ["test_test:_:Publisher"], schema[
+            "channels"
+        ]
+
+        channel = schema["channels"]["test_test:_:Publisher"]
+        assert channel["bindings"]["amqp"]["queue"]["name"] == "test_test"
+        assert channel["subscribe"]["bindings"]["amqp"]["cc"] == "test_test"
+
 
 @pytest.mark.rabbit()
 class TestRouterArguments(ArgumentsTestcase):

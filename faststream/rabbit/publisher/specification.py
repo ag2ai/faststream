@@ -2,10 +2,9 @@ from typing import TYPE_CHECKING
 
 from faststream._internal.endpoint.publisher import PublisherSpecification
 from faststream.rabbit.address import (
-    as_declared,
-    as_declared_queue,
     broker_exchange,
     broker_queue,
+    broker_reply_to,
     broker_routing_key,
 )
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -44,25 +43,28 @@ class RabbitPublisherSpecification(
         return broker_routing_key(self._outer_config, self.config.routing_key)
 
     @property
-    def declared_queue(self) -> "RabbitQueue":
-        return as_declared_queue(self._outer_config, self.config.queue)
-
-    @property
-    def declared_routing_key(self) -> str:
-        return as_declared(self._outer_config, self.config.routing_key)
+    def reply_to(self) -> str:
+        return broker_reply_to(self._outer_config, self.config.reply_to)
 
     @property
     def name(self) -> str:
+        """The channel title, built from the addresses messages really go to.
+
+        Every part of it is a Broker address, prefix and all. A channel named
+        after the undecorated declaration while its own `cc` binding carries the
+        prefix would be a document contradicting itself — and the Subscriber
+        side, Kafka and Redis all title their channels this way.
+        """
         if self.config.title_:
             return self.config.title_
 
         exchange = self.exchange
 
-        if routing_key := self.declared_routing_key:
+        if routing_key := self.routing_key:
             routing: str | None = routing_key
 
         elif is_routing_exchange(exchange):
-            routing = self.declared_queue.routing()
+            routing = self.queue.routing()
 
         else:
             routing = None
@@ -75,7 +77,7 @@ class RabbitPublisherSpecification(
         payloads = self.get_payloads()
 
         exchange_binding = amqp.Exchange.from_exchange(self.exchange)
-        queue_binding = amqp.Queue.from_queue(self.declared_queue)
+        queue_binding = amqp.Queue.from_queue(self.queue)
 
         routing_key = self.routing_key or self.queue.routing()
 
@@ -91,7 +93,7 @@ class RabbitPublisherSpecification(
                             ack=True,
                             persist=self.config.message_kwargs.get("persist"),
                             priority=self.config.message_kwargs.get("priority"),
-                            reply_to=self.config.message_kwargs.get("reply_to"),
+                            reply_to=self.reply_to or None,
                             mandatory=self.config.message_kwargs.get("mandatory"),
                         ),
                     ),
