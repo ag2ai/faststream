@@ -31,6 +31,7 @@ class NatsSubscriberSpecification(
 
         return {
             self.name: SubscriberSpec(
+                address=self.subject.template,
                 description=self.description,
                 operation=Operation(
                     message=Message(
