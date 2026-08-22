@@ -45,7 +45,7 @@ class RabbitSubscriberSpecification(
                 operation=Operation(
                     bindings=OperationBinding(
                         amqp=amqp.OperationBinding(
-                            routing_key=queue.routing(),
+                            routing_key=queue.routing_template(),
                             queue=queue_binding,
                             exchange=exchange_binding,
                             ack=True,
