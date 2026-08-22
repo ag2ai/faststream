@@ -7,9 +7,10 @@ from time import time
 from typing import TYPE_CHECKING, Any, cast
 
 import anyio
-from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
+from confluent_kafka import KafkaError, KafkaException, Message
+from confluent_kafka.aio import AIOConsumer, AIOProducer
 
-from faststream._internal.utils.functions import call_or_await, run_in_executor
+from faststream._internal.utils.functions import run_in_executor
 from faststream.confluent.schemas import TopicPartition
 from faststream.exceptions import SetupError
 
@@ -62,10 +63,8 @@ class AsyncConfluentProducer:
         self.logger_state = logger
 
         self.config = config.producer_config
-        self.producer = Producer(
-            self.config,
-            logger=_LazyLoggerProxy(logger),
-        )
+        self.config["logger"] = _LazyLoggerProxy(logger)
+        self.producer = AIOProducer(self.config)
 
         self.__running = True
         self._poll_task = asyncio.create_task(self._poll_loop())
@@ -73,7 +72,7 @@ class AsyncConfluentProducer:
     async def _poll_loop(self) -> None:
         while self.__running:
             with suppress(Exception):
-                await call_or_await(self.producer.poll, 0.1)
+                await self.producer.poll(0.1)
 
     async def stop(self) -> None:
         """Stop the Kafka producer and flush remaining messages."""
@@ -81,10 +80,10 @@ class AsyncConfluentProducer:
             self.__running = False
             if not self._poll_task.done():
                 self._poll_task.cancel()
-            await call_or_await(self.producer.flush)
+            await self.producer.flush()
 
     async def flush(self) -> None:
-        await call_or_await(self.producer.flush)
+        await self.producer.flush()
 
     async def send(
         self,
@@ -148,7 +147,7 @@ class AsyncConfluentProducer:
             produce_kwargs["partition"] = kwargs["partition"]
         if kwargs.get("timestamp") is not None:
             produce_kwargs["timestamp"] = kwargs["timestamp"]
-        self.producer.produce(topic, **produce_kwargs)
+        self.producer._producer.produce(topic, **produce_kwargs)
 
         if no_confirm:
             return result_future
@@ -189,10 +188,7 @@ class AsyncConfluentProducer:
             timeout = -1
 
         try:
-            cluster_metadata = await call_or_await(
-                self.producer.list_topics,
-                timeout=timeout,
-            )
+            cluster_metadata = await self.producer.list_topics(timeout=timeout)
 
             return bool(cluster_metadata)
 
@@ -284,11 +280,15 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
+        self.config["logger"] = _LazyLoggerProxy(logger)
 
-        # A pool with single thread is used in order to execute the commands of the consumer sequentially:
+        # A pool with a single thread is used so that AIOConsumer executes all
+        # consumer commands (poll/consume/commit/close/...) sequentially on one
+        # thread. The underlying confluent_kafka.Consumer isn't safe to call
+        # concurrently (e.g. polling while closing can crash the process):
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
+        self.consumer = AIOConsumer(self.config, executor=self._thread_pool)
 
     @property
     def topics_to_create(self) -> list[str]:
@@ -324,18 +324,10 @@ class AsyncConfluentConsumer:
                 subscribe_kwargs["on_revoke"] = self._on_revoke
             if self._on_lost is not None:
                 subscribe_kwargs["on_lost"] = self._on_lost
-            await run_in_executor(
-                self._thread_pool,
-                self.consumer.subscribe,
-                **subscribe_kwargs,
-            )
+            await self.consumer.subscribe(**subscribe_kwargs)
 
         elif self.partitions:
-            await run_in_executor(
-                self._thread_pool,
-                self.consumer.assign,
-                [p.to_confluent() for p in self.partitions],
-            )
+            await self.consumer.assign([p.to_confluent() for p in self.partitions])
 
         else:
             msg = "You must provide either `topics` or `partitions` option."
@@ -343,10 +335,7 @@ class AsyncConfluentConsumer:
 
     async def commit(self, asynchronous: bool = True) -> None:
         """Commits the offsets of all messages returned by the last poll operation."""
-        await run_in_executor(
-            self._thread_pool,
-            lambda: self.consumer.commit(asynchronous=asynchronous),  # type: ignore[call-overload]
-        )
+        await self.consumer.commit(asynchronous=asynchronous)
 
     async def stop(self) -> None:
         """Stops the Kafka consumer and releases all resources."""
@@ -374,13 +363,13 @@ class AsyncConfluentConsumer:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         # Now it works without lock due `ThreadPoolExecutor(max_workers=1)`
         # that makes all calls to consumer sequential
-        await run_in_executor(self._thread_pool, self.consumer.close)
+        await self.consumer.close()
 
         self._thread_pool.shutdown(wait=False)
 
     async def getone(self, timeout: float = 0.1) -> Message | None:
         """Consumes a single message from Kafka."""
-        msg = await run_in_executor(self._thread_pool, self.consumer.poll, timeout)
+        msg = await self.consumer.poll(timeout)
         return check_msg_error(msg)
 
     async def getmany(
@@ -389,16 +378,11 @@ class AsyncConfluentConsumer:
         max_records: int | None = 10,
     ) -> tuple[Message, ...]:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
-        raw_messages: list[Message | None] = await run_in_executor(
-            self._thread_pool,
-            cast(
-                "Callable[..., list[Message | None]]",
-                lambda: self.consumer.consume(
-                    num_messages=max_records or 10,
-                    timeout=timeout,
-                ),
-            ),
+        raw_messages = await self.consumer.consume(
+            num_messages=max_records or 10,
+            timeout=timeout,
         )
+
         return tuple(x for x in map(check_msg_error, raw_messages) if x is not None)
 
     async def seek(self, topic: str, partition: int, offset: int) -> None:
@@ -408,9 +392,7 @@ class AsyncConfluentConsumer:
             partition=partition,
             offset=offset,
         )
-        await run_in_executor(
-            self._thread_pool,
-            self.consumer.seek,
+        await self.consumer.seek(
             topic_partition.to_confluent(),
         )
 
