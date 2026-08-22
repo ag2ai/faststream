@@ -66,3 +66,23 @@ async def test_flush_by_timeout() -> None:
 
         assert len(collector.processed) == 1
         assert collector.processed[0] == [{"msg": 1}]
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_concurrency_batch() -> None:
+    from unittest.mock import AsyncMock, MagicMock
+    from docs.docs_src.rabbit.subscription.batch import BATCH_SIZE, BatchCollector
+    collector = BatchCollector(batch_size=BATCH_SIZE, flush_interval=60.0)
+    logger = MagicMock()
+    total = BATCH_SIZE * 3
+
+    async def deliver(i: int) -> None:
+        raw = AsyncMock()
+        await collector.add({"msg": i}, raw, logger)
+    
+    await asyncio.gather(*(deliver(i) for i in range(total)))
+
+    assert collector.data == []
+    assert len(collector.processed) == 3
+    assert all(len(batch) == BATCH_SIZE for batch in collector.processed)
+    assert sum(len(batch) for batch in collector.processed) == total
