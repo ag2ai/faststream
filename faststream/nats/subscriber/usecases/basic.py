@@ -86,9 +86,11 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
         if subject := self.subject:
-            # A declared subject is the address; filter subjects only narrow which
-            # of its messages the consumer is handed, and the parser reads Path
-            # parameters out of the subject.
+            # A declared subject is the address `Path()` is read from; filter
+            # subjects only narrow which of its messages the consumer is handed,
+            # and the parser never matches against them. Checking them here would
+            # reject working subscribers — see ADR-0004, which carries this as the
+            # one narrowing of "the group must be present in all of them".
             yield subject
             return
 
