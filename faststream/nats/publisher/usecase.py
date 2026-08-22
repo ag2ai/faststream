@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream._internal.utils.path import Address
 from faststream.nats.response import NatsPublishCommand
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
@@ -41,15 +42,11 @@ class LogicPublisher(PublisherUsecase):
         self.reply_to = config.reply_to
 
     @property
-    def broker_subject(self) -> str:
-        """The subject with each path parameter replaced by the NATS wildcard."""
-        _, path = compile_nats_wildcard(self.subject_template)
-        return path
-
-    @property
-    def subject_template(self) -> str:
-        """The subject as it was declared, e.g. `logs.{level}`."""
-        return f"{self._outer_config.prefix}{self._subject}"
+    def subject(self) -> "Address":
+        """The subject this Publisher was declared with, and its Broker address."""
+        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
+            self._outer_config.prefix,
+        )
 
     @overload
     async def publish(
@@ -114,7 +111,7 @@ class LogicPublisher(PublisherUsecase):
         """
         cmd = NatsPublishCommand(
             message,
-            subject=subject or self.subject_template,
+            subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             reply_to=reply_to or self.reply_to,
             correlation_id=correlation_id or self._outer_config.id_generator(),
@@ -152,7 +149,7 @@ class LogicPublisher(PublisherUsecase):
         """This method should be called in subscriber flow only."""
         cmd = NatsPublishCommand.from_cmd(cmd)
 
-        cmd.destination = self.subject_template
+        cmd.destination = self.subject.template
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
@@ -208,7 +205,7 @@ class LogicPublisher(PublisherUsecase):
         """
         cmd = NatsPublishCommand(
             message=message,
-            subject=subject or self.subject_template,
+            subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             timeout=timeout or self.timeout,
             correlation_id=correlation_id or self._outer_config.id_generator(),

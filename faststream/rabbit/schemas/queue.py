@@ -4,11 +4,19 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, over
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
-from faststream._internal.utils.path import compile_path
+from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from aio_pika.abc import TimeoutType
+
+
+RABBIT_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol="*",
+    patch_regex=lambda x: x.replace(r"\#", ".+"),
+)
 
 
 class QueueType(str, Enum):
@@ -37,10 +45,8 @@ class RabbitQueue(NameRequired):
         "durable",
         "exclusive",
         "name",
-        "path_regex",
         "robust",
-        "routing_key",
-        "routing_key_template",
+        "routing_address",
         "timeout",
     )
 
@@ -85,24 +91,30 @@ class RabbitQueue(NameRequired):
             ),
         )
 
+    @property
+    def routing_key(self) -> str:
+        """The routing key as it reaches RabbitMQ."""
+        return self.routing_address.broker_address
+
+    @property
+    def path_regex(self) -> Optional["Pattern[str]"]:
+        return self.routing_address.regex
+
     def routing(self) -> str:
-        """Return the broker address of object."""
-        return self.routing_key or self.name
+        """Return the Broker address of object."""
+        return self.routing_address.broker_address or self.name
 
     def routing_template(self) -> str:
-        """Return the address template of object."""
-        return self.routing_key_template or self.name
+        """Return the Address template of object."""
+        return self.routing_address.template or self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)
 
         new_q.name = f"{prefix}{new_q.name}"
 
-        if new_q.routing_key:
-            new_q.routing_key = f"{prefix}{new_q.routing_key}"
-
-        if new_q.routing_key_template:
-            new_q.routing_key_template = f"{prefix}{new_q.routing_key_template}"
+        if new_q.routing_address:
+            new_q.routing_address = new_q.routing_address.add_prefix(prefix)
 
         return new_q
 
@@ -191,12 +203,6 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        re, broker_routing_key = compile_path(
-            routing_key,
-            replace_symbol="*",
-            patch_regex=lambda x: x.replace(r"\#", ".+"),
-        )
-
         if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
             if durable is EMPTY:
                 durable = True
@@ -208,12 +214,10 @@ class RabbitQueue(NameRequired):
 
         super().__init__(name)
 
-        self.path_regex = re
         self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        self.routing_key_template = routing_key
-        self.routing_key = broker_routing_key
+        self.routing_address = Address(routing_key, RABBIT_ADDRESS_SYNTAX)
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}
