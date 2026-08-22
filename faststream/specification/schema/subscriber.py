@@ -6,6 +6,14 @@ from .operation import Operation
 
 @dataclass
 class SubscriberSpec:
+    """One subscriber, as the specification generators see it.
+
+    `address` is the Address template the endpoint listens on. It is not the key
+    this spec is filed under: that key names the channel and carries the handler
+    name with it, so the two differ for every subscriber.
+    """
+
     description: str | None
     operation: Operation
     bindings: ChannelBinding | None
+    address: str
