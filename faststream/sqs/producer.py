@@ -1,0 +1,3 @@
+class SQSFastProducer:
+    # TODO
+    pass
