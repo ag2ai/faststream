@@ -13,7 +13,7 @@ class HelloWorld(BaseModel):
 
 
 config = {"topic.metadata.refresh.fast.interval.ms": 300}
-broker = KafkaBroker("localhost:9092", config=config)
+broker = KafkaBroker("localhost:9092", client_config=config)
 app = FastStream(broker)
 
 

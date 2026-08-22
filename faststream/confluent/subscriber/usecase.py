@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,6 +16,7 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
+from faststream._internal.utils.path import Address
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import TopicPartition
@@ -37,8 +38,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     _outer_config: "KafkaBrokerConfig"
 
-    group_id: str | None
-
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
 
@@ -52,7 +51,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.__connection_data = config.connection_data
 
-        self.group_id = config.group_id
+        self._group_id = config.group_id
 
         self._topics = config.topics
         self._partitions = config.partitions
@@ -65,12 +64,39 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.client_id
 
     @property
+    def group_id(self) -> str | None:
+        return self._outer_config.resolve_option(self._group_id)
+
+    @property
     def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+        return [self._outer_config.resolve_address(t) for t in self._topics]
 
     @property
     def partitions(self) -> list[TopicPartition]:
         return [p.add_prefix(self._outer_config.prefix) for p in self._partitions]
+
+    @override
+    def subscription_addresses(self) -> Iterable[Address]:
+        """Every topic this Subscriber listens on, and none of them a template.
+
+        Confluent subscribes by topic name only — there is no pattern
+        subscription — and its parser never matches a message against a capture
+        regex. So a `{param}` in an address is a character like any other, and
+        `Address.literal` is what says so: a `Path()` parameter naming one is
+        refused at `connect()` instead of going unfilled for every message.
+        """
+        config = self._outer_config
+
+        for declared in self._topics:
+            yield Address.literal(
+                config.resolve_address(declared),
+                config.config_key(declared),
+            )
+
+        # A partition names a topic too, and that name never holds a placeholder:
+        # `partitions` takes structures rather than addresses.
+        for partition in self.partitions:
+            yield Address.literal(partition.topic)
 
     @override
     async def start(self) -> None:
@@ -200,8 +226,16 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        """The addresses a log line names, as the read layer answers them.
+
+        `topics` and `partitions` have already composed the Router prefix and
+        resolved any Config value, so a second pass over them would show an
+        operator a doubled prefix and an address that does not exist.
+        """
+        if self.topics:
+            return self.topics
+
+        return [f"{p.topic}-{p.partition}" for p in self.partitions]
 
     @staticmethod
     def build_log_context(

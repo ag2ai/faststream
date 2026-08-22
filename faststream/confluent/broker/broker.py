@@ -26,6 +26,7 @@ from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers import (
     AsyncConfluentConsumer,
     ConfluentFastConfig,
+    check_not_client_config,
 )
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducerImpl
 from faststream.confluent.response import KafkaPublishCommand
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -81,7 +83,7 @@ class KafkaBroker(
         connections_max_idle_ms: int = 9 * 60 * 1000,
         client_id: str | None = SERVICE_NAME,
         allow_auto_create_topics: bool = True,
-        config: Optional["ConfluentConfig"] = None,
+        client_config: Optional["ConfluentConfig"] = None,
         # publisher args
         acks: Literal[0, 1, -1, "all"] = EMPTY,
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
@@ -105,6 +107,7 @@ class KafkaBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
+        config: "ConfigSource" = None,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
@@ -145,7 +148,7 @@ class KafkaBroker(
                 submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
             allow_auto_create_topics: Allow automatic topic creation on the broker when subscribing to or assigning non-existent topics.
-            config: Extra configuration for the confluent-kafka-python
+            client_config: Extra configuration for the confluent-kafka-python
                 producer/consumer. See `confluent_kafka.Config <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
@@ -214,6 +217,7 @@ class KafkaBroker(
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: Routers to apply to broker.
+            config: Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security: Security options to connect broker and generate AsyncAPI server security information.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
             protocol: AsyncAPI server protocol.
@@ -247,8 +251,10 @@ class KafkaBroker(
         else:
             specification_url = servers
 
+        check_not_client_config(config)
+
         connection_config = ConfluentFastConfig(
-            config=config,
+            config=client_config,
             security=security,
             bootstrap_servers=servers,
             client_id=client_id,
@@ -271,6 +277,7 @@ class KafkaBroker(
         super().__init__(
             routers=routers,
             config=KafkaBrokerConfig(
+                config_values=config,
                 connection_config=connection_config,
                 client_id=client_id,
                 producer=AsyncConfluentFastProducerImpl(

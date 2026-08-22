@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
@@ -7,8 +7,10 @@ from typing_extensions import TypedDict
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream.confluent.security import parse_security
+from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
+    from faststream._internal.config_value import ConfigSource
     from faststream.security import BaseSecurity
 
 
@@ -296,6 +298,28 @@ ConfluentConfig = TypedDict(
     },
     total=False,
 )
+
+
+def check_not_client_config(config_values: "ConfigSource") -> None:
+    """Refuse confluent-kafka client settings passed as Config values.
+
+    `config` named the client settings until Config values arrived; it now means
+    on Confluent what it means on the other five brokers, and the client settings
+    moved to `client_config`. A `ConfluentConfig` is a `TypedDict`, so at runtime
+    the two are both plain mappings and only the keys tell them apart — and taking
+    a client mapping as a Config source would drop the user's tuning in silence.
+
+    Transitional, and safe to delete once the rename is old news.
+    """
+    if not isinstance(config_values, Mapping) or not config_values:
+        return
+
+    if all(key in ConfluentConfig.__annotations__ for key in config_values):
+        msg = (
+            "`config` carries Config values now, and every key here names a "
+            "confluent-kafka client setting. Pass them as `client_config=` instead."
+        )
+        raise SetupError(msg)
 
 
 class ConfluentFastConfig:

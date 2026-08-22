@@ -20,6 +20,7 @@ from starlette.routing import BaseRoute
 from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
@@ -76,7 +77,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         connections_max_idle_ms: int = 9 * 60 * 1000,
         client_id: str | None = SERVICE_NAME,
         allow_auto_create_topics: bool = True,
-        config: Optional["ConfluentConfig"] = None,
+        client_config: Optional["ConfluentConfig"] = None,
         # publisher args
         acks: Literal[0, 1, -1, "all"] = EMPTY,
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
@@ -156,7 +157,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
             allow_auto_create_topics: Allow automatic topic creation on the broker when subscribing to or assigning non-existent topics.
-            config: Extra configuration for the confluent-kafka-python
+            client_config: Extra configuration for the confluent-kafka-python
                 producer/consumer. See `confluent_kafka.Config <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
@@ -354,7 +355,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             connections_max_idle_ms=connections_max_idle_ms,
             allow_auto_create_topics=allow_auto_create_topics,
             acks=acks,
-            config=config,
+            client_config=client_config,
             compression_type=compression_type,
             partitioner=partitioner,
             max_request_size=max_request_size,
@@ -405,10 +406,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -455,10 +456,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -505,10 +506,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -553,10 +554,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -607,10 +608,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,
@@ -861,7 +862,10 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 [FastAPI docs for Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/#response_model_exclude_none).
         """
         subscriber = super().subscriber(
-            *topics,
+            # The shared signature names the address types the brokers have in
+            # common; which of them accept a Config placeholder is per broker,
+            # and the overloads above are Confluent's answer.
+            *cast("tuple[str, ...]", topics),
             polling_interval=polling_interval,
             max_workers=max_workers,
             partitions=partitions,
@@ -914,12 +918,12 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload  # type: ignore[override]
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: Literal[False] = False,
         # basic args
         # Specification args
@@ -932,12 +936,12 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: Literal[True] = ...,
         # basic args
         # Specification args
@@ -950,12 +954,12 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # basic args
         # Specification args
@@ -968,12 +972,12 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @override
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # basic args
         # Specification args
