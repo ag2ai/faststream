@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
@@ -246,6 +247,7 @@ class NatsBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[NatsRegistrator] = (),
+        config: "ConfigSource" = None,
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
         protocol: str | None = "nats",
@@ -347,6 +349,8 @@ class NatsBroker(
                 "Middlewares to apply to all broker publishers/subscribers.
             routers:
                 "Routers to apply to broker.
+            config:
+                Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security:
                 Security options to connect broker and generate AsyncAPI server security information.
             specification_url:
@@ -433,6 +437,7 @@ class NatsBroker(
             # Basic args
             routers=routers,
             config=NatsBrokerConfig(
+                config_values=config,
                 producer=producer,
                 js_producer=js_producer,
                 js_options=js_options or {},

@@ -1,9 +1,10 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
+from faststream._internal.config_value import ConfigResolutionMixin, ConfigSource
 from faststream._internal.constants import EMPTY
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
@@ -20,9 +21,13 @@ if TYPE_CHECKING:
 
 
 @dataclass(kw_only=True)
-class BrokerConfig:
+class BrokerConfig(ConfigResolutionMixin):
     prefix: str = ""
     include_in_schema: bool | None = True
+
+    # The Config value store. Read it through `resolve_option`, never directly:
+    # a single record sees one level only, and levels have to compose.
+    config_values: ConfigSource = None
 
     broker_middlewares: Sequence["BrokerMiddleware[Any]"] = ()
     broker_parser: Optional["CustomCallable"] = None
@@ -42,6 +47,10 @@ class BrokerConfig:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
+
+    @property
+    def config_sources(self) -> Iterator[ConfigSource]:
+        yield self.config_values
 
     def __bool__(self) -> bool:
         return bool(
@@ -67,9 +76,15 @@ BrokerConfigType = TypeVar313(
 ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
+class ConfigComposition(ConfigResolutionMixin, Generic[BrokerConfigType]):  # noqa: PLR0904
     def __init__(self, config: BrokerConfigType) -> None:
+        self.__own_config = config
         self.configs: tuple[ConfigType, ...] = (config,)
+
+        # Config values of the test broker wrapping this one, which beat every
+        # level below. `None` when there is no test broker, and skipped as a
+        # source then.
+        self.config_values_override: ConfigSource = None
 
     @property
     def broker_config(self) -> "BrokerConfigType":
@@ -82,8 +97,17 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     def add_config(self, config: "ConfigType") -> None:
         self.configs = (config, *self.configs)
 
+    def add_outer_config(self, config: "BrokerConfig") -> None:
+        """Compose the record of an outer application into this composition.
+
+        Appended rather than prepended, so everything already composed here —
+        the Broker's own record first of all — keeps winning over it.
+        """
+        self.fd_config = config.fd_config | self.fd_config
+        self.configs = (*self.configs, config)
+
     def reset(self) -> None:
-        self.configs = (self.configs[-1],)
+        self.configs = (self.__own_config,)
 
     # broker priority options
     @property
@@ -150,6 +174,12 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
         return EMPTY  # type: ignore[no-any-return]
 
     # merged options
+    @property
+    def config_sources(self) -> Iterator[ConfigSource]:
+        yield self.config_values_override
+        for c in self.configs:
+            yield from c.config_sources
+
     @property
     def extra_context(self) -> dict[str, Any]:
         context: dict[str, Any] = {}

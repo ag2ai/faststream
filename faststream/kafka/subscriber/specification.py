@@ -14,14 +14,14 @@ class KafkaSubscriberSpecification(
     def topics(self) -> list[str]:
         topics: set[str] = set()
 
-        topics.update(f"{self._outer_config.prefix}{t}" for t in self.config.topics)
+        topics.update(self._outer_config.resolve_address(t) for t in self.config.topics)
 
         topics.update(
-            f"{self._outer_config.prefix}{p.topic}" for p in self.config.partitions
+            self._outer_config.resolve_address(p.topic) for p in self.config.partitions
         )
 
         if self.config.pattern:
-            topics.add(f"{self._outer_config.prefix}{self.config.pattern}")
+            topics.add(self._outer_config.resolve_address(self.config.pattern))
 
         return list(topics)
 

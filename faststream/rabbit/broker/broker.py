@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -101,6 +102,7 @@ class RabbitBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
+        config: "ConfigSource" = None,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
@@ -141,6 +143,7 @@ class RabbitBroker(
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: RabbitRouters to build a broker with.
+            config: Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security: Security options to connect broker and generate AsyncAPI server security information.
                 Use RabbitExternalAuth for RabbitMQ SASL EXTERNAL.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
@@ -198,6 +201,7 @@ class RabbitBroker(
             # Basic args
             routers=routers,
             config=RabbitBrokerConfig(
+                config_values=config,
                 channel_manager=cm,
                 producer=producer,
                 declarer=declarer,

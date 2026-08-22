@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from typing_extensions import ParamSpec, deprecated
 
+from faststream._internal.configs import BrokerConfig
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream._internal.utils import apply_types
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.context import ContextRepo
     from faststream.specification.base import SpecificationFactory
 
@@ -63,11 +65,13 @@ class StartAbleApplication:
         self,
         *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
-        config: Optional["FastDependsConfig"] = None,
+        fd_config: Optional["FastDependsConfig"] = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
         self._init_setupable_(
             *brokers,
-            config=config,
+            fd_config=fd_config,
+            config_values=config_values,
             specification=specification,
         )
 
@@ -79,10 +83,17 @@ class StartAbleApplication:
         self,
         *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
-        config: Optional["FastDependsConfig"] = None,
+        fd_config: Optional["FastDependsConfig"] = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
-        self.config = config or FastDependsConfig()
+        self.config = fd_config or FastDependsConfig()
         self.config.context.set_global("app", self)
+
+        # The App-level record every broker of this App composes in.
+        self._app_config = BrokerConfig(
+            fd_config=self.config,
+            config_values=config_values,
+        )
         self.brokers: list[BrokerUsecase[Any, Any]] = []
 
         self.schema: SpecificationFactory = specification or AsyncAPI()
@@ -116,14 +127,15 @@ class StartAbleApplication:
 
         self.brokers.append(broker)
         self.schema.add_broker(broker)
-        broker._update_fd_config(self.config)
+        broker._update_config(self._app_config)
 
 
 class Application(StartAbleApplication):
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any]",
-        config: Optional["FastDependsConfig"] = None,
+        fd_config: Optional["FastDependsConfig"] = None,
+        config_values: "ConfigSource" = None,
         logger: Optional["LoggerProto"] = logger,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
@@ -134,7 +146,12 @@ class Application(StartAbleApplication):
     ) -> None:
         self.logger = logger
 
-        super().__init__(*brokers, config=config, specification=specification)
+        super().__init__(
+            *brokers,
+            fd_config=fd_config,
+            config_values=config_values,
+            specification=specification,
+        )
 
         self._on_startup_calling: list[AsyncFunc] = [
             apply_types(

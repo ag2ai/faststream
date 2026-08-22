@@ -9,6 +9,7 @@ from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
+from faststream._internal.config_value import ConfigSource
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.parser import CodecProto
 from faststream._internal.types import BrokerMiddleware, CustomCallable, IdGenerator
@@ -90,6 +91,10 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     routers: Annotated[
         Iterable[RedisRegistrator], "Routers to include. Defaults to ``()``."
     ]
+    config: Annotated[
+        ConfigSource,
+        "Config values, used to resolve `Config` placeholders. Defaults to ``None``.",
+    ]
     message_format: Annotated[
         type[MessageFormat],
         "Message serialization format. Defaults to ``BinaryMessageFormatV1``.",
@@ -163,6 +168,7 @@ NON_CONNECTION_PARAMS = frozenset({
     "dependencies",
     "middlewares",
     "routers",
+    "config",
     "message_format",
     "specification_url",
     "protocol",

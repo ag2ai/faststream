@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.config_value import ConfigSource
     from faststream.asgi import AsyncAPIRoute
     from faststream.asgi.types import ASGIApp
     from faststream.specification.base import SpecificationFactory
@@ -45,6 +46,7 @@ class FastStream(Application):
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any]",
+        config: "ConfigSource" = None,
         logger: Optional["LoggerProto"] = logger,
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -59,7 +61,8 @@ class FastStream(Application):
         super().__init__(
             *brokers,
             logger=logger,
-            config=FastDependsConfig(
+            config_values=config,
+            fd_config=FastDependsConfig(
                 provider=provider or dependency_provider,
                 context=context or ContextRepo(),
                 serializer=serializer,
