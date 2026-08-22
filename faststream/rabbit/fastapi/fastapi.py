@@ -42,6 +42,7 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
     )
+    from faststream.rabbit.configs import ConfigurableExchange, ConfigurableQueue
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.schemas import Channel
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -326,8 +327,8 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: str | RabbitQueue,
-        exchange: str | RabbitExchange | None = None,
+        queue: "ConfigurableQueue",
+        exchange: "ConfigurableExchange" = None,
         *,
         channel: Optional["Channel"] = None,
         consume_args: dict[str, Any] | None = None,

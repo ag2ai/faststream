@@ -85,8 +85,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             lambda _: broker_queue(self._outer_config, self._queue),
         )
 
-        return self._queue_read
-
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
         yield self.queue.routing_address

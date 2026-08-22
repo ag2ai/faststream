@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 
@@ -11,14 +11,18 @@ from .usecase import RabbitSubscriber
 
 if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
-    from faststream.rabbit.configs import RabbitBrokerConfig
-    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
+    from faststream.rabbit.configs import (
+        ConfigurableExchange,
+        ConfigurableQueue,
+        RabbitBrokerConfig,
+    )
+    from faststream.rabbit.schemas import Channel
 
 
 def create_subscriber(
     *,
-    queue: Union["RabbitQueue", str],
-    exchange: "RabbitExchange",
+    queue: "ConfigurableQueue",
+    exchange: "ConfigurableExchange",
     consume_args: dict[str, Any] | None,
     channel: Optional["Channel"],
     # Subscriber args

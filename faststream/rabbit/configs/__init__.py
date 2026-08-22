@@ -1,4 +1,9 @@
-from .base import RabbitConfig
+from .base import ConfigurableExchange, ConfigurableQueue, RabbitConfig
 from .broker import RabbitBrokerConfig
 
-__all__ = ("RabbitBrokerConfig", "RabbitConfig")
+__all__ = (
+    "ConfigurableExchange",
+    "ConfigurableQueue",
+    "RabbitBrokerConfig",
+    "RabbitConfig",
+)

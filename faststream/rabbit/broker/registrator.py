@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from aio_pika import IncomingMessage
 from typing_extensions import override
@@ -11,11 +11,6 @@ from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.publisher.factory import create_publisher
 from faststream.rabbit.publisher.options import PublishKwargs
-from faststream.rabbit.schemas import (
-    Channel,
-    RabbitExchange,
-    RabbitQueue,
-)
 from faststream.rabbit.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
@@ -27,7 +22,9 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
     )
+    from faststream.rabbit.configs import ConfigurableExchange, ConfigurableQueue
     from faststream.rabbit.publisher import RabbitPublisher
+    from faststream.rabbit.schemas import Channel
     from faststream.rabbit.subscriber import RabbitSubscriber
 
 
@@ -37,8 +34,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: Union[str, "RabbitQueue"],
-        exchange: Union[str, "RabbitExchange", None] = None,
+        queue: "ConfigurableQueue",
+        exchange: "ConfigurableExchange" = None,
         *,
         channel: Optional["Channel"] = None,
         consume_args: dict[str, Any] | None = None,
@@ -58,8 +55,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         """Subscribe a handler to a RabbitMQ queue.
 
         Args:
-            queue (Union[str, RabbitQueue]): RabbitMQ queue to listen. **FastStream** declares and binds queue object to `exchange` automatically by default.
-            exchange (Union[str, RabbitExchange, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default.
+            queue (Union[str, RabbitQueue, Config]): RabbitMQ queue to listen. **FastStream** declares and binds queue object to `exchange` automatically by default. A `Config` placeholder is resolved to the value supplied at the Broker or the App.
+            exchange (Union[str, RabbitExchange, Config, None], optional): RabbitMQ exchange to bind queue to. Uses default exchange if not presented. **FastStream** declares exchange object automatically by default. Accepts a `Config` placeholder too.
             channel (Optional[Channel], optional): Channel to use for consuming messages.
             consume_args (dict[str, Any] | None, optional): Extra consumer arguments to use in `queue.consume(...)` method.
             ack_policy (AckPolicy, optional): Acknowledgement policy for message processing.
@@ -78,7 +75,7 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
         """
         subscriber = create_subscriber(
             queue=queue,
-            exchange=RabbitExchange.validate(exchange),
+            exchange=exchange,
             consume_args=consume_args,
             channel=channel,
             # subscriber args
@@ -104,8 +101,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        queue: Union["RabbitQueue", str] = "",
-        exchange: Union["RabbitExchange", str, None] = None,
+        queue: "ConfigurableQueue" = "",
+        exchange: "ConfigurableExchange" = None,
         *,
         routing_key: str = "",
         mandatory: bool = True,
@@ -180,8 +177,8 @@ class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
 
         publisher = create_publisher(
             routing_key=routing_key,
-            queue=RabbitQueue.validate(queue),
-            exchange=RabbitExchange.validate(exchange),
+            queue=queue,
+            exchange=exchange,
             message_kwargs=message_kwargs,
             # broker args
             config=cast("RabbitBrokerConfig", self.config),

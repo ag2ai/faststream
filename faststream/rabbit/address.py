@@ -3,8 +3,8 @@
 A Subscriber's or a Publisher's queue, exchange and routing key are declared once
 and read many times: when the endpoint starts, when it publishes, when the
 AsyncAPI schema is generated, when a log line is written. Every one of those reads
-goes through this module, so the Router prefix is composed at the point of use
-rather than baked into the declaration.
+goes through this module, so the Router prefix is composed — and a Config value
+resolved — at the point of use rather than baked into the declaration.
 
 The other five brokers compose their prefix in the same place — a property on the
 endpoint reading through a shared point. RabbitMQ carries three addresses per
@@ -16,40 +16,61 @@ their broker's address grammar — `RabbitQueue` compiles its routing key's Addr
 template, and validates queue type against durability — and none of that can happen
 until the address is known in full, which is first true here (ADR-0004).
 
-These functions produce a Broker address — the address an endpoint actually gives
-to RabbitMQ. They perform no Config Resolution, which is a separate step under a
-reserved name (`ConfigResolutionMixin.resolve_address`); it arrives behind these
-same points, ahead of the `validate()` calls below.
+Resolution runs ahead of that, on every read (ADR-0001): a Config placeholder is
+read out of the Config values in scope, and what it resolves to — a name or a
+whole prepared object — is then validated exactly as a literal declaration is.
+The Router prefix decorates literal declarations only, so the two functions that
+prefix branch on how the option was *declared*, never on what it resolved to
+(ADR-0003).
 """
 
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
-    from faststream.rabbit.configs import RabbitBrokerConfig
+    from faststream.rabbit.configs import (
+        ConfigurableExchange,
+        ConfigurableQueue,
+        RabbitBrokerConfig,
+    )
 
 T = TypeVar("T")
 
 
 def broker_queue(
     config: "RabbitBrokerConfig",
-    queue: Union["RabbitQueue", str],
+    queue: "ConfigurableQueue",
 ) -> "RabbitQueue":
     """Return the queue an endpoint declared, as it reaches the broker."""
-    return RabbitQueue.validate(queue).add_prefix(config.prefix)
+    key = config.config_key(queue)
+
+    # `add_prefix` copies, so what comes back is ours to stamp — and a resolved
+    # value is used undecorated, prefix in scope or not.
+    resolved = _resolved_queue(config, queue).add_prefix(
+        "" if key is not None else config.prefix,
+    )
+
+    if key is not None:
+        # A resolved address is otherwise indistinguishable from a literal one.
+        # The key travels with it so that a template which cannot deliver its
+        # `Path()` parameters can name the Config value to fix.
+        resolved.routing_address.config_key = key
+
+    return resolved
 
 
 def broker_exchange(
     config: "RabbitBrokerConfig",
-    exchange: Union["RabbitExchange", str],
+    exchange: "ConfigurableExchange",
 ) -> "RabbitExchange":
     """Return the exchange an endpoint declared, as it reaches the broker.
 
     An exchange lives outside the Router's namespace: the prefix decorates the
     queues and the routing keys binding them, never the exchange they bind to.
     """
-    return RabbitExchange.validate(exchange)
+    declared: RabbitExchange | str | None = config.resolve_option(exchange)
+    return RabbitExchange.validate(declared)
 
 
 def broker_routing_key(config: "RabbitBrokerConfig", routing_key: str) -> str:
@@ -71,15 +92,27 @@ def as_declared(config: "RabbitBrokerConfig", option: T) -> T:
     A few reads describe the declaration rather than address the broker — the
     queue a Subscriber names its log lines after, the address an AsyncAPI channel
     for a Publisher is titled with — and today those keep the name the user wrote,
-    without the Router prefix. They are read points all the same, so that an
-    address supplied from outside has one place to arrive at.
+    without the Router prefix. Undecorated is not unresolved: a placeholder is a
+    marker, never an address, so it is read here as it is everywhere else.
     """
-    return option
+    return config.resolve_option(option)
 
 
 def as_declared_queue(
     config: "RabbitBrokerConfig",
-    queue: Union["RabbitQueue", str],
+    queue: "ConfigurableQueue",
 ) -> "RabbitQueue":
     """Return the queue an endpoint declared, undecorated. See `as_declared`."""
-    return RabbitQueue.validate(queue)
+    return _resolved_queue(config, queue)
+
+
+def _resolved_queue(
+    config: "RabbitBrokerConfig",
+    queue: "ConfigurableQueue",
+) -> "RabbitQueue":
+    """Resolve a declared queue into the value object every read hands on.
+
+    The `cast` states what `resolve_option` cannot infer out of this union: past
+    this point a queue is a name or an object, never a placeholder.
+    """
+    return RabbitQueue.validate(cast("RabbitQueue | str", config.resolve_option(queue)))

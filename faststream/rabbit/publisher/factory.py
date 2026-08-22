@@ -5,8 +5,11 @@ from .specification import RabbitPublisherSpecification
 from .usecase import RabbitPublisher
 
 if TYPE_CHECKING:
-    from faststream.rabbit.configs import RabbitBrokerConfig
-    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+    from faststream.rabbit.configs import (
+        ConfigurableExchange,
+        ConfigurableQueue,
+        RabbitBrokerConfig,
+    )
 
     from .options import PublishKwargs
 
@@ -14,8 +17,8 @@ if TYPE_CHECKING:
 def create_publisher(
     *,
     routing_key: str,
-    queue: "RabbitQueue",
-    exchange: "RabbitExchange",
+    queue: "ConfigurableQueue",
+    exchange: "ConfigurableExchange",
     message_kwargs: "PublishKwargs",
     # Broker args
     config: "RabbitBrokerConfig",

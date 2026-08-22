@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.parser import CodecProto
     from faststream.rabbit.publisher import RabbitPublisher
@@ -55,6 +56,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None: ...
 
     @overload
@@ -63,6 +65,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *brokers: RabbitBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None: ...
 
     def __init__(
@@ -70,11 +73,13 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *brokers: RabbitBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config: "ConfigSource" = None,
     ) -> None:
         super().__init__(
             *brokers,
             with_real=with_real,
             connect_only=connect_only,
+            config=config,
         )
 
     @contextmanager

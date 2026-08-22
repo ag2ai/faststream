@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
     )
+    from faststream.rabbit.configs import ConfigurableExchange, ConfigurableQueue
     from faststream.rabbit.schemas import (
         RabbitExchange,
         RabbitQueue,
@@ -142,8 +143,8 @@ class RabbitRoute(SubscriberRoute):
         self,
         call: Callable[..., "AioPikaSendableMessage"]
         | Callable[..., Awaitable["AioPikaSendableMessage"]],
-        queue: Union[str, "RabbitQueue"],
-        exchange: Union[str, "RabbitExchange", None] = None,
+        queue: "ConfigurableQueue",
+        exchange: "ConfigurableExchange" = None,
         *,
         publishers: Iterable[RabbitPublisher] = (),
         consume_args: dict[str, Any] | None = None,
@@ -167,10 +168,12 @@ class RabbitRoute(SubscriberRoute):
             queue:
                 RabbitMQ queue to listen.
                 **FastStream** declares and binds queue object to `exchange` automatically by default.
+                A `Config` placeholder is resolved to the value supplied at the Broker or the App.
             exchange:
                 RabbitMQ exchange to bind queue to.
                 Uses default exchange if not present.
                 **FastStream** declares exchange object automatically by default.
+                Accepts a `Config` placeholder too.
             publishers:
                 RabbitMQ publishers to broadcast the handler result.
             consume_args:
