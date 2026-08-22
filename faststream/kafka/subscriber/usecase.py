@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
@@ -13,7 +13,7 @@ from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, Tas
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import compile_path
+from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -33,11 +33,10 @@ if TYPE_CHECKING:
     from .config import KafkaSubscriberConfig
 
 
-class CompiledPattern(NamedTuple):
-    """A Kafka pattern, and the regex extracting its path parameters."""
-
-    regex: Optional["Pattern[str]"]
-    pattern: str
+KAFKA_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol=".*",
+    patch_regex=lambda x: x.replace(r"\*", ".*"),
+)
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -66,7 +65,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._listener = config.listener
         self._connection_args = config.connection_args
 
-        self._compiled_pattern: CompiledPattern | None = None
+        self._compiled_address: Address | None = None
         self._compiled_from: str | None = None
 
         self.consumer = None
@@ -76,10 +75,25 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.resolve_option(self._group_id)
 
     @property
-    def pattern(self) -> str | None:
+    def pattern(self) -> Address | None:
+        """The pattern this Subscriber was declared with, and its Broker address.
+
+        Kafka patterns are plain strings, so — unlike the brokers whose addresses
+        are value objects — there is no constructor to build the Address inside
+        after resolution. Memoised on the resolved value, which only changes when
+        the Config values in scope do.
+        """
         if not self._pattern:
             return None
-        return self._compile_pattern().pattern
+
+        pattern = self._outer_config.resolve_address(self._pattern)
+
+        if self._compiled_from != pattern:
+            self._compiled_from = pattern
+            self._compiled_address = Address(pattern, KAFKA_ADDRESS_SYNTAX)
+
+        assert self._compiled_address is not None
+        return self._compiled_address
 
     def get_pattern_regex(self) -> Optional["Pattern[str]"]:
         """The regex pulling path parameters out of a topic name, if any.
@@ -87,33 +101,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         A method rather than a property because the parser holds on to it and
         asks per message, the pattern being resolved anew on every read.
         """
-        if not self._pattern:
-            return None
-        return self._compile_pattern().regex
-
-    def _compile_pattern(self) -> CompiledPattern:
-        """Compile the pattern this subscriber resolves to right now.
-
-        Kafka patterns are plain strings, so — unlike the brokers whose addresses
-        are value objects — there is no constructor to compile the path inside
-        after resolution. Memoised on the resolved value, which only changes when
-        the Config values in scope do.
-        """
-        assert self._pattern is not None
-
-        pattern = self._outer_config.resolve_address(self._pattern)
-
-        if self._compiled_from != pattern:
-            regex, compiled = compile_path(
-                pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            self._compiled_from = pattern
-            self._compiled_pattern = CompiledPattern(regex=regex, pattern=compiled)
-
-        assert self._compiled_pattern is not None
-        return self._compiled_pattern
+        pattern = self.pattern
+        return pattern.regex if pattern is not None else None
 
     @property
     def topics(self) -> list[str]:
@@ -149,10 +138,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.parser._setup(consumer)
 
-        if self.topics or self.pattern:
+        pattern = self.pattern
+        if self.topics or pattern:
             consumer.subscribe(
                 topics=self.topics,
-                pattern=self.pattern,
+                pattern=pattern.broker_address if pattern else None,
                 listener=make_logging_listener(
                     consumer=consumer,
                     logger=self._outer_config.logger.logger.logger,
@@ -291,8 +281,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        if self.pattern:
-            topics = [self.pattern]
+        if pattern := self.pattern:
+            topics = [pattern.broker_address]
 
         elif self.topics:
             topics = self.topics
