@@ -187,7 +187,7 @@ if TYPE_CHECKING:
 class KafkaBroker(
     KafkaRegistrator,
     BrokerUsecase[
-        aiokafka.ConsumerRecord | tuple[aiokafka.ConsumerRecord, ...],
+        aiokafka.ConsumerRecord[Any, Any] | tuple[aiokafka.ConsumerRecord[Any, Any], ...],
         Callable[..., aiokafka.AIOKafkaConsumer],
         KafkaBrokerConfig,
     ],

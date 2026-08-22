@@ -389,8 +389,8 @@ class KafkaRouter(
     KafkaRegistrator,
     BrokerRouter[
         Union[
-            "ConsumerRecord",
-            tuple["ConsumerRecord", ...],
+            "ConsumerRecord[Any, Any]",
+            tuple["ConsumerRecord[Any, Any]", ...],
         ],
         KafkaBrokerConfig,
     ],

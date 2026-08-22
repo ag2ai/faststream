@@ -208,7 +208,7 @@ disallow_any_unimported = false
 # the framework surfaces here — but internal annotations are not policed.
 include = ["tests/mypy"]
 pythonVersion = "3.10"
-typeCheckingMode = "basic"
+typeCheckingMode = "strict"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
