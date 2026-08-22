@@ -25,7 +25,8 @@ class TestNaming(NamingTestCase):
 
         (channel_name,) = schema["channels"]
         assert channel_name == "logs.{level}:Handle"
-        assert schema["channels"][channel_name]["address"] == "logs.{level}:Handle"
+        # no subject to name: this consumer reaches the stream by filtering
+        assert schema["channels"][channel_name]["address"] == ""
         assert (
             schema["channels"][channel_name]["bindings"]["nats"]["subject"]
             == "logs.{level}"
@@ -73,7 +74,7 @@ class TestNaming(NamingTestCase):
             },
             "channels": {
                 "test:Handle": {
-                    "address": "test:Handle",
+                    "address": "test",
                     "servers": [
                         {
                             "$ref": "#/servers/development",

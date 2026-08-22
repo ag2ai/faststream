@@ -30,6 +30,7 @@ class MQTTPublisherSpecification(
 
         return {
             self.name: PublisherSpec(
+                address=self.topic,
                 description=self.config.description_,
                 operation=Operation(
                     message=Message(

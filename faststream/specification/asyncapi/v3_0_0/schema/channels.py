@@ -44,7 +44,6 @@ class Channel(BaseModel):
     @classmethod
     def from_sub(
         cls,
-        address: str,
         subscriber: SubscriberSpec,
         servers: list[dict[str, str]] | None = None,
     ) -> Self:
@@ -56,7 +55,7 @@ class Channel(BaseModel):
 
         return cls(
             description=subscriber.description,
-            address=address,
+            address=subscriber.address,
             messages={
                 "SubscribeMessage": Message.from_spec(message),
             },
@@ -67,13 +66,12 @@ class Channel(BaseModel):
     @classmethod
     def from_pub(
         cls,
-        address: str,
         publisher: PublisherSpec,
         servers: list[dict[str, str]] | None = None,
     ) -> Self:
         return cls(
             description=publisher.description,
-            address=address,
+            address=publisher.address,
             messages={
                 "Message": Message.from_spec(publisher.operation.message),
             },
