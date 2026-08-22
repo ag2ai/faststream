@@ -558,7 +558,9 @@ class ChannelVisitor(Visitor):
             type="message",
             data=body,
             channel=channel,
-            pattern=sub.channel.pattern.encode() if sub.channel.pattern else None,
+            pattern=sub.channel.channel_template.encode()
+            if sub.channel.pattern
+            else None,
         )
 
 

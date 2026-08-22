@@ -417,5 +417,5 @@ def _is_handler_matches(
             for p in handler.partitions
         )
         or topic in handler.topics
-        or (handler.pattern and re.match(handler.pattern, topic)),
+        or (handler.broker_pattern and re.match(handler.broker_pattern, topic)),
     )

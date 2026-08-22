@@ -40,6 +40,7 @@ class RabbitQueue(NameRequired):
         "path_regex",
         "robust",
         "routing_key",
+        "routing_key_template",
         "timeout",
     )
 
@@ -85,8 +86,12 @@ class RabbitQueue(NameRequired):
         )
 
     def routing(self) -> str:
-        """Return real routing_key of object."""
+        """Return the broker address of object."""
         return self.routing_key or self.name
+
+    def routing_template(self) -> str:
+        """Return the address template of object."""
+        return self.routing_key_template or self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)
@@ -95,6 +100,9 @@ class RabbitQueue(NameRequired):
 
         if new_q.routing_key:
             new_q.routing_key = f"{prefix}{new_q.routing_key}"
+
+        if new_q.routing_key_template:
+            new_q.routing_key_template = f"{prefix}{new_q.routing_key_template}"
 
         return new_q
 
@@ -183,7 +191,7 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        re, routing_key = compile_path(
+        re, broker_routing_key = compile_path(
             routing_key,
             replace_symbol="*",
             patch_regex=lambda x: x.replace(r"\#", ".+"),
@@ -204,7 +212,8 @@ class RabbitQueue(NameRequired):
         self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        self.routing_key = routing_key
+        self.routing_key_template = routing_key
+        self.routing_key = broker_routing_key
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}

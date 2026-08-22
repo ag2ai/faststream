@@ -11,7 +11,7 @@ class NatsSubscriberSpecification(
     SubscriberSpecification[NatsBrokerConfig, NatsSubscriberSpecificationConfig],
 ):
     @property
-    def subject(self) -> str:
+    def subject_template(self) -> str:
         return f"{self._outer_config.prefix}{self.config.subject}"
 
     @property
@@ -19,7 +19,7 @@ class NatsSubscriberSpecification(
         if self.config.title_:
             return self.config.title_
 
-        return f"{self.subject}:{self.call_name}"
+        return f"{self.subject_template}:{self.call_name}"
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
@@ -36,7 +36,7 @@ class NatsSubscriberSpecification(
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self.subject,
+                        subject=self.subject_template,
                         queue=self.config.queue,
                     ),
                 ),

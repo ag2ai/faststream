@@ -20,6 +20,8 @@ from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from aiokafka import AIOKafkaConsumer
 
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -29,6 +31,15 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
+
+
+def compile_kafka_pattern(pattern: str) -> tuple["Pattern[str] | None", str]:
+    """Compile `logs.{level}` to a `logs..*` broker pattern and its capture regex."""
+    return compile_path(
+        pattern,
+        replace_symbol=".*",
+        patch_regex=lambda x: x.replace(r"\*", ".*"),
+    )
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -60,10 +71,19 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.consumer = None
 
     @property
-    def pattern(self) -> str | None:
+    def pattern_template(self) -> str | None:
+        """The pattern as it was declared, e.g. `logs.{level}`."""
         if not self._pattern:
             return self._pattern
         return f"{self._outer_config.prefix}{self._pattern}"
+
+    @property
+    def broker_pattern(self) -> str | None:
+        """The pattern Kafka is subscribed with, e.g. `logs..*` for `logs.{level}`."""
+        if not self._pattern:
+            return self._pattern
+        _, broker_pattern = compile_kafka_pattern(self._pattern)
+        return f"{self._outer_config.prefix}{broker_pattern}"
 
     @property
     def topics(self) -> list[str]:
@@ -99,10 +119,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.parser._setup(consumer)
 
-        if self.topics or self.pattern:
+        if self.topics or self.broker_pattern:
             consumer.subscribe(
                 topics=self.topics,
-                pattern=self.pattern,
+                pattern=self.broker_pattern,
                 listener=make_logging_listener(
                     consumer=consumer,
                     logger=self._outer_config.logger.logger.logger,
@@ -241,8 +261,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        if self.pattern:
-            topics = [self.pattern]
+        if self.broker_pattern:
+            topics = [self.broker_pattern]
 
         elif self.topics:
             topics = self.topics
@@ -273,12 +293,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         calls: "CallsCollection[ConsumerRecord]",
     ) -> None:
         if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
+            reg, _ = compile_kafka_pattern(config.pattern)
 
         else:
             reg = None
@@ -321,12 +336,7 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         max_records: int | None,
     ) -> None:
         if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
+            reg, _ = compile_kafka_pattern(config.pattern)
 
         else:
             reg = None

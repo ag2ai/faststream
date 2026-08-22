@@ -21,7 +21,7 @@ class PushStreamSubscriber(StreamSubscriber):
             return
 
         self.subscription = await self.jetstream.subscribe(
-            subject=self.clear_subject,
+            subject=self.broker_subject,
             queue=self.queue,
             cb=self.consume,
             config=self.config,
@@ -41,7 +41,7 @@ class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
         self.start_consume_task()
 
         self.subscription = await self.jetstream.subscribe(
-            subject=self.clear_subject,
+            subject=self.broker_subject,
             queue=self.queue,
             cb=self._put_msg,
             config=self.config,

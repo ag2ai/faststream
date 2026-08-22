@@ -7,7 +7,17 @@ from faststream._internal.utils.path import compile_path
 class PubSub(NameRequired):
     """A class to represent a Redis PubSub channel."""
 
+    channel_template: str
+    """The channel as it was declared, e.g. `logs.{level}`."""
+
+    name: str
+    """The channel Redis is (p)subscribed to, e.g. `logs.*` for `logs.{level}`."""
+
+    pattern: bool
+    """Whether to subscribe with `psubscribe` rather than `subscribe`."""
+
     __slots__ = (
+        "channel_template",
         "name",
         "path_regex",
         "pattern",
@@ -32,10 +42,12 @@ class PubSub(NameRequired):
         super().__init__(path)
 
         self.path_regex = reg
-        self.pattern = channel if pattern else None
+        self.channel_template = channel
+        self.pattern = pattern
         self.polling_interval = polling_interval
 
     def add_prefix(self, prefix: str) -> "PubSub":
         new_ch = deepcopy(self)
         new_ch.name = f"{prefix}{new_ch.name}"
+        new_ch.channel_template = f"{prefix}{new_ch.channel_template}"
         return new_ch

@@ -11,7 +11,7 @@ class NatsPublisherSpecification(
     PublisherSpecification[NatsBrokerConfig, NatsPublisherSpecificationConfig],
 ):
     @property
-    def subject(self) -> str:
+    def subject_template(self) -> str:
         return f"{self._outer_config.prefix}{self.config.subject}"
 
     @property
@@ -19,7 +19,7 @@ class NatsPublisherSpecification(
         if self.config.title_:
             return self.config.title_
 
-        return f"{self.subject}:Publisher"
+        return f"{self.subject_template}:Publisher"
 
     def get_schema(self) -> dict[str, PublisherSpec]:
         payloads = self.get_payloads()
@@ -36,7 +36,7 @@ class NatsPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self.subject,
+                        subject=self.subject_template,
                         queue=None,
                     ),
                 ),
