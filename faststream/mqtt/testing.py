@@ -21,6 +21,8 @@ from faststream.mqtt.broker.broker import MQTTBroker
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
 from faststream.mqtt.response import MQTTPublishCommand
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -287,12 +289,17 @@ async def build_message(
     """
     if codec is None:
         codec = DefaultCodec()
-    payload, content_type = await codec.encode(message, serializer=serializer)
+    publish_cmd = PublishCommand(
+        body=message,
+        destination=topic,
+        _publish_type=PublishType.PUBLISH,
+    )
+    encoded = await codec.encode(publish_cmd, serializer=serializer)
 
     if version == "3.1.1":
         return zmqtt.Message(
             topic=topic,
-            payload=payload,
+            payload=encoded.body,
             qos=zmqtt.QoS(qos),
             retain=retain,
         )
@@ -300,7 +307,7 @@ async def build_message(
     user_props: list[tuple[str, str]] = list((headers or {}).items())
 
     properties = zmqtt.PublishProperties(
-        content_type=content_type or None,
+        content_type=encoded.content_type or None,
         response_topic=reply_to or None,
         correlation_data=correlation_id.encode() if correlation_id else None,
         user_properties=tuple(user_props),
@@ -308,7 +315,7 @@ async def build_message(
 
     return zmqtt.Message(
         topic=topic,
-        payload=payload,
+        payload=encoded.body,
         qos=zmqtt.QoS(qos),
         retain=retain,
         properties=properties,
