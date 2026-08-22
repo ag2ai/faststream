@@ -6,6 +6,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.redis.configs.broker import RedisRouterConfig
@@ -32,12 +33,12 @@ class RedisPublisher(ArgsContainer):
 
     def __init__(
         self,
-        channel: str | None = None,
+        channel: Configurable[str] | None = None,
         *,
-        list: str | None = None,
-        stream: str | None = None,
+        list: Configurable[str] | None = None,
+        stream: Configurable[str] | None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
@@ -86,11 +87,11 @@ class RedisRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        channel: Union[str, "PubSub"] | None = None,
+        channel: Configurable[Union[str, "PubSub"]] | None = None,
         *,
         publishers: Iterable["RedisPublisher"] = (),
-        list: Union[str, "ListSub"] | None = None,
-        stream: Union[str, "StreamSub"] | None = None,
+        list: Configurable[Union[str, "ListSub"]] | None = None,
+        stream: Configurable[Union[str, "StreamSub"]] | None = None,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,

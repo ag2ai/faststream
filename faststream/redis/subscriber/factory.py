@@ -1,10 +1,11 @@
 import warnings
-from typing import TYPE_CHECKING, Any, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.redis.address import declared_batch
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -28,6 +29,7 @@ from .usecases import (
 )
 
 if TYPE_CHECKING:
+    from faststream._internal.config_value import Configurable
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.parser import MessageFormat
 
@@ -36,9 +38,9 @@ SubscriberType: TypeAlias = LogicSubscriber
 
 def create_subscriber(
     *,
-    channel: Union["PubSub", str, None],
-    list: Union["ListSub", str, None],
-    stream: Union["StreamSub", str, None],
+    channel: "Configurable[PubSub | str] | None",
+    list: "Configurable[ListSub | str] | None",
+    stream: "Configurable[StreamSub | str] | None",
     # Subscriber args
     ack_policy: "AckPolicy",
     config: "RedisBrokerConfig",
@@ -61,8 +63,8 @@ def create_subscriber(
 
     subscriber_config = RedisSubscriberConfig(
         channel_sub=channel,
-        list_sub=ListSub.validate(list),
-        stream_sub=StreamSub.validate(stream),
+        list_sub=list,
+        stream_sub=stream,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
@@ -106,7 +108,7 @@ def create_subscriber(
             stream_sub=subscriber_config.stream_sub,
         )
 
-        if subscriber_config.stream_sub.batch:
+        if declared_batch(subscriber_config.stream_sub):
             # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return StreamBatchSubscriber(subscriber_config, specification, calls)
 
@@ -128,7 +130,7 @@ def create_subscriber(
             list_sub=subscriber_config.list_sub,
         )
 
-        if subscriber_config.list_sub.batch:
+        if declared_batch(subscriber_config.list_sub):
             # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return ListBatchSubscriber(subscriber_config, specification, calls)
 
@@ -147,9 +149,9 @@ def create_subscriber(
 
 def _validate_input_for_misconfigure(
     *,
-    channel: Union["PubSub", str, None],
-    list: Union["ListSub", str, None],
-    stream: Union["StreamSub", str, None],
+    channel: "Configurable[PubSub | str] | None",
+    list: "Configurable[ListSub | str] | None",
+    stream: "Configurable[StreamSub | str] | None",
     ack_policy: AckPolicy,
     max_workers: int,
     message_format: type["MessageFormat"] | None,

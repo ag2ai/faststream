@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.utils.path import PrefixedRead
+from faststream.redis.address import AddressRead
 from faststream.redis.message import (
     PubSubMessage,
     RedisChannelMessage,
@@ -48,8 +48,7 @@ class ChannelSubscriber(LogicSubscriber):
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-        self._channel = config.channel_sub
-        self._channel_read: PrefixedRead[PubSub] = PrefixedRead()
+        self._channel = AddressRead(config.channel_sub, PubSub)
         self.subscription: RPubSub | None = None
 
     @property
@@ -58,15 +57,10 @@ class ChannelSubscriber(LogicSubscriber):
 
         The `PubSub` is built here rather than at the declaration site, because
         that is the first moment its channel is known in full — the Router prefix
-        composed, and any Config value resolved. Built once and
-        kept: a Config value is fixed at `connect()` (ADR-0004).
+        composed, and any Config value resolved. Built once and kept: a Config
+        value is fixed at `connect()` (ADR-0004).
         """
-        return self._channel_read.read(
-            self._outer_config.prefix,
-            lambda prefix: PubSub.validate(self._channel).add_prefix(prefix),
-        )
-
-        return self._channel_read
+        return self._channel.read(self._outer_config)
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:

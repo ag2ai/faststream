@@ -34,8 +34,9 @@ class PubSub(NameRequired):
         channel: str,
         pattern: bool = False,
         polling_interval: float = 1.0,
+        config_key: str | None = None,
     ) -> None:
-        address = Address(channel, REDIS_ADDRESS_SYNTAX)
+        address = Address(channel, REDIS_ADDRESS_SYNTAX, config_key)
 
         if address.regex is not None or "*" in channel:
             pattern = True
@@ -47,6 +48,26 @@ class PubSub(NameRequired):
         self.address = address
         self.pattern = pattern
         self.polling_interval = polling_interval
+
+    @classmethod
+    def from_config_value(cls, value: "PubSub | str", config_key: str) -> "PubSub":
+        """Build this channel out of a Config value, naming the value it came from.
+
+        The `Address` compiles inside the constructor, so the key has to arrive
+        before that rather than be attached after: a resolved value whose braces
+        do not spell out Path parameters fails right there, and the failure has
+        to be able to name what to fix.
+        """
+        if isinstance(value, str):
+            return cls(value, config_key=config_key)
+
+        # A copy, because the caller's object is theirs: the same prepared
+        # `PubSub` may be supplied as one Config value and used literally
+        # elsewhere, and stamping it in place would make the literal's failure
+        # name a Config key it never came from.
+        stamped = deepcopy(value)
+        stamped.address.config_key = config_key
+        return stamped
 
     @property
     def path_regex(self) -> Pattern[str] | None:

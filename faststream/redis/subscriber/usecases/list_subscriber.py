@@ -1,11 +1,13 @@
-from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias
+from collections.abc import AsyncIterator, Iterable
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeAlias
 
 import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address
+from faststream.redis.address import AddressRead
 from faststream.redis.message import (
     BatchListMessage,
     DefaultListMessage,
@@ -15,6 +17,7 @@ from faststream.redis.parser import (
     RedisBatchListParser,
     RedisListParser,
 )
+from faststream.redis.schemas import ListSub
 
 from .basic import LogicSubscriber
 
@@ -26,7 +29,6 @@ if TYPE_CHECKING:
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.schemas import ListSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
     from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
@@ -35,6 +37,10 @@ Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    #: Whether this Subscriber pops the list in batches. Read while it is being
+    #: constructed — it chooses the class — so a Config value cannot change it.
+    batch: ClassVar[bool] = False
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -43,12 +49,36 @@ class _ListHandlerMixin(LogicSubscriber):
     ) -> None:
         super().__init__(config, specification, calls)
         self._read_lock = anyio.Lock()
-        assert config.list_sub
-        self._list_sub = config.list_sub
+        assert config.list_sub is not None
+        self._list_sub = AddressRead(
+            config.list_sub,
+            ListSub,
+            built_as={"batch": self.batch},
+        )
 
     @property
     def list_sub(self) -> "ListSub":
-        return self._list_sub.add_prefix(self._outer_config.prefix)
+        """The list this Subscriber pops from, built on first read.
+
+        The Router prefix is composed and any Config value resolved by then,
+        which is the first moment the list is known in full.
+        """
+        return self._list_sub.read(self._outer_config)
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        """The list this Subscriber pops from, and it is never a template.
+
+        Redis matches a pattern on a channel only — a list is popped by the
+        name given, verbatim. So a `{param}` in one is a character like any
+        other, and `Address.literal` is what says so: a `Path()` parameter
+        naming it is refused at `connect()` rather than going unfilled for
+        every message.
+        """
+        yield Address.literal(
+            self.list_sub.name,
+            self._list_sub.config_key(self._outer_config),
+        )
 
     def get_log_context(
         self,
@@ -194,6 +224,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
+    batch: ClassVar[bool] = True
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

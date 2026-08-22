@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 from typing_extensions import override
 
@@ -8,16 +8,18 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
+from faststream.redis.address import AddressRead
 from faststream.redis.response import RedisPublishCommand
+from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.config_value import Configurable
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisChannelMessage
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.response import PublishCommand
 
     from .config import RedisPublisherConfig
@@ -35,10 +37,20 @@ class LogicPublisher(PublisherUsecase):
 
         self.config = config
 
-        self.reply_to = config.reply_to
+        self._reply_to = config.reply_to
         self.headers = config.headers or {}
 
         self.producer = self.config._outer_config.producer
+
+    @property
+    def reply_to(self) -> str:
+        """The reply destination, resolved but never prefixed.
+
+        `resolve_option` rather than a read through `AddressRead`: a literal
+        `reply_to` has never been decorated with the Router prefix, and adopting
+        a placeholder for it must not change that for the literal beside it.
+        """
+        return self._outer_config.resolve_option(self._reply_to)
 
     async def start(self) -> None:
         await super().start()
@@ -63,15 +75,16 @@ class ChannelPublisher(LogicPublisher):
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        channel: "PubSub",
+        channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(config, specification)
 
-        self._channel = channel
+        self._channel = AddressRead(channel, PubSub)
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        """The channel this Publisher sends to, built on first read."""
+        return self._channel.read(self._outer_config)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -158,20 +171,25 @@ class ChannelPublisher(LogicPublisher):
 
 
 class ListPublisher(LogicPublisher):
+    #: Whether this Publisher pushes in batches. Read while it is being
+    #: constructed — it chooses the class — so a Config value cannot change it.
+    batch: ClassVar[bool] = False
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        list: "ListSub",
+        list: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(config, specification)
 
-        self._list = list
+        self._list = AddressRead(list, ListSub, built_as={"batch": self.batch})
 
     @property
     def list(self) -> "ListSub":
-        return self._list.add_prefix(self._outer_config.prefix)
+        """The list this Publisher pushes to, built on first read."""
+        return self._list.read(self._outer_config)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -259,6 +277,8 @@ class ListPublisher(LogicPublisher):
 
 
 class ListBatchPublisher(ListPublisher):
+    batch: ClassVar[bool] = True
+
     @override
     async def publish(  # type: ignore[override]
         self,
@@ -317,14 +337,15 @@ class StreamPublisher(LogicPublisher):
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        stream: "StreamSub",
+        stream: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(config, specification)
-        self._stream = stream
+        self._stream = AddressRead(stream, StreamSub)
 
     @property
     def stream(self) -> "StreamSub":
-        return self._stream.add_prefix(self._outer_config.prefix)
+        """The stream this Publisher appends to, built on first read."""
+        return self._stream.read(self._outer_config)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:

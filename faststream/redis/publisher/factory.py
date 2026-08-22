@@ -1,6 +1,8 @@
-from typing import TYPE_CHECKING, Any, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, TypeAlias
 
+from faststream._internal.config_value import Configurable
 from faststream.exceptions import SetupError
+from faststream.redis.address import declared_batch
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.redis.schemas.proto import validate_options
 
@@ -29,11 +31,11 @@ PublisherType: TypeAlias = LogicPublisher
 
 def create_publisher(
     *,
-    channel: Union["PubSub", str, None],
-    list: Union["ListSub", str, None],
-    stream: Union["StreamSub", str, None],
+    channel: "Configurable[PubSub | str] | None",
+    list: "Configurable[ListSub | str] | None",
+    stream: "Configurable[StreamSub | str] | None",
     headers: dict[str, Any] | None,
-    reply_to: str,
+    reply_to: Configurable[str],
     config: "RedisBrokerConfig",
     message_format: type["MessageFormat"] | None,
     # AsyncAPI args
@@ -59,30 +61,30 @@ def create_publisher(
     )
 
     specification: RedisPublisherSpecification
-    if channel_sub := PubSub.validate(channel):
+    if channel:
         specification = ChannelPublisherSpecification(
             config,
             specification_config,
-            channel_sub,
+            channel,
         )
 
-        return ChannelPublisher(publisher_config, specification, channel=channel_sub)
+        return ChannelPublisher(publisher_config, specification, channel=channel)
 
-    if stream_sub := StreamSub.validate(stream):
+    if stream:
         specification = StreamPublisherSpecification(
             config,
             specification_config,
-            stream_sub,
+            stream,
         )
 
-        return StreamPublisher(publisher_config, specification, stream=stream_sub)
+        return StreamPublisher(publisher_config, specification, stream=stream)
 
-    if list_sub := ListSub.validate(list):
-        specification = ListPublisherSpecification(config, specification_config, list_sub)
+    if list:
+        specification = ListPublisherSpecification(config, specification_config, list)
 
-        if list_sub.batch:
-            return ListBatchPublisher(publisher_config, specification, list=list_sub)
+        if declared_batch(list):
+            return ListBatchPublisher(publisher_config, specification, list=list)
 
-        return ListPublisher(publisher_config, specification, list=list_sub)
+        return ListPublisher(publisher_config, specification, list=list)
 
     raise SetupError(INCORRECT_SETUP_MSG)

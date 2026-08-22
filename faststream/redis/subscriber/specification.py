@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.redis.address import AddressRead
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -10,6 +11,7 @@ from faststream.specification.schema.bindings import ChannelBinding, redis
 from .config import RedisSubscriberSpecificationConfig
 
 if TYPE_CHECKING:
+    from faststream._internal.config_value import Configurable
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
@@ -48,19 +50,15 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
-        channel: PubSub | str,
+        channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
-        self._channel = channel
-        self._channel_read: PubSub | None = None
+        self._channel = AddressRead(channel, PubSub)
 
     @property
     def channel(self) -> PubSub:
         """The channel this endpoint is documented under, built on first read."""
-        if self._channel_read is None:
-            self._channel_read = PubSub.validate(self._channel)
-
-        return self._channel_read
+        return self._channel.read(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -71,7 +69,7 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.name}"
+        return self.channel.name
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
@@ -87,10 +85,15 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
-        list_sub: ListSub,
+        list_sub: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
-        self.list_sub = list_sub
+        self._list_sub = AddressRead(list_sub, ListSub)
+
+    @property
+    def list_sub(self) -> ListSub:
+        """The list this endpoint is documented under, built on first read."""
+        return self._list_sub.read(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -101,7 +104,7 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def list_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.list_sub.name}"
+        return self.list_sub.name
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
@@ -117,10 +120,15 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
-        stream_sub: StreamSub,
+        stream_sub: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
-        self.stream_sub = stream_sub
+        self._stream_sub = AddressRead(stream_sub, StreamSub)
+
+    @property
+    def stream_sub(self) -> StreamSub:
+        """The stream this endpoint is documented under, built on first read."""
+        return self._stream_sub.read(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -131,7 +139,7 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def stream_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.stream_sub.name}"
+        return self.stream_sub.name
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
