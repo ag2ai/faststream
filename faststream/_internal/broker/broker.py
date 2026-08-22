@@ -108,22 +108,35 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
-            self._check_addresses()
+            self._prepare()
             self._connection = await self._connect()
-            self._setup_logger()
 
         return self._connection
 
-    def _check_addresses(self) -> None:
-        """Read every Subscriber's addresses once, before a message can arrive.
+    def _prepare(self) -> None:
+        """Preparation: everything derivable from the options composition, no I/O.
 
-        This is the moment an address is first known in full — the Router prefix
-        composed, any Config value resolved — and the last one before the endpoint
-        starts consuming, so it is where an address that cannot deliver its
-        `Path()` parameters is refused.
+        The moment the composition is final — the Router prefix composed, the
+        Config values in scope — and the last one before anything talks to the
+        network. Every static step lives here so that a declaration mistake
+        refuses the Broker rather than aborting a start-up already under way.
+
+        Endpoints first and the logger second: logger setup reads every
+        Subscriber's log context, which reads their resolved addresses.
+
+        Synchronous and idempotent, so an App can drive it across all its Brokers
+        before connecting any, and schema generation can drive it with no event
+        loop at all. No flag guards this method: the endpoints carry their own,
+        and both logger steps already settle — registering a log context widens a
+        column width, and the logger object is built only if there is not one.
         """
         for sub in self.subscribers:
-            sub.check_addresses()
+            sub.prepare()
+
+        for pub in self.publishers:
+            pub.prepare()
+
+        self._setup_logger()
 
     @abstractmethod
     async def _connect(self) -> ConnectionType:

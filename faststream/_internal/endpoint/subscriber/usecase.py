@@ -123,6 +123,20 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         """Refuse at `connect()` what cannot work once messages start arriving."""
         check_subscription_addresses(self.subscription_addresses(), self.calls)
 
+    @override
+    def _prepare(self) -> None:
+        """Everything this Subscriber derives from its options, before any I/O.
+
+        None of it needs a connection: the addresses are read and checked, the
+        parser and decoder chain composed, the FastDepends model built and the
+        processing lock created. Running it here rather than in `start()` is what
+        makes a declaration mistake refuse the Broker instead of aborting it
+        half-way through a start-up that already has other Subscribers consuming.
+        """
+        self.check_addresses()
+        self._build_fastdepends_model()
+        self.lock = MultiLock()
+
     async def __aenter__(self) -> Self:
         await self.start()
         return self
@@ -137,9 +151,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
-        self.lock = MultiLock()
-
-        self._build_fastdepends_model()
+        # A Subscriber registered after its Broker connected has no Preparation
+        # behind it; one the Broker prepared at `connect()` gets a no-op here.
+        self.prepare()
 
         self._outer_config.logger.log(
             f"`{self.specification.call_name}` waiting for messages",

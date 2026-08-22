@@ -186,6 +186,10 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @override
     async def start(self) -> None:
+        # Ahead of the group declaration: this `start()` reaches the base one,
+        # where Preparation is otherwise driven, only after it has declared.
+        self.prepare()
+
         client = self._client
 
         self.extra_watcher_options.update(

@@ -80,6 +80,10 @@ class ChannelSubscriber(LogicSubscriber):
         if self.subscription:
             return
 
+        # Ahead of the subscribe: this `start()` reaches the base one, where
+        # Preparation is otherwise driven, only after it has already subscribed.
+        self.prepare()
+
         self.subscription = psub = self._client.pubsub()
 
         if self.channel.pattern:
