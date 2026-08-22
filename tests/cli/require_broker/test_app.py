@@ -15,6 +15,12 @@ from faststream.rabbit import RabbitBroker, TestRabbitBroker
 from tests.marks import skip_windows
 
 
+def fake_broker(broker: AsyncMock) -> AsyncMock:
+    """Give a Broker stand-in the synchronous `_prepare` the real one has."""
+    broker._prepare = MagicMock()
+    return broker
+
+
 def test_init(app: FastStream, broker: RabbitBroker) -> None:
     assert app.broker is broker
     assert app.logger is logger
@@ -71,7 +77,7 @@ async def test_on_startup_calls(async_mock: AsyncMock, mock: MagicMock) -> None:
         await async_mock.call_start2()
         assert mock.call_start1.call_count == 1
 
-    test_app = FastStream(AsyncMock(), on_startup=[call1, call2])
+    test_app = FastStream(fake_broker(AsyncMock()), on_startup=[call1, call2])
 
     await test_app.start()
 
@@ -113,7 +119,7 @@ async def test_on_shutdown_calls(async_mock: AsyncMock, mock: MagicMock) -> None
         await async_mock.call_stop2()
         assert mock.call_stop1.call_count == 1
 
-    test_app = FastStream(AsyncMock(), on_shutdown=[call1, call2])
+    test_app = FastStream(fake_broker(AsyncMock()), on_shutdown=[call1, call2])
 
     await test_app.stop()
 
@@ -123,7 +129,7 @@ async def test_on_shutdown_calls(async_mock: AsyncMock, mock: MagicMock) -> None
 
 @pytest.mark.asyncio()
 async def test_shutdown_calls_lifespans(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(fake_broker(AsyncMock()))
 
     def call1() -> None:
         mock.call_stop1()
@@ -287,7 +293,7 @@ async def test_running_lifespan_contextmanager(
         yield
         mock.off()
 
-    app = FastStream(async_mock, lifespan=lifespan)
+    app = FastStream(fake_broker(async_mock), lifespan=lifespan)
     app.exit()
 
     await app.run(run_extra_options={"env": "test"})
@@ -301,7 +307,7 @@ async def test_running_lifespan_contextmanager(
 
 @pytest.mark.asyncio()
 async def test_test_app(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(fake_broker(AsyncMock()))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -315,7 +321,7 @@ async def test_test_app(mock: MagicMock) -> None:
 
 @pytest.mark.asyncio()
 async def test_test_app_with_excp(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(fake_broker(AsyncMock()))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -329,7 +335,7 @@ async def test_test_app_with_excp(mock: MagicMock) -> None:
 
 
 def test_sync_test_app(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(fake_broker(AsyncMock()))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -342,7 +348,7 @@ def test_sync_test_app(mock: MagicMock) -> None:
 
 
 def test_sync_test_app_with_excp(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(fake_broker(AsyncMock()))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)

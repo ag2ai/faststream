@@ -102,7 +102,18 @@ class StartAbleApplication:
             self.add_broker(br)
 
     async def _start_broker(self) -> None:
+        """Prepare every Broker this App holds, then start them.
+
+        Preparation across all of them before I/O on any: a declaration mistake
+        on the last Broker must not leave the first one connected. This is a
+        second call to an idempotent method rather than a second mechanism --
+        a Broker with no App prepares itself inside `connect()`.
+        """
         assert self.brokers, "You should setup a broker"
+
+        for b in self.brokers:
+            b._prepare()
+
         for b in self.brokers:
             await b.start()
 

@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from faststream import Config, Path
+from faststream import Config, FastStream, Path, TestApp
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, TestKafkaBroker
@@ -126,3 +126,59 @@ async def test_preparing_twice_changes_nothing_observable(queue: str) -> None:
     async with TestKafkaBroker(broker) as br:
         await br.publish("hello", queue)
         handler.mock.assert_called_once_with("hello")
+
+
+@pytest.mark.asyncio()
+async def test_an_app_prepares_every_broker_before_connecting_any() -> None:
+    """A mistake on the last Broker must not leave the first one connected."""
+    first = KafkaBroker(NOWHERE)
+
+    @first.subscriber("first")
+    async def well_declared(msg: Any) -> None: ...
+
+    second = KafkaBroker(NOWHERE)
+
+    @second.subscriber("second", codec=DefaultCodec(), decoder=a_decoder)
+    async def misdeclared(msg: Any) -> None: ...
+
+    app = FastStream(first, second)
+
+    with pytest.raises(ValueError, match="codec"):
+        await app.start()
+
+    assert not await first.ping(timeout=0.1)
+
+
+@pytest.mark.asyncio()
+async def test_an_app_with_well_declared_brokers_starts_both() -> None:
+    first = KafkaBroker(NOWHERE)
+
+    @first.subscriber("first")
+    async def first_handler(msg: Any) -> None: ...
+
+    second = KafkaBroker(NOWHERE)
+
+    @second.subscriber("second")
+    async def second_handler(msg: Any) -> None: ...
+
+    app = FastStream(first, second)
+
+    async with TestKafkaBroker(first, second), TestApp(app):
+        await first.publish("hello", "first")
+        first_handler.mock.assert_called_once_with("hello")
+
+        await second.publish("hello", "second")
+        second_handler.mock.assert_called_once_with("hello")
+
+
+@pytest.mark.asyncio()
+async def test_entering_a_broker_directly_refuses_the_declaration() -> None:
+    """`__aenter__` reaches Preparation through `connect()`, with no App in it."""
+    broker = KafkaBroker(NOWHERE)
+
+    @broker.subscriber("topic", codec=DefaultCodec(), decoder=a_decoder)
+    async def handler(msg: Any) -> None: ...
+
+    with pytest.raises(ValueError, match="codec"):
+        async with broker:
+            pass  # pragma: no cover
