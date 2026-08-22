@@ -140,6 +140,7 @@ test-core = [
 
 testing = [
     {include-group = "test-core"},
+    "faststream[otel,prometheus]",
     "fastapi==0.140.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
@@ -148,8 +149,6 @@ testing = [
     "uvicorn>=0.34.3",
     "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "psutil==7.2.2",
-    "prometheus-client>=0.20.0,<0.30.0",
-    "opentelemetry-sdk>=1.25.0,<2.0.0",
 ]
 
 dev = [
