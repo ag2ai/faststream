@@ -30,8 +30,6 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         config: "NatsSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Msg]",
-        *,
-        queue: str,
     ) -> None:
         parser = NatsParser(
             regex=lambda: self.subject.regex,
@@ -40,8 +38,6 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
-
-        self.queue = queue
 
     @override
     async def get_one(

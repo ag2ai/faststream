@@ -6,6 +6,7 @@ from typing_extensions import overload, override
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.path import Address
 from faststream.nats.response import NatsPublishCommand
+from faststream.nats.schemas import JStream
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
@@ -36,17 +37,47 @@ class LogicPublisher(PublisherUsecase):
         super().__init__(config, specification)
 
         self._subject = config.subject
-        self.stream = config.stream
+        self._stream = config.stream
+        self._reply_to = config.reply_to
         self.timeout = config.timeout or 0.5
         self.headers = config.headers or {}
-        self.reply_to = config.reply_to
+
+        self._resolved_stream: JStream | None = None
 
     @property
     def subject(self) -> "Address":
         """The subject this Publisher was declared with, and its Broker address."""
-        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+        outer = self._outer_config
+        declared = self._subject
+
+        return Address(
+            outer.resolve_address(declared),
+            NATS_ADDRESS_SYNTAX,
+            outer.config_key(declared),
         )
+
+    @property
+    def reply_to(self) -> str:
+        """The subject a reply to this Publisher's messages goes to.
+
+        Read through `resolve_option` rather than `resolve_address`: a literal
+        `reply_to` has never carried the Router prefix, and routing it through
+        the address layer would newly give it one.
+        """
+        return self._outer_config.resolve_option(self._reply_to)
+
+    @property
+    def stream(self) -> "JStream | None":
+        """The stream this Publisher sends into, built from the resolved value.
+
+        Kept once built — a Config value is fixed at `connect()` (ADR-0004).
+        """
+        if self._resolved_stream is None:
+            self._resolved_stream = JStream.validate(
+                self._outer_config.resolve_option(self._stream),
+            )
+
+        return self._resolved_stream
 
     @overload
     async def publish(

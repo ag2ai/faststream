@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Sequence
+from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -75,6 +76,7 @@ if TYPE_CHECKING:
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
+    from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import PubAck, Schedule
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
@@ -494,9 +496,29 @@ class NatsBroker(
 
         self.config.disconnect()
 
+    def _collect_stream_subjects(self) -> None:
+        """Register the stream-subject pairs that could not be read at declaration.
+
+        A stream or a subject written as a Config placeholder has no value while
+        the endpoint is being declared, so the registrar leaves it out of the
+        stream builder. Here the Config values are in scope and both read. Adding
+        a subject already registered is a no-op, so endpoints declared literally
+        pass through this unchanged.
+        """
+        endpoints: Iterable[LogicSubscriber[Any] | LogicPublisher] = chain(
+            cast("Iterable[LogicSubscriber[Any]]", self.subscribers),
+            cast("Iterable[LogicPublisher]", self.publishers),
+        )
+
+        for endpoint in endpoints:
+            if (stream := endpoint.stream) is not None:
+                self._stream_builder.add_subject(stream, endpoint.subject.template)
+
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""
         await self.connect()
+
+        self._collect_stream_subjects()
 
         stream_context = self.config.connection_state.stream
 

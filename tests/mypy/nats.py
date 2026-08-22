@@ -4,10 +4,12 @@ import prometheus_client
 from nats.aio.msg import Msg
 from typing_extensions import assert_type
 
+from faststream import Config
 from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import (
     NatsBroker,
     NatsMessage,
+    NatsPublisher,
     NatsRoute,
     NatsRouter,
     PubAck,
@@ -501,3 +503,104 @@ NatsBroker().include_routers(NatsRouter())
 NatsRouter(routers=[NatsRouter()])
 NatsRouter().include_router(NatsRouter())
 NatsRouter().include_routers(NatsRouter())
+
+
+# --- Config placeholders ------------------------------------------------------
+#
+# A placeholder is accepted on address parameters and nowhere else, and that
+# boundary is the signature alone — there is no runtime guard (ADR-0002). The
+# `type: ignore` comments below are therefore assertions, not suppressions:
+# `warn_unused_ignores` is on, so if any of these positions ever starts
+# type-checking, the ignore goes unused and the build fails.
+
+
+def check_config_on_subscriber_address_params(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
+    broker.subscriber(Config("SUBJECT"))
+    broker.subscriber("test", queue=Config("GROUP"))
+    broker.subscriber(Config("SUBJECT"), queue=Config("GROUP"))
+    broker.subscriber("test", stream=Config("STREAM"))
+    broker.subscriber(Config("SUBJECT"), stream=Config("STREAM"))
+    broker.subscriber("test", stream=Config("STREAM"), durable=Config("DURABLE"))
+    broker.subscriber(
+        "test",
+        stream=Config("STREAM"),
+        durable=Config("DURABLE"),
+        pull_sub=True,
+    )
+    broker.subscriber("key", kv_watch=Config("BUCKET"))
+    broker.subscriber(Config("BUCKET"), obj_watch=True)
+
+
+def check_config_on_publisher_address_params(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
+    broker.publisher(Config("SUBJECT"))
+    broker.publisher("test", stream=Config("STREAM"))
+    broker.publisher("test", reply_to=Config("REPLY"))
+    broker.publisher(Config("SUBJECT"), stream=Config("STREAM"))
+
+
+def check_config_on_router_containers() -> None:
+    NatsRouter(
+        handlers=(
+            NatsRoute(async_handler, Config("SUBJECT")),
+            NatsRoute(async_handler, "test", queue=Config("GROUP")),
+            NatsRoute(async_handler, "test", stream=Config("STREAM")),
+            NatsRoute(async_handler, "test", kv_watch=Config("BUCKET")),
+            NatsRoute(
+                async_handler,
+                "test",
+                stream=Config("STREAM"),
+                durable=Config("DURABLE"),
+            ),
+            NatsRoute(
+                async_handler,
+                "test",
+                publishers=(
+                    NatsPublisher(Config("SUBJECT")),
+                    NatsPublisher("test", stream=Config("STREAM")),
+                    NatsPublisher("test", reply_to=Config("REPLY")),
+                ),
+            ),
+        ),
+    )
+
+
+def check_config_subscriber_instance_type(broker: NatsBroker) -> None:
+    assert_type(
+        broker.subscriber("key", kv_watch=Config("BUCKET")),
+        KeyValueWatchSubscriber,
+    )
+    assert_type(broker.subscriber("test", stream=Config("STREAM")), PushStreamSubscriber)
+    assert_type(
+        broker.subscriber("test", stream=Config("STREAM"), pull_sub=True),
+        PullStreamSubscriber,
+    )
+    assert_type(broker.subscriber(Config("SUBJECT")), CoreSubscriber)
+
+
+async def check_config_is_rejected_by_runtime_publishing() -> None:
+    broker = NatsBroker()
+
+    await broker.publish(None, Config("SUBJECT"))  # type: ignore[call-overload]
+    await broker.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[call-overload]
+    await broker.publish(None, "test", stream=Config("STREAM"))  # type: ignore[call-overload]
+    await broker.request(None, Config("SUBJECT"))  # type: ignore[arg-type]
+    await broker.request(None, "test", stream=Config("STREAM"))  # type: ignore[arg-type]
+
+    publisher = broker.publisher("test")
+    await publisher.publish(None, Config("SUBJECT"))  # type: ignore[call-overload]
+    await publisher.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[call-overload]
+    await publisher.request(None, Config("SUBJECT"))  # type: ignore[arg-type]
+
+
+def check_config_is_rejected_on_structural_params(broker: NatsBroker) -> None:
+    broker.subscriber("test", max_workers=Config("WORKERS"))  # type: ignore[call-overload]
+    broker.subscriber("test", ack_policy=Config("ACK"))  # type: ignore[call-overload]
+    broker.subscriber("test", no_reply=Config("NO_REPLY"))  # type: ignore[call-overload]
+    broker.subscriber("test", max_msgs=Config("MAX_MSGS"))  # type: ignore[call-overload]
+    broker.subscriber("test", pull_sub=Config("PULL"))  # type: ignore[call-overload]
+    broker.subscriber("test", obj_watch=Config("OBJ"))  # type: ignore[call-overload]
+    broker.publisher("test", timeout=Config("TIMEOUT"))  # type: ignore[arg-type]

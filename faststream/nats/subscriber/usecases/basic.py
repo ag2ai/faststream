@@ -12,6 +12,7 @@ from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address, PrefixedRead
 from faststream.nats.publisher.fake import NatsFakePublisher
+from faststream.nats.schemas import JStream
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
     Unsubscriptable,
@@ -20,6 +21,7 @@ from faststream.nats.subscriber.adapters import (
 if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
+    from nats.js.api import ConsumerConfig
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
@@ -45,12 +47,16 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         super().__init__(config, specification, calls)
 
         self._subject = config.subject
-        self.config = config.sub_config
+        self._queue = config.queue
+        self._durable = config.durable
+        self._stream = config.stream
+        self._sub_config = config.sub_config
 
-        self.extra_options = config.extra_options or {}
+        self._extra_options = config.extra_options or {}
 
         self._subject_address: PrefixedRead[Address] = PrefixedRead()
         self._filter_addresses: PrefixedRead[list[Address]] = PrefixedRead()
+        self._resolved_stream: JStream | None = None
 
         self._fetch_sub = None
         self.subscription = None
@@ -61,12 +67,68 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         Kept rather than re-derived on every read (ADR-0004); see `PrefixedRead`.
         """
+        config = self._outer_config
+
         return self._subject_address.read(
-            self._outer_config.prefix,
-            lambda prefix: Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-                prefix,
+            config.prefix,
+            lambda _: Address(
+                config.resolve_address(self._subject),
+                NATS_ADDRESS_SYNTAX,
+                config.config_key(self._subject),
             ),
         )
+
+    @property
+    def queue(self) -> str:
+        """The queue group this Subscriber joins, empty when it joins none.
+
+        Read through `resolve_option` rather than `resolve_address`: a queue group
+        names a set of consumers rather than a place on the server, and a literal
+        one has never carried the Router prefix.
+        """
+        return self._outer_config.resolve_option(self._queue)
+
+    @property
+    def durable(self) -> str | None:
+        """The name of the server-side consumer this Subscriber binds to."""
+        return self._outer_config.resolve_option(self._durable)
+
+    @property
+    def stream(self) -> JStream | None:
+        """The stream this Subscriber consumes from, built from the resolved value.
+
+        A Config value may be a stream name or a whole prepared `JStream`; either
+        way the object is built after resolution, which is what lets one arrive
+        from configuration at all. Kept once built — a Config value is fixed at
+        `connect()` (ADR-0004).
+        """
+        if self._resolved_stream is None:
+            self._resolved_stream = JStream.validate(
+                self._outer_config.resolve_option(self._stream),
+            )
+
+        return self._resolved_stream
+
+    @property
+    def config(self) -> "ConsumerConfig":
+        """The JetStream consumer options, with the durable name filled into them.
+
+        The registrar used to fill it, but a `durable` placeholder has nothing to
+        resolve against there. It is the same one-shot write into the same options
+        object, only later — a Config value is fixed at `connect()` (ADR-0004).
+        """
+        if self._sub_config.durable_name is None:
+            self._sub_config.durable_name = self.durable
+
+        return self._sub_config
+
+    @property
+    def extra_options(self) -> dict[str, Any]:
+        """The subscription arguments, with the addresses among them resolved."""
+        if (stream := self.stream) is None:
+            return self._extra_options
+
+        return self._extra_options | {"durable": self.durable, "stream": stream.name}
 
     @property
     def filter_addresses(self) -> list["Address"]:
@@ -75,7 +137,9 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
             self._outer_config.prefix,
             lambda prefix: [
                 Address(subject, NATS_ADDRESS_SYNTAX).add_prefix(prefix)
-                for subject in (self.config.filter_subjects or ())
+                # Read off the declared options rather than through `config`, so
+                # that filter subjects do not depend on the durable name resolving.
+                for subject in (self._sub_config.filter_subjects or ())
             ],
         )
 

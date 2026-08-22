@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import JStream, PullSub
+    from faststream.nats.schemas import PullSub
     from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
@@ -40,18 +40,9 @@ class PullStreamSubscriber(
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Msg]",
         *,
-        queue: str,
         pull_sub: "PullSub",
-        stream: "JStream",
     ) -> None:
-        super().__init__(
-            config,
-            specification,
-            calls,
-            # basic args
-            queue=queue,
-            stream=stream,
-        )
+        super().__init__(config, specification, calls)
 
         self.pull_sub = pull_sub
 
@@ -121,7 +112,6 @@ class BatchPullStreamSubscriber(
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[list[Msg]]",
         *,
-        stream: "JStream",
         pull_sub: "PullSub",
     ) -> None:
         parser = BatchParser(regex=lambda: self.subject.regex)
@@ -129,7 +119,6 @@ class BatchPullStreamSubscriber(
         config.parser = parser.parse_batch
         super().__init__(config, specification, calls)
 
-        self.stream = stream
         self.pull_sub = pull_sub
 
     @override

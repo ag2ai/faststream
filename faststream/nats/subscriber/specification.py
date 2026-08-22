@@ -15,9 +15,19 @@ class NatsSubscriberSpecification(
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
-        return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+        outer = self._outer_config
+        declared = self.config.subject
+
+        return Address(
+            outer.resolve_address(declared),
+            NATS_ADDRESS_SYNTAX,
+            outer.config_key(declared),
         )
+
+    @property
+    def queue(self) -> str | None:
+        """The queue group this endpoint joins, as the published contract names it."""
+        return self._outer_config.resolve_option(self.config.queue)
 
     @property
     def name(self) -> str:
@@ -42,7 +52,7 @@ class NatsSubscriberSpecification(
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
                         subject=self.subject.template,
-                        queue=self.config.queue,
+                        queue=self.queue,
                     ),
                 ),
             ),

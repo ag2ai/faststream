@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import JStream
     from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
@@ -29,17 +28,11 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         config: "NatsSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Msg]",
-        *,
-        stream: "JStream",
-        queue: str,
     ) -> None:
         parser = JsParser(regex=lambda: self.subject.regex)
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
-
-        self.queue = queue
-        self.stream = stream
 
     def get_log_context(
         self,
@@ -54,7 +47,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             message=message,
             subject=self._resolved_subject_string,
             queue=self.queue,
-            stream=self.stream.name,
+            stream=stream.name if (stream := self.stream) else "",
         )
 
     @override

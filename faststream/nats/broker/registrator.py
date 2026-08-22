@@ -6,6 +6,7 @@ from nats.js import api
 from typing_extensions import overload, override
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.config_value import Config, Configurable
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -49,8 +50,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -88,8 +89,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -127,14 +128,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -147,7 +148,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -166,14 +167,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -186,7 +187,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -205,14 +206,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -225,7 +226,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -244,14 +245,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -264,7 +265,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -283,14 +284,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -303,7 +304,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -322,8 +323,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -338,7 +339,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         headers_only: None = None,
         # pull arguments
         pull_sub: Literal[False] = False,
-        kv_watch: Union[str, "KvWatch"] = ...,
+        kv_watch: Configurable[Union[str, "KvWatch"]] = ...,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
@@ -361,8 +362,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -400,14 +401,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -416,11 +417,11 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         headers_only: bool | None = None,
         # pull arguments
         pull_sub: Union[bool, "PullSub"] = False,
-        kv_watch: Union[str, "KvWatch", None] = None,
+        kv_watch: Configurable[Union[str, "KvWatch"]] | None = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -439,14 +440,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @override
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -455,11 +456,11 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         headers_only: bool | None = None,
         # pull arguments
         pull_sub: Union[bool, "PullSub"] = False,
-        kv_watch: Union[str, "KvWatch", None] = None,
+        kv_watch: Configurable[Union[str, "KvWatch"]] | None = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -527,7 +528,11 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             queue=queue,
             stream=stream,
             pull_sub=PullSub.validate(pull_sub),
-            kv_watch=KvWatch.validate(kv_watch),
+            # A placeholder is passed on undisturbed: the read layer runs the same
+            # `validate()` once the bucket name it stands for is known (ADR-0004).
+            kv_watch=kv_watch
+            if isinstance(kv_watch, Config)
+            else KvWatch.validate(kv_watch),
             obj_watch=ObjWatch.validate(obj_watch),
             max_workers=max_workers or 1,
             # extra args
@@ -553,7 +558,10 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().subscriber(subscriber, persistent=persistent)
 
-        self._stream_builder.add_subject(stream, subscriber.subject.template)
+        # A subject that is still a placeholder cannot be read yet; `NatsBroker`
+        # collects those at `start()`, once the Config values are in scope.
+        if not isinstance(subject, Config):
+            self._stream_builder.add_subject(stream, subscriber.subject.template)
 
         return subscriber.add_call(
             parser_=parser,
@@ -565,11 +573,11 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        subject: str,
+        subject: Configurable[str],
         *,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
-        stream: Union[str, "JStream", None] = None,
+        reply_to: Configurable[str] = "",
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         timeout: float | None = None,
         persistent: bool = True,
         title: str | None = None,
@@ -621,7 +629,9 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().publisher(publisher, persistent=persistent)
 
-        self._stream_builder.add_subject(stream, publisher.subject.template)
+        # As above: a placeholder subject is collected at `NatsBroker.start()`.
+        if not isinstance(subject, Config):
+            self._stream_builder.add_subject(stream, publisher.subject.template)
 
         return publisher
 
