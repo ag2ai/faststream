@@ -2,9 +2,16 @@ from abc import abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
-from faststream.message.utils import decode_message, encode_message
+from faststream._internal.constants import Tombstone
+from faststream.message.utils import (
+    decode_message,
+    encode_message,
+    encode_or_tombstone,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import DecodedMessage, SendableMessage
@@ -95,3 +102,21 @@ class DefaultCodec:
         serializer: "SerializerProto | None" = None,
     ) -> tuple[bytes, str | None]:
         return encode_message(msg, serializer)
+
+
+async def encode_batch_or_tombstone(
+    bodies: Sequence["SendableMessage | Tombstone"],
+    codec: "CodecProto",
+    serializer: "SerializerProto | None",
+    key_for: "Callable[[int], bytes | str | None]",
+) -> Sequence[tuple[bytes | None, str | None]]:
+    if isinstance(codec, BatchCodecProto):
+        if any(isinstance(body, Tombstone) for body in bodies):
+            msg = "a tombstone in a batch isn't supported with a custom BatchCodecProto"
+            raise ValueError(msg)
+        return await codec.encode_batch(bodies, serializer)
+
+    return [
+        await encode_or_tombstone(body, codec, serializer, key=key_for(position))
+        for position, body in enumerate(bodies)
+    ]
