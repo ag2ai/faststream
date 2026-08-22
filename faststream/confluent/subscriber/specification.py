@@ -14,7 +14,7 @@ class KafkaSubscriberSpecification(
     def topics(self) -> list[str]:
         topics: set[str] = set()
 
-        topics.update(f"{self._outer_config.prefix}{t}" for t in self.config.topics)
+        topics.update(f"{self._outer_config.prefix}{t.name}" for t in self.config.topics)
 
         topics.update(
             f"{self._outer_config.prefix}{p.topic}" for p in self.config.partitions

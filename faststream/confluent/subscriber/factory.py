@@ -1,9 +1,10 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Union[str, "Topic"],
     partitions: Sequence["TopicPartition"],
     polling_interval: float,
     batch: bool,
@@ -47,8 +48,10 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
+    declared_topics = [Topic.validate(t) for t in topics]
+
     subscriber_config = KafkaSubscriberConfig(
-        topics=topics,
+        topics=declared_topics,
         partitions=partitions,
         polling_interval=polling_interval,
         group_id=group_id,
@@ -63,7 +66,7 @@ def create_subscriber(
         _outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
-            topics=topics,
+            topics=declared_topics,
             partitions=partitions,
             title_=title_,
             description_=description_,
@@ -91,7 +94,7 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: Union[str, "Topic"],
     ack_policy: "AckPolicy",
     max_workers: int,
     group_id: str | None,
