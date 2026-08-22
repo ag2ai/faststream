@@ -302,7 +302,8 @@ class KafkaRouter(
         Union[
             "Message",
             tuple["Message", ...],
-        ]
+        ],
+        KafkaBrokerConfig,
     ],
 ):
     """Includable to KafkaBroker router."""

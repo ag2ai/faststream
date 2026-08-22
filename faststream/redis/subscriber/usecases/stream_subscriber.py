@@ -267,7 +267,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )

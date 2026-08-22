@@ -17,7 +17,6 @@ class AdminClientConnectionParams(TypedDict, total=False):
         retry_backoff_ms : The backoff time in milliseconds for retrying failed requests.
         metadata_max_age_ms : The maximum age of metadata in milliseconds.
         security_protocol : The security protocol to use for the connection. Must be one of "SSL" or "PLAINTEXT".
-        api_version : The API version to use for the connection.
         connections_max_idle_ms : The maximum idle time in milliseconds before closing a connection.
         ssl_context : Pre-configured SSLContext for wrapping socket connections.
         sasl_mechanism : The SASL mechanism to use for authentication. Must be one of "PLAIN", "GSSAPI", "SCRAM-SHA-256", "SCRAM-SHA-512", or "OAUTHBEARER".
@@ -38,7 +37,6 @@ class AdminClientConnectionParams(TypedDict, total=False):
         "SSL",
         "PLAINTEXT",
     ]
-    api_version: str
     connections_max_idle_ms: int
     sasl_mechanism: Literal[
         "PLAIN",
