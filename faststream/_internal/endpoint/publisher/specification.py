@@ -6,12 +6,30 @@ from fast_depends.pydantic._compat import create_model, get_config_base
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig
+from faststream.specification.asyncapi._msgspec import is_struct, struct_payload_schema
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyCallable
     from faststream.specification.schema import PublisherSpec
+
+
+def _get_response_schema(response_type: Any, prefix: str) -> dict[str, Any] | None:
+    """Get the payload schema of a publisher response annotation."""
+    # Pydantic cannot describe a msgspec Struct and raises when asked, so a
+    # Struct is described by msgspec and never reaches create_model().
+    if is_struct(response_type):
+        return struct_payload_schema(response_type)
+
+    return get_model_schema(
+        create_model(
+            "",
+            __config__=get_config_base(),
+            response__=(response_type, ...),
+        ),
+        prefix=prefix,
+    )
 
 
 T_SpecificationConfig = TypeVar313(
@@ -46,12 +64,8 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
         payloads: list[tuple[dict[str, Any], str]] = []
 
         if self.config.schema_:
-            body = get_model_schema(
-                call=create_model(
-                    "",
-                    __config__=get_config_base(),
-                    response__=(self.config.schema_, ...),
-                ),
+            body = _get_response_schema(
+                self.config.schema_,
                 prefix=f"{self.name}:Message",
             )
 
@@ -76,12 +90,8 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
                     response_type = None
 
                 if response_type is not None and response_type is not Parameter.empty:
-                    body = get_model_schema(
-                        create_model(
-                            "",
-                            __config__=get_config_base(),
-                            response__=(response_type, ...),
-                        ),
+                    body = _get_response_schema(
+                        response_type,
                         prefix=f"{self.name}:Message",
                     )
 
