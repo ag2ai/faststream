@@ -110,7 +110,7 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
             if annotation is None:
                 return None
 
-        body = get_model_schema(
+        body: dict[str, Any] | None = get_model_schema(
             call=create_model(
                 "",
                 __config__=get_config_base(),
