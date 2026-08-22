@@ -41,9 +41,11 @@ class StreamMessage(Generic[MsgType]):
         correlation_id: str | None = None,
         message_id: str | None = None,
         source_type: SourceType = SourceType.CONSUME,
+        tombstone: bool = False,
     ) -> None:
         self.raw_message = raw_message
         self.body = body
+        self.tombstone = tombstone
         self.reply_to = reply_to
         self.content_type = content_type
         self.source_type = source_type
