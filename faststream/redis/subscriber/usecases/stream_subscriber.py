@@ -118,7 +118,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         Redis matches a pattern on a channel only — a stream is read by the
         name given, verbatim. So a `{param}` in one is a character like any
         other, and `Address.literal` is what says so: a `Path()` parameter
-        naming it is refused at `connect()` rather than going unfilled for
+        naming it is refused at Preparation rather than going unfilled for
         every message.
         """
         yield Address.literal(

@@ -15,6 +15,8 @@ from .basic import KafkaMemoryTestcaseConfig
 
 @pytest.mark.kafka()
 class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
+    log_context_address_key = "topic"
+
     @pytest.mark.asyncio()
     async def test_pattern_value(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker(config_values={"PATTERN": f"{queue}-.*"})
@@ -77,54 +79,6 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         assert mock.call_count == 2, mock.call_args_list
 
     @pytest.mark.asyncio()
-    async def test_publisher_reply_to_value(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ) -> None:
-        """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
-
-        publisher = broker.publisher(queue, reply_to=Config("REPLY"))
-
-        @broker.subscriber(queue)
-        async def handler(msg: Any) -> str:
-            return "pong"
-
-        @broker.subscriber(f"{queue}-reply")
-        async def reply_handler(msg: Any) -> None:
-            event.set()
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await publisher.publish("ping")
-
-            with anyio.move_on_after(self.timeout):
-                await event.wait()
-
-        assert event.is_set()
-
-    @pytest.mark.asyncio()
-    async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
-        broker = self.get_broker(config_values={"IN": queue})
-
-        @broker.subscriber(Config("IN"))
-        async def handler(msg: Any) -> None: ...
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("hello", queue)
-
-            logger = br.config.logger.logger.logger
-            topics = {
-                call.kwargs["extra"]["topic"]
-                for call in logger.log.call_args_list
-                if call.kwargs.get("extra")
-            }
-
-        assert topics == {queue}, topics
-
-    @pytest.mark.asyncio()
     async def test_a_config_value_holding_an_address_template_fills_path(
         self,
         queue: str,
@@ -153,7 +107,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         @broker.subscriber(pattern=Config("PATTERN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
 
-        with pytest.raises(SetupError, match="PATTERN"):
+        with pytest.raises(SetupError, match=r"Config value 'PATTERN'"):
             async with self.patch_broker(broker):
                 pass
 
@@ -166,6 +120,6 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         @broker.subscriber(pattern=Config("PATTERN"))
         async def handler(msg: Any) -> None: ...
 
-        with pytest.raises(SetupError, match="PATTERN"):
+        with pytest.raises(SetupError, match=r"Config value 'PATTERN'"):
             async with self.patch_broker(broker):
                 pass

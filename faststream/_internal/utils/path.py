@@ -116,7 +116,7 @@ class Address:
         Kafka topics are the case this exists for. They carry no Address template
         — a topic is handed to the broker verbatim — so reading one as a template
         would report capture groups that nothing ever fills, and a `Path()`
-        parameter naming one would be accepted at `connect()` and then never
+        parameter naming one would be accepted at Preparation and then never
         supplied a value. The verbatim syntax travels with the address, so a
         Router prefix decorating it later leaves it verbatim too.
         """

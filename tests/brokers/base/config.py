@@ -19,6 +19,14 @@ class ConfigTestcase(BaseTestcaseConfig):
     resolves to. Nothing reaches into the endpoint's options.
     """
 
+    #: The key a Subscriber's log context files its address under. Each broker
+    #: spells its own address kind — `topic`, `subject`, `channel`, `queue` —
+    #: and that spelling is the only thing that varies in the log-line test.
+    log_context_address_key: str
+
+    #: Whether this broker's Publisher takes a reply destination at all.
+    supports_reply_to = True
+
     def get_config_value(self, address: str) -> Any:
         """The Config value standing for `address`.
 
@@ -370,6 +378,73 @@ class ConfigTestcase(BaseTestcaseConfig):
         with pytest.raises(SetupError, match="ABSENT"):
             async with self.patch_broker(broker) as br:
                 await br.start()
+
+    @pytest.mark.asyncio()
+    async def test_log_line_names_the_resolved_address(self, queue: str) -> None:
+        """An operator reads the address messages arrive on, not the placeholder.
+
+        The log context is built from what Preparation resolved, so a Subscriber
+        declared against `Config("IN")` files its lines under the address the
+        value named. A context built from the declaration would name `IN`.
+        """
+        broker = self.get_broker(config_values={"IN": queue})
+
+        args, kwargs = self.get_subscriber_params(Config("IN"))
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+
+            logger = br.config.logger.logger.logger
+            addresses = {
+                call.kwargs["extra"][self.log_context_address_key]
+                for call in logger.log.call_args_list
+                if call.kwargs.get("extra")
+            }
+
+        assert addresses == {queue}, addresses
+
+    @pytest.mark.asyncio()
+    async def test_publisher_reply_to_value(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """The reply destination is configurable along with the primary one."""
+        if not self.supports_reply_to:
+            pytest.skip("broker publisher takes no reply destination")
+
+        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
+
+        pub_args, pub_kwargs = self.get_publisher_params(
+            queue,
+            reply_to=Config("REPLY"),
+        )
+        publisher = broker.publisher(*pub_args, **pub_kwargs)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any) -> str:
+            return "pong"
+
+        reply_args, reply_kwargs = self.get_subscriber_params(f"{queue}-reply")
+
+        @broker.subscriber(*reply_args, **reply_kwargs)
+        async def reply_handler(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("ping")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()
 
 
 class ConfigOverrideTestcase(ConfigTestcase):

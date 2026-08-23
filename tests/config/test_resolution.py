@@ -174,6 +174,12 @@ def test_broker_added_to_the_app_after_its_routers_were_included() -> None:
 
 
 def test_router_is_not_a_config_level() -> None:
-    """Two levels only — Broker and App."""
+    """Two levels only — Broker and App.
+
+    The runtime half; the type-level half is
+    `tests/mypy/kafka.py::check_config_values_is_not_a_router_parameter`, which
+    is where an ignore is actually verified — this file is outside mypy's
+    `files`, so one written here would claim a check nothing performs.
+    """
     with pytest.raises(TypeError):
-        KafkaRouter(config_values={"IN_TOPIC": "orders"})  # type: ignore[call-arg]
+        KafkaRouter(config_values={"IN_TOPIC": "orders"})

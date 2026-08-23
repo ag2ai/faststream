@@ -16,6 +16,8 @@ from .basic import RabbitMemoryTestcaseConfig
 
 @pytest.mark.rabbit()
 class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
+    log_context_address_key = "queue"
+
     def get_config_value(self, address: str) -> Any:
         """A prepared `RabbitQueue`, so a whole object as a value is asserted."""
         return RabbitQueue(address)
@@ -101,26 +103,6 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         assert event.is_set()
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_args_list
-
-    @pytest.mark.asyncio()
-    async def test_log_line_names_the_resolved_queue(self, queue: str) -> None:
-        broker = self.get_broker(config_values={"IN": queue})
-
-        @broker.subscriber(Config("IN"))
-        async def handler(msg: Any) -> None: ...
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("hello", queue)
-
-            logger = br.config.logger.logger.logger
-            queues = {
-                call.kwargs["extra"]["queue"]
-                for call in logger.log.call_args_list
-                if call.kwargs.get("extra")
-            }
-
-        assert queues == {queue}, queues
 
     @pytest.mark.asyncio()
     async def test_a_config_value_holding_an_address_template_fills_path(
@@ -290,7 +272,13 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        """A Publisher's reply destination is configurable too (ADR-0002)."""
+        """A Publisher's reply destination is configurable too (ADR-0002).
+
+        Overrides the shared version because RabbitMQ's reply goes back through
+        a `reply_to` on the message rather than through the Publisher's own
+        `publish()`: the destination is asserted where a real reply lands, on a
+        third Subscriber, rather than on the Publisher's return.
+        """
         out_queue = f"{queue}-out"
         reply_queue = f"{queue}-reply"
 

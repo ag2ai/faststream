@@ -14,6 +14,11 @@ from .basic import MQTTMemoryTestcaseConfig
 
 @pytest.mark.mqtt()
 class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
+    log_context_address_key = "topic"
+
+    # MQTT is fire-and-forget: a Publisher has no reply destination.
+    supports_reply_to = False
+
     @pytest.mark.asyncio()
     async def test_shared_value(self, queue: str, mock: MagicMock) -> None:
         """Two subscribers land in one shared group, so only one of them eats."""
@@ -122,23 +127,3 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
         with pytest.raises(SetupError, match=r"Config value 'IN'"):
             async with self.patch_broker(broker):
                 pass
-
-    @pytest.mark.asyncio()
-    async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
-        broker = self.get_broker(config_values={"IN": queue})
-
-        @broker.subscriber(Config("IN"))
-        async def handler(msg: Any) -> None: ...
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("hello", queue)
-
-            logger = br.config.logger.logger.logger
-            topics = {
-                call.kwargs["extra"]["topic"]
-                for call in logger.log.call_args_list
-                if call.kwargs.get("extra")
-            }
-
-        assert topics == {queue}, topics

@@ -126,7 +126,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         subscription — and its parser never matches a message against a capture
         regex. So a `{param}` in an address is a character like any other, and
         `Address.literal` is what says so: a `Path()` parameter naming one is
-        refused at `connect()` instead of going unfilled for every message.
+        refused at Preparation instead of going unfilled for every message.
         """
         config = self._outer_config
 

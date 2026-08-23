@@ -123,7 +123,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return ()
 
     def check_addresses(self) -> None:
-        """Refuse at `connect()` what cannot work once messages start arriving."""
+        """Refuse at Preparation what cannot work once messages start arriving."""
         check_subscription_addresses(self.subscription_addresses(), self.calls)
 
     @override

@@ -16,6 +16,8 @@ from .basic import RedisMemoryTestcaseConfig
 
 @pytest.mark.redis()
 class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
+    log_context_address_key = "channel"
+
     def get_config_value(self, address: str) -> Any:
         """Redis names a channel with a value object, so supply a real one."""
         return PubSub(address)
@@ -145,54 +147,6 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
                 await event.wait()
 
         assert event.is_set()
-
-    @pytest.mark.asyncio()
-    async def test_publisher_reply_to_value(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ) -> None:
-        """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
-
-        publisher = broker.publisher(queue, reply_to=Config("REPLY"))
-
-        @broker.subscriber(queue)
-        async def handler(msg: Any) -> str:
-            return "pong"
-
-        @broker.subscriber(f"{queue}-reply")
-        async def reply_handler(msg: Any) -> None:
-            event.set()
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await publisher.publish("ping")
-
-            with anyio.move_on_after(self.timeout):
-                await event.wait()
-
-        assert event.is_set()
-
-    @pytest.mark.asyncio()
-    async def test_log_line_names_the_resolved_channel(self, queue: str) -> None:
-        broker = self.get_broker(config_values={"IN": queue})
-
-        @broker.subscriber(Config("IN"))
-        async def handler(msg: Any) -> None: ...
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("hello", queue)
-
-            logger = br.config.logger.logger.logger
-            channels = {
-                call.kwargs["extra"]["channel"]
-                for call in logger.log.call_args_list
-                if call.kwargs.get("extra")
-            }
-
-        assert channels == {queue}, channels
 
     @pytest.mark.asyncio()
     async def test_a_config_value_holding_an_address_template_fills_path(

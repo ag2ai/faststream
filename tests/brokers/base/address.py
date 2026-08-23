@@ -111,7 +111,7 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
 
 
 class AddressCheckTestcase(AddressTemplateTestcase):
-    """What `connect()` refuses: an address that cannot deliver what was promised."""
+    """What Preparation refuses: an address that cannot deliver what was promised."""
 
     @pytest.mark.asyncio()
     async def test_a_path_parameter_with_a_capture_group_is_accepted(self) -> None:

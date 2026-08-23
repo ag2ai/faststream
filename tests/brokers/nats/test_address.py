@@ -4,6 +4,7 @@ import pytest
 from nats.js.api import ConsumerConfig
 from typing_extensions import override
 
+from faststream import Config
 from faststream._internal.utils.path import Address
 from faststream.exceptions import IncorrectState, SetupError
 from faststream.nats import JStream
@@ -51,6 +52,34 @@ class TestNatsAddressTemplate(NatsMemoryTestcaseConfig, AddressCheckTestcase):
         with pytest.raises(SetupError, match=f"{queue}.b"):
             async with self.patch_broker(broker):
                 pass
+
+    def test_an_object_store_bucket_is_read_as_characters(self, queue: str) -> None:
+        """A bucket name is handed to the client verbatim, so it holds no captures.
+
+        The declared subject names a bucket rather than a place on the server,
+        and `ObjParser` carries no capture regex to fill a `Path()` parameter
+        from. Read as a NATS subject instead, `buck.{level}` would report a
+        capture group nothing ever fills and the refusal would never fire.
+        """
+        broker = self.get_broker(config_values={"BUCKET": f"{queue}.{{level}}"})
+
+        @broker.subscriber(Config("BUCKET"), obj_watch=True)
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        with pytest.raises(SetupError, match="BUCKET"):
+            broker._prepare()
+
+    def test_a_key_value_subject_is_still_read_as_a_template(
+        self,
+        queue: str,
+    ) -> None:
+        """The other half of the boundary: a KV subject really is a key pattern."""
+        broker = self.get_broker(config_values={"KEYS": f"{queue}.{{level}}"})
+
+        @broker.subscriber(Config("KEYS"), kv_watch=f"{queue}-bucket")
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        broker._prepare()
 
 
 @pytest.mark.nats()

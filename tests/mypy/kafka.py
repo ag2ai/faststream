@@ -512,3 +512,14 @@ def check_config_is_rejected_on_structural_params(broker: KafkaBroker) -> None:
     broker.subscriber("test", no_reply=Config("NO_REPLY"))  # type: ignore[call-overload]
     broker.publisher("test", batch=Config("BATCH"))  # type: ignore[call-overload]
     broker.publisher("test", partition=Config("PARTITION"))  # type: ignore[call-overload]
+
+
+def check_config_values_is_not_a_router_parameter() -> None:
+    """Two Config levels only — Broker and App (ADR-0001).
+
+    `tests/config/test_resolution.py` pins the runtime half of this with a
+    `TypeError`; the type-level half has to live here, where
+    `warn_unused_ignores` makes it fail loudly if a Router ever grows the
+    parameter.
+    """
+    KafkaRouter(config_values={"IN_TOPIC": "orders"})  # type: ignore[call-arg]

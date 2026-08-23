@@ -53,7 +53,7 @@ async def test_a_topic_is_never_read_as_a_template() -> None:
     """A brace in a topic is a literal, so it cannot fill a `Path()`.
 
     Only `pattern=` compiles; `topics` hands the string to Kafka verbatim. Reading
-    a topic as a template would accept this subscriber at `connect()` and leave
+    a topic as a template would accept this subscriber at Preparation and leave
     `level` unfillable for every message it received.
     """
     broker = KafkaBroker(apply_types=True)
