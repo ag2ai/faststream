@@ -16,7 +16,6 @@ class KvWatch(NameRequired):
     """
 
     __slots__ = (
-        "address",
         "declare",
         "headers_only",
         "ignore_deletes",

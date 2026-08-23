@@ -23,23 +23,9 @@ class JStream(NameRequired):
     """A class to represent a JetStream stream."""
 
     __slots__ = (
-        "address",
         "config",
         "declare",
     )
-
-    def add_prefix(self, prefix: str) -> "JStream":
-        """The declaration a stream is created from names it too, so it follows.
-
-        Nothing prefixes a stream today. The override is here because ADR-0006
-        requires whatever a constructor derives from a name to be derived again
-        when the name changes — `StreamConfig` is that structure — and an
-        inherited prefix pass that left it behind would be wrong the first time
-        anything did call it.
-        """
-        new_stream = super().add_prefix(prefix)
-        new_stream.config.name = new_stream.name
-        return new_stream
 
     def __init__(
         self,

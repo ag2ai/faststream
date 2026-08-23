@@ -14,7 +14,6 @@ class RabbitExchange(NameRequired):
     """A class to represent a RabbitMQ exchange."""
 
     __slots__ = (
-        "address",
         "arguments",
         "auto_delete",
         "bind_arguments",

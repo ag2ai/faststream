@@ -38,14 +38,12 @@ class RabbitQueue(NameRequired):
     """
 
     __slots__ = (
-        "address",
         "arguments",
         "auto_delete",
         "bind_arguments",
         "durable",
         "exclusive",
         "robust",
-        "routing_address",
         "timeout",
     )
 
@@ -91,6 +89,11 @@ class RabbitQueue(NameRequired):
         )
 
     @property
+    def routing_address(self) -> Address:
+        """The binding this queue was declared with, and its Broker address."""
+        return self._routing_address
+
+    @property
     def routing_key(self) -> str:
         """The routing key as it reaches RabbitMQ."""
         return self.routing_address.broker_address
@@ -109,10 +112,12 @@ class RabbitQueue(NameRequired):
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         """A queue's binding lives in the Router's namespace alongside its name."""
-        new_q = super().add_prefix(prefix)
+        new_q = self._with_prefix(prefix)
 
-        if new_q.routing_address:
-            new_q.routing_address = new_q.routing_address.add_prefix(prefix)
+        # An empty binding is not a binding — the queue's name is what binds —
+        # so there is nothing there for the prefix to decorate.
+        if self._routing_address:
+            new_q._routing_address = self._routing_address.add_prefix(prefix)
 
         return new_q
 
@@ -215,7 +220,7 @@ class RabbitQueue(NameRequired):
         self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        self.routing_address = Address(routing_key, RABBIT_ADDRESS_SYNTAX)
+        self._routing_address = Address(routing_key, RABBIT_ADDRESS_SYNTAX)
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}

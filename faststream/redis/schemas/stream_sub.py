@@ -43,7 +43,6 @@ class StreamSub(NameRequired):
     """
 
     __slots__ = (
-        "address",
         "batch",
         "consumer",
         "declare",
@@ -128,3 +127,6 @@ class StreamSub(NameRequired):
         — so there is nothing for the Config key to explain, and it is dropped.
         """
         return cls.validate(value)
+
+    def add_prefix(self, prefix: str) -> "StreamSub":
+        return self._with_prefix(prefix)

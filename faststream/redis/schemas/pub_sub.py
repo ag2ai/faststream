@@ -17,7 +17,6 @@ class PubSub(NameRequired):
     """Whether to subscribe with `psubscribe` rather than `subscribe`."""
 
     __slots__ = (
-        "address",
         "pattern",
         "polling_interval",
     )
@@ -62,3 +61,6 @@ class PubSub(NameRequired):
     @property
     def path_regex(self) -> Pattern[str] | None:
         return self.address.regex
+
+    def add_prefix(self, prefix: str) -> "PubSub":
+        return self._with_prefix(prefix)
