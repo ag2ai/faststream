@@ -1,8 +1,9 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Union
 
 from typing_extensions import Unpack, override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
 from faststream.rabbit.address import (
@@ -28,6 +29,21 @@ if TYPE_CHECKING:
     from faststream.response.response import PublishCommand
 
     from .config import RabbitPublisherConfig
+
+
+class _ResolvedDestination(NamedTuple):
+    """Where a RabbitMQ Publisher sends, once its composition is final.
+
+    Four values, each settled on its own terms (ADR-0003): the queue wears the
+    Router prefix where it was declared literally, the routing key beside it is
+    prefixed by the same rule, and neither the exchange nor the reply
+    destination has ever carried one.
+    """
+
+    queue: RabbitQueue
+    exchange: RabbitExchange
+    routing_key: str
+    reply_to: str
 
 
 class RabbitPublisher(PublisherUsecase):
@@ -59,21 +75,42 @@ class RabbitPublisher(PublisherUsecase):
         publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
         self.publish_options = publish_options
 
+        self._resolved: Resolved[_ResolvedDestination] = self._derived.add(
+            Resolved("a Publisher's destination"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        outer = self._outer_config
+
+        self._resolved.set(
+            _ResolvedDestination(
+                queue=broker_queue(outer, self._queue),
+                exchange=broker_exchange(outer, self._exchange),
+                routing_key=broker_routing_key(outer, self._routing_key),
+                reply_to=broker_reply_to(outer, self._reply_to),
+            ),
+        )
+
     @property
     def queue(self) -> "RabbitQueue":
-        return broker_queue(self._outer_config, self._queue)
+        """The queue this Publisher names its default routing key after."""
+        return self._resolved.get().queue
 
     @property
     def exchange(self) -> "RabbitExchange":
-        return broker_exchange(self._outer_config, self._exchange)
+        """The exchange this Publisher sends through."""
+        return self._resolved.get().exchange
 
     @property
     def routing_key(self) -> str:
-        return broker_routing_key(self._outer_config, self._routing_key)
+        """The routing key this Publisher sends with, empty where it declared none."""
+        return self._resolved.get().routing_key
 
     @property
     def reply_to(self) -> str:
-        return broker_reply_to(self._outer_config, self._reply_to)
+        """The queue a reply to this Publisher's messages goes to."""
+        return self._resolved.get().reply_to
 
     @property
     def message_options(self) -> "BasicMessageOptions":

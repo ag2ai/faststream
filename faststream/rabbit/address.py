@@ -1,27 +1,28 @@
-"""The one place a RabbitMQ endpoint's addresses are read.
+"""The one place a RabbitMQ endpoint's addresses are resolved.
 
 A Subscriber's or a Publisher's queue, exchange and routing key are declared once
 and read many times: when the endpoint starts, when it publishes, when the
-AsyncAPI schema is generated, when a log line is written. Every one of those reads
-goes through this module, so the Router prefix is composed — and a Config value
-resolved — at the point of use rather than baked into the declaration.
+AsyncAPI schema is generated, when a log line is written. Resolution happens once
+for all of them, at Preparation, and every read afterwards is a field access — so
+the Router prefix is composed, and a Config value resolved, at the one moment the
+composition is known to be final rather than baked into the declaration.
 
-The other five brokers compose their prefix in the same place — a property on the
-endpoint reading through a shared point. RabbitMQ carries three addresses per
-endpoint instead of one, so the point is spelled out here and the endpoints'
-properties delegate to it.
+The other five brokers resolve in the same place — their endpoint's `_prepare`,
+reading through their Broker config. RabbitMQ carries three addresses per endpoint
+instead of one, so the resolution is spelled out here and both endpoints call into
+it while they prepare. The Specifications call into it too, because schema
+generation prepares its own Brokers.
 
 The value objects are built here too, rather than at the declaration site. They own
 their broker's address grammar — `RabbitQueue` compiles its routing key's Address
 template, and validates queue type against durability — and none of that can happen
 until the address is known in full, which is first true here (ADR-0004).
 
-Resolution runs ahead of that, on every read (ADR-0001): a Config placeholder is
-read out of the Config values in scope, and what it resolves to — a name or a
-whole prepared object — is then validated exactly as a literal declaration is.
-The Router prefix decorates literal declarations only, so the two functions that
-prefix branch on how the option was *declared*, never on what it resolved to
-(ADR-0003).
+Resolution runs ahead of that: a Config placeholder is read out of the Config
+values in scope, and what it resolves to — a name or a whole prepared object — is
+then validated exactly as a literal declaration is. The Router prefix decorates
+literal declarations only, so the two functions that prefix branch on how the
+option was *declared*, never on what it resolved to (ADR-0003).
 """
 
 from typing import TYPE_CHECKING, cast

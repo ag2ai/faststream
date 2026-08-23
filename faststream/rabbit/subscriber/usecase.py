@@ -1,14 +1,14 @@
 import asyncio
 import contextlib
 from collections.abc import AsyncIterator, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, cast
 
 import anyio
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.utils.path import PrefixedRead
 from faststream.rabbit.address import (
     as_declared_queue,
     broker_exchange,
@@ -35,6 +35,24 @@ if TYPE_CHECKING:
     from .config import RabbitSubscriberConfig
 
 
+class _ResolvedAddresses(NamedTuple):
+    """What a RabbitMQ Subscriber consumes from, once its composition is final.
+
+    Three values rather than one, because RabbitMQ addresses an endpoint with
+    three and ADR-0003 settles each on its own terms: the queue and the routing
+    key binding it wear the Router prefix, the exchange lives outside the
+    Router's namespace, and the queue a log line is named after is the
+    undecorated declaration.
+
+    Resolved together and kept, so that the queue bound to an exchange is the
+    same object that was declared against the server.
+    """
+
+    queue: RabbitQueue
+    exchange: RabbitExchange
+    declared_queue: RabbitQueue
+
+
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
@@ -46,9 +64,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[IncomingMessage]",
     ) -> None:
-        parser = AioPikaParser(regex=lambda: self.queue.path_regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
         super().__init__(
             config,
             specification=specification,
@@ -56,10 +71,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         self._queue = config.queue
-        self._queue_read: PrefixedRead[RabbitQueue] = self._derived.add(
-            PrefixedRead(),
-        )
         self._exchange = config.exchange
+
+        self._resolved: Resolved[_ResolvedAddresses] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
+        )
 
         self.consume_args = config.consume_args or {}
 
@@ -73,19 +89,42 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     def app_id(self) -> str | None:
         return self._outer_config.app_id
 
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber consumes from, before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads these values back as fields.
+
+        The value objects are still built by their own constructors out of the
+        resolved value (ADR-0004), and the branch between a literal declaration
+        and a Config value still decides whether the Router prefix reaches an
+        address (ADR-0003). What changes is that the objects are kept rather
+        than rebuilt on every read.
+        """
+        config = self._outer_config
+
+        self._resolved.set(
+            _ResolvedAddresses(
+                queue=broker_queue(config, self._queue),
+                exchange=broker_exchange(config, self._exchange),
+                declared_queue=as_declared_queue(config, self._queue),
+            ),
+        )
+
+        super()._prepare()
+
+    @override
+    def _build_parser(self) -> None:
+        parser = AioPikaParser(regex=self.queue.path_regex)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
+
     @property
     def queue(self) -> "RabbitQueue":
-        """The queue this Subscriber consumes from, and the routing key binding it.
-
-        The `RabbitQueue` is built here rather than at the declaration site,
-        because that is the first moment its addresses are known in full — the
-        Router prefix composed, and any Config value resolved.
-        Built once and kept: a Config value is fixed at `connect()` (ADR-0004).
-        """
-        return self._queue_read.read(
-            self._outer_config.prefix,
-            lambda _: broker_queue(self._outer_config, self._queue),
-        )
+        """The queue this Subscriber consumes from, and the routing key binding it."""
+        return self._resolved.get().queue
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
@@ -93,11 +132,13 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @property
     def exchange(self) -> "RabbitExchange":
-        return broker_exchange(self._outer_config, self._exchange)
+        """The exchange the queue is bound to, undecorated by the Router prefix."""
+        return self._resolved.get().exchange
 
     @property
     def declared_queue(self) -> "RabbitQueue":
-        return as_declared_queue(self._outer_config, self._queue)
+        """The queue as it was declared: what this Subscriber's log lines name."""
+        return self._resolved.get().declared_queue
 
     def routing(self) -> str:
         return self.queue.routing()
