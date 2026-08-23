@@ -47,21 +47,14 @@ class Endpoint:
         a second `TestBroker` context over one Broker would silently reuse the
         first context's addresses.
 
-        Driven wherever the connection is cleared, and unconditional rather
-        than guarded by `_prepared`: a read taken outside any connection — an
-        AsyncAPI render, a `repr` — fills the same memos without preparing
-        anything.
+        Driven wherever the connection is cleared, and unguarded: an endpoint
+        that never prepared has nothing to forget, so a guard would buy nothing
+        and be one more thing to keep true. Everything an endpoint keeps from
+        the composition is a read registered with `self._derived`, which is why
+        no subclass has anything to add here.
         """
         self._prepared = False
         self._derived.reset()
-        self._invalidate()
-
-    def _invalidate(self) -> None:
-        """Whatever this endpoint keeps that is not a registered read.
-
-        Nothing, unless an endpoint keeps something. A memoised read belongs in
-        `self._derived` at construction instead, which needs no override here.
-        """
 
     def __call__(
         self,

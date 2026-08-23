@@ -76,8 +76,10 @@ class Resolved(Generic[T]):
             msg = (
                 f"Reading {self._subject} before Preparation: the read came too "
                 "early. An endpoint resolves its options when its Broker is "
-                "prepared — at `connect()`, at `to_specification()`, or in the "
-                "endpoint's own `start()` — and answers every read from then on."
+                "prepared — at `connect()`, at `App.start()`, or in the "
+                "endpoint's own `start()` — and answers every read from then on. "
+                "A schema render prepares too, but only for as long as it lasts, "
+                "because it opens no connection to hold the resolved values."
             )
             raise IncorrectState(msg)
 
