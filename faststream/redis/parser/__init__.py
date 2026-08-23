@@ -7,6 +7,7 @@ from .parsers import (
     RedisListParser,
     RedisPubSubParser,
     RedisStreamParser,
+    SimpleParser,
     SimpleParserConfig,
 )
 
@@ -19,5 +20,6 @@ __all__ = (
     "RedisListParser",
     "RedisPubSubParser",
     "RedisStreamParser",
+    "SimpleParser",
     "SimpleParserConfig",
 )

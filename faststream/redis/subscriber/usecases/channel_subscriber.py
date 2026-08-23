@@ -7,9 +7,10 @@ from redis.asyncio.client import (
 )
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream.redis.address import AddressRead
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.message import (
     PubSubMessage,
     RedisChannelMessage,
@@ -22,6 +23,8 @@ from faststream.redis.schemas import PubSub
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
@@ -36,6 +39,8 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
+    parser_class = RedisPubSubParser
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -43,24 +48,34 @@ class ChannelSubscriber(LogicSubscriber):
         calls: "CallsCollection[Any]",
     ) -> None:
         assert config.channel_sub is not None
-        parser = RedisPubSubParser(config, regex=lambda: self.channel.path_regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-        self._channel = self._derived.add(AddressRead(config.channel_sub, PubSub))
+        self._declared_channel = DeclaredAddress(config.channel_sub, PubSub)
+        self._channel: Resolved[PubSub] = self._derived.add(
+            Resolved("a Subscriber's channel"),
+        )
         self.subscription: RPubSub | None = None
+
+    @override
+    def _prepare(self) -> None:
+        """Build the channel before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads it back as a field.
+        """
+        self._channel.set(self._declared_channel.build(self._outer_config))
+        super()._prepare()
+
+    @override
+    def _path_regex(self) -> "Pattern[str] | None":
+        """A channel is the one Redis address a Path parameter can be filled from."""
+        return self.channel.path_regex
 
     @property
     def channel(self) -> "PubSub":
-        """The channel this Subscriber (p)subscribes to.
-
-        The `PubSub` is built here rather than at the declaration site, because
-        that is the first moment its channel is known in full — the Router prefix
-        composed, and any Config value resolved. Built once and kept: a Config
-        value is fixed at `connect()` (ADR-0004).
-        """
-        return self._channel.read(self._outer_config)
+        """The channel this Subscriber (p)subscribes to."""
+        return self._channel.get()
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:

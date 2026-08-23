@@ -19,7 +19,6 @@ from faststream.redis.message import (
 if TYPE_CHECKING:
     from re import Pattern
 
-    from faststream._internal.utils.path import RegexSource
     from faststream.message import StreamMessage
 
     from .message import MessageFormat
@@ -41,19 +40,16 @@ class SimpleParser:
     def __init__(
         self,
         config: "ParserConfig" = EMPTY,
-        regex: "RegexSource" = None,
+        regex: "Pattern[str] | None" = None,
     ) -> None:
-        self._regex = regex
-        self.config = config
+        self.regex = regex
+        """Captures each Path parameter out of an incoming channel name.
 
-    @property
-    def pattern(self) -> "Pattern[str] | None":
-        """The channel's capture regex, asked for anew on every message.
-
-        The parser is built while its Subscriber is, before the channel is known
-        in full, so it holds the read rather than the compiled result.
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the channel it compiles from is resolved.
         """
-        return self._regex() if self._regex is not None else None
+
+        self.config = config
 
     async def parse_message(
         self,
@@ -68,7 +64,7 @@ class SimpleParser:
             body=data,
             # Only pattern-subscribed messages have "pattern" set;
             # guard here before calling match_path.
-            path=match_path(self.pattern, message["channel"])
+            path=match_path(self.regex, message["channel"])
             if message.get("pattern")
             else {},
             headers=headers,

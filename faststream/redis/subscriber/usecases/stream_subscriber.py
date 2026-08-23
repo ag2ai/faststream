@@ -8,10 +8,11 @@ import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.utils.path import Address
-from faststream.redis.address import AddressRead
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.exceptions import StreamGroupNotFoundError
 from faststream.redis.message import (
     BatchStreamMessage,
@@ -72,17 +73,18 @@ class _StreamHandlerMixin(LogicSubscriber):
         super().__init__(config, specification, calls)
 
         assert config.stream_sub is not None
-        self._stream_sub = self._derived.add(
-            AddressRead(
-                config.stream_sub,
-                StreamSub,
-                built_as={
-                    "batch": self.batch,
-                    "group": None,
-                    "consumer": None,
-                    "no_ack": False,
-                },
-            )
+        self._declared_stream = DeclaredAddress(
+            config.stream_sub,
+            StreamSub,
+            built_as={
+                "batch": self.batch,
+                "group": None,
+                "consumer": None,
+                "no_ack": False,
+            },
+        )
+        self._stream_sub: Resolved[StreamSub] = self._derived.add(
+            Resolved("a Subscriber's stream"),
         )
 
         # Where in the stream to read from next. Left unset until asked for,
@@ -93,14 +95,21 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         self.autoclaim_start_id = b"0-0"
 
+    @override
+    def _prepare(self) -> None:
+        """Build the stream before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser, the log context the logger is built from — reads it back as a
+        field.
+        """
+        self._stream_sub.set(self._declared_stream.build(self._outer_config))
+        super()._prepare()
+
     @property
     def stream_sub(self) -> "StreamSub":
-        """The stream this Subscriber reads, built on first read.
-
-        The Router prefix is composed and any Config value resolved by then,
-        which is the first moment the stream is known in full.
-        """
-        return self._stream_sub.read(self._outer_config)
+        """The stream this Subscriber reads."""
+        return self._stream_sub.get()
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
@@ -114,7 +123,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         """
         yield Address.literal(
             self.stream_sub.name,
-            self._stream_sub.config_key(self._outer_config),
+            self._declared_stream.config_key(self._outer_config),
         )
 
     @property
@@ -415,16 +424,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
 
 class StreamSubscriber(_StreamHandlerMixin):
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisStreamParser(config)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
-        super().__init__(config, specification, calls)
+    parser_class = RedisStreamParser
 
     async def _get_msgs(
         self,
@@ -464,17 +464,7 @@ class StreamSubscriber(_StreamHandlerMixin):
 
 class StreamBatchSubscriber(_StreamHandlerMixin):
     batch: ClassVar[bool] = True
-
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisBatchStreamParser(config)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
-        super().__init__(config, specification, calls)
+    parser_class = RedisBatchStreamParser
 
     async def _get_msgs(
         self,

@@ -114,6 +114,10 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                     min_idle_time=1,
                 )
             )
+            # Prepared, because consuming reads a stream and builds a parser, and
+            # Preparation is what does both; a real caller reaches this through
+            # the Subscriber's own `start()`.
+            subscriber.prepare()
 
             with (
                 patch.object(
@@ -198,6 +202,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                     min_idle_time=1,
                 )
             )
+            subscriber.prepare()
 
             with (
                 patch.object(
@@ -333,6 +338,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                     min_idle_time=1,
                 )
             )
+            subscriber.prepare()
 
             # Should timeout gracefully without errors
             result = await subscriber.get_one(timeout=0.5)
@@ -384,6 +390,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                     min_idle_time=1,
                 )
             )
+            subscriber.prepare()
 
             # First pass: claim all messages one by one
             claimed_messages_first_pass = []

@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeAlias
 import anyio
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.utils.path import Address
-from faststream.redis.address import AddressRead
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.message import (
     BatchListMessage,
     DefaultListMessage,
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.subscriber.config import RedisSubscriberConfig
-    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
@@ -50,22 +50,30 @@ class _ListHandlerMixin(LogicSubscriber):
         super().__init__(config, specification, calls)
         self._read_lock = anyio.Lock()
         assert config.list_sub is not None
-        self._list_sub = self._derived.add(
-            AddressRead(
-                config.list_sub,
-                ListSub,
-                built_as={"batch": self.batch},
-            )
+        self._declared_list = DeclaredAddress(
+            config.list_sub,
+            ListSub,
+            built_as={"batch": self.batch},
         )
+        self._list_sub: Resolved[ListSub] = self._derived.add(
+            Resolved("a Subscriber's list"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        """Build the list before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser, the log context the logger is built from — reads it back as a
+        field.
+        """
+        self._list_sub.set(self._declared_list.build(self._outer_config))
+        super()._prepare()
 
     @property
     def list_sub(self) -> "ListSub":
-        """The list this Subscriber pops from, built on first read.
-
-        The Router prefix is composed and any Config value resolved by then,
-        which is the first moment the list is known in full.
-        """
-        return self._list_sub.read(self._outer_config)
+        """The list this Subscriber pops from."""
+        return self._list_sub.get()
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:
@@ -79,7 +87,7 @@ class _ListHandlerMixin(LogicSubscriber):
         """
         yield Address.literal(
             self.list_sub.name,
-            self._list_sub.config_key(self._outer_config),
+            self._declared_list.config_key(self._outer_config),
         )
 
     def get_log_context(
@@ -195,16 +203,7 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisListParser(config)
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
-        super().__init__(config, specification, calls)
+    parser_class = RedisListParser
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
@@ -227,17 +226,7 @@ class ListSubscriber(_ListHandlerMixin):
 
 class ListBatchSubscriber(_ListHandlerMixin):
     batch: ClassVar[bool] = True
-
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisBatchListParser(config)
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
-        super().__init__(config, specification, calls)
+    parser_class = RedisBatchListParser
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:

@@ -24,7 +24,7 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: RedisBrokerConfig
 
     # Held as declared, value object or Config placeholder alike: what a Redis
-    # address means is settled by the read layer, never here.
+    # address means is settled at Preparation, never here.
     list_sub: Configurable[ListSub | str] | None = field(default=None, repr=False)
     channel_sub: Configurable[PubSub | str] | None = field(default=None, repr=False)
     stream_sub: Configurable[StreamSub | str] | None = field(default=None, repr=False)

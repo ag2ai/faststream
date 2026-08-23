@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
-from faststream.redis.address import AddressRead
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.response import RedisPublishCommand
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.response.publish_type import PublishType
@@ -42,15 +43,24 @@ class LogicPublisher(PublisherUsecase):
 
         self.producer = self.config._outer_config.producer
 
+        self._resolved_reply_to: Resolved[str] = self._derived.add(
+            Resolved("a Publisher's reply destination"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        # `resolve_option` rather than a build through `DeclaredAddress`: a
+        # literal `reply_to` has never been decorated with the Router prefix, and
+        # adopting a placeholder for it must not change that for the literal
+        # beside it.
+        self._resolved_reply_to.set(
+            self._outer_config.resolve_option(self._reply_to),
+        )
+
     @property
     def reply_to(self) -> str:
-        """The reply destination, resolved but never prefixed.
-
-        `resolve_option` rather than a read through `AddressRead`: a literal
-        `reply_to` has never been decorated with the Router prefix, and adopting
-        a placeholder for it must not change that for the literal beside it.
-        """
-        return self._outer_config.resolve_option(self._reply_to)
+        """The reply destination, resolved but never prefixed."""
+        return self._resolved_reply_to.get()
 
     async def start(self) -> None:
         await super().start()
@@ -79,12 +89,20 @@ class ChannelPublisher(LogicPublisher):
     ) -> None:
         super().__init__(config, specification)
 
-        self._channel = self._derived.add(AddressRead(channel, PubSub))
+        self._declared_channel = DeclaredAddress(channel, PubSub)
+        self._channel: Resolved[PubSub] = self._derived.add(
+            Resolved("a Publisher's channel"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._channel.set(self._declared_channel.build(self._outer_config))
+        super()._prepare()
 
     @property
     def channel(self) -> "PubSub":
-        """The channel this Publisher sends to, built on first read."""
-        return self._channel.read(self._outer_config)
+        """The channel this Publisher sends to."""
+        return self._channel.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -184,14 +202,24 @@ class ListPublisher(LogicPublisher):
     ) -> None:
         super().__init__(config, specification)
 
-        self._list = self._derived.add(
-            AddressRead(list, ListSub, built_as={"batch": self.batch})
+        self._declared_list = DeclaredAddress(
+            list,
+            ListSub,
+            built_as={"batch": self.batch},
         )
+        self._list: Resolved[ListSub] = self._derived.add(
+            Resolved("a Publisher's list"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._list.set(self._declared_list.build(self._outer_config))
+        super()._prepare()
 
     @property
     def list(self) -> "ListSub":
-        """The list this Publisher pushes to, built on first read."""
-        return self._list.read(self._outer_config)
+        """The list this Publisher pushes to."""
+        return self._list.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -342,12 +370,20 @@ class StreamPublisher(LogicPublisher):
         stream: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(config, specification)
-        self._stream = self._derived.add(AddressRead(stream, StreamSub))
+        self._declared_stream = DeclaredAddress(stream, StreamSub)
+        self._stream: Resolved[StreamSub] = self._derived.add(
+            Resolved("a Publisher's stream"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._stream.set(self._declared_stream.build(self._outer_config))
+        super()._prepare()
 
     @property
     def stream(self) -> "StreamSub":
-        """The stream this Publisher appends to, built on first read."""
-        return self._stream.read(self._outer_config)
+        """The stream this Publisher appends to."""
+        return self._stream.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:

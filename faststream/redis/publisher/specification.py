@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from faststream._internal.endpoint.publisher import PublisherSpecification
-from faststream.redis.address import AddressRead
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -49,12 +49,12 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
         channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._channel = self._derived.add(AddressRead(channel, PubSub))
+        self._channel = DeclaredAddress(channel, PubSub)
 
     @property
     def channel(self) -> PubSub:
-        """The channel this Publisher is documented under, built on first read."""
-        return self._channel.read(self._outer_config)
+        """The channel this Publisher is documented under, built whenever it renders."""
+        return self._channel.build(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -83,12 +83,12 @@ class ListPublisherSpecification(RedisPublisherSpecification):
         list_sub: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._list_sub = self._derived.add(AddressRead(list_sub, ListSub))
+        self._list_sub = DeclaredAddress(list_sub, ListSub)
 
     @property
     def list_sub(self) -> ListSub:
-        """The list this Publisher is documented under, built on first read."""
-        return self._list_sub.read(self._outer_config)
+        """The list this Publisher is documented under, built whenever it renders."""
+        return self._list_sub.build(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -117,12 +117,12 @@ class StreamPublisherSpecification(RedisPublisherSpecification):
         stream_sub: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._stream_sub = self._derived.add(AddressRead(stream_sub, StreamSub))
+        self._stream_sub = DeclaredAddress(stream_sub, StreamSub)
 
     @property
     def stream_sub(self) -> StreamSub:
-        """The stream this Publisher is documented under, built on first read."""
-        return self._stream_sub.read(self._outer_config)
+        """The stream this Publisher is documented under, built whenever it renders."""
+        return self._stream_sub.build(self._outer_config)
 
     @property
     def name(self) -> str:
