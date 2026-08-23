@@ -16,11 +16,8 @@ from .basic import BatchKafkaPrometheusSettings, KafkaPrometheusSettings
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ):
+    @pytest.mark.asyncio()
+    async def test_metrics(self, queue: str, event: asyncio.Event):
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -63,11 +60,7 @@ class TestPrometheus(KafkaPrometheusSettings, LocalPrometheusTestcase): ...
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestPublishWithPrometheus(PublishCase):
-    def get_broker(
-        self,
-        apply_types: bool = False,
-        **kwargs,
-    ):
+    def get_broker(self, apply_types: bool = False, **kwargs):
         return KafkaBroker(
             middlewares=(KafkaPrometheusMiddleware(registry=CollectorRegistry()),),
             apply_types=apply_types,

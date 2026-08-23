@@ -403,6 +403,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         assert messages_queue.empty()
 
+    @pytest.mark.asyncio()
     async def test_publish_none_is_not_skipped_by_default(self, queue: str) -> None:
         pub_broker = self.get_broker(apply_types=True)
 

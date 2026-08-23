@@ -17,6 +17,7 @@ from .basic import BatchConfluentPrometheusSettings, ConfluentPrometheusSettings
 @pytest.mark.connected()
 @pytest.mark.confluent()
 class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestcase):
+    @pytest.mark.asyncio()
     async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
