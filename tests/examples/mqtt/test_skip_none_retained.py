@@ -15,6 +15,4 @@ async def test_example() -> None:
 
         # "online", the clearing empty payload, "online" again:
         # the `skip_none` publisher did not deliver anything
-        handle_status.mock.assert_has_calls(
-            [call("online"), call(b""), call("online")]
-        )
+        handle_status.mock.assert_has_calls([call("online"), call(b""), call("online")])

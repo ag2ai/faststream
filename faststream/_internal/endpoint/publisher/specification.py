@@ -98,15 +98,15 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
         Returns:
             The payload schema or `None` when nothing can be sent.
         """
-        excluder: NullExclusion | None = None
+        excluded: NullExclusion | None = None
 
         if not self.config.allow_nonetype:
-            excluder = NullExclusion(
+            excluded = NullExclusion(
                 batch=self.config.batch,
                 is_generator=is_generator,
             )
 
-            annotation = excluder.exclude_from_annotation(annotation)
+            annotation = excluded.exclude_from_annotation(annotation)
             if annotation is None:
                 return None
 
@@ -119,8 +119,8 @@ class PublisherSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
             prefix=f"{self.name}:Message",
         )
 
-        if body is not None and excluder is not None:
-            body = excluder.exclude_from_schema(body)
+        if body is not None and excluded is not None:
+            body = excluded.exclude_from_schema(body)
 
         return body
 

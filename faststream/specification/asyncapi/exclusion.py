@@ -38,7 +38,7 @@ class NullExclusion:
     """NoneType exclusion for publisher AsyncAPI payload schemas."""
 
     def __init__(self, *, batch: bool, is_generator: bool) -> None:
-        """Configure the excluder for a publisher context.
+        """Configure the excluded for a publisher context.
 
         Args:
             batch: Whether the publisher sends messages in batches, so the
