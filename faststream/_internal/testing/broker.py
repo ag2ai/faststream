@@ -232,6 +232,15 @@ class TestBroker(Generic[Broker, EnterType]):
             yield
 
     def _fake_start(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
+        # Everything below reads an endpoint's resolved addresses, and
+        # Preparation is what settles one. A Broker reaches here prepared by the
+        # connection it just made, except where the connection was established
+        # before this context replaced its Config values — the Redis cluster
+        # path connects ahead of that — and the invalidation which followed has
+        # no `connect()` after it to prepare again. Idempotent, so the ordinary
+        # case is a no-op.
+        broker.prepare()
+
         for publisher in broker.publishers:
             if getattr(publisher, "_fake_handler", None):
                 continue
