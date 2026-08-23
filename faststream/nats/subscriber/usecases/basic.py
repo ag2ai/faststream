@@ -3,14 +3,17 @@ from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
+    NamedTuple,
     Optional,
 )
 
+from nats.js.api import ConsumerConfig
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, PrefixedRead
+from faststream._internal.utils.path import Address
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas import JStream
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
@@ -21,7 +24,6 @@ from faststream.nats.subscriber.adapters import (
 if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
-    from nats.js.api import ConsumerConfig
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
@@ -29,6 +31,24 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig
+
+
+class _ResolvedOptions(NamedTuple):
+    """What a NATS Subscriber listens on, once its composition is final.
+
+    Resolved together and written once, so that the reads below cannot disagree
+    with each other or with what the subscription was created against. NATS has
+    the widest surface of the six — a subject, a queue group, a durable name, a
+    stream and a list of filter subjects — and every one of them can arrive from
+    a Config value or wear the Router prefix.
+    """
+
+    subject: Address
+    queue: str
+    durable: str | None
+    stream: JStream | None
+    filters: list[Address]
+    consumer_config: ConsumerConfig
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
@@ -59,79 +79,89 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         # values of the next connection.
         self._declared_durable_name = config.sub_config.durable_name
 
-        self._subject_address: PrefixedRead[Address] = self._derived.add(
-            PrefixedRead(),
+        self._resolved: Resolved[_ResolvedOptions] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
         )
-        self._filter_addresses: PrefixedRead[list[Address]] = self._derived.add(
-            PrefixedRead(),
-        )
-        self._resolved_stream: JStream | None = None
 
         self._fetch_sub = None
         self.subscription = None
 
-    @property
-    def subject(self) -> "Address":
-        """The subject this Subscriber was declared with, and its Broker address.
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber listens on, before anything reads it.
 
-        Kept rather than re-derived on every read (ADR-0004); see `PrefixedRead`.
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads these values back as fields.
         """
         config = self._outer_config
+        declared = self._subject
 
-        return self._subject_address.read(
-            config.prefix,
-            lambda _: Address(
-                config.resolve_address(self._subject),
-                NATS_ADDRESS_SYNTAX,
-                config.config_key(self._subject),
+        durable = config.resolve_option(self._durable)
+
+        # The registrar used to fill the durable name in, but a `durable`
+        # placeholder has nothing to resolve against there. It is the same write
+        # into the same options object, only later — and driven off what was
+        # *declared* rather than off what is in the object, so that a name filled
+        # in for one connection is not read back as a declaration by the next.
+        if self._declared_durable_name is None:
+            self._sub_config.durable_name = durable
+
+        self._resolved.set(
+            _ResolvedOptions(
+                subject=Address(
+                    config.resolve_address(declared),
+                    NATS_ADDRESS_SYNTAX,
+                    config.config_key(declared),
+                ),
+                # `resolve_option` rather than `resolve_address`: a queue group
+                # names a set of consumers rather than a place on the server, and
+                # a literal one has never carried the Router prefix.
+                queue=config.resolve_option(self._queue),
+                durable=durable,
+                # A Config value may be a stream name or a whole prepared
+                # `JStream`; either way the object is built after resolution,
+                # which is what lets one arrive from configuration at all.
+                stream=JStream.validate(config.resolve_option(self._stream)),
+                filters=[
+                    Address(subject, NATS_ADDRESS_SYNTAX).add_prefix(config.prefix)
+                    for subject in (self._sub_config.filter_subjects or ())
+                ],
+                consumer_config=self._sub_config,
             ),
         )
 
+        super()._prepare()
+
+    @property
+    def subject(self) -> "Address":
+        """The subject this Subscriber listens on, and its Broker address."""
+        return self._resolved.get().subject
+
     @property
     def queue(self) -> str:
-        """The queue group this Subscriber joins, empty when it joins none.
-
-        Read through `resolve_option` rather than `resolve_address`: a queue group
-        names a set of consumers rather than a place on the server, and a literal
-        one has never carried the Router prefix.
-        """
-        return self._outer_config.resolve_option(self._queue)
+        """The queue group this Subscriber joins, empty when it joins none."""
+        return self._resolved.get().queue
 
     @property
     def durable(self) -> str | None:
         """The name of the server-side consumer this Subscriber binds to."""
-        return self._outer_config.resolve_option(self._durable)
+        return self._resolved.get().durable
 
     @property
     def stream(self) -> JStream | None:
-        """The stream this Subscriber consumes from, built from the resolved value.
-
-        A Config value may be a stream name or a whole prepared `JStream`; either
-        way the object is built after resolution, which is what lets one arrive
-        from configuration at all. Kept once built — a Config value is fixed at
-        `connect()` (ADR-0004).
-        """
-        if self._resolved_stream is None:
-            self._resolved_stream = JStream.validate(
-                self._outer_config.resolve_option(self._stream),
-            )
-
-        return self._resolved_stream
+        """The stream this Subscriber consumes from."""
+        return self._resolved.get().stream
 
     @property
     def config(self) -> "ConsumerConfig":
         """The JetStream consumer options, with the durable name filled into them.
 
-        The registrar used to fill it, but a `durable` placeholder has nothing to
-        resolve against there. It is the same write into the same options object,
-        only later — and driven off what was *declared* rather than off what is
-        in the object, so that a name filled in for one connection is not read
-        back as a declaration by the next one (ADR-0004).
+        Read back through Preparation rather than straight off the options
+        object, so that asking before the durable name was filled in refuses
+        instead of answering with the options as they were declared.
         """
-        if self._declared_durable_name is None:
-            self._sub_config.durable_name = self.durable
-
-        return self._sub_config
+        return self._resolved.get().consumer_config
 
     @property
     def extra_options(self) -> dict[str, Any]:
@@ -144,24 +174,11 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     @property
     def filter_addresses(self) -> list["Address"]:
         """The subjects a JetStream consumer filters on, each read as an Address."""
-        return self._filter_addresses.read(
-            self._outer_config.prefix,
-            lambda prefix: [
-                Address(subject, NATS_ADDRESS_SYNTAX).add_prefix(prefix)
-                # Read off the declared options rather than through `config`, so
-                # that filter subjects do not depend on the durable name resolving.
-                for subject in (self._sub_config.filter_subjects or ())
-            ],
-        )
+        return self._resolved.get().filters
 
     @property
     def filter_subjects(self) -> list[str]:
         return [address.broker_address for address in self.filter_addresses]
-
-    @override
-    def _invalidate(self) -> None:
-        # Not a registered read: a plain attribute filled in by `stream`.
-        self._resolved_stream = None
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:

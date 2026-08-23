@@ -1,8 +1,9 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Union, cast
 
 from typing_extensions import overload, override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.path import Address
 from faststream.nats.response import NatsPublishCommand
@@ -21,6 +22,14 @@ if TYPE_CHECKING:
     from faststream.response.response import PublishCommand
 
     from .config import NatsPublisherConfig
+
+
+class _ResolvedDestination(NamedTuple):
+    """Where a NATS Publisher sends, once its composition is final."""
+
+    subject: Address
+    reply_to: str
+    stream: JStream | None
 
 
 class LogicPublisher(PublisherUsecase):
@@ -42,47 +51,44 @@ class LogicPublisher(PublisherUsecase):
         self.timeout = config.timeout or 0.5
         self.headers = config.headers or {}
 
-        self._resolved_stream: JStream | None = None
+        self._resolved: Resolved[_ResolvedDestination] = self._derived.add(
+            Resolved("a Publisher's destination"),
+        )
 
-    @property
-    def subject(self) -> "Address":
-        """The subject this Publisher was declared with, and its Broker address."""
+    @override
+    def _prepare(self) -> None:
         outer = self._outer_config
         declared = self._subject
 
-        return Address(
-            outer.resolve_address(declared),
-            NATS_ADDRESS_SYNTAX,
-            outer.config_key(declared),
+        self._resolved.set(
+            _ResolvedDestination(
+                subject=Address(
+                    outer.resolve_address(declared),
+                    NATS_ADDRESS_SYNTAX,
+                    outer.config_key(declared),
+                ),
+                # `resolve_option` rather than `resolve_address`: a literal
+                # `reply_to` has never carried the Router prefix, and routing it
+                # through the address layer would newly give it one.
+                reply_to=outer.resolve_option(self._reply_to),
+                stream=JStream.validate(outer.resolve_option(self._stream)),
+            ),
         )
 
     @property
-    def reply_to(self) -> str:
-        """The subject a reply to this Publisher's messages goes to.
+    def subject(self) -> "Address":
+        """The subject this Publisher sends to, and its Broker address."""
+        return self._resolved.get().subject
 
-        Read through `resolve_option` rather than `resolve_address`: a literal
-        `reply_to` has never carried the Router prefix, and routing it through
-        the address layer would newly give it one.
-        """
-        return self._outer_config.resolve_option(self._reply_to)
+    @property
+    def reply_to(self) -> str:
+        """The subject a reply to this Publisher's messages goes to."""
+        return self._resolved.get().reply_to
 
     @property
     def stream(self) -> "JStream | None":
-        """The stream this Publisher sends into, built from the resolved value.
-
-        Kept once built — a Config value is fixed at `connect()` (ADR-0004).
-        """
-        if self._resolved_stream is None:
-            self._resolved_stream = JStream.validate(
-                self._outer_config.resolve_option(self._stream),
-            )
-
-        return self._resolved_stream
-
-    @override
-    def _invalidate(self) -> None:
-        # Not a registered read: a plain attribute filled in by `stream`.
-        self._resolved_stream = None
+        """The stream this Publisher sends into."""
+        return self._resolved.get().stream
 
     @overload
     async def publish(

@@ -114,12 +114,15 @@ class BatchPullStreamSubscriber(
         *,
         pull_sub: "PullSub",
     ) -> None:
-        parser = BatchParser(regex=lambda: self.subject.regex)
-        config.decoder = parser.decode_batch
-        config.parser = parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.pull_sub = pull_sub
+
+    @override
+    def _build_parser(self) -> None:
+        parser = BatchParser(regex=self.subject.regex)
+        self._parser = parser.parse_batch
+        self._decoder = parser.decode_batch
 
     @override
     async def get_one(

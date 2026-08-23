@@ -514,6 +514,13 @@ class NatsBroker(
         )
 
         for endpoint in endpoints:
+            # A Subscriber registered after the Broker connected has no
+            # Preparation behind it yet, and its own `start()` — which would
+            # perform one — comes after the stream it consumes from has to be
+            # declared. Driving it here is that same Preparation, a few lines
+            # earlier in the same `start()`; one already prepared gets a no-op.
+            endpoint.prepare()
+
             if endpoint.stream is not None:
                 self._stream_builder.collect_subject(
                     endpoint.stream,

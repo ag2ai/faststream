@@ -558,10 +558,12 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().subscriber(subscriber, persistent=persistent)
 
-        # A subject that is still a placeholder cannot be read yet; `NatsBroker`
-        # collects those at `start()`, once the Config values are in scope.
+        # Composed here rather than read off the Subscriber, which resolves its
+        # subject at Preparation and refuses a read before then. A placeholder
+        # has no name to compose at all; `NatsBroker` collects those at
+        # `start()`, once the Config values are in scope.
         if not isinstance(subject, Config):
-            self._stream_builder.add_subject(stream, subscriber.subject.template)
+            self._stream_builder.add_subject(stream, f"{self.config.prefix}{subject}")
 
         return subscriber.add_call(
             parser_=parser,
@@ -629,9 +631,10 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
 
         super().publisher(publisher, persistent=persistent)
 
-        # As above: a placeholder subject is collected at `NatsBroker.start()`.
+        # As above: composed rather than read, and a placeholder subject is
+        # collected at `NatsBroker.start()`.
         if not isinstance(subject, Config):
-            self._stream_builder.add_subject(stream, publisher.subject.template)
+            self._stream_builder.add_subject(stream, f"{self.config.prefix}{subject}")
 
         return publisher
 

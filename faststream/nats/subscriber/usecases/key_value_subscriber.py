@@ -6,6 +6,7 @@ import anyio
 from nats.errors import ConnectionClosedError, TimeoutError
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import KvParser
@@ -38,33 +39,37 @@ class KeyValueWatchSubscriber(
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[KeyValue.Entry]",
     ) -> None:
-        parser = KvParser(regex=lambda: self.subject.regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-        self._kv_watch = config.kv_watch
-        self._resolved_kv_watch: KvWatch | None = None
+        self._declared_kv_watch = config.kv_watch
+        self._kv_watch: Resolved[KvWatch] = self._derived.add(
+            Resolved("a Subscriber's bucket"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        """Build the bucket before anything reads it.
+
+        A Config value may be a bucket name or a whole prepared `KvWatch`; the
+        object is built after resolution either way, which is what lets one
+        arrive from configuration at all.
+        """
+        resolved = self._outer_config.resolve_option(self._declared_kv_watch)
+        assert resolved is not None, "A KeyValue Subscriber needs a bucket."
+        self._kv_watch.set(KvWatch.validate(resolved))
+
+        super()._prepare()
 
     @property
     def kv_watch(self) -> "KvWatch":
-        """The bucket this Subscriber watches, built from the resolved value.
-
-        A Config value may be a bucket name or a whole prepared `KvWatch`; the
-        object is built after resolution either way, and kept once built — a
-        Config value is fixed at `connect()` (ADR-0004).
-        """
-        if self._resolved_kv_watch is None:
-            resolved = self._outer_config.resolve_option(self._kv_watch)
-            assert resolved is not None, "A KeyValue Subscriber needs a bucket."
-            self._resolved_kv_watch = KvWatch.validate(resolved)
-
-        return self._resolved_kv_watch
+        """The bucket this Subscriber watches."""
+        return self._kv_watch.get()
 
     @override
-    def _invalidate(self) -> None:
-        # Not a registered read: a plain attribute filled in by `kv_watch`.
-        self._resolved_kv_watch = None
+    def _build_parser(self) -> None:
+        parser = KvParser(regex=self.subject.regex)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     @override
     async def get_one(

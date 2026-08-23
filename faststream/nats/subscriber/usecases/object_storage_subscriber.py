@@ -48,13 +48,21 @@ class ObjStoreWatchSubscriber(
         *,
         obj_watch: "ObjWatch",
     ) -> None:
-        parser = ObjParser()
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
 
         self.obj_watch = obj_watch
         self.obj_watch_conn = None
+
+    @override
+    def _build_parser(self) -> None:
+        """Build the parser, with no capture regex to hold.
+
+        An object store is watched by bucket rather than by subject pattern, so
+        there is no Address template for a `Path()` parameter to come out of.
+        """
+        parser = ObjParser()
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     @override
     async def get_one(self, *, timeout: float = 5) -> Optional["NatsObjMessage"]:
