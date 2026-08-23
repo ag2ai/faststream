@@ -25,7 +25,7 @@ from faststream import Config, FastStream, Path
 from faststream._internal.cli.main import cli as faststream_app
 from faststream._internal.parser import DefaultCodec
 from faststream.asgi import make_asyncapi_asgi
-from faststream.exceptions import SetupError
+from faststream.exceptions import IncorrectState, SetupError
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 from faststream.specification import AsyncAPI
 
@@ -112,3 +112,52 @@ def test_the_documented_asgi_mount_renders_on_first_request() -> None:
 
     assert response.status_code == 200, response
     assert "FastStream AsyncAPI" in response.text
+
+
+@pytest.mark.asyncio()
+async def test_a_render_leaves_no_preparation_behind(queue: str) -> None:
+    """Preparation belongs to the connection it precedes, and a render opens none.
+
+    Left behind, it would pin every address at the moment the schema was
+    written: the `connect()` that followed would find the endpoints prepared,
+    do nothing, and consume from whatever Config values were in scope back
+    then rather than the ones the application was composed with.
+    """
+    broker = KafkaBroker(config_values={"IN": queue})
+
+    @broker.subscriber(Config("IN"))
+    async def handler(msg: Any) -> None: ...
+
+    AsyncAPI(broker).to_specification()
+
+    with pytest.raises(IncorrectState):
+        _ = broker.subscribers[0].topics
+
+    async with TestKafkaBroker(broker) as br:
+        assert broker.subscribers[0].topics == [queue]
+
+        await br.publish("hello", queue)
+        handler.mock.assert_called_once_with("hello")
+
+
+@pytest.mark.asyncio()
+async def test_a_running_broker_keeps_its_preparation_across_a_render(
+    queue: str,
+) -> None:
+    """The mounted-`AsyncAPI` case: a render must not disturb what is consuming.
+
+    The counterpart of the case above -- undoing Preparation unconditionally
+    would pull the addresses out from under Subscribers already running.
+    """
+    broker = KafkaBroker()
+
+    @broker.subscriber(queue)
+    async def handler(msg: Any) -> None: ...
+
+    async with TestKafkaBroker(broker) as br:
+        AsyncAPI(broker).to_specification()
+
+        assert broker.subscribers[0].topics == [queue]
+
+        await br.publish("hello", queue)
+        handler.mock.assert_called_once_with("hello")

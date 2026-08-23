@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
 from fast_depends import Provider
@@ -141,6 +142,36 @@ class BrokerUsecase(
         self._setup_logger()
 
         self._prepared = True
+
+    @contextmanager
+    def _prepared_for_a_read(self) -> Iterator[None]:
+        """Preparation for a surface that reads resolved values without connecting.
+
+        Preparation belongs to the connection it precedes -- `stop()` undoes it
+        so that the next `connect()` resolves against whatever the Config values
+        are by then -- and a schema render needs the same resolved values while
+        opening no connection. So it undoes what it performed: a render taken
+        before the application is composed would otherwise pin every address,
+        and the `connect()` that follows, finding the endpoints prepared, is a
+        no-op that reuses them.
+
+        Undoes what this call performed and nothing more: a Broker some
+        lifecycle already prepared keeps its Preparation, because there the
+        render reads the running application's own values and undoing it would
+        pull the addresses out from under Subscribers already consuming. Read
+        from the flag rather than from the connection, because an in-memory
+        `TestBroker` runs a fully prepared Broker that never opened one.
+        """
+        already = self._prepared
+
+        self._prepare()
+
+        try:
+            yield
+
+        finally:
+            if not already:
+                self._invalidate()
 
     def _invalidate(self) -> None:
         """Undo Preparation across every endpoint.

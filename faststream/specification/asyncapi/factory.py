@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from faststream.specification.base import Specification, SpecificationFactory
@@ -61,13 +62,20 @@ class AsyncAPI(SpecificationFactory):
         return self
 
     def to_specification(self) -> Specification:
-        # A CLI run has no start-up to hang the static checks off, and rendering is
-        # a read of resolved values, so Preparation happens here rather than at a
-        # lifecycle method -- as it does on every surface that renders a Broker.
-        # Idempotent: a Broker whose own lifespan prepared it pays nothing.
-        for broker in self.brokers:
-            broker._prepare()
+        with ExitStack() as stack:
+            # A CLI run has no start-up to hang the static checks off, and
+            # rendering is a read of resolved values, so Preparation happens here
+            # rather than at a lifecycle method -- as it does on every surface
+            # that renders a Broker. Undone afterwards unless the Broker is
+            # connected, because Preparation belongs to the connection it
+            # precedes and a render opens none. Idempotent either way: a Broker
+            # whose own lifespan prepared it pays nothing and keeps it.
+            for broker in self.brokers:
+                stack.enter_context(broker._prepared_for_a_read())
 
+            return self._render()
+
+    def _render(self) -> Specification:
         if self.schema_version.startswith("3."):
             from .v3_0_0 import get_app_schema as schema_3_0
 
