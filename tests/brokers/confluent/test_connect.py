@@ -14,7 +14,7 @@ from .settings import Settings
 async def test_correct_config_merging(queue: str) -> None:
     broker = KafkaBroker(
         connections_max_idle_ms=1000,
-        client_config={
+        config={
             "compression.codec": config.CompressionCodec.lz4,
             "message.max.bytes": 1000,
             "debug": config.Debug.broker,
@@ -46,7 +46,7 @@ async def test_correct_config_merging(queue: str) -> None:
 @pytest.mark.confluent()
 def test_correct_config_with_dict() -> None:
     broker = KafkaBroker(
-        client_config={
+        config={
             "compression.codec": config.CompressionCodec.none,
             "compression.type": config.CompressionType.none,
             "client.dns.lookup": config.ClientDNSLookup.use_all_dns_ips,

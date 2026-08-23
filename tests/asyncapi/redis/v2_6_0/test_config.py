@@ -22,7 +22,7 @@ class TestConfigValues(ConfigTestcase):
             @broker.subscriber(address)
             async def handle() -> None: ...
 
-        from_config = self.get_broker(config={"IN": "logs.{level}"})
+        from_config = self.get_broker(config_values={"IN": "logs.{level}"})
         declare(from_config, Config("IN"))
 
         literal = self.get_broker()

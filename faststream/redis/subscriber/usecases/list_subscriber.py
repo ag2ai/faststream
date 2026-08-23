@@ -50,16 +50,13 @@ class _ListHandlerMixin(LogicSubscriber):
         super().__init__(config, specification, calls)
         self._read_lock = anyio.Lock()
         assert config.list_sub is not None
-        self._list_sub = AddressRead(
-            config.list_sub,
-            ListSub,
-            built_as={"batch": self.batch},
+        self._list_sub = self._derived.add(
+            AddressRead(
+                config.list_sub,
+                ListSub,
+                built_as={"batch": self.batch},
+            )
         )
-
-    @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._list_sub.reset()
 
     @property
     def list_sub(self) -> "ListSub":

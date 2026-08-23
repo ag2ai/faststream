@@ -48,13 +48,8 @@ class ChannelSubscriber(LogicSubscriber):
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
 
-        self._channel = AddressRead(config.channel_sub, PubSub)
+        self._channel = self._derived.add(AddressRead(config.channel_sub, PubSub))
         self.subscription: RPubSub | None = None
-
-    @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._channel.reset()
 
     @property
     def channel(self) -> "PubSub":

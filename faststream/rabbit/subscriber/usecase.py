@@ -56,7 +56,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         self._queue = config.queue
-        self._queue_read: PrefixedRead[RabbitQueue] = PrefixedRead()
+        self._queue_read: PrefixedRead[RabbitQueue] = self._derived.add(
+            PrefixedRead(),
+        )
         self._exchange = config.exchange
 
         self.consume_args = config.consume_args or {}
@@ -84,11 +86,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             self._outer_config.prefix,
             lambda _: broker_queue(self._outer_config, self._queue),
         )
-
-    @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._queue_read.reset()
 
     @override
     def subscription_addresses(self) -> Iterable["Address"]:

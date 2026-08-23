@@ -62,7 +62,7 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     @overload
@@ -71,7 +71,7 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
         *brokers: NatsBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     def __init__(
@@ -79,13 +79,13 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
         *brokers: NatsBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
         super().__init__(
             *brokers,
             with_real=with_real,
             connect_only=connect_only,
-            config=config,
+            config_values=config_values,
         )
 
     def create_publisher_fake_subscriber(

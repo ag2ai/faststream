@@ -8,4 +8,4 @@ security = SASLPlaintext(
 
 config = {"ssl.ca.location": "~/my_certs/CRT_cacerts.pem"}
 
-broker = KafkaBroker("localhost:9092", security=security, client_config=config)
+broker = KafkaBroker("localhost:9092", security=security, config=config)

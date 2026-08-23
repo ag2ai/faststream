@@ -59,8 +59,12 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         # values of the next connection.
         self._declared_durable_name = config.sub_config.durable_name
 
-        self._subject_address: PrefixedRead[Address] = PrefixedRead()
-        self._filter_addresses: PrefixedRead[list[Address]] = PrefixedRead()
+        self._subject_address: PrefixedRead[Address] = self._derived.add(
+            PrefixedRead(),
+        )
+        self._filter_addresses: PrefixedRead[list[Address]] = self._derived.add(
+            PrefixedRead(),
+        )
         self._resolved_stream: JStream | None = None
 
         self._fetch_sub = None
@@ -156,9 +160,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
     @override
     def _invalidate(self) -> None:
-        super()._invalidate()
-        self._subject_address.reset()
-        self._filter_addresses.reset()
+        # Not a registered read: a plain attribute filled in by `stream`.
         self._resolved_stream = None
 
     @override

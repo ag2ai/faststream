@@ -99,6 +99,12 @@ class RabbitPublisher(PublisherUsecase):
         return routing_key
 
     async def start(self) -> None:
+        # Ahead of the exchange declaration: this `start()` reaches the base one,
+        # where Preparation is otherwise driven, only after it has already talked
+        # to the server, and the exchange it declares is read through the
+        # composition Preparation settles.
+        self.prepare()
+
         if self.exchange is not None:
             await self._outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()

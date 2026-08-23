@@ -1,11 +1,10 @@
 from .admin import AdminService
 from .client import AsyncConfluentConsumer, AsyncConfluentProducer
-from .config import ConfluentFastConfig, check_not_client_config
+from .config import ConfluentFastConfig
 
 __all__ = (
     "AdminService",
     "AsyncConfluentConsumer",
     "AsyncConfluentProducer",
     "ConfluentFastConfig",
-    "check_not_client_config",
 )

@@ -232,6 +232,6 @@ def check_config_is_rejected_on_structural_params(broker: KafkaBroker) -> None:
     broker.publisher("test", partition=Config("PARTITION"))  # type: ignore[call-overload]
 
 
-def check_config_is_rejected_on_the_client_config(broker: KafkaBroker) -> None:
-    """`client_config` is librdkafka's, not FastStream's — no placeholder there."""
-    KafkaBroker(client_config=Config("CLIENT_CONFIG"))  # type: ignore[arg-type]
+def check_config_is_rejected_on_the_confluent_config(broker: KafkaBroker) -> None:
+    """`config` is librdkafka's, not FastStream's — no placeholder there."""
+    KafkaBroker(config=Config("CLIENT_CONFIG"))  # type: ignore[arg-type]

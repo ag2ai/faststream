@@ -18,7 +18,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_queue_group_value(self, queue: str, mock: MagicMock) -> None:
         """Two subscribers land in one queue group, so only one of them eats."""
-        broker = self.get_broker(config={"GROUP": f"{queue}-group"})
+        broker = self.get_broker(config_values={"GROUP": f"{queue}-group"})
 
         @broker.subscriber(queue, queue=Config("GROUP"))
         async def resolved(msg: Any) -> None:
@@ -39,7 +39,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_stream_value(self, queue: str, event: asyncio.Event) -> None:
         """A message published to the resolved stream reaches the subscriber."""
-        broker = self.get_broker(config={"STREAM": f"{queue}-stream"})
+        broker = self.get_broker(config_values={"STREAM": f"{queue}-stream"})
 
         @broker.subscriber(queue, stream=Config("STREAM"))
         async def handler(msg: Any) -> None:
@@ -62,7 +62,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     ) -> None:
         """Subject, queue group and stream all come from Config values at once."""
         broker = self.get_broker(
-            config={
+            config_values={
                 "SUBJECT": queue,
                 "GROUP": f"{queue}-group",
                 "STREAM": f"{queue}-stream",
@@ -94,7 +94,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     ) -> None:
         """A durable consumer named from a Config value still receives messages."""
         broker = self.get_broker(
-            config={"STREAM": f"{queue}-stream", "DURABLE": f"{queue}-durable"},
+            config_values={"STREAM": f"{queue}-stream", "DURABLE": f"{queue}-durable"},
         )
 
         @broker.subscriber(
@@ -123,7 +123,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     ) -> None:
         """A Publisher's stream is configurable along with its subject."""
         broker = self.get_broker(
-            config={"OUT": queue, "STREAM": f"{queue}-stream"},
+            config_values={"OUT": queue, "STREAM": f"{queue}-stream"},
         )
 
         publisher = broker.publisher(Config("OUT"), stream=Config("STREAM"))
@@ -148,7 +148,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
         event: asyncio.Event,
     ) -> None:
         """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config={"REPLY": f"{queue}-reply"})
+        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
 
         publisher = broker.publisher(queue, reply_to=Config("REPLY"))
 
@@ -171,7 +171,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_subject(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -198,7 +198,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
         """A Config value is read as an Address template, exactly as a literal is."""
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": f"{queue}.{{level}}"},
+            config_values={"IN": f"{queue}.{{level}}"},
         )
 
         @broker.subscriber(Config("IN"))
@@ -213,7 +213,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
-        broker = self.get_broker(apply_types=True, config={"IN": queue})
+        broker = self.get_broker(apply_types=True, config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
@@ -226,7 +226,7 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_a_config_value_that_is_not_a_template_names_the_config_key(
         self,
     ) -> None:
-        broker = self.get_broker(config={"IN": "logs.${ENV"})
+        broker = self.get_broker(config_values={"IN": "logs.${ENV"})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -234,7 +234,6 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
         with pytest.raises(SetupError, match="IN"):
             async with self.patch_broker(broker):
                 pass
-
 
     def test_a_restart_declares_the_stream_with_the_current_subjects_only(
         self,
@@ -248,23 +247,27 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
         stream twice to show the same thing.
         """
         values = {"IN": f"first.{queue}"}
-        broker = self.get_broker(config=values)
+        broker = self.get_broker(config_values=values)
 
         @broker.subscriber(Config("IN"), stream=f"{queue}-stream")
         async def handler(msg: Any) -> None: ...
 
         def collected() -> list[str]:
-            _, subjects = broker._stream_builder.objects[f"{queue}-stream"]
-            return list(subjects)
+            return [
+                subject
+                for stream, subjects in broker._stream_builder.streams_to_declare()
+                if stream.name == f"{queue}-stream"
+                for subject in subjects
+            ]
 
-        broker._prepare()
+        broker.prepare()
         broker._collect_stream_subjects()
         assert collected() == [f"first.{queue}"]
 
-        broker._invalidate()
+        broker.invalidate()
         values["IN"] = f"second.{queue}"
 
-        broker._prepare()
+        broker.prepare()
         broker._collect_stream_subjects()
         assert collected() == [f"second.{queue}"]
 
@@ -285,7 +288,7 @@ class TestConfigValuesConnected(NatsTestcaseConfig):
     ) -> None:
         broker = self.get_broker(
             apply_types=True,
-            config={"BUCKET": f"{queue}-bucket"},
+            config_values={"BUCKET": f"{queue}-bucket"},
         )
 
         @broker.subscriber(queue, kv_watch=Config("BUCKET"))
@@ -315,7 +318,7 @@ class TestConfigValuesConnected(NatsTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """An object watch is named by its subject, so a placeholder there names it."""
-        broker = self.get_broker(apply_types=True, config={"BUCKET": queue})
+        broker = self.get_broker(apply_types=True, config_values={"BUCKET": queue})
 
         @broker.subscriber(Config("BUCKET"), obj_watch=True)
         async def handler(filename: str) -> None:
@@ -342,7 +345,7 @@ class TestConfigValuesConnected(NatsTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """The stream a placeholder resolves to is the one created and consumed from."""
-        broker = self.get_broker(config={"STREAM": f"{queue}-stream"})
+        broker = self.get_broker(config_values={"STREAM": f"{queue}-stream"})
 
         @broker.subscriber(queue, stream=Config("STREAM"))
         async def handler(msg: Any) -> None:

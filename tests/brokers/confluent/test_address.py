@@ -62,7 +62,7 @@ class TestConfluentAddress(ConfluentMemoryTestcaseConfig):
     @pytest.mark.asyncio()
     async def test_a_config_value_holding_a_template_names_the_key(self) -> None:
         """A Config value is read exactly as a literal declaration is — literally."""
-        broker = self.get_broker(apply_types=True, config={"IN": "logs.{level}"})
+        broker = self.get_broker(apply_types=True, config_values={"IN": "logs.{level}"})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
@@ -77,7 +77,7 @@ class TestConfluentAddress(ConfluentMemoryTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """Nothing compiles, so nothing can refuse a brace that spells no parameter."""
-        broker = self.get_broker(config={"IN": "logs.${ENV"})
+        broker = self.get_broker(config_values={"IN": "logs.${ENV"})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None:

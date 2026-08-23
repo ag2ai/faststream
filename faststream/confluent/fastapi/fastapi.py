@@ -77,7 +77,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         connections_max_idle_ms: int = 9 * 60 * 1000,
         client_id: str | None = SERVICE_NAME,
         allow_auto_create_topics: bool = True,
-        client_config: Optional["ConfluentConfig"] = None,
+        config: Optional["ConfluentConfig"] = None,
         # publisher args
         acks: Literal[0, 1, -1, "all"] = EMPTY,
         compression_type: Literal["gzip", "snappy", "lz4", "zstd"] | None = None,
@@ -157,7 +157,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 submitted to :class:`~.consumer.group_coordinator.GroupCoordinator`
                 for logging with respect to consumer group administration.
             allow_auto_create_topics: Allow automatic topic creation on the broker when subscribing to or assigning non-existent topics.
-            client_config: Extra configuration for the confluent-kafka-python
+            config: Extra configuration for the confluent-kafka-python
                 producer/consumer. See `confluent_kafka.Config <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_.
             acks: One of ``0``, ``1``, ``all``. The number of acknowledgments
                 the producer requires the leader to have received before considering a
@@ -355,7 +355,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             connections_max_idle_ms=connections_max_idle_ms,
             allow_auto_create_topics=allow_auto_create_topics,
             acks=acks,
-            client_config=client_config,
+            config=config,
             compression_type=compression_type,
             partitioner=partitioner,
             max_request_size=max_request_size,

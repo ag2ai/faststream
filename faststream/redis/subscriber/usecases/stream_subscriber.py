@@ -72,15 +72,17 @@ class _StreamHandlerMixin(LogicSubscriber):
         super().__init__(config, specification, calls)
 
         assert config.stream_sub is not None
-        self._stream_sub = AddressRead(
-            config.stream_sub,
-            StreamSub,
-            built_as={
-                "batch": self.batch,
-                "group": None,
-                "consumer": None,
-                "no_ack": False,
-            },
+        self._stream_sub = self._derived.add(
+            AddressRead(
+                config.stream_sub,
+                StreamSub,
+                built_as={
+                    "batch": self.batch,
+                    "group": None,
+                    "consumer": None,
+                    "no_ack": False,
+                },
+            )
         )
 
         # Where in the stream to read from next. Left unset until asked for,
@@ -90,11 +92,6 @@ class _StreamHandlerMixin(LogicSubscriber):
         self._read_id: str | None = None
 
         self.autoclaim_start_id = b"0-0"
-
-    @override
-    def _invalidate(self) -> None:
-        super()._invalidate()
-        self._stream_sub.reset()
 
     @property
     def stream_sub(self) -> "StreamSub":

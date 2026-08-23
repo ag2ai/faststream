@@ -13,7 +13,7 @@ class TestConfigValues(ConfigTestcase):
 
     def test_a_template_from_a_config_value_renders_as_a_literal_one(self) -> None:
         """This work does not change how an Address template is rendered (#2357)."""
-        configured = self.get_broker(config={"IN": "logs.{level}"})
+        configured = self.get_broker(config_values={"IN": "logs.{level}"})
 
         @configured.subscriber(Config("IN"))
         async def from_config() -> None: ...

@@ -63,7 +63,7 @@ class KeyValueWatchSubscriber(
 
     @override
     def _invalidate(self) -> None:
-        super()._invalidate()
+        # Not a registered read: a plain attribute filled in by `kv_watch`.
         self._resolved_kv_watch = None
 
     @override

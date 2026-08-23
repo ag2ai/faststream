@@ -72,7 +72,7 @@ def _required_path_parameters(calls: "CallsCollection[Any]") -> set[str]:
     return {
         name
         for call in calls
-        for name, field in _path_parameters(call.handler._original_call)
+        for name, field in _path_parameters(call.handler._composed_call)
         if field.default is EMPTY
     }
 

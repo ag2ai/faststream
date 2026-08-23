@@ -91,7 +91,7 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     routers: Annotated[
         Iterable[RedisRegistrator], "Routers to include. Defaults to ``()``."
     ]
-    config: Annotated[
+    config_values: Annotated[
         ConfigSource,
         "Config values, used to resolve `Config` placeholders. Defaults to ``None``.",
     ]
@@ -168,7 +168,7 @@ NON_CONNECTION_PARAMS = frozenset({
     "dependencies",
     "middlewares",
     "routers",
-    "config",
+    "config_values",
     "message_format",
     "specification_url",
     "protocol",

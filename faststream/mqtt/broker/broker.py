@@ -78,7 +78,7 @@ class MQTTBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
         ack_policy: AckPolicy = EMPTY,
         id_generator: IdGenerator = gen_cor_id,
         # AsyncAPI args
@@ -166,7 +166,7 @@ class MQTTBroker(
             # broker config
             routers=routers,
             config=MQTTBrokerConfig(
-                config_values=config,
+                config_values=config_values,
                 version=version,
                 producer=producer,
                 broker_middlewares=middlewares,

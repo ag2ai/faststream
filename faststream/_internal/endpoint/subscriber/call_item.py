@@ -33,21 +33,21 @@ class HandlerItem(Generic[MsgType]):
     """A class representing handler overloaded item."""
 
     __slots__ = (
+        "declared_decoder",
+        "declared_parser",
         "decoder",
         "dependant",
         "dependencies",
         "filter",
         "handler",
-        "item_decoder",
-        "item_parser",
         "parser",
     )
 
     dependant: Any | None
     # What the handler declared, kept as declared so that composing them again
     # from an unchanged declaration produces an unchanged result.
-    item_parser: Optional["CustomCallable"]
-    item_decoder: Optional["CustomCallable"]
+    declared_parser: Optional["CustomCallable"]
+    declared_decoder: Optional["CustomCallable"]
     # What Preparation composed out of them.
     parser: Optional["AsyncCallable"]
     decoder: Optional["AsyncCallable"]
@@ -57,14 +57,14 @@ class HandlerItem(Generic[MsgType]):
         *,
         handler: "HandlerCallWrapper[..., Any]",
         filter: "AsyncFilter[Any]",
-        item_parser: Optional["CustomCallable"],
-        item_decoder: Optional["CustomCallable"],
+        declared_parser: Optional["CustomCallable"],
+        declared_decoder: Optional["CustomCallable"],
         dependencies: Iterable["Dependant"],
     ) -> None:
         self.handler = handler
         self.filter = filter
-        self.item_parser = item_parser
-        self.item_decoder = item_decoder
+        self.declared_parser = declared_parser
+        self.declared_decoder = declared_decoder
         self.parser = None
         self.decoder = None
         self.dependencies = dependencies
@@ -102,7 +102,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return ""
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__name__", str(caller))
 
     @property
@@ -111,7 +111,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return None
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__doc__", None)
 
     async def is_suitable(

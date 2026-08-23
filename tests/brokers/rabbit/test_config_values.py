@@ -24,7 +24,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_exchange_value(self, queue: str, event: asyncio.Event) -> None:
         """A whole binding is configurable, not half of it (story 6)."""
         exchange = f"{queue}-exchange"
-        broker = self.get_broker(config={"EXCHANGE": exchange})
+        broker = self.get_broker(config_values={"EXCHANGE": exchange})
 
         @broker.subscriber(queue, Config("EXCHANGE"))
         async def handler(msg: Any) -> None:
@@ -46,7 +46,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         event: asyncio.Event,
     ) -> None:
         exchange = RabbitExchange(f"{queue}-exchange", type=ExchangeType.FANOUT)
-        broker = self.get_broker(config={"EXCHANGE": exchange})
+        broker = self.get_broker(config_values={"EXCHANGE": exchange})
 
         @broker.subscriber(queue, Config("EXCHANGE"))
         async def handler(msg: Any) -> None:
@@ -84,7 +84,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
             event2.set()
 
         broker = self.get_broker(
-            config={"EXCHANGE": exchange, "IN": f"resolved-{queue}"},
+            config_values={"EXCHANGE": exchange, "IN": f"resolved-{queue}"},
         )
         broker.include_router(router)
 
@@ -104,7 +104,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_queue(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -136,7 +136,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         exchange = RabbitExchange(f"{queue}-exchange", type=ExchangeType.TOPIC)
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": RabbitQueue(queue, routing_key=f"{queue}.{{level}}")},
+            config_values={"IN": RabbitQueue(queue, routing_key=f"{queue}.{{level}}")},
         )
 
         @broker.subscriber(Config("IN"), exchange)
@@ -161,7 +161,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue name, so `{level}` in a name names a queue — both ways round.
         """
         name = f"{queue}.{{level}}"
-        broker = self.get_broker(config={"IN": name})
+        broker = self.get_broker(config_values={"IN": name})
 
         @broker.subscriber(Config("IN"))
         async def resolved(msg: Any) -> None:
@@ -181,7 +181,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": RabbitQueue(queue, routing_key=f"{queue}.info")},
+            config_values={"IN": RabbitQueue(queue, routing_key=f"{queue}.info")},
         )
 
         @broker.subscriber(Config("IN"))
@@ -197,7 +197,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
     ) -> None:
         broker = self.get_broker(
-            config={"IN": RabbitQueue(queue, routing_key="logs.${ENV")},
+            config_values={"IN": RabbitQueue(queue, routing_key="logs.${ENV")},
         )
 
         @broker.subscriber(Config("IN"))
@@ -215,7 +215,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
     ) -> None:
         """A Publisher's routing key is configurable, like its queue and exchange."""
         exchange = RabbitExchange(f"{queue}-exchange", type=ExchangeType.TOPIC)
-        broker = self.get_broker(config={"RK": f"{queue}.info"})
+        broker = self.get_broker(config_values={"RK": f"{queue}.info"})
 
         publisher = broker.publisher(exchange=exchange, routing_key=Config("RK"))
 
@@ -253,7 +253,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
             routing_key=f"literal-{queue}",
         )
 
-        broker = self.get_broker(config={"RK": queue})
+        broker = self.get_broker(config_values={"RK": queue})
 
         @broker.subscriber(RabbitQueue(f"{queue}-in", routing_key=queue), exchange)
         async def resolved(msg: Any) -> None:
@@ -294,7 +294,7 @@ class TestConfigValues(RabbitMemoryTestcaseConfig, ConfigOverrideTestcase):
         out_queue = f"{queue}-out"
         reply_queue = f"{queue}-reply"
 
-        broker = self.get_broker(config={"REPLY": reply_queue})
+        broker = self.get_broker(config_values={"REPLY": reply_queue})
 
         @broker.subscriber(queue)
         @broker.publisher(out_queue, reply_to=Config("REPLY"))

@@ -249,7 +249,7 @@ class NatsBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[NatsRegistrator] = (),
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
         protocol: str | None = "nats",
@@ -351,7 +351,7 @@ class NatsBroker(
                 "Middlewares to apply to all broker publishers/subscribers.
             routers:
                 "Routers to apply to broker.
-            config:
+            config_values:
                 Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security:
                 Security options to connect broker and generate AsyncAPI server security information.
@@ -439,7 +439,7 @@ class NatsBroker(
             # Basic args
             routers=routers,
             config=NatsBrokerConfig(
-                config_values=config,
+                config_values=config_values,
                 producer=producer,
                 js_producer=js_producer,
                 js_options=js_options or {},
@@ -505,19 +505,25 @@ class NatsBroker(
         a subject already registered is a no-op, so endpoints declared literally
         pass through this unchanged.
 
-        Handed to the builder as one collection rather than added one at a time,
-        so that what a previous connection collected goes with it.
+        Registered apart from the declared pairs, so that `_invalidate` can drop
+        what this connection read without losing what the declaration sites knew.
         """
         endpoints: Iterable[LogicSubscriber[Any] | LogicPublisher] = chain(
             cast("Iterable[LogicSubscriber[Any]]", self.subscribers),
             cast("Iterable[LogicPublisher]", self.publishers),
         )
 
-        self._stream_builder.collect(
-            (endpoint.stream, endpoint.subject.template)
-            for endpoint in endpoints
-            if endpoint.stream is not None
-        )
+        for endpoint in endpoints:
+            if endpoint.stream is not None:
+                self._stream_builder.collect_subject(
+                    endpoint.stream,
+                    endpoint.subject.template,
+                )
+
+    @override
+    def invalidate(self) -> None:
+        super().invalidate()
+        self._stream_builder.reset()
 
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""
@@ -529,7 +535,7 @@ class NatsBroker(
 
         for stream, subjects in filter(
             lambda x: x[0].declare,
-            self._stream_builder.objects.values(),
+            self._stream_builder.streams_to_declare(),
         ):
             try:
                 await stream_context.add_stream(

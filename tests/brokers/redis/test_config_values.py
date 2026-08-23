@@ -22,7 +22,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_list_value(self, queue: str, event: asyncio.Event) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(list=Config("IN"))
         async def handler(msg: Any) -> None:
@@ -39,7 +39,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_stream_value(self, queue: str, event: asyncio.Event) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(stream=Config("IN"))
         async def handler(msg: Any) -> None:
@@ -60,7 +60,9 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": ListSub(queue, polling_interval=0.01)})
+        broker = self.get_broker(
+            config_values={"IN": ListSub(queue, polling_interval=0.01)}
+        )
 
         @broker.subscriber(list=Config("IN"))
         async def handler(msg: Any) -> None:
@@ -81,7 +83,9 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": StreamSub(queue, polling_interval=10)})
+        broker = self.get_broker(
+            config_values={"IN": StreamSub(queue, polling_interval=10)}
+        )
 
         @broker.subscriber(stream=Config("IN"))
         async def handler(msg: Any) -> None:
@@ -102,7 +106,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"OUT": queue})
+        broker = self.get_broker(config_values={"OUT": queue})
 
         publisher = broker.publisher(list=Config("OUT"))
 
@@ -125,7 +129,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"OUT": queue})
+        broker = self.get_broker(config_values={"OUT": queue})
 
         publisher = broker.publisher(stream=Config("OUT"))
 
@@ -149,7 +153,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         event: asyncio.Event,
     ) -> None:
         """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config={"REPLY": f"{queue}-reply"})
+        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
 
         publisher = broker.publisher(queue, reply_to=Config("REPLY"))
 
@@ -172,7 +176,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_channel(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -199,7 +203,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         """A Config value is read as an Address template, exactly as a literal is."""
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": f"{queue}.{{level}}"},
+            config_values={"IN": f"{queue}.{{level}}"},
         )
 
         @broker.subscriber(Config("IN"))
@@ -214,7 +218,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
-        broker = self.get_broker(apply_types=True, config={"IN": queue})
+        broker = self.get_broker(apply_types=True, config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
@@ -227,7 +231,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_a_config_value_that_is_not_a_template_names_the_config_key(
         self,
     ) -> None:
-        broker = self.get_broker(config={"IN": "logs.${ENV"})
+        broker = self.get_broker(config_values={"IN": "logs.${ENV"})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -239,7 +243,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_a_batch_object_as_a_value_is_refused(self, queue: str) -> None:
         """`batch` picks the Subscriber class, so it cannot arrive from a value."""
-        broker = self.get_broker(config={"IN": ListSub(queue, batch=True)})
+        broker = self.get_broker(config_values={"IN": ListSub(queue, batch=True)})
 
         @broker.subscriber(list=Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -252,7 +256,7 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_a_grouped_stream_as_a_value_is_refused(self, queue: str) -> None:
         """A consumer group picks the acknowledgement policy, read at build time."""
         broker = self.get_broker(
-            config={"IN": StreamSub(queue, group="group", consumer="consumer")},
+            config_values={"IN": StreamSub(queue, group="group", consumer="consumer")},
         )
 
         @broker.subscriber(stream=Config("IN"))
@@ -291,7 +295,9 @@ class TestConfigValues(RedisMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         address: str,
     ) -> None:
-        broker = self.get_broker(apply_types=True, config={"IN": f"{queue}.{{level}}"})
+        broker = self.get_broker(
+            apply_types=True, config_values={"IN": f"{queue}.{{level}}"}
+        )
 
         @broker.subscriber(**{address: Config("IN")})
         async def handler(msg: Any, level: str = Path()) -> None: ...

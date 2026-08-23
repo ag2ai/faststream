@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterator
 from typing import Optional, Union
 
 from faststream._internal.config_value import Config, Configurable
@@ -16,7 +16,7 @@ class StreamBuilder:
     those from the endpoints themselves, once resolution can answer.
     """
 
-    __slots__ = ("_declared", "objects")
+    __slots__ = ("_resolved", "objects")
 
     def __init__(self) -> None:
         # stores stream: SubjectsCollection pairs
@@ -24,10 +24,11 @@ class StreamBuilder:
         # made by current builder only
         self.objects: dict[str, tuple[JStream, SubjectsCollection]] = {}
 
-        # What was registered before any connection collected: everything the
-        # declaration sites knew. Taken on the first collection, because that is
-        # the first moment the two can be told apart.
-        self._declared: dict[str, tuple[JStream, list[str]]] | None = None
+        # The pairs only a connection could read, kept apart from the declared
+        # ones rather than merged into them: a subject read from a Config value
+        # belongs to the connection that fixed the value (ADR-0004), and this is
+        # what `reset` can therefore drop without losing a declaration.
+        self._resolved: dict[str, tuple[JStream, SubjectsCollection]] = {}
 
     def __contains__(self, value: Union["StreamOption", None], /) -> bool:
         if stream := _known(value):
@@ -49,30 +50,53 @@ class StreamBuilder:
             return self.objects.get(stream.name, default)
         return default
 
-    def collect(
+    def collect_subject(
         self,
-        pairs: Iterable[tuple[Union["StreamOption", None], str]],
+        stream: Union["StreamOption", None],
+        subject: str,
     ) -> None:
-        """Register the stream-subject pairs one connection resolved.
+        """Register a stream-subject pair only a connection could read.
 
-        A subject read from a Config value belongs to the connection that fixed
-        the value (ADR-0004), so the pairs a previous connection collected are
-        dropped first — otherwise a restarted Broker would declare its stream
-        carrying the address it used to listen on as well as the one it does now.
+        The counterpart of `add_subject` for the pairs whose stream or subject
+        was a Config placeholder at declaration time. Kept separately so that
+        `reset` can drop them when the connection that fixed them goes, without
+        touching what the declaration sites registered.
         """
-        if self._declared is None:
-            self._declared = {
-                name: (stream, list(subjects))
-                for name, (stream, subjects) in self.objects.items()
-            }
-        else:
-            self.objects = {
-                name: (stream, SubjectsCollection(subjects))
-                for name, (stream, subjects) in self._declared.items()
-            }
+        if (stream := _known(stream)) and subject:
+            _, subjects = self._resolved.setdefault(
+                stream.name,
+                (stream, SubjectsCollection()),
+            )
+            subjects.append(subject)
 
-        for stream, subject in pairs:
-            self.add_subject(stream, subject)
+    def reset(self) -> None:
+        """Forget what a connection resolved, keeping every declaration.
+
+        Driven where Preparation is undone. Without it a restarted Broker would
+        declare its stream carrying the address it used to listen on as well as
+        the one it listens on now.
+        """
+        self._resolved.clear()
+
+    def streams_to_declare(self) -> Iterator[tuple["JStream", "SubjectsCollection"]]:
+        """Every registered stream, with the subjects to declare it with.
+
+        The declared pairs and the resolved ones as one collection, so that a
+        subject either of them subsumes is declared once (`SubjectsCollection`).
+        """
+        for name, (stream, declared) in self.objects.items():
+            subjects = SubjectsCollection(declared)
+
+            if (resolved := self._resolved.get(name)) is not None:
+                subjects.extend(resolved[1])
+
+            yield stream, subjects
+
+        for name, (stream, subjects) in self._resolved.items():
+            # A stream named by a Config placeholder reaches the builder for the
+            # first time here: the registrar had no name to register it under.
+            if name not in self.objects:
+                yield stream, subjects
 
     def add_subject(
         self,

@@ -111,8 +111,19 @@ class StartAbleApplication:
         """
         assert self.brokers, "You should setup a broker"
 
-        for b in self.brokers:
-            b._prepare()
+        prepared: list[BrokerUsecase[Any, Any]] = []
+        try:
+            for b in self.brokers:
+                b.prepare()
+                prepared.append(b)
+
+        except BaseException:
+            # Nothing connected, so nothing will reach the `stop()` that clears
+            # these. Undoing them here is what keeps "a Broker is prepared only
+            # for the connection it is about to open" true of a failed start-up.
+            for b in prepared:
+                b.invalidate()
+            raise
 
         for b in self.brokers:
             await b.start()

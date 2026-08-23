@@ -81,7 +81,7 @@ class LogicPublisher(PublisherUsecase):
 
     @override
     def _invalidate(self) -> None:
-        super()._invalidate()
+        # Not a registered read: a plain attribute filled in by `stream`.
         self._resolved_stream = None
 
     @overload

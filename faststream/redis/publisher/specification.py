@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from typing_extensions import override
-
 from faststream._internal.endpoint.publisher import PublisherSpecification
 from faststream.redis.address import AddressRead
 from faststream.redis.configs import RedisBrokerConfig
@@ -51,11 +49,7 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
         channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._channel = AddressRead(channel, PubSub)
-
-    @override
-    def invalidate(self) -> None:
-        self._channel.reset()
+        self._channel = self._derived.add(AddressRead(channel, PubSub))
 
     @property
     def channel(self) -> PubSub:
@@ -89,11 +83,7 @@ class ListPublisherSpecification(RedisPublisherSpecification):
         list_sub: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._list_sub = AddressRead(list_sub, ListSub)
-
-    @override
-    def invalidate(self) -> None:
-        self._list_sub.reset()
+        self._list_sub = self._derived.add(AddressRead(list_sub, ListSub))
 
     @property
     def list_sub(self) -> ListSub:
@@ -127,11 +117,7 @@ class StreamPublisherSpecification(RedisPublisherSpecification):
         stream_sub: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self._stream_sub = AddressRead(stream_sub, StreamSub)
-
-    @override
-    def invalidate(self) -> None:
-        self._stream_sub.reset()
+        self._stream_sub = self._derived.add(AddressRead(stream_sub, StreamSub))
 
     @property
     def stream_sub(self) -> StreamSub:

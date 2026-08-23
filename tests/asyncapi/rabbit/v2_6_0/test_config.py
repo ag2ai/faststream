@@ -25,7 +25,7 @@ class TestConfigValues(ConfigTestcase):
         literal.subscriber(RabbitQueue("q", routing_key="logs.{level}"))(handle)
 
         configured = RabbitBroker(
-            config={"IN": RabbitQueue("q", routing_key="logs.{level}")},
+            config_values={"IN": RabbitQueue("q", routing_key="logs.{level}")},
         )
         configured.subscriber(Config("IN"))(handle)
 
@@ -35,7 +35,7 @@ class TestConfigValues(ConfigTestcase):
         )
 
     def test_publisher_channel_names_the_resolved_routing_key(self) -> None:
-        broker = self.get_broker(config={"OUT": "resolved-routing-key"})
+        broker = self.get_broker(config_values={"OUT": "resolved-routing-key"})
 
         broker.publisher(routing_key=Config("OUT"))
 
@@ -46,7 +46,7 @@ class TestConfigValues(ConfigTestcase):
         )
 
     def test_publisher_schema_names_the_resolved_reply_to(self) -> None:
-        broker = self.get_broker(config={"REPLY": "resolved-reply-address"})
+        broker = self.get_broker(config_values={"REPLY": "resolved-reply-address"})
 
         broker.publisher("q", reply_to=Config("REPLY"))
 

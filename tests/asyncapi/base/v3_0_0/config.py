@@ -19,7 +19,7 @@ class ConfigTestcase(AsyncAPI300Factory):
         return self.broker_class(**kwargs)
 
     def test_channel_names_the_resolved_address(self) -> None:
-        broker = self.get_broker(config={"IN": "resolved-address"})
+        broker = self.get_broker(config_values={"IN": "resolved-address"})
 
         @broker.subscriber(Config("IN"))
         async def handle() -> None: ...
@@ -38,7 +38,7 @@ class ConfigTestcase(AsyncAPI300Factory):
 
         app = FastStream(
             broker,
-            config={"IN": "resolved-address"},
+            config_values={"IN": "resolved-address"},
             specification=AsyncAPI(schema_version="3.0.0"),
         )
 
@@ -49,7 +49,7 @@ class ConfigTestcase(AsyncAPI300Factory):
         ]
 
     def test_publisher_channel_names_the_resolved_address(self) -> None:
-        broker = self.get_broker(config={"OUT": "resolved-publisher-address"})
+        broker = self.get_broker(config_values={"OUT": "resolved-publisher-address"})
 
         broker.publisher(Config("OUT"))
 

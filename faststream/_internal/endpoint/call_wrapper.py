@@ -42,7 +42,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     # from an unchanged declaration produces an unchanged result.
     _declared_call: Callable[P_HandlerParams, T_HandlerReturn]
     # What the last composition made of it, decorators applied.
-    _original_call: Callable[P_HandlerParams, T_HandlerReturn]
+    _composed_call: Callable[P_HandlerParams, T_HandlerReturn]
 
     _publishers: list["PublisherProto[Any]"]
 
@@ -51,8 +51,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     _subscribers: list["SubscriberUsecase[Any]"]
 
     __slots__ = (
+        "_composed_call",
         "_declared_call",
-        "_original_call",
         "_publishers",
         "_subscribers",
         "_wrapped_call",
@@ -67,7 +67,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     ) -> None:
         """Initialize a handler."""
         self._declared_call = call
-        self._original_call = call
+        self._composed_call = call
         self._wrapped_call = None
 
         self._publishers = []
@@ -83,7 +83,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         **kwargs: P_HandlerParams.kwargs,
     ) -> T_HandlerReturn:
         """Calls the object as a function."""
-        return self._original_call(*args, **kwargs)
+        return self._composed_call(*args, **kwargs)
 
     async def call_wrapped(
         self,
@@ -111,7 +111,7 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
             dependencies=dependencies,
             call_decorators=_call_decorators,
         )
-        self._original_call = dependent.original_call
+        self._composed_call = dependent.original_call
         self._wrapped_call = dependent.wrapped_call
         return dependent.dependent
 

@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from faststream import Config
 from faststream.confluent import KafkaBroker
-from faststream.exceptions import SetupError
 from tests.brokers.base.config import ConfigOverrideTestcase
 
 from .basic import ConfluentMemoryTestcaseConfig
@@ -34,7 +33,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_group_id_value(self, queue: str, mock: MagicMock) -> None:
         """Two subscribers land in one consumer group, so only one of them eats."""
-        broker = self.get_broker(config={"GROUP": f"{queue}-group"})
+        broker = self.get_broker(config_values={"GROUP": f"{queue}-group"})
 
         @broker.subscriber(queue, group_id=Config("GROUP"))
         async def resolved(msg: Any) -> None:
@@ -82,7 +81,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
         event: asyncio.Event,
     ) -> None:
         """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config={"REPLY": f"{queue}-reply"})
+        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
 
         publisher = broker.publisher(queue, reply_to=Config("REPLY"))
 
@@ -105,7 +104,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -129,8 +128,10 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
     ) -> None:
         """The line an operator reads at startup names an address that exists.
 
-        `topics` is a read now — the Router prefix is already composed on it — so
-        the log context must not compose the prefix a second time.
+        `topics` is a field Preparation writes — the Router prefix is already
+        composed on it — so the log context must not compose the prefix a second
+        time. Prepared first, because that is when the logger is built and so
+        the earliest moment this line can be written.
         """
         router = self.get_router(prefix="prefix-")
 
@@ -139,6 +140,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
 
         broker = self.get_broker()
         broker.include_router(router)
+        broker.prepare()
 
         context = broker.subscribers[0].get_log_context(None)
 
@@ -146,20 +148,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
 
 
 @pytest.mark.confluent()
-def test_client_settings_under_config_are_refused() -> None:
-    """`config` changed meaning, and only the keys can say which one was meant.
-
-    It used to name the confluent-kafka client settings; it now carries Config
-    values, as it does on the other five brokers. A `ConfluentConfig` is a
-    `TypedDict`, so both arrive as a plain mapping — and reading a client mapping
-    as a Config source would drop the tuning without a word.
-    """
-    with pytest.raises(SetupError, match="client_config"):
-        KafkaBroker(config={"compression.codec": "gzip", "message.max.bytes": 1000})
-
-
-@pytest.mark.confluent()
 def test_client_settings_still_reach_the_client() -> None:
-    broker = KafkaBroker(client_config={"message.max.bytes": 1000})
+    broker = KafkaBroker(config={"message.max.bytes": 1000})
 
     assert broker.config.connection_config.consumer_config["message.max.bytes"] == 1000

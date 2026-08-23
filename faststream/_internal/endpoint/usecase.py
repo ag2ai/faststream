@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from faststream._internal.endpoint.derived import DerivedReads
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 
 from .call_wrapper import (
@@ -16,6 +17,7 @@ class Endpoint:
     def __init__(self, config: "BrokerConfig") -> None:
         self._outer_config = config
         self._prepared = False
+        self._derived = DerivedReads()
 
     def prepare(self) -> None:
         """Preparation: derive what this endpoint derives, before any I/O.
@@ -51,13 +53,14 @@ class Endpoint:
         anything.
         """
         self._prepared = False
+        self._derived.reset()
         self._invalidate()
 
     def _invalidate(self) -> None:
-        """Whatever this endpoint kept while it was prepared.
+        """Whatever this endpoint keeps that is not a registered read.
 
-        Nothing, unless an endpoint keeps something. The mirror of `_prepare`:
-        an endpoint that derives an address once names here what to forget.
+        Nothing, unless an endpoint keeps something. A memoised read belongs in
+        `self._derived` at construction instead, which needs no override here.
         """
 
     def __call__(

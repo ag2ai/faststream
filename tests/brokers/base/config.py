@@ -57,7 +57,7 @@ class ConfigTestcase(BaseTestcaseConfig):
 
     @pytest.mark.asyncio()
     async def test_broker_level_value(self, queue: str, event: asyncio.Event) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         args, kwargs = self.get_subscriber_params(Config("IN"))
 
@@ -78,7 +78,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         async def handler(msg: Any) -> None:
             event.set()
 
-        FastStream(broker, config={"IN": queue})
+        FastStream(broker, config_values={"IN": queue})
 
         async with self.patch_broker(broker) as br:
             await self.assert_consume(br, queue, event)
@@ -89,7 +89,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         args, kwargs = self.get_subscriber_params(Config("IN"))
 
@@ -97,7 +97,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         async def handler(msg: Any) -> None:
             event.set()
 
-        FastStream(broker, config={"IN": f"{queue}-app"})
+        FastStream(broker, config_values={"IN": f"{queue}-app"})
 
         async with self.patch_broker(broker) as br:
             await self.assert_consume(br, queue, event)
@@ -111,7 +111,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         class Settings:
             IN = queue
 
-        broker = self.get_broker(config=Settings())
+        broker = self.get_broker(config_values=Settings())
 
         args, kwargs = self.get_subscriber_params(Config("IN"))
 
@@ -128,7 +128,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": self.get_config_value(queue)})
+        broker = self.get_broker(config_values={"IN": self.get_config_value(queue)})
 
         args, kwargs = self.get_subscriber_params(Config("IN"))
 
@@ -162,7 +162,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         async def handler(msg: Any) -> None:
             event.set()
 
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
         broker.include_router(router)
 
         async with self.patch_broker(broker) as br:
@@ -185,7 +185,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         outer = self.get_router()
         outer.include_router(inner)
 
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
         broker.include_router(outer)
 
         async with self.patch_broker(broker) as br:
@@ -208,7 +208,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         broker = self.get_broker()
         broker.include_router(router)
 
-        FastStream(broker, config={"IN": queue})
+        FastStream(broker, config_values={"IN": queue})
 
         async with self.patch_broker(broker) as br:
             await self.assert_consume(br, queue, event)
@@ -238,7 +238,7 @@ class ConfigTestcase(BaseTestcaseConfig):
             mock("literal")
             event2.set()
 
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
         broker.include_router(router)
 
         async with self.patch_broker(broker) as br:
@@ -261,7 +261,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"OUT": queue})
+        broker = self.get_broker(config_values={"OUT": queue})
 
         args, kwargs = self.get_publisher_params(Config("OUT"))
         publisher = broker.publisher(*args, **kwargs)
@@ -298,7 +298,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_publisher_params(f"literal-{queue}")
         literal_publisher = router.publisher(*args, **kwargs)
 
-        broker = self.get_broker(config={"OUT": queue})
+        broker = self.get_broker(config_values={"OUT": queue})
 
         args, kwargs = self.get_subscriber_params(queue)
 
@@ -336,7 +336,7 @@ class ConfigTestcase(BaseTestcaseConfig):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         async def handler(msg: Any) -> None:
             event.set()
@@ -381,7 +381,7 @@ class ConfigOverrideTestcase(ConfigTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": f"{queue}-real"})
+        broker = self.get_broker(config_values={"IN": f"{queue}-real"})
 
         args, kwargs = self.get_subscriber_params(Config("IN"))
 
@@ -389,7 +389,7 @@ class ConfigOverrideTestcase(ConfigTestcase):
         async def handler(msg: Any) -> None:
             event.set()
 
-        async with self.patch_broker(broker, config={"IN": queue}) as br:
+        async with self.patch_broker(broker, config_values={"IN": queue}) as br:
             await self.assert_consume(br, queue, event)
 
     @pytest.mark.asyncio()
@@ -407,7 +407,7 @@ class ConfigOverrideTestcase(ConfigTestcase):
         async def handler(msg: Any) -> None:
             event.set()
 
-        async with self.patch_broker(broker, config={"IN": queue}) as br:
+        async with self.patch_broker(broker, config_values={"IN": queue}) as br:
             await self.assert_consume(br, queue, event)
 
     @pytest.mark.asyncio()
@@ -432,7 +432,10 @@ class ConfigOverrideTestcase(ConfigTestcase):
             events[msg].set()
 
         for address, event in events.items():
-            async with self.patch_broker(broker, config={"IN": address}) as br:
+            async with self.patch_broker(
+                broker,
+                config_values={"IN": address},
+            ) as br:
                 # The body names the address, so each context's handler is seen
                 # to have received what that context published.
                 await self.assert_consume(br, address, event, body=address)

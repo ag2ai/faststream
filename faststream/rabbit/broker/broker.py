@@ -102,7 +102,7 @@ class RabbitBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | None = None,
@@ -143,7 +143,7 @@ class RabbitBroker(
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: RabbitRouters to build a broker with.
-            config: Config values, used to resolve `Config` placeholders in subscribers and publishers.
+            config_values: Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security: Security options to connect broker and generate AsyncAPI server security information.
                 Use RabbitExternalAuth for RabbitMQ SASL EXTERNAL.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
@@ -201,7 +201,7 @@ class RabbitBroker(
             # Basic args
             routers=routers,
             config=RabbitBrokerConfig(
-                config_values=config,
+                config_values=config_values,
                 channel_manager=cm,
                 producer=producer,
                 declarer=declarer,

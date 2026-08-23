@@ -17,7 +17,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_shared_value(self, queue: str, mock: MagicMock) -> None:
         """Two subscribers land in one shared group, so only one of them eats."""
-        broker = self.get_broker(config={"GROUP": f"{queue}-group"})
+        broker = self.get_broker(config_values={"GROUP": f"{queue}-group"})
 
         @broker.subscriber(queue, shared=Config("GROUP"))
         async def resolved(msg: Any) -> None:
@@ -41,7 +41,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        broker = self.get_broker(config={"IN": queue, "GROUP": f"{queue}-group"})
+        broker = self.get_broker(config_values={"IN": queue, "GROUP": f"{queue}-group"})
 
         @broker.subscriber(Config("IN"), shared=Config("GROUP"))
         async def handler(msg: Any) -> None:
@@ -59,7 +59,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
         """A Config value is read as an Address template, exactly as a literal is."""
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": f"{queue}/{{level}}"},
+            config_values={"IN": f"{queue}/{{level}}"},
         )
 
         @broker.subscriber(Config("IN"))
@@ -85,7 +85,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
         """
         broker = self.get_broker(
             apply_types=True,
-            config={"IN": f"{queue}/{{{{raw}}}}/{{level}}"},
+            config_values={"IN": f"{queue}/{{{{raw}}}}/{{level}}"},
         )
 
         @broker.subscriber(Config("IN"))
@@ -100,7 +100,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
-        broker = self.get_broker(apply_types=True, config={"IN": queue})
+        broker = self.get_broker(apply_types=True, config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
@@ -114,7 +114,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
         self,
         queue: str,
     ) -> None:
-        broker = self.get_broker(config={"IN": f"{queue}/${{ENV"})
+        broker = self.get_broker(config_values={"IN": f"{queue}/${{ENV"})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -125,7 +125,7 @@ class TestConfigValues(MQTTMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...

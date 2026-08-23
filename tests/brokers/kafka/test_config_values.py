@@ -17,7 +17,7 @@ from .basic import KafkaMemoryTestcaseConfig
 class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_pattern_value(self, queue: str, event: asyncio.Event) -> None:
-        broker = self.get_broker(config={"PATTERN": f"{queue}-.*"})
+        broker = self.get_broker(config_values={"PATTERN": f"{queue}-.*"})
 
         @broker.subscriber(pattern=Config("PATTERN"))
         async def handler(msg: Any) -> None:
@@ -35,7 +35,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
     @pytest.mark.asyncio()
     async def test_group_id_value(self, queue: str, mock: MagicMock) -> None:
         """Two subscribers land in one consumer group, so only one of them eats."""
-        broker = self.get_broker(config={"GROUP": f"{queue}-group"})
+        broker = self.get_broker(config_values={"GROUP": f"{queue}-group"})
 
         @broker.subscriber(queue, group_id=Config("GROUP"))
         async def resolved(msg: Any) -> None:
@@ -83,7 +83,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         event: asyncio.Event,
     ) -> None:
         """The reply destination is configurable along with the primary one."""
-        broker = self.get_broker(config={"REPLY": f"{queue}-reply"})
+        broker = self.get_broker(config_values={"REPLY": f"{queue}-reply"})
 
         publisher = broker.publisher(queue, reply_to=Config("REPLY"))
 
@@ -106,7 +106,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_log_line_names_the_resolved_topic(self, queue: str) -> None:
-        broker = self.get_broker(config={"IN": queue})
+        broker = self.get_broker(config_values={"IN": queue})
 
         @broker.subscriber(Config("IN"))
         async def handler(msg: Any) -> None: ...
@@ -133,7 +133,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
         """A Config value is read as an Address template, exactly as a literal is."""
         broker = self.get_broker(
             apply_types=True,
-            config={"PATTERN": f"{queue}.{{level}}"},
+            config_values={"PATTERN": f"{queue}.{{level}}"},
         )
 
         @broker.subscriber(pattern=Config("PATTERN"))
@@ -148,7 +148,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
 
     @pytest.mark.asyncio()
     async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
-        broker = self.get_broker(apply_types=True, config={"PATTERN": queue})
+        broker = self.get_broker(apply_types=True, config_values={"PATTERN": queue})
 
         @broker.subscriber(pattern=Config("PATTERN"))
         async def handler(msg: Any, level: str = Path()) -> None: ...
@@ -161,7 +161,7 @@ class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
     async def test_a_config_value_that_is_not_a_template_names_the_config_key(
         self,
     ) -> None:
-        broker = self.get_broker(config={"PATTERN": "logs.${ENV"})
+        broker = self.get_broker(config_values={"PATTERN": "logs.${ENV"})
 
         @broker.subscriber(pattern=Config("PATTERN"))
         async def handler(msg: Any) -> None: ...

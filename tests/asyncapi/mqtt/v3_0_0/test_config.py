@@ -14,7 +14,7 @@ class TestConfigValues(ConfigTestcase):
 
         async def handle() -> None: ...
 
-        configured = self.get_broker(config={"IN": "logs/{level}"})
+        configured = self.get_broker(config_values={"IN": "logs/{level}"})
         configured.subscriber(Config("IN"))(handle)
 
         literal = self.get_broker()

@@ -22,7 +22,7 @@ class TestConfigValues(ConfigTestcase):
         literal = self.get_broker()
         literal.subscriber("logs.{level}")(handle)
 
-        resolved = self.get_broker(config={"IN": "logs.{level}"})
+        resolved = self.get_broker(config_values={"IN": "logs.{level}"})
         resolved.subscriber(Config("IN"))(handle)
 
         assert (

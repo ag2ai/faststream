@@ -94,7 +94,7 @@ class AsgiFastStream(Application):
         self,
         *brokers: "BrokerUsecase[Any, Any]",
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
-        config: "ConfigSource" = None,
+        config_values: "ConfigSource" = None,
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -112,7 +112,7 @@ class AsgiFastStream(Application):
         super().__init__(
             *brokers,
             logger=logger,
-            config_values=config,
+            config_values=config_values,
             fd_config=FastDependsConfig(
                 provider=provider or dependency_provider,
                 context=context or ContextRepo(),
