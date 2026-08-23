@@ -74,7 +74,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     graceful_timeout: float | None
 
     #: This Subscriber's own parser and decoder, the innermost of its chain.
-    #: Written by whichever of the two moments below built them.
+    #: Written by `_build_parser`, which Preparation runs.
     _parser: "AsyncCallable"
     _decoder: "AsyncCallable"
 
@@ -91,13 +91,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self.specification = specification
 
         self._no_reply = config.no_reply
-
-        # A Broker that builds its parser in its Subscriber's constructor has
-        # already written it into the options object. One whose parser needs a
-        # resolved address builds it in Preparation and leaves this unwritten
-        # until then.
-        if config.parser is not None and config.decoder is not None:
-            self._parser, self._decoder = config.parser, config.decoder
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -151,11 +144,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _build_parser(self) -> None:
         """Build this Subscriber's own parser and decoder, the innermost of its chain.
 
-        Nothing here: a Broker that has not moved yet builds its parser in its
-        Subscriber's constructor, where its options object carries it away. A
-        Broker whose parser holds a capture regex builds it here instead, where
-        the address that regex compiles from is resolved, and builds it again on
-        every Preparation because that address can have changed.
+        Nothing here: every Broker overrides it. Built in Preparation rather than
+        in the Subscriber's constructor because a parser can hold the address'
+        capture regex, which is only compilable once that address is resolved, and
+        built again on every Preparation because the address can have changed.
         """
 
     @override

@@ -2,22 +2,11 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from re import Pattern
-from typing import Any, Generic, TypeAlias, TypeVar
+from typing import Any
 
 from faststream.exceptions import SetupError
 
 PARAM_REGEX = re.compile(r"{([a-zA-Z0-9_]+)}")
-
-T = TypeVar("T")
-
-
-RegexSource: TypeAlias = Callable[[], "Pattern[str] | None"] | None
-"""Produces an Address' capture regex when a message arrives, or `None` for no template.
-
-Asked per message rather than taken once: a parser is built while its Subscriber is,
-and by then the address may still be a Config placeholder with nothing to compile.
-Resolution — and the compilation that follows it — happens on read.
-"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,12 +41,12 @@ class Address:
     into, and the address actually handed to the infrastructure broker (`logs.*`).
     Both are read from here under distinct names, so neither can overwrite the other.
 
-    Compilation is lazy and cached, so a template can still be decorated with a
-    Router prefix — or arrive from a Config value — after this object is built, and
-    nothing is compiled until a Broker address or a capture regex is asked for. The
-    cache is one-shot rather than change-tracking: a Config value is fixed at
-    `connect()` (ADR-0004), and the whole object is thrown away with the
-    connection it was compiled for — see `PrefixedRead.reset`.
+    Compilation is lazy, so an address that is only ever declared is never compiled:
+    `add_prefix` builds a second Address out of the first, and Preparation is what
+    decides which of the two an endpoint ends up holding. It is also one-shot rather
+    than change-tracking, which is safe for the same reason — the Address an endpoint
+    holds was built out of a template that was already final, and it is thrown away
+    again when Preparation is undone.
     """
 
     __slots__ = ("_compiled", "_syntax", "config_key", "template")
@@ -140,47 +129,6 @@ class Address:
                 raise SetupError(msg) from e
 
         return self._compiled
-
-
-class PrefixedRead(Generic[T]):
-    """An endpoint's address read, kept rather than re-derived, keyed on the prefix.
-
-    Keeping it is what ADR-0004 asks for: a Config value is fixed at `connect()`,
-    and the compiled result must not be re-derived on every read, because a parser
-    asks for the capture regex once per message.
-
-    Keyed on the Router prefix, because the prefix is the one part that is *not*
-    fixed early. A Router included into another Router composes a longer prefix
-    than its endpoints saw when they were declared, so a read taken before
-    `include_router` — an AsyncAPI render, a `repr` — would otherwise pin the short
-    prefix and leave the endpoint subscribing to the wrong Broker address.
-
-    Config values are the part the key cannot cover: two of them differ under one
-    prefix, and a placeholder gives no hint that it changed. `reset` is how they
-    are answered — the connection the value was fixed for is what the read is
-    kept for, and it goes when that connection goes.
-    """
-
-    __slots__ = ("_prefix", "_value")
-
-    def __init__(self) -> None:
-        self._prefix: str | None = None
-        self._value: T
-
-    def read(self, prefix: str, build: Callable[[str], T]) -> T:
-        if self._prefix != prefix:
-            self._value = build(prefix)
-            self._prefix = prefix
-
-        return self._value
-
-    def reset(self) -> None:
-        """Forget the read, so the next one derives it again.
-
-        Called when Preparation is undone, which is when the connection it was
-        performed for is cleared.
-        """
-        self._prefix = None
 
 
 def compile_path(

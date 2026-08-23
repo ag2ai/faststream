@@ -129,6 +129,54 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    async def test_include_after_connect(self, queue: str, event: asyncio.Event) -> None:
+        """A Router included into a started Broker resolves against that composition."""
+        pub_broker = self.get_broker()
+
+        own_event = asyncio.Event()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        def own_subscriber(m) -> None:
+            own_event.set()
+
+        router = self.get_router()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        def late_subscriber(m) -> None:
+            event.set()
+
+        sub = router.subscriber(*args, **kwargs)
+        sub(late_subscriber)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            br.include_router(router, prefix="test_")
+            await sub.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", f"test_{queue}")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", queue)),
+                    asyncio.create_task(own_event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert own_event.is_set()
+
     async def test_empty_prefix_publisher(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
