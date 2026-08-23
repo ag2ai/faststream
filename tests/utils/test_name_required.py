@@ -55,6 +55,23 @@ def test_a_brace_in_a_name_is_a_character_like_any_other(
     assert braced.add_prefix("prefix_").name == "prefix_logs.{level}"
 
 
+@pytest.mark.parametrize("type_", NAMED_TYPES, ids=lambda t: t.__name__)
+def test_a_name_is_assigned_nowhere_outside_construction(
+    type_: type[NameRequired],
+) -> None:
+    """A writeable name would make ticket 17's covariant parameter unsound.
+
+    mypy permits covariance over a writeable attribute on a non-protocol class,
+    so nothing in the build would report it. This is what reports it.
+    """
+    obj = named(type_)
+
+    with pytest.raises(AttributeError):
+        obj.name = "reassigned"  # type: ignore[misc]
+
+    assert obj.name == "logs"
+
+
 def test_a_channel_is_a_template_and_its_prefix_follows_it() -> None:
     channel = PubSub("logs.{level}").add_prefix("prefix_")
 
