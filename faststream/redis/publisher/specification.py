@@ -65,7 +65,7 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
 
     @property
     def channel_name(self) -> str:
-        return self.channel.name
+        return self.channel.address.template
 
     @property
     def channel_binding(self) -> redis.ChannelBinding:
