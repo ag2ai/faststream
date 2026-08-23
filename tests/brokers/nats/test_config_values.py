@@ -260,14 +260,14 @@ class TestConfigValues(NatsMemoryTestcaseConfig, ConfigOverrideTestcase):
                 for subject in subjects
             ]
 
-        broker.prepare()
+        broker._prepare()
         broker._collect_stream_subjects()
         assert collected() == [f"first.{queue}"]
 
-        broker.invalidate()
+        broker._invalidate()
         values["IN"] = f"second.{queue}"
 
-        broker.prepare()
+        broker._prepare()
         broker._collect_stream_subjects()
         assert collected() == [f"second.{queue}"]
 

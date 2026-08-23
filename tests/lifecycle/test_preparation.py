@@ -103,7 +103,7 @@ def test_the_static_checks_need_no_event_loop() -> None:
     @broker.subscriber(pattern="logs.{level}")
     async def satisfiable(msg: Any, level: str = Path()) -> None: ...
 
-    broker.prepare()
+    broker._prepare()
 
     misconfigured = KafkaBroker(NOWHERE)
 
@@ -111,7 +111,7 @@ def test_the_static_checks_need_no_event_loop() -> None:
     async def handler(msg: Any) -> None: ...
 
     with pytest.raises(SetupError, match="IN"):
-        misconfigured.prepare()
+        misconfigured._prepare()
 
 
 @pytest.mark.asyncio()
@@ -121,8 +121,8 @@ async def test_preparing_twice_changes_nothing_observable(queue: str) -> None:
     @broker.subscriber(queue)
     async def handler(msg: Any) -> None: ...
 
-    broker.prepare()
-    broker.prepare()
+    broker._prepare()
+    broker._prepare()
 
     async with TestKafkaBroker(broker) as br:
         await br.publish("hello", queue)
@@ -221,8 +221,8 @@ async def test_undoing_and_redoing_preparation_accumulates_nothing(
     calls = len(subscriber.calls)
 
     for _ in range(3):
-        broker.prepare()
-        broker.invalidate()
+        broker._prepare()
+        broker._invalidate()
 
     assert len(subscriber.calls) == calls
 

@@ -113,6 +113,12 @@ class TestBroker(Generic[Broker, EnterType]):
             saved_running = {}
             started_brokers = []
 
+            # Two loops rather than one, because a Broker's fake-publisher scan
+            # reads every Broker's Subscribers, not only its own. Interleaving
+            # would have the first Broker scan Subscribers belonging to one the
+            # loop has not connected yet, and an endpoint refuses a read taken
+            # before its Preparation. The group is what a scan reads, so the
+            # group is what has to be connected before any member scans it.
             for broker in self.brokers:
                 stack.enter_context(self._patch_config_values(broker))
 
@@ -121,6 +127,7 @@ class TestBroker(Generic[Broker, EnterType]):
 
                 await stack.enter_async_context(broker)
 
+            for broker in self.brokers:
                 # After the connection, because it reads a Publisher's
                 # destination and Preparation is what resolves one. An in-memory
                 # Broker reaches the same call through its patched `start`.
@@ -166,14 +173,14 @@ class TestBroker(Generic[Broker, EnterType]):
         # is as much a change as leaving: a Broker already prepared -- by an
         # earlier context, or by an AsyncAPI render -- would otherwise keep the
         # addresses derived against the values this context just replaced.
-        broker.invalidate()
+        broker._invalidate()
 
         try:
             yield
 
         finally:
             composition.config_values_override = saved
-            broker.invalidate()
+            broker._invalidate()
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
@@ -239,7 +246,7 @@ class TestBroker(Generic[Broker, EnterType]):
         # path connects ahead of that — and the invalidation which followed has
         # no `connect()` after it to prepare again. Idempotent, so the ordinary
         # case is a no-op.
-        broker.prepare()
+        broker._prepare()
 
         for publisher in broker.publishers:
             if getattr(publisher, "_fake_handler", None):

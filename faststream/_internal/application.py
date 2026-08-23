@@ -114,7 +114,7 @@ class StartAbleApplication:
         prepared: list[BrokerUsecase[Any, Any]] = []
         try:
             for b in self.brokers:
-                b.prepare()
+                b._prepare()
                 prepared.append(b)
 
         except BaseException:
@@ -122,7 +122,7 @@ class StartAbleApplication:
             # these. Undoing them here is what keeps "a Broker is prepared only
             # for the connection it is about to open" true of a failed start-up.
             for b in prepared:
-                b.invalidate()
+                b._invalidate()
             raise
 
         for b in self.brokers:

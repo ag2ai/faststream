@@ -37,6 +37,34 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
     @pytest.mark.asyncio()
+    async def test_a_publisher_reaches_a_subscriber_on_another_broker(
+        self,
+        queue: str,
+    ) -> None:
+        """One `TestBroker` over two Brokers still delivers between them.
+
+        Fake-starting a Broker matches its Publishers against every Broker's
+        Subscribers, not only its own, so a Broker the group has not reached
+        yet would be asked for an address it has not resolved and refuse the
+        read. The group is what a scan reads, so the group is prepared before
+        any member scans it.
+        """
+        publishing_broker = self.get_broker()
+        consuming_broker = self.get_broker()
+
+        publisher = publishing_broker.publisher(queue)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @consuming_broker.subscriber(*args, **kwargs)
+        async def handler(msg) -> None: ...
+
+        async with self.patch_broker(publishing_broker, consuming_broker):
+            await publisher.publish("hello")
+
+            handler.mock.assert_called_once_with("hello")
+
+    @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
         test_broker = self.get_broker()
 

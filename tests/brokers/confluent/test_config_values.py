@@ -140,7 +140,7 @@ class TestConfigValues(ConfluentMemoryTestcaseConfig, ConfigOverrideTestcase):
 
         broker = self.get_broker()
         broker.include_router(router)
-        broker.prepare()
+        broker._prepare()
 
         context = broker.subscribers[0].get_log_context(None)
 

@@ -108,12 +108,12 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
-            self.prepare()
+            self._prepare()
             self._connection = await self._connect()
 
         return self._connection
 
-    def prepare(self) -> None:
+    def _prepare(self) -> None:
         """Preparation: everything derivable from the options composition, no I/O.
 
         The moment the composition is final — the Router prefix composed, the
@@ -142,10 +142,10 @@ class BrokerUsecase(
 
         self._prepared = True
 
-    def invalidate(self) -> None:
+    def _invalidate(self) -> None:
         """Undo Preparation across every endpoint.
 
-        The counterpart of `prepare`, driven where the connection is cleared,
+        The counterpart of `_prepare`, driven where the connection is cleared,
         so that a stopped Broker prepares again on its next `connect()` — which
         is what "a Config value is fixed at `connect()`" (ADR-0004) means for a
         Broker used twice.
@@ -176,7 +176,7 @@ class BrokerUsecase(
 
         # After the Subscribers have stopped reading through their addresses,
         # and before the next `connect()` derives them again.
-        self.invalidate()
+        self._invalidate()
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

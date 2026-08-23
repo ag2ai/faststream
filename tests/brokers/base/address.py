@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from faststream._internal.utils.path import Address
-from faststream.exceptions import SetupError
+from faststream.exceptions import IncorrectState, SetupError
 from faststream.params import Path
 
 from .basic import BaseTestcaseConfig
@@ -66,15 +66,12 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         assert address.broker_address == f"prefix_{self.broker_address}"
 
     def test_an_early_read_does_not_pin_an_outer_router_prefix(self) -> None:
-        """A read before `include_router` must not freeze the prefix it saw.
+        """The read a Broker refuses, in place of the one it used to defend against.
 
         A Router included into another Router composes a longer prefix than its
-        endpoints saw when they were declared, and a Broker that still resolves
-        on read would otherwise leave the endpoint subscribing to the short one
-        for the rest of its life.
-
-        A Broker whose endpoints resolve at Preparation refuses that read rather
-        than defending against it, and overrides this with the refusal.
+        endpoints saw when they were declared. Asked in between, a Subscriber
+        says the read came too early instead of answering with an address
+        derived from a composition that is not final.
         """
         broker = self.get_broker()
         outer = self.get_router(prefix="outer_")
@@ -83,12 +80,13 @@ class AddressTemplateTestcase(BaseTestcaseConfig):
         subscriber = self.declare_subscriber(inner, self.template)
 
         # The read under test: taken while only the inner prefix is in scope.
-        assert self.get_subscriber_address(subscriber).template.startswith("inner_")
+        with pytest.raises(IncorrectState, match="too early"):
+            self.get_subscriber_address(subscriber)
 
         outer.include_router(inner)
         broker.include_router(outer)
 
-        address = self.get_subscriber_address(broker.subscribers[0])
+        address = self.read_address(broker.subscribers[0])
         assert address.template == f"outer_inner_{self.template}"
         assert address.broker_address == f"outer_inner_{self.broker_address}"
 

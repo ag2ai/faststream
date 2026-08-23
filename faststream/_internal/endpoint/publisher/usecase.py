@@ -6,8 +6,6 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
-from typing_extensions import override
-
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
@@ -52,10 +50,6 @@ class PublisherUsecase(Endpoint, PublisherProto):
         # Symmetry with the Subscriber: a Publisher registered after its Broker
         # connected prepares itself, one the Broker prepared gets a no-op.
         self.prepare()
-
-    @override
-    def _invalidate(self) -> None:
-        self.specification.invalidate()
 
     def set_test(
         self,

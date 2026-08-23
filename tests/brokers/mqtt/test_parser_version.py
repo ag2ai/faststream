@@ -65,7 +65,7 @@ async def parse_through(broker: MQTTBroker, msg: zmqtt.Message) -> Any:
 async def test_a_router_subscriber_on_a_311_broker_consumes_as_311() -> None:
     broker = broker_with_a_router_subscriber("3.1.1")
 
-    broker.prepare()
+    broker._prepare()
 
     parsed = await parse_through(broker, a_message_carrying_v5_properties())
 
@@ -83,7 +83,7 @@ async def test_a_router_subscriber_on_a_311_broker_consumes_as_311() -> None:
 async def test_a_router_subscriber_on_a_50_broker_consumes_as_50() -> None:
     broker = broker_with_a_router_subscriber("5.0")
 
-    broker.prepare()
+    broker._prepare()
 
     parsed = await parse_through(broker, a_message_carrying_v5_properties())
 

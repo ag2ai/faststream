@@ -66,7 +66,7 @@ class AsyncAPI(SpecificationFactory):
         # lifecycle method -- as it does on every surface that renders a Broker.
         # Idempotent: a Broker whose own lifespan prepared it pays nothing.
         for broker in self.brokers:
-            broker.prepare()
+            broker._prepare()
 
         if self.schema_version.startswith("3."):
             from .v3_0_0 import get_app_schema as schema_3_0

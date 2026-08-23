@@ -528,8 +528,8 @@ class NatsBroker(
                 )
 
     @override
-    def invalidate(self) -> None:
-        super().invalidate()
+    def _invalidate(self) -> None:
+        super()._invalidate()
         self._stream_builder.reset()
 
     async def start(self) -> None:

@@ -13,7 +13,7 @@ class TestSharedTopicOrder(MQTTMemoryTestcaseConfig):
         broker = self.get_broker()
 
         sub = broker.subscriber("sub", shared="shared")
-        broker.prepare()
+        broker._prepare()
 
         assert sub.topic == "$share/shared/sub"
 
@@ -23,7 +23,7 @@ class TestSharedTopicOrder(MQTTMemoryTestcaseConfig):
 
         sub = router.subscriber("/sub", shared="shared")
         broker.include_router(router)
-        broker.prepare()
+        broker._prepare()
 
         assert sub.topic == "$share/shared/router/sub"
 
@@ -33,7 +33,7 @@ class TestSharedTopicOrder(MQTTMemoryTestcaseConfig):
 
         sub = router.subscriber("/sub")
         broker.include_router(router)
-        broker.prepare()
+        broker._prepare()
 
         assert sub.topic == "router/sub"
 

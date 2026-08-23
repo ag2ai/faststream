@@ -23,31 +23,6 @@ class TestRabbitAddressTemplate(RabbitMemoryTestcaseConfig, AddressCheckTestcase
     def get_subscriber_address(self, subscriber: Any) -> Address:
         return subscriber.queue.routing_address
 
-    @override
-    def test_an_early_read_does_not_pin_an_outer_router_prefix(self) -> None:
-        """The read RabbitMQ refuses, in place of the one it used to defend against.
-
-        A Router included into another Router composes a longer prefix than its
-        endpoints saw when they were declared. Asked in between, a RabbitMQ
-        Subscriber says the read came too early instead of answering with a
-        queue built from a composition that is not final.
-        """
-        broker = self.get_broker()
-        outer = self.get_router(prefix="outer_")
-        inner = self.get_router(prefix="inner_")
-
-        subscriber = self.declare_subscriber(inner, self.template)
-
-        with pytest.raises(IncorrectState, match="too early"):
-            self.get_subscriber_address(subscriber)
-
-        outer.include_router(inner)
-        broker.include_router(outer)
-
-        address = self.read_address(broker.subscribers[0])
-        assert address.template == f"outer_inner_{self.template}"
-        assert address.broker_address == f"outer_inner_{self.broker_address}"
-
 
 @pytest.mark.rabbit()
 class TestEveryReadSettlesAtPreparation(RabbitMemoryTestcaseConfig):
