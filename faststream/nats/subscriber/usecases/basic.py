@@ -36,11 +36,16 @@ if TYPE_CHECKING:
 class _ResolvedOptions(NamedTuple):
     """What a NATS Subscriber listens on, once its composition is final.
 
-    Resolved together and written once, so that the reads below cannot disagree
-    with each other or with what the subscription was created against. NATS has
-    the widest surface of the six — a subject, a queue group, a durable name, a
-    stream and a list of filter subjects — and every one of them can arrive from
-    a Config value or wear the Router prefix.
+    Resolved together, so that the reads below cannot disagree with each other
+    or with what the subscription was created against. NATS has the widest
+    surface of the six — a subject, a queue group, a durable name, a stream and
+    a list of filter subjects — and every one of them can arrive from a Config
+    value or wear the Router prefix.
+
+    `consumer_config` is the exception, held rather than built: it is the
+    Subscriber's own options object, which Preparation writes the resolved
+    durable name into. What it earns here is the refusal, not a copy — an early
+    read of it is an early read of the durable name.
     """
 
     subject: Address
@@ -80,7 +85,10 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         self._declared_durable_name = config.sub_config.durable_name
 
         self._resolved: Resolved[_ResolvedOptions] = self._derived.add(
-            Resolved("a Subscriber's addresses"),
+            # "options" rather than "addresses": a queue group, a durable name
+            # and the consumer options resolve here too, and the refusal names
+            # what the caller actually asked for.
+            Resolved("a Subscriber's options"),
         )
 
         self._fetch_sub = None
