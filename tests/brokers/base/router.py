@@ -177,6 +177,44 @@ class RouterTestcase(
 
             assert own_event.is_set()
 
+    async def test_publisher_attached_a_level_below_the_broker_after_connect(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """A Publisher attached to a Router already inside a started Broker.
+
+        Only a Broker ever prepares, so an attachment has to find the Broker at
+        the root of the composition rather than ask whatever it lands on: a
+        Router answers "not prepared" for the whole of its life, and an endpoint
+        that took that answer would go on refusing every read of its address.
+        """
+        pub_broker = self.get_broker()
+        router = self.get_router(prefix="test_")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        def subscriber(m) -> None:
+            event.set()
+
+        pub_broker.include_router(router)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            publisher = router.publisher(queue)
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(publisher.publish("hello")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            assert event.is_set()
+
     async def test_empty_prefix_publisher(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
