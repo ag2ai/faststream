@@ -96,6 +96,45 @@ async def test_a_dynamic_subscriber_is_checked_before_it_subscribes() -> None:
         assert not subscriber.running
 
 
+@pytest.mark.asyncio()
+async def test_a_dynamic_subscriber_with_an_unsatisfiable_path_is_refused() -> None:
+    """The address check reaches the registration path that has no `connect()`.
+
+    A `Path()` parameter nothing will ever fill is a misconfigured deployment,
+    and registering late is not what makes it acceptable — it only moves the
+    moment the mistake can be caught to the Subscriber's own `start()`.
+    """
+    broker = KafkaBroker(NOWHERE, apply_types=True)
+
+    async with TestKafkaBroker(broker) as br:
+        subscriber = br.subscriber(pattern="logs.info")
+
+        @subscriber
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        with pytest.raises(SetupError, match="level"):
+            await subscriber.start()
+
+        assert not subscriber.running
+
+
+@pytest.mark.asyncio()
+async def test_a_dynamic_subscriber_whose_address_is_not_a_template_is_refused() -> None:
+    """A half-rendered Config value subscribes to nothing, so it is refused instead."""
+    broker = KafkaBroker(NOWHERE)
+
+    async with TestKafkaBroker(broker) as br:
+        subscriber = br.subscriber(pattern="logs.${ENV")
+
+        @subscriber
+        async def handler(msg: Any) -> None: ...
+
+        with pytest.raises(SetupError, match=r"\$\{ENV"):
+            await subscriber.start()
+
+        assert not subscriber.running
+
+
 def test_the_static_checks_need_no_event_loop() -> None:
     """No loop and no infrastructure is what lets schema generation reuse them."""
     broker = KafkaBroker(NOWHERE)

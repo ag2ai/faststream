@@ -1,10 +1,14 @@
-"""What `connect()` asks of a Subscriber's addresses before any message arrives.
+"""What Preparation asks of a Subscriber's addresses before any message arrives.
 
 An Address template promises two things: that the Broker address it compiles to is
 the one the endpoint subscribes with, and that every `Path()` parameter the handler
 declares is captured out of an incoming message's address. Neither promise can be
 checked at declaration time, because a Config value is not known then — so both are
-checked once, at `connect()`, against the resolved addresses.
+checked once, in Preparation, against the resolved addresses.
+
+Preparation rather than `connect()` so that the check reaches a Subscriber registered
+after its Broker connected, which has no `connect()` of its own to hang it on and
+prepares at its own `start()` instead.
 
 Checking here rather than per message is the point: a `Path()` parameter that can
 never be filled is a misconfigured deployment, and a misconfigured deployment should
