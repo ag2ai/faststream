@@ -17,20 +17,34 @@ class AddressSyntax:
         replace_symbol: What each `{param}` becomes in the Broker address.
         patch_regex: Broker-specific fixups applied to the compiled capture regex.
         param_regex: What a single Path parameter is allowed to capture.
+        verbatim: Whether addresses in this syntax are read as characters rather
+            than as templates, so that a `{` in one is a `{` and nothing more.
     """
 
     replace_symbol: str
     patch_regex: Callable[[str], str]
     param_regex: str = "[^.]+"
+    verbatim: bool = False
 
     def compile(self, template: str) -> tuple[Pattern[str] | None, str]:
         """Turn an Address template into its capture regex and its Broker address."""
+        if self.verbatim:
+            return None, template
+
         return compile_path(
             template,
             replace_symbol=self.replace_symbol,
             patch_regex=self.patch_regex,
             param_regex=self.param_regex,
         )
+
+
+VERBATIM_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol="",
+    patch_regex=str,
+    verbatim=True,
+)
+"""The syntax of an address that is not a template: what it says is what it names."""
 
 
 class Address:
@@ -97,19 +111,16 @@ class Address:
 
     @classmethod
     def literal(cls, value: str, config_key: str | None = None) -> "Address":
-        """An Address that is never compiled: what it says is what it subscribes to.
+        """An Address read as characters: what it says is what it subscribes to.
 
         Kafka topics are the case this exists for. They carry no Address template
         — a topic is handed to the broker verbatim — so reading one as a template
         would report capture groups that nothing ever fills, and a `Path()`
         parameter naming one would be accepted at `connect()` and then never
-        supplied a value.
+        supplied a value. The verbatim syntax travels with the address, so a
+        Router prefix decorating it later leaves it verbatim too.
         """
-        address = cls(
-            value, AddressSyntax(replace_symbol="", patch_regex=str), config_key
-        )
-        address._compiled = (None, value)
-        return address
+        return cls(value, VERBATIM_ADDRESS_SYNTAX, config_key)
 
     def add_prefix(self, prefix: str) -> "Address":
         """Decorate the template with a Router prefix; the Broker address follows."""

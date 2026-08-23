@@ -16,7 +16,7 @@ class KvWatch(NameRequired):
     """
 
     __slots__ = (
-        "bucket",
+        "address",
         "declare",
         "headers_only",
         "ignore_deletes",

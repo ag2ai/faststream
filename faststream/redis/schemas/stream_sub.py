@@ -1,5 +1,4 @@
 import warnings
-from copy import deepcopy
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
@@ -44,6 +43,7 @@ class StreamSub(NameRequired):
     """
 
     __slots__ = (
+        "address",
         "batch",
         "consumer",
         "declare",
@@ -52,7 +52,6 @@ class StreamSub(NameRequired):
         "max_records",
         "maxlen",
         "min_idle_time",
-        "name",
         "no_ack",
         "polling_interval",
     )
@@ -129,8 +128,3 @@ class StreamSub(NameRequired):
         — so there is nothing for the Config key to explain, and it is dropped.
         """
         return cls.validate(value)
-
-    def add_prefix(self, prefix: str) -> "StreamSub":
-        new_stream = deepcopy(self)
-        new_stream.name = f"{prefix}{new_stream.name}"
-        return new_stream

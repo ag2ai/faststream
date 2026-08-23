@@ -1,4 +1,3 @@
-from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
@@ -39,12 +38,12 @@ class RabbitQueue(NameRequired):
     """
 
     __slots__ = (
+        "address",
         "arguments",
         "auto_delete",
         "bind_arguments",
         "durable",
         "exclusive",
-        "name",
         "robust",
         "routing_address",
         "timeout",
@@ -109,9 +108,8 @@ class RabbitQueue(NameRequired):
         return self.routing_address.template or self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
-        new_q: RabbitQueue = deepcopy(self)
-
-        new_q.name = f"{prefix}{new_q.name}"
+        """A queue's binding lives in the Router's namespace alongside its name."""
+        new_q = super().add_prefix(prefix)
 
         if new_q.routing_address:
             new_q.routing_address = new_q.routing_address.add_prefix(prefix)

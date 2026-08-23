@@ -1,4 +1,3 @@
-from copy import deepcopy
 from functools import cached_property
 
 from faststream._internal.proto import NameRequired
@@ -8,9 +7,9 @@ class ListSub(NameRequired):
     """A class to represent a Redis List subscriber."""
 
     __slots__ = (
+        "address",
         "batch",
         "max_records",
-        "name",
         "polling_interval",
     )
 
@@ -39,8 +38,3 @@ class ListSub(NameRequired):
     @cached_property
     def records(self) -> int | None:
         return self.max_records if self.batch else None
-
-    def add_prefix(self, prefix: str) -> "ListSub":
-        new_list = deepcopy(self)
-        new_list.name = f"{prefix}{new_list.name}"
-        return new_list

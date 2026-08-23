@@ -95,3 +95,19 @@ def test_compilation_happens_once_and_is_not_repeated() -> None:
     assert address.broker_address
 
     assert calls == 1
+
+
+def test_a_verbatim_address_is_read_as_characters_rather_than_a_template() -> None:
+    address = Address.literal("logs.{level}")
+
+    assert address.template == "logs.{level}"
+    assert address.broker_address == "logs.{level}"
+    assert address.regex is None
+
+
+def test_a_prefix_leaves_a_verbatim_address_verbatim() -> None:
+    address = Address.literal("logs.{level}").add_prefix("prefix_")
+
+    assert address.template == "prefix_logs.{level}"
+    assert address.broker_address == "prefix_logs.{level}"
+    assert address.regex is None
