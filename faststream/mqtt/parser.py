@@ -4,13 +4,15 @@ from typing import TYPE_CHECKING, Any
 import zmqtt
 
 from faststream._internal._compat import json_loads
+from faststream._internal.utils.path import match_path
 from faststream.message import StreamMessage, decode_message
 
 from .message import MQTTMessage
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from faststream._internal.basic_types import DecodedMessage
-    from faststream._internal.utils.path import RegexSource
 
 
 class MQTTBaseParser:
@@ -18,25 +20,14 @@ class MQTTBaseParser:
 
     def __init__(
         self,
-        regex: "RegexSource" = None,
+        regex: "Pattern[str] | None" = None,
     ) -> None:
-        self._regex = regex
+        self.regex = regex
+        """Captures each Path parameter out of an incoming topic.
 
-    def _extract_path(self, topic: str) -> dict[str, Any]:
-        """Pull the Path parameters out of an incoming topic.
-
-        The regex is asked for anew on every message: the parser is built while
-        its Subscriber is, before the topic is known in full.
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the topic it compiles from is resolved.
         """
-        path_regex = self._regex() if self._regex is not None else None
-
-        if path_regex is None:
-            return {}
-
-        match = path_regex.match(topic)
-        if match is None:
-            return {}
-        return match.groupdict()
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
@@ -53,7 +44,7 @@ class MQTTParserV311(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers={},
-            path=self._extract_path(msg.topic),
+            path=match_path(self.regex, msg.topic),
             content_type=None,
             reply_to="",
             correlation_id=None,
@@ -94,8 +85,18 @@ class MQTTParserV5(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers=headers,
-            path=self._extract_path(msg.topic),
+            path=match_path(self.regex, msg.topic),
             content_type=content_type,
             reply_to=reply_to,
             correlation_id=correlation_id,
         )
+
+
+def parser_for(version: str) -> type[MQTTBaseParser]:
+    """The parser class a Broker version speaks.
+
+    One place says it, because both the Subscriber that consumes through a
+    parser and the in-memory producer that encodes for one have to agree on
+    which version they are speaking.
+    """
+    return MQTTParserV311 if version == "3.1.1" else MQTTParserV5

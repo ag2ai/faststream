@@ -1,11 +1,10 @@
 """The parser a Subscriber consumes through is its Broker's version, not the default.
 
 A Subscriber is built before it knows its Broker — a Router-declared one before
-`include_router` runs at all — so it starts out with the 5.0 parser and re-resolves
-once Preparation reaches the Broker's own options. Preparation is also where the
-chain the handler consumes through is composed, so resolving any later composes the
-wrong parser in: the Subscriber holds the 3.1.1 parser and reads messages with the
-5.0 one.
+`include_router` runs at all — so it has no parser at all until Preparation, which
+is the first moment the version is in scope. Preparation is also where the chain the
+handler consumes through is composed, so building any later composes the wrong parser
+in: the Subscriber holds the 3.1.1 parser and reads messages with the 5.0 one.
 
 Read through `call.parser` rather than the Subscriber's own attribute: that is the
 callable a message actually travels, and the pair only disagree when the resolution

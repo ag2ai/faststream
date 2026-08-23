@@ -24,6 +24,9 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
     async def test_publisher_publish_with_headers_raises(self) -> None:
         broker = self.get_broker()
         publisher = broker.publisher("topic")
+        # Prepared, because publishing reads a destination and Preparation is
+        # what resolves one; a real caller reaches this through `connect()`.
+        broker.prepare()
 
         with pytest.raises(FeatureNotSupportedException, match="headers"):
             await publisher.publish(
@@ -45,6 +48,7 @@ class TestV311Restrictions(MQTTMemoryTestcaseConfig):
     async def test_publisher_request_requires_implicitly_reply_to(self) -> None:
         broker = self.get_broker()
         publisher = broker.publisher("topic")
+        broker.prepare()
 
         with pytest.raises(
             FeatureNotSupportedException, match="requires an explicit reply_to topic"

@@ -120,10 +120,11 @@ class TestPathExtraction(MQTTTestcaseConfig):
             mock(body)
             event.set()
 
-        assert subscriber.topic == f"{queue}/root/{{braced}}"
-
         async with self.patch_broker(broker) as br:
             await br.start()
+
+            assert subscriber.topic == f"{queue}/root/{{braced}}"
+
             await br.publish("entry", f"{queue}/root/{{braced}}")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 

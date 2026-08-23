@@ -18,7 +18,7 @@ from faststream._internal.testing.broker import (
 )
 from faststream.exceptions import SubscriberNotFound
 from faststream.mqtt.broker.broker import MQTTBroker
-from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import parser_for
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
 from faststream.mqtt.response import MQTTPublishCommand
 
@@ -63,12 +63,6 @@ def mqtt_topic_matches(pattern: str, topic: str) -> bool:
 
 def _broker_version(broker: MQTTBroker) -> Literal["3.1.1", "5.0"]:
     return getattr(broker.config.broker_config, "version", "5.0")
-
-
-def _parser_for_version(
-    version: Literal["3.1.1", "5.0"],
-) -> MQTTParserV311 | MQTTParserV5:
-    return MQTTParserV311() if version == "3.1.1" else MQTTParserV5()
 
 
 class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
@@ -134,21 +128,13 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
 
         if sub is None:
             is_real = False
+            # No parser build here: Preparation performs it, and the caller
+            # prepares this Subscriber as soon as its handler is attached.
             sub = broker.subscriber(publisher.topic, persistent=False)
-            # Apply the correct version parser so fake subs match FakeProducer output.
-            sub._build_parser()
         else:
             is_real = True
 
         return sub, is_real
-
-    def _fake_start(self, broker: MQTTBroker, *args: Any, **kwargs: Any) -> None:
-        # Ensure all pre-existing subscribers use the version-correct parser
-        # (preserving each subscriber's own path_regex) before patch_broker_calls
-        # builds the fastdepends model.
-        for sub in cast("list[MQTTBaseSubscriber]", broker.subscribers):
-            sub._build_parser()
-        super()._fake_start(broker, *args, **kwargs)
 
     @contextmanager
     def _patch_producer(self, broker: MQTTBroker) -> Generator[None, None, None]:
@@ -187,7 +173,7 @@ class FakeProducer(ZmqttBaseProducer):
         self.serializer: SerializerProto | None = None
 
         version = _broker_version(broker)
-        default = _parser_for_version(version)
+        default = parser_for(version)()
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
