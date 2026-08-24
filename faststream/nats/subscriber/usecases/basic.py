@@ -8,8 +8,9 @@ from typing import (
 
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
+from faststream._internal.utils.path import Address
 from faststream.nats.publisher.fake import NatsFakePublisher
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
     Unsubscriptable,
 )
@@ -50,19 +51,16 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
         self.subscription = None
 
     @property
-    def subject(self) -> str:
-        return f"{self._outer_config.prefix}{self._subject}"
+    def subject(self) -> "Address":
+        """The subject this Subscriber was declared with, and its Broker address."""
+        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
+            self._outer_config.prefix,
+        )
 
     @property
     def filter_subjects(self) -> list[str]:
         prefix = self._outer_config.prefix
         return [f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())]
-
-    @property
-    def clear_subject(self) -> str:
-        """Compile `test.{name}` to `test.*` subject."""
-        _, path = compile_nats_wildcard(self.subject)
-        return path
 
     @property
     def connection(self) -> "Client":
@@ -116,7 +114,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
     @property
     def _resolved_subject_string(self) -> str:
-        return self.subject or ", ".join(self.filter_subjects or ())
+        return self.subject.template or ", ".join(self.filter_subjects or ())
 
 
 class DefaultSubscriber(LogicSubscriber[MsgType]):
@@ -141,5 +139,5 @@ class DefaultSubscriber(LogicSubscriber[MsgType]):
         """Log context factory using in `self.consume` scope."""
         return self.build_log_context(
             message=message,
-            subject=self.subject,
+            subject=self.subject.template,
         )

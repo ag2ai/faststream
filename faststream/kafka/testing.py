@@ -411,11 +411,14 @@ def _is_handler_matches(
     topic: str,
     partition: int | None,
 ) -> bool:
-    return bool(
-        any(
-            p.topic == topic and (partition is None or p.partition == partition)
-            for p in handler.partitions
-        )
-        or topic in handler.topics
-        or (handler.pattern and re.match(handler.pattern, topic)),
-    )
+    if any(
+        p.topic == topic and (partition is None or p.partition == partition)
+        for p in handler.partitions
+    ):
+        return True
+
+    if topic in handler.topics:
+        return True
+
+    pattern = handler.pattern
+    return bool(pattern and re.match(pattern.broker_address, topic))
