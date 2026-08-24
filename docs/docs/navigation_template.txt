@@ -43,6 +43,7 @@ search:
     - [Acknowledgement](getting-started/acknowledgement.md)
     - [ASGI](getting-started/asgi.md)
     - [Multiple Brokers](getting-started/multiple_brokers.md)
+    - [Custom Broker](getting-started/custom-broker/index.md)
     - Observability
         - [Healthcheks](getting-started/observability/healthcheks.md)
         - [Prometheus](getting-started/observability/prometheus.md)
