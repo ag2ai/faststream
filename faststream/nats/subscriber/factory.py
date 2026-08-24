@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Any, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union
 
 from nats.aio.subscription import (
     DEFAULT_SUB_PENDING_BYTES_LIMIT,
@@ -11,6 +11,7 @@ from nats.js.client import (
     DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
 )
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -47,14 +48,14 @@ class SharedOptions(TypedDict):
 
 def create_subscriber(
     *,
-    subject: str,
-    queue: str,
+    subject: Configurable[str],
+    queue: Configurable[str],
     pending_msgs_limit: int | None,
     pending_bytes_limit: int | None,
     # Core args
     max_msgs: int,
     # JS args
-    durable: str | None,
+    durable: Configurable[str] | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,
     idle_heartbeat: float | None,
@@ -63,12 +64,12 @@ def create_subscriber(
     headers_only: bool | None,
     # pull args
     pull_sub: Optional["PullSub"],
-    kv_watch: Optional["KvWatch"],
+    kv_watch: Configurable[Union[str, "KvWatch"]] | None,
     obj_watch: Optional["ObjWatch"],
     inbox_prefix: bytes,
     # custom args
     max_workers: int,
-    stream: Optional["JStream"],
+    stream: Configurable[Union[str, "JStream"]] | None,
     # Subscriber args
     ack_policy: "AckPolicy",
     no_reply: bool,
@@ -100,8 +101,8 @@ def create_subscriber(
     )
 
     config = config or ConsumerConfig(filter_subjects=[])
-    if config.durable_name is None:
-        config.durable_name = durable
+    # `durable_name` is filled in by the read layer instead, because a Config
+    # placeholder standing for it has nothing to resolve against yet.
     if config.idle_heartbeat is None:
         config.idle_heartbeat = idle_heartbeat
     if config.headers_only is None:
@@ -110,13 +111,12 @@ def create_subscriber(
         config.deliver_policy = deliver_policy or DeliverPolicy.ALL
 
     if stream:
-        # Both JS Subscribers
+        # Both JS Subscribers. `durable` and `stream` are addresses, so the read
+        # layer adds them to these options once it has resolved them.
         extra_options: dict[str, Any] = {
             "pending_msgs_limit": pending_msgs_limit or DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
             "pending_bytes_limit": pending_bytes_limit
             or DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,
-            "durable": durable,
-            "stream": stream.name,
         }
 
         if pull_sub is not None:
@@ -152,6 +152,10 @@ def create_subscriber(
 
     subscriber_config = NatsSubscriberConfig(
         subject=subject,
+        queue=queue,
+        durable=durable,
+        stream=stream,
+        kv_watch=kv_watch,
         sub_config=config,
         extra_options=extra_options,
         no_reply=no_reply,
@@ -196,7 +200,6 @@ def create_subscriber(
     if kv_watch is not None:
         return KeyValueWatchSubscriber(
             **(subscriber_options | {"specification": not_include_spec}),
-            kv_watch=kv_watch,
         )
 
     if stream is None:
@@ -204,29 +207,21 @@ def create_subscriber(
             return ConcurrentCoreSubscriber(
                 **subscriber_options,
                 max_workers=max_workers,
-                queue=queue,
             )
 
-        return CoreSubscriber(
-            **subscriber_options,
-            queue=queue,
-        )
+        return CoreSubscriber(**subscriber_options)
 
     if max_workers > 1:
         if pull_sub is not None:
             return ConcurrentPullStreamSubscriber(
                 **subscriber_options,
                 max_workers=max_workers,
-                queue=queue,
-                stream=stream,
                 pull_sub=pull_sub,
             )
 
         return ConcurrentPushStreamSubscriber(
             **subscriber_options,
             max_workers=max_workers,
-            queue=queue,
-            stream=stream,
         )
 
     if pull_sub is not None:
@@ -234,30 +229,23 @@ def create_subscriber(
             return BatchPullStreamSubscriber(
                 **subscriber_options,
                 pull_sub=pull_sub,
-                stream=stream,
             )
 
         return PullStreamSubscriber(
             **subscriber_options,
-            queue=queue,
             pull_sub=pull_sub,
-            stream=stream,
         )
 
-    return PushStreamSubscriber(
-        **subscriber_options,
-        queue=queue,
-        stream=stream,
-    )
+    return PushStreamSubscriber(**subscriber_options)
 
 
 def _validate_input_for_misconfigure(  # noqa: PLR0915
-    subject: str,
-    queue: str,  # default ""
+    subject: Configurable[str],
+    queue: Configurable[str],  # default ""
     pending_msgs_limit: int | None,
     pending_bytes_limit: int | None,
     max_msgs: int,  # default 0
-    durable: str | None,
+    durable: Configurable[str] | None,
     config: Optional["api.ConsumerConfig"],
     ordered_consumer: bool,  # default False
     idle_heartbeat: float | None,
@@ -265,12 +253,15 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
     deliver_policy: Optional["api.DeliverPolicy"],
     headers_only: bool | None,
     pull_sub: Optional["PullSub"],
-    kv_watch: Optional["KvWatch"],
+    kv_watch: Configurable[Union[str, "KvWatch"]] | None,
     obj_watch: Optional["ObjWatch"],
     ack_policy: "AckPolicy",  # default EMPTY
     max_workers: int,  # default 1
-    stream: Optional["JStream"],
+    stream: Configurable[Union[str, "JStream"]] | None,
 ) -> None:
+    # Every address below is read for its presence only. A Config placeholder is
+    # truthy, and presence is exactly what the user declared literally — only the
+    # name behind it is deferred — so these checks stay correct without resolving.
     if ack_policy is not EMPTY:
         if obj_watch is not None:
             warnings.warn(

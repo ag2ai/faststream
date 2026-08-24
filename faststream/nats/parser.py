@@ -11,9 +11,10 @@ from faststream.nats.message import (
     NatsMessage,
     NatsObjMessage,
 )
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from nats.aio.msg import Msg
     from nats.js.api import ObjectInfo
     from nats.js.kv import KeyValue
@@ -27,10 +28,14 @@ class NatsBaseParser:
     def __init__(
         self,
         *,
-        pattern: str,
+        regex: "Pattern[str] | None" = None,
     ) -> None:
-        path_re, _ = compile_nats_wildcard(pattern)
-        self._path_re = path_re
+        self._path_re = regex
+        """The subject's capture regex, compiled once and held as a value.
+
+        The parser is built during Preparation, when the subject it compiles
+        from is resolved, so there is nothing left to ask for per message.
+        """
 
     async def decode_message(
         self,
@@ -42,8 +47,13 @@ class NatsBaseParser:
 class NatsParser(NatsBaseParser):
     """A class to parse NATS core messages."""
 
-    def __init__(self, *, pattern: str, is_ack_disabled: bool) -> None:
-        super().__init__(pattern=pattern)
+    def __init__(
+        self,
+        *,
+        regex: "Pattern[str] | None" = None,
+        is_ack_disabled: bool,
+    ) -> None:
+        super().__init__(regex=regex)
 
         self.is_ack_disabled = is_ack_disabled
 

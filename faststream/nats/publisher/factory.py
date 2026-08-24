@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Union
+
+from faststream._internal.config_value import Configurable
 
 from .config import NatsPublisherConfig, NatsPublisherSpecificationConfig
 from .specification import NatsPublisherSpecification
@@ -11,10 +13,10 @@ if TYPE_CHECKING:
 
 def create_publisher(
     *,
-    subject: str,
-    reply_to: str,
+    subject: Configurable[str],
+    reply_to: Configurable[str],
     headers: dict[str, str] | None,
-    stream: Optional["JStream"],
+    stream: Configurable[Union[str, "JStream"]] | None,
     timeout: float | None,
     # Publisher args
     broker_config: "NatsBrokerConfig",

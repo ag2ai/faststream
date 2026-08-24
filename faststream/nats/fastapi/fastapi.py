@@ -29,6 +29,7 @@ from starlette.routing import BaseRoute
 from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
@@ -359,8 +360,8 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -404,8 +405,8 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -449,14 +450,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -469,7 +470,7 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -494,14 +495,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -514,7 +515,7 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -539,14 +540,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -559,7 +560,7 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -584,14 +585,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -604,7 +605,7 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -629,14 +630,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -649,7 +650,7 @@ class NatsRouter(StreamRouter["Msg"]):
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream"] = ...,
+        stream: Configurable[Union[str, "JStream"]] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -674,8 +675,8 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -690,7 +691,7 @@ class NatsRouter(StreamRouter["Msg"]):
         headers_only: None = None,
         # pull arguments
         pull_sub: Literal[False] = False,
-        kv_watch: Union[str, "KvWatch"] = ...,
+        kv_watch: Configurable[Union[str, "KvWatch"]] = ...,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
@@ -719,8 +720,8 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
@@ -764,14 +765,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @overload
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -780,11 +781,11 @@ class NatsRouter(StreamRouter["Msg"]):
         headers_only: bool | None = None,
         # pull arguments
         pull_sub: Union[bool, "PullSub"] = False,
-        kv_watch: Union[str, "KvWatch", None] = None,
+        kv_watch: Configurable[Union[str, "KvWatch"]] | None = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -809,14 +810,14 @@ class NatsRouter(StreamRouter["Msg"]):
     @override
     def subscriber(
         self,
-        subject: str = "",
-        queue: str = "",
+        subject: Configurable[str] = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -825,11 +826,11 @@ class NatsRouter(StreamRouter["Msg"]):
         headers_only: bool | None = None,
         # pull arguments
         pull_sub: Union[bool, "PullSub"] = False,
-        kv_watch: Union[str, "KvWatch", None] = None,
+        kv_watch: Configurable[Union[str, "KvWatch"]] | None = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -995,11 +996,11 @@ class NatsRouter(StreamRouter["Msg"]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        subject: str,
+        subject: Configurable[str],
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # JS
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         timeout: float | None = None,
         # AsyncAPI information
         title: str | None = None,

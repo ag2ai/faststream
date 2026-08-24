@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Union
 from typing_extensions import override
 from zmqtt import QoS
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
@@ -35,9 +36,17 @@ class MQTTPublisher(PublisherUsecase):
         self.retain = config.retain
         self.headers = config.headers or {}
 
+        self._resolved: Resolved[str] = self._derived.add(
+            Resolved("a Publisher's destination"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._resolved.set(self._outer_config.resolve_address(self._topic))
+
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        return self._resolved.get()
 
     @override
     async def publish(

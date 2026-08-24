@@ -36,6 +36,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.config_value import ConfigSource
     from faststream.specification.base import SpecificationFactory
 
     class UvicornServerProtocol(Protocol):
@@ -93,6 +94,7 @@ class AsgiFastStream(Application):
         self,
         *brokers: "BrokerUsecase[Any, Any]",
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
+        config_values: "ConfigSource" = None,
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
         serializer: Optional["SerializerProto"] = EMPTY,
@@ -110,7 +112,8 @@ class AsgiFastStream(Application):
         super().__init__(
             *brokers,
             logger=logger,
-            config=FastDependsConfig(
+            config_values=config_values,
+            fd_config=FastDependsConfig(
                 provider=provider or dependency_provider,
                 context=context or ContextRepo(),
                 serializer=serializer,
@@ -159,9 +162,15 @@ class AsgiFastStream(Application):
         self,
         *brokers: "BrokerUsecase[Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
-        config: Optional["FastDependsConfig"] = None,
+        fd_config: Optional["FastDependsConfig"] = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
-        super()._init_setupable_(*brokers, specification=specification, config=config)
+        super()._init_setupable_(
+            *brokers,
+            specification=specification,
+            fd_config=fd_config,
+            config_values=config_values,
+        )
         for route in self.routes:
             self._register_route(route)
 

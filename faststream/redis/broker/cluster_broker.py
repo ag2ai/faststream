@@ -100,6 +100,12 @@ class RedisClusterBroker(RedisBroker):
         async def _patched_start() -> None:
             if sub.subscription:
                 return
+
+            # Ahead of the subscribe, as the `start()` this replaces does it:
+            # `LogicSubscriber.start` drives Preparation only after the
+            # subscription has already been made against the channel.
+            sub.prepare()
+
             psub = state.pubsub()
             sub.subscription = psub  # type: ignore[assignment]
             if sub.channel.pattern:

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Sequence
+from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -69,11 +70,13 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
+    from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.schemas import PubAck, Schedule
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
@@ -246,6 +249,7 @@ class NatsBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[NatsRegistrator] = (),
+        config_values: "ConfigSource" = None,
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
         protocol: str | None = "nats",
@@ -347,6 +351,8 @@ class NatsBroker(
                 "Middlewares to apply to all broker publishers/subscribers.
             routers:
                 "Routers to apply to broker.
+            config_values:
+                Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security:
                 Security options to connect broker and generate AsyncAPI server security information.
             specification_url:
@@ -433,6 +439,7 @@ class NatsBroker(
             # Basic args
             routers=routers,
             config=NatsBrokerConfig(
+                config_values=config_values,
                 producer=producer,
                 js_producer=js_producer,
                 js_options=js_options or {},
@@ -489,15 +496,53 @@ class NatsBroker(
 
         self.config.disconnect()
 
+    def _collect_stream_subjects(self) -> None:
+        """Register the stream-subject pairs that could not be read at declaration.
+
+        A stream or a subject written as a Config placeholder has no value while
+        the endpoint is being declared, so the registrar leaves it out of the
+        stream builder. Here the Config values are in scope and both read. Adding
+        a subject already registered is a no-op, so endpoints declared literally
+        pass through this unchanged.
+
+        Registered apart from the declared pairs, so that `_invalidate` can drop
+        what this connection read without losing what the declaration sites knew.
+        """
+        endpoints: Iterable[LogicSubscriber[Any] | LogicPublisher] = chain(
+            cast("Iterable[LogicSubscriber[Any]]", self.subscribers),
+            cast("Iterable[LogicPublisher]", self.publishers),
+        )
+
+        for endpoint in endpoints:
+            # A Subscriber registered after the Broker connected has no
+            # Preparation behind it yet, and its own `start()` — which would
+            # perform one — comes after the stream it consumes from has to be
+            # declared. Driving it here is that same Preparation, a few lines
+            # earlier in the same `start()`; one already prepared gets a no-op.
+            endpoint.prepare()
+
+            if endpoint.stream is not None:
+                self._stream_builder.collect_subject(
+                    endpoint.stream,
+                    endpoint.subject.template,
+                )
+
+    @override
+    def _invalidate(self) -> None:
+        super()._invalidate()
+        self._stream_builder.reset()
+
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""
         await self.connect()
+
+        self._collect_stream_subjects()
 
         stream_context = self.config.connection_state.stream
 
         for stream, subjects in filter(
             lambda x: x[0].declare,
-            self._stream_builder.objects.values(),
+            self._stream_builder.streams_to_declare(),
         ):
             try:
                 await stream_context.add_stream(

@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
@@ -17,20 +18,20 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    topics: Sequence[str] = field(default_factory=list)
+    topics: Sequence[Configurable[str]] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
-    pattern: str | None = None
+    pattern: Configurable[str] | None = None
 
 
 @dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
-    topics: Sequence[str] = field(default_factory=list)
-    group_id: str | None = None
+    topics: Sequence[Configurable[str]] = field(default_factory=list)
+    group_id: Configurable[str] | None = None
     connection_args: dict[str, Any] = field(default_factory=dict)
     listener: Optional["ConsumerRebalanceListener"] = None
-    pattern: str | None = None
+    pattern: Configurable[str] | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
     def __post_init__(self) -> None:

@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.parser import CodecProto
     from faststream.rabbit.publisher import RabbitPublisher
@@ -55,6 +56,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     @overload
@@ -63,6 +65,7 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *brokers: RabbitBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config_values: "ConfigSource" = None,
     ) -> None: ...
 
     def __init__(
@@ -70,11 +73,13 @@ class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
         *brokers: RabbitBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config_values: "ConfigSource" = None,
     ) -> None:
         super().__init__(
             *brokers,
             with_real=with_real,
             connect_only=connect_only,
+            config_values=config_values,
         )
 
     @contextmanager
@@ -350,22 +355,27 @@ def _is_handler_matches(
     headers = headers or {}
     exchange = RabbitExchange.validate(exchange)
 
-    if (handler.exchange.name if handler.exchange else "") != (
+    # The subscriber's addresses come from its read points, so the in-memory
+    # broker routes to exactly the queue and exchange a real one would.
+    handler_queue = handler.queue
+    handler_exchange = handler.exchange
+
+    if (handler_exchange.name if handler_exchange else "") != (
         exchange.name if exchange else ""
     ):
         return False
 
-    if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:
-        return handler.routing() == routing_key
+    if handler_exchange is None or handler_exchange.type == ExchangeType.DIRECT:
+        return handler_queue.routing() == routing_key
 
-    if handler.exchange.type == ExchangeType.FANOUT:
+    if handler_exchange.type == ExchangeType.FANOUT:
         return True
 
-    if handler.exchange.type == ExchangeType.TOPIC:
-        return apply_pattern(handler.routing(), routing_key)
+    if handler_exchange.type == ExchangeType.TOPIC:
+        return apply_pattern(handler_queue.routing(), routing_key)
 
-    if handler.exchange.type == ExchangeType.HEADERS:
-        queue_headers = (handler.queue.bind_arguments or {}).copy()
+    if handler_exchange.type == ExchangeType.HEADERS:
+        queue_headers = (handler_queue.bind_arguments or {}).copy()
 
         if not queue_headers:
             return True

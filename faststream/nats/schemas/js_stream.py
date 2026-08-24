@@ -25,7 +25,6 @@ class JStream(NameRequired):
     __slots__ = (
         "config",
         "declare",
-        "name",
     )
 
     def __init__(
@@ -222,7 +221,7 @@ def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
     return len(subject_parts) == len(pattern_parts)
 
 
-def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:
+def compile_nats_wildcard(pattern: str) -> tuple["Pattern[str] | None", str]:
     """Compile `logs.{user}.>` to regex and `logs.*.>` subject."""
     address = Address(pattern, NATS_ADDRESS_SYNTAX)
     return address.regex, address.broker_address

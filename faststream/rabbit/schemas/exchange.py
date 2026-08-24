@@ -19,7 +19,6 @@ class RabbitExchange(NameRequired):
         "bind_arguments",
         "bind_to",
         "durable",
-        "name",
         "robust",
         "routing_key",
         "timeout",

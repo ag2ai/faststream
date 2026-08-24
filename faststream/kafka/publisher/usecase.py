@@ -1,8 +1,9 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Union, cast, overload
 
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
@@ -22,6 +23,13 @@ if TYPE_CHECKING:
     from .producer import AioKafkaFastProducer
 
 
+class _ResolvedDestination(NamedTuple):
+    """Where a Kafka Publisher sends, once its composition is final."""
+
+    topic: str
+    reply_to: str
+
+
 class LogicPublisher(PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
@@ -34,12 +42,36 @@ class LogicPublisher(PublisherUsecase):
 
         self._topic = config.topic
         self.partition = config.partition
-        self.reply_to = config.reply_to
+        self._reply_to = config.reply_to
         self.headers = config.headers or {}
+
+        self._resolved: Resolved[_ResolvedDestination] = self._derived.add(
+            Resolved("a Publisher's destination"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        config = self._outer_config
+
+        self._resolved.set(
+            _ResolvedDestination(
+                topic=config.resolve_address(self._topic),
+                # `resolve_option` rather than `resolve_address`: a literal
+                # `reply_to` has never been decorated with the Router prefix, and
+                # adopting a placeholder for it must not change that for the
+                # literal beside it.
+                reply_to=config.resolve_option(self._reply_to),
+            ),
+        )
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        return self._resolved.get().topic
+
+    @property
+    def reply_to(self) -> str:
+        """The reply destination, resolved but never prefixed."""
+        return self._resolved.get().reply_to
 
     @override
     async def request(

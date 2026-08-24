@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from faststream._internal._compat import dump_json, json_loads
 from faststream._internal.basic_types import DecodedMessage
@@ -40,9 +40,15 @@ class SimpleParser:
     def __init__(
         self,
         config: "ParserConfig" = EMPTY,
-        pattern: Optional["Pattern[str]"] = None,
+        regex: "Pattern[str] | None" = None,
     ) -> None:
-        self.pattern = pattern
+        self.regex = regex
+        """Captures each Path parameter out of an incoming channel name.
+
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the channel it compiles from is resolved.
+        """
+
         self.config = config
 
     async def parse_message(
@@ -58,7 +64,7 @@ class SimpleParser:
             body=data,
             # Only pattern-subscribed messages have "pattern" set;
             # guard here before calling match_path.
-            path=match_path(self.pattern, message["channel"])
+            path=match_path(self.regex, message["channel"])
             if message.get("pattern")
             else {},
             headers=headers,

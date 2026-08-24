@@ -2,6 +2,7 @@ import warnings
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
@@ -21,13 +22,13 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Configurable[str],
     partitions: Sequence["TopicPartition"],
     polling_interval: float,
     batch: bool,
     max_records: int | None,
     # Kafka information
-    group_id: str | None,
+    group_id: Configurable[str] | None,
     connection_data: dict[str, Any],
     # Subscriber args
     ack_policy: "AckPolicy",
@@ -91,10 +92,10 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: Configurable[str],
     ack_policy: "AckPolicy",
     max_workers: int,
-    group_id: str | None,
+    group_id: Configurable[str] | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy

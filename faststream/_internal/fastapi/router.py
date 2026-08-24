@@ -145,7 +145,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         self._init_setupable_(
             broker,
-            config=FastDependsConfig(
+            fd_config=FastDependsConfig(
                 get_dependent=get_fastapi_dependant,
                 context=context or ContextRepo(),
             ),

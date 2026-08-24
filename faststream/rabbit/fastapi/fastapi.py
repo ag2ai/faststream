@@ -24,7 +24,6 @@ from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.broker.broker import RabbitBroker as RB
-from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -38,10 +37,12 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
+    from faststream._internal.config_value import Configurable
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
     )
+    from faststream.rabbit.configs import ConfigurableExchange, ConfigurableQueue
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.schemas import Channel
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -326,8 +327,8 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        queue: str | RabbitQueue,
-        exchange: str | RabbitExchange | None = None,
+        queue: "ConfigurableQueue",
+        exchange: "ConfigurableExchange" = None,
         *,
         channel: Optional["Channel"] = None,
         consume_args: dict[str, Any] | None = None,
@@ -379,15 +380,15 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
     @override
     def publisher(
         self,
-        queue: RabbitQueue | str = "",
-        exchange: RabbitExchange | str | None = None,
+        queue: "ConfigurableQueue" = "",
+        exchange: "ConfigurableExchange" = None,
         *,
-        routing_key: str = "",
+        routing_key: "Configurable[str]" = "",
         mandatory: bool = True,
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         persist: bool = False,
-        reply_to: str | None = None,
+        reply_to: "Configurable[str] | None" = None,
         priority: int | None = None,
         # AsyncAPI information
         title: str | None = None,

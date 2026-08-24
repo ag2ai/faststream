@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
@@ -7,8 +7,10 @@ from redis.asyncio.client import (
 )
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.message import (
     PubSubMessage,
     RedisChannelMessage,
@@ -16,16 +18,19 @@ from faststream.redis.message import (
 from faststream.redis.parser import (
     RedisPubSubParser,
 )
+from faststream.redis.schemas import PubSub
 
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.schemas import PubSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -34,24 +39,47 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
+    parser_class = RedisPubSubParser
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        assert config.channel_sub
-        parser = RedisPubSubParser(config, pattern=config.channel_sub.path_regex)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        assert config.channel_sub is not None
         super().__init__(config, specification, calls)
 
-        self._channel = config.channel_sub
+        self._declared_channel = DeclaredAddress(config.channel_sub, PubSub)
+        self._channel: Resolved[PubSub] = self._derived.add(
+            Resolved("a Subscriber's channel"),
+        )
         self.subscription: RPubSub | None = None
+
+    @override
+    def _prepare(self) -> None:
+        """Build the channel before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads it back as a field.
+        """
+        self._channel.set(self._declared_channel.build(self._outer_config))
+        super()._prepare()
+
+    @override
+    def _path_regex(self) -> "Pattern[str] | None":
+        """A channel is the one Redis address a Path parameter can be filled from."""
+        return self.channel.path_regex
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        """The channel this Subscriber (p)subscribes to."""
+        return self._channel.get()
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        yield self.channel.address
 
     def get_log_context(
         self,
@@ -66,6 +94,10 @@ class ChannelSubscriber(LogicSubscriber):
     async def start(self) -> None:
         if self.subscription:
             return
+
+        # Ahead of the subscribe: this `start()` reaches the base one, where
+        # Preparation is otherwise driven, only after it has already subscribed.
+        self.prepare()
 
         self.subscription = psub = self._client.pubsub()
 

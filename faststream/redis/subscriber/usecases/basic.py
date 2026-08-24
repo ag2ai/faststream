@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeAlias, cast
 
 import anyio
 from typing_extensions import override
@@ -18,6 +18,8 @@ from faststream.redis.message import (
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from redis.asyncio.client import Redis
 
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
+    from faststream.redis.parser import SimpleParser
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -43,6 +46,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     _outer_config: "RedisBrokerConfig"
 
+    parser_class: ClassVar[type["SimpleParser"]]
+    """The parser this Subscriber's messages arrive through.
+
+    A class rather than an instance: the parser is built during Preparation,
+    because a channel's capture regex is not known before the address it
+    compiles from is resolved. Which class it is follows from the address kind
+    and from `batch`, both of which are settled while the Subscriber is built.
+    """
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -51,6 +63,20 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     ) -> None:
         super().__init__(config, specification, calls)
         self.config = config
+
+    def _path_regex(self) -> "Pattern[str] | None":
+        """The capture regex Path parameters come out of, or `None` for none.
+
+        Nothing here: Redis matches a pattern on a channel only, so a list and a
+        stream are read by the name given, verbatim.
+        """
+        return None
+
+    @override
+    def _build_parser(self) -> None:
+        parser = self.parser_class(self.config, regex=self._path_regex())
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     @property
     def _client(self) -> "Redis[bytes]":

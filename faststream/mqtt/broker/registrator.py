@@ -5,6 +5,7 @@ from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -33,10 +34,10 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
     @override
     def subscriber(  # type: ignore[override]
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: QoS = QoS.AT_MOST_ONCE,
-        shared: str | None = None,
+        shared: Configurable[str] | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -96,7 +97,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
     @override
     def publisher(  # type: ignore[override]
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: QoS = QoS.AT_MOST_ONCE,
         retain: bool = False,

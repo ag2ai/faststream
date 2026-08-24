@@ -3,7 +3,15 @@ import asyncio
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
-from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter, TestKafkaBroker
+from faststream import Config
+from faststream.confluent import (
+    KafkaBroker,
+    KafkaMessage,
+    KafkaPublisher,
+    KafkaRoute,
+    KafkaRouter,
+    TestKafkaBroker,
+)
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -137,3 +145,93 @@ KafkaRouter().include_routers(KafkaRouter())
 @KafkaBroker().subscriber("mykey", group_id="my_group", batch=True)
 async def process_msgs() -> None:
     pass
+
+
+# --- Config placeholders ------------------------------------------------------
+#
+# A placeholder is accepted on address parameters and nowhere else, and that
+# boundary is the signature alone — there is no runtime guard (ADR-0002). The
+# `type: ignore` comments below are therefore assertions, not suppressions:
+# `warn_unused_ignores` is on, so if any of these positions ever starts
+# type-checking, the ignore goes unused and the build fails.
+#
+# Confluent has no `pattern` parameter — it subscribes by topic only — so the
+# allowlist here is `topics`, `group_id`, `topic` and `reply_to`.
+
+
+async def async_handler() -> None: ...
+
+
+def check_config_on_subscriber_address_params(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    broker.subscriber(Config("TOPIC"))
+    broker.subscriber(Config("TOPIC"), Config("TOPIC2"))
+    broker.subscriber(Config("TOPIC"), "literal-topic")
+    broker.subscriber("test", group_id=Config("GROUP"))
+    broker.subscriber(Config("TOPIC"), group_id=Config("GROUP"))
+    broker.subscriber("test", group_id=Config("GROUP"), max_workers=2)
+    broker.subscriber(Config("TOPIC"), batch=True)
+
+
+def check_config_on_publisher_address_params(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    broker.publisher(Config("TOPIC"))
+    broker.publisher("test", reply_to=Config("REPLY"))
+    broker.publisher(Config("TOPIC"), reply_to=Config("REPLY"))
+    broker.publisher(Config("TOPIC"), batch=True)
+
+
+def check_config_on_router_containers() -> None:
+    KafkaRouter(
+        handlers=(
+            KafkaRoute(async_handler, Config("TOPIC")),
+            KafkaRoute(async_handler, "test", group_id=Config("GROUP")),
+            KafkaRoute(
+                async_handler,
+                "test",
+                publishers=(
+                    KafkaPublisher(Config("TOPIC")),
+                    KafkaPublisher("test", reply_to=Config("REPLY")),
+                ),
+            ),
+        ),
+    )
+
+
+def check_config_publisher_instance_type(broker: KafkaBroker) -> None:
+    assert_type(broker.publisher(Config("TOPIC")), DefaultPublisher)
+    assert_type(broker.publisher(Config("TOPIC"), batch=True), BatchPublisher)
+
+
+async def check_config_is_rejected_by_runtime_publishing() -> None:
+    broker = KafkaBroker()
+
+    await broker.publish(None, Config("TOPIC"))  # type: ignore[call-overload]
+    await broker.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[call-overload]
+    await broker.publish_batch(None, topic=Config("TOPIC"))  # type: ignore[arg-type]
+    await broker.request(None, Config("TOPIC"))  # type: ignore[arg-type]
+
+    publisher = broker.publisher("test")
+    await publisher.publish(None, Config("TOPIC"))  # type: ignore[call-overload]
+    await publisher.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[call-overload]
+    await publisher.request(None, Config("TOPIC"))  # type: ignore[arg-type]
+
+    batch_publisher = broker.publisher("test", batch=True)
+    await batch_publisher.publish(None, topic=Config("TOPIC"))  # type: ignore[arg-type]
+
+
+def check_config_is_rejected_on_structural_params(broker: KafkaBroker) -> None:
+    broker.subscriber("test", batch=Config("BATCH"))  # type: ignore[call-overload]
+    broker.subscriber("test", max_workers=Config("WORKERS"))  # type: ignore[call-overload]
+    broker.subscriber("test", ack_policy=Config("ACK"))  # type: ignore[call-overload]
+    broker.subscriber("test", no_reply=Config("NO_REPLY"))  # type: ignore[call-overload]
+    broker.subscriber("test", polling_interval=Config("INTERVAL"))  # type: ignore[call-overload]
+    broker.publisher("test", batch=Config("BATCH"))  # type: ignore[call-overload]
+    broker.publisher("test", partition=Config("PARTITION"))  # type: ignore[call-overload]
+
+
+def check_config_is_rejected_on_the_confluent_config(broker: KafkaBroker) -> None:
+    """`config` is librdkafka's, not FastStream's — no placeholder there."""
+    KafkaBroker(config=Config("CLIENT_CONFIG"))  # type: ignore[arg-type]

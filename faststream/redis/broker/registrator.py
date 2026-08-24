@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from typing_extensions import overload, override
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -48,7 +49,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        channel: Union["PubSub", str] = ...,
+        channel: Configurable[Union["PubSub", str]] = ...,
         *,
         list: None = None,
         stream: None = None,
@@ -71,7 +72,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @overload
     def subscriber(
         self,
-        channel: Union["PubSub", str] = ...,
+        channel: Configurable[Union["PubSub", str]] = ...,
         *,
         list: None = None,
         stream: None = None,
@@ -96,7 +97,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: str = ...,
+        list: Configurable[str] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
@@ -118,7 +119,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: Union["ListSub", str] = ...,
+        list: Configurable[Union["ListSub", str]] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
@@ -141,7 +142,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: Union["ListSub", str] = ...,
+        list: Configurable[Union["ListSub", str]] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
@@ -165,7 +166,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str = ...,
+        stream: Configurable[str] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -188,7 +189,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         channel: None = None,
         *,
         list: None = None,
-        stream: Union["StreamSub", str] = ...,
+        stream: Configurable[Union["StreamSub", str]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -211,7 +212,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         channel: None = None,
         *,
         list: None = None,
-        stream: Union["StreamSub", str] = ...,
+        stream: Configurable[Union["StreamSub", str]] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -231,10 +232,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @overload
     def subscriber(
         self,
-        channel: Union["PubSub", str, None] = None,
+        channel: Configurable[Union["PubSub", str]] | None = None,
         *,
-        list: Union["ListSub", str, None] = None,
-        stream: Union["StreamSub", str, None] = None,
+        list: Configurable[Union["ListSub", str]] | None = None,
+        stream: Configurable[Union["StreamSub", str]] | None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -254,10 +255,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @override
     def subscriber(
         self,
-        channel: Union["PubSub", str, None] = None,
+        channel: Configurable[Union["PubSub", str]] | None = None,
         *,
-        list: Union["ListSub", str, None] = None,
-        stream: Union["StreamSub", str, None] = None,
+        list: Configurable[Union["ListSub", str]] | None = None,
+        stream: Configurable[Union["StreamSub", str]] | None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -326,9 +327,9 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         channel: None = None,
         *,
         list: None = None,
-        stream: Union["StreamSub", str] = ...,
+        stream: Configurable[Union["StreamSub", str]] = ...,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -343,10 +344,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: str = ...,
+        list: Configurable[str] = ...,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -361,10 +362,10 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: Union["ListSub", str] = ...,
+        list: Configurable[Union["ListSub", str]] = ...,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -377,12 +378,12 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @overload
     def publisher(
         self,
-        channel: Union["PubSub", str] = ...,
+        channel: Configurable[Union["PubSub", str]] = ...,
         *,
         list: None = None,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -395,12 +396,12 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @overload
     def publisher(
         self,
-        channel: Union["PubSub", str, None] = None,
+        channel: Configurable[Union["PubSub", str]] | None = None,
         *,
-        list: Union["ListSub", str, None] = None,
-        stream: Union["StreamSub", str, None] = None,
+        list: Configurable[Union["ListSub", str]] | None = None,
+        stream: Configurable[Union["StreamSub", str]] | None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information
@@ -413,12 +414,12 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @override
     def publisher(
         self,
-        channel: Union["PubSub", str, None] = None,
+        channel: Configurable[Union["PubSub", str]] | None = None,
         *,
-        list: Union["ListSub", str, None] = None,
-        stream: Union["StreamSub", str, None] = None,
+        list: Configurable[Union["ListSub", str]] | None = None,
+        stream: Configurable[Union["StreamSub", str]] | None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         message_format: type["MessageFormat"] | None = None,
         persistent: bool = True,
         # AsyncAPI information

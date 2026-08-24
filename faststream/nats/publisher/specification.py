@@ -15,8 +15,13 @@ class NatsPublisherSpecification(
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
-        return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+        outer = self._outer_config
+        declared = self.config.subject
+
+        return Address(
+            outer.resolve_address(declared),
+            NATS_ADDRESS_SYNTAX,
+            outer.config_key(declared),
         )
 
     @property

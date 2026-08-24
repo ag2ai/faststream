@@ -1,14 +1,15 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, cast
 
 import anyio
 from aiokafka import ConsumerRecord, TopicPartition
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
@@ -20,6 +21,8 @@ from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from aiokafka import AIOKafkaConsumer
 
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -35,6 +38,19 @@ KAFKA_ADDRESS_SYNTAX = AddressSyntax(
     replace_symbol=".*",
     patch_regex=lambda x: x.replace(r"\*", ".*"),
 )
+
+
+class _ResolvedAddresses(NamedTuple):
+    """What a Kafka Subscriber listens on, once its composition is final.
+
+    Resolved together and written once, so that the four reads below cannot
+    disagree with each other or with what the consumer subscribed to.
+    """
+
+    topics: list[str]
+    partitions: list[TopicPartition]
+    group_id: str | None
+    pattern: Address | None
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -57,37 +73,95 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self._topics = config.topics
         self._partitions = config.partitions
-        self.group_id = config.group_id
+        self._group_id = config.group_id
 
         self._pattern = config.pattern
         self._listener = config.listener
         self._connection_args = config.connection_args
+        self._msg_class = KafkaMessage if config.ack_first else KafkaAckableMessage
+
+        self._resolved: Resolved[_ResolvedAddresses] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
+        )
 
         self.consumer = None
+
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber listens on, before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads these values back as fields.
+        """
+        config = self._outer_config
+
+        pattern: Address | None = None
+        if declared := self._pattern:
+            pattern = Address(
+                config.resolve_address(declared),
+                KAFKA_ADDRESS_SYNTAX,
+                config.config_key(declared),
+            )
+
+        self._resolved.set(
+            _ResolvedAddresses(
+                topics=[config.resolve_address(t) for t in self._topics],
+                partitions=[
+                    TopicPartition(
+                        topic=config.resolve_address(p.topic),
+                        partition=p.partition,
+                    )
+                    for p in self._partitions
+                ],
+                group_id=config.resolve_option(self._group_id),
+                pattern=pattern,
+            ),
+        )
+
+        super()._prepare()
+
+    @property
+    def group_id(self) -> str | None:
+        return self._resolved.get().group_id
 
     @property
     def pattern(self) -> Address | None:
         """The pattern this Subscriber was declared with, and its Broker address."""
-        if not self._pattern:
-            return None
+        return self._resolved.get().pattern
 
-        return Address(self._pattern, KAFKA_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+    def _pattern_regex(self) -> "Pattern[str] | None":
+        """The regex pulling Path parameters out of an incoming topic name, if any.
+
+        Read once, during Preparation, and handed to the parser as a value: the
+        pattern it compiles from is resolved by then and stays so for as long as
+        the parser lives.
+        """
+        pattern = self.pattern
+        return pattern.regex if pattern is not None else None
+
+    @override
+    def subscription_addresses(self) -> Iterable[Address]:
+        if (pattern := self.pattern) is not None:
+            yield pattern
+            return
+
+        config = self._outer_config
+
+        # Topics are never compiled — `topics` hands them to the broker verbatim —
+        # so they are read as literal addresses, holding no capture group. The
+        # declared option travels alongside so that a failure can name the Config
+        # value the topic came from.
+        for declared, topic in zip(self._topics, self.topics, strict=True):
+            yield Address.literal(topic, config.config_key(declared))
 
     @property
     def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+        return self._resolved.get().topics
 
     @property
     def partitions(self) -> list[TopicPartition]:
-        return [
-            TopicPartition(
-                topic=f"{self._outer_config.prefix}{p.topic}",
-                partition=p.partition,
-            )
-            for p in self._partitions
-        ]
+        return self._resolved.get().partitions
 
     @property
     def builder(self) -> Callable[..., "AIOKafkaConsumer"]:
@@ -277,25 +351,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
-    def __init__(
-        self,
-        config: "KafkaSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[ConsumerRecord]",
-    ) -> None:
-        reg = (
-            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
-            if config.pattern
-            else None
-        )
-
+    @override
+    def _build_parser(self) -> None:
         self.parser = AioKafkaParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
+            msg_class=self._msg_class,
+            regex=self._pattern_regex(),
         )
-        config.parser = self.parser.parse_message
-        config.decoder = self.parser.decode_message
-        super().__init__(config, specification, calls)
+        self._parser = self.parser.parse_message
+        self._decoder = self.parser.decode_message
 
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."
@@ -326,22 +389,19 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
-        reg = (
-            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
-            if config.pattern
-            else None
-        )
-
-        self.parser = AioKafkaBatchParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
-        )
-        config.decoder = self.parser.decode_batch
-        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.batch_timeout_ms = batch_timeout_ms
         self.max_records = max_records
+
+    @override
+    def _build_parser(self) -> None:
+        self.parser = AioKafkaBatchParser(
+            msg_class=self._msg_class,
+            regex=self._pattern_regex(),
+        )
+        self._parser = self.parser.parse_batch
+        self._decoder = self.parser.decode_batch
 
     async def get_msg(
         self,

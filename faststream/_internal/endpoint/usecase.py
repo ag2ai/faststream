@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from faststream._internal.endpoint.derived import DerivedReads
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 
 from .call_wrapper import (
@@ -15,6 +16,45 @@ if TYPE_CHECKING:
 class Endpoint:
     def __init__(self, config: "BrokerConfig") -> None:
         self._outer_config = config
+        self._prepared = False
+        self._derived = DerivedReads()
+
+    def prepare(self) -> None:
+        """Preparation: derive what this endpoint derives, before any I/O.
+
+        Idempotent, so the Broker driving it at `connect()` and an endpoint
+        registered afterwards driving its own at `start()` need no coordination.
+        """
+        if self._prepared:
+            return
+
+        self._prepare()
+        self._prepared = True
+
+    def _prepare(self) -> None:
+        """What this endpoint derives from the options composition.
+
+        Nothing, unless an endpoint has something to derive. Synchronous by
+        contract: an implementation that needs the network belongs in `start()`.
+        """
+
+    def invalidate(self) -> None:
+        """Undo Preparation, so the next `connect()` performs it again.
+
+        ADR-0004 fixes a Config value at `connect()`. Everything derived from
+        the composition is kept rather than re-derived on every read, which
+        without this would fix the value at the *first* `connect()` instead —
+        a second `TestBroker` context over one Broker would silently reuse the
+        first context's addresses.
+
+        Driven wherever the connection is cleared, and unguarded: an endpoint
+        that never prepared has nothing to forget, so a guard would buy nothing
+        and be one more thing to keep true. Everything an endpoint keeps from
+        the composition is a read registered with `self._derived`, which is why
+        no subclass has anything to add here.
+        """
+        self._prepared = False
+        self._derived.reset()
 
     def __call__(
         self,

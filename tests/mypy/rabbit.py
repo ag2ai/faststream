@@ -5,10 +5,14 @@ from aio_pika import IncomingMessage
 from aiormq.abc import ConfirmationFrameType
 from typing_extensions import assert_type
 
+from faststream import Config
 from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import (
     RabbitBroker,
+    RabbitExchange,
     RabbitMessage,
+    RabbitPublisher as DelayedRabbitPublisher,
+    RabbitQueue,
     RabbitRoute,
     RabbitRouter,
     TestRabbitBroker,
@@ -354,3 +358,94 @@ RabbitBroker().include_routers(RabbitRouter())
 RabbitRouter(routers=[RabbitRouter()])
 RabbitRouter().include_router(RabbitRouter())
 RabbitRouter().include_routers(RabbitRouter())
+
+
+# --- Config placeholders ------------------------------------------------------
+#
+# A placeholder is accepted on address parameters and nowhere else, and that
+# boundary is the signature alone — there is no runtime guard (ADR-0002). The
+# `type: ignore` comments below are therefore assertions, not suppressions:
+# `warn_unused_ignores` is on, so if any of these positions ever starts
+# type-checking, the ignore goes unused and the build fails.
+
+
+def check_config_on_subscriber_address_params(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
+    broker.subscriber(Config("QUEUE"))
+    broker.subscriber(Config("QUEUE"), Config("EXCHANGE"))
+    broker.subscriber(Config("QUEUE"), "literal-exchange")
+    broker.subscriber("literal-queue", Config("EXCHANGE"))
+    broker.subscriber(RabbitQueue("test"), Config("EXCHANGE"))
+    broker.subscriber(Config("QUEUE"), RabbitExchange("test"))
+    broker.subscriber(queue=Config("QUEUE"), exchange=Config("EXCHANGE"))
+
+
+def check_config_on_publisher_address_params(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
+    broker.publisher(Config("QUEUE"))
+    broker.publisher(Config("QUEUE"), Config("EXCHANGE"))
+    broker.publisher("literal-queue", Config("EXCHANGE"))
+    broker.publisher(RabbitQueue("test"), Config("EXCHANGE"))
+    broker.publisher(routing_key=Config("ROUTING_KEY"))
+    broker.publisher("test", reply_to=Config("REPLY"))
+    broker.publisher(
+        queue=Config("QUEUE"),
+        exchange=Config("EXCHANGE"),
+        routing_key=Config("ROUTING_KEY"),
+        reply_to=Config("REPLY"),
+    )
+
+
+def check_config_on_router_containers() -> None:
+    RabbitRouter(
+        handlers=(
+            RabbitRoute(async_handler, Config("QUEUE")),
+            RabbitRoute(async_handler, Config("QUEUE"), Config("EXCHANGE")),
+            RabbitRoute(async_handler, "test", Config("EXCHANGE")),
+            RabbitRoute(
+                async_handler,
+                "test",
+                publishers=(
+                    DelayedRabbitPublisher(Config("QUEUE")),
+                    DelayedRabbitPublisher("test", Config("EXCHANGE")),
+                    DelayedRabbitPublisher(routing_key=Config("ROUTING_KEY")),
+                    DelayedRabbitPublisher("test", reply_to=Config("REPLY")),
+                ),
+            ),
+        ),
+    )
+
+
+def check_config_endpoint_instance_types(broker: RabbitBroker) -> None:
+    assert_type(broker.subscriber(Config("QUEUE")), RabbitSubscriber)
+    assert_type(broker.publisher(Config("QUEUE")), RabbitPublisher)
+
+
+async def check_config_is_rejected_by_runtime_publishing() -> None:
+    broker = RabbitBroker()
+
+    await broker.publish(None, Config("QUEUE"))  # type: ignore[arg-type]
+    await broker.publish(None, "test", Config("EXCHANGE"))  # type: ignore[arg-type]
+    await broker.publish(None, "test", routing_key=Config("ROUTING_KEY"))  # type: ignore[arg-type]
+    await broker.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[arg-type]
+    await broker.request(None, Config("QUEUE"))  # type: ignore[arg-type]
+    await broker.request(None, "test", Config("EXCHANGE"))  # type: ignore[arg-type]
+
+    publisher = broker.publisher("test")
+    await publisher.publish(None, Config("QUEUE"))  # type: ignore[arg-type]
+    await publisher.publish(None, "test", Config("EXCHANGE"))  # type: ignore[arg-type]
+    await publisher.publish(None, routing_key=Config("ROUTING_KEY"))  # type: ignore[arg-type]
+    await publisher.publish(None, reply_to=Config("REPLY"))  # type: ignore[arg-type]
+    await publisher.request(None, Config("QUEUE"))  # type: ignore[arg-type]
+
+
+def check_config_is_rejected_on_structural_params(broker: RabbitBroker) -> None:
+    broker.subscriber("test", ack_policy=Config("ACK"))  # type: ignore[arg-type]
+    broker.subscriber("test", no_reply=Config("NO_REPLY"))  # type: ignore[arg-type]
+    broker.subscriber("test", channel=Config("CHANNEL"))  # type: ignore[arg-type]
+    broker.subscriber("test", persistent=Config("PERSISTENT"))  # type: ignore[arg-type]
+    broker.publisher("test", persistent=Config("PERSISTENT"))  # type: ignore[arg-type]
+    broker.publisher("test", mandatory=Config("MANDATORY"))  # type: ignore[arg-type]
+    broker.publisher("test", priority=Config("PRIORITY"))  # type: ignore[arg-type]

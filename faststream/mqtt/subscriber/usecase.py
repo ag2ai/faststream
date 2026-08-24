@@ -1,18 +1,21 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import anyio
 import zmqtt
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address
 from faststream.middlewares import AckPolicy
-from faststream.mqtt.parser import MQTTBaseParser, MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import parser_for
+from faststream.mqtt.path import MQTT_ADDRESS_SYNTAX
 from faststream.mqtt.publisher.fake import MQTTFakePublisher
 
 if TYPE_CHECKING:
@@ -23,6 +26,17 @@ if TYPE_CHECKING:
     from faststream.mqtt.broker.config import MQTTBrokerConfig
     from faststream.mqtt.message import MQTTMessage
     from faststream.mqtt.subscriber.config import MQTTSubscriberConfig
+
+
+class _ResolvedAddresses(NamedTuple):
+    """What an MQTT Subscriber listens on, once its composition is final.
+
+    Resolved together and written once, so that the three reads below cannot
+    disagree with each other or with what the client subscribed to.
+    """
+
+    address: Address
+    shared: str | None
 
 
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
@@ -36,17 +50,15 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[zmqtt.Message]",
     ) -> None:
-        self._path_regex = config.path_regex
-        # version may not be available yet when subscriber is created on a router
-        # before include_router is called; default to V5 and re-resolve in start().
-        parser = self._make_parser(config._outer_config)
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
         self._topic = config.topic
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
+
+        self._resolved: Resolved[_ResolvedAddresses] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
+        )
 
         if config.ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
@@ -57,18 +69,72 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
                 stacklevel=3,
             )
 
-    def _build_parser(self) -> MQTTBaseParser:
-        return self._make_parser(self._outer_config)
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber listens on, before anything reads it.
 
-    def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
-        version = getattr(outer_config, "version", "5.0")
-        cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
-        return cls(path_regex=self._path_regex)
+        First, because everything performed afterwards — the address check, the
+        parser holding a capture regex, the log context the logger is built from
+        — reads these values back as fields.
+        """
+        config = self._outer_config
+
+        self._resolved.set(
+            _ResolvedAddresses(
+                # Compiled here rather than at the declaration site, because
+                # this is the first moment the topic is known in full — the
+                # Router prefix composed, and any Config value resolved. The
+                # Config key travels with the address, so a value that cannot
+                # compile can name the key to fix rather than only the string
+                # that arrived.
+                address=Address(
+                    config.resolve_address(self._topic),
+                    MQTT_ADDRESS_SYNTAX,
+                    config.config_key(self._topic),
+                ),
+                # `resolve_option` rather than `resolve_address`: a group name
+                # is not a topic, and a literal one has never been decorated
+                # with the Router prefix.
+                shared=config.resolve_option(self._shared),
+            ),
+        )
+
+        super()._prepare()
+
+    @override
+    def _build_parser(self) -> None:
+        """Build the parser this Subscriber's Broker version speaks.
+
+        Here rather than in the constructor, which is where the version was out
+        of reach: a Subscriber declared on a Router is built before
+        `include_router` composes the Broker's own options in. Preparation has
+        both — the version and the resolved topic the capture regex compiles
+        from — which is what lets MQTT build its parser the way the others do.
+        """
+        parser = parser_for(self._outer_config.version)(regex=self.address.regex)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
+
+    @property
+    def address(self) -> "Address":
+        """The topic this Subscriber was declared with, and its Broker address."""
+        return self._resolved.get().address
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        yield self.address
+
+    @property
+    def shared(self) -> str | None:
+        """The shared-subscription group, resolved but never prefixed."""
+        return self._resolved.get().shared
 
     @property
     def topic(self) -> str:
-        full = f"{self._outer_config.prefix}{self._topic}"
-        return f"$share/{self._shared}/{full}" if self._shared else full
+        """The topic MQTT is subscribed to, shared-subscription prefix included."""
+        resolved = self._resolved.get()
+        full = resolved.address.broker_address
+        return f"$share/{resolved.shared}/{full}" if resolved.shared else full
 
     def _make_response_publisher(
         self,
@@ -99,13 +165,6 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
     @override
     async def start(self) -> None:
-        # Re-resolve the parser now that _outer_config is fully composed
-        # (i.e. include_router has been called and the broker's MQTTBrokerConfig
-        # is reachable through the config chain).
-        parser = self._build_parser()
-        self._parser = parser.parse_message
-        self._decoder = parser.decode_message
-
         await super().start()
 
         if self.calls:

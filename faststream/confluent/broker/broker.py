@@ -48,6 +48,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.config_value import ConfigSource
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -105,6 +106,7 @@ class KafkaBroker(
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
+        config_values: "ConfigSource" = None,
         # AsyncAPI args
         security: Optional["BaseSecurity"] = None,
         specification_url: str | Iterable[str] | None = None,
@@ -214,6 +216,7 @@ class KafkaBroker(
             dependencies: Dependencies to apply to all broker subscribers.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
             routers: Routers to apply to broker.
+            config_values: Config values, used to resolve `Config` placeholders in subscribers and publishers.
             security: Security options to connect broker and generate AsyncAPI server security information.
             specification_url: AsyncAPI hardcoded server addresses. Use `servers` if not specified.
             protocol: AsyncAPI server protocol.
@@ -271,6 +274,7 @@ class KafkaBroker(
         super().__init__(
             routers=routers,
             config=KafkaBrokerConfig(
+                config_values=config_values,
                 connection_config=connection_config,
                 client_id=client_id,
                 producer=AsyncConfluentFastProducerImpl(

@@ -8,6 +8,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -29,7 +30,7 @@ class MQTTPublisher(ArgsContainer):
 
     def __init__(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         qos: QoS = QoS.AT_MOST_ONCE,
         retain: bool = False,
@@ -61,11 +62,11 @@ class MQTTRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        topic: str,
+        topic: Configurable[str],
         *,
         publishers: Iterable["MQTTPublisher"] = (),
         qos: QoS = QoS.AT_MOST_ONCE,
-        shared: str | None = None,
+        shared: Configurable[str] | None = None,
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,

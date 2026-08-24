@@ -29,6 +29,7 @@ from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
+from .address import check_subscription_addresses
 from .call_item import (
     CallsCollection,
     HandlerItem,
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
         CustomCallable,
         Filter,
     )
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
     from faststream.response import Response
@@ -71,6 +73,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     extra_watcher_options: dict[str, Any]
     graceful_timeout: float | None
 
+    #: This Subscriber's own parser and decoder, the innermost of its chain.
+    #: Written by `_build_parser`, which Preparation runs.
+    _parser: "AsyncCallable"
+    _decoder: "AsyncCallable"
+
     def __init__(
         self,
         config: "SubscriberUsecaseConfig",
@@ -84,8 +91,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self.specification = specification
 
         self._no_reply = config.no_reply
-        self._parser = config.parser
-        self._decoder = config.decoder
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -108,6 +113,43 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
         return self._outer_config.broker_middlewares
 
+    def subscription_addresses(self) -> Iterable["Address"]:
+        """Every address this Subscriber listens on, as its read layer answers them.
+
+        Read rather than declared: a Router prefix is composed and a Config value
+        resolved by the time these arrive, which is what makes them checkable.
+        Brokers with no Address templates answer with nothing and are not checked.
+        """
+        return ()
+
+    def check_addresses(self) -> None:
+        """Refuse at Preparation what cannot work once messages start arriving."""
+        check_subscription_addresses(self.subscription_addresses(), self.calls)
+
+    @override
+    def _prepare(self) -> None:
+        """Everything this Subscriber derives from its options, before any I/O.
+
+        None of it needs a connection: the addresses are read and checked, the
+        parser and decoder chain composed, the FastDepends model built and the
+        processing lock created. Running it here rather than in `start()` is what
+        makes a declaration mistake refuse the Broker instead of aborting it
+        half-way through a start-up that already has other Subscribers consuming.
+        """
+        self.check_addresses()
+        self._build_parser()
+        self._build_fastdepends_model()
+        self.lock = MultiLock()
+
+    def _build_parser(self) -> None:
+        """Build this Subscriber's own parser and decoder, the innermost of its chain.
+
+        Nothing here: every Broker overrides it. Built in Preparation rather than
+        in the Subscriber's constructor because a parser can hold the address'
+        capture regex, which is only compilable once that address is resolved, and
+        built again on every Preparation because the address can have changed.
+        """
+
     async def __aenter__(self) -> Self:
         await self.start()
         return self
@@ -122,9 +164,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
-        self.lock = MultiLock()
-
-        self._build_fastdepends_model()
+        # A Subscriber registered after its Broker connected has no Preparation
+        # behind it; one the Broker prepared at `connect()` gets a no-op here.
+        self.prepare()
 
         self._outer_config.logger.log(
             f"`{self.specification.call_name}` waiting for messages",
@@ -133,8 +175,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def _get_parser_and_decoder(
         self,
-        item_parser: Optional["CustomCallable"] = None,
-        item_decoder: Optional["CustomCallable"] = None,
+        declared_parser: Optional["CustomCallable"] = None,
+        declared_decoder: Optional["CustomCallable"] = None,
     ) -> tuple[AsyncCallable, AsyncCallable]:
         """Method to resolve parsers with priority.
 
@@ -155,7 +197,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         >>> ParserComposition(P0_parser or P1_parser or P2_parser, self._parser)
         """
         if parser := (
-            item_parser or self._call_options.parser or self._outer_config.broker_parser
+            declared_parser
+            or self._call_options.parser
+            or self._outer_config.broker_parser
         ):
             async_parser: AsyncCallable = ParserComposition(parser, self._parser)
         else:
@@ -165,7 +209,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # Having both is an error — it's ambiguous which takes effect.
         codec = self._call_options.codec or self._outer_config.broker_codec
         decoder = (
-            item_decoder
+            declared_decoder
             or self._call_options.decoder
             or self._outer_config.broker_decoder
         )
@@ -197,7 +241,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _build_fastdepends_model(self) -> None:
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
-                call.item_parser, call.item_decoder
+                call.declared_parser, call.declared_decoder
             )
 
             call._setup(
@@ -296,8 +340,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 HandlerItem[MsgType](
                     handler=handler,
                     filter=async_filter,
-                    item_parser=parser,
-                    item_decoder=decoder,
+                    declared_parser=parser,
+                    declared_decoder=decoder,
                     dependencies=total_deps,
                 ),
             )
@@ -484,5 +528,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         )
 
     def schema(self) -> dict[str, "SubscriberSpec"]:
-        self._build_fastdepends_model()
+        """This Subscriber's AsyncAPI channels, keyed by channel name.
+
+        Reads the FastDepends model Preparation built. Composing it here instead
+        would freeze the parser chain at whichever render landed first, which is
+        not a moment the lifecycle names.
+        """
         return self.specification.get_schema()

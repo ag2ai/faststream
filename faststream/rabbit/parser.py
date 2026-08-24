@@ -29,8 +29,13 @@ if TYPE_CHECKING:
 class AioPikaParser:
     """A class for parsing, encoding, and decoding messages using aio-pika."""
 
-    def __init__(self, pattern: Optional["Pattern[str]"] = None) -> None:
-        self.pattern = pattern
+    def __init__(self, regex: Optional["Pattern[str]"] = None) -> None:
+        self.pattern = regex
+        """The routing key's capture regex, or `None` where there is no template.
+
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, by which point the routing key is resolved and compiled.
+        """
 
     async def parse_message(
         self,

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Union
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
@@ -13,15 +14,15 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class NatsPublisherSpecificationConfig(PublisherSpecificationConfig):
-    subject: str
+    subject: Configurable[str]
 
 
 @dataclass(kw_only=True)
 class NatsPublisherConfig(PublisherUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
-    subject: str
-    reply_to: str
+    subject: Configurable[str]
+    reply_to: Configurable[str]
     headers: dict[str, str] | None
-    stream: Optional["JStream"]
+    stream: Configurable[Union[str, "JStream"]] | None
     timeout: float | None

@@ -120,10 +120,11 @@ class TestPathExtraction(MQTTTestcaseConfig):
             mock(body)
             event.set()
 
-        assert subscriber.topic == f"{queue}/root/{{braced}}"
-
         async with self.patch_broker(broker) as br:
             await br.start()
+
+            assert subscriber.topic == f"{queue}/root/{{braced}}"
+
             await br.publish("entry", f"{queue}/root/{{braced}}")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
@@ -163,7 +164,10 @@ class TestPathExtraction(MQTTTestcaseConfig):
         queue: str,
         topic: str,
     ) -> None:
+        """A topic compiles on first read, so a bad one surfaces at `connect()`."""
         broker = self.get_broker()
+        broker.subscriber(topic.replace("{queue}", queue))(lambda: None)
 
         with pytest.raises(SetupError):
-            broker.subscriber(topic.replace("{queue}", queue))(lambda: None)
+            async with self.patch_broker(broker):
+                pass

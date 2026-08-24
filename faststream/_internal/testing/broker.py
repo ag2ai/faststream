@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.broker import BrokerUsecase
+from faststream._internal.config_value import ConfigSource
 from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.ast import is_contains_context_name
@@ -64,9 +65,11 @@ class TestBroker(Generic[Broker, EnterType]):
         *brokers: Broker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        config_values: ConfigSource = None,
     ) -> None:
         self.with_real = with_real
         self.brokers = brokers
+        self.config_values = config_values
 
         if connect_only is None:
             try:
@@ -110,13 +113,26 @@ class TestBroker(Generic[Broker, EnterType]):
             saved_running = {}
             started_brokers = []
 
+            # Two loops rather than one, because a Broker's fake-publisher scan
+            # reads every Broker's Subscribers, not only its own. Interleaving
+            # would have the first Broker scan Subscribers belonging to one the
+            # loop has not connected yet, and an endpoint refuses a read taken
+            # before its Preparation. The group is what a scan reads, so the
+            # group is what has to be connected before any member scans it.
             for broker in self.brokers:
-                if self.with_real:
-                    self._fake_start(broker)
-                else:
+                stack.enter_context(self._patch_config_values(broker))
+
+                if not self.with_real:
                     stack.enter_context(self._patch_broker(broker))
 
                 await stack.enter_async_context(broker)
+
+            for broker in self.brokers:
+                # After the connection, because it reads a Publisher's
+                # destination and Preparation is what resolves one. An in-memory
+                # Broker reaches the same call through its patched `start`.
+                if self.with_real:
+                    self._fake_start(broker)
 
                 for sub in broker.subscribers:
                     saved_running[sub] = sub.running
@@ -142,13 +158,41 @@ class TestBroker(Generic[Broker, EnterType]):
             self._fake_close(broker)
 
     @contextmanager
+    def _patch_config_values(self, broker: Broker) -> Generator[None, None, None]:
+        """Make the test broker's Config values beat the Broker's own.
+
+        They are a level of their own, above the Broker and the App, so a Broker
+        whose values live on an App it is not part of here is still testable.
+        """
+        composition = broker.config
+        saved, composition.config_values_override = (
+            composition.config_values_override,
+            self.config_values,
+        )
+        # Both edges, because both are a change of the values in scope. Entering
+        # is as much a change as leaving: a Broker already prepared -- by an
+        # earlier context, or by an AsyncAPI render -- would otherwise keep the
+        # addresses derived against the values this context just replaced.
+        broker._invalidate()
+
+        try:
+            yield
+
+        finally:
+            composition.config_values_override = saved
+            broker._invalidate()
+
+    @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
         raise NotImplementedError
 
     @contextmanager
     def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
-        broker._setup_logger()
-
+        # No `_setup_logger` here: it reads every Subscriber's log context,
+        # which reads their resolved addresses, and this runs before the
+        # connection that resolves them. Preparation performs that step itself,
+        # and finds the mock already in place — it builds a logger only where
+        # there is not one.
         logger_state = broker.config.logger
 
         old_log_object, logger_state.logger = (
@@ -195,6 +239,15 @@ class TestBroker(Generic[Broker, EnterType]):
             yield
 
     def _fake_start(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
+        # Everything below reads an endpoint's resolved addresses, and
+        # Preparation is what settles one. A Broker reaches here prepared by the
+        # connection it just made, except where the connection was established
+        # before this context replaced its Config values — the Redis cluster
+        # path connects ahead of that — and the invalidation which followed has
+        # no `connect()` after it to prepare again. Idempotent, so the ordinary
+        # case is a no-op.
+        broker._prepare()
+
         for publisher in broker.publishers:
             if getattr(publisher, "_fake_handler", None):
                 continue
@@ -209,6 +262,11 @@ class TestBroker(Generic[Broker, EnterType]):
                 @sub
                 async def publisher_response_subscriber(msg: Any) -> None:
                     pass
+
+            # As soon as its handler is attached, rather than once the loop is
+            # done: the next Publisher scans every Subscriber for a match, and
+            # reads the addresses of the fake one just created.
+            sub.prepare()
 
             if is_real:
                 mock = MagicMock()

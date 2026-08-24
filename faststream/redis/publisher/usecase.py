@@ -1,23 +1,26 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.response import RedisPublishCommand
+from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.config_value import Configurable
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisChannelMessage
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.response import PublishCommand
 
     from .config import RedisPublisherConfig
@@ -35,10 +38,29 @@ class LogicPublisher(PublisherUsecase):
 
         self.config = config
 
-        self.reply_to = config.reply_to
+        self._reply_to = config.reply_to
         self.headers = config.headers or {}
 
         self.producer = self.config._outer_config.producer
+
+        self._resolved_reply_to: Resolved[str] = self._derived.add(
+            Resolved("a Publisher's reply destination"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        # `resolve_option` rather than a build through `DeclaredAddress`: a
+        # literal `reply_to` has never been decorated with the Router prefix, and
+        # adopting a placeholder for it must not change that for the literal
+        # beside it.
+        self._resolved_reply_to.set(
+            self._outer_config.resolve_option(self._reply_to),
+        )
+
+    @property
+    def reply_to(self) -> str:
+        """The reply destination, resolved but never prefixed."""
+        return self._resolved_reply_to.get()
 
     async def start(self) -> None:
         await super().start()
@@ -63,15 +85,24 @@ class ChannelPublisher(LogicPublisher):
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        channel: "PubSub",
+        channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(config, specification)
 
-        self._channel = channel
+        self._declared_channel = DeclaredAddress(channel, PubSub)
+        self._channel: Resolved[PubSub] = self._derived.add(
+            Resolved("a Publisher's channel"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._channel.set(self._declared_channel.build(self._outer_config))
+        super()._prepare()
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        """The channel this Publisher sends to."""
+        return self._channel.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -158,20 +189,37 @@ class ChannelPublisher(LogicPublisher):
 
 
 class ListPublisher(LogicPublisher):
+    #: Whether this Publisher pushes in batches. Read while it is being
+    #: constructed — it chooses the class — so a Config value cannot change it.
+    batch: ClassVar[bool] = False
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        list: "ListSub",
+        list: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(config, specification)
 
-        self._list = list
+        self._declared_list = DeclaredAddress(
+            list,
+            ListSub,
+            built_as={"batch": self.batch},
+        )
+        self._list: Resolved[ListSub] = self._derived.add(
+            Resolved("a Publisher's list"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._list.set(self._declared_list.build(self._outer_config))
+        super()._prepare()
 
     @property
     def list(self) -> "ListSub":
-        return self._list.add_prefix(self._outer_config.prefix)
+        """The list this Publisher pushes to."""
+        return self._list.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -259,6 +307,8 @@ class ListPublisher(LogicPublisher):
 
 
 class ListBatchPublisher(ListPublisher):
+    batch: ClassVar[bool] = True
+
     @override
     async def publish(  # type: ignore[override]
         self,
@@ -317,14 +367,23 @@ class StreamPublisher(LogicPublisher):
         config: "RedisPublisherConfig",
         specification: "PublisherSpecification[Any, Any]",
         *,
-        stream: "StreamSub",
+        stream: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(config, specification)
-        self._stream = stream
+        self._declared_stream = DeclaredAddress(stream, StreamSub)
+        self._stream: Resolved[StreamSub] = self._derived.add(
+            Resolved("a Publisher's stream"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        self._stream.set(self._declared_stream.build(self._outer_config))
+        super()._prepare()
 
     @property
     def stream(self) -> "StreamSub":
-        return self._stream.add_prefix(self._outer_config.prefix)
+        """The stream this Publisher appends to."""
+        return self._stream.get()
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:

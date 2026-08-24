@@ -4,6 +4,8 @@ from typing import (
     Any,
 )
 
+from faststream._internal.config_value import Configurable
+
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
 from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
@@ -19,10 +21,10 @@ def create_publisher(
     autoflush: bool,
     batch: bool,
     key: bytes | None,
-    topic: str,
+    topic: Configurable[str],
     partition: int | None,
     headers: dict[str, str] | None,
-    reply_to: str,
+    reply_to: Configurable[str],
     # Publisher args
     config: "KafkaBrokerConfig",
     # Specification args

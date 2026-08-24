@@ -9,6 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address
 from faststream.nats.parser import (
     ObjParser,
 )
@@ -48,13 +49,35 @@ class ObjStoreWatchSubscriber(
         *,
         obj_watch: "ObjWatch",
     ) -> None:
-        parser = ObjParser(pattern="")
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
 
         self.obj_watch = obj_watch
         self.obj_watch_conn = None
+
+    @override
+    def _build_parser(self) -> None:
+        """Build the parser, with no capture regex to hold.
+
+        An object store is watched by bucket rather than by subject pattern, so
+        there is no Address template for a `Path()` parameter to come out of.
+        """
+        parser = ObjParser()
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        """The bucket this Subscriber watches, and it is never a template.
+
+        The declared subject names a bucket here rather than a place on the
+        server: it is handed to the client verbatim, and `_build_parser` holds
+        no capture regex to fill a `Path()` parameter from. So a `{param}` in
+        one is a character like any other, and `Address.literal` is what says
+        so: a `Path()` parameter naming it is refused at Preparation rather
+        than going unfilled for every message.
+        """
+        subject = self.subject
+        yield Address.literal(subject.template, subject.config_key)
 
     @override
     async def get_one(self, *, timeout: float = 5) -> Optional["NatsObjMessage"]:

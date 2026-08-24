@@ -115,6 +115,7 @@ class RedisBroker(
             **connection_options,
             routers=kwargs.get("routers", ()),
             config=RedisBrokerConfig(
+                config_values=kwargs.get("config_values"),
                 connection=connection_state,
                 producer=producer,
                 message_format=self.message_format,

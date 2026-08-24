@@ -1,9 +1,10 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    NamedTuple,
     Optional,
     cast,
 )
@@ -12,10 +13,12 @@ import anyio
 from confluent_kafka import KafkaException, Message
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
+from faststream._internal.utils.path import Address
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import TopicPartition
@@ -32,12 +35,22 @@ if TYPE_CHECKING:
     from .config import KafkaSubscriberConfig
 
 
+class _ResolvedAddresses(NamedTuple):
+    """What a Confluent Subscriber listens on, once its composition is final.
+
+    Resolved together and written once, so that the three reads below cannot
+    disagree with each other or with what the consumer subscribed to.
+    """
+
+    topics: list[str]
+    partitions: list[TopicPartition]
+    group_id: str | None
+
+
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     _outer_config: "KafkaBrokerConfig"
-
-    group_id: str | None
 
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
@@ -52,25 +65,80 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.__connection_data = config.connection_data
 
-        self.group_id = config.group_id
+        self._group_id = config.group_id
 
         self._topics = config.topics
         self._partitions = config.partitions
+        self._is_manual = not config.ack_first
+
+        self._resolved: Resolved[_ResolvedAddresses] = self._derived.add(
+            Resolved("a Subscriber's addresses"),
+        )
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @override
+    def _prepare(self) -> None:
+        """Resolve what this Subscriber listens on, before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        log context the logger is built from — reads these values back as fields.
+        """
+        config = self._outer_config
+
+        self._resolved.set(
+            _ResolvedAddresses(
+                topics=[config.resolve_address(t) for t in self._topics],
+                # `add_prefix` rather than the rebuild Kafka performs: a
+                # partition carries an offset and a leader epoch beside its
+                # topic, and only the topic is an address. That topic is typed
+                # `str` here, so the prefix is all resolution has to reach it
+                # until Confluent takes placeholders a level in (ADR-0006).
+                partitions=[p.add_prefix(config.prefix) for p in self._partitions],
+                group_id=config.resolve_option(self._group_id),
+            ),
+        )
+
+        super()._prepare()
 
     @property
     def client_id(self) -> str | None:
         return self._outer_config.client_id
 
     @property
+    def group_id(self) -> str | None:
+        return self._resolved.get().group_id
+
+    @property
     def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+        return self._resolved.get().topics
 
     @property
     def partitions(self) -> list[TopicPartition]:
-        return [p.add_prefix(self._outer_config.prefix) for p in self._partitions]
+        return self._resolved.get().partitions
+
+    @override
+    def subscription_addresses(self) -> Iterable[Address]:
+        """Every topic this Subscriber listens on, and none of them a template.
+
+        Confluent subscribes by topic name only — there is no pattern
+        subscription — and its parser never matches a message against a capture
+        regex. So a `{param}` in an address is a character like any other, and
+        `Address.literal` is what says so: a `Path()` parameter naming one is
+        refused at Preparation instead of going unfilled for every message.
+        """
+        config = self._outer_config
+
+        # The declared option travels alongside the resolved topic so that a
+        # failure can name the Config value the topic came from.
+        for declared, topic in zip(self._topics, self.topics, strict=True):
+            yield Address.literal(topic, config.config_key(declared))
+
+        # A partition names a topic too, and that name never holds a placeholder:
+        # `partitions` takes structures rather than addresses.
+        for partition in self.partitions:
+            yield Address.literal(partition.topic)
 
     @override
     async def start(self) -> None:
@@ -200,8 +268,17 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        """The addresses a log line names, as this Subscriber answers them.
+
+        `topics` and `partitions` are what Preparation resolved — the Router
+        prefix composed, any Config value fixed — so a second pass over them
+        would show an operator a doubled prefix and an address that does not
+        exist.
+        """
+        if self.topics:
+            return self.topics
+
+        return [f"{p.topic}-{p.partition}" for p in self.partitions]
 
     @staticmethod
     def build_log_context(
@@ -217,16 +294,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber[Message]):
-    def __init__(
-        self,
-        config: "KafkaSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Message]",
-    ) -> None:
-        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.decoder = self.parser.decode_message
-        config.parser = self.parser.parse_message
-        super().__init__(config, specification, calls)
+    @override
+    def _build_parser(self) -> None:
+        self.parser = AsyncConfluentParser(is_manual=self._is_manual)
+        self._parser = self.parser.parse_message
+        self._decoder = self.parser.decode_message
 
     async def get_msg(self) -> Optional["Message"]:
         assert self.consumer, "You should setup subscriber at first."
@@ -265,12 +337,15 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         calls: "CallsCollection[tuple[Message, ...]]",
         max_records: int | None,
     ) -> None:
-        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.decoder = self.parser.decode_batch
-        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.max_records = max_records
+
+    @override
+    def _build_parser(self) -> None:
+        self.parser = AsyncConfluentParser(is_manual=self._is_manual)
+        self._parser = self.parser.parse_batch
+        self._decoder = self.parser.decode_batch
 
     async def get_msg(self) -> tuple["Message", ...] | None:
         assert self.consumer, "You should setup subscriber at first."

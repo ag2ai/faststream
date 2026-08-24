@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 import prometheus_client
 from typing_extensions import assert_type
 
+from faststream import Config
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     ListSub,
@@ -10,6 +11,7 @@ from faststream.redis import (
     RedisChannelMessage,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublisher as Publisher,
     RedisRoute as Route,
     RedisRouter,
     RedisStreamMessage,
@@ -461,3 +463,98 @@ RedisBroker().include_routers(RedisRouter())
 RedisRouter(routers=[RedisRouter()])
 RedisRouter().include_router(RedisRouter())
 RedisRouter().include_routers(RedisRouter())
+
+
+# --- Config placeholders ------------------------------------------------------
+#
+# A placeholder is accepted on address parameters and nowhere else, and that
+# boundary is the signature alone — there is no runtime guard (ADR-0002). The
+# `type: ignore` comments below are therefore assertions, not suppressions:
+# `warn_unused_ignores` is on, so if any of these positions ever starts
+# type-checking, the ignore goes unused and the build fails.
+
+
+def check_config_on_subscriber_address_params(
+    broker: RedisBroker | FastAPIRouter | RedisRouter,
+) -> None:
+    broker.subscriber(Config("CHANNEL"))
+    broker.subscriber(channel=Config("CHANNEL"))
+    broker.subscriber(list=Config("LIST"))
+    broker.subscriber(stream=Config("STREAM"))
+    broker.subscriber(Config("CHANNEL"), max_workers=2)
+    broker.subscriber(list=Config("LIST"), max_workers=2)
+    broker.subscriber(stream=Config("STREAM"), max_workers=2)
+
+
+def check_config_on_publisher_address_params(
+    broker: RedisBroker | FastAPIRouter | RedisRouter,
+) -> None:
+    broker.publisher(Config("CHANNEL"))
+    broker.publisher(list=Config("LIST"))
+    broker.publisher(stream=Config("STREAM"))
+    broker.publisher("test", reply_to=Config("REPLY"))
+    broker.publisher(Config("CHANNEL"), reply_to=Config("REPLY"))
+
+
+def check_config_on_router_containers() -> None:
+    RedisRouter(
+        handlers=(
+            Route(async_handler, Config("CHANNEL")),
+            Route(async_handler, list=Config("LIST")),
+            Route(async_handler, stream=Config("STREAM")),
+            Route(
+                async_handler,
+                "test",
+                publishers=(
+                    Publisher(Config("CHANNEL")),
+                    Publisher(list=Config("LIST")),
+                    Publisher(stream=Config("STREAM")),
+                    Publisher("test", reply_to=Config("REPLY")),
+                ),
+            ),
+        ),
+    )
+
+
+def check_config_endpoint_instance_types(broker: RedisBroker) -> None:
+    """A placeholder stands for the address, never for what it is read as.
+
+    `batch` picks the class, and it is read while the endpoint is built — so a
+    placeholder always lands on the non-batch one.
+    """
+    assert_type(broker.subscriber(Config("CHANNEL")), ChannelSubscriber)
+    assert_type(broker.subscriber(list=Config("LIST")), ListSubscriber)
+    assert_type(broker.subscriber(stream=Config("STREAM")), StreamSubscriber)
+    assert_type(broker.publisher(Config("CHANNEL")), ChannelPublisher)
+    assert_type(broker.publisher(list=Config("LIST")), ListPublisher)
+    assert_type(broker.publisher(stream=Config("STREAM")), StreamPublisher)
+
+
+async def check_config_is_rejected_by_runtime_publishing() -> None:
+    broker = RedisBroker()
+
+    await broker.publish(None, Config("CHANNEL"))  # type: ignore[call-overload]
+    await broker.publish(None, list=Config("LIST"))  # type: ignore[call-overload]
+    await broker.publish(None, stream=Config("STREAM"))  # type: ignore[call-overload]
+    await broker.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[call-overload]
+    await broker.publish_batch(None, list=Config("LIST"))  # type: ignore[arg-type]
+    await broker.request(None, Config("CHANNEL"))  # type: ignore[arg-type]
+
+    publisher = broker.publisher("test")
+    await publisher.publish(None, Config("CHANNEL"))  # type: ignore[arg-type]
+    await publisher.publish(None, "test", reply_to=Config("REPLY"))  # type: ignore[arg-type]
+    await publisher.request(None, Config("CHANNEL"))  # type: ignore[arg-type]
+
+    list_publisher = broker.publisher(list="test")
+    await list_publisher.publish(None, Config("LIST"))  # type: ignore[arg-type]
+
+    stream_publisher = broker.publisher(stream="test")
+    await stream_publisher.publish(None, Config("STREAM"))  # type: ignore[arg-type]
+
+
+def check_config_is_rejected_on_structural_params(broker: RedisBroker) -> None:
+    broker.subscriber("test", max_workers=Config("WORKERS"))  # type: ignore[call-overload]
+    broker.subscriber("test", ack_policy=Config("ACK"))  # type: ignore[call-overload]
+    broker.subscriber("test", no_reply=Config("NO_REPLY"))  # type: ignore[call-overload]
+    broker.subscriber("test", persistent=Config("PERSISTENT"))  # type: ignore[call-overload]
+    broker.publisher("test", headers=Config("HEADERS"))  # type: ignore[call-overload]

@@ -1,11 +1,14 @@
-from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias
+from collections.abc import AsyncIterator, Iterable
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeAlias
 
 import anyio
 from typing_extensions import override
 
+from faststream._internal.endpoint.derived import Resolved
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.message import (
     BatchListMessage,
     DefaultListMessage,
@@ -15,6 +18,7 @@ from faststream.redis.parser import (
     RedisBatchListParser,
     RedisListParser,
 )
+from faststream.redis.schemas import ListSub
 
 from .basic import LogicSubscriber
 
@@ -26,15 +30,17 @@ if TYPE_CHECKING:
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.schemas import ListSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
-    from faststream.redis.subscriber.specification import RedisSubscriberSpecification
 
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    #: Whether this Subscriber pops the list in batches. Read while it is being
+    #: constructed — it chooses the class — so a Config value cannot change it.
+    batch: ClassVar[bool] = False
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -43,12 +49,46 @@ class _ListHandlerMixin(LogicSubscriber):
     ) -> None:
         super().__init__(config, specification, calls)
         self._read_lock = anyio.Lock()
-        assert config.list_sub
-        self._list_sub = config.list_sub
+        assert config.list_sub is not None
+        self._declared_list = DeclaredAddress(
+            config.list_sub,
+            ListSub,
+            built_as={"batch": self.batch},
+        )
+        self._list_sub: Resolved[ListSub] = self._derived.add(
+            Resolved("a Subscriber's list"),
+        )
+
+    @override
+    def _prepare(self) -> None:
+        """Build the list before anything reads it.
+
+        First, because everything performed afterwards — the address check, the
+        parser, the log context the logger is built from — reads it back as a
+        field.
+        """
+        self._list_sub.set(self._declared_list.build(self._outer_config))
+        super()._prepare()
 
     @property
     def list_sub(self) -> "ListSub":
-        return self._list_sub.add_prefix(self._outer_config.prefix)
+        """The list this Subscriber pops from."""
+        return self._list_sub.get()
+
+    @override
+    def subscription_addresses(self) -> Iterable["Address"]:
+        """The list this Subscriber pops from, and it is never a template.
+
+        Redis matches a pattern on a channel only — a list is popped by the
+        name given, verbatim. So a `{param}` in one is a character like any
+        other, and `Address.literal` is what says so: a `Path()` parameter
+        naming it is refused at Preparation rather than going unfilled for
+        every message.
+        """
+        yield Address.literal(
+            self.list_sub.name,
+            self._declared_list.config_key(self._outer_config),
+        )
 
     def get_log_context(
         self,
@@ -163,16 +203,7 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisListParser(config)
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
-        super().__init__(config, specification, calls)
+    parser_class = RedisListParser
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
@@ -194,16 +225,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        parser = RedisBatchListParser(config)
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
-        super().__init__(config, specification, calls)
+    batch: ClassVar[bool] = True
+    parser_class = RedisBatchListParser
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:

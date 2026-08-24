@@ -1,4 +1,7 @@
+import pytest
+
 from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.exceptions import SetupError
 
 SYNTAX = AddressSyntax(
     replace_symbol="*",
@@ -44,3 +47,67 @@ def test_an_empty_prefix_leaves_the_address_alone() -> None:
 def test_an_address_is_falsy_when_nothing_was_declared() -> None:
     assert not Address("", SYNTAX)
     assert Address("logs.info", SYNTAX)
+
+
+def test_a_brace_that_is_not_a_path_parameter_is_not_an_address() -> None:
+    address = Address("test.${ENV", SYNTAX)
+
+    with pytest.raises(SetupError, match=r"test\.\$\{ENV"):
+        assert address.broker_address
+
+
+def test_a_half_written_placeholder_is_not_an_address() -> None:
+    with pytest.raises(SetupError):
+        assert Address("logs.{level", SYNTAX).regex
+
+    with pytest.raises(SetupError):
+        assert Address("logs.level}", SYNTAX).regex
+
+
+def test_a_failure_names_the_config_value_the_address_came_from() -> None:
+    address = Address("test.${ENV", SYNTAX, config_key="SUBJ")
+
+    with pytest.raises(SetupError, match="SUBJ"):
+        assert address.broker_address
+
+
+def test_a_prefix_carries_the_config_value_along() -> None:
+    address = Address("logs.{level}", SYNTAX, config_key="SUBJ")
+
+    assert address.add_prefix("prefix_").config_key == "SUBJ"
+
+
+def test_compilation_happens_once_and_is_not_repeated() -> None:
+    calls = 0
+
+    def counting_patch(regex: str) -> str:
+        nonlocal calls
+        calls += 1
+        return regex
+
+    address = Address(
+        "logs.{level}",
+        AddressSyntax(replace_symbol="*", patch_regex=counting_patch),
+    )
+
+    assert address.broker_address
+    assert address.regex
+    assert address.broker_address
+
+    assert calls == 1
+
+
+def test_a_verbatim_address_is_read_as_characters_rather_than_a_template() -> None:
+    address = Address.literal("logs.{level}")
+
+    assert address.template == "logs.{level}"
+    assert address.broker_address == "logs.{level}"
+    assert address.regex is None
+
+
+def test_a_prefix_leaves_a_verbatim_address_verbatim() -> None:
+    address = Address.literal("logs.{level}").add_prefix("prefix_")
+
+    assert address.template == "prefix_logs.{level}"
+    assert address.broker_address == "prefix_logs.{level}"
+    assert address.regex is None

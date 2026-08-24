@@ -47,7 +47,9 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.mock = MagicMock()
 
     async def start(self) -> None:
-        pass
+        # Symmetry with the Subscriber: a Publisher registered after its Broker
+        # connected prepares itself, one the Broker prepared gets a no-op.
+        self.prepare()
 
     def set_test(
         self,
@@ -71,7 +73,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
-        self.specification.add_call(handler._original_call)
+        self.specification.add_call(handler._composed_call)
         return handler
 
     async def _basic_publish(

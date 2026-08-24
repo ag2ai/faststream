@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from nats.errors import TimeoutError
 from typing_extensions import override
@@ -14,34 +14,22 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.aio.subscription import Subscription
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
-    from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
 class CoreSubscriber(DefaultSubscriber["Msg"]):
     subscription: Optional["Subscription"]
     _fetch_sub: Optional["Subscription"]
 
-    def __init__(
-        self,
-        config: "NatsSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Msg]",
-        *,
-        queue: str,
-    ) -> None:
+    @override
+    def _build_parser(self) -> None:
         parser = NatsParser(
-            pattern=config.subject,
+            regex=self.subject.regex,
             is_ack_disabled=True,  # core subscriber has no ack policy
         )
-        config.parser = parser.parse_message
-        config.decoder = parser.decode_message
-        super().__init__(config, specification, calls)
-
-        self.queue = queue
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     @override
     async def get_one(

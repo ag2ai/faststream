@@ -16,7 +16,17 @@ if TYPE_CHECKING:
 class Registrator(Generic[MsgType, BrokerConfigType]):
     """Basic class for brokers and routers.
 
-    Contains subscribers & publishers registration logic only.
+    Contains subscribers & publishers registration logic only — plus the one
+    thing registering can trigger: an endpoint attached to an already-prepared
+    Broker prepares at attachment, having missed the Broker's own pass.
+    """
+
+    _prepared = False
+    """Whether Preparation has run over what is registered here.
+
+    Only a Broker ever prepares. A Router is a declaration site composed into
+    one, so this stays false for the whole of its life, and whether an endpoint
+    declared on it has missed a pass is `_attached_to_prepared` to answer.
     """
 
     def __init__(
@@ -40,6 +50,21 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self.__parent: Registrator[MsgType, Any] | None = None
 
         self.include_routers(*routers)
+
+    @property
+    def _attached_to_prepared(self) -> bool:
+        """Whether the Broker this is composed into has already prepared.
+
+        Read at the root rather than here, because only a Broker ever prepares
+        and a Router included into another Router is still an attachment to
+        whatever Broker the chain ends at. Asking `self` instead would make the
+        rule hold for endpoints attached to the Broker and quietly skip the
+        ones attached a level deeper.
+        """
+        node: Registrator[MsgType, Any] = self
+        while (parent := node.parent) is not None:
+            node = parent
+        return node._prepared
 
     @property
     def subscribers(self) -> list["SubscriberUsecase[MsgType]"]:
@@ -83,6 +108,15 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         self._publishers.add(publisher)
         if persistent:
             self.__persistent_publishers.append(publisher)
+
+        # A Publisher carries no handlers, so nothing else is coming for it: on a
+        # prepared Broker, attachment is the moment everything Preparation reads
+        # is final. A Subscriber attached now waits for its own `start()`
+        # instead, because its handlers arrive after `broker.subscriber(...)`
+        # has returned.
+        if self._attached_to_prepared:
+            publisher.prepare()
+
         return publisher
 
     def include_router(
@@ -109,6 +143,14 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
 
         router.config.add_config(self.config)
         self.routers.append(router)
+
+        # Attachment through a Router is still attachment: on a prepared Broker,
+        # the composition these Publishers resolve against is final the moment
+        # the inclusion composes it. Their Subscribers wait for their own
+        # `start()`, as an individually attached one does.
+        if self._attached_to_prepared:
+            for publisher in router.publishers:
+                publisher.prepare()
 
     @property
     def parent(self) -> "Registrator[MsgType, Any] | None":

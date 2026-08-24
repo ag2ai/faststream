@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.mqtt.path import compile_mqtt_path
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
 from .specification import MQTTSubscriberSpecification
@@ -18,9 +18,9 @@ SubscriberType = MQTTDefaultSubscriber | MQTTConcurrentSubscriber
 
 def create_subscriber(
     *,
-    topic: str,
+    topic: Configurable[str],
     qos: QoS,
-    shared: str | None,
+    shared: Configurable[str] | None,
     # Subscriber args
     ack_policy: "AckPolicy",
     no_reply: bool,
@@ -31,16 +31,13 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
 ) -> SubscriberType:
-    path_regex, mqtt_topic = compile_mqtt_path(topic)
-
     subscriber_config = MQTTSubscriberConfig(
-        topic=mqtt_topic,
+        topic=topic,
         qos=qos,
         shared=shared,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
-        path_regex=path_regex,
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(

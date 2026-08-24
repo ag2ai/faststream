@@ -1,4 +1,7 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.redis.address import DeclaredAddress
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -6,6 +9,9 @@ from faststream.specification.schema import Message, Operation, PublisherSpec
 from faststream.specification.schema.bindings import ChannelBinding, redis
 
 from .config import RedisPublisherSpecificationConfig
+
+if TYPE_CHECKING:
+    from faststream._internal.config_value import Configurable
 
 
 class RedisPublisherSpecification(
@@ -40,10 +46,15 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
         self,
         _outer_config: RedisBrokerConfig,
         specification_config: RedisPublisherSpecificationConfig,
-        channel: PubSub,
+        channel: "Configurable[PubSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self.channel = channel
+        self._channel = DeclaredAddress(channel, PubSub)
+
+    @property
+    def channel(self) -> PubSub:
+        """The channel this Publisher is documented under, built whenever it renders."""
+        return self._channel.build(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -54,7 +65,7 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.address.template}"
+        return self.channel.address.template
 
     @property
     def channel_binding(self) -> redis.ChannelBinding:
@@ -69,10 +80,15 @@ class ListPublisherSpecification(RedisPublisherSpecification):
         self,
         _outer_config: RedisBrokerConfig,
         specification_config: RedisPublisherSpecificationConfig,
-        list_sub: ListSub,
+        list_sub: "Configurable[ListSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self.list_sub = list_sub
+        self._list_sub = DeclaredAddress(list_sub, ListSub)
+
+    @property
+    def list_sub(self) -> ListSub:
+        """The list this Publisher is documented under, built whenever it renders."""
+        return self._list_sub.build(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -83,7 +99,7 @@ class ListPublisherSpecification(RedisPublisherSpecification):
 
     @property
     def list_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.list_sub.name}"
+        return self.list_sub.name
 
     @property
     def channel_binding(self) -> redis.ChannelBinding:
@@ -98,10 +114,15 @@ class StreamPublisherSpecification(RedisPublisherSpecification):
         self,
         _outer_config: RedisBrokerConfig,
         specification_config: RedisPublisherSpecificationConfig,
-        stream_sub: StreamSub,
+        stream_sub: "Configurable[StreamSub | str]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
-        self.stream_sub = stream_sub
+        self._stream_sub = DeclaredAddress(stream_sub, StreamSub)
+
+    @property
+    def stream_sub(self) -> StreamSub:
+        """The stream this Publisher is documented under, built whenever it renders."""
+        return self._stream_sub.build(self._outer_config)
 
     @property
     def name(self) -> str:
@@ -112,7 +133,7 @@ class StreamPublisherSpecification(RedisPublisherSpecification):
 
     @property
     def stream_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.stream_sub.name}"
+        return self.stream_sub.name
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":

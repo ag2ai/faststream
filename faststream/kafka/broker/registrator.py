@@ -14,6 +14,7 @@ from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssigno
 from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.kafka.configs import KafkaBrokerConfig
@@ -55,9 +56,9 @@ class KafkaRegistrator(
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: Literal[False] = False,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -85,7 +86,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -105,9 +106,9 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: Literal[True] = ...,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -135,7 +136,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -155,7 +156,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: Literal[False] = False,
         group_id: None = None,
         group_instance_id: str | None = None,
@@ -185,7 +186,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -205,9 +206,9 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: Literal[False] = False,
-        group_id: str = ...,
+        group_id: Configurable[str] = ...,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -235,7 +236,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -255,9 +256,9 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: bool = False,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -285,7 +286,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -310,9 +311,9 @@ class KafkaRegistrator(
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Configurable[str],
         batch: bool = False,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         client_rack: str | None = None,
         key_deserializer: Callable[[bytes], Any] | None = None,
@@ -340,7 +341,7 @@ class KafkaRegistrator(
         batch_timeout_ms: int = 200,
         max_records: int | None = None,
         listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
+        pattern: Configurable[str] | None = None,
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
@@ -623,12 +624,12 @@ class KafkaRegistrator(
     @overload  # type: ignore[override]
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: Literal[False] = False,
         # basic args
         persistent: bool = True,
@@ -643,12 +644,12 @@ class KafkaRegistrator(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: Literal[True] = ...,
         # basic args
         persistent: bool = True,
@@ -662,12 +663,12 @@ class KafkaRegistrator(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # basic args
         persistent: bool = True,
@@ -685,12 +686,12 @@ class KafkaRegistrator(
     @override
     def publisher(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # basic args
         persistent: bool = True,

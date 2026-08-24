@@ -55,6 +55,20 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 
 Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in `faststream/_internal/configs/`). Example: `faststream/kafka/configs/broker.py`.
 
+## Lifecycle phases
+
+A Broker and its endpoints move through four phases: **Composition** (declaration, the config
+composition still mutating), **Preparation** (everything derivable from the finished
+composition — addresses resolved, parser and FastDepends model built, logger set up — with no
+I/O), **Connection**, and **Start**. Which phase a method belongs to follows from what it
+reads and whether it touches the network, not from taste.
+
+Read [references/lifecycle.md](references/lifecycle.md) before adding or moving a method on `BrokerUsecase`,
+`Registrator`, `Endpoint`, `SubscriberUsecase` or `PublisherUsecase`, before changing when a
+value is resolved, and before adding anything that memoises a read of the config composition.
+It carries the per-phase method tables, the closed list of what triggers Preparation, and the
+invariants each phase holds.
+
 ## Public API
 
 - Every `__init__.py` declares `__all__` explicitly.

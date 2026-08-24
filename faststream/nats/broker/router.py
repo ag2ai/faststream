@@ -9,6 +9,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
@@ -34,12 +35,12 @@ class NatsPublisher(ArgsContainer):
 
     def __init__(
         self,
-        subject: str = "",
+        subject: Configurable[str] = "",
         *,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # JS
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         timeout: float | None = None,
         # AsyncAPI information
         title: str | None = None,
@@ -92,15 +93,15 @@ class NatsRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        subject: str,
+        subject: Configurable[str],
         publishers: Iterable[NatsPublisher] = (),
-        queue: str = "",
+        queue: Configurable[str] = "",
         pending_msgs_limit: int | None = None,
         pending_bytes_limit: int | None = None,
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: str | None = None,
+        durable: Configurable[str] | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
         idle_heartbeat: float | None = None,
@@ -109,10 +110,10 @@ class NatsRoute(SubscriberRoute):
         headers_only: bool | None = None,
         # pull arguments
         pull_sub: Optional["PullSub"] = None,
-        kv_watch: Union[str, "KvWatch", None] = None,
+        kv_watch: Configurable[Union[str, "KvWatch"]] | None = None,
         obj_watch: Union[bool, "ObjWatch"] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
-        stream: Union[str, "JStream", None] = None,
+        stream: Configurable[Union[str, "JStream"]] | None = None,
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,

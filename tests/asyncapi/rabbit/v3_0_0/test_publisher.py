@@ -258,3 +258,21 @@ class TestArguments(PublisherTestcase):
                 ],
             },
         }
+
+    def test_reply_to_reaches_the_document(self) -> None:
+        """A declared reply destination is part of the published contract.
+
+        It was dropped for every publisher: the usecase popped `reply_to` out of
+        the very `message_kwargs` dict the specification held.
+        """
+        broker = self.broker_class()
+
+        @broker.publisher("test", reply_to="reply-queue")
+        async def handle(msg) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert (
+            schema["operations"]["test:_:Publisher"]["bindings"]["amqp"]["replyTo"]
+            == "reply-queue"
+        ), schema["operations"]

@@ -33,29 +33,40 @@ class HandlerItem(Generic[MsgType]):
     """A class representing handler overloaded item."""
 
     __slots__ = (
+        "declared_decoder",
+        "declared_parser",
+        "decoder",
         "dependant",
         "dependencies",
         "filter",
         "handler",
-        "item_decoder",
-        "item_parser",
+        "parser",
     )
 
     dependant: Any | None
+    # What the handler declared, kept as declared so that composing them again
+    # from an unchanged declaration produces an unchanged result.
+    declared_parser: Optional["CustomCallable"]
+    declared_decoder: Optional["CustomCallable"]
+    # What Preparation composed out of them.
+    parser: Optional["AsyncCallable"]
+    decoder: Optional["AsyncCallable"]
 
     def __init__(
         self,
         *,
         handler: "HandlerCallWrapper[..., Any]",
         filter: "AsyncFilter[Any]",
-        item_parser: Optional["CustomCallable"],
-        item_decoder: Optional["CustomCallable"],
+        declared_parser: Optional["CustomCallable"],
+        declared_decoder: Optional["CustomCallable"],
         dependencies: Iterable["Dependant"],
     ) -> None:
         self.handler = handler
         self.filter = filter
-        self.item_parser = item_parser
-        self.item_decoder = item_decoder
+        self.declared_parser = declared_parser
+        self.declared_decoder = declared_decoder
+        self.parser = None
+        self.decoder = None
         self.dependencies = dependencies
         self.dependant = None
 
@@ -73,9 +84,11 @@ class HandlerItem(Generic[MsgType]):
         broker_dependencies: Iterable["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
-        if self.dependant is None:
-            self.item_parser = parser
-            self.item_decoder = decoder
+        # Written on every composition rather than only the first: Preparation
+        # is undone with the connection, and a re-prepared endpoint composing
+        # against new Config values must not keep the old chain.
+        self.parser = parser
+        self.decoder = decoder
 
         self.dependant = self.handler.set_wrapped(
             dependencies=(*broker_dependencies, *self.dependencies),
@@ -89,7 +102,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return ""
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__name__", str(caller))
 
     @property
@@ -98,7 +111,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return None
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__doc__", None)
 
     async def is_suitable(
@@ -107,9 +120,7 @@ class HandlerItem(Generic[MsgType]):
         cache: dict[Any, Any],
     ) -> Optional["StreamMessage[MsgType]"]:
         """Check is message suite for current filter."""
-        if not (parser := cast("AsyncCallable | None", self.item_parser)) or not (
-            decoder := cast("AsyncCallable | None", self.item_decoder)
-        ):
+        if not (parser := self.parser) or not (decoder := self.decoder):
             error_msg = "You should setup `HandlerItem` at first."
             raise SetupError(error_msg)
 

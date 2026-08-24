@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from nats.errors import ConnectionClosedError, TimeoutError
 from typing_extensions import override
@@ -13,33 +13,18 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import JStream
-    from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 
-    def __init__(
-        self,
-        config: "NatsSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Msg]",
-        *,
-        stream: "JStream",
-        queue: str,
-    ) -> None:
-        parser = JsParser(pattern=config.subject)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
-        super().__init__(config, specification, calls)
-
-        self.queue = queue
-        self.stream = stream
+    @override
+    def _build_parser(self) -> None:
+        parser = JsParser(regex=self.subject.regex)
+        self._parser = parser.parse_message
+        self._decoder = parser.decode_message
 
     def get_log_context(
         self,
@@ -54,7 +39,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             message=message,
             subject=self._resolved_subject_string,
             queue=self.queue,
-            stream=self.stream.name,
+            stream=stream.name if (stream := self.stream) else "",
         )
 
     @override

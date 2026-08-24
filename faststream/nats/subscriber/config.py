@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
+from faststream._internal.config_value import Configurable
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
@@ -12,18 +13,24 @@ from faststream.nats.configs import NatsBrokerConfig
 if TYPE_CHECKING:
     from nats.js.api import ConsumerConfig
 
+    from faststream.nats.schemas import JStream, KvWatch
+
 
 @dataclass(kw_only=True)
 class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    subject: str
-    queue: str | None
+    subject: Configurable[str]
+    queue: Configurable[str] | None
 
 
 @dataclass(kw_only=True)
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
-    subject: str
+    subject: Configurable[str]
+    queue: Configurable[str] = ""
+    durable: Configurable[str] | None = None
+    stream: Configurable[Union[str, "JStream"]] | None = None
+    kv_watch: Configurable[Union[str, "KvWatch"]] | None = None
     sub_config: "ConsumerConfig"
     extra_options: dict[str, Any] | None = field(default_factory=dict)
 

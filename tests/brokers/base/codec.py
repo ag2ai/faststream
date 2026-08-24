@@ -69,8 +69,8 @@ class CodecTestcase(BaseTestcaseConfig):
         async def handle(m) -> None:
             pass  # pragma: no cover
 
-        # ValueError raised inside _get_parser_and_decoder() during start(),
-        # which TestBroker.__aenter__ calls before yielding — hence it propagates
+        # ValueError raised in Preparation, which `connect()` runs before any I/O
+        # and TestBroker.__aenter__ reaches before yielding — hence it propagates
         # from the "async with" expression rather than from the body.
         with pytest.raises(ValueError, match="codec"):
             async with self.patch_broker(broker):

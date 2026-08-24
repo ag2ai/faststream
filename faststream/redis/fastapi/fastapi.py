@@ -21,6 +21,7 @@ from starlette.routing import BaseRoute
 from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
@@ -389,7 +390,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        channel: str | PubSub = ...,
+        channel: Configurable[str | PubSub] = ...,
         *,
         list: None = None,
         stream: None = None,
@@ -417,7 +418,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload
     def subscriber(
         self,
-        channel: str | PubSub = ...,
+        channel: Configurable[str | PubSub] = ...,
         *,
         list: None = None,
         stream: None = None,
@@ -447,7 +448,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str = ...,
+        list: Configurable[str] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -475,7 +476,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str | ListSub = ...,
+        list: Configurable[str | ListSub] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -503,7 +504,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str | ListSub = ...,
+        list: Configurable[str | ListSub] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -532,7 +533,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str = ...,
+        stream: Configurable[str] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -560,7 +561,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: Configurable[str | StreamSub] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -588,7 +589,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: Configurable[str | StreamSub] = ...,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -613,10 +614,10 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @override
     def subscriber(
         self,
-        channel: str | PubSub | None = None,
+        channel: Configurable[str | PubSub] | None = None,
         *,
-        list: str | ListSub | None = None,
-        stream: str | StreamSub | None = None,
+        list: Configurable[str | ListSub] | None = None,
+        stream: Configurable[str | StreamSub] | None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -668,9 +669,9 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: Configurable[str | StreamSub] = ...,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -682,10 +683,10 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     def publisher(
         self,
         channel: None = None,
-        list: str = ...,
+        list: Configurable[str] = ...,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -697,10 +698,10 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     def publisher(
         self,
         channel: None = None,
-        list: str | ListSub = ...,
+        list: Configurable[str | ListSub] = ...,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -711,11 +712,11 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload
     def publisher(
         self,
-        channel: str | PubSub = ...,
+        channel: Configurable[str | PubSub] = ...,
         list: None = None,
         stream: None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -726,11 +727,11 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @override
     def publisher(
         self,
-        channel: str | PubSub | None = None,
-        list: str | ListSub | None = None,
-        stream: str | StreamSub | None = None,
+        channel: Configurable[str | PubSub] | None = None,
+        list: Configurable[str | ListSub] | None = None,
+        stream: Configurable[str | StreamSub] | None = None,
         headers: dict[str, Any] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,

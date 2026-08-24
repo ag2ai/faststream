@@ -383,6 +383,10 @@ def test_in_memory_routing(
     expected_result: bool,
 ) -> None:
     subscriber = broker.subscriber(queue, exchange)
+    # The matcher reads the Subscriber's resolved queue and exchange, which are
+    # settled at Preparation -- as they are for the real thing, whose handlers
+    # this stands in for.
+    subscriber.prepare()
     assert (
         _is_handler_matches(subscriber, routing_key, headers, exchange) is expected_result
     )

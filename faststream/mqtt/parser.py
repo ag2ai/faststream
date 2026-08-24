@@ -1,15 +1,17 @@
 from contextlib import suppress
-from re import Pattern
 from typing import TYPE_CHECKING, Any
 
 import zmqtt
 
 from faststream._internal._compat import json_loads
+from faststream._internal.utils.path import match_path
 from faststream.message import StreamMessage, decode_message
 
 from .message import MQTTMessage
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from faststream._internal.basic_types import DecodedMessage
 
 
@@ -18,17 +20,14 @@ class MQTTBaseParser:
 
     def __init__(
         self,
-        path_regex: Pattern[str] | None = None,
+        regex: "Pattern[str] | None" = None,
     ) -> None:
-        self._path_regex = path_regex
+        self.regex = regex
+        """Captures each Path parameter out of an incoming topic.
 
-    def _extract_path(self, topic: str) -> dict[str, Any]:
-        if self._path_regex is None:
-            return {}
-        match = self._path_regex.match(topic)
-        if match is None:
-            return {}
-        return match.groupdict()
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the topic it compiles from is resolved.
+        """
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
@@ -45,7 +44,7 @@ class MQTTParserV311(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers={},
-            path=self._extract_path(msg.topic),
+            path=match_path(self.regex, msg.topic),
             content_type=None,
             reply_to="",
             correlation_id=None,
@@ -86,8 +85,18 @@ class MQTTParserV5(MQTTBaseParser):
             raw_message=msg,
             body=msg.payload,
             headers=headers,
-            path=self._extract_path(msg.topic),
+            path=match_path(self.regex, msg.topic),
             content_type=content_type,
             reply_to=reply_to,
             correlation_id=correlation_id,
         )
+
+
+def parser_for(version: str) -> type[MQTTBaseParser]:
+    """The parser class a Broker version speaks.
+
+    One place says it, because both the Subscriber that consumes through a
+    parser and the in-memory producer that encodes for one have to agree on
+    which version they are speaking.
+    """
+    return MQTTParserV311 if version == "3.1.1" else MQTTParserV5

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
@@ -24,10 +24,16 @@ class AioKafkaParser:
     def __init__(
         self,
         msg_class: type[KafkaMessage],
-        regex: Optional["Pattern[str]"],
+        regex: "Pattern[str] | None",
     ) -> None:
         self.msg_class = msg_class
+
         self.regex = regex
+        """Captures each Path parameter out of an incoming topic name.
+
+        A value rather than a way to ask for one: the parser is built during
+        Preparation, when the pattern it compiles from is resolved.
+        """
 
         self._consumer: ConsumerProtocol = FAKE_CONSUMER
 

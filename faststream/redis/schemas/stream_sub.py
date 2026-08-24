@@ -1,5 +1,4 @@
 import warnings
-from copy import deepcopy
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
@@ -52,7 +51,6 @@ class StreamSub(NameRequired):
         "max_records",
         "maxlen",
         "min_idle_time",
-        "name",
         "no_ack",
         "polling_interval",
     )
@@ -121,7 +119,14 @@ class StreamSub(NameRequired):
         self.max_records = max_records
         self.min_idle_time = min_idle_time
 
+    @classmethod
+    def from_config_value(cls, value: "StreamSub | str", config_key: str) -> "StreamSub":
+        """Build this stream out of a Config value.
+
+        A stream name reaches Redis verbatim — no Address template compiles here
+        — so there is nothing for the Config key to explain, and it is dropped.
+        """
+        return cls.validate(value)
+
     def add_prefix(self, prefix: str) -> "StreamSub":
-        new_stream = deepcopy(self)
-        new_stream.name = f"{prefix}{new_stream.name}"
-        return new_stream
+        return self._with_prefix(prefix)

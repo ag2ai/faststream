@@ -1,4 +1,12 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.rabbit.address import (
+    broker_exchange,
+    broker_queue,
+    broker_reply_to,
+    broker_routing_key,
+)
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -15,36 +23,63 @@ from faststream.specification.schema.bindings import (
 
 from .config import RabbitPublisherSpecificationConfig
 
+if TYPE_CHECKING:
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+
 
 class RabbitPublisherSpecification(
     PublisherSpecification[RabbitBrokerConfig, RabbitPublisherSpecificationConfig],
 ):
     @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self.config.queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self.config.exchange)
+
+    @property
+    def routing_key(self) -> str:
+        return broker_routing_key(self._outer_config, self.config.routing_key)
+
+    @property
+    def reply_to(self) -> str:
+        return broker_reply_to(self._outer_config, self.config.reply_to)
+
+    @property
     def name(self) -> str:
+        """The channel title, built from the addresses messages really go to.
+
+        Every part of it is a Broker address, prefix and all. A channel named
+        after the undecorated declaration while its own `cc` binding carries the
+        prefix would be a document contradicting itself — and the Subscriber
+        side, Kafka and Redis all title their channels this way.
+        """
         if self.config.title_:
             return self.config.title_
 
-        if self.config.routing_key:
-            routing: str | None = self.config.routing_key
+        exchange = self.exchange
 
-        elif is_routing_exchange(self.config.exchange):
-            routing = self.config.queue.routing_template()
+        if routing_key := self.routing_key:
+            routing: str | None = routing_key
+
+        elif is_routing_exchange(exchange):
+            routing = self.queue.routing_template()
 
         else:
             routing = None
 
-        exchange_name = getattr(self.config.exchange, "name", None)
+        exchange_name = getattr(exchange, "name", None)
 
         return f"{routing or '_'}:{exchange_name or '_'}:Publisher"
 
     def get_schema(self) -> dict[str, "PublisherSpec"]:
         payloads = self.get_payloads()
 
-        exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
-        queue_binding = amqp.Queue.from_queue(self.config.queue)
+        exchange_binding = amqp.Exchange.from_exchange(self.exchange)
+        queue_binding = amqp.Queue.from_queue(self.queue)
 
-        r = self.config.routing_key or self.config.queue.routing_template()
-        routing_key = f"{self._outer_config.prefix}{r}"
+        routing_key = self.routing_key or self.queue.routing_template()
 
         return {
             self.name: PublisherSpec(
@@ -58,7 +93,7 @@ class RabbitPublisherSpecification(
                             ack=True,
                             persist=self.config.message_kwargs.get("persist"),
                             priority=self.config.message_kwargs.get("priority"),
-                            reply_to=self.config.message_kwargs.get("reply_to"),
+                            reply_to=self.reply_to or None,
                             mandatory=self.config.message_kwargs.get("mandatory"),
                         ),
                     ),

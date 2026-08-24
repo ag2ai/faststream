@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
 from fast_depends import Provider
@@ -18,8 +19,8 @@ from .registrator import Registrator
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from faststream._internal.configs import BrokerConfig
     from faststream._internal.context.repository import ContextRepo
-    from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
@@ -83,9 +84,9 @@ class BrokerUsecase(
     ) -> None:
         await self.stop(exc_type, exc_val, exc_tb)
 
-    def _update_fd_config(self, config: "FastDependsConfig") -> None:
+    def _update_config(self, config: "BrokerConfig") -> None:
         """Private method to change broker config state by outer application."""
-        self.config.fd_config = config | self.config.fd_config
+        self.config.add_outer_config(config)
 
     async def start(self) -> None:
         # TODO: filter by already running handlers after TestClient refactor
@@ -108,10 +109,85 @@ class BrokerUsecase(
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
         if self._connection is None:
+            self._prepare()
             self._connection = await self._connect()
-            self._setup_logger()
 
         return self._connection
+
+    def _prepare(self) -> None:
+        """Preparation: everything derivable from the options composition, no I/O.
+
+        The moment the composition is final — the Router prefix composed, the
+        Config values in scope — and the last one before anything talks to the
+        network. Every static step lives here so that a declaration mistake
+        refuses the Broker rather than aborting a start-up already under way.
+
+        Endpoints first and the logger second: logger setup reads every
+        Subscriber's log context, which reads their resolved addresses.
+
+        Synchronous and idempotent, so an App can drive it across all its Brokers
+        before connecting any, and schema generation can drive it with no event
+        loop at all. No flag guards this method: the endpoints carry their own,
+        and both logger steps already settle — registering a log context widens a
+        column width, and the logger object is built only if there is not one.
+        The flag it does keep records that this happened, for the sake of an
+        endpoint attached afterwards.
+        """
+        for sub in self.subscribers:
+            sub.prepare()
+
+        for pub in self.publishers:
+            pub.prepare()
+
+        self._setup_logger()
+
+        self._prepared = True
+
+    @contextmanager
+    def _prepared_for_a_read(self) -> Iterator[None]:
+        """Preparation for a surface that reads resolved values without connecting.
+
+        Preparation belongs to the connection it precedes -- `stop()` undoes it
+        so that the next `connect()` resolves against whatever the Config values
+        are by then -- and a schema render needs the same resolved values while
+        opening no connection. So it undoes what it performed: a render taken
+        before the application is composed would otherwise pin every address,
+        and the `connect()` that follows, finding the endpoints prepared, is a
+        no-op that reuses them.
+
+        Undoes what this call performed and nothing more: a Broker some
+        lifecycle already prepared keeps its Preparation, because there the
+        render reads the running application's own values and undoing it would
+        pull the addresses out from under Subscribers already consuming. Read
+        from the flag rather than from the connection, because an in-memory
+        `TestBroker` runs a fully prepared Broker that never opened one.
+        """
+        already = self._prepared
+
+        self._prepare()
+
+        try:
+            yield
+
+        finally:
+            if not already:
+                self._invalidate()
+
+    def _invalidate(self) -> None:
+        """Undo Preparation across every endpoint.
+
+        The counterpart of `_prepare`, driven where the connection is cleared,
+        so that a stopped Broker prepares again on its next `connect()` — which
+        is what "a Config value is fixed at `connect()`" (ADR-0004) means for a
+        Broker used twice.
+        """
+        self._prepared = False
+
+        for sub in self.subscribers:
+            sub.invalidate()
+
+        for pub in self.publishers:
+            pub.invalidate()
 
     @abstractmethod
     async def _connect(self) -> ConnectionType:
@@ -128,6 +204,10 @@ class BrokerUsecase(
             await sub.stop()
 
         self.running = False
+
+        # After the Subscribers have stopped reading through their addresses,
+        # and before the next `connect()` derives them again.
+        self._invalidate()
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

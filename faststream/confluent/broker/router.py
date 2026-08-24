@@ -6,6 +6,7 @@ from faststream._internal.broker.router import (
     BrokerRouter,
     SubscriberRoute,
 )
+from faststream._internal.config_value import Configurable
 from faststream._internal.constants import EMPTY
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
@@ -32,12 +33,12 @@ class KafkaPublisher(ArgsContainer):
 
     def __init__(
         self,
-        topic: str,
+        topic: Configurable[str],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
         headers: dict[str, str] | None = None,
-        reply_to: str = "",
+        reply_to: Configurable[str] = "",
         batch: bool = False,
         # AsyncAPI args
         title: str | None = None,
@@ -91,11 +92,11 @@ class KafkaRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        *topics: str,
+        *topics: Configurable[str],
         publishers: Iterable[KafkaPublisher] = (),
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
-        group_id: str | None = None,
+        group_id: Configurable[str] | None = None,
         group_instance_id: str | None = None,
         fetch_max_wait_ms: int = 500,
         fetch_max_bytes: int = 50 * 1024 * 1024,

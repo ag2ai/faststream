@@ -1,0 +1,125 @@
+import asyncio
+from typing import Any
+from unittest.mock import MagicMock
+
+import anyio
+import pytest
+
+from faststream import Config
+from faststream.exceptions import SetupError
+from faststream.params import Path
+from tests.brokers.base.config import ConfigOverrideTestcase
+
+from .basic import KafkaMemoryTestcaseConfig
+
+
+@pytest.mark.kafka()
+class TestConfigValues(KafkaMemoryTestcaseConfig, ConfigOverrideTestcase):
+    log_context_address_key = "topic"
+
+    @pytest.mark.asyncio()
+    async def test_pattern_value(self, queue: str, event: asyncio.Event) -> None:
+        broker = self.get_broker(config_values={"PATTERN": f"{queue}-.*"})
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any) -> None:
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", f"{queue}-1")
+
+            with anyio.move_on_after(self.timeout):
+                await event.wait()
+
+        assert event.is_set()
+
+    @pytest.mark.asyncio()
+    async def test_group_id_value(self, queue: str, mock: MagicMock) -> None:
+        """Two subscribers land in one consumer group, so only one of them eats."""
+        broker = self.get_broker(config_values={"GROUP": f"{queue}-group"})
+
+        @broker.subscriber(queue, group_id=Config("GROUP"))
+        async def resolved(msg: Any) -> None:
+            mock("resolved")
+
+        @broker.subscriber(queue, group_id=f"{queue}-group")
+        async def literal(msg: Any) -> None:
+            mock("literal")
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+
+        # Which of the two eats depends on iteration order; that only one does
+        # is the assertion — an unresolved placeholder is a group of its own.
+        assert mock.call_count == 1, mock.call_args_list
+
+    @pytest.mark.asyncio()
+    async def test_none_default_leaves_the_subscriber_without_a_group(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """`None` is a real default: no group, so neither subscriber is deduped."""
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, group_id=Config("ABSENT", default=None))
+        async def first(msg: Any) -> None:
+            mock("first")
+
+        @broker.subscriber(queue, group_id=Config("ABSENT", default=None))
+        async def second(msg: Any) -> None:
+            mock("second")
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+
+        assert mock.call_count == 2, mock.call_args_list
+
+    @pytest.mark.asyncio()
+    async def test_a_config_value_holding_an_address_template_fills_path(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        """A Config value is read as an Address template, exactly as a literal is."""
+        broker = self.get_broker(
+            apply_types=True,
+            config_values={"PATTERN": f"{queue}.{{level}}"},
+        )
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any, level: str = Path()) -> None:
+            mock(level)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", f"{queue}.info")
+
+        mock.assert_called_once_with("info")
+
+    @pytest.mark.asyncio()
+    async def test_an_unsatisfiable_path_names_the_config_key(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True, config_values={"PATTERN": queue})
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any, level: str = Path()) -> None: ...
+
+        with pytest.raises(SetupError, match=r"Config value 'PATTERN'"):
+            async with self.patch_broker(broker):
+                pass
+
+    @pytest.mark.asyncio()
+    async def test_a_config_value_that_is_not_a_template_names_the_config_key(
+        self,
+    ) -> None:
+        broker = self.get_broker(config_values={"PATTERN": "logs.${ENV"})
+
+        @broker.subscriber(pattern=Config("PATTERN"))
+        async def handler(msg: Any) -> None: ...
+
+        with pytest.raises(SetupError, match=r"Config value 'PATTERN'"):
+            async with self.patch_broker(broker):
+                pass
