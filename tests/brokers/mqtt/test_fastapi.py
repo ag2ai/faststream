@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.mqtt import MQTTRouter
+from faststream.mqtt import MQTTRouter, QoS, Will
 from faststream.mqtt.fastapi import MQTTRouter as StreamRouter
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
@@ -20,6 +20,29 @@ class MQTTFastAPIMemoryTestcaseConfig(MQTTMemoryTestcaseConfig):
     @pytest.fixture(autouse=True)
     def setup_version(self) -> None:
         self.version = "5.0"
+
+
+@pytest.mark.mqtt()
+def test_router_url() -> None:
+    router = StreamRouter("mqtts://router:8884")
+
+    assert router.broker._connection_kwargs["host"] == "router"
+    assert router.broker._connection_kwargs["port"] == 8884
+    assert router.broker._connection_kwargs["tls"] is True
+
+
+@pytest.mark.mqtt()
+def test_router_will_threaded_to_broker() -> None:
+    will = Will(
+        topic="status/service",
+        payload=b"offline",
+        qos=QoS.AT_LEAST_ONCE,
+        retain=True,
+    )
+
+    router = StreamRouter(will=will)
+
+    assert router.broker._connection_kwargs["will"] is will
 
 
 @pytest.mark.connected()

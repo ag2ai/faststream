@@ -65,7 +65,7 @@ class KeyValueWatchSubscriber(
 
             fetch_sub = self._fetch_sub = UnsubscribeAdapter["KeyValue.KeyWatcher"](
                 await bucket.watch(
-                    keys=self.clear_subject,
+                    keys=self.subject.broker_address,
                     headers_only=self.kv_watch.headers_only,
                     include_history=self.kv_watch.include_history,
                     ignore_deletes=self.kv_watch.ignore_deletes,
@@ -110,7 +110,7 @@ class KeyValueWatchSubscriber(
 
             fetch_sub = self._fetch_sub = UnsubscribeAdapter["KeyValue.KeyWatcher"](
                 await bucket.watch(
-                    keys=self.clear_subject,
+                    keys=self.subject.broker_address,
                     headers_only=self.kv_watch.headers_only,
                     include_history=self.kv_watch.include_history,
                     ignore_deletes=self.kv_watch.ignore_deletes,
@@ -161,7 +161,7 @@ class KeyValueWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["KeyValue.KeyWatcher"](
             await bucket.watch(
-                keys=self.clear_subject,
+                keys=self.subject.broker_address,
                 headers_only=self.kv_watch.headers_only,
                 include_history=self.kv_watch.include_history,
                 ignore_deletes=self.kv_watch.ignore_deletes,
@@ -208,6 +208,6 @@ class KeyValueWatchSubscriber(
         """
         return self.build_log_context(
             message=message,
-            subject=self.subject,
+            subject=self.subject.template,
             stream=self.kv_watch.name,
         )

@@ -8,6 +8,7 @@ from fast_depends.core import CallModel, build_call_model
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
+from faststream._internal.context.composition import ContextRepoComposition
 from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
@@ -55,7 +56,7 @@ class FastDependsConfig:
             use_fastdepends=use_fd,
             provider=value.provider,
             serializer=self.serializer or value.serializer,
-            context=self.context,
+            context=ContextRepoComposition(value.context, self.context),
             call_decorators=(*value.call_decorators, *self.call_decorators),
             get_dependent=self.get_dependent or value.get_dependent,
         )

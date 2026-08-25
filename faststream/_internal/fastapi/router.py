@@ -28,6 +28,7 @@ from fastapi.utils import generate_unique_id
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, _DefaultLifespan
+from typing_extensions import override
 
 from faststream._internal.application import StartAbleApplication
 from faststream._internal.broker import BrokerRouter
@@ -186,6 +187,11 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         self._on_shutdown_hooks = []
 
         self._lifespan_started = False
+
+    @property
+    @override
+    def context(self) -> ContextRepo:
+        return self.broker.context
 
     def _subscriber_compatibility_wrapper(
         self,

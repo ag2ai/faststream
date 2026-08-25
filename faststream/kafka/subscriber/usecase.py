@@ -13,7 +13,7 @@ from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, Tas
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import compile_path
+from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -29,6 +29,12 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
+
+
+KAFKA_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol=".*",
+    patch_regex=lambda x: x.replace(r"\*", ".*"),
+)
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -60,10 +66,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.consumer = None
 
     @property
-    def pattern(self) -> str | None:
+    def pattern(self) -> Address | None:
+        """The pattern this Subscriber was declared with, and its Broker address."""
         if not self._pattern:
-            return self._pattern
-        return f"{self._outer_config.prefix}{self._pattern}"
+            return None
+
+        return Address(self._pattern, KAFKA_ADDRESS_SYNTAX).add_prefix(
+            self._outer_config.prefix,
+        )
 
     @property
     def topics(self) -> list[str]:
@@ -99,10 +109,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.parser._setup(consumer)
 
-        if self.topics or self.pattern:
+        pattern = self.pattern
+        if self.topics or pattern:
             consumer.subscribe(
                 topics=self.topics,
-                pattern=self.pattern,
+                pattern=pattern.broker_address if pattern else None,
                 listener=make_logging_listener(
                     consumer=consumer,
                     logger=self._outer_config.logger.logger.logger,
@@ -241,8 +252,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        if self.pattern:
-            topics = [self.pattern]
+        if pattern := self.pattern:
+            topics = [pattern.broker_address]
 
         elif self.topics:
             topics = self.topics
@@ -272,16 +283,11 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[ConsumerRecord]",
     ) -> None:
-        if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
-
-        else:
-            reg = None
+        reg = (
+            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
+            if config.pattern
+            else None
+        )
 
         self.parser = AioKafkaParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
@@ -320,16 +326,11 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
-        if config.pattern:
-            reg, pattern = compile_path(
-                config.pattern,
-                replace_symbol=".*",
-                patch_regex=lambda x: x.replace(r"\*", ".*"),
-            )
-            config.pattern = pattern
-
-        else:
-            reg = None
+        reg = (
+            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
+            if config.pattern
+            else None
+        )
 
         self.parser = AioKafkaBatchParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,

@@ -48,12 +48,14 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
 
     def __init__(
         self,
-        host: str = "localhost:1883",
+        url: str = "mqtt://localhost:1883",
         port: int = EMPTY,
         *,
+        host: str = EMPTY,
         client_id: str = "",
         keepalive: int = 60,
         clean_session: bool = True,
+        will: zmqtt.Will | None = None,
         version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         session_expiry_interval: int = 0,
@@ -103,11 +105,13 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         ),
     ) -> None:
         super().__init__(
+            url=url,
             host=host,
             port=port,
             client_id=client_id,
             keepalive=keepalive,
             clean_session=clean_session,
+            will=will,
             version=version,
             reconnect=reconnect,
             session_expiry_interval=session_expiry_interval,

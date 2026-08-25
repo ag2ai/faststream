@@ -93,14 +93,16 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
         sub: LogicSubscriber[Any] | None = None
         for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("LogicSubscriber[Any]", handler)
-            if _is_handler_matches(handler, publisher.subject, publisher_stream):
+            if _is_handler_matches(handler, publisher.subject.template, publisher_stream):
                 sub = handler
                 break
 
         if sub is None:
             is_real = False
             sub = broker.subscriber(
-                publisher.subject, persistent=False, stream=publisher_stream
+                publisher.subject.template,
+                persistent=False,
+                stream=publisher_stream,
             )
         else:
             is_real = True
@@ -253,7 +255,7 @@ def _is_handler_matches(
         if stream != handler_stream.name:
             return False
 
-    if is_subject_match_wildcard(subject, handler.clear_subject):
+    if is_subject_match_wildcard(subject, handler.subject.broker_address):
         return True
 
     for filter_subject in handler.filter_subjects or ():

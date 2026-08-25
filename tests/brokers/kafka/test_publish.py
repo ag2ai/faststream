@@ -364,3 +364,46 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
+
+    @pytest.mark.asyncio()
+    async def test_batch_publisher_with_kafka_response_without_keys(
+        self, queue: str
+    ) -> None:
+        """Test using KafkaResponse to set different keys for each message."""
+        pub_broker = self.get_broker(apply_types=True)
+
+        messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
+
+        @pub_broker.subscriber(queue)
+        async def handler(msg: Any, raw_msg=Context("message")) -> None:
+            await messages_queue.put((msg, raw_msg.raw_message.key))
+
+        publisher = pub_broker.publisher(queue, batch=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+
+            await publisher.publish(
+                "message1",
+                "message2",
+                "message3",
+            )
+
+            received = []
+            for _ in range(3):
+                msg, key = await asyncio.wait_for(
+                    messages_queue.get(), timeout=self.timeout
+                )
+                received.append((msg, key))
+
+        received_set = set(received)
+        expected_set = {
+            ("message1", None),
+            ("message2", None),
+            ("message3", None),
+        }
+        assert received_set == expected_set, (
+            f"Expected {expected_set}, got {received_set}"
+        )
+
+        assert messages_queue.empty()

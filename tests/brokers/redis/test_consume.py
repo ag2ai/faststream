@@ -1,8 +1,10 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
+from redis.exceptions import ResponseError
 
 from faststream import AckPolicy
 from faststream.redis import (
@@ -437,6 +439,38 @@ class TestConsumeList(RedisTestcaseConfig):
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeStream(RedisTestcaseConfig):
+    async def test_consume_group_creates_stream_by_default(self, queue: str) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+        )
+        async def handler(msg: RedisMessage) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            assert await br._connection.exists(queue)
+
+    async def test_consume_group_without_declare_requires_stream(
+        self, queue: str
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(
+                queue,
+                group="group",
+                consumer=queue,
+                declare=False,
+            ),
+        )
+        async def handler(msg: RedisMessage) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            with pytest.raises(ResponseError, match="key to exist"):
+                await br.start()
+            assert not await br._connection.exists(queue)
+
     @pytest.mark.slow()
     async def test_consume_stream(
         self, mock: MagicMock, queue: str, event: asyncio.Event
@@ -661,6 +695,55 @@ class TestConsumeStream(RedisTestcaseConfig):
         async def handler(msg: RedisMessage) -> None: ...
 
         assert next(iter(consume_broker.subscribers)).last_id == "0"
+
+    async def test_consume_group_from_beginning(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "before-group"}, stream=queue)
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with({"data": "before-group"})
+
+    async def test_consume_existing_group_from_last_id(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "pending"}, stream=queue)
+            client = br._connection
+            assert client is not None
+            await client.xgroup_create(queue, "group", id="0")
+            await client.xreadgroup("group", queue, {queue: ">"})
+
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with({"data": "pending"})
 
     async def test_consume_nack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
