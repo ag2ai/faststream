@@ -26,3 +26,11 @@ class TestNatsAddressTemplate(NatsTestcaseConfig, AddressTemplateTestcase):
 
         assert publisher.subject.template == "prefix_out.{id}"
         assert publisher.subject.broker_address == "prefix_out.*"
+
+    def test_escaped_braces_are_literal(self) -> None:
+        broker = self.get_broker()
+
+        subscriber = broker.subscriber("cache{{shard}}")
+
+        assert subscriber.subject.template == "cache{{shard}}"
+        assert subscriber.subject.broker_address == "cache{shard}"

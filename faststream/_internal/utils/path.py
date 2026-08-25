@@ -6,7 +6,7 @@ from typing import Any
 
 from faststream.exceptions import SetupError
 
-PARAM_REGEX = re.compile(r"{([a-zA-Z0-9_]+)}")
+PARAM_REGEX = re.compile(r"(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})")
 
 
 @dataclass(frozen=True)
@@ -79,6 +79,26 @@ class Address:
         return self._compiled
 
 
+_ESCAPED_LEFT = "__faststream_escaped_left__"
+_ESCAPED_RIGHT = "__faststream_escaped_right__"
+
+
+def _escape_literal_braces(path: str) -> str:
+    result = ""
+    idx = 0
+    while idx < len(path):
+        if path.startswith("{{", idx):
+            result += _ESCAPED_LEFT
+            idx += 2
+        elif path.startswith("}}", idx):
+            result += _ESCAPED_RIGHT
+            idx += 2
+        else:
+            result += path[idx]
+            idx += 1
+    return result
+
+
 def compile_path(
     path: str,
     replace_symbol: str,
@@ -86,6 +106,7 @@ def compile_path(
     *,
     param_regex: str = "[^.]+",
 ) -> tuple[Pattern[str] | None, str]:
+    path = _escape_literal_braces(path)
     path_regex = "^.*?"
     original_path = ""
 
@@ -95,7 +116,7 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name = match.groups("str")[0]
 
-        path_regex += re.escape(path[idx : match.start()])
+        path_regex += re.escape(path[idx : match.start()]).replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}")
         path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
@@ -117,10 +138,11 @@ def compile_path(
     if idx == 0:
         regex = None
     else:
-        path_regex += re.escape(path[idx:]) + "$"
+        path_regex += re.escape(path[idx:]).replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}") + "$"
         regex = re.compile(patch_regex(path_regex))
 
     original_path += path[idx:]
+    original_path = original_path.replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}")
     return regex, original_path
 
 

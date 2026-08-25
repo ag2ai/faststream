@@ -44,3 +44,20 @@ def test_an_empty_prefix_leaves_the_address_alone() -> None:
 def test_an_address_is_falsy_when_nothing_was_declared() -> None:
     assert not Address("", SYNTAX)
     assert Address("logs.info", SYNTAX)
+
+
+def test_escaped_braces_are_literal() -> None:
+    address = Address("cache{{shard}}", SYNTAX)
+
+    assert address.template == "cache{{shard}}"
+    assert address.broker_address == "cache{shard}"
+    assert address.regex is None
+
+
+def test_escaped_braces_with_parameters() -> None:
+    address = Address("cache{{shard}}.logs.{level}", SYNTAX)
+
+    assert address.template == "cache{{shard}}.logs.{level}"
+    assert address.broker_address == "cache{shard}.logs.*"
+    assert address.regex is not None
+    assert address.regex.match("cache{shard}.logs.info").groupdict() == {"level": "info"}

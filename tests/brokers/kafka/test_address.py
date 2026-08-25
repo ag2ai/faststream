@@ -27,3 +27,11 @@ class TestKafkaAddressTemplate(KafkaTestcaseConfig, AddressTemplateTestcase):
         subscriber = broker.subscriber("topic")
 
         assert subscriber.pattern is None
+
+    def test_escaped_braces_are_literal(self) -> None:
+        broker = self.get_broker()
+
+        subscriber = broker.subscriber(pattern="cache{{shard}}")
+
+        assert subscriber.pattern.template == "cache{{shard}}"
+        assert subscriber.pattern.broker_address == "cache{shard}"
