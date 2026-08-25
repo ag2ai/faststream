@@ -1,12 +1,55 @@
 import pytest
+from nats.js.api import ConsumerConfig
 
-from faststream.nats import NatsBroker
+from faststream.nats import JStream, NatsBroker, PullSub
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 
 
 @pytest.mark.nats()
 class TestNaming(NamingTestCase):
     broker_class = NatsBroker
+
+    def test_filter_subjects_without_subject(self) -> None:
+        """A JetStream consumer may address a stream through `filter_subjects` and no `subject`."""
+        broker = self.broker_class()
+
+        @broker.subscriber(
+            stream=JStream("stream"),
+            pull_sub=PullSub(),
+            durable="durable",
+            config=ConsumerConfig(filter_subjects=["logs.{level}"]),
+        )
+        async def handle() -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        (channel_name,) = schema["channels"]
+        assert channel_name == "logs.{level}:Handle"
+        assert schema["channels"][channel_name]["address"] == "logs.{level}:Handle"
+        assert (
+            schema["channels"][channel_name]["bindings"]["nats"]["subject"]
+            == "logs.{level}"
+        )
+
+    def test_multiple_filter_subjects_without_subject(self) -> None:
+        """Several filtered subjects are rendered the same way the runtime reports them."""
+        broker = self.broker_class()
+
+        @broker.subscriber(
+            stream=JStream("stream"),
+            pull_sub=PullSub(),
+            durable="durable",
+            config=ConsumerConfig(filter_subjects=["logs.info", "logs.error"]),
+        )
+        async def handle() -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        (channel_name,) = schema["channels"]
+        assert (
+            schema["channels"][channel_name]["bindings"]["nats"]["subject"]
+            == "logs.info, logs.error"
+        )
 
     def test_base(self) -> None:
         broker = self.broker_class()
