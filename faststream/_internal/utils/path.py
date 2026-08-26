@@ -79,8 +79,8 @@ class Address:
         return self._compiled
 
 
-_ESCAPED_LEFT = "__faststream_escaped_left__"
-_ESCAPED_RIGHT = "__faststream_escaped_right__"
+ESCAPED_LEFT_BRACE = "__faststream_escaped_left__"
+ESCAPED_RIGHT_BRACE = "__faststream_escaped_right__"
 
 
 def _escape_literal_braces(path: str) -> str:
@@ -88,10 +88,10 @@ def _escape_literal_braces(path: str) -> str:
     idx = 0
     while idx < len(path):
         if path.startswith("{{", idx):
-            result += _ESCAPED_LEFT
+            result += ESCAPED_LEFT_BRACE
             idx += 2
         elif path.startswith("}}", idx):
-            result += _ESCAPED_RIGHT
+            result += ESCAPED_RIGHT_BRACE
             idx += 2
         else:
             result += path[idx]
@@ -116,7 +116,7 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name = match.groups("str")[0]
 
-        path_regex += re.escape(path[idx : match.start()]).replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}")
+        path_regex += re.escape(path[idx : match.start()]).replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
         path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
@@ -138,11 +138,11 @@ def compile_path(
     if idx == 0:
         regex = None
     else:
-        path_regex += re.escape(path[idx:]).replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}") + "$"
+        path_regex += re.escape(path[idx:]).replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}") + "$"
         regex = re.compile(patch_regex(path_regex))
 
     original_path += path[idx:]
-    original_path = original_path.replace(_ESCAPED_LEFT, "{").replace(_ESCAPED_RIGHT, "}")
+    original_path = original_path.replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
     return regex, original_path
 
 

@@ -1,9 +1,9 @@
 from re import Pattern
 
 from faststream._internal.utils.path import (
+    ESCAPED_LEFT_BRACE,
+    ESCAPED_RIGHT_BRACE,
     PARAM_REGEX,
-    _ESCAPED_LEFT,
-    _ESCAPED_RIGHT,
     compile_path,
 )
 from faststream.exceptions import SetupError
@@ -44,8 +44,8 @@ def compile_mqtt_path(path: str) -> tuple[Pattern[str] | None, str]:
 def _patch_mqtt_regex(regex: str) -> str:
     return (
         regex
-        .replace(_ESCAPED_LEFT, r"\{")
-        .replace(_ESCAPED_RIGHT, r"\}")
+        .replace(ESCAPED_LEFT_BRACE, r"\{")
+        .replace(ESCAPED_RIGHT_BRACE, r"\}")
         .replace(r"\+", "[^/]+")
         .replace(r"/\#", "(?:/.*)?")
         .replace(r"\#", ".*")

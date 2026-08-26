@@ -97,3 +97,15 @@ async def base_handler(
 ):
     ...
 ```
+
+### Literal braces
+
+If your subject name legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+@broker.subscriber("cache{{shard}}.logs.{level}")
+async def handler(body: str, level: str = Path()):
+    ...
+```
+
+This subscribes to the subject `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.
