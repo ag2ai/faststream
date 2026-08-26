@@ -37,6 +37,36 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
     @pytest.mark.asyncio()
+    async def test_fake_subscribers_deregistered_without_gc(self) -> None:
+        """A second TestBroker must not reuse a fake left behind by the first.
+
+        Fakes are registered with `persistent=False`, so the broker holds them weakly.
+        Dropping the strong reference alone leaves them reachable until the next
+        collection, and a TestBroker starting inside that window matched one as a real
+        subscriber — keeping no strong reference of its own, so the collector could take
+        it away mid-test and `publish()` would raise `SubscriberNotFound`.
+        """
+        broker = self.get_broker()
+
+        @broker.subscriber("test")
+        async def handler(msg) -> None: ...
+
+        pub = broker.publisher("test2")  # noqa: F841
+
+        async with self.patch_broker(broker):
+            pass
+
+        # Deliberately no gc.collect() here — that is what used to hide the leftover.
+        assert len(broker.subscribers) == 1, len(broker.subscribers)
+
+        second_client = self.patch_broker(broker)
+        async with second_client as br:
+            # The fake belongs to this client, so it survives a collection.
+            assert len(second_client._fake_subscribers) == 1
+            gc.collect()
+            assert len(br.subscribers) == 2, len(br.subscribers)
+
+    @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
         test_broker = self.get_broker()
 

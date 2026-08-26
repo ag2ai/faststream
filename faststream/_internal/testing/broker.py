@@ -240,6 +240,14 @@ class TestBroker(Generic[Broker, EnterType]):
             if getattr(p, "_fake_handler", None):
                 p.reset_test()
 
+        # Dropping our strong reference is not enough: the fakes were registered with
+        # `persistent=False`, so the broker only holds them weakly and they stay
+        # reachable until the next collection. A TestBroker starting in that window
+        # matches one as a real subscriber, keeps no strong reference of its own, and
+        # then loses it to the collector mid-test. Withdraw them here instead.
+        for sub in self._fake_subscribers:
+            broker._subscribers.discard(sub)
+
         self._fake_subscribers.clear()
 
         for sub in broker.subscribers:
