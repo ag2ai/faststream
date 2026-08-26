@@ -116,7 +116,12 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name = match.groups("str")[0]
 
-        path_regex += re.escape(path[idx : match.start()]).replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
+        path_regex += (
+            re
+            .escape(path[idx : match.start()])
+            .replace(ESCAPED_LEFT_BRACE, "{")
+            .replace(ESCAPED_RIGHT_BRACE, "}")
+        )
         path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
@@ -138,11 +143,19 @@ def compile_path(
     if idx == 0:
         regex = None
     else:
-        path_regex += re.escape(path[idx:]).replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}") + "$"
+        path_regex += (
+            re
+            .escape(path[idx:])
+            .replace(ESCAPED_LEFT_BRACE, "{")
+            .replace(ESCAPED_RIGHT_BRACE, "}")
+            + "$"
+        )
         regex = re.compile(patch_regex(path_regex))
 
     original_path += path[idx:]
-    original_path = original_path.replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
+    original_path = original_path.replace(ESCAPED_LEFT_BRACE, "{").replace(
+        ESCAPED_RIGHT_BRACE, "}"
+    )
     return regex, original_path
 
 
