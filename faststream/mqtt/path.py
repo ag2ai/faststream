@@ -1,6 +1,7 @@
 from re import Pattern
 
 from faststream._internal.utils.path import (
+    PARAM_REGEX,
     _ESCAPED_LEFT,
     _ESCAPED_RIGHT,
     compile_path,
@@ -18,8 +19,6 @@ def compile_mqtt_path(path: str) -> tuple[Pattern[str] | None, str]:
     supported; use ``MQTTMessage.raw_message.topic`` when the full topic is
     needed.
     """
-    from faststream._internal.utils.path import PARAM_REGEX
-
     for match in PARAM_REGEX.finditer(path):
         name = match.group(1)
         start, end = match.start(), match.end()

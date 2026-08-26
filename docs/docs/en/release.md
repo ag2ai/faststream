@@ -12,29 +12,6 @@ hide:
 ---
 
 # Release Notes
-
-## Unreleased
-
-### What's Changed
-
-#### Literal Braces in Addresses
-
-Addresses now support escaped braces (`{{` / `}}`) to represent literal `{` and `}` characters. This is useful when a queue, topic, or subject name legitimately contains braces (e.g., `cache{shard}`).
-
-**Breaking change:** An address containing a literal `{` must now be rewritten as `{{`. For example:
-
-```python
-# Before (silently treated as a parameter):
-@broker.subscriber("cache{shard}")
-
-# After (literal braces):
-@broker.subscriber("cache{{shard}}")
-```
-
-This change affects all brokers: Kafka, Confluent, RabbitMQ, Redis, NATS, and MQTT. MQTT already supported this syntax; other brokers now inherit the same behavior.
-
-* feat: support literal braces in addresses across all brokers by [@SammySN-car](https://github.com/SammySN-car){.external-link target="_blank"} in [#3034](https://github.com/ag2ai/faststream/pull/3034){.external-link target="_blank"}
-
 ## 0.7.1
 
 ### What's Changed
