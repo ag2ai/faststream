@@ -10,11 +10,13 @@ search:
 
 # Concurrency and Prefetch
 
-RabbitMQ subscribers have two settings that look like they do the same thing but do not: [`max_workers`](../getting-started/subscription/concurrency.md) and `prefetch_count`. Mixing them up is a common source of confusion, so it helps to keep their roles straight.
+RabbitMQ subscribers are concurrent by default. A delivery is handled as it arrives, so several invocations of your handler can be in flight at the same time — you do not opt into that, and there is no `max_workers` option here.
+
+What you tune instead is the opposite: **how many messages the broker is allowed to push at you**. Without a limit it will keep sending as fast as it can, which is rarely what you want.
 
 ## `prefetch_count`
 
-`prefetch_count` comes from AMQP's `basic.qos`. It tells the broker how many unacknowledged messages it may have outstanding on a given channel at any time.
+`prefetch_count` comes from AMQP's `basic.qos`. It tells the broker how many unacknowledged messages it may have outstanding on a channel at any time.
 
 It is set at the channel level:
 
@@ -24,27 +26,52 @@ from faststream.rabbit.schemas import Channel
 
 broker = RabbitBroker(
     "amqp://guest:guest@localhost:5672/",
-    channel=Channel(prefetch_count=10),
+    default_channel=Channel(prefetch_count=10),
 )
 ```
 
-`prefetch_count=N` does **not** mean "process `N` messages at the same time". It means "let the broker push up to `N` messages to this consumer before requiring an ack". It is a buffer / flow-control window — not parallelism.
+With `prefetch_count=10`, the broker will deliver at most ten messages that have not yet been acknowledged. As each one is acked, room opens up for the next.
 
-## How they combine
+You can also give a single subscriber its own channel, so its limit is independent of the rest of the application:
 
-The two settings are orthogonal:
+```python hl_lines="3"
+@broker.subscriber(
+    "heavy-queue",
+    channel=Channel(prefetch_count=1),
+)
+async def handle(msg): ...
+```
 
-| `max_workers` | `prefetch_count` | Behavior                                                                                |
-|---------------|------------------|-----------------------------------------------------------------------------------------|
-| `1`           | `1`              | One message in flight, processed sequentially. The classic per-message round trip.       |
-| `1`           | `N`              | Up to `N` messages held locally by the consumer, but **still processed one at a time**.  |
-| `K`           | `N` (≥ `K`)      | Up to `K` invocations of the handler run concurrently; up to `N` may be buffered.        |
-| `K`           | `< K`            | Concurrency is throttled by `prefetch_count`: the broker will not push enough messages to keep all workers busy. |
+## Why you want a limit
 
-A useful rule of thumb: set `prefetch_count` at least as large as `max_workers`, otherwise extra workers sit idle waiting for messages.
+Leaving `prefetch_count` unset means the broker keeps pushing. For a fast producer and a slow handler that has two costs:
 
-## The common confusion
+- **Memory.** Undelivered work piles up in your process rather than staying in the queue.
+- **Distribution.** Messages already sitting in one consumer's buffer cannot be picked up by another consumer, so adding replicas stops helping.
 
-> Does `prefetch_count=10` mean ten messages are processed at the same time?
+Setting `prefetch_count` to a small number keeps the backlog in RabbitMQ, where it can still be redistributed.
 
-No. It means the **broker** may deliver up to ten messages before it expects acknowledgments. How many are *processed in parallel* is determined by `max_workers`. With the default `max_workers=1`, the ten prefetched messages are processed one after another — `prefetch_count` only changes how aggressively they are pulled from the broker.
+## Choosing a value
+
+There is no universal answer, but the shape of the trade-off is consistent:
+
+| `prefetch_count` | Behavior |
+|---|---|
+| `1` | One unacknowledged message at a time. Slowest throughput, but work spreads evenly across consumers — a good fit for long or uneven tasks. |
+| small (e.g. `10`) | Enough of a buffer to hide network latency while keeping the bulk of the backlog in the queue. A reasonable default. |
+| large / unset | Highest throughput for short, uniform tasks, at the cost of memory and of one consumer hoarding messages. |
+
+If handling a message is slow or its duration varies a lot, prefer a small value. If messages are tiny and uniform, a larger window is usually fine.
+
+## `global_qos`
+
+By default the limit applies to each consumer on the channel separately. `Channel(global_qos=True)` shares one limit across every subscriber using that channel instead:
+
+```python
+broker = RabbitBroker(
+    "amqp://guest:guest@localhost:5672/",
+    default_channel=Channel(prefetch_count=10, global_qos=True),
+)
+```
+
+See the RabbitMQ documentation on [consumer prefetch](https://www.rabbitmq.com/docs/consumer-prefetch){.external-link target="_blank"} for the full semantics.
