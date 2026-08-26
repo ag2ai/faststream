@@ -110,7 +110,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
         if self.calls:
             await self._create_subscription()
-            self.add_task(self._consume_loop)
+            self.add_task(self._consume_loop, restart_on_failure=False)
 
         self._post_start()
 

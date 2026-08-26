@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast, overload
 
 import zmqtt
@@ -58,7 +58,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         will: zmqtt.Will | None = None,
         version: Literal["3.1.1", "5.0"] = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
+        on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         session_expiry_interval: int = 0,
+        session_replay_buffer_size: int = 1000,
+        session_replay_timeout: float = 30.0,
         # broker base args
         graceful_timeout: float | None = 15.0,
         decoder: Optional["CustomCallable"] = None,
@@ -114,7 +117,10 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             will=will,
             version=version,
             reconnect=reconnect,
+            on_connection_recovery_failed=on_connection_recovery_failed,
             session_expiry_interval=session_expiry_interval,
+            session_replay_buffer_size=session_replay_buffer_size,
+            session_replay_timeout=session_replay_timeout,
             graceful_timeout=graceful_timeout,
             decoder=decoder,
             parser=parser,

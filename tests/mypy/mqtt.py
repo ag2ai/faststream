@@ -1,5 +1,10 @@
 from faststream.mqtt import MQTTBroker, QoS, TestMQTTBroker, Will, WillProperties
 
+
+async def on_connection_recovery_failed() -> None:
+    pass
+
+
 MQTTBroker("mqtts://localhost")
 MQTTBroker(url="mqtt://localhost:1884")
 MQTTBroker(host="localhost", port=1884)
@@ -12,6 +17,9 @@ MQTTBroker(
         retain=True,
         properties=WillProperties(content_type="text/plain"),
     ),
+    on_connection_recovery_failed=on_connection_recovery_failed,
+    session_replay_buffer_size=5000,
+    session_replay_timeout=60.0,
 )
 
 
