@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from aio_pika import IncomingMessage, Message
@@ -379,3 +379,36 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
                 m.mock.assert_not_called()
 
             assert event.is_set()
+
+
+@pytest.mark.connected()
+@pytest.mark.rabbit()
+class TestEscapedBraces(RabbitTestcaseConfig):
+    @pytest.mark.asyncio()
+    async def test_escaped_braces_are_literal_routing_key(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        q = RabbitQueue(name=queue, routing_key=f"{queue}-{{{{braced}}}}")
+
+        assert q.routing() == f"{queue}-{{braced}}"
+        assert q.routing_address.template == f"{queue}-{{{{braced}}}}"
+
+        exchange = RabbitExchange(f"{queue}-ex")
+
+        @consume_broker.subscriber(q, exchange=exchange)
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            await br.publish("hello", queue=q, exchange=exchange)
+            await asyncio.wait(
+                (asyncio.create_task(event.wait()),),
+                timeout=self.timeout,
+            )
+
+        assert event.is_set()
+        mock.assert_called_once_with("hello")

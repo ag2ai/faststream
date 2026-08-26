@@ -914,3 +914,29 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
                     break
 
                 await bucket.put(queue, expected_messages[index_message])
+
+
+@pytest.mark.connected()
+@pytest.mark.nats()
+class TestEscapedBraces(NatsTestcaseConfig):
+    @pytest.mark.asyncio()
+    async def test_escaped_braces_are_literal_subject(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        broker = self.get_broker()
+
+        subscriber = broker.subscriber(f"{queue}.root/{{{{braced}}}}")
+
+        @subscriber
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
+
+        assert subscriber.subject.broker_address == f"{queue}.root/{{braced}}"
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("entry", f"{queue}.root/{{braced}}")
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("entry")
