@@ -32,7 +32,7 @@ parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/), [**MQTT**](https://mqtt.org/) support)
+- [**Native Broker Features**](#native-broker-features): **FastStream** never hides your broker — use [**Kafka**](https://kafka.apache.org/) consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/) exchanges and DLQ, [**NATS**](https://nats.io/) JetStream and KeyValue, [**Redis**](https://redis.io/) Streams, [**MQTT**](https://mqtt.org/) — each in full, with the same ergonomics
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
 
@@ -63,7 +63,7 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 - [Quick Start](#writing-app-code)
   - [Pydantic serialization](#pydantic-serialization)
   - [Msgspec serialization](#msgspec-serialization)
-  - [Unified API](#unified-api)
+  - [Native Broker Features](#native-broker-features)
 - [Testing](#testing-the-service)
 - [CLI](#running-the-application)
 - [AsyncAPI Documentation](#project-documentation)
@@ -197,11 +197,13 @@ broker = KafkaBroker(serializer=MsgSpecSerializer())
 
 You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/gettings-started/subscription/msgspec/).
 
-### Unified API
+<a id="unified-api"></a>
 
-At first glance, **FastStream** unifies various broker backends under a single API. However, a completely unified API inevitably results in missing features. We do not want to limit users' choices. If you prefer Kafka over Redis, there is a reason. Therefore, we support all native broker features you need.
+### Native Broker Features
 
-Consequently, our unified API has a relatively limited scope:
+**FastStream does not hide your broker.** A completely unified API inevitably results in missing features, and we do not want to limit your choices: if you chose Kafka over Redis, there was a reason. So the shared API is deliberately small — everything beyond it is your broker's own, in full.
+
+The shared part covers only this:
 
 ```python
 from faststream.[broker] import [Broker], [Broker]Message
