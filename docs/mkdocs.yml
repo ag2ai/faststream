@@ -162,9 +162,9 @@ extra:
     property: G-HDTMP5FFHP
   social_image: https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream
   social:
-    # Discord link should be first
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/qFm6aSqq59
+    # Discussions link should be first
+    - icon: octicons/comment-discussion-24
+      link: https://github.com/ag2ai/faststream/discussions
     - icon: fontawesome/brands/github-alt
       link: https://github.com/ag2ai/faststream
     - icon: fontawesome/brands/twitter

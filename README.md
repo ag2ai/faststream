@@ -19,9 +19,9 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/), you already know **Fas
 [![Dependency Review](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg)](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml)
 [![License](https://img.shields.io/github/license/ag2ai/faststream.svg)](https://github.com/ag2ai/faststream/blob/main/LICENSE)
 [![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/ag2ai/faststream/blob/main/.github/CODE_OF_CONDUCT.md)\
-[![Discord](https://img.shields.io/discord/1085457301214855171?logo=discord&label=EN)](https://discord.gg/qFm6aSqq59)
+[![Discussions](https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions)](https://github.com/ag2ai/faststream/discussions)
 [![FastStream](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json)](https://faststream.ag2.ai)
-[![Telegram](https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram&label=RU)](https://t.me/python_faststream)\
+[![Telegram](https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram)](https://t.me/python_faststream)\
 [![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20FastStream%20Guru-006BFF)](https://gurubase.io/g/faststream)
 </div>
 
@@ -447,9 +447,9 @@ Please show your support and stay in touch by:
 
 - giving our [GitHub repository](https://github.com/ag2ai/faststream/) a star, and
 
-- joining our [EN Discord server](https://discord.gg/qFm6aSqq59)
+- joining the [discussions](https://github.com/ag2ai/faststream/discussions) on GitHub
 
-- joining our [RU Telegram group](https://t.me/python_faststream)
+- joining our [Telegram group](https://t.me/python_faststream)
 
 Your support helps us to stay in touch with you and encourages us to
 continue developing and improving the framework. Thank you for your

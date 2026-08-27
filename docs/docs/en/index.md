@@ -59,14 +59,14 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
 
   <br/>
 
-  <a href="https://discord.gg/qFm6aSqq59" target="_blank">
-      <img alt="Discord" src="https://img.shields.io/discord/1085457301214855171?logo=discord&label=EN"/>
+  <a href="https://github.com/ag2ai/faststream/discussions" target="_blank">
+      <img alt="Discussions" src="https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions"/>
   </a>
 
   <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
 
   <a href="https://t.me/python_faststream" target="_blank">
-    <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram&label=RU"/>
+    <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram"/>
   </a>
 
   <br/>
@@ -644,9 +644,9 @@ Please show your support and stay in touch by:
 
 - giving our [GitHub repository](https://github.com/ag2ai/faststream/) a star, and
 
-- joining our [EN Discord server](https://discord.gg/qFm6aSqq59)
+- joining the [discussions](https://github.com/ag2ai/faststream/discussions) on GitHub
 
-- joining our [RU Telegram group](https://t.me/python_faststream)
+- joining our [Telegram group](https://t.me/python_faststream)
 
 Your support helps us to stay in touch with you and encourages us to
 continue developing and improving the framework. Thank you for your
