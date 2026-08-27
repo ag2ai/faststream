@@ -64,7 +64,9 @@ if TYPE_CHECKING:
 Partition = TypeVar("Partition")
 
 
-class KafkaRouter(StreamRouter[ConsumerRecord | tuple[ConsumerRecord, ...]]):
+class KafkaRouter(
+    StreamRouter[ConsumerRecord[Any, Any] | tuple[ConsumerRecord[Any, Any], ...]]
+):
     """A class to represent a Kafka router."""
 
     broker_class = KB

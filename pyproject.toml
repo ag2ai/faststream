@@ -115,7 +115,8 @@ lint = [
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "mypy==1.19.1",
-    # mypy extensions
+    "pyright==1.1.407",
+    # type checkers extensions
     "types-Deprecated",
     "types-PyYAML",
     "types-setuptools",
@@ -201,6 +202,14 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
+[tool.pyright]
+# Public API surface only: `tests/mypy` exercises the documented API the way a
+# user does. Pyright still follows imports into `faststream/`, so breakage in
+# the framework surfaces here — but internal annotations are not policed.
+include = ["tests/mypy"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 timeout = 30
@@ -279,3 +288,12 @@ fail_under = 20
 
 [tool.bandit]
 skips = ["B101"]
+
+[tool.typos.default.extend-identifiers]
+# Contributor handles in the generated release notes. Names, not misspellings.
+WellFREEzZ = "WellFREEzZ"
+RinZ27 = "RinZ27"
+
+[tool.typos.default.extend-words]
+# ruff's flake8-copyright rule prefix, not a shortening of "copy".
+CPY = "CPY"

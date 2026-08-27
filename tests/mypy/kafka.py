@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import prometheus_client
 from typing_extensions import assert_type
@@ -58,17 +59,17 @@ KafkaBroker(decoder=async_decoder)
 KafkaBroker(decoder=custom_decoder)
 
 
-def sync_parser(msg: ConsumerRecord) -> KafkaMessage:
+def sync_parser(msg: ConsumerRecord[Any, Any]) -> KafkaMessage:
     return ""  # type: ignore[return-value]
 
 
-async def async_parser(msg: ConsumerRecord) -> KafkaMessage:
+async def async_parser(msg: ConsumerRecord[Any, Any]) -> KafkaMessage:
     return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
-    msg: ConsumerRecord,
-    original: Callable[[ConsumerRecord], Awaitable[KafkaMessage]],
+    msg: ConsumerRecord[Any, Any],
+    original: Callable[[ConsumerRecord[Any, Any]], Awaitable[KafkaMessage]],
 ) -> KafkaMessage:
     return await original(msg)
 

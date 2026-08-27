@@ -10,6 +10,7 @@ from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.params import NoCast
 
 __all__ = (
+    "Consumer",
     "ContextRepo",
     "KafkaBroker",
     "KafkaMessage",

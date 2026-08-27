@@ -117,7 +117,7 @@ class ChannelSubscriber(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisChannelMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisChannelMessage"]:
         assert self.subscription, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."

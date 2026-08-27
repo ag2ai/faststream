@@ -176,7 +176,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:
         assert self.consumer, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
