@@ -39,20 +39,16 @@ class NatsSubscriberSpecification(
         return self.subject.template or ", ".join(self.filter_subjects)
 
     @property
-    def address(self) -> str | None:
-        """The subject a publisher sends to for this endpoint to receive it.
+    def subjects(self) -> list[str]:
+        """The subjects this endpoint reads, one channel each.
 
-        A JetStream consumer with no `subject` reaches the stream through
-        `filter_subjects`, and a single one of those is that address. Several are
-        not: no one string is the address, so the document gives none.
+        A JetStream consumer with no `subject` reaches its stream through
+        `filter_subjects`, and each of those is an address in its own right.
         """
         if subject := self.subject.template:
-            return subject
+            return [subject]
 
-        if len(subjects := self.filter_subjects) == 1:
-            return subjects[0]
-
-        return None
+        return self.filter_subjects
 
     @property
     def name(self) -> str:
@@ -64,25 +60,32 @@ class NatsSubscriberSpecification(
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        return {
-            self.name: SubscriberSpec(
-                address=self.address,
+        subjects = self.subjects
+        split = len(subjects) > 1
+
+        channels = {}
+        for subject in subjects:
+            name = self._channel_key(subject, split=split)
+
+            channels[name] = SubscriberSpec(
+                address=subject,
                 description=self.description,
                 operation=Operation(
                     message=Message(
-                        title=f"{self.name}:Message",
+                        title=f"{name}:Message",
                         payload=resolve_payloads(payloads),
                     ),
                     bindings=None,
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self._resolved_subject_string,
+                        subject=subject,
                         queue=self.config.queue,
                     ),
                 ),
-            ),
-        }
+            )
+
+        return channels
 
 
 class NotIncludeSpecifation(SubscriberSpecification):

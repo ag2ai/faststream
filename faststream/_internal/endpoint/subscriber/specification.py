@@ -50,6 +50,17 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     def call_name(self) -> str:
         return self.calls.name or "Subscriber"
 
+    def _channel_key(self, address: str, *, split: bool) -> str:
+        """The key one address's channel goes under.
+
+        A `title` names one channel, so `split` prefixes it with the address to
+        keep several of them unique.
+        """
+        if not self.config.title_:
+            return f"{address}:{self.call_name}"
+
+        return f"{self.config.title_}:{address}" if split else self.config.title_
+
     def get_payloads(self) -> list[tuple["dict[str, Any]", str]]:
         payloads: list[tuple[dict[str, Any], str]] = []
 
