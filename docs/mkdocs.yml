@@ -1,6 +1,6 @@
 site_name: FastStream
 # description to improve website indexing
-site_description: FastStream Python messaging framework documentation
+site_description: Asynchronous Python framework for event-driven services — a thin client for Kafka, RabbitMQ, NATS, Redis and MQTT with AsyncAPI docs and in-memory testing.
 site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
 copyright: '&copy; 2026 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
