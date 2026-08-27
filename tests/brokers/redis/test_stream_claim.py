@@ -236,6 +236,83 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 break
 
     @pytest.mark.slow()
+    async def test_repeated_get_one_keeps_claiming(self, queue: str) -> None:
+        """Repeated `get_one()` calls keep the `>` cursor and keep claiming."""
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            await skip_without_claim_support(br)
+            await br.start()
+
+            await self._make_pending(
+                br,
+                queue,
+                "repeat_claim_group",
+                payloads=("first", "second"),
+            )
+            await asyncio.sleep(0.3)
+
+            subscriber = br.subscriber(
+                stream=StreamSub(
+                    queue,
+                    group="repeat_claim_group",
+                    consumer="claimer",
+                    claim_min_idle_time=100,
+                ),
+            )
+
+            first = await subscriber.get_one(timeout=3)
+            second = await subscriber.get_one(timeout=3)
+
+            assert first is not None
+            assert second is not None
+            assert {await first.decode(), await second.decode()} == {
+                "first",
+                "second",
+            }
+            for message in (first, second):
+                assert message.raw_message["delivery_counts"][0] >= 1
+
+            # The group cursor survived both reads
+            assert subscriber.last_id == ">"
+
+    @pytest.mark.slow()
+    async def test_iterator_repeated_messages(self, queue: str) -> None:
+        """The async iterator keeps the `>` cursor across messages."""
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            await skip_without_claim_support(br)
+            await br.start()
+
+            await self._make_pending(
+                br,
+                queue,
+                "iter_repeat_group",
+                payloads=("first", "second"),
+            )
+            await asyncio.sleep(0.3)
+
+            subscriber = br.subscriber(
+                stream=StreamSub(
+                    queue,
+                    group="iter_repeat_group",
+                    consumer="claimer",
+                    claim_min_idle_time=100,
+                ),
+            )
+
+            got: set[str] = set()
+            async for message in subscriber:
+                got.add(await message.decode())
+                assert message.raw_message["delivery_counts"][0] >= 1
+                if len(got) >= 2:
+                    break
+
+            assert got == {"first", "second"}
+            assert subscriber.last_id == ">"
+
+    @pytest.mark.slow()
     async def test_zero_claim_min_idle_time(self, queue: str) -> None:
         """`claim_min_idle_time=0` is a valid value claiming without idle wait."""
         broker = self.get_broker(apply_types=True)
