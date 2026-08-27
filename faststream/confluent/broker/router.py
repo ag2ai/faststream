@@ -85,7 +85,7 @@ class KafkaPublisher(ArgsContainer):
 
 
 class KafkaRoute(SubscriberRoute):
-    """Class to store delaied KafkaBroker subscriber registration."""
+    """Class to store delayed KafkaBroker subscriber registration."""
 
     def __init__(
         self,
@@ -303,7 +303,8 @@ class KafkaRouter(
         Union[
             "Message",
             tuple["Message", ...],
-        ]
+        ],
+        KafkaBrokerConfig,
     ],
 ):
     """Includable to KafkaBroker router."""

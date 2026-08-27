@@ -260,10 +260,10 @@ class ListPublisher(LogicPublisher):
 
 class ListBatchPublisher(ListPublisher):
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         *messages: "SendableMessage",
-        list: str,
+        list: str | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,

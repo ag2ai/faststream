@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING, TypeAlias
+
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
-ConfluentParserType = ParserProto["Message"]  # type: ignore[name-defined]
+if TYPE_CHECKING:
+    from confluent_kafka import Message
+
+ConfluentParserType: TypeAlias = ParserProto["Message"]
 
 try:
     from .annotations import KafkaMessage

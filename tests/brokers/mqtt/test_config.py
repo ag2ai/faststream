@@ -75,6 +75,32 @@ def test_mqtt_connect_timeout_threaded_to_client() -> None:
 
 
 @pytest.mark.mqtt()
+def test_recovery_callback_threaded_to_client() -> None:
+    async def on_connection_recovery_failed() -> None:
+        pass
+
+    broker = MQTTBroker(
+        on_connection_recovery_failed=on_connection_recovery_failed,
+    )
+
+    assert (
+        broker._connection_kwargs["on_connection_recovery_failed"]
+        is on_connection_recovery_failed
+    )
+
+
+@pytest.mark.mqtt()
+def test_session_replay_config_threaded_to_client() -> None:
+    broker = MQTTBroker(
+        session_replay_buffer_size=10,
+        session_replay_timeout=20.0,
+    )
+
+    assert broker._connection_kwargs["session_replay_buffer_size"] == 10
+    assert broker._connection_kwargs["session_replay_timeout"] == 20.0
+
+
+@pytest.mark.mqtt()
 def test_will_threaded_to_client() -> None:
     will = Will(
         topic="status/service",

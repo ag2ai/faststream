@@ -88,8 +88,8 @@ class _BackgroundMiddleware(BaseMiddleware):
 class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
     """A class to route streams."""
 
-    broker_class: type["BrokerUsecase[MsgType, Any]"]
-    broker: "BrokerUsecase[MsgType, Any]"
+    broker_class: type["BrokerUsecase[MsgType, Any, Any]"]
+    broker: "BrokerUsecase[MsgType, Any, Any]"
     docs_router: APIRouter | None
     _after_startup_hooks: list[Callable[[Any], Awaitable[Mapping[str, Any] | None]]]
     _on_shutdown_hooks: list[Callable[[Any], Awaitable[None]]]

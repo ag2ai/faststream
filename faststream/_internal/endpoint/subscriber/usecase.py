@@ -10,6 +10,7 @@ from typing import (
     NamedTuple,
     Optional,
     Union,
+    cast,
 )
 
 from typing_extensions import Self, overload, override
@@ -284,7 +285,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         ],
     ]:
         total_deps = (*self._call_options.dependencies, *dependencies)
-        async_filter: AsyncFilter[StreamMessage[MsgType]] = to_async(filter)
+        async_filter = cast(
+            "AsyncFilter[StreamMessage[MsgType]]",
+            to_async(filter),
+        )
 
         def real_wrapper(
             func: Callable[P_HandlerParams, T_HandlerReturn],
@@ -457,7 +461,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         raise NotImplementedError
 
     @abstractmethod
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:
+    def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:
+        # NOTE: not `async def` on purpose. Implementations are async generators,
+        # so calling `__aiter__()` returns the iterator itself, not a coroutine.
+        # Declaring it `async` here would type it as `Coroutine[..., AsyncIterator]`,
+        # which the `async for` protocol does not accept.
         raise NotImplementedError
 
     def get_log_context(
