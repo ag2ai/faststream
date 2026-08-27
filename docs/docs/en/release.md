@@ -359,7 +359,7 @@ The following APIs that were deprecated in earlier 0.x releases have been fully 
 
 ### What's Changed
 
-Just two main changes: 
+Just two main changes:
 
 1. `from faststream.mqtt import MQTTBroker` (thanks [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"})
 2. All deprecations removed:
@@ -377,7 +377,7 @@ uv add --pre "faststream[mqtt]==0.7.0rc0"
 ```
 
 We will release a stable version as soon as we test `MQTTBroker` with production services (in a few weeks).
-   
+
 * feat: FastStream[mqtt] by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#2819](https://github.com/ag2ai/faststream/pull/2819){.external-link target="_blank"}
 * fix: include pattern subscribers in AsyncAPI specification by [@aazmv](https://github.com/aazmv){.external-link target="_blank"} in [#2813](https://github.com/ag2ai/faststream/pull/2813){.external-link target="_blank"}
 * fix: cli preserve import errors by [@vovkka](https://github.com/vovkka){.external-link target="_blank"} in [#2817](https://github.com/ag2ai/faststream/pull/2817){.external-link target="_blank"}

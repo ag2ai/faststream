@@ -120,6 +120,11 @@ def convert_links_and_usernames(text: str) -> str:
     return text
 
 
+def strip_trailing_whitespace(text: str) -> str:
+    """Drop trailing spaces GitHub keeps in release bodies: pre-commit strips them."""
+    return "\n".join(line.rstrip() for line in text.splitlines()).strip()
+
+
 def collect_already_published_versions(text: str) -> List[str]:
     data: List[str] = re.findall(r"^## (\d+\.\d+\.\d+.*)", text, re.MULTILINE)
     return data
@@ -144,6 +149,7 @@ def update_release_notes(release_notes_path: Path):
     ):
         body = body.replace("##", "###")
         body = convert_links_and_usernames(body)
+        body = strip_trailing_whitespace(body)
         version_changelog = f"## {version}\n\n{body}\n\n"
         changelog = version_changelog + changelog
         added_versions.append(version)
