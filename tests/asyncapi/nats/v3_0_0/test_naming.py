@@ -25,8 +25,8 @@ class TestNaming(NamingTestCase):
 
         (channel_name,) = schema["channels"]
         assert channel_name == "logs.{level}:Handle"
-        # no subject to name: this consumer reaches the stream by filtering
-        assert schema["channels"][channel_name]["address"] == ""
+        # one filtered subject, so that subject is the address
+        assert schema["channels"][channel_name]["address"] == "logs.{level}"
         assert (
             schema["channels"][channel_name]["bindings"]["nats"]["subject"]
             == "logs.{level}"
@@ -51,6 +51,9 @@ class TestNaming(NamingTestCase):
             schema["channels"][channel_name]["bindings"]["nats"]["subject"]
             == "logs.info, logs.error"
         )
+        # Two filtered subjects, so neither one of them is *the* address, and an
+        # absent address is the only way to say that.
+        assert "address" not in schema["channels"][channel_name]
 
     def test_base(self) -> None:
         broker = self.broker_class()

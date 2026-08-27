@@ -39,6 +39,22 @@ class NatsSubscriberSpecification(
         return self.subject.template or ", ".join(self.filter_subjects)
 
     @property
+    def address(self) -> str | None:
+        """The subject a publisher sends to for this endpoint to receive it.
+
+        A JetStream consumer with no `subject` reaches the stream through
+        `filter_subjects`, and a single one of those is that address. Several are
+        not: no one string is the address, so the document gives none.
+        """
+        if subject := self.subject.template:
+            return subject
+
+        if len(subjects := self.filter_subjects) == 1:
+            return subjects[0]
+
+        return None
+
+    @property
     def name(self) -> str:
         if self.config.title_:
             return self.config.title_
@@ -50,7 +66,7 @@ class NatsSubscriberSpecification(
 
         return {
             self.name: SubscriberSpec(
-                address=self.subject.template,
+                address=self.address,
                 description=self.description,
                 operation=Operation(
                     message=Message(
