@@ -110,17 +110,22 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
         if self.calls:
             await self._create_subscription()
-            self.add_task(self._consume_loop)
+            self.add_task(self._consume_loop, restart_on_failure=False)
 
         self._post_start()
 
     @override
     async def stop(self) -> None:
-        await super().stop()
+        # Stop receiving before TasksMixin cancels the consume task. In particular,
+        # StopConsume calls this method from that task, so cancelling it first would
+        # also cancel an in-flight UNSUBSCRIBE.
+        self.running = False
         if self._subscription is not None:
             with suppress(Exception):
                 await self._subscription.stop()
             self._subscription = None
+
+        await super().stop()
 
     async def _create_subscription(self) -> None:
         auto_ack = self.ack_policy is AckPolicy.ACK_FIRST
