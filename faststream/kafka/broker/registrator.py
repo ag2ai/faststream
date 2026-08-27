@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 class KafkaRegistrator(
     Registrator[
-        ConsumerRecord | tuple[ConsumerRecord, ...],
+        ConsumerRecord[Any, Any] | tuple[ConsumerRecord[Any, Any], ...],
         KafkaBrokerConfig,
     ],
 ):

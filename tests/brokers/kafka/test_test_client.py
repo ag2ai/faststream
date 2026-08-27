@@ -48,7 +48,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             m.mock.assert_called_once_with("hello")
 
-    async def test_partition_match_exect(
+    async def test_partition_match_exact(
         self,
         queue: str,
     ) -> None:

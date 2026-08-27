@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
 
 
-Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
+Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any, Any])
 
 # ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
 # single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
@@ -260,7 +260,7 @@ class TestBroker(Generic[Broker, EnterType]):
         raise NotImplementedError
 
 
-def patch_broker_calls(broker: "BrokerUsecase[Any, Any]") -> None:
+def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
         sub._build_fastdepends_model()

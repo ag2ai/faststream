@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING, TypeAlias
+
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
-RabbitParserType = ParserProto["IncomingMessage"]  # type: ignore[name-defined]
+if TYPE_CHECKING:
+    from aio_pika import IncomingMessage
+
+RabbitParserType: TypeAlias = ParserProto["IncomingMessage"]
 
 try:
     from .annotations import RabbitMessage

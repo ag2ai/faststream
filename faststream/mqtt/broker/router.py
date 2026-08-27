@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional
 
-from zmqtt import QoS
+from zmqtt import Message, QoS
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -100,7 +100,7 @@ class MQTTRoute(SubscriberRoute):
 
 class MQTTRouter(
     MQTTRegistrator,
-    BrokerRouter["Any"],
+    BrokerRouter[Message, MQTTBrokerConfig],
 ):
     """Includable to MQTTBroker router."""
 

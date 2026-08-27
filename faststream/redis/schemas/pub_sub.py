@@ -40,7 +40,7 @@ class PubSub(NameRequired):
         if address.regex is not None or "*" in channel:
             pattern = True
 
-        # `name` is `NameRequired`'s writeable contract, so it mirrors the Broker
+        # `name` is `NameRequired`'s writable contract, so it mirrors the Broker
         # address rather than deriving from it. Both build points keep it in step.
         super().__init__(address.broker_address)
 

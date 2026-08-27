@@ -97,7 +97,7 @@ class KeyValueWatchSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsKvMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsKvMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )

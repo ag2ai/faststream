@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
 class RedisBroker(
     RedisRegistrator,
-    BrokerUsecase[UnifyRedisDict, "Redis[bytes]"],
+    BrokerUsecase[UnifyRedisDict, "Redis[bytes]", RedisBrokerConfig],
 ):
     """Redis broker."""
 
