@@ -9,12 +9,13 @@ def find_metablock(lines: List[str]) -> Tuple[List[str], List[str]]:
     if lines[0] != "---":
         return [], lines
 
-    index: int = 0
+    # The metablock ends at the *first* closing "---": later ones are just
+    # horizontal rules inside release bodies.
     for i in range(1, len(lines)):
         if lines[i] == "---":
-            index = i + 1
+            return lines[: i + 1], lines[i + 1 :]
 
-    return lines[:index], lines[index:]
+    return [], lines
 
 
 def find_header(lines: List[str]) -> Tuple[str, List[str]]:
@@ -54,41 +55,73 @@ def normalize_img_tag(match: re.Match) -> str:
     return "<img " + " ".join(parts) + ">"
 
 
+IMG_PATTERN = re.compile(r"<img\s+([^>]+)>", re.IGNORECASE)
+
+# Fragments that must survive untouched: whatever is already a link, markup or
+# code. Everything outside them is plain text we are free to rewrite.
+PROTECTED_PATTERN = re.compile(
+    "|".join((
+        r"```.*?```",  # fenced code block
+        r"`[^`\n]+`",  # inline code
+        r"<https?://[^>\s]+>",  # autolink
+        r"</?[A-Za-z][^>\n]*>",  # HTML tag, <img ...> included
+        r"!?\[[^\]\n]*\]\([^)\n]*\)(?:\{[^}\n]*\})?",  # markdown link/image
+        r"^\[[^\]\n]+\]:\s*\S+",  # markdown link definition
+    )),
+    re.DOTALL | re.MULTILINE,
+)
+
+URL_PATTERN = re.compile(r"https?://[^\s<>()\[\]]+")
+
+# A GitHub mention, as opposed to a Python decorator (@app.get, @broker(...))
+# or the local part of an e-mail address.
+USERNAME_PATTERN = re.compile(
+    r"(?<![\w.\-/])@([A-Za-z\d](?:[A-Za-z\d-]{0,37}[A-Za-z\d])?)(?![\w-])(?!\.\w)(?!\()",
+)
+
+EXTERNAL_LINK_ATTRS = '{.external-link target="_blank"}'
+
+
+def link_url(match: re.Match) -> str:
+    url = match.group(0)
+    # Trailing punctuation belongs to the sentence, not to the URL
+    trailing = ""
+    while url and url[-1] in ".,;:!?'\"":
+        url, trailing = url[:-1], url[-1] + trailing
+    if not url:
+        return match.group(0)
+    name = url.rstrip("/").rsplit("/", 1)[-1] or url
+    return f"[#{name}]({url}){EXTERNAL_LINK_ATTRS}{trailing}"
+
+
+def link_username(match: re.Match) -> str:
+    username = match.group(1)
+    return f"[@{username}](https://github.com/{username}){EXTERNAL_LINK_ATTRS}"
+
+
 def convert_links_and_usernames(text: str) -> str:
-    # Replace <img ...> tags with placeholders so their URLs are not wrapped as links
-    img_pattern = re.compile(r"<img\s+([^>]+)>")
-    img_placeholders: List[str] = []
+    protected: List[str] = []
 
-    def stash_img(match: re.Match) -> str:
-        img_placeholders.append(normalize_img_tag(match))
-        return f"\x00IMG_PLACEHOLDER_{len(img_placeholders) - 1}\x00"
+    def stash(match: re.Match) -> str:
+        fragment = match.group(0)
+        if img := IMG_PATTERN.fullmatch(fragment):
+            fragment = normalize_img_tag(img)
+        protected.append(fragment)
+        return f"\x00PROTECTED_{len(protected) - 1}\x00"
 
-    text = img_pattern.sub(stash_img, text)
+    text = PROTECTED_PATTERN.sub(stash, text)
 
-    if "](" not in text:
-        # Convert HTTP/HTTPS links (img tags already stashed, so their URLs are not matched)
-        text = re.sub(
-            r"(https?://.*\/(.*))",
-            r'[#\2](\1){.external-link target="_blank"}',
-            text,
-        )
+    text = URL_PATTERN.sub(link_url, text)
+    text = USERNAME_PATTERN.sub(link_username, text)
 
-        # Convert GitHub usernames to links
-        text = re.sub(
-            r"@(\w+) ",
-            r'[@\1](https://github.com/\1){.external-link target="_blank"} ',
-            text,
-        )
-
-    # Restore normalized img tags
-    for i, img in enumerate(img_placeholders):
-        text = text.replace(f"\x00IMG_PLACEHOLDER_{i}\x00", img)
+    for i, fragment in enumerate(protected):
+        text = text.replace(f"\x00PROTECTED_{i}\x00", fragment)
 
     return text
 
 
 def collect_already_published_versions(text: str) -> List[str]:
-    data: List[str] = re.findall(r"## (\d.\d.\d.*)", text)
+    data: List[str] = re.findall(r"^## (\d+\.\d+\.\d+.*)", text, re.MULTILINE)
     return data
 
 
