@@ -65,6 +65,13 @@ broker = RabbitBroker(log_level=logging.DEBUG)
 
 ## Setting logging configuration from file
 
+!!! warning "CLI flag availability"
+    The `--log-file` CLI flag shown below is **not available in FastStream 0.5**.
+    It was documented in the release notes for a later version; running
+    `faststream run serve:app --log-file config.json` on 0.5 fails with an
+    "unrecognized arguments" error. Verify your installed version
+    (`faststream --version`) before relying on it.
+
 If you use **FastStream CLI**, you have the option to use a file to configure your logging of the entire application directly from the command line.
 
 === "JSON"
