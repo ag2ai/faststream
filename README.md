@@ -50,7 +50,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin) especially)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin-deprecated) especially)
 
 That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
 
@@ -206,7 +206,7 @@ from faststream.kafka import KafkaBroker
 broker = KafkaBroker(serializer=MsgSpecSerializer())
 ```
 
-You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/gettings-started/subscription/msgspec/).
+You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/).
 
 <a id="unified-api"></a>
 
