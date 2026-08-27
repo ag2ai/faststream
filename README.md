@@ -57,7 +57,7 @@ That is **FastStream**: everything a messaging service needs around your handler
 ---
 
 **Documentation**: <a href="https://faststream.ag2.ai/latest/" target="_blank">https://faststream.ag2.ai/latest/</a>
- 
+
 <details>
 <summary><b>Table of Contents</b></summary>
 
