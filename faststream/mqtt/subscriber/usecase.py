@@ -170,7 +170,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[zmqtt.Message]"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["StreamMessage[zmqtt.Message]"]:
         if self._subscription is None:
             await self._create_subscription()
 

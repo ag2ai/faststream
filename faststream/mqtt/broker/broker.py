@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
 class MQTTBroker(
     MQTTRegistrator,
-    BrokerUsecase[zmqtt.Message, zmqtt.MQTTClient],
+    BrokerUsecase[zmqtt.Message, zmqtt.MQTTClient, MQTTBrokerConfig],
 ):
     """MQTT broker for FastStream using the zmqtt client library."""
 
