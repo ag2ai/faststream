@@ -240,6 +240,8 @@ class TestBroker(Generic[Broker, EnterType]):
             if getattr(p, "_fake_handler", None):
                 p.reset_test()
 
+        # Fakes are registered with `persistent=False`, so the broker holds them weakly
+        # and they outlive us until the next collection (see issue #2990).
         for sub in self._fake_subscribers:
             broker._subscribers.discard(sub)
 
