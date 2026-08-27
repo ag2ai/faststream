@@ -42,12 +42,28 @@ class KafkaSubscriberSpecification(
 
         return f"{','.join(self.topics)}:{self.call_name}"
 
+    def _channel_key(self, topic: str, *, split: bool) -> str:
+        """The key one topic's channel goes under.
+
+        A declared `title` names the channel the user asked for, but channel keys
+        must be unique and several topics are several channels. So the title
+        prefixes the topic there instead of being written once per topic, which
+        would leave one channel and drop every other topic from the document.
+        """
+        if not self.config.title_:
+            return f"{topic}:{self.call_name}"
+
+        return f"{self.config.title_}:{topic}" if split else self.config.title_
+
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
+        topics = self.topics
+        split = len(topics) > 1
+
         channels = {}
-        for t in self.topics:
-            handler_name = self.config.title_ or f"{t}:{self.call_name}"
+        for t in topics:
+            handler_name = self._channel_key(t, split=split)
 
             channels[handler_name] = SubscriberSpec(
                 address=t,

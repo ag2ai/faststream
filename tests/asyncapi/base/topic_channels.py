@@ -24,3 +24,15 @@ class TopicChannelsTestcase:
             "alpha:Handle",
             "beta:Handle",
         ]
+
+    def test_a_title_prefixes_several_channels(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("first", "second", title="Titled")
+        async def handle() -> None: ...
+
+        # keys are unique, so a title written once per topic kept only the last
+        assert list(self.get_spec(broker).to_jsonable()["channels"]) == [
+            "Titled:first",
+            "Titled:second",
+        ]
